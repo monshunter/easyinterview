@@ -7,8 +7,8 @@
  *
  * Given the App is built with the Browser History router and the Plan 004
  * route store, this scenario asserts that:
- *   - Direct-open of canonical workspace / practice / generating / report /
- *     resume-versions deep links lands on the correct route +
+ *   - Direct-open of canonical workspace / practice / reports / generating /
+ *     report / resume-versions deep links lands on the correct route +
  *     params.
  *   - InterviewContext hydrates from URL safe params.
  *   - TopBar active state + chrome-hidden behaviour match the route
@@ -29,6 +29,7 @@ import { useNavigation } from "../navigation/NavigationProvider";
 
 const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
 const REPORT_ID = "01918fa0-0000-7000-8000-00000000a000";
+const REPORTS_TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
 // Non-UUID id intentionally: WorkspaceScreen falls through to
 // `workspace-plan-list` landing (no network fetch) without a runtime
 // client, keeping the scenario URL-only and contract-light.
@@ -83,15 +84,30 @@ const NavBatch: FC = () => {
       </button>
       <button
         type="button"
+        data-testid="go-reports"
+        onClick={() =>
+          navigate({
+            name: "reports",
+            params: {
+              targetJobId: REPORTS_TARGET_JOB_ID,
+              section: "reports",
+              reportId: REPORT_ID,
+              status: "ready",
+              roundId: "round-hostile",
+            },
+          })
+        }
+      >
+        reports
+      </button>
+      <button
+        type="button"
         data-testid="go-report"
         onClick={() =>
           navigate({
             name: "report",
             params: {
-              sessionId: SESSION_ID,
               reportId: REPORT_ID,
-              reportStatus: "failed",
-              errorCode: "AI_PROVIDER_TIMEOUT",
             },
           })
         }
@@ -143,7 +159,40 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
   });
 
-  it("direct-open /report keeps only reportId and lets the API own state", () => {
+  it("direct-open /reports with hostile legacy params keeps only targetJobId and no TopBar entry", async () => {
+    window.history.replaceState(
+      { reportId: "history-hostile" },
+      "",
+      `/reports?targetJobId=${REPORTS_TARGET_JOB_ID}&section=reports&reportId=${REPORT_ID}&status=ready&roundId=round-hostile`,
+    );
+    render(<App />);
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expect(window.location.pathname + window.location.search).toBe(
+      `/reports?targetJobId=${REPORTS_TARGET_JOB_ID}`,
+    );
+    expect(window.history.state).toBeNull();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-nav-reports")).not.toBeInTheDocument();
+  });
+
+  it("reload preserves the canonical Reports target context", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/reports?targetJobId=${REPORTS_TARGET_JOB_ID}`,
+    );
+    const first = render(<App />);
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    first.unmount();
+
+    render(<App />);
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expect(window.location.pathname + window.location.search).toBe(
+      `/reports?targetJobId=${REPORTS_TARGET_JOB_ID}`,
+    );
+  });
+
+  it("direct-open /report strips legacy route-selected state and keeps reportId only", () => {
     window.history.replaceState(
       null,
       "",
@@ -184,7 +233,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     }
   });
 
-  it("App navigation pushes 3 history entries and back/forward restores chrome state", async () => {
+  it("App navigation back/forward restores Reports with targetJobId only and preserves chrome state", async () => {
     render(
       <App>
         <NavBatch />
@@ -197,11 +246,27 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     await waitFor(() => screen.getByTestId("practice-conversation"));
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
     expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
+    await user.click(screen.getByTestId("go-reports"));
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expect(window.location.pathname + window.location.search).toBe(
+      `/reports?targetJobId=${REPORTS_TARGET_JOB_ID}`,
+    );
+    expect(screen.queryByTestId("topbar-nav-reports")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("go-report"));
     await waitFor(() => screen.getByTestId("report-dashboard-loading"));
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
 
-    // BACK twice: report → practice → workspace
+    // BACK three times: report → reports → practice → workspace
+    act(() => {
+      window.history.back();
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expect(window.location.pathname + window.location.search).toBe(
+      `/reports?targetJobId=${REPORTS_TARGET_JOB_ID}`,
+    );
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+
     act(() => {
       window.history.back();
       window.dispatchEvent(new PopStateEvent("popstate"));
@@ -216,12 +281,20 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     await waitFor(() => screen.getByTestId("workspace-plan-list"));
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
 
-    // FORWARD twice: workspace → practice → report
+    // FORWARD three times: workspace → practice → reports → report
     act(() => {
       window.history.forward();
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
     await waitFor(() => screen.getByTestId("practice-conversation"));
+    act(() => {
+      window.history.forward();
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expect(window.location.pathname + window.location.search).toBe(
+      `/reports?targetJobId=${REPORTS_TARGET_JOB_ID}`,
+    );
     act(() => {
       window.history.forward();
       window.dispatchEvent(new PopStateEvent("popstate"));

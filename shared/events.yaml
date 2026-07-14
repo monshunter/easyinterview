@@ -44,23 +44,11 @@ envelope:
       required: true
 
 eventLocalEnums:
-  - name: TargetImportSourceType
-    description: Event-local enum; does not enter B1 / B2 public enums.
-    values:
-      - url
-      - text
-      - file
   - name: ResumeTailorMode
     description: Event-local enum; does not enter B1 / B2 public enums.
     values:
       - gap_review
       - bullet_suggestions
-  - name: SourceFreshnessStatus
-    description: Event-local enum; does not enter B1 / B2 public enums.
-    values:
-      - fresh
-      - stale
-      - failed
 events:
   - name: target.import.requested
     version: 1
@@ -69,10 +57,9 @@ events:
     requiredPayload:
       targetJobId: { type: uuidv7, source: spec:3.1.4 }
       userId: { type: uuidv7, source: spec:3.1.4 }
-      sourceType: { type: $ref:event.TargetImportSourceType, source: spec:3.1.4 }
       targetLanguage: { type: string, source: spec:3.1.4 }
     optionalPayload: {}
-    piiBoundary: IDs only; no raw JD text or URL body.
+    piiBoundary: IDs and language only; no raw JD text.
   - name: target.parsed
     version: 1
     producer: backend_async
@@ -175,17 +162,6 @@ events:
       status: { type: $ref:b1.ReportStatus, source: spec:3.1.4 }
     optionalPayload: {}
     piiBoundary: No tailored bullet text.
-  - name: source.refreshed
-    version: 1
-    producer: backend_async
-    aggregateType: source_record
-    requiredPayload:
-      sourceRecordId: { type: uuidv7, source: spec:3.1.4 }
-      ownerType: { type: string, source: spec:3.1.4 }
-      ownerId: { type: uuidv7, source: spec:3.1.4 }
-      freshnessStatus: { type: $ref:event.SourceFreshnessStatus, source: spec:3.1.4 }
-    optionalPayload: {}
-    piiBoundary: No source snapshot content or URL secret.
   - name: privacy.request.created
     version: 1
     producer: api

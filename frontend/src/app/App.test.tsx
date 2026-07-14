@@ -62,6 +62,21 @@ describe("App shell", () => {
     unmountReport();
   });
 
+  it("renders the target-scoped Reports screen with chrome and no global nav entry", () => {
+    render(
+      <App
+        initialRoute={{
+          name: "reports",
+          params: { targetJobId: "01918fa0-0000-7000-8000-000000002000" },
+        }}
+      />,
+    );
+    expect(screen.getByTestId("reports-screen")).toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-nav-reports")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("route-reports")).not.toBeInTheDocument();
+  });
+
   it("hides chrome for immersive practice / generating routes", () => {
     // practice route now mounts PracticeScreen; without sessionId it falls
     // back to PracticeSessionLostState (still chrome-less).

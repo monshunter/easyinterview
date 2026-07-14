@@ -181,7 +181,7 @@ func (s *Service) DeleteFileObjectsForUser(ctx context.Context, userID string) (
 
 func publicPurpose(raw string) (store.Purpose, bool) {
 	switch store.Purpose(raw) {
-	case store.PurposeResume, store.PurposeTargetJobAttachment, store.PurposePrivacyExport:
+	case store.PurposeResume, store.PurposePrivacyExport:
 		return store.Purpose(raw), true
 	default:
 		return "", false

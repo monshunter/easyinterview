@@ -7,8 +7,8 @@ metadata:
   baseBranch: main
   branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.35
-    to: 1.36
+    from: 1.36
+    to: 1.37
 spec:
   defaultTarget: backend
   discovery:
@@ -49,6 +49,11 @@ spec:
       - 20 app 3 auth 2 metadata
       - practice messages reply status
       - refresh safe client message recovery
+      - reply generation fence
+      - 90 second pending lease
+      - reply lease expires at
+      - target jobs latest report id removed
+      - no report pointer column
   targets:
     backend:
       plan: ./plan.md

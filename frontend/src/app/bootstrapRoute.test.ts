@@ -32,6 +32,16 @@ describe("parseInitialRouteHash", () => {
     });
   });
 
+  it("canonicalizes a Reports hash to targetJobId-only /reports", () => {
+    const loose = parseInitialRouteHash(
+      "#route=reports&targetJobId=tj-1&section=reports&reportId=rpt-1&rawText=private",
+    );
+    expect(loose).toBeDefined();
+    expect(formatRouteUrl(normalizeRoute(loose!))).toBe(
+      "/reports?targetJobId=tj-1",
+    );
+  });
+
   it("returns undefined when the hash does not carry a route", () => {
     expect(parseInitialRouteHash("")).toBeUndefined();
     expect(parseInitialRouteHash("#reportId=report-1")).toBeUndefined();

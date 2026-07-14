@@ -1,8 +1,8 @@
 # Grounded Conversation Report Test Checklist
 
-> **版本**: 2.17
-> **状态**: completed
-> **更新日期**: 2026-07-13
+> **版本**: 2.19
+> **状态**: active
+> **更新日期**: 2026-07-14
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -58,3 +58,9 @@
   <!-- verified: 2026-07-13 evidence="final run59381 keeps evalkit state separate from P0.058 product state and terminally rejects a valid negative without retry" -->
 - [x] Focused/full Go/race/PostgreSQL, contexts, docs/index and diff gates pass before completion.
   <!-- verified: 2026-07-13 evidence="focused/full Go, race, PostgreSQL and P0.058 PASS; contexts valid; docs/index zero drift; git diff --check clean" -->
+
+## Phase 10: Canonical-round report overview
+
+- [x] Closed-wire, canonical coverage/order, independent current/latest selection, tie-break, nullable/error-enum, hidden-404, invalid-context whole-response fail-closed and privacy tests pass.
+  <!-- verified: 2026-07-14 evidence="Focused RED/GREEN plus full practice/review/store/reports package runs pass; handler error responses are asserted directly against listTargetJobReports fixtures including X-Request-ID/requestId/details." -->
+- [ ] Generated/fixture owner handoff, P0.059 composition, ReportsScreen-only consumer negative, focused/full review/store/API and scoped stale-pointer/pagination searches pass.

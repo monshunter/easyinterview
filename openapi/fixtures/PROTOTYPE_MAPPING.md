@@ -1,8 +1,8 @@
 # PROTOTYPE_MAPPING
 
-> **版本**: 1.5
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 把 [ui-design/src/data.jsx](../../ui-design/src/data.jsx) 的 mock 数据节映射到 OpenAPI v1 contract 的 P0 关键 operationId。`make sync-fixtures-from-prototype` 只读这张表 + data.jsx，把映射结果写入 §3 列出的 fixture 的 `scenarios.prototype-baseline` 节。该 scenario 是 spec §4.7 锁定的「ui 原型同源」入口；同步工具不会改写任何 fixture 的 `scenarios.default`。
 
@@ -19,7 +19,7 @@
 | data.jsx 节 | OpenAPI operationId | 关系 | Tag | 说明 |
 |-------------|---------------------|------|-----|------|
 | `user` | `getMe` | 1:1 | Auth | `email` → `emailMasked`（脱敏）；`name` → `displayName`；`locale` → `uiLanguage` / `preferredPracticeLanguage`。 |
-| `targetJobs[]` | `listTargetJobs` | 1:N | TargetJobs | 每个 `tj-N` 映射为 `TargetJob`：`title/company → companyName/locationText/language → targetLanguage/source → sourceType`；`status` 取 OpenAPI enum 中最贴近的值；`statusTone/level/source/updatedAt` 等展示字段不入 fixture。 |
+| `targetJobs[]` | `listTargetJobs` | 1:N | TargetJobs | 每个 `tj-N` 映射为 `TargetJob`：`title/company → companyName/locationText/language → targetLanguage`；`status` 取 OpenAPI enum 中最贴近的值；`statusTone/level/updatedAt` 等展示字段不入 fixture，来源 provenance 与 `latestReportId` 均不属于 TargetJob wire projection。 |
 | `targetJobs[0]` + `jdSample` | `getTargetJob` | N:1 | TargetJobs | 取第一个 target job 的核心字段，再用 `jdSample.mustHave` / `jdSample.nice` 填 `requirements[]`，`jdSample.hidden` 折成 `summary.coreThemes`，`jdSample.rounds` 折成 2~5 条 `summary.interviewRounds[]`（含 `sequence/type/name/durationMinutes/focus`）。 |
 | `sessionTranscript` | `getPracticeSession` | 1:1 | PracticeSessions | 按时间顺序映射为 `messages[]`；不生成题号、当前题或 turn 状态。 |
 | `report` + `targetJobs[0]` | `getFeedbackReport` | N:1 | Reports | `report` 的 direct report 字段原样投影；`targetJobs[0]` 只用于生成稳定 `targetJobId`。同步器归一化冻结的 plan/resume/report/session UUID，并将公司名替换为通用 fixture 名。 |
@@ -41,10 +41,11 @@
 - **enum 翻译**:
     - `targetJobs[].status` 中文 → `TargetJobStatus`：`面试中→interviewing`、`准备中→preparing`、`草稿→draft`。
     - `targetJobs[].language` → `targetLanguage`：`中文→zh-CN`、`英文→en`。
-    - `targetJobs[].source` → `sourceType`：`粘贴 JD→manual_text`、`岗位链接→url`、`招聘方邮件→manual_text`。
+    - TargetJob prototype projection 不读取或生成来源类型/URL；当前 JD intake 只有 paste-only 请求，response 不再暴露来源 provenance。
     - `report.preparednessLevel`、`dimensionAssessments[].status/confidence`、`highlights/issues[].dimensionCode` 与 `nextActions[].type` 必须已经使用当前 OpenAPI enum/字段，不做旧字段兼容翻译。
 - **报告冻结上下文**: `report.context` 必须包含当前最小上下文；同步器只把 prototype plan/resume id 归一化为 UUIDv7，并把公司名替换为通用 fixture 名，不从其他展示字段重新推断轮次或结论。
 - **报告派生焦点**: 仅投影 `retryFocusDimensionCodes`；`retryFocusCompetencyCodes`、`dimension`、question/turn 级报告字段不会被恢复。
+- **报告记录 UI 镜像**: `data.jsx.reportOverview` 只镜像 `listTargetJobReports` 的 closed response shape：`targetJobId + rounds[].round/currentReport/latestAttempt`。UI 使用 `item.round.{roundId,roundSequence}`；不从 TargetJob 读取或重建 `latestReportId`。该 endpoint 的完整状态/失败矩阵由 hand-authored named scenarios 承担，不额外生成冗余 `prototype-baseline`。
 - **provenance**: AI schema 的 `provenance` 不依赖 data.jsx，由同步工具直接填入与 default scenario 同款的 `GenerationProvenance`（6 字段非空，非评分场景填 `not_applicable`）。
 - **emailMasked**: `user.email` 走 `_masked_email("alice@example.com") → "ali***@example.com"`。
 - **lossy 字段**: 任何 OpenAPI 不接受的展示字段（`statusTone` / `readinessLabel` / `t` / `qIdx` / 中文「2 小时前」等）必须丢弃，不能写入 fixture body。

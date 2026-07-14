@@ -36,8 +36,8 @@ func (h *Handler) SendPracticeMessage(w http.ResponseWriter, r *http.Request, se
 	}
 	writeJSON(w, http.StatusOK, api.SendPracticeMessageResponse{
 		Acknowledged:     result.Acknowledged,
-		UserMessage:      toAPIPracticeMessage(result.UserMessage),
-		AssistantMessage: toAPIPracticeMessage(result.AssistantMessage),
+		UserMessage:      toAPIPracticeUserMessage(result.UserMessage),
+		AssistantMessage: toAPIPracticeAssistantMessage(result.AssistantMessage),
 		Session:          toAPIPracticeSession(result.Session),
 	})
 }

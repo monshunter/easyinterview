@@ -1,8 +1,8 @@
 # 001 — Grounded Conversation Report Generation Checklist
 
-> **版本**: 2.18
-> **状态**: completed
-> **更新日期**: 2026-07-13
+> **版本**: 2.20
+> **状态**: active
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -84,3 +84,18 @@
   <!-- verified: 2026-07-13 run="e2e-p0-099-20260713T095144Z-12381" evidence="exact six full-page desktop/mobile images across two ready states plus generating; DB/API canonical digests and manual content audit bound; raw-debug absent; trigger+verify PASS" -->
 - [x] 8.7 After every backend/frontend/scenario consumer passes, complete OpenAPI 003 Phase 5.4 baseline re-freeze; require preserved old-baseline audit plus clean current `make openapi-diff`, then run all focused/full backend, migration, OpenAPI/codegen/fixtures, prompt/eval, privacy/negative, docs/index and diff gates.
   <!-- verified: 2026-07-13 evidence="preserved OPENAPI-001 old-baseline audit; current OpenAPI 37 operations/37 fixtures/0 findings; Prism 7/7 byte-equal; migration v19 up/down/up and lint PASS; prompt/rubric/offline eval, privacy negatives, docs/index/context/diff gates PASS" -->
+
+## Phase 10: Canonical-round report overview
+
+- [x] 10.1 DEPENDENCY-GATE: consume accepted OpenAPI/migration current-shape handoff while keeping `GET /targets/{targetJobId}/reports` + `listTargetJobReports`; generated request has no `cursor/pageSize`, response has no pagination/full report payload, and TargetJob/storage no longer exposes `latestReportId/latest_report_id`.
+  <!-- verified: 2026-07-14 method=contract-handoff evidence="Current OpenAPI/generated/fixtures retain the route and operationId with TargetJobReportsOverview only; pointer removal focused tests and six production-surface scans pass with no pagination request or TargetJob report pointer." -->
+- [x] 10.2 RED-GREEN: store/service returns every current `TargetJob.summary.interviewRounds[]` entry in canonical order as `PracticeRoundRef`, including rounds with both pointers null; ReportsScreen display fields are not duplicated into the overview.
+  <!-- verified: 2026-07-14 method=tdd+full-package evidence="Store/service tests enumerate 2-5 canonical rounds in current order, preserve explicit null pointers and allow current display evolution when the frozen id/sequence pair remains; the domain/wire carries no display fields." -->
+- [x] 10.3 RED-GREEN: `currentReport` selects only ready rows with non-null `generated_at` by `generated_at DESC, created_at DESC, id DESC`; `latestAttempt` selects all statuses by `created_at DESC, id DESC`; newer failed/generating preserves prior ready and latest ready may occupy both pointers.
+  <!-- verified: 2026-07-14 method=selection-matrix evidence="Independent ready/latest selection, newer failed/generating, latest-ready dual occupancy and generatedAt/createdAt/id tie-break tests pass; failed codes are generated-enum values and non-failed stored errors project null." -->
+- [x] 10.4 RED-GREEN: hidden 404 applies to missing/deleted/non-owned TargetJob；invalid canonical summary、missing/invalid frozen context、user/target/session mismatch、noncanonical round pair or ready-null-generatedAt rejects the entire response with no partial/mutable/URL fallback.
+  <!-- verified: 2026-07-14 method=fail-closed-matrix evidence="Read-only repeatable-read store tests reject every listed identity/context/status case as a whole response; missing generation context has a typed subtype while retaining ErrReportContextInvalid compatibility, and current catalog comparison is pair-membership only." -->
+- [x] 10.5 CONTRACT-GATE: handler projects only `targetJobId`, `round`, `currentReport{id,generatedAt}` and `latestAttempt{id,status,errorCode,createdAt}`；closed-object/nullable/error enum/ordering fixtures and privacy tests pass, with no summary/readiness/provenance/model/rubric leakage.
+  <!-- verified: 2026-07-14 method=fixture-exact-remediation+full-package evidence="An independent review caught the reused single-report error mapper. RED fixture-exact tests then required request correlation, TARGET_JOB_NOT_FOUND and AI_OUTPUT_INVALID missing/invalid details; operation-specific GREEN mapping now matches current fixtures. Four full target packages pass and the minimal JSON-key/privacy negatives remain green." -->
+- [ ] 10.6 BDD-Gate: `E2E.P0.059` composes focused backend overview evidence and proves target-scoped ReportsScreen-only consumption；Parse/Report/Generating keep zero list calls，Report/Generating stay reportId-only，and no global/history Report Center appears.
+- [ ] 10.7 POST-PASS: focused/full review/store/API tests、owner handoffs、context/docs/diff checks and scoped negative searches for pagination/full-list/`latest_report_id` drift pass before this plan returns to completed.

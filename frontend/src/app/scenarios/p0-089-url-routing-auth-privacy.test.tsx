@@ -33,6 +33,8 @@ import {
 import { App } from "../App";
 import { useRequestAuth, type PendingAction } from "../auth";
 
+const REPORTS_TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
+
 /** Representative raw markers — must never appear in URL / history / storage. */
 const RAW_MARKERS = {
   rawText: "RAW_JD_TEXT_2c1a",
@@ -167,6 +169,63 @@ const PracticePendingTrigger: FC = () => {
 };
 
 describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
+  it("restores an unauthenticated Reports deep link with targetJobId only", async () => {
+    const hostile = new URLSearchParams({
+      targetJobId: REPORTS_TARGET_JOB_ID,
+      section: "reports",
+      reportId: "rpt-hostile",
+      status: "ready",
+      roundId: "round-hostile",
+    });
+    for (const [key, marker] of Object.entries(RAW_MARKERS)) {
+      hostile.set(key, marker);
+    }
+    window.history.replaceState(
+      { rawText: RAW_MARKERS.rawText, prompt: RAW_MARKERS.prompt },
+      "",
+      `/reports?${hostile.toString()}`,
+    );
+
+    render(
+      <App
+        client={buildClient()}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=unauthenticated" } },
+        }}
+      />,
+    );
+
+    await waitFor(() => screen.getByTestId("route-auth_login"));
+    expect(window.location.pathname).toBe("/auth/login");
+    const pendingSearch = new URLSearchParams(window.location.search);
+    expect(pendingSearch.get("pendingRoute")).toBe("reports");
+    expect(pendingSearch.get("targetJobId")).toBe(REPORTS_TARGET_JOB_ID);
+    for (const hostileKey of [
+      "section",
+      "reportId",
+      "status",
+      "roundId",
+      ...Object.keys(RAW_MARKERS),
+    ]) {
+      expect(pendingSearch.has(hostileKey), hostileKey).toBe(false);
+    }
+    expect(window.history.state).toBeNull();
+    expectNoRawMarkerLeak("after Reports deep-link auth redirect");
+
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("auth-login-email"), "alice@example.com");
+    await user.click(screen.getByTestId("auth-login-submit-email"));
+    await waitFor(() => screen.getByTestId("route-auth_verify"));
+    await user.type(screen.getByTestId("auth-verify-code"), "654321");
+    await user.click(screen.getByTestId("auth-verify-submit"));
+
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expect(window.location.pathname + window.location.search).toBe(
+      `/reports?targetJobId=${REPORTS_TARGET_JOB_ID}`,
+    );
+    expectNoRawMarkerLeak("after Reports auth restore");
+  });
+
   it("practice pending action: login round-trip restores canonical practice URL with zero raw-marker leak", async () => {
     render(
       <App
@@ -228,13 +287,16 @@ describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
     expectNoRawMarkerLeak("after verify restore to practice");
   });
 
-  it("auth/login direct open with hostile raw markers as query keeps only safe params", () => {
+  it("auth/login direct open for Reports keeps targetJobId and strips incompatible authority", () => {
     const hostile = new URLSearchParams();
-    hostile.set("pendingRoute", "workspace");
-    hostile.set("pendingType", "start_practice");
-    hostile.set("pendingLabel", "立即面试");
-    hostile.set("planId", "plan-1");
-    hostile.set("targetJobId", "tj-1");
+    hostile.set("pendingRoute", "reports");
+    hostile.set("pendingType", "open_protected_route");
+    hostile.set("pendingLabel", "面试报告");
+    hostile.set("targetJobId", REPORTS_TARGET_JOB_ID);
+    hostile.set("section", "reports");
+    hostile.set("reportId", "rpt-hostile");
+    hostile.set("status", "ready");
+    hostile.set("roundId", "round-hostile");
     for (const [k, v] of Object.entries(RAW_MARKERS)) {
       hostile.set(k, v);
     }
@@ -242,10 +304,12 @@ describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
     const { unmount } = render(<App client={buildClient()} />);
     expect(window.location.pathname).toBe("/auth/login");
     const safe = new URLSearchParams(window.location.search);
-    expect(safe.get("pendingRoute")).toBe("workspace");
-    expect(safe.get("pendingType")).toBe("start_practice");
-    expect(safe.has("planId")).toBe(false);
-    expect(safe.has("targetJobId")).toBe(false);
+    expect(safe.get("pendingRoute")).toBe("reports");
+    expect(safe.get("pendingType")).toBe("open_protected_route");
+    expect(safe.get("targetJobId")).toBe(REPORTS_TARGET_JOB_ID);
+    for (const hostileKey of ["section", "reportId", "status", "roundId"]) {
+      expect(safe.has(hostileKey), hostileKey).toBe(false);
+    }
     expectNoRawMarkerLeak("after hostile direct-open of /auth/login");
     unmount();
   });

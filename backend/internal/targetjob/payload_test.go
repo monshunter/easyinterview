@@ -2,7 +2,6 @@ package targetjob_test
 
 import (
 	"encoding/json"
-	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -12,9 +11,8 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
-func TestBuildTargetImportRequestedPayload_HappyPathMapsAPISource(t *testing.T) {
+func TestBuildTargetImportRequestedPayload_HappyPathIsSourceFree(t *testing.T) {
 	p, err := targetjob.BuildTargetImportRequestedPayload(targetjob.TargetImportRequestedInput{
-		APISourceType:  targetjob.SourceTypeManualText,
 		TargetJobID:    "018f2a40-0000-7000-9000-0000000000a1",
 		TargetLanguage: "zh-CN",
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
@@ -22,23 +20,22 @@ func TestBuildTargetImportRequestedPayload_HappyPathMapsAPISource(t *testing.T) 
 	if err != nil {
 		t.Fatalf("BuildTargetImportRequestedPayload: %v", err)
 	}
-	if p.SourceType != events.TargetImportSourceTypeText {
-		t.Fatalf("manual_text must map to event-local text, got %q", p.SourceType)
-	}
 	if p.UserID != "018f2a40-0000-7000-9000-0000000000b1" {
 		t.Fatalf("UserID lost: %+v", p)
 	}
-}
-
-func TestBuildTargetImportRequestedPayload_RejectsManualForm(t *testing.T) {
-	_, err := targetjob.BuildTargetImportRequestedPayload(targetjob.TargetImportRequestedInput{
-		APISourceType:  targetjob.SourceTypeManualForm,
-		TargetJobID:    "018f2a40-0000-7000-9000-0000000000a1",
-		TargetLanguage: "en",
-		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
-	})
-	if !errors.Is(err, events.ErrManualFormNotEventSource) {
-		t.Fatalf("expected ErrManualFormNotEventSource, got %v", err)
+	raw, err := json.Marshal(p)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatalf("unmarshal payload: %v", err)
+	}
+	if len(got) != 3 || got["targetJobId"] == nil || got["userId"] == nil || got["targetLanguage"] == nil {
+		t.Fatalf("event payload must contain only targetJobId/userId/targetLanguage: %v", got)
+	}
+	if _, ok := got["sourceType"]; ok {
+		t.Fatalf("event payload must be source-free: %v", got)
 	}
 }
 
@@ -47,7 +44,6 @@ func TestBuildTargetImportRequestedPayload_RejectsForbiddenIDs(t *testing.T) {
 	// substring scan still catches it. Real callers wouldn't pass these,
 	// but the gate must reject them anyway.
 	_, err := targetjob.BuildTargetImportRequestedPayload(targetjob.TargetImportRequestedInput{
-		APISourceType:  targetjob.SourceTypeURL,
 		TargetJobID:    "raw_jd_text-leak", // smuggle the forbidden string through a string field
 		TargetLanguage: "en",
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
@@ -62,9 +58,9 @@ func TestBuildTargetImportRequestedPayload_RequiresMandatoryFields(t *testing.T)
 		name string
 		in   targetjob.TargetImportRequestedInput
 	}{
-		{"missing target", targetjob.TargetImportRequestedInput{APISourceType: targetjob.SourceTypeURL, TargetLanguage: "en", UserID: "u"}},
-		{"missing user", targetjob.TargetImportRequestedInput{APISourceType: targetjob.SourceTypeURL, TargetJobID: "t", TargetLanguage: "en"}},
-		{"missing language", targetjob.TargetImportRequestedInput{APISourceType: targetjob.SourceTypeURL, TargetJobID: "t", UserID: "u"}},
+		{"missing target", targetjob.TargetImportRequestedInput{TargetLanguage: "en", UserID: "u"}},
+		{"missing user", targetjob.TargetImportRequestedInput{TargetJobID: "t", TargetLanguage: "en"}},
+		{"missing language", targetjob.TargetImportRequestedInput{TargetJobID: "t", UserID: "u"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -106,13 +102,13 @@ func TestBuildTargetParsedPayload_RejectsNegativeCount(t *testing.T) {
 func TestBuildTargetAnalysisFailedPayload_HappyPath(t *testing.T) {
 	p, err := targetjob.BuildTargetAnalysisFailedPayload(targetjob.TargetAnalysisFailedInput{
 		TargetJobID: "018f2a40-0000-7000-9000-0000000000a1",
-		ErrorCode:   "TARGET_IMPORT_SOURCE_INVALID",
+		ErrorCode:   "TARGET_IMPORT_FAILED",
 		Retryable:   false,
 	})
 	if err != nil {
 		t.Fatalf("BuildTargetAnalysisFailedPayload: %v", err)
 	}
-	if p.ErrorCode != "TARGET_IMPORT_SOURCE_INVALID" || p.Retryable {
+	if p.ErrorCode != "TARGET_IMPORT_FAILED" || p.Retryable {
 		t.Fatalf("unexpected payload: %+v", p)
 	}
 }
@@ -146,7 +142,6 @@ func TestBuildTargetImportJobPayload_HappyPath(t *testing.T) {
 	raw, err := targetjob.BuildTargetImportJobPayload(targetjob.TargetImportJobPayload{
 		TargetJobID:    "018f2a40-0000-7000-9000-0000000000a1",
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
-		SourceType:     "manual_text",
 		TargetLanguage: "en",
 	})
 	if err != nil {
@@ -156,10 +151,16 @@ func TestBuildTargetImportJobPayload_HappyPath(t *testing.T) {
 	if err := json.Unmarshal(raw, &got); err != nil {
 		t.Fatalf("unmarshal job payload: %v", err)
 	}
-	for _, want := range []string{"targetJobId", "userId", "sourceType", "targetLanguage"} {
+	for _, want := range []string{"targetJobId", "userId", "targetLanguage"} {
 		if _, ok := got[want]; !ok {
 			t.Errorf("missing field %q in job payload", want)
 		}
+	}
+	if len(got) != 3 {
+		t.Fatalf("job payload must contain exactly three source-free fields: %v", got)
+	}
+	if _, ok := got["sourceType"]; ok {
+		t.Fatalf("job payload must be source-free: %v", got)
 	}
 	for _, forbidden := range []string{"rawJdText", "raw_jd_text", "promptBody", "prompt_body", "Authorization"} {
 		if _, ok := got[forbidden]; ok {

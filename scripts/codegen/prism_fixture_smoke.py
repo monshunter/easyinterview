@@ -31,6 +31,17 @@ SMOKE_MATRIX: tuple[tuple[str, str, str, int, str], ...] = (
      "openapi/fixtures/Auth/getMe.json"),
     ("listTargetJobs", "GET", "/targets", 200,
      "openapi/fixtures/TargetJobs/listTargetJobs.json"),
+    ("getTargetJob", "GET",
+     "/targets/01918fa0-0000-7000-8000-000000002000", 200,
+     "openapi/fixtures/TargetJobs/getTargetJob.json"),
+    ("importTargetJob", "POST", "/targets/import", 202,
+     "openapi/fixtures/TargetJobs/importTargetJob.json"),
+    ("updateTargetJob", "PATCH",
+     "/targets/01918fa0-0000-7000-8000-000000002000", 200,
+     "openapi/fixtures/TargetJobs/updateTargetJob.json"),
+    ("archiveTargetJob", "POST",
+     "/targets/01918fa0-0000-7000-8000-000000002000/archive", 202,
+     "openapi/fixtures/TargetJobs/archiveTargetJob.json"),
     ("getPracticeSession", "GET",
      "/practice/sessions/01918fa0-0050-7a00-8a00-000000000050", 200,
      "openapi/fixtures/PracticeSessions/getPracticeSession.json"),
@@ -58,8 +69,8 @@ def _curl(
         "-H", f"Prefer: {prefer}",
         "-H", "Cookie: ei_session=fake",
     ]
-    if method == "POST":
-        cmd += ["-X", "POST",
+    if method != "GET":
+        cmd += ["-X", method,
                 "-H", "Idempotency-Key: 01918fa0-0001-7a00-8a00-aaaaaaaaaaaa"]
     if request_body is not None:
         cmd += [

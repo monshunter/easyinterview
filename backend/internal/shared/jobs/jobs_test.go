@@ -58,7 +58,10 @@ func TestGeneratedJobMappings(t *testing.T) {
 	if IsSourceEventOnly(JobTypeTargetImport) {
 		t.Fatalf("target_import must remain trigger_creates_job")
 	}
-	for _, internalOnly := range []JobType{JobTypeSourceRefresh, JobTypeEmailDispatch} {
+	if len(JobTriggerEventSemantics) != 7 {
+		t.Fatalf("JobTriggerEventSemantics count = %d, want 7", len(JobTriggerEventSemantics))
+	}
+	for _, internalOnly := range []JobType{JobTypeEmailDispatch} {
 		if containsJobType(APIFacingJobTypes, internalOnly) {
 			t.Fatalf("%s must stay out of APIFacingJobTypes", internalOnly)
 		}

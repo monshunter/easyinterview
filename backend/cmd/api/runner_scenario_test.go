@@ -13,7 +13,6 @@ import (
 
 var (
 	_ runner.Handler = (*targetjob.ParseExecutor)(nil)
-	_ runner.Handler = (*targetjob.SourceRefreshHandler)(nil)
 	_ runner.Handler = (*privacyrunner.PrivacyDeleteHandler)(nil)
 	_ runner.Handler = (*resumejobs.ParseHandler)(nil)
 	_ runner.Handler = (*resumejobs.TailorHandler)(nil)

@@ -108,7 +108,7 @@ type ServerInterface interface {
 	// listTargetJobs — get /targets: List target jobs (cursor-paginated)
 	ListTargetJobs(w http.ResponseWriter, r *http.Request)
 
-	// importTargetJob — post /targets/import: Import a target job from URL / text / file / manual form
+	// importTargetJob — post /targets/import: Import a target job from pasted JD text
 	ImportTargetJob(w http.ResponseWriter, r *http.Request)
 
 	// getTargetJob — get /targets/{targetJobId}: Get a target-job workspace
@@ -120,7 +120,7 @@ type ServerInterface interface {
 	// archiveTargetJob — post /targets/{targetJobId}/archive: Archive a target job
 	ArchiveTargetJob(w http.ResponseWriter, r *http.Request, targetJobId string)
 
-	// listTargetJobReports — get /targets/{targetJobId}/reports: List feedback reports for a target job (cursor-paginated)
+	// listTargetJobReports — get /targets/{targetJobId}/reports: Get the canonical-round report overview for a target job
 	ListTargetJobReports(w http.ResponseWriter, r *http.Request, targetJobId string)
 
 	// createUploadPresign — post /uploads/presign: Issue a pre-signed object-storage upload URL

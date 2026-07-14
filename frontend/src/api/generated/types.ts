@@ -26,7 +26,7 @@ export type ApiError = ApiErrorAlias;
 
 export type PageInfo = PageInfoAlias;
 
-export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_IMPORT_SOURCE_INVALID" | "TARGET_IMPORT_SOURCE_UNAVAILABLE" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "PRACTICE_PLAN_NOT_FOUND" | "PRACTICE_SESSION_NOT_FOUND" | "REPORT_NOT_FOUND" | "REPORT_NOT_READY" | "REPORT_CONTEXT_TOO_LARGE" | "RESUME_EXPORT_NOT_AVAILABLE" | "VALIDATION_FAILED" | "RESOURCE_NOT_FOUND" | "IDEMPOTENCY_KEY_MISMATCH" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
+export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "PRACTICE_PLAN_NOT_FOUND" | "PRACTICE_SESSION_NOT_FOUND" | "REPORT_NOT_FOUND" | "REPORT_NOT_READY" | "REPORT_CONTEXT_TOO_LARGE" | "RESUME_EXPORT_NOT_AVAILABLE" | "VALIDATION_FAILED" | "RESOURCE_NOT_FOUND" | "IDEMPOTENCY_KEY_MISMATCH" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
 
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled" | "dead";
 
@@ -120,7 +120,7 @@ export interface UploadPresignRequest {
 	byteSize: number;
 	contentType: string;
 	fileName: string;
-	purpose: "resume" | "target_job_attachment" | "privacy_export";
+	purpose: "resume" | "privacy_export";
 }
 
 export interface UploadPresign {
@@ -177,37 +177,10 @@ export interface DuplicateResumeRequest {
 	structuredProfile?: Record<string, unknown>;
 }
 
-export interface TargetJobImportSourceURL {
-	type: string;
-	url: string;
-}
-
-export interface TargetJobImportSourceManualText {
-	rawText: string;
-	type: string;
-}
-
-export interface TargetJobImportSourceFile {
-	fileObjectId: string;
-	type: string;
-}
-
-export interface TargetJobImportSourceManualForm {
-	companyName?: string;
-	rawDescription: string;
-	title: string;
-	type: string;
-}
-
-// TargetJobImportSource: free-form OpenAPI shape rendered as `unknown` for safety.
-export type TargetJobImportSource = unknown;
-
 export interface ImportTargetJobRequest {
-	companyNameHint?: string;
+	rawText: string;
 	resumeId: string;
-	source: TargetJobImportSource;
 	targetLanguage: string;
-	titleHint?: string;
 }
 
 export interface TargetJobWithJob {
@@ -261,14 +234,11 @@ export interface TargetJob {
 	currentPracticePlanId?: string | null;
 	fitSummary?: TargetJobFitSummary | null;
 	id: string;
-	latestReportId?: string | null;
 	locationText?: string | null;
 	openQuestionIssueCount: number;
 	practiceProgress?: PracticeProgress;
 	requirements: TargetJobRequirement[];
 	resumeId?: string | null;
-	sourceType: "manual_text" | "url" | "file" | "manual_form";
-	sourceUrl?: string | null;
 	status: TargetJobStatus;
 	summary?: TargetJobSummary | null;
 	targetLanguage: string;
@@ -321,13 +291,29 @@ export interface StartPracticeSessionRequest {
 	planId: string;
 }
 
-export interface PracticeMessage {
+export type PracticeReplyStatus = "pending" | "retryable_failed" | "terminal_failed" | "complete";
+
+export const AllPracticeReplyStatuses = ["pending", "retryable_failed", "terminal_failed", "complete"] as const;
+
+export interface PracticeUserMessage {
+	clientMessageId: string;
 	content: string;
 	createdAt: string;
 	id: string;
-	role: "user" | "assistant";
+	replyStatus: PracticeReplyStatus;
+	role: "user";
 	seqNo: number;
 }
+
+export interface PracticeAssistantMessage {
+	content: string;
+	createdAt: string;
+	id: string;
+	role: "assistant";
+	seqNo: number;
+}
+
+export type PracticeMessage = PracticeUserMessage | PracticeAssistantMessage;
 
 export interface PracticeSession {
 	createdAt: string;
@@ -403,9 +389,9 @@ export interface SendPracticeMessageRequest {
 
 export interface SendPracticeMessageResponse {
 	acknowledged: boolean;
-	assistantMessage: PracticeMessage;
+	assistantMessage: PracticeAssistantMessage;
 	session: PracticeSession;
-	userMessage: PracticeMessage;
+	userMessage: PracticeUserMessage;
 }
 
 export interface CompletePracticeSessionRequest {
@@ -474,9 +460,27 @@ export interface FeedbackReport {
 	updatedAt: string;
 }
 
-export interface PaginatedFeedbackReport {
-	items: FeedbackReport[];
-	pageInfo: PageInfo;
+export interface TargetJobReportsOverview {
+	rounds: TargetJobReportRoundOverview[];
+	targetJobId: string;
+}
+
+export interface TargetJobReportRoundOverview {
+	currentReport: TargetJobCurrentReportSummary | null;
+	latestAttempt: TargetJobReportAttemptSummary | null;
+	round: PracticeRoundRef;
+}
+
+export interface TargetJobCurrentReportSummary {
+	generatedAt: string;
+	id: string;
+}
+
+export interface TargetJobReportAttemptSummary {
+	createdAt: string;
+	errorCode: ApiErrorCode | null;
+	id: string;
+	status: ReportStatus;
 }
 
 export interface RequestResumeTailorRequest {

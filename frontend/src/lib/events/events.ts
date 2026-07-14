@@ -3,13 +3,9 @@
 
 import type { PracticeGoal, PrivacyRequestStatus, PrivacyRequestType, ReadinessTier, ReportStatus, TargetJobParseStatus } from '../conventions';
 
-export type TargetImportSourceType = "url" | "text" | "file";
-
 export type ResumeTailorMode = "gap_review" | "bullet_suggestions";
 
-export type SourceFreshnessStatus = "fresh" | "stale" | "failed";
-
-export type EventName = "target.import.requested" | "target.parsed" | "target.analysis.failed" | "practice.session.started" | "practice.session.completed" | "report.generation.requested" | "report.generated" | "report.generation.failed" | "resume.parse.completed" | "resume.tailor.completed" | "source.refreshed" | "privacy.request.created" | "privacy.request.completed";
+export type EventName = "target.import.requested" | "target.parsed" | "target.analysis.failed" | "practice.session.started" | "practice.session.completed" | "report.generation.requested" | "report.generated" | "report.generation.failed" | "resume.parse.completed" | "resume.tailor.completed" | "privacy.request.created" | "privacy.request.completed";
 
 export const EVENT_NAME_TARGET_IMPORT_REQUESTED = "target.import.requested" as const;
 export const EVENT_NAME_TARGET_PARSED = "target.parsed" as const;
@@ -21,12 +17,10 @@ export const EVENT_NAME_REPORT_GENERATED = "report.generated" as const;
 export const EVENT_NAME_REPORT_GENERATION_FAILED = "report.generation.failed" as const;
 export const EVENT_NAME_RESUME_PARSE_COMPLETED = "resume.parse.completed" as const;
 export const EVENT_NAME_RESUME_TAILOR_COMPLETED = "resume.tailor.completed" as const;
-export const EVENT_NAME_SOURCE_REFRESHED = "source.refreshed" as const;
 export const EVENT_NAME_PRIVACY_REQUEST_CREATED = "privacy.request.created" as const;
 export const EVENT_NAME_PRIVACY_REQUEST_COMPLETED = "privacy.request.completed" as const;
 
 export interface TargetImportRequestedPayload {
-  sourceType: TargetImportSourceType;
   targetJobId: string;
   targetLanguage: string;
   userId: string;
@@ -98,13 +92,6 @@ export interface ResumeTailorCompletedPayload {
   targetJobId: string;
 }
 
-export interface SourceRefreshedPayload {
-  freshnessStatus: SourceFreshnessStatus;
-  ownerId: string;
-  ownerType: string;
-  sourceRecordId: string;
-}
-
 export interface PrivacyRequestCreatedPayload {
   privacyRequestId: string;
   requestType: PrivacyRequestType;
@@ -129,7 +116,6 @@ export interface EventNameToPayload {
   "report.generation.failed": ReportGenerationFailedPayload;
   "resume.parse.completed": ResumeParseCompletedPayload;
   "resume.tailor.completed": ResumeTailorCompletedPayload;
-  "source.refreshed": SourceRefreshedPayload;
   "privacy.request.created": PrivacyRequestCreatedPayload;
   "privacy.request.completed": PrivacyRequestCompletedPayload;
 }

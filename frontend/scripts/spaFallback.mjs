@@ -22,6 +22,7 @@ export const FRONTEND_CANONICAL_PATHS = Object.freeze([
   "/resume-versions",
   "/parse",
   "/practice",
+  "/reports",
   "/generating",
   "/report",
   "/settings",

@@ -76,7 +76,7 @@ describe("pixel parity scaffold (Phase 1.1 + 1.2 + 1.3)", () => {
     expect(existsSync(PIXEL_PARITY_DIR)).toBe(true);
   });
 
-  it("keeps the P0.006 verify markers equal to the 12 tracked specs", () => {
+  it("keeps the P0.006 verify markers equal to the 13 tracked specs", () => {
     const specs = readdirSync(PIXEL_PARITY_DIR)
       .filter((name) => name.endsWith(".spec.ts"))
       .sort();
@@ -88,8 +88,16 @@ describe("pixel parity scaffold (Phase 1.1 + 1.2 + 1.3)", () => {
       .map(([name]) => name)
       .sort();
 
-    expect(specs).toHaveLength(12);
+    expect(specs).toHaveLength(13);
     expect(markers).toEqual(specs);
+  });
+
+  it("anchors the Playwright failed-summary guard away from business failed counters", () => {
+    const verify = readFileSync(SCENARIO_VERIFY, "utf8");
+    expect(verify).toContain(
+      "^[[:space:]]*[0-9]+ failed([[:space:]]|$)",
+    );
+    expect(verify).not.toContain("grep -Eq '[0-9]+ failed'");
   });
 
   it("keeps buffer-only screenshot smoke free of local baselines", () => {

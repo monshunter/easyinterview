@@ -1,8 +1,10 @@
 # Expected outcome
 
-- `report.*` and `generating.*` UI key sets stay exact across zh/en; typed backend enums never render as raw user copy.
-- Prototype and formal pages use identical fixtures and deterministic locale/timezone/Date/DPR/font/motion controls at 1440×900 and 390×844.
-- Normalized DOM text, selected computed styles, viewport-relative absolute bbox and responsive column/scroll-width assertions pass for zh needs-practice, en well-prepared and generating.
-- `pixelmatch` runs with threshold 0.1; every compared root has changed-pixel ratio ≤0.5%.
-- On parity failure, prototype/formal/diff images are attached; on success, no diagnostic image set is retained.
-- Frontend build, owner preflight, both browser specs, i18n gate and stale-contract negatives all pass with no skipped/no-test/failure marker.
+- Ready `ReportsScreen` renders exactly four current-plan rows, two current-report actions, one generating action, one failed status and no duplicate same-ready action.
+- `latest-ready` exposes one status on its round without a second ready/history action; the unrelated generating round retains its single latest-attempt action.
+- `loading`, `empty`, `error`, and mismatched-target states render no rows; mismatch proves current plan isolation and other-plan data remains absent.
+- Back reaches the same `/parse?targetJobId=<uuid>`; TopBar has no Reports entry and canonical Reports URL retains only `targetJobId`.
+- Reports source is the only production screen consumer of `listTargetJobReports`; Parse/Report/Generating do not consume it.
+- Formal/prototype DOM text, computed styles, absolute bbox and pixel parity pass at 1440x900 and 390x844 with changed ratio ≤0.5%.
+- Existing Report/Generating parity and trusted Reports/Workspace return tests stay green.
+- All source/unit/build/Playwright runners emit real pass markers with no skipped/no-test/failure evidence.

@@ -176,6 +176,34 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
     expect(window.location.search).not.toContain("errorCode=");
   });
 
+  it("navigate(reports) keeps only targetJobId and drops report state plus raw markers", async () => {
+    render(
+      <App>
+        <NavTrigger
+          testid="go-reports-raw"
+          to={{
+            name: "reports",
+            params: {
+              targetJobId: "01918fa0-0000-7000-8000-000000002000",
+              section: "reports",
+              reportId: "rpt-hostile",
+              status: "ready",
+              roundId: "round-hostile",
+              ...RAW_MARKERS,
+            },
+          }}
+        />
+      </App>,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("go-reports-raw"));
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expectNoRawMarkerLeak();
+    expect(window.location.pathname + window.location.search).toBe(
+      "/reports?targetJobId=01918fa0-0000-7000-8000-000000002000",
+    );
+  });
+
   it("navigate(jd_match) normalizes to home and drops raw query/label (D-17)", async () => {
     render(
       <App>

@@ -1,8 +1,8 @@
 # DB Migrations Baseline Bootstrap
 
-> **版本**: 1.21
+> **版本**: 1.23
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 把 [db-migrations-baseline spec](../../spec.md) 当前锁定的迁移工具、20 张应用表、3 张 auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。TargetJob 当前 net-state 只保留 `raw_jd_text`，不保留来源列/表、JD attachment purpose 或 JD source refresh jobType；独立 `source_records` 与 resume/privacy purpose 保留。
 
-Phase 1-9 保留为既有交付证据；当前待执行 schema 合同由 Phase 10（TargetJob paste-only）与 Phase 11（Practice reply recovery）覆盖。
+Phase 1-10 保留为既有交付证据；当前待执行 schema 合同由 Phase 11（Practice generation/lease recovery）与 Phase 12（TargetJob report pointer removal）覆盖。
 
 本 plan 不实现业务 repository、不实现 C8 dispatcher、不实现 privacy_delete runner；只提供 schema baseline、迁移可执行入口、lint/check gate 与下游 handoff。
 
@@ -50,7 +50,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 #### 2.2 B3 outbox / async columns
 
-`outbox_events` 必须包含 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message`；pending due 查询索引至少覆盖 `(publish_status, next_attempt_at, created_at)`。`async_jobs.job_type` check 必须包含 B3 当前 8 个 canonical jobType（含 internal-only `source_refresh` / `email_dispatch` 与 contract-only `privacy_export`），但 API-facing subset 仍只由 B2 当前 6 项暴露。
+`outbox_events` 必须包含 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message`；pending due 查询索引至少覆盖 `(publish_status, next_attempt_at, created_at)`。历史 Phase 2 曾交付含 `source_refresh` 的 8 项 jobType；Phase 10 已 supersede 该事实。当前 `async_jobs.job_type` check 必须精确匹配 B3 的 7 个 canonical jobType，只有 `email_dispatch` 是 B2 六项 API-facing subset 之外的 internal-only job。
 
 #### 2.3 A3/F1 AI typed columns
 
@@ -190,9 +190,27 @@ Migration lint与SQL contract必须要求nullable-until-ready `feedback_reports.
 
 运行 migration lint、backend migration/store focused tests、clean/populated PostgreSQL up/down/up 与 privacy delete probe。正向证明 reply transition 与原唯一约束共存；负向证明非法状态、assistant 非空状态、complete 无 reply、重复 assistant 与跨用户读取均失败或不可见。
 
+#### 11.4 Generation and lease fence remediation
+
+在同一 baseline 表中增加仅供后端使用的 `reply_generation bigint` 与 `reply_lease_expires_at timestamptz`。user row 必须具有正 generation；仅 pending 必须具有 lease，retryable/terminal/complete 必须清空 lease；assistant 的 `client_message_id/reply_status/reply_generation/reply_lease_expires_at` 全为 NULL。新 reserve 从 generation 1 开始并写 `Now + 90s`，同 ID retry 每次加一；GET 与同 ID reserve 惰性把过期 pending 收敛为 retryable，commit/fail 使用 expected generation CAS，防止 G1 在 G2 后迟到落库。字段不进入 OpenAPI，也不引入 worker/scheduler。
+
+### Phase 12: TargetJob report pointer removal
+
+#### 12.1 RED schema contract
+
+先让 SQL/store/OpenAPI contract 断言 `target_jobs.latest_report_id` 与 public `TargetJob.latestReportId` 必须不存在，同时证明 `feedback_reports`、`generation_context` 与 TargetJob ownership 仍可查询。BDD 不适用：本 Phase 只移除内部去规范化列；替代 gate 为 migration contract、real PostgreSQL up/down/up、backend-review overview integration 与 zero-reference。
+
+#### 12.2 GREEN baseline reconciliation
+
+项目未上线，原地从 `000001_create_baseline.up/down.sql`、TargetJob store scan/insert/update 与 fixtures/generated surface 删除该列，不创建兼容 migration、trigger 或替代 pointer。当前 ready report 与 latest attempt 由 backend-review 基于 `feedback_reports` 和冻结 canonical-round context 查询投影。
+
+#### 12.3 Migration and zero-reference closure
+
+运行 migration lint、clean/populated PostgreSQL up/down/up、TargetJob store/review integration 与 privacy cascade；精确搜索 production/generated/OpenAPI/fixtures/migrations 中旧列/字段为零，同时正向证明报告行、冻结 context、用户隔离与 `generated_at/created_at/id` 排序所需列仍存在。
+
 ## 5 验收标准
 
-- spec §6 C-1..C-15 全部具备本 plan 或下游 handoff 证据；C8/F1/C11 等运行时验证由各自 owner 后续关闭。
+- spec §6 C-1..C-16 全部具备本 plan 或下游 handoff 证据；C8/F1/C11 等运行时验证由各自 owner 后续关闭。
 - `make migrate-check` 可在干净本地 DB 重复执行；prod down 防呆有效。
 - enum/check 来源、B3 jobType manifest、A3/F1 AI typed columns、P0 privacy deletion matrix 都有可执行 lint/probe。
 
@@ -210,6 +228,7 @@ Migration lint与SQL contract必须要求nullable-until-ready `feedback_reports.
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-14 | 1.23 | Reopen Phase 11 for generation/90s lease fencing and Phase 12 to remove the TargetJob latest-report pointer. | backend-practice/002 + backend-review/001 |
 | 2026-07-13 | 1.21 | Reopen Phase 11 for durable Practice reply status and refresh-safe same-ID recovery. | backend-practice/002 + frontend-workspace-and-practice/002 |
 | 2026-07-13 | 1.20 | Reopen Phase 10 to converge the TargetJob baseline to paste-only schema, 20+3+2 inventory, and migration zero-reference gates. | TargetJob paste-only current net-state |
 | 2026-07-13 | 1.19 | Reopen Phase 9 to remove durable report retry columns/CAS from migration 000018, retain summary/context/focus, and revalidate reversible current shape plus privacy with explicit retry-column absence. | backend-review/001 action-local retry contract |

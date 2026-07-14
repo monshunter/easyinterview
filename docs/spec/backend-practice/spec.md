@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.32
+> **版本**: 1.33
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 背景与目标
 
@@ -13,6 +13,7 @@
 - 会话启动时生成一条普通 assistant opening message。
 - 用户消息与 assistant 回复写入统一 `practice_messages`，不标记“题目 / 回答 / 追问”。
 - 用户消息的回复状态与原 `clientMessageId` 由后端持久化并通过会话读模型返回；请求失败、刷新或重挂载后仍可恢复同一条消息，而不是依赖浏览器存储。
+- `pending` 回复 reservation 使用 90 秒服务端租约与单调递增 generation；进程中断、请求丢失或旧 worker 迟到时，GET / 同 ID reserve 可惰性收敛且旧 generation 不得提交。
 - `baseline / retry_current_round / next_round` 只决定上下文来源与能力重点，不决定题目集合。
 - 暂时禁用电话模式：语音 endpoint 必须 fail-closed，且不得调用 STT / chat / TTS provider 或写入语音事件。
 - 会话结束后只生成会话级准备度、能力维度、证据和下一步建议。
@@ -27,8 +28,8 @@
 | `getPracticePlan` | `GET /practice/plans/{planId}`，用户隔离读取 | `backend/internal/api/practice.GetPracticePlan` | `practice_plans` | none | `E2E.P0.022`, `E2E.P0.070` |
 | `listPracticeSessions` | `GET /practice/sessions`，按 cursor / targetJob / status 列表 | `backend/internal/api/practice.ListPracticeSessions` | `practice_sessions` | none | workspace / report owner gates |
 | `startPracticeSession` | `POST /practice/sessions`，要求 `Idempotency-Key`；同步返回 session 与 opening assistant message | `backend/internal/api/practice.StartPracticeSession` + `backend/internal/practice.StartPracticeSession` | `practice_sessions`, `practice_messages`, lifecycle event, outbox, `idempotency_records`, `ai_task_runs` | `practice.session.chat` + `AIClient.Complete` | `E2E.P0.023`-`E2E.P0.026` |
-| `getPracticeSession` | `GET /practice/sessions/{sessionId}`，返回 session 与有序 messages；user message 含原 `clientMessageId/replyStatus` | `backend/internal/api/practice.GetPracticeSession` + `backend/internal/practice.GetPracticeSession` | `practice_sessions`, `practice_messages.client_message_id/reply_status` | none | `E2E.P0.023`, `E2E.P0.025`, `E2E.P0.044`, `E2E.P0.046` |
-| `sendPracticeMessage` | `POST /practice/sessions/{sessionId}/messages`；body `clientMessageId` 幂等，成功返回唯一 user/assistant pair；失败持久化 user reply status | `backend/internal/api/practice.SendPracticeMessage` + `backend/internal/practice.SendPracticeMessage` + SQL reserve/fail/commit | `practice_messages.client_message_id/reply_status`, `ai_task_runs` | `practice.session.chat`; recent ordered messages + plan/session context | `E2E.P0.044`, `E2E.P0.046` |
+| `getPracticeSession` | `GET /practice/sessions/{sessionId}`，返回 session 与有序 messages；user message 含原 `clientMessageId/replyStatus`；读取前惰性收敛已过期 pending lease | `backend/internal/api/practice.GetPracticeSession` + `backend/internal/practice.GetPracticeSession` | `practice_sessions`, `practice_messages.client_message_id/reply_status/reply_generation/reply_lease_expires_at` | none | `E2E.P0.023`, `E2E.P0.025`, `E2E.P0.044`, `E2E.P0.046` |
+| `sendPracticeMessage` | `POST /practice/sessions/{sessionId}/messages`；body `clientMessageId` 幂等，成功返回唯一 user/assistant pair；失败持久化 user reply status；同 ID reserve 可接管已过期 lease | `backend/internal/api/practice.SendPracticeMessage` + `backend/internal/practice.SendPracticeMessage` + SQL reserve/fail/commit | `practice_messages.client_message_id/reply_status/reply_generation/reply_lease_expires_at`, `ai_task_runs` | `practice.session.chat`; recent ordered messages + plan/session context | `E2E.P0.044`, `E2E.P0.046` |
 | `completePracticeSession` | `POST /practice/sessions/{sessionId}/complete`，要求 `Idempotency-Key`；零回答或 pending assistant reply 拒绝，成功返回 `202 ReportWithJob` | `backend-practice/002` 的 practice handler/service/store（唯一 completion owner） | `practice_sessions`, terminal `practice_messages`, `feedback_reports.generation_context`, async job/outbox/idempotency | transaction 内无 AI；随后 `report_generate` | `E2E.P0.047` 产出 owner artifact；P0.056/058 只消费 marker |
 | `createPracticeVoiceTurn` | 当前禁用；任何请求 fail-closed 为 typed `AI_UNSUPPORTED_CAPABILITY`，不得读取音频后调用 provider | existing voice handler boundary | none | none while disabled | `E2E.P0.007` |
 
@@ -65,6 +66,8 @@
 | `client_message_id` | user message 必填；session 内唯一，作为 replay key |
 | `reply_to_message_id` | assistant message 指向 user message；唯一，保证每条用户消息最多一个回复 |
 | `reply_status` | user message 必填：`pending / retryable_failed / terminal_failed / complete`；assistant message 为 NULL |
+| `reply_generation` | user message 必填且从 1 单调递增；每次同 ID 成功 reserve 新 generation；assistant message 为 NULL；内部并发 fence，不进入 OpenAPI |
+| `reply_lease_expires_at` | 仅 `pending` user message 必填，值为 reserve 服务端时钟 + 90 秒；其余状态与 assistant message 为 NULL；内部租约，不进入 OpenAPI |
 | `created_at` | server timestamp |
 
 不存在 `PracticeTurn`、`question_text`、`question_intent`、`answer_text`、`follow_up_count`、题目状态或题目编号。
@@ -91,9 +94,15 @@
 2. 事务外执行 `practice.session.chat`。
 3. 短事务写 assistant reply；`reply_to_message_id` 唯一约束防止重复生成结果落库。提交时必须再次锁定并校验 session 仍处于 `running / waiting_user_input`；若完成请求已把 session 推进到 `completing / completed`，则回滚迟到的 assistant reply 并返回 typed conflict，不得把 session 改回 `running`。
 
-reserve 时 user message 写 `reply_status='pending'`；成功提交唯一 assistant reply 时同事务改为 `complete`。AI/provider/contract 失败必须在返回 error envelope 前按 B1 `retryable` 元数据原子写为 `retryable_failed` 或 `terminal_failed`，不得留下只能靠前端猜测的无状态 user row；同一 `clientMessageId` 只允许从 `retryable_failed` 重新进入 `pending`，不得重复写 user message。`getPracticeSession` 对 user message 返回原 `clientMessageId/replyStatus`，刷新后前端据此重建 thinking、失败 row 与同 ID retry；URL、local/session storage、IndexedDB 与 fixture 都不能成为恢复事实源。
+reserve 时 user message 写 `reply_status='pending'`、`reply_generation=1` 与 `reply_lease_expires_at=serverNow+90s`；同一 `clientMessageId` 从 `retryable_failed` 或已过期 `pending` 重新 reserve 时只更新原 user row，generation 原子加一并刷新 90 秒 lease，不得重复写 user message。未过期 `pending`、`terminal_failed`、`complete` 或 payload mismatch 都不得被接管；不同 `clientMessageId` 在任何 unresolved user row 尚无 assistant reply 时继续冲突。
 
-前端当前请求期间禁用输入和结束 CTA；`pending` 显示面试官思考，`retryable_failed` 只在原 user row 下显示 retry，`terminal_failed` 不显示同 ID retry并进入 loader/auth/session-lost 恢复，`complete` 与唯一 assistant reply 一起收敛。请求无响应、abort 或 transport outcome 不确定时，前端必须先调用 `getPracticeSession` 对账服务端状态，再按权威 `replyStatus` 恢复 thinking、retry 或 complete；不得盲目二次提交。
+`getPracticeSession` 必须在同一授权事务内、返回 read model 前把 `reply_status='pending' AND reply_lease_expires_at <= serverNow` 惰性收敛为 `retryable_failed`，保留原 generation 并清空 lease。同 ID reserve 也必须在 session lock 下原子完成“识别过期 → generation+1 → 新 lease”，因此恢复不依赖后台 job、浏览器轮询是否持续或进程内计时器。服务端 `Service.now` / request-scoped clock 是 lease 判断的唯一时钟；数据库 `NOW()` 与客户端时钟不得形成第二套判定。
+
+reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`CommitPracticeMessage` 与 `FailPracticeMessage` 都必须携带 expected generation，并且只允许 `pending + generation match` 的 worker 写状态或 assistant reply。旧 generation、旧 lease owner 或迟到的 Commit/Fail 返回 typed conflict 且零写入；唯一 assistant reply 与 user `complete` 仍在同一事务提交。`reply_generation/reply_lease_expires_at` 只属于 persistence/domain reservation，不进入 `PracticeMessage`、OpenAPI、URL、日志或前端状态。
+
+成功提交唯一 assistant reply 时同事务把 user 改为 `complete` 并清空 lease。AI/provider/contract 失败必须在返回 error envelope 前按 B1 `retryable` 元数据原子写为 `retryable_failed` 或 `terminal_failed` 并清空 lease，不得留下只能靠前端猜测的无状态 user row。`getPracticeSession` 对 user message 仍只公开原 `clientMessageId/replyStatus`，刷新后前端据此重建 thinking、失败 row 与同 ID retry；URL、local/session storage、IndexedDB 与 fixture 都不能成为恢复事实源。
+
+前端当前请求期间禁用输入和结束 CTA；`pending` 显示面试官思考，`retryable_failed` 只在原 user row 下显示 retry，`terminal_failed` 不显示同 ID retry并提供返回当前面试规划的安全恢复动作，`complete` 与唯一 assistant reply 一起收敛。前端 POST 最多等待 95 秒（覆盖 90 秒服务端 lease 与少量网络/调度余量）；超时、abort 或 transport outcome 不确定时，必须先调用 `getPracticeSession` 对账同一消息的服务端状态，再按权威 `replyStatus` 恢复 thinking、retry、terminal 或 complete；不得盲目二次提交或改用新 ID。
 
 ### 2.5 生命周期事件
 
@@ -168,6 +177,7 @@ reserve 时 user message 写 `reply_status='pending'`；成功提交唯一 assis
 | C-12 | 绑定、目录与 prompt 信任边界 | TargetJob 绑定 resume A；同用户另有 resume B；summary 可能缺 provenance、含大于 int32 / 非连续 sequence 或大小写错误 type；简历/JD/历史可能含指令式文本，assistant history 可能已臆造项目 | 创建 plan 并启动/继续会话 | 只有绑定 resume A 的 source/completion/ready-plan 事实有效；`1,2,4` 目录按 canonical successor 推进，溢出/非法 type/缺 provenance fail closed；system policy 不被 JSON 编码的不可信上下文覆盖，persona 只影响风格，assistant-only claim 不成为候选人事实 | 001/002 |
 | C-13 | reportable completion | running session 为零回答、存在 pending reply 或已有至少一条 committed user message | 调用 complete 并重放 | 002 唯一负责拒绝不可报告 completion 或原子冻结 `report-context.v1`；P0.047 产出 owner artifact，review 只消费 | 002 |
 | C-14 | 刷新可恢复消息 | user message 已持久化为 pending/retryable/terminal 状态，页面刷新或重挂载 | `getPracticeSession` 后按需用同一 ID 重试 | 读模型返回原 `clientMessageId/replyStatus`；pending 继续 thinking，retryable failure 原 row 可重试，terminal failure 无 retry；成功后仅一个 assistant reply，浏览器存储不参与 | 002 |
+| C-15 | pending lease 与 generation fence | G1 worker 在写 reply 前失联或迟到，90 秒 lease 已过期，随后发生 GET 或两个同 ID 并发 retry | 读取会话并 reserve G2，再释放 G1 Commit/Fail | GET 或同 ID reserve 惰性收敛过期 pending；只一个调用取得 G2；G1 Commit/Fail 均 typed conflict 且零写入；G2 最终只写一个 assistant reply | 002 |
 
 ## 5 关联计划
 
@@ -180,6 +190,7 @@ reserve 时 user message 写 `reply_status='pending'`；成功提交唯一 assis
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.33 | Confirm T-B/P-A recovery contract: 90-second server lease, internal reply-generation fence, GET/same-ID-reserve lazy convergence, 95-second client timeout reconciliation and terminal return-to-current-plan handoff. |
 | 2026-07-13 | 1.32 | Reopen 002 for server-persisted reply status and same-client-message recovery across refresh, plus typed frontend error consumption handoff. |
 | 2026-07-12 | 1.31 | 完成 004 server-owned report focus：active practice v0.2 只消费结构化 semantic focus，P0.070/P0.072 在 PostgreSQL v19 闭环 projection/IK/isolation/privacy 与 legacy-negative gate。 |
 | 2026-07-12 | 1.30 | 将 report-derived prompt handoff 固化为 backend 构造 `semanticFocus`、F3/002 提供 immutable practice v0.2 pair 并独占激活/回滚。 |

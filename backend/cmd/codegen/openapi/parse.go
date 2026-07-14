@@ -217,3 +217,58 @@ func extractRefName(ref string) string {
 	}
 	return strings.TrimPrefix(ref, prefix)
 }
+
+type discriminatedUnionVariant struct {
+	SchemaName         string
+	DiscriminatorValue string
+}
+
+// closedDiscriminatedUnion recognises the only top-level oneOf shape that the
+// generator materialises as a typed union: every branch is a component ref and
+// the discriminator mapping explicitly assigns one wire value to every ref.
+func closedDiscriminatedUnion(raw map[string]any) (string, []discriminatedUnionVariant, bool) {
+	oneOf, ok := raw["oneOf"].([]any)
+	if !ok || len(oneOf) == 0 {
+		return "", nil, false
+	}
+	discriminator, ok := raw["discriminator"].(map[string]any)
+	if !ok {
+		return "", nil, false
+	}
+	propertyName, _ := discriminator["propertyName"].(string)
+	mapping, ok := discriminator["mapping"].(map[string]any)
+	if propertyName == "" || !ok || len(mapping) != len(oneOf) {
+		return "", nil, false
+	}
+
+	valueByRef := make(map[string]string, len(mapping))
+	for value, rawRef := range mapping {
+		ref, ok := rawRef.(string)
+		if !ok || extractRefName(ref) == "" {
+			return "", nil, false
+		}
+		if _, duplicate := valueByRef[ref]; duplicate {
+			return "", nil, false
+		}
+		valueByRef[ref] = value
+	}
+
+	variants := make([]discriminatedUnionVariant, 0, len(oneOf))
+	for _, rawBranch := range oneOf {
+		branch, ok := rawBranch.(map[string]any)
+		if !ok {
+			return "", nil, false
+		}
+		ref, _ := branch["$ref"].(string)
+		name := extractRefName(ref)
+		value, mapped := valueByRef[ref]
+		if name == "" || !mapped {
+			return "", nil, false
+		}
+		variants = append(variants, discriminatedUnionVariant{
+			SchemaName:         name,
+			DiscriminatorValue: value,
+		})
+	}
+	return propertyName, variants, true
+}

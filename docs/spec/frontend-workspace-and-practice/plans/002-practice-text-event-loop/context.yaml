@@ -7,13 +7,13 @@ metadata:
   baseBranch: main
   branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.40
-    to: 1.41
+    from: 1.41
+    to: 1.42
 spec:
   defaultTarget: frontend
   discovery:
     aliases: [practice continuous chat, full width conversation]
-    keywords: [PracticeScreen, PracticeMessage, sendPracticeMessage, optimisticUserMessage, interviewerThinking, pendingComposerLock, failedMessageRetryIcon, sameClientMessageIdRetry, clientMessageIdReplyStatus, getPracticeSessionRetryProjection, ApiClientError, reloadSameIdRetry, noBrowserRetryPersistence, draftPreservedDuringRetry, zeroAnswerFinish, finishDisabledReason, backendAuthoritativeCompletion, reportIdOnlyHandoff, noCopiedRouteIdentity, disabled phone, no SessionMap, no QuestionCard]
+    keywords: [PracticeScreen, PracticeMessage, sendPracticeMessage, optimisticUserMessage, interviewerThinking, pendingComposerLock, 95 second timeout, abort reconcile, stale response guard, failedMessageRetryIcon, sameClientMessageIdRetry, clientMessageIdReplyStatus, getPracticeSessionRetryProjection, terminal plan recovery, parse targetJobId, ApiClientError, reloadSameIdRetry, noBrowserRetryPersistence, draftPreservedDuringRetry, zeroAnswerFinish, finishDisabledReason, backendAuthoritativeCompletion, reportIdOnlyHandoff, noCopiedRouteIdentity, disabled phone, no SessionMap, no QuestionCard]
   targets:
     frontend:
       plan: ./plan.md

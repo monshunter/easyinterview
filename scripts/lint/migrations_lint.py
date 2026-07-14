@@ -46,7 +46,6 @@ EXPECTED_BASELINE_TABLES = [
     "resume_version_suggestions",
     "target_jobs",
     "target_job_requirements",
-    "target_job_sources",
     "practice_plans",
     "idempotency_records",
     "practice_sessions",

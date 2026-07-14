@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.0
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 3.2
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -30,4 +30,10 @@
 
 ## Phase 9: Internal locator cleanup
 
-- [ ] Distinct UUID sentinel DOM/a11y negatives, internal contract/CTA positives, locale zero-reference and refreshed P0.059 parity pass；separate `/agent-browser` acceptance contains only the same ready report's exact formal 1440x1200/390x844 full-page PNGs plus manifest, with recomputed path/hash/state/viewport/fullPage and report/session sentinel-absence audit all passing.
+- [x] Distinct UUID sentinel DOM/a11y negatives, internal contract/CTA positives, locale zero-reference and refreshed P0.059 parity pass；separate `/agent-browser` acceptance contains only the same ready report's exact formal 1440x1200/390x844 full-page PNGs plus manifest, with recomputed path/hash/state/viewport/fullPage and report/session sentinel-absence audit all passing.
+  <!-- verified: 2026-07-14 evidence="Context Strip acceptance 20260714-final contains exactly the two required PNGs and manifest; hashes 36b859b2.../1b0c3ed3..., state/viewport/fullPage and UUID DOM/a11y negatives validate." -->
+
+## Phase 10: Independent current-plan reports list and Back recovery
+
+- [x] ReportsScreen current-target isolation、canonical join、current/latest-only、different-ready status、loading/empty/error、stale-response fence、Back-to-Parse and 1440/390 parity pass；Report/Generating trusted Back-to-Reports、workspace fallback、reportId-only route、single list-consumer and no-TopBar/no-section negatives remain green in P0.058/P0.059.
+  <!-- verified: 2026-07-14 evidence="Validator 40/40, ReportsScreen 15/15, final P0.058 setup/trigger/verify/cleanup PASS and P0.059 16/16 Playwright PASS cover the complete matrix." -->

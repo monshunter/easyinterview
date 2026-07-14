@@ -41,12 +41,6 @@ jobs:
     triggerEvent: api:request_tailor
     ownerDomain: C7
     priority: default
-  - canonical: source_refresh
-    asynqTask: source.refresh
-    apiFacing: false
-    triggerEvent: target.parsed
-    ownerDomain: C13
-    priority: low
   - canonical: privacy_export
     asynqTask: privacy.export
     apiFacing: true

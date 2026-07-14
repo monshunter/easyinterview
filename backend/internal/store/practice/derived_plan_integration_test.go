@@ -275,9 +275,9 @@ insert into resumes (
 ) values ($1,$2,'Integration resume','Integration resume','zh-CN','ready','{}'::jsonb,$3,'paste',$3,$3,'{}'::jsonb,$4,$4)`, f.resumeID, f.userID, "完整简历", f.now)
 	f.exec(t, `
 insert into target_jobs (
-  id,user_id,resume_id,status,analysis_status,title,company_name,target_language,source_type,
+  id,user_id,resume_id,status,analysis_status,title,company_name,target_language,
   raw_jd_text,summary,fit_summary,created_at,updated_at
-) values ($1,$2,$3,'draft','ready','Platform Engineer','Example','zh-CN','manual_text',$4,$5::jsonb,'{}'::jsonb,$6,$6)`, f.targetID, f.userID, f.resumeID, "完整 JD", f.summary, f.now)
+) values ($1,$2,$3,'draft','ready','Platform Engineer','Example','zh-CN',$4,$5::jsonb,'{}'::jsonb,$6,$6)`, f.targetID, f.userID, f.resumeID, "完整 JD", f.summary, f.now)
 }
 
 func (f derivedIntegrationFixture) seedSourceReport(t *testing.T, planID, sessionID, eventID, reportID string, focus []string) {

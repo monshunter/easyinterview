@@ -1,8 +1,8 @@
 # 001 — Grounded Conversation Report Generation
 
-> **版本**: 2.20
-> **状态**: completed
-> **更新日期**: 2026-07-13
+> **版本**: 2.22
+> **状态**: active
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -19,7 +19,7 @@
 |-------------------|---------|----------|---------|-------------|----|----------|
 | `report_generate` job | N/A | generating poll | runner/review service/store | feedback_reports/async_jobs/outbox_events/audit_events/ai_task_runs | report.generate | P0.056/P0.058/P0.099/P0.100 |
 | `getFeedbackReport` | `Reports/getFeedbackReport.json`: queued/generating/ready-needs-practice/ready-well-prepared/failed/invalid-contract/long-content | generating + report dashboard | reports handler/review read | feedback_reports + frozen context projection | none | P0.056/P0.058/P0.059/P0.099 |
-| `listTargetJobReports` | `Reports/listTargetJobReports.json` | records owner only; no generating/report consumer | reports handler/review read | feedback_reports | none | focused handler/store gate |
+| `listTargetJobReports` | `Reports/listTargetJobReports.json` | target-scoped ReportsScreen only; no Parse/generating/report consumer | reports handler/review read | feedback_reports + current TargetJob canonical summary | none | focused handler/store gate + P0.059 |
 
 `completePracticeSession` 与 `createPracticePlan` 只作为 references/marker handoff：本 plan 不拥有其 API、fixture、handler/store 或 scenario directory。
 
@@ -62,6 +62,7 @@
 | spec C-8 | model quality / UX | 8 | context-aware judge + fact→judgment→action audit + P0.099/P0.100 | reused output anchors / contract-only or screenshot-only claim |
 | spec C-9 | deep-link truth | 6-8 | frozen API context + route-tamper frontend scenario | URL/current mutable entity authority |
 | spec C-10 | judge retry boundary | 8 | provider/protocol-invalid retry + valid-negative terminal tests + P0.100 | resampling a valid rejection to PASS |
+| spec C-12 | canonical-round overview | 10 | focused handler/store/API tests + P0.059 composition | paginated full-report list / mutable round inference / partial response |
 | current-scope | regression | 8 | repo negative search | `dimension_scores`, `retry_round`, stale question fields |
 
 ## 5 实施步骤
@@ -142,6 +143,24 @@ Evalkit复用产品完整 report validator，并维护相互独立的内存 gene
 
 在不新增OpenAPI regenerate operation的前提下，按TDD删除`feedback_reports.llm_attempt_count`、pre-call durable reservation与`report_generate.max_attempts=4`产品额度耦合；注入context-aware waiter，证明每次`GenerateReport` invocation独立执行initial+最多3次retry及10s/20s/40s，返回时销毁状态，下一次独立invocation从0开始。`AsyncJob.Attempts`继续仅作lease generation，stale worker仍不得提交report/outbox/audit/job副作用。P0.058升级为`report-backend-evidence.v3`，将动作调用/等待事实放入`runtime`，数据库区只保存状态与ready-column fail-closed事实。
 
+### Phase 10: Canonical-round report overview
+
+#### 10.1 Contract owner handoff
+
+消费 OpenAPI / migration owner 对 R-A 的 current-shape handoff：route 与 `listTargetJobReports` operationId 不变，删除 `cursor/pageSize`、完整报告列表与 TargetJob `latestReportId/latest_report_id` pointer；本 owner 不复制 schema/migration checklist。
+
+#### 10.2 Store and service selection
+
+先以 RED 锁定每个 current canonical round 都返回、`currentReport` 与 `latestAttempt` 独立排序、newer failed/generating 不覆盖 prior ready、latest ready 可双占位，再实现 user/target/frozen-context/round-pair 校验与 deterministic tie-break。任一 invalid context/identity/ready-generatedAt 使整个 overview fail closed，不返回 partial。
+
+#### 10.3 Handler projection and privacy
+
+Handler 只投影 `targetJobId`、`PracticeRoundRef`、`currentReport{id,generatedAt}` 与 `latestAttempt{id,status,errorCode,createdAt}`；无 pagination/pageInfo、完整 report semantic、provenance/model/rubric。TargetJob hidden 404 与跨用户零泄漏保持一致。
+
+#### 10.4 ReportsScreen BDD handoff and closeout
+
+向 `E2E.P0.059` 提供 focused backend contract evidence；证明独立 ReportsScreen 可按 TargetJob summary join 并隔离当前规划，而 Parse/Report/Generating 不消费 list operation。运行 focused/full review/API/store、OpenAPI/fixture/generated handoff、context/docs/diff 与旧分页/`latest_report_id` scoped negative gate 后再完成本 Phase。
+
 ## 6 验收标准
 
 - Ready report 来自冻结完整上下文，模型最终语义经严格 validator 后无损持久化/API 返回。
@@ -153,6 +172,7 @@ Evalkit复用产品完整 report validator，并维护相互独立的内存 gene
 - 200仅fuse；P0.099 desktop+390证明合法24/64完整换行，超限typed invalid/no raw；18/52不作为UI门禁。
 - OpenAPI、generated、fixture、DB、prompt/schema/eval、frontend consumer 与 BDD 无旧 numeric-score/unknown-action 漂移。
 - 最终prompt真实provider run59381的机械输出9/9、语义judge8/9、固定五类4/5满足当前产品验收；strict P0.100因unsupported summary保持FAIL，未运行blind audit。P0.099 的 desktop/mobile zh/en full-page 截图由其自身 current-run DB/API/content/action/screenshot/report/session/context 摘要闭合，并完整覆盖满足 `<=24 whitespace words` / `<=64 Unicode code points` 的实际 action。确定性 boundary fixture 另行证明恰好24/64的pixel parity。
+- `listTargetJobReports` 对每个当前 canonical round 返回最小 `currentReport/latestAttempt` 概览；两个指针独立、排序稳定、invalid identity/context 整体 fail closed，且不形成顶层报告中心或完整报告列表。
 
 ## 7 风险与应对
 
@@ -165,11 +185,15 @@ Evalkit复用产品完整 report validator，并维护相互独立的内存 gene
 | 维度 code 过早全局固化 | code 仅在单份报告内唯一，P0 不建立全局 taxonomy |
 | API 改动扩散遗漏 consumer | B2 accepted ADR、merge-base diff、OpenAPI-first、closed schemas、codegen、fixtures、mapper、frontend、scenarios exact-set gate |
 | 历史 PASS 继续掩盖语义缺口 | 所有 completed marker 只作线索，重新运行 current-state gates 与真实 provider UAT |
+| latest attempt 覆盖最后可用报告 | current/latest 使用独立查询与排序断言；failed/generating 只能更新 latestAttempt，不能清空 currentReport |
+| overview 复制可变轮次展示事实 | wire 只携带 PracticeRoundRef；ReportsScreen 从当前 TargetJob canonical summary join display，pair 异常整体 fail closed |
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.22 | Move the unchanged overview handoff to target-scoped ReportsScreen/P0.059 and require Parse/Report/Generating zero-consumer evidence. |
+| 2026-07-14 | 2.21 | Reopen Phase 10 for the R-A canonical-round report overview, minimal wire, independent ready/latest selection, fail-closed identity checks and P0.016 handoff. |
 | 2026-07-13 | 2.20 | Separate mechanical 100%, fixed-five 4/5 semantic product acceptance and strict P0.100 11/11 diagnostics; record final-prompt run59381 without promoting its strict FAIL. |
 | 2026-07-13 | 2.19 | Add unchecked Phase 9 owner handoff for action-local retry implementation, no retry-column/job-max4 coupling, preserved lease fencing, and P0.058 evidence v3. |
 | 2026-07-13 | 2.18 | Replace report-lifetime durable attempt ledger with per-user-action in-memory `1+3`; wait `10s/20s/40s`, destroy on return, and reset on a new independent generation action. |

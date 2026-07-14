@@ -88,9 +88,9 @@ insert into resumes (
 	summary := `{"interviewRounds":[{"sequence":1,"type":"technical","name":"Technical","durationMinutes":30,"focus":"system design"},{"sequence":2,"type":"manager","name":"Manager","durationMinutes":30,"focus":"ownership"}],"provenance":{"promptVersion":"v0.1.0","rubricVersion":"v0.1.0","modelId":"fixture-model","language":"en","featureFlag":"none","dataSourceVersion":"target-job.v1"}}`
 	if _, err := db.ExecContext(ctx, `
 insert into target_jobs (
-  id,user_id,resume_id,status,analysis_status,title,target_language,source_type,
+  id,user_id,resume_id,status,analysis_status,title,target_language,
   raw_jd_text,summary,fit_summary,created_at,updated_at
-) values ($1,$2,$3,'draft','ready','Platform Engineer','en','manual_text','complete jd',$4::jsonb,'{}'::jsonb,$5,$5)`, targetID, userID, resumeID, summary, now); err != nil {
+) values ($1,$2,$3,'draft','ready','Platform Engineer','en','complete jd',$4::jsonb,'{}'::jsonb,$5,$5)`, targetID, userID, resumeID, summary, now); err != nil {
 		t.Fatalf("insert target job: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `
@@ -125,14 +125,14 @@ values ($1,$2,1,'assistant','Tell me about a project.',$3)`, integrationMessageI
 		}
 	}
 	if _, err := db.ExecContext(ctx, `
-insert into practice_messages (id,session_id,seq_no,role,content,client_message_id,created_at)
-values ($1,$2,2,'user','I led a migration.',$3,$4)`, integrationMessageID(pendingSessionID, 2), pendingSessionID, integrationMessageID(pendingSessionID, 9), now); err != nil {
+	insert into practice_messages (id,session_id,seq_no,role,content,client_message_id,reply_status,reply_generation,reply_lease_expires_at,created_at)
+	values ($1,$2,2,'user','I led a migration.',$3,'pending',1,$4,$5)`, integrationMessageID(pendingSessionID, 2), pendingSessionID, integrationMessageID(pendingSessionID, 9), now.Add(domain.PracticeReplyLeaseDuration), now); err != nil {
 		t.Fatalf("insert pending user message: %v", err)
 	}
 	readyUserID := integrationMessageID(readySessionID, 2)
 	if _, err := db.ExecContext(ctx, `
-insert into practice_messages (id,session_id,seq_no,role,content,client_message_id,created_at)
-values ($1,$2,2,'user','I led a migration.',$3,$4)`, readyUserID, readySessionID, integrationMessageID(readySessionID, 9), now); err != nil {
+	insert into practice_messages (id,session_id,seq_no,role,content,client_message_id,reply_status,reply_generation,created_at)
+	values ($1,$2,2,'user','I led a migration.',$3,'complete',1,$4)`, readyUserID, readySessionID, integrationMessageID(readySessionID, 9), now); err != nil {
 		t.Fatalf("insert answered user message: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `
@@ -142,8 +142,8 @@ values ($1,$2,3,'assistant','What tradeoff did you make?',$3,$4)`, integrationMe
 	}
 	mismatchUserID := integrationMessageID(mismatchSessionID, 2)
 	if _, err := db.ExecContext(ctx, `
-insert into practice_messages (id,session_id,seq_no,role,content,client_message_id,created_at)
-values ($1,$2,2,'user','I kept the scope bounded.',$3,$4)`, mismatchUserID, mismatchSessionID, integrationMessageID(mismatchSessionID, 9), now); err != nil {
+	insert into practice_messages (id,session_id,seq_no,role,content,client_message_id,reply_status,reply_generation,created_at)
+	values ($1,$2,2,'user','I kept the scope bounded.',$3,'complete',1,$4)`, mismatchUserID, mismatchSessionID, integrationMessageID(mismatchSessionID, 9), now); err != nil {
 		t.Fatalf("insert mismatch user message: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `

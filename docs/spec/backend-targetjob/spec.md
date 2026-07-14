@@ -1,14 +1,16 @@
 # Backend TargetJob Spec
 
-> **版本**: 2.11
+> **版本**: 2.12
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 背景与目标
 
 `backend-targetjob` 承接 [engineering-roadmap §5.2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 中 JD import / parse 后端域，落地 P0 用户路径：用户在首页粘贴 JD 后，后端创建 `TargetJob`，异步完成 JD 解析，并把 JD 原文、岗位需求、摘要与 fit 信号写入 [B4 `target_jobs` / `target_job_requirements`](../db-migrations-baseline/spec.md)。当前产品只接受粘贴文本，不提供 JD 文件、URL 或结构化手工表单导入。
 
 [B2 OpenAPI v1](../openapi-v1-contract/spec.md) 定义本域承接的 5 个 operation；其中 `importTargetJob` 的当前 wire 为 `{rawText,targetLanguage,resumeId}`，`TargetJob` response 不暴露 `sourceType` / `sourceUrl`。[B3 `event-and-outbox-contract`](../event-and-outbox-contract/spec.md) 只保留不含来源枚举的 `target.import.requested` / `target.parsed` / `target.analysis.failed` 与 `target_import` job，[F3 `prompt-rubric-registry`](../prompt-rubric-registry/spec.md) 锁定 `target.import.parse` 与默认 profile `target.import.default`。本 subject 负责把这些契约与 `target_jobs.raw_jd_text` 唯一事实源闭环。
+
+`TargetJob` 不再暴露或持久化“最新报告”指针。按标准轮次选择当前 ready report 与最新生成尝试属于 `backend-review` 的 `listTargetJobReports` overview owner；本域只提供 owned TargetJob 与合法 canonical round catalog，不维护第二份可变报告事实。
 
 本 subject 不重新设计 OpenAPI / DB / event / feature_key。任何契约变更必须先回到 owner spec 修订，再落到本 subject 的 plan。
 
@@ -155,10 +157,11 @@
 | C-15 | 当前 B4 schema 对齐 | D-20/D-17 后 profile 模块已移除，`target_jobs.profile_id` 不存在 | `GET /targets/{id}` / `GET /targets` / `PATCH /targets/{id}` / `target_import` runner kernel 读取 TargetJob | active SQL 不引用 `profile_id`；解析成功/ready TargetJob 详情不因已移除列引用漂移返回 500；解析失败 TargetJob 已被删除，详情返回 404 而非脏失败态资产 | 001 |
 | C-16 | 有效 JD 未披露公司名 | 用户提交有效 JD，AI 输出包含 title / requirements 但 `companyName` 为空 | `target_import` runner kernel 调用真实 provider 并完成 parse | TargetJob 进入 `analysisStatus='ready'`，`companyName` 写入语言相关兜底值，requirements 可见，`ai_task_runs` 记录 jd_parse provider/model/status/validation 摘要；markdown fenced JSON 可解析，带 prose 的输出仍失败 | 001 |
 | C-17 | Practice progress projection | 结构化 TargetJob 有零/部分/全部完成轮次，canonical sequence 可能是 `1,2,4`；可能有同用户 wrong-resume completion、重复完成 session、更新的旧轮复练 plan、legacy null plan、缺 provenance/溢出/大小写错误 round 与不同 lifecycle status | `GET /targets` / `GET /targets/{id}` | Get/List 仅接纳 TargetJob 绑定 resume 的合法 exact pair；返回一致的有序去重 completed prefix、第一个未完成 canonical `currentRound` 与 status，`2` 的下一轮是现有 `4`；只匹配当前 pair+绑定 resume 的 ready plan 成为 `currentPracticePlanId`；最终完成时 current/plan 均 null；无效 summary fail closed；一页列表只做一条聚合查询，无逐卡 N+1 | 001 |
+| C-18 | 报告指针去规范化清理 | TargetJob row/response 仍含 `latest_report_id/latestReportId` | 执行 001 Phase 19 | DB、store、generated/fixture 与 public TargetJob response 均无该指针；canonical rounds 保持完整，报告当前态仅由 backend-review overview 按冻结 context 投影 | 001 + backend-review/001 |
 
 ## 7 关联计划
 
-- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（active）：Phase 18 原地收敛为 `{rawText,targetLanguage,resumeId}` 粘贴导入、`raw_jd_text` 唯一事实源与唯一 `target_import` 路径，删除 URL/file/manual-form/source-refresh 分支，并以 `E2E.P0.010` / `E2E.P0.012` / `E2E.P0.018` 回归闭环。
+- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（active）：Phase 18 原地收敛 paste-only 导入；Phase 19 删除 TargetJob 最新报告指针并把报告当前态交回 backend-review canonical-round overview。
 
 ## 8 相关文档
 

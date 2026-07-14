@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import {
   configureDeterministicPage,
@@ -23,6 +23,35 @@ const DIRECT_CASES = [
   { label: "zh 64-code-point boundary", scenario: "long-content", lang: "zh", boundary: { actionIndex: 1, unit: "codePoints", limit: 64 } },
 ] as const;
 
+async function expectInternalReportLocatorsAbsent(
+  surface: Page,
+  reportSentinel: string,
+  sessionSentinel: string,
+) {
+  const root = surface.locator(ROOT);
+  await expect(root.locator("[data-testid='report-context-session']")).toHaveCount(0);
+  await expect(
+    root.locator("[data-testid='report-context-strip'] > [data-testid^='report-context-']"),
+  ).toHaveCount(3);
+
+  const domAudit = await root.evaluate((node) => {
+    const elements = [node, ...node.querySelectorAll("*")];
+    return {
+      text: node.textContent ?? "",
+      attributes: elements.flatMap((element) =>
+        Array.from(element.attributes, ({ name, value }) => `${name}=${value}`),
+      ),
+    };
+  });
+  const accessibilityAudit = await root.ariaSnapshot();
+
+  for (const sentinel of [reportSentinel, sessionSentinel]) {
+    expect(domAudit.text).not.toContain(sentinel);
+    expect(domAudit.attributes.join("\n")).not.toContain(sentinel);
+    expect(accessibilityAudit).not.toContain(sentinel);
+  }
+}
+
 test.describe("report source, geometry, and screenshot parity", () => {
   for (const parityCase of DIRECT_CASES) test(`${parityCase.label} direct semantic report matches the UI truth at desktop and mobile`, async ({
     page, context,
@@ -30,6 +59,8 @@ test.describe("report source, geometry, and screenshot parity", () => {
     const prototype = await context.newPage();
     const fixture = reportFixture(parityCase.scenario).body;
     const reportId = String(fixture.id);
+    const sessionId = String(fixture.sessionId);
+    expect(sessionId).not.toBe(reportId);
 
     await Promise.all([
       configureDeterministicPage(page, parityCase.lang),
@@ -50,6 +81,10 @@ test.describe("report source, geometry, and screenshot parity", () => {
 
     expect(mutableContextReads).toEqual([]);
     expect(new URL(page.url()).search).toBe(`?reportId=${reportId}`);
+    await Promise.all([
+      expectInternalReportLocatorsAbsent(page, reportId, sessionId),
+      expectInternalReportLocatorsAbsent(prototype, reportId, sessionId),
+    ]);
     expect(await normalizedText(page, ROOT)).toBe(await normalizedText(prototype, ROOT));
 
     if ("boundary" in parityCase) {
@@ -173,11 +208,6 @@ test.describe("report source, geometry, and screenshot parity", () => {
         properties: ["flex", "max-width", "overflow-wrap", "word-break", "text-align"],
       },
       {
-        label: "session overflow contract",
-        selector: "[data-testid='report-context-session'] > div:last-child",
-        properties: ["font-size", "line-height", "overflow-wrap", "white-space", "overflow", "text-overflow"],
-      },
-      {
         label: "action row wrapping",
         selector: "[data-testid='report-actions'] .ei-report-action-row:nth-child(2)",
         properties: ["display", "min-width", "gap", "overflow-wrap", "word-break"],
@@ -266,6 +296,24 @@ test.describe("report source, geometry, and screenshot parity", () => {
       testInfo,
       `report-full-page-${parityCase.lang}-${testInfo.project.name}`,
     );
+    const formalScreenshotPath = testInfo.outputPath(
+      `report-formal-${parityCase.scenario}-${testInfo.project.name}.png`,
+    );
+    const formalScreenshot = await page.screenshot({
+      path: formalScreenshotPath,
+      fullPage: true,
+      animations: "disabled",
+    });
+    await testInfo.attach(
+      `report-formal-${parityCase.scenario}-${testInfo.project.name}`,
+      { path: formalScreenshotPath, contentType: "image/png" },
+    );
+    expect(formalScreenshot.length).toBeGreaterThan(10_000);
+    await page.locator("[data-testid='report-back-button']").click();
+    await expect.poll(() => {
+      const url = new URL(page.url());
+      return url.pathname + url.search;
+    }).toBe(`/reports?targetJobId=${String(fixture.targetJobId)}`);
     await prototype.close();
   });
 
@@ -282,5 +330,10 @@ test.describe("report source, geometry, and screenshot parity", () => {
     await expect(page.locator("[data-testid='report-failure-back-to-workspace']")).toBeVisible();
     await expect(page.locator("body")).not.toContainText("好了通知我");
     await expect(page.locator("body")).not.toContainText("会话记录");
+    await page.locator("[data-testid='report-failure-back-to-workspace']").click();
+    await expect.poll(() => {
+      const url = new URL(page.url());
+      return url.pathname + url.search;
+    }).toBe(`/reports?targetJobId=${String(fixture.targetJobId)}`);
   });
 });

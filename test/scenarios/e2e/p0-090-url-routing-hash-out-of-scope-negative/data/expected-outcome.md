@@ -2,8 +2,11 @@
 
 | 维度 | 期望 |
 |------|------|
+| `#route=reports&targetJobId=...` | URL 重写为 `/reports?targetJobId=01918fa0-0000-7000-8000-000000002000`；`section=reports` / `reportId` / `status` / `roundId` 被过滤；`reports-screen` 渲染 |
+| Reports TopBar negative | `app-shell-topbar` 可见，但 `topbar-nav-reports` 不存在 |
+| legacy Parse report params | URL 重写为 `/parse?targetJobId=tj-1`；旧报告参数全部被过滤且不恢复嵌入式报告区 |
 | `#route=home` 启动 | `home-hero-label` 渲染；URL 重写为 `/`；`location.hash` 为空 |
-| `#route=workspace&targetJobId=tj-1` | URL 重写为 `/workspace?targetJobId=tj-1`；`workspace-empty` 渲染 |
+| `#route=workspace&targetJobId=tj-1` | URL 重写为 query-free `/workspace`；`targetJobId` 被过滤；`workspace-plan-list` 渲染 |
 | `#route=practice&mode=phone&modality=phone&sessionId=...` | URL 重写为仅保留 `sessionId` 的 `/practice?...`；显示连续聊天且电话按钮 disabled |
 | `#route=practice&mode=voice&modality=voice&sessionId=...` | URL 重写为仅保留 `sessionId` 的 `/practice?...`；voice 参数被过滤，不渲染电话 surface |
 | `#route=voice` | URL 重写为 `/`；`home-hero-label` 渲染（独立 voice route 不 materialize） |
@@ -12,7 +15,7 @@
 | `/voice?mode=voice` | 渲染 `home-hero-label`；canonical path 不暴露 voice |
 | `ROUTE_TO_PATH` | 不包含 `/voice` / `/welcome` / `/growth` / `/plan` / `/mistakes` / `/drill` / `/followup` / `/experiences` / `/star` / `/onboarding` / `/debrief` / `/profile` |
 | `normalizeRouteName(alias)` | 对每个范围外 alias 返回的不再是范围外 alias 本身 |
-| `isCanonicalFrontendPath` | 对每个保留 canonical path 返回 true；对 `/api/*` / `/openapi/*` / `/health` / `/assets/*` / 任意 `*.json` / `*.html` 返回 false |
+| `isCanonicalFrontendPath` | 对 known `/reports?targetJobId=<uuid>` 与每个保留 canonical path 返回 true；对 `/api/*` / `/openapi/*` / `/health` / `/assets/*` / 任意 `*.json` / `*.html` 返回 false |
 
 | 反向断言 | 含义 |
 |----------|------|
@@ -20,4 +23,5 @@
 | `frontend/src/app/screens/` 下不存在 welcome / growth / mistakes / drill / followup / experiences / star / onboarding / debrief / profile 目录 | out-of-scope 模块零 materialize |
 
 证据：`.test-output/e2e/p0-090-url-routing-hash-out-of-scope-negative/trigger.log`
-必须出现 `Tests 11 passed (11)` 与 `Test Files 1 passed (1)` marker。
+必须出现 source contract `Ran 2 tests` / `OK`、Reports hash、Parse legacy strip、
+known `/reports` fallback 测试标题、`Tests ... passed` 与 `Test Files ... passed` marker。

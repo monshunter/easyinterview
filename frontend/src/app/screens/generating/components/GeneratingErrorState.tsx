@@ -14,7 +14,8 @@ export type GeneratingErrorKind =
 interface GeneratingErrorStateProps {
   kind: GeneratingErrorKind;
   onRetry?: () => void;
-  onBackToWorkspace?: () => void;
+  onBack: () => void;
+  backDestination: "reports" | "workspace";
 }
 
 const TITLE_KEY: Record<GeneratingErrorKind, MessageKey> = {
@@ -46,7 +47,8 @@ const DESC_KEY: Record<GeneratingErrorKind, MessageKey> = {
 export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
   kind,
   onRetry,
-  onBackToWorkspace,
+  onBack,
+  backDestination,
 }) => {
   const { t } = useI18n();
   const showRetry = (kind === "timeout" || kind === "loadFailed") && onRetry !== undefined;
@@ -127,14 +129,21 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
               {t("generating.errors.continueCheck")}
             </button>
           ) : null}
-          <button
-            type="button"
-            data-testid="generating-error-back-to-workspace"
-            onClick={onBackToWorkspace}
-            style={buttonStyle("secondary")}
-          >
-            {t("generating.errors.backToWorkspace")}
-          </button>
+          <span data-testid="generating-back-button">
+            <button
+              type="button"
+              data-testid="generating-error-back-to-workspace"
+              data-back-destination={backDestination}
+              onClick={onBack}
+              style={buttonStyle("secondary")}
+            >
+              {t(
+                backDestination === "reports"
+                  ? "generating.errors.backToReports"
+                  : "generating.errors.backToWorkspace",
+              )}
+            </button>
+          </span>
         </div>
       </div>
     </div>

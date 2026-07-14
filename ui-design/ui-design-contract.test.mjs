@@ -304,6 +304,10 @@ test("report generating prototype exposes only honest server-projected states an
   assert.match(generating, /data-testid="generating-screen"/);
   assert.match(generating, /REPORT_CONTEXT_TOO_LARGE/);
   assert.match(generating, /continueCheck/);
+  assert.match(generating, /data-testid="generating-back-button"/);
+  assert.match(generating, /nav\("reports", \{ targetJobId: report\.targetJobId \}\)/);
+  assert.match(generating, /nav\("workspace"\)/);
+  assert.doesNotMatch(generating, /nav\("parse"|section:\s*"reports"/);
   assert.doesNotMatch(generating, /setTimeout|setInterval|\bpct\b|\bphase\b|liveSnippets|LIVE OBSERVATIONS|实时观察|Notify me|好了通知我|session records|会话记录/);
 });
 
@@ -356,9 +360,9 @@ test("home uses a resume dropdown and caps recent mocks at three", () => {
   const home = readUiFile("./src/screen-home.jsx");
 
   assert.match(home, /data-testid="home-jd-input-card"/);
-  assert.match(home, /data-testid="home-jd-source-controls"/);
-  assert.match(home, /data-testid="home-upload-trigger"/);
-  assert.match(home, /data-testid="home-url-trigger"/);
+  assert.doesNotMatch(home, /data-testid="home-jd-source-controls"/);
+  assert.doesNotMatch(home, /data-testid="home-upload-trigger"/);
+  assert.doesNotMatch(home, /data-testid="home-url-trigger"/);
   assert.doesNotMatch(home, /data-testid="home-source-layout"/);
   assert.doesNotMatch(home, /data-testid="home-upload-source-panel"/);
   assert.match(home, /data-testid="home-resume-row"/);
@@ -386,6 +390,78 @@ test("TargetJob round assumptions use structured interview rounds across parse a
   assert.doesNotMatch(parse, /interviewHypotheses/);
   assert.doesNotMatch(data, /focus: "动机、求职节奏、薪资期望"/);
   assert.doesNotMatch(parse, /focus: lang === "en" \? "Motivation, timing, comp"/);
+});
+
+test("Parse exposes a page-level reports handoff and owns no report list", () => {
+  const parse = readUiFile("./src/screens-p0-complete.jsx");
+  const app = readUiFile("./src/app.jsx");
+  const start = parse.indexOf("const ParseScreen = ");
+  const end = parse.indexOf("const ReportsScreen = ", start);
+  const parseScreen = parse.slice(start, end);
+  const topBarStart = app.indexOf("const TopBar = ");
+  const topBar = app.slice(topBarStart);
+
+  assert.ok(start >= 0 && end > start);
+  assert.ok(topBarStart >= 0);
+  assert.match(parseScreen, /data-testid="parse-reports-entry"/);
+  assert.match(parseScreen, /nav\("reports", \{ targetJobId: targetJob\.id \}\)/);
+  assert.doesNotMatch(parseScreen, /params\.section|reportsSectionRef|reportOverviewFixtures|reportDemoState/);
+  assert.doesNotMatch(parseScreen, /data-testid="parse-report-(?:section|loading|error|round|current|generating|failed)/);
+  assert.doesNotMatch(parseScreen, /section:\s*"reports"|listTargetJobReports|Retry report|重试报告|parse-report-retry/);
+  assert.doesNotMatch(parseScreen, /\.items\b|\.pageInfo\b|latestReportId|provenance|modelId|rubricVersion/);
+  assert.doesNotMatch(topBar, /\{\s*k:\s*"reports"/);
+});
+
+test("independent ReportsScreen renders only the current plan canonical current/latest projection", () => {
+  const p0 = readUiFile("./src/screens-p0-complete.jsx");
+  const start = p0.indexOf("const ReportsScreen = ");
+  const end = p0.indexOf("// #3 REPORT GENERATING", start);
+  const reports = p0.slice(start, end);
+
+  assert.ok(start >= 0 && end > start);
+  assert.match(reports, /window\.EI_DATA\.targetJobs\.find/);
+  assert.match(reports, /window\.EI_DATA\.jdSample\.interviewRounds/);
+  assert.match(reports, /window\.EI_DATA\.reportOverviewFixtures/);
+  assert.match(reports, /reportDemoStates\.has\(demoState\) \? demoState : "ready"/);
+  assert.doesNotMatch(reports, /params\.reportState/);
+  for (const state of ["ready", "loading", "empty", "error", "latest-ready", "mismatch"]) {
+    assert.match(reports, new RegExp(`"${state}"`));
+  }
+  for (const testId of [
+    "reports-screen",
+    "reports-back-button",
+    "reports-loading",
+    "reports-empty",
+    "reports-error",
+    "reports-list",
+    "reports-current",
+    "reports-generating",
+    "reports-failed",
+    "reports-latest-ready",
+  ]) {
+    assert.match(reports, new RegExp(`data-testid=["\\{][^\\n]*${testId}`));
+  }
+  assert.match(reports, /overview\.targetJobId !== targetJob\.id/);
+  assert.match(reports, /!item\?\.round/);
+  assert.match(reports, /item\.round\.roundSequence/);
+  assert.match(reports, /item\.round\.roundId/);
+  assert.match(reports, /latestAttempt\.id !== item\.currentReport\?\.id/);
+  assert.match(reports, /nav\("report", \{ reportId: item\.currentReport\.id \}\)/);
+  assert.match(reports, /nav\("generating", \{ reportId: item\.latestAttempt\.id \}\)/);
+  assert.match(reports, /nav\("parse", \{ targetJobId: targetJob\.id \}\)/);
+  assert.match(reports, /nav\("workspace"\)/);
+  assert.doesNotMatch(reports, /Retry report|重试报告|reports-retry|timeline|时间线|fullHistory|reportHistory/);
+  assert.doesNotMatch(reports, /section:\s*"reports"|provenance|modelId|rubricVersion/);
+});
+
+test("Report detail and pending states return to trusted ReportsScreen or safe workspace", () => {
+  const report = readUiFile("./src/screen-report.jsx");
+
+  assert.match(report, /data-testid="report-back-button"[\s\S]*nav\("reports", \{ targetJobId: report\.targetJobId \}\)/);
+  assert.match(report, /const ReportPendingState = \(\{ T, lang, nav, reportId, targetJobId \}\) =>/);
+  assert.match(report, /targetJobId \? nav\("reports", \{ targetJobId \}\) : nav\("workspace"\)/);
+  assert.match(report, /const ReportMissingState = [\s\S]*nav\("workspace"\)/);
+  assert.doesNotMatch(report, /nav\("parse"|section:\s*"reports"/);
 });
 
 test("prototype round progress is backend-projected and never inferred from lifecycle text", () => {
@@ -516,6 +592,17 @@ test("Home recent mock interviews are signed-in only", () => {
   assert.doesNotMatch(home, /解析并确认面试/);
 });
 
+test("Home JD intake exposes one paste-only path", () => {
+  const home = readUiFile("./src/screen-home.jsx");
+
+  assert.match(home, /data-testid="home-jd-textarea"/);
+  assert.match(home, /data-testid="home-resume-select"/);
+  assert.match(home, /data-testid="home-submit-row"/);
+  assert.doesNotMatch(home, /assistOpen|JDAssistModal|home-jd-source-controls/);
+  assert.doesNotMatch(home, /home-upload-trigger|home-url-trigger|uploadSource|orUpload/);
+  assert.doesNotMatch(home, /Paste or upload|粘贴或上传|source:\s*assistOpen|source:\s*"pasted"/);
+});
+
 test("Home and workspace share action card behavior", () => {
   const home = readUiFile("./src/screen-home.jsx");
   const workspace = readUiFile("./src/screen-workspace.jsx");
@@ -547,10 +634,11 @@ test("practice is one continuous text conversation with phone disabled", () => {
   assert.match(practice, /const \{ currentRound \} = window\.eiResolveInterviewRoundContext/);
   assert.match(practice, /currentRound \? formatElapsed\(currentRound\.durationMinutes \* 60\) : "--:--"/);
   assert.match(practice, /const hasCommittedCandidateMessage = messages\.some/);
+  assert.match(practice, /const canFinishInterview = /);
   assert.match(practice, /const finishReasonId = "practice-finish-disabled-reason"/);
   assert.match(practice, /data-testid="practice-finish-cta"/);
-  assert.match(practice, /disabled=\{!hasCommittedCandidateMessage\}/);
-  assert.match(practice, /aria-describedby=\{!hasCommittedCandidateMessage \? finishReasonId : undefined\}/);
+  assert.match(practice, /disabled=\{!canFinishInterview\}/);
+  assert.match(practice, /aria-describedby=\{!canFinishInterview \? finishReasonId : undefined\}/);
   assert.match(practice, /data-testid="practice-finish-disabled-reason"/);
   assert.match(practice, /请先完成至少一次回答|Complete at least one answer first/);
   assert.match(practice, /nav\("generating", \{ reportId: D\.report\.id \}\)/);
@@ -558,12 +646,92 @@ test("practice is one continuous text conversation with phone disabled", () => {
   assert.doesNotMatch(practice, /25:00/);
 });
 
-test("prototype generating and report routes retain only the stable report locator", () => {
+test("practice shows immediate user rows, interviewer thinking, and failed-row retry only", () => {
+  const practice = readUiFile("./src/screen-practice.jsx");
+  const primitives = readUiFile("./src/primitives.jsx");
+
+  assert.match(practice, /status: message\.role === "user" \? \(message\.status \|\| "complete"\) : undefined/);
+  assert.match(practice, /const \[pendingMessageId, setPendingMessageId\] = React\.useState\(null\)/);
+  assert.match(practice, /const requestReply = /);
+  assert.match(practice, /data-testid="practice-interviewer-thinking"/);
+  assert.match(practice, /aria-live="polite"/);
+  assert.match(practice, /data-testid="practice-message-retry"/);
+  assert.match(practice, /msg\.status === "retryable_failed"/);
+  assert.match(practice, /retryFailedMessage\(msg\)/);
+  assert.match(practice, /disabled=\{paused \|\| isThinking \|\| hasTerminalFailedMessage\}/);
+  assert.match(practice, /disabled=\{paused \|\| isThinking \|\| hasFailedCandidateMessage \|\| !input\.trim\(\)\}/);
+  assert.match(practice, /data-testid="practice-terminal-recovery" role="alert"/);
+  assert.match(practice, /nav\("parse", \{ targetJobId: job\.id \}\)/);
+  assert.match(practice, /返回当前面试规划|Return to this interview plan/);
+  assert.doesNotMatch(practice, /msg\.status === "terminal_failed"[\s\S]{0,200}data-testid="practice-message-retry"/);
+  assert.match(primitives, /refresh:\s*</);
+  assert.doesNotMatch(practice, /setTimeout\(\(\) => setMessages\(\(current\) => \[\.\.\.current, \{\s*role: "ai"/);
+});
+
+test("practice exposes deterministic reply-state demos for four-state source parity", () => {
+  const practice = readUiFile("./src/screen-practice.jsx");
+
+  assert.match(practice, /params\.replyState/);
+  for (const state of [
+    "immediate-pending",
+    "persisted-pending",
+    "retryable-failed",
+    "terminal-failed",
+  ]) {
+    assert.match(practice, new RegExp(`["]${state}["]`));
+  }
+  for (const testId of [
+    "practice-screen",
+    "practice-topbar",
+    "practice-conversation",
+    "practice-transcript",
+    "practice-input",
+    "practice-input-textarea",
+    "practice-input-send",
+    "practice-terminal-recovery-cta",
+  ]) {
+    assert.match(practice, new RegExp(`data-testid=["]${testId}["]`));
+  }
+  assert.match(practice, /const isThinking = /);
+  assert.match(practice, /const finishDisabledReason = /);
+  assert.match(practice, /isThinking \? \(lang === "en" \? "Wait for the interviewer reply\." : "请等待面试官回复。"\)/);
+  assert.match(practice, /hasFailedCandidateMessage \? \(lang === "en" \? "Resolve the unfinished reply first\." : "请先恢复这条未完成回复的消息。"\)/);
+});
+
+test("Parse loading keeps progress but hides internal model and rubric metadata", () => {
+  const p0 = readUiFile("./src/screens-p0-complete.jsx");
+  const start = p0.indexOf("const ParseScreen = ");
+  const end = p0.indexOf("// #3 REPORT GENERATING", start);
+  const parse = p0.slice(start, end);
+
+  assert.ok(start >= 0 && end > start);
+  assert.match(parse, /steps\.map/);
+  assert.doesNotMatch(parse, /claude-haiku|rubric ·|prompt@|typical ·|provenance/i);
+});
+
+test("Report context strip hides internal session and report locators", () => {
+  const report = readUiFile("./src/screen-report.jsx");
+  const start = report.indexOf("const ReportContextStrip = ");
+  const end = report.indexOf("const ReportMetric = ", start);
+  const strip = report.slice(start, end);
+
+  assert.ok(start >= 0 && end > start);
+  assert.match(strip, /targetJobCompany/);
+  assert.match(strip, /roundName/);
+  assert.match(strip, /resumeDisplayName/);
+  assert.doesNotMatch(strip, /report\.(?:sessionId|id)|report-context-session|SESSION|会话/);
+});
+
+test("prototype report routes retain only their stable resource locators", () => {
   const app = readUiFile("./src/app.jsx");
   const canvas = readUiFile("./canvas.html");
 
   assert.match(app, /const REPORT_LOCATOR_ROUTES = new Set\(\["generating", "report"\]\)/);
+  assert.match(app, /const TARGET_JOB_LOCATOR_ROUTES = new Set\(\["parse", "reports"\]\)/);
   assert.match(app, /return stripUndefined\(\{ reportId: params\.reportId \}\)/);
+  assert.match(app, /return stripUndefined\(\{ targetJobId: params\.targetJobId \}\)/);
+  assert.match(app, /const prototypeReportDemoState = activeRouteName === "reports"/);
+  assert.match(app, /reports:\s*<ReportsScreen[^>]*params=\{route\.params \|\| \{\}\}[^>]*demoState=\{prototypeReportDemoState\}/);
   assert.match(canvas, /\["generating", "report"\]\.includes\(route\).*params\.set\("reportId", "report-24"\)/);
   assert.doesNotMatch(canvas, /\["practice", "generating", "report"\]\.includes\(route\).*sessionId/);
 });
@@ -582,7 +750,7 @@ test("parse confirm page is a readonly saved-plan receipt with direct launch", (
   assert.match(p0, /const PlanBindingPill = /);
   assert.match(p0, /<PlanBindingPill T=\{T\}/);
   assert.doesNotMatch(p0, /window\.BindingPill/);
-  assert.match(p0, /const ParseScreen = \(\{ T, lang, nav, requestAuth \}\) =>/);
+  assert.match(p0, /const ParseScreen = \(\{ T, lang, nav, requestAuth, params = \{\} \}\) =>/);
   assert.match(p0, /window\.getWorkspaceResumeOptions/);
   assert.match(p0, /立即面试/);
   assert.match(p0, /type: "create_session"/);

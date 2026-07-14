@@ -1,8 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, type FC } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FC,
+} from "react";
 
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
-import { useI18n } from "../../i18n/messages";
+import { useI18n, type MessageKey } from "../../i18n/messages";
 import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
 import { useNavigation } from "../../navigation/NavigationProvider";
@@ -12,12 +19,11 @@ import {
   targetJobPracticeRouteParams,
 } from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
-import { JDAssistModal, type JDAssistModalSource } from "./JDAssistModal";
 import { MockInterviewCard } from "./MockInterviewCard";
 import {
-  consumePendingImportSource,
-  storePendingImportSource,
-  type PendingImportSource,
+  consumePendingImportIntent,
+  storePendingImportIntent,
+  type PendingImportIntent,
 } from "./pendingImportState";
 import { useRecentTargetJobs } from "./useRecentTargetJobs";
 import type { Resume, TargetJob } from "../../../api/generated/types";
@@ -42,21 +48,17 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const requestAuth = useRequestAuth();
   const { navigate } = useNavigation();
   const [input, setInput] = useState("");
-  const [assistOpen, setAssistOpen] = useState<"upload" | "url" | null>(null);
   const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
+  const [importError, setImportError] = useState<MessageKey | null>(null);
   const [readyResumes, setReadyResumes] = useState<Resume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState("");
   const [resumesLoading, setResumesLoading] = useState(false);
-  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState<MessageKey | null>(null);
   const [startingRecentJobId, setStartingRecentJobId] = useState<string | null>(null);
-  const [recentStartError, setRecentStartError] = useState<string | null>(null);
+  const [recentStartError, setRecentStartError] = useState<MessageKey | null>(null);
+  const handledPendingImportId = useRef<string | null>(null);
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
   const targetLanguage = lang === "zh" ? "zh-CN" : "en";
-  const routeResumeId =
-    typeof route.params.resumeId === "string"
-      ? route.params.resumeId
-      : undefined;
   const showRecentMocks = runtime?.auth.status === "authenticated";
   const selectedResume = useMemo(
     () => readyResumes.find((resume) => resume.id === selectedResumeId) ?? null,
@@ -114,20 +116,14 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           if (current && ready.some((resume) => resume.id === current)) {
             return current;
           }
-          if (
-            routeResumeId &&
-            ready.some((resume) => resume.id === routeResumeId)
-          ) {
-            return routeResumeId;
-          }
           return "";
         });
       })
-      .catch((err: unknown) => {
+      .catch(() => {
         if (!active) return;
         setReadyResumes([]);
         setSelectedResumeId("");
-        setResumeError(err instanceof Error ? err.message : String(err));
+        setResumeError("home.errors.resumeLoad");
       })
       .finally(() => {
         if (active) setResumesLoading(false);
@@ -136,135 +132,79 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     return () => {
       active = false;
     };
-  }, [lang, routeResumeId, runtime]);
+  }, [lang, runtime]);
 
-  const submitImportSource = useCallback(async (source: PendingImportSource, resumeId: string) => {
+  const submitImport = useCallback(async (intent: PendingImportIntent) => {
     if (!runtime) return;
     setImportError(null);
     setImporting(true);
     try {
-      const ik = idempotencyKey();
-      let targetJobId: string;
-
-      if (source.source === "upload") {
-        const presign = await runtime.client.createUploadPresign(
-          {
-            purpose: "target_job_attachment",
-            fileName: "target-job-attachment.pdf",
-            contentType: "application/pdf",
-            byteSize: 0,
-          },
-          { idempotencyKey: ik },
-        );
-        const result = await runtime.client.importTargetJob(
-          {
-            source: { type: "file", fileObjectId: presign.fileObjectId },
-            targetLanguage,
-            resumeId,
-          },
-          { idempotencyKey: ik },
-        );
-        targetJobId = result.targetJobId;
-        setAssistOpen(null);
-      } else if (source.source === "url") {
-        const result = await runtime.client.importTargetJob(
-          {
-            source: { type: "url", url: source.url },
-            targetLanguage,
-            resumeId,
-          },
-          { idempotencyKey: ik },
-        );
-        targetJobId = result.targetJobId;
-        setAssistOpen(null);
-      } else {
-        const result = await runtime.client.importTargetJob(
-          {
-            source: { type: "manual_text", rawText: source.rawText },
-            targetLanguage,
-            resumeId,
-          },
-          { idempotencyKey: ik },
-        );
-        targetJobId = result.targetJobId;
-      }
+      const result = await runtime.client.importTargetJob(
+        {
+          rawText: intent.rawText,
+          targetLanguage: intent.targetLanguage,
+          resumeId: intent.resumeId,
+        },
+        { idempotencyKey: intent.idempotencyKey },
+      );
       navigate({
         name: "parse",
         params: {
-          targetJobId,
-          source: source.source,
-          resumeId,
+          targetJobId: result.targetJobId,
+          resumeId: intent.resumeId,
         },
       });
-    } catch (err: unknown) {
-      setImportError(
-        err instanceof Error ? err.message : String(err),
-      );
+    } catch {
+      setImportError("home.errors.import");
     } finally {
       setImporting(false);
     }
-  }, [navigate, runtime, targetLanguage]);
+  }, [navigate, runtime]);
 
   useEffect(() => {
     if (!runtime || runtime.auth.status !== "authenticated") return;
-    const pendingImportId = route.params.pendingImportId;
-    if (!pendingImportId) return;
-    const resumeId =
-      typeof route.params.resumeId === "string" ? route.params.resumeId : "";
-    if (!resumeId) {
-      setImportError(t("home.resumeRequired"));
+    const opaquePendingImportId = route.params.opaquePendingImportId;
+    if (
+      !opaquePendingImportId ||
+      handledPendingImportId.current === opaquePendingImportId
+    ) {
       return;
     }
-    const pendingSource = consumePendingImportSource(pendingImportId);
-    if (!pendingSource) {
-      setImportError("Pending JD import expired. Please submit the JD again.");
+    handledPendingImportId.current = opaquePendingImportId;
+
+    const intent = consumePendingImportIntent(opaquePendingImportId);
+    if (!intent) {
+      setImportError("home.pendingImportInvalid");
+      navigate({ name: "home", params: {} });
       return;
     }
-    void submitImportSource(pendingSource, resumeId);
-  }, [route.params.pendingImportId, route.params.resumeId, runtime, submitImportSource, t]);
+    void submitImport(intent);
+  }, [navigate, route.params.opaquePendingImportId, runtime, submitImport]);
 
   const handlePasteImport = async () => {
-    if (!runtime || !input.trim() || importing || !selectedResume) return;
-    const source: PendingImportSource = { source: "paste", rawText: input };
+    const rawText = input.trim();
+    if (!runtime || !rawText || importing || !selectedResume) return;
+    const intent: PendingImportIntent = {
+      rawText,
+      targetLanguage,
+      resumeId: selectedResume.id,
+      idempotencyKey: idempotencyKey(),
+    };
 
     if (runtime.auth.status !== "authenticated") {
-      const pendingImportId = storePendingImportSource(source);
+      const opaquePendingImportId = storePendingImportIntent(intent);
       requestAuth({
         type: "import_jd",
         label: t("home.importBtn"),
         route: "home",
         params: {
-          source: "paste",
-          pendingImportId,
-          resumeId: selectedResume.id,
+          opaquePendingImportId,
         },
       });
       return;
     }
 
-    await submitImportSource(source, selectedResume.id);
-  };
-
-  const handleModalConfirm = async (source: JDAssistModalSource) => {
-    if (!runtime || importing || !selectedResume) return;
-    const pendingSource: PendingImportSource = source;
-
-    if (runtime.auth.status !== "authenticated") {
-      const pendingImportId = storePendingImportSource(pendingSource);
-      requestAuth({
-        type: "import_jd",
-        label: t("home.importBtn"),
-        route: "home",
-        params: {
-          source: source.source,
-          pendingImportId,
-          resumeId: selectedResume.id,
-        },
-      });
-      return;
-    }
-
-    await submitImportSource(pendingSource, selectedResume.id);
+    await submitImport(intent);
   };
 
   const openRecentPlan = useCallback(
@@ -298,8 +238,8 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
       try {
         const started = await startPracticeFromParams(runtime.client, params, lang);
         navigate({ name: "practice", params: started.params });
-      } catch (err: unknown) {
-        setRecentStartError(err instanceof Error ? err.message : String(err));
+      } catch {
+        setRecentStartError("home.errors.start");
       } finally {
         setStartingRecentJobId(null);
       }
@@ -338,7 +278,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         >
           {t("home.heroTitle")}
         </h1>
-        {/* JD source choice */}
+        {/* JD paste intake */}
         <div
           style={{
             marginTop: 32,
@@ -385,79 +325,6 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                 fontFamily: "var(--ei-font-sans)",
               }}
             />
-            <div
-              data-testid="home-jd-source-controls"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                flexWrap: "wrap",
-                marginTop: 14,
-                paddingTop: 14,
-                borderTop: "1px solid var(--ei-color-rule-strong)",
-              }}
-            >
-              <div
-                style={{
-                  color: "var(--ei-color-fg-tertiary)",
-                  fontSize: 12.5,
-                  lineHeight: 1.5,
-                }}
-              >
-                {t("home.orUpload")}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  flexWrap: "wrap",
-                }}
-              >
-                <button
-                  data-testid="home-upload-trigger"
-                  type="button"
-                  onClick={() => setAssistOpen("upload")}
-                  style={{
-                    background: "var(--ei-color-bg-soft)",
-                    border: "1px solid var(--ei-color-rule-strong)",
-                    borderRadius: 3,
-                    color: "var(--ei-color-fg-primary)",
-                    fontSize: 13,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 34,
-                    padding: "0 12px",
-                    cursor: "pointer",
-                    fontWeight: 500,
-                  }}
-                >
-                  {t("home.uploadSource")}
-                </button>
-                <button
-                  data-testid="home-url-trigger"
-                  type="button"
-                  onClick={() => setAssistOpen("url")}
-                  style={{
-                    background: "transparent",
-                    border: "1px solid transparent",
-                    color: "var(--ei-color-accent)",
-                    fontSize: 13,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 34,
-                    padding: "0 12px",
-                    cursor: "pointer",
-                    fontWeight: 500,
-                  }}
-                >
-                  URL
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -568,7 +435,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                 maxWidth: 360,
               }}
             >
-              {resumeError ?? t("home.resumeEmpty")}
+              {resumeError ? t(resumeError) : t("home.resumeEmpty")}
             </div>
           )}
           <div
@@ -600,19 +467,38 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
               style={{
                 background: "var(--ei-color-accent)",
                 color: "#fff",
-                border: "none",
-                borderRadius: "var(--ei-radius-sm)",
+                border: "1px solid var(--ei-color-accent)",
+                borderRadius: 2,
                 padding: "0 16px",
                 height: 38,
                 fontSize: 14,
                 fontWeight: 500,
-                cursor: "pointer",
-                display: "flex",
+                cursor: canSubmit ? "pointer" : "not-allowed",
+                display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
                 gap: 8,
+                opacity: canSubmit ? 1 : 0.5,
+                fontFamily: "var(--ei-sans)",
+                letterSpacing: "-0.005em",
+                transition: "transform .08s ease, opacity .15s",
               }}
             >
               {t("home.importBtn")}
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle" }}
+              >
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
             </button>
           </div>
           {importError && (
@@ -624,7 +510,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                 marginTop: 10,
               }}
             >
-              {importError}
+              {t(importError)}
             </div>
           )}
         </div>
@@ -712,7 +598,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                 fontSize: 13,
               }}
             >
-              {error.message}
+              {t("home.errors.recentLoad")}
             </div>
           ) : jobs.length === 0 ? (
             <div
@@ -770,18 +656,10 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                 marginTop: 10,
               }}
             >
-              {recentStartError}
+              {t(recentStartError)}
             </div>
           ) : null}
         </div>
-      )}
-
-      {assistOpen && (
-        <JDAssistModal
-          type={assistOpen}
-          onClose={() => setAssistOpen(null)}
-          onConfirm={handleModalConfirm}
-        />
       )}
     </section>
   );

@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.54
+> **版本**: 1.58
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 修订规则
 
@@ -14,8 +14,8 @@
 |----------|----------------------|------------------|
 | 任何 schema / endpoint / response status / required 字段集合的变更（包括 additive 与 breaking） | 是 | 关联 plan id（如 `openapi-v1-contract/003-breaking-change-gate`） |
 | privacy export 白名单切换：`POST /api/v1/privacy/exports` 从 `501` 切到 `202`（spec §3.1 D-12 / §4.4 P0 例外） | 是；缺则 `make openapi-diff` 升级为 breaking 退出码 1 | 标注「白名单 additive」+ 当前 spec / plan 版本号；`error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"` 的 fixture 同 PR 切换到 `PrivacyRequestWithJob` |
-| 白名单外的 breaking change（删字段 / 改 type / required 新增 / 删 enum / 删 endpoint / path rename / method change） | 是 | **必须**引用 `状态: accepted` 的 ADR id（`OPENAPI-NNN-<short>`）；新 baseline 文件名 `openapi-v<MAJOR>.<MINOR>.<PATCH>.yaml`；spec 同 PR 修订 |
-| 未上线 v1.0.0 freeze correction | 是 | accepted ADR + product owner 授权 + merge-base 旧 baseline finding exact-match；所有 consumer 同批迁移后才允许原地 re-freeze |
+| 白名单外的 breaking change（删字段 / 改 type / required 新增 / 删 enum / 删 endpoint / path rename / method change） | 是 | 默认引用 `状态: accepted` 的 ADR id（`OPENAPI-NNN-<short>`）；若当前 spec 已有明确、产品批准的 decision row，则可引用该 decision + history authority，并以独立 exact machine oracle 承接，不得为同一决策创建冗余 ADR。新 baseline 文件名 `openapi-v<MAJOR>.<MINOR>.<PATCH>.yaml`；spec 同 PR 修订 |
+| 未上线 v1.0.0 freeze correction | 是 | accepted ADR，或明确 spec decision + product owner 授权；merge-base 旧 baseline finding exact-match；所有 consumer 同批迁移后才允许原地 re-freeze |
 | fixture / example / 文案修订（v1.0.x patch） | 是 | 注明「fixture-only / docs-only」；不强制 ADR；不强制 baseline 递增 |
 | 工具 / tooling 锁版变更（如 swagger-cli / Redocly / wrapper 版本） | 是 | 注明影响的 `make` target 与 [openapi/diff-config.yaml](../../../openapi/diff-config.yaml) `tooling` 段落 |
 
@@ -30,6 +30,10 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 1.58 | OPENAPI-004 wire/fixture/generated contracts remain unchanged；consumer handoff moves from Parse/P0.016 to target-scoped ReportsScreen/P0.059，with Parse/Report/Generating list-consumer negatives. | B2 001/002/003 + frontend-report/001 |
+| 2026-07-14 | 1.57 | 接受 OPENAPI-004：`listTargetJobReports` 原地改为无分页 canonical-round overview，删除 `TargetJob.latestReportId`；current ready 与 latest attempt 独立投影并对非法冻结 context 整体 fail closed。 | B2 001/002/003 + backend-review/001 + frontend-home/001 |
+| 2026-07-14 | 1.56 | 用户批准 O-A / G-A：OPENAPI-002 old-baseline exact boundary 从 15 修正为 17，纳入 `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` 两个 source-only `ApiErrorCode` 删除；Practice 独立 machine oracle 仅投影 D-35 + history 1.54 + 方案 A，不创建冗余 ADR。baseline 仍须等待 preserved audits 与 downstream gates 后再 re-freeze。 | OPENAPI-002 v1.2 + D-34/D-35 + openapi-v1-contract/001/003 |
+| 2026-07-14 | 1.55 | docs-only current-contract correction：B2 `JobType` 仍为 6 项，DB/backend runner 只额外保留 internal-only `email_dispatch`；删除已由 B3 D-20 移除的 `source_refresh` 当前兼容口径。 | OPENAPI-002 + event-and-outbox-contract D-20 + db-migrations-baseline/001 Phase 10 |
 | 2026-07-13 | 1.54 | L1 correction：修正 OPENAPI-002 freeze 顺序与 invariant/oracle 精度，要求 non-whitespace `rawText` 和 canonical 422 fixture；按方案 A 增加 Practice durable reply status、reload/same-ID retry、typed TS `ApiClientError` 与 send failure fixture matrix。 | OPENAPI-002 + openapi-v1-contract 001/002/003 + mock-contract-suite/001 + P0.046 |
 | 2026-07-13 | 1.53 | OPENAPI-002 accepted pre-release correction：`importTargetJob` request 收敛为 closed required `{rawText,targetLanguage,resumeId}`；删除全部 `TargetJobImportSource*`、`TargetJob.sourceType/sourceUrl` 与 `target_job_attachment` purpose；保留 import path/202 response、通用 `createUploadPresign` 和 37 operation / 10 tag inventory，并要求 old-baseline 15 findings exact audit 后同批迁移/re-freeze。 | OPENAPI-002 + openapi-v1-contract/001/002/003 + mock-contract-suite/001 |
 | 2026-07-13 | 1.52 | pre-release state closure：FeedbackReport ready要求non-null summary/preparednessLevel/provenance与非空dimensions/actions；failed独占non-null errorCode；source/baseline/generated/fixture validator同批同步。 | OPENAPI-001 v1.6 + openapi-v1-contract/001/003 |

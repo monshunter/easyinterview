@@ -1,25 +1,37 @@
-# E2E.P0.059 — Deterministic report/generating parity and stale-contract negatives
+# E2E.P0.059 — Current-plan reports and report-return parity
 
 > **Owner**: frontend-report-dashboard/001-report-screen-and-generating-handoff
-> **Coverage tags**: C-5 / C-6 / C-8 / C-10
-> **Execution**: Vitest + Python lint + frontend build + Playwright semantic/pixel parity
+> **Coverage tags**: C-12 / C-13 / C-14
+> **Execution**: Vitest + Python source lint + frontend build + Playwright
 
 ## Given / When / Then
 
-- **Given** prototype and formal surfaces receive identical deterministic API fixtures, fixed locale/timezone/Date, DPR 1, loaded fonts and disabled animation/transition.
-- **When** the runner executes zh needs-practice, en well-prepared and honest generating surfaces at 1440×900 and 390×844.
-- **Then** normalized DOM text, selected computed style and absolute bounding boxes match; `pixelmatch` uses threshold 0.1 and the changed-pixel ratio is at most 0.5%. A mismatch retains prototype/formal/diff images for diagnosis.
+- **Given** `/reports?targetJobId=<uuid>` resolves one trusted TargetJob and its canonical report overview, while Report/Generating retain their reportId-only contracts.
+- **When** `ReportsScreen` renders ready, loading, empty, error, latest-ready, or mismatched-target data at 1440x900 and 390x844.
+- **Then** it shows only the current plan's canonical rounds, each round's `currentReport` and `latestAttempt`, with current/latest-only actions and no full history or global Report Center. Back returns to the same Parse plan; Report/Generating trusted Back remains covered as a regression.
 
-The source/geometry checks are first-class gates. A screenshot capture by itself is not acceptance evidence, and viewport-relative root coordinates must not be normalized away.
+## ReportsScreen contract
 
-## Composed gates
+- Reads `getTargetJob(targetJobId)` and `listTargetJobReports(targetJobId)` together, validates target and canonical round identity, and fails closed on mismatch.
+- Renders current report, queued/generating link, typed failed status, and a latest-ready status without adding a second ready/history action.
+- Clears rows for loading, empty, network/contract error and cross-target mismatch; other-plan identifiers and stale report IDs never enter visible or accessible DOM.
+- `ReportsScreen.tsx` is the only production screen consumer of `listTargetJobReports`; Parse, Report and Generating remain zero consumers.
+- Back returns to `/parse?targetJobId=<trusted uuid>`; the route contains only `targetJobId` and the TopBar contains no Reports item.
 
-- `preflight.test.ts` binds active owner docs, both Playwright specs and the shared comparison helper to DOM/style/bbox, absolute viewport geometry and pixel-difference evidence.
-- `reportDashboardI18nCoverage.test.ts` proves exact zh/en UI-key coverage while model-owned report-language prose remains unchanged.
-- Report/generating out-of-scope tests plus `frontend_report_dashboard_out_of_scope.py` reject fake-live copy, client focus authority and stale report identifiers.
-- Frontend build succeeds before browser execution.
-- `generating.spec.ts` and `report.spec.ts` use the identical fixture bridge for prototype/formal pages, compare deterministic semantic snapshots and enforce pixelmatch ≤0.5% at both viewport widths.
+## Parity evidence
 
-## Failure artifacts
+- `frontend/tests/pixel-parity/reports.spec.ts` compares formal/prototype normalized DOM, computed style, absolute viewport bounding boxes, responsive width and pixelmatch ≤0.5% for ready/loading/empty/error/latest-ready/mismatch at both viewports.
+- Ready formal/prototype screenshots are attached per desktop/mobile project; state mismatch keeps formal/prototype/diff diagnostics.
+- Existing `report.spec.ts` and `generating.spec.ts` remain in the same run, preserving report/generating content and trusted-return parity.
+- `frontend_report_dashboard_out_of_scope.py` rejects history/global-center vocabulary and asserts the one exact production list consumer.
 
-Playwright attaches prototype/formal/diff PNGs only when dimensions or changed-pixel ratio fail. Cleanup removes successful-run output and preserves failure diagnostics for investigation.
+## Scripts
+
+- `scripts/setup.sh` — resets scenario-owned output and writes `setup.env`.
+- `scripts/trigger.sh` — runs script/source self-tests, focused Vitest, lint self-tests, frontend build, and three desktop/mobile Playwright specs.
+- `scripts/verify.sh` — binds actual filenames, test titles, unique-consumer output, current-plan/current-latest/Back markers and Playwright PASS.
+- `scripts/cleanup.sh` — removes successful scenario-owned output only; failures keep diagnostics.
+
+## Environment
+
+The scenario uses fixture-backed runners and the repo static parity server. No shared Docker or host-run application environment is required.

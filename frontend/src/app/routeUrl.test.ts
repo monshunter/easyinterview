@@ -24,6 +24,7 @@ describe("ROUTE_TO_PATH catalog", () => {
       resume_versions: "/resume-versions",
       parse: "/parse",
       practice: "/practice",
+      reports: "/reports",
       generating: "/generating",
       report: "/report",
       settings: "/settings",
@@ -93,6 +94,22 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/");
   });
 
+  it("serializes Reports with targetJobId as its only safe context", () => {
+    expect(
+      formatRouteUrl({
+        name: "reports",
+        params: {
+          targetJobId: "tj-1",
+          section: "reports",
+          reportId: "rpt-1",
+          status: "ready",
+          roundId: "round-1",
+          rawText: "private JD body",
+        },
+      }),
+    ).toBe("/reports?targetJobId=tj-1");
+  });
+
   it("retains only reportId for generating/report deep links", () => {
     expect(
       formatRouteUrl({
@@ -139,13 +156,85 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/practice?sessionId=s-1");
   });
 
-  it("emits home import handoff params", () => {
+  it("emits only the opaque Home import handoff identifier", () => {
     expect(
       formatRouteUrl({
         name: "home",
-        params: { pendingImportId: "imp-1", source: "paste" },
+        params: {
+          opaquePendingImportId: "imp-1",
+          pendingImportId: "legacy-imp",
+          source: "paste",
+          resumeId: "resume-secret",
+        },
       }),
-    ).toBe("/?pendingImportId=imp-1&source=paste");
+    ).toBe("/?opaquePendingImportId=imp-1");
+  });
+
+  it("drops the retired intake source from Parse URLs", () => {
+    expect(
+      formatRouteUrl({
+        name: "parse",
+        params: {
+          targetJobId: "tj-1",
+          resumeId: "rv-1",
+          source: "paste",
+        },
+      }),
+    ).toBe("/parse?resumeId=rv-1&targetJobId=tj-1");
+  });
+
+  it("drops the retired Parse reports section and all report business authority", () => {
+    expect(
+      formatRouteUrl({
+        name: "parse",
+        params: {
+          targetJobId: "tj-1",
+          section: "reports",
+          reportId: "report-route-must-not-own",
+          reportStatus: "ready",
+          status: "failed",
+          roundId: "round-route-must-not-own",
+          roundSequence: "99",
+        },
+      }),
+    ).toBe("/parse?targetJobId=tj-1");
+
+    expect(
+      parseUrlToRoute(
+        "/parse?targetJobId=tj-1&section=reports&reportId=route-report&status=ready&roundId=route-round",
+      ),
+    ).toEqual({
+      name: "parse",
+      params: { targetJobId: "tj-1" },
+    });
+  });
+
+  it("drops every Parse section value", () => {
+    expect(
+      formatRouteUrl({
+        name: "parse",
+        params: { targetJobId: "tj-1", section: "timeline" },
+      }),
+    ).toBe("/parse?targetJobId=tj-1");
+    expect(
+      parseUrlToRoute("/parse?targetJobId=tj-1&section=timeline"),
+    ).toEqual({ name: "parse", params: { targetJobId: "tj-1" } });
+  });
+
+  it("auth pendingAction cannot restore the retired Parse reports section", () => {
+    expect(
+      parseUrlToRoute(
+        "/auth/login?pendingRoute=parse&pendingType=open_protected_route&pendingLabel=parse&targetJobId=tj-1&section=reports&reportId=rpt-1&status=ready&roundId=round-1",
+      ),
+    ).toEqual({
+      name: "auth_login",
+      params: {
+        pendingRoute: "parse",
+        pendingType: "open_protected_route",
+        pendingLabel: "parse",
+        targetJobId: "tj-1",
+      },
+    });
   });
 
 
@@ -351,6 +440,17 @@ describe("parseUrlToRoute", () => {
     });
   });
 
+  it("parses Reports with targetJobId only", () => {
+    expect(
+      parseUrlToRoute(
+        "/reports?targetJobId=tj-1&section=reports&reportId=rpt-1&status=ready&roundId=round-1",
+      ),
+    ).toEqual({
+      name: "reports",
+      params: { targetJobId: "tj-1" },
+    });
+  });
+
   it("parses canonical report deep links with reportId as the sole locator", () => {
     expect(
       parseUrlToRoute(
@@ -464,10 +564,14 @@ describe("parseUrlToRoute", () => {
     ).toEqual({ name: "workspace", params: {} });
   });
 
-  it("normalizes home query-only deep link", () => {
-    expect(parseUrlToRoute("/?pendingImportId=imp-1&source=paste")).toEqual({
+  it("normalizes the opaque home query-only deep link", () => {
+    expect(
+      parseUrlToRoute(
+        "/?opaquePendingImportId=imp-1&pendingImportId=legacy&source=paste&resumeId=rv-1",
+      ),
+    ).toEqual({
       name: "home",
-      params: { pendingImportId: "imp-1", source: "paste" },
+      params: { opaquePendingImportId: "imp-1" },
     });
   });
 
@@ -482,7 +586,10 @@ describe("parseUrlToRoute", () => {
 
 describe("isSafeRouteParam", () => {
   it("approves cross-owner safe params but keeps workspace param-free", () => {
-    expect(isSafeRouteParam("home", "pendingImportId", {})).toBe(true);
+    expect(isSafeRouteParam("home", "opaquePendingImportId", {})).toBe(true);
+    expect(isSafeRouteParam("home", "pendingImportId", {})).toBe(false);
+    expect(isSafeRouteParam("home", "source", {})).toBe(false);
+    expect(isSafeRouteParam("home", "resumeId", {})).toBe(false);
     expect(isSafeRouteParam("workspace", "targetJobId", {})).toBe(false);
     expect(isSafeRouteParam("workspace", "autoStartPractice", {})).toBe(false);
     expect(isSafeRouteParam("workspace", "sourceSessionId", {})).toBe(false);
@@ -496,7 +603,7 @@ describe("isSafeRouteParam", () => {
     expect(isSafeRouteParam("generating", "sessionId", {})).toBe(false);
     expect(isSafeRouteParam("resume_versions", "tailorRunId", {})).toBe(false);
     expect(isSafeRouteParam("parse", "resumeId", {})).toBe(true);
-    expect(isSafeRouteParam("home", "resumeId", {})).toBe(true);
+    expect(isSafeRouteParam("parse", "source", {})).toBe(false);
   });
 
   it("denies raw payload / AI prompt / auth secret keys on every route", () => {

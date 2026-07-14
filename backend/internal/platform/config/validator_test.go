@@ -41,7 +41,6 @@ upload:
   presignTTLSeconds: 600
   maxBytes:
     resume: 2097152
-    targetJobAttachment: 10485760
     privacyExport: 5242880
 resume:
   maxActive: 10
@@ -444,14 +443,16 @@ func TestDefaultUploadConfigPaths(t *testing.T) {
 		t.Fatalf("upload.presignTTLSeconds = %d", got)
 	}
 	for path, want := range map[string]int{
-		"resume.maxActive":                    10,
-		"upload.maxBytes.resume":              2097152,
-		"upload.maxBytes.targetJobAttachment": 10485760,
-		"upload.maxBytes.privacyExport":       5242880,
+		"resume.maxActive":              10,
+		"upload.maxBytes.resume":        2097152,
+		"upload.maxBytes.privacyExport": 5242880,
 	} {
 		if got := loader.GetInt(path); got != want {
 			t.Fatalf("%s = %d, want %d", path, got, want)
 		}
+	}
+	if got := loader.GetInt("upload.maxBytes.targetJobAttachment"); got != 0 {
+		t.Fatalf("removed upload.maxBytes.targetJobAttachment = %d, want 0", got)
 	}
 }
 
@@ -464,7 +465,6 @@ upload:
   presignTTLSeconds: 600
   maxBytes:
     resume: 2097152
-    targetJobAttachment: 10485760
     privacyExport: 5242880
 async:
   queueWeights:
@@ -482,7 +482,6 @@ upload:
   presignTTLSeconds: 0
   maxBytes:
     resume: 2097152
-    targetJobAttachment: 10485760
     privacyExport: 5242880
 async:
   queueWeights:
@@ -500,7 +499,6 @@ upload:
   presignTTLSeconds: 600
   maxBytes:
     resume: -1
-    targetJobAttachment: 10485760
     privacyExport: 5242880
 async:
   queueWeights:
@@ -518,7 +516,6 @@ upload:
   presignTTLSeconds: 600
   maxBytes:
     resume: 2097152
-    targetJobAttachment: 10485760
     privacyExport: 5242880
 async:
   queueWeights:

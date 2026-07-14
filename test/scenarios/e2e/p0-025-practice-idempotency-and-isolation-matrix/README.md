@@ -12,11 +12,11 @@
 
 ## 2 When
 
-场景依次触发：完整 message pair 精确 replay；AI 首次失败后同 `clientMessageId` 重试 pending user message；同 ID 不同正文 mismatch；跨用户 session 访问。
+场景依次触发：完整 message pair 精确 replay；pending 同 ID 读取不重复调用 AI；AI 失败持久化为 `retryable_failed` 后同 `clientMessageId` 重试；terminal/pending same-ID 拒绝；同 ID 不同正文 mismatch；跨用户 session 访问。
 
 ## 3 Then
 
-完整 replay 不重复调用 AI；pending 重试复用原 user message；mismatch 返回 `409 PRACTICE_SESSION_CONFLICT`；跨用户访问返回 `404 PRACTICE_SESSION_NOT_FOUND`。
+完整 replay 不重复调用 AI；pending same-ID 不再次调用 AI；只有 `retryable_failed` 能复用原 user message 与同一 ID 重试；terminal/pending 不可重试；mismatch 返回 `409 IDEMPOTENCY_KEY_MISMATCH`；跨用户访问返回 `404 PRACTICE_SESSION_NOT_FOUND`。
 
 ## 4 执行
 

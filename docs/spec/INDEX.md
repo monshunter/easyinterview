@@ -10,7 +10,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [product-scope](./product-scope/spec.md) | 2.20 | active | 2026-07-13 | [plans](./product-scope/plans/) |
+| [product-scope](./product-scope/spec.md) | 2.21 | active | 2026-07-14 | [plans](./product-scope/plans/) |
 | [engineering-roadmap](./engineering-roadmap/spec.md) | 3.37 | active | 2026-07-10 | [plans](./engineering-roadmap/plans/) |
 
 ## 2 Foundation
@@ -30,32 +30,32 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.31 | active | 2026-07-13 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.54 | active | 2026-07-13 | [plans](./openapi-v1-contract/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.58 | active | 2026-07-14 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.15 | active | 2026-07-13 | [plans](./event-and-outbox-contract/plans/) |
-| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.36 | active | 2026-07-13 | [plans](./db-migrations-baseline/plans/) |
+| [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.37 | active | 2026-07-14 | [plans](./db-migrations-baseline/plans/) |
 
 ## 4 Quality / AI Governance
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [observability-stack](./observability-stack/spec.md) | 1.11 | active | 2026-07-10 | [plans](./observability-stack/plans/) |
-| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 2.41 | active | 2026-07-13 | [plans](./prompt-rubric-registry/plans/) |
+| [observability-stack](./observability-stack/spec.md) | 1.12 | active | 2026-07-13 | [plans](./observability-stack/plans/) |
+| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 2.42 | active | 2026-07-13 | [plans](./prompt-rubric-registry/plans/) |
 
 ## 5 P0 Implementation
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.18 | active | 2026-07-13 | [plans](./mock-contract-suite/plans/) |
-| [frontend-shell](./frontend-shell/spec.md) | 1.27 | active | 2026-07-09 | [plans](./frontend-shell/plans/) |
-| [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.21 | active | 2026-07-13 | [plans](./frontend-home-job-picks-and-parse/plans/) |
-| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.41 | active | 2026-07-13 | [plans](./frontend-workspace-and-practice/plans/) |
+| [frontend-shell](./frontend-shell/spec.md) | 1.28 | active | 2026-07-14 | [plans](./frontend-shell/plans/) |
+| [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.23 | active | 2026-07-14 | [plans](./frontend-home-job-picks-and-parse/plans/) |
+| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.42 | active | 2026-07-14 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 2.1 | active | 2026-07-10 | [plans](./backend-auth/plans/) |
-| [backend-targetjob](./backend-targetjob/spec.md) | 2.11 | active | 2026-07-13 | [plans](./backend-targetjob/plans/) |
-| [backend-practice](./backend-practice/spec.md) | 1.32 | active | 2026-07-13 | [plans](./backend-practice/plans/) |
-| [backend-review](./backend-review/spec.md) | 1.23 | active | 2026-07-13 | [plans](./backend-review/plans/) |
+| [backend-targetjob](./backend-targetjob/spec.md) | 2.12 | active | 2026-07-14 | [plans](./backend-targetjob/plans/) |
+| [backend-practice](./backend-practice/spec.md) | 1.33 | active | 2026-07-14 | [plans](./backend-practice/plans/) |
+| [backend-review](./backend-review/spec.md) | 1.25 | active | 2026-07-14 | [plans](./backend-review/plans/) |
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.15 | completed | 2026-07-12 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.6 | active | 2026-07-13 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 2.7 | active | 2026-07-12 | [plans](./backend-resume/plans/) |
 | [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.14 | active | 2026-07-10 | [plans](./frontend-resume-workshop/plans/) |
-| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.21 | active | 2026-07-13 | [plans](./frontend-report-dashboard/plans/) |
+| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.24 | active | 2026-07-14 | [plans](./frontend-report-dashboard/plans/) |
 | [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 2.12 | active | 2026-07-13 | [plans](./e2e-scenarios-p0/plans/) |

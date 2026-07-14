@@ -210,6 +210,38 @@ describe("ParseResumeBinding", () => {
     expect(JSON.stringify(params)).not.toContain("resume-unbound");
   });
 
+  it("does not expose service details when resume loading fails", async () => {
+    const client = createClient();
+    vi.spyOn(client, "listResumes").mockRejectedValue(
+      new Error("HTTP 503 RESUME_STORE_UNAVAILABLE"),
+    );
+
+    await renderReadyParse(client);
+
+    expect(await screen.findByText("Resumes cannot be loaded right now. Please try again later.")).toBeInTheDocument();
+    expect(screen.queryByText("HTTP 503 RESUME_STORE_UNAVAILABLE")).not.toBeInTheDocument();
+    expect(screen.queryByText("Missing bound resume")).not.toBeInTheDocument();
+    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
+  });
+
+  it("does not expose a backend error when starting the interview fails", async () => {
+    const client = createClient();
+    vi.spyOn(client, "getPracticePlan").mockRejectedValue(
+      new Error("HTTP 503 PRACTICE_STORE_UNAVAILABLE"),
+    );
+    const { navigate } = await renderReadyParse(client);
+
+    fireEvent.click(await screen.findByTestId("parse-action-start-interview"));
+
+    expect(await screen.findByTestId("parse-confirm-error")).toHaveTextContent(
+      "The interview cannot be started right now. Please try again.",
+    );
+    expect(screen.queryByText("HTTP 503 PRACTICE_STORE_UNAVAILABLE")).not.toBeInTheDocument();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
+    expect(navigate).not.toHaveBeenCalledWith(expect.objectContaining({ name: "practice" }));
+  });
+
   it("disables start for final backend progress with zero plan/session calls", async () => {
     const client = createClient([listResumesFixture], {
       currentPracticePlanId: null,

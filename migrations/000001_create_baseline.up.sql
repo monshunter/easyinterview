@@ -37,7 +37,7 @@ CREATE TABLE user_settings (
 CREATE TABLE file_objects (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  purpose text NOT NULL CHECK (purpose IN ('resume', 'target_job_attachment', 'privacy_export', 'source_snapshot', 'audio', 'video')),
+  purpose text NOT NULL CHECK (purpose IN ('resume', 'privacy_export', 'source_snapshot', 'audio', 'video')),
   object_key text NOT NULL UNIQUE,
   original_file_name text NOT NULL,
   content_type text NOT NULL,
@@ -78,14 +78,10 @@ CREATE TABLE target_jobs (
   employment_type text,
   seniority_level text,
   target_language text NOT NULL DEFAULT 'en',
-  source_type text NOT NULL CHECK (source_type IN ('manual_text', 'url', 'file', 'manual_form')),
-  source_url text,
-  source_file_object_id uuid REFERENCES file_objects(id) ON DELETE SET NULL,
   raw_jd_text text,
   summary jsonb NOT NULL DEFAULT '{}'::jsonb,
   fit_summary jsonb NOT NULL DEFAULT '{}'::jsonb,
   notes text,
-  latest_report_id uuid,
   open_question_issue_count integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -106,19 +102,6 @@ CREATE TABLE target_job_requirements (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_target_job_requirements_target_job ON target_job_requirements (target_job_id, display_order);
-
-CREATE TABLE target_job_sources (
-  id uuid PRIMARY KEY,
-  target_job_id uuid NOT NULL REFERENCES target_jobs(id) ON DELETE CASCADE,
-  source_type text NOT NULL CHECK (source_type IN ('url', 'file', 'manual_text', 'manual_form')),
-  url text,
-  file_object_id uuid REFERENCES file_objects(id) ON DELETE SET NULL,
-  snapshot_text text,
-  fetched_at timestamptz,
-  freshness_status text NOT NULL DEFAULT 'fresh' CHECK (freshness_status IN ('fresh', 'stale', 'expired')),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_target_job_sources_target_job ON target_job_sources (target_job_id, created_at DESC);
 
 CREATE TABLE practice_plans (
   id uuid PRIMARY KEY,
@@ -197,13 +180,22 @@ CREATE TABLE practice_messages (
   content text NOT NULL,
   client_message_id uuid,
   reply_to_message_id uuid REFERENCES practice_messages(id) ON DELETE CASCADE,
+  reply_status text CHECK (reply_status IN ('pending', 'retryable_failed', 'terminal_failed', 'complete')),
+  reply_generation bigint,
+  reply_lease_expires_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (session_id, seq_no),
   UNIQUE (session_id, client_message_id),
   UNIQUE (reply_to_message_id),
   CONSTRAINT practice_messages_client_id_check CHECK (
-    (role = 'user' AND client_message_id IS NOT NULL AND reply_to_message_id IS NULL)
-    OR (role = 'assistant' AND client_message_id IS NULL)
+    (role = 'user' AND client_message_id IS NOT NULL AND reply_to_message_id IS NULL AND reply_status IS NOT NULL
+      AND reply_generation IS NOT NULL AND reply_generation > 0
+      AND (
+        (reply_status = 'pending' AND reply_lease_expires_at IS NOT NULL)
+        OR (reply_status IN ('retryable_failed', 'terminal_failed', 'complete') AND reply_lease_expires_at IS NULL)
+      )
+    )
+    OR (role = 'assistant' AND client_message_id IS NULL AND reply_status IS NULL AND reply_generation IS NULL AND reply_lease_expires_at IS NULL)
   )
 );
 CREATE INDEX idx_practice_messages_session_seq ON practice_messages (session_id, seq_no);
@@ -337,7 +329,7 @@ CREATE INDEX idx_ai_task_runs_dashboard ON ai_task_runs (model_profile_name, val
 
 CREATE TABLE async_jobs (
   id uuid PRIMARY KEY,
-  job_type text NOT NULL CHECK (job_type IN ('target_import', 'resume_parse', 'report_generate', 'resume_tailor', 'source_refresh', 'privacy_export', 'privacy_delete', 'email_dispatch')),
+  job_type text NOT NULL CHECK (job_type IN ('target_import', 'resume_parse', 'report_generate', 'resume_tailor', 'privacy_export', 'privacy_delete', 'email_dispatch')),
   resource_type text NOT NULL,
   resource_id uuid NOT NULL,
   dedupe_key text,

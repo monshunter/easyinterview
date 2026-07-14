@@ -70,7 +70,6 @@ func (l *Loader) Validate() error {
 		}
 		for _, path := range []string{
 			"upload.maxBytes.resume",
-			"upload.maxBytes.targetJobAttachment",
 			"upload.maxBytes.privacyExport",
 		} {
 			if l.GetInt(path) <= 0 {

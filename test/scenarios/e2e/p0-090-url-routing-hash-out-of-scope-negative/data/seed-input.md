@@ -2,8 +2,10 @@
 
 | 输入 | 描述 |
 |------|------|
-| `/#route=home` | out-of-scope home hash entry |
-| `/#route=workspace&targetJobId=tj-1` | out-of-scope workspace hash entry |
+| `/#route=reports&targetJobId=01918fa0-0000-7000-8000-000000002000&section=reports&reportId=rpt-hostile&status=ready&roundId=round-hostile` | Reports hash；期望 canonical `/reports?targetJobId=<uuid>` |
+| `/#route=parse&targetJobId=tj-1&section=reports&reportId=rpt-hostile&status=ready&roundId=round-hostile` | 旧 Parse 报告入口参数；期望只保留 `targetJobId` |
+| `/#route=home` | canonical home hash entry |
+| `/#route=workspace&targetJobId=tj-1` | canonical workspace hash with incompatible target context |
 | `/#route=practice&mode=phone&modality=phone&sessionId=01918fa0-...` | legacy phone params that must be filtered |
 | `/#route=practice&mode=voice&modality=voice&sessionId=01918fa0-...` | out-of-scope voice mode values that must be filtered |
 | `/#route=voice` | 范围外 voice 独立路由 |
@@ -11,6 +13,7 @@
 | `/totally-unknown?foo=bar` | 未知 canonical path |
 | `/voice?mode=voice` / `/debrief?...` / `/profile` | 范围外 canonical path |
 | `ROUTE_TO_PATH` / `FRONTEND_CANONICAL_PATHS` 全量枚举 | 用于 negative grep |
+| `/reports?targetJobId=01918fa0-0000-7000-8000-000000002000` | known SPA fallback 必须接受，但 `topbar-nav-reports` 必须不存在 |
 | `/api/health` / `/openapi/openapi.yaml` / `/health` / `/assets/main.js` / `/index.html` / `/workspace.json` | SPA fallback 必须拒绝 |
 
-无网络 fixture 依赖；测试不发送任何 HTTP 请求。
+Reports / Parse 使用 fixture-backed App runtime；测试不写共享数据库或调用外部服务。

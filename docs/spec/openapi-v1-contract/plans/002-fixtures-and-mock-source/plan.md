@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.15
+> **版本**: 1.17
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -103,6 +103,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-14 | 1.16 | Reopen for OPENAPI-004 canonical-round report overview fixtures, prototype projection, Prism parity and latest-report-pointer removal. | OPENAPI-004 + P0.016/P0.059 |
 | 2026-07-13 | 1.15 | Add canonical blank-rawText 422 validation fixture and Practice reload/same-ID recovery plus planned typed failure fixture matrix. | openapi-v1-contract 1.54 + P0.046 |
 | 2026-07-13 | 1.14 | Reopen fixture owner for OPENAPI-002 paste-only TargetJob requests/responses, upload purpose cleanup and runtime projection gates. | OPENAPI-002 + 001/003 + mock-contract-suite/001 |
 | 2026-07-12 | 1.13 | Add exact baseline/derived CreatePracticePlanRequest positive and negative fixture matrix. | openapi-v1-contract 1.46 |
@@ -129,7 +130,7 @@ Fixture/schema negative tests must prove old `dimension`, `retryFocusCompetencyC
 
 ### 10.1 TargetJob request/response fixtures
 
-- Replace `importTargetJob` `default` and `manual-text-primary` requests with the flattened exact body `{rawText,targetLanguage,resumeId}` and non-whitespace `rawText`. Add canonical negative scenario `validation-blank-raw-text`: whitespace-only request, `422`, `ApiErrorResponse.error.code=VALIDATION_FAILED`, `retryable=false`, `details.field=rawText`.
+- Replace `importTargetJob` `default` and `paste-primary` requests with the flattened exact body `{rawText,targetLanguage,resumeId}` and non-whitespace `rawText`. Add canonical negative scenario `validation-blank-raw-text`: whitespace-only request, `422`, `ApiErrorResponse.error.code=VALIDATION_FAILED`, `retryable=false`, `details.field=rawText`.
 - Extend the fixture validator with an exact negative-request assertion for this one scenario: it must fail at `/rawText` because of the non-whitespace rule while the 422 response validates normally. A generic “skip request validation” flag, wildcard pointer or file-level exemption is forbidden.
 - Delete URL, file and manual-form positive scenarios; do not rename them into historical compatibility cases.
 - Remove `sourceType` / `sourceUrl` from every TargetJob response scenario, prototype projection and generated example. Parsed-ready, cross-user hidden and invalid-transition coverage remains, but source provenance is no longer part of the wire shape.
@@ -176,3 +177,17 @@ Every scenario must use `ApiErrorResponse` and lock status/code/retryable/detail
 ### 11.3 Validator, projection and BDD handoff
 
 Focused fixture tests first RED on missing role-specific fields, assistant recovery fields, invalid reply enum, duplicate user/assistant IDs, wrong failure marker and retry success that allocates a second message. GREEN then runs fixture validation, example rendering and Prism byte parity for `getPracticeSession` and `sendPracticeMessage` without adding operations or tags. Hand exact scenario/status/body markers to mock-contract-suite/001, frontend-workspace-and-practice/002, backend-practice/002 and P0.046; local fixture tests do not substitute for reload/optimistic/pending/retry user-flow evidence.
+
+## 12 OPENAPI-004 TargetJob report overview fixtures
+
+### 12.1 Canonical scenario matrix
+
+Replace `Reports/listTargetJobReports.json` flat full-report pages with canonical-round overview scenarios: all rounds empty; current ready only; old current ready plus newer queued/generating/failed latest attempt; latest ready shared by current/latest; duplicate ready tie-break fixtures; cross-user/not-found; invalid/missing frozen context fail-closed. Every round uses `PracticeRoundRef`, every nullable field is explicitly null when absent, and no full report/provenance/model/rubric/session/plan/pagination field appears.
+
+### 12.2 TargetJob/prototype sync
+
+Remove `latestReportId` from all TargetJob fixtures and prototype sync logic. Map `ui-design/src/data.jsx` to the plan-detail report section without recreating a TargetJob pointer; canonical display names remain sourced from TargetJob summary while the overview supplies only round identity/current/latest state. Run sync twice and require byte-idempotency.
+
+### 12.3 Parity and handoff
+
+Validate fixtures, render examples and run live Prism byte parity for `listTargetJobReports` plus affected list/get TargetJob defaults. Pass exact markers to backend-review/frontend-report/mock owners and P0.059；P0.016 only receives the unchanged Parse-entry negative contract. Positive/runtime fixtures must have zero cursor/pageInfo/full report/latestReportId compatibility fields.

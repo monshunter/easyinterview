@@ -3,7 +3,9 @@
 package generated
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 
 	{{.SharedPkg}}
 	{{.ErrorsPkg}}
@@ -64,8 +66,108 @@ var All{{.PluralName}} = []{{.Name}}{
 {{- end}}
 }
 {{else if eq .Kind "alias"}}type {{.Name}} = {{.AliasTarget}}
+{{else if eq .Kind "union"}}{{$unionName := .Name}}{{$discriminatorGoName := .Union.DiscriminatorGoName}}{{$discriminatorJSONName := .Union.DiscriminatorJSONName}}type {{$unionName}} struct {
+{{- range .Union.Variants}}
+	{{.PrivateFieldName}} *{{.GoType}}
+{{- end}}
+}
+
+{{range .Union.Variants}}
+func New{{$unionName}}From{{.GoType}}(value {{.GoType}}) {{$unionName}} {
+	return {{$unionName}}{ {{- .PrivateFieldName}}: &value}
+}
+
+func (value {{$unionName}}) As{{.GoType}}() ({{.GoType}}, bool) {
+	if value.{{.PrivateFieldName}} == nil {
+		return {{.GoType}}{}, false
+	}
+	return *value.{{.PrivateFieldName}}, true
+}
+{{end}}
+func (value {{.Name}}) MarshalJSON() ([]byte, error) {
+	selected := 0
+	var encoded []byte
+	var err error
+{{- range .Union.Variants}}{{$privateFieldName := .PrivateFieldName}}
+	if value.{{.PrivateFieldName}} != nil {
+		selected++
+		if value.{{.PrivateFieldName}}.{{$discriminatorGoName}} != "{{.DiscriminatorValue}}" {
+			return nil, fmt.Errorf("{{$unionName}}: field {{$discriminatorJSONName}} must be %q for {{.GoType}}, got %q", "{{.DiscriminatorValue}}", value.{{.PrivateFieldName}}.{{$discriminatorGoName}})
+		}
+{{- range .EnumValidations}}
+		switch value.{{$privateFieldName}}.{{.GoFieldName}} {
+		case {{range $index, $constant := .ConstNames}}{{if $index}}, {{end}}{{$constant}}{{end}}:
+		default:
+			return nil, fmt.Errorf("{{$unionName}}: field {{.JSONName}} has invalid value %q", value.{{$privateFieldName}}.{{.GoFieldName}})
+		}
+{{- end}}
+		encoded, err = json.Marshal(value.{{.PrivateFieldName}})
+		if err != nil {
+			return nil, err
+		}
+	}
+{{- end}}
+	if selected != 1 {
+		return nil, fmt.Errorf("{{.Name}}: expected exactly one selected variant, got %d", selected)
+	}
+	return encoded, nil
+}
+
+func (value *{{.Name}}) UnmarshalJSON(data []byte) error {
+	if value == nil {
+		return fmt.Errorf("{{.Name}}: cannot unmarshal into nil receiver")
+	}
+	var discriminator struct {
+		{{.Union.DiscriminatorGoName}} string `json:"{{.Union.DiscriminatorJSONName}}"`
+	}
+	if err := json.Unmarshal(data, &discriminator); err != nil {
+		return fmt.Errorf("{{.Name}}: decode discriminator: %w", err)
+	}
+	switch discriminator.{{.Union.DiscriminatorGoName}} {
+{{- range .Union.Variants}}
+	case "{{.DiscriminatorValue}}":
+		if err := requireJSONFields(data, {{.RequiredFieldsLiteral}}); err != nil {
+			return fmt.Errorf("{{$unionName}}: %w", err)
+		}
+		var decoded {{.GoType}}
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&decoded); err != nil {
+			return fmt.Errorf("{{$unionName}}: decode {{.DiscriminatorValue}}: %w", err)
+		}
+{{- range .EnumValidations}}
+		switch decoded.{{.GoFieldName}} {
+		case {{range $index, $constant := .ConstNames}}{{if $index}}, {{end}}{{$constant}}{{end}}:
+		default:
+			return fmt.Errorf("{{$unionName}}: field {{.JSONName}} has invalid value %q", decoded.{{.GoFieldName}})
+		}
+{{- end}}
+		*value = New{{$unionName}}From{{.GoType}}(decoded)
+		return nil
+{{- end}}
+	default:
+		return fmt.Errorf("{{.Name}}: unknown {{.Union.DiscriminatorJSONName}} %q", discriminator.{{.Union.DiscriminatorGoName}})
+	}
+}
 {{else if eq .Kind "any"}}// {{.Name}} is rendered as `any` because its OpenAPI shape uses constructs
 // (free-form oneOf, untyped maps) without a one-to-one Go translation.
 type {{.Name}} = any
 {{end}}
 {{end}}
+
+func requireJSONFields(data []byte, required ...string) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	for _, name := range required {
+		raw, ok := fields[name]
+		if !ok {
+			return fmt.Errorf("missing required field %q", name)
+		}
+		if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+			return fmt.Errorf("required field %q cannot be null", name)
+		}
+	}
+	return nil
+}

@@ -135,6 +135,10 @@ export function useBrowserRoute(
     if (!syncUrl) return;
     if (!windowRef?.history || !windowRef?.location) return;
     const canonicalUrl = formatRouteUrl(route);
+    // A child screen can issue a fail-closed replace during its mount effect
+    // before this parent mount effect runs. Do not overwrite that newer route
+    // with the stale bootstrap URL.
+    if (lastUrlRef.current !== canonicalUrl) return;
     const currentUrl = `${windowRef.location.pathname || ""}${windowRef.location.search || ""}${windowRef.location.hash || ""}`;
     if (currentUrl !== canonicalUrl) {
       windowRef.history.replaceState(null, "", canonicalUrl);

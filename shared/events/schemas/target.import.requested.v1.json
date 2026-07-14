@@ -27,9 +27,6 @@
     "payload": {
       "additionalProperties": false,
       "properties": {
-        "sourceType": {
-          "$ref": "../refs/TargetImportSourceType.json"
-        },
         "targetJobId": {
           "type": "string"
         },
@@ -41,7 +38,6 @@
         }
       },
       "required": [
-        "sourceType",
         "targetJobId",
         "targetLanguage",
         "userId"

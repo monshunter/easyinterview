@@ -81,7 +81,6 @@ AI_PROVENANCE_PATHS: dict[str, Tuple[str, ...]] = {
     "listTargetJobs": ("items[*].summary.provenance", "items[*].fitSummary.provenance"),
     "updateTargetJob": ("summary.provenance", "fitSummary.provenance"),
     "getFeedbackReport": ("provenance",),
-    "listTargetJobReports": ("items[*].provenance",),
     "getResumeTailorRun": ("provenance",),
     "getResume": ("structuredProfile.provenance",),
     "listResumes": ("items[*].structuredProfile.provenance",),
@@ -101,6 +100,10 @@ P0_EXPORT_ERROR_CODES: dict[str, str] = {
     "exportResume": "RESUME_EXPORT_NOT_AVAILABLE",
 }
 REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
+    "importTargetJob": frozenset(
+        {"default", "paste-primary", "validation-blank-raw-text"}
+    ),
+    "createUploadPresign": frozenset({"default", "privacy-export"}),
     "createPracticePlan": frozenset(
         {"default", "retry-derived", "next-derived", "round-mismatch"}
     ),
@@ -132,8 +135,143 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
         }
     ),
     "createPracticeVoiceTurn": frozenset({"default"}),
+    "getPracticeSession": frozenset(
+        {
+            "default",
+            "reply-pending",
+            "reply-retryable-failed",
+            "reply-terminal-failed",
+            "reply-complete",
+        }
+    ),
+    "sendPracticeMessage": frozenset(
+        {
+            "default",
+            "validation-empty-text",
+            "auth-unauthorized",
+            "session-not-found",
+            "reply-pending-conflict",
+            "client-message-mismatch",
+            "ai-timeout-retryable",
+            "retry-success-same-client-message",
+        }
+    ),
+    "listTargetJobReports": frozenset(
+        {
+            "default",
+            "current-ready",
+            "prior-ready-newer-queued",
+            "prior-ready-newer-generating",
+            "prior-ready-newer-failed",
+            "latest-ready-is-current",
+            "ready-tie-break",
+            "cross-user-not-found",
+            "target-not-found",
+            "invalid-frozen-context",
+            "missing-frozen-context",
+        }
+    ),
 }
 OUT_OF_SCOPE_D20_FIXTURE_KEYS = frozenset({"resumeAssetId", "resumeVersionId"})
+CANONICAL_NEGATIVE_REQUEST_SCHEMA_FAILURES = {
+    ("importTargetJob", "validation-blank-raw-text"): "rawText",
+}
+TARGET_JOB_READ_OPERATION_IDS = frozenset(
+    {"listTargetJobs", "getTargetJob", "updateTargetJob", "archiveTargetJob"}
+)
+REMOVED_TARGET_JOB_FIELDS = frozenset(
+    {"sourceType", "sourceUrl", "latestReportId"}
+)
+REPORT_OVERVIEW_SCENARIO_ORDER = (
+    "default",
+    "current-ready",
+    "prior-ready-newer-queued",
+    "prior-ready-newer-generating",
+    "prior-ready-newer-failed",
+    "latest-ready-is-current",
+    "ready-tie-break",
+    "cross-user-not-found",
+    "target-not-found",
+    "invalid-frozen-context",
+    "missing-frozen-context",
+)
+REPORT_OVERVIEW_ERROR_MATRIX = {
+    "cross-user-not-found": (404, "TARGET_JOB_NOT_FOUND"),
+    "target-not-found": (404, "TARGET_JOB_NOT_FOUND"),
+    "invalid-frozen-context": (500, "AI_OUTPUT_INVALID"),
+    "missing-frozen-context": (500, "AI_OUTPUT_INVALID"),
+}
+REPORT_OVERVIEW_FORBIDDEN_BODY_KEYS = frozenset(
+    {
+        "items",
+        "pageInfo",
+        "cursor",
+        "sessionId",
+        "sourcePlanId",
+        "provenance",
+        "modelId",
+        "rubricVersion",
+        "summary",
+        "dimensionAssessments",
+        "practicePlanId",
+        "latestReportId",
+    }
+)
+PRACTICE_REPLY_STATUSES = frozenset(
+    {"pending", "retryable_failed", "terminal_failed", "complete"}
+)
+PRACTICE_SEND_SCENARIO_ORDER = (
+    "default",
+    "validation-empty-text",
+    "auth-unauthorized",
+    "session-not-found",
+    "reply-pending-conflict",
+    "client-message-mismatch",
+    "ai-timeout-retryable",
+    "retry-success-same-client-message",
+)
+PRACTICE_SEND_FAILURE_MATRIX = {
+    "validation-empty-text": (
+        422,
+        "VALIDATION_FAILED",
+        False,
+        {"field": "text", "reservation": "not_created"},
+    ),
+    "auth-unauthorized": (
+        401,
+        "AUTH_UNAUTHORIZED",
+        False,
+        {"reservation": "not_created"},
+    ),
+    "session-not-found": (
+        404,
+        "PRACTICE_SESSION_NOT_FOUND",
+        False,
+        {"reservation": "not_created"},
+    ),
+    "reply-pending-conflict": (
+        409,
+        "PRACTICE_SESSION_CONFLICT",
+        False,
+        {"reservation": "unchanged", "replyStatus": "pending"},
+    ),
+    "client-message-mismatch": (
+        409,
+        "IDEMPOTENCY_KEY_MISMATCH",
+        False,
+        {"field": "clientMessageId", "reservation": "unchanged"},
+    ),
+    "ai-timeout-retryable": (
+        502,
+        "AI_PROVIDER_TIMEOUT",
+        True,
+        {
+            "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+            "reservation": "persisted",
+            "replyStatus": "retryable_failed",
+        },
+    ),
+}
 
 
 # ---------- helpers -----------------------------------------------------------
@@ -532,10 +670,29 @@ def check_schema(
     if "request" in scenario:
         body_schema = _request_schema(op)
         if body_schema is not None and "body" in scenario["request"]:
+            request_errors: List[str] = []
             schema_validate(
                 scenario["request"]["body"], body_schema, root=root,
-                path=f"{opid}.{scenario_name}.request.body", errors=errors,
+                path=f"{opid}.{scenario_name}.request.body", errors=request_errors,
             )
+            expected_field = CANONICAL_NEGATIVE_REQUEST_SCHEMA_FAILURES.get(
+                (opid, scenario_name)
+            )
+            if expected_field is None:
+                errors.extend(request_errors)
+                return
+            expected_path = (
+                f"{opid}.{scenario_name}.request.body.{expected_field}:"
+            )
+            if not (
+                len(request_errors) == 1
+                and request_errors[0].startswith(expected_path)
+                and "does not match pattern" in request_errors[0]
+            ):
+                errors.append(
+                    f"{opid}.{scenario_name}.request.body: canonical negative request "
+                    f"must fail exactly at /{expected_field}; saw {request_errors!r}"
+                )
 
 
 def check_provenance(opid: str, scenario: dict, errors: List[str]) -> None:
@@ -614,6 +771,277 @@ def check_required_named_scenarios(opid: str, scenarios: dict, errors: List[str]
     missing = required - set(scenarios)
     if missing:
         errors.append(f"{opid}: missing required scenarios {sorted(missing)}")
+
+
+def check_target_job_paste_only_semantics(
+    opid: str, scenarios: dict, errors: List[str]
+) -> None:
+    if opid == "importTargetJob":
+        expected_scenarios = [
+            "default",
+            "paste-primary",
+            "validation-blank-raw-text",
+        ]
+        if list(scenarios) != expected_scenarios:
+            errors.append(
+                "importTargetJob: scenarios must be exactly "
+                f"{expected_scenarios!r}; got {list(scenarios)!r}"
+            )
+        for scenario_name in ("default", "paste-primary"):
+            scenario = scenarios.get(scenario_name) or {}
+            body = ((scenario.get("request") or {}).get("body") or {})
+            path = f"{opid}.{scenario_name}.request.body"
+            if set(body) != {"rawText", "targetLanguage", "resumeId"}:
+                errors.append(
+                    f"{path}: paste-only request must contain exactly "
+                    "rawText, targetLanguage and resumeId"
+                )
+            raw_text = body.get("rawText")
+            if not isinstance(raw_text, str) or not raw_text.strip():
+                errors.append(f"{path}.rawText: positive fixture must be non-whitespace")
+
+        negative = scenarios.get("validation-blank-raw-text") or {}
+        request_body = ((negative.get("request") or {}).get("body") or {})
+        response = negative.get("response") or {}
+        error = ((response.get("body") or {}).get("error") or {})
+        if set(request_body) != {"rawText", "targetLanguage", "resumeId"}:
+            errors.append(
+                f"{opid}.validation-blank-raw-text.request.body: must retain the exact "
+                "flattened request shape"
+            )
+        raw_text = request_body.get("rawText")
+        if not isinstance(raw_text, str) or not raw_text or raw_text.strip():
+            errors.append(
+                f"{opid}.validation-blank-raw-text.request.body.rawText: "
+                "must be non-empty whitespace-only text"
+            )
+        if response.get("status") != 422:
+            errors.append(
+                f"{opid}.validation-blank-raw-text.response.status: expected 422"
+            )
+        if error.get("code") != "VALIDATION_FAILED":
+            errors.append(
+                f"{opid}.validation-blank-raw-text.response.body.error.code: "
+                "expected 'VALIDATION_FAILED'"
+            )
+        if error.get("retryable") is not False:
+            errors.append(
+                f"{opid}.validation-blank-raw-text.response.body.error.retryable: "
+                "expected false"
+            )
+        if (error.get("details") or {}).get("field") != "rawText":
+            errors.append(
+                f"{opid}.validation-blank-raw-text.response.body.error.details.field: "
+                "expected 'rawText'"
+            )
+        return
+
+    if opid == "createUploadPresign":
+        expected_scenarios = ["default", "privacy-export"]
+        if list(scenarios) != expected_scenarios:
+            errors.append(
+                "createUploadPresign: scenarios must be exactly "
+                f"{expected_scenarios!r}; got {list(scenarios)!r}"
+            )
+        purposes = {
+            ((scenario.get("request") or {}).get("body") or {}).get("purpose")
+            for scenario in scenarios.values()
+        }
+        if purposes != {"resume", "privacy_export"}:
+            errors.append(
+                "createUploadPresign: positive fixture purposes must be exactly "
+                f"resume/privacy_export; got {sorted(repr(value) for value in purposes)}"
+            )
+        return
+
+    if opid not in TARGET_JOB_READ_OPERATION_IDS:
+        return
+    for scenario_name, scenario in scenarios.items():
+        body = ((scenario.get("response") or {}).get("body"))
+        for key_path, key in _walk_keys(body):
+            if key in REMOVED_TARGET_JOB_FIELDS:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.{key_path}: "
+                    f"removed TargetJob field {key!r} is forbidden"
+                )
+
+
+def check_target_job_reports_overview_semantics(
+    scenarios: dict, errors: List[str]
+) -> None:
+    opid = "listTargetJobReports"
+    if tuple(scenarios) != REPORT_OVERVIEW_SCENARIO_ORDER:
+        errors.append(
+            f"{opid}: scenarios must be exactly "
+            f"{list(REPORT_OVERVIEW_SCENARIO_ORDER)!r}; got {list(scenarios)!r}"
+        )
+
+    for scenario_name, scenario in scenarios.items():
+        response = scenario.get("response") or {}
+        expected_error = REPORT_OVERVIEW_ERROR_MATRIX.get(scenario_name)
+        if expected_error is not None:
+            expected_status, expected_code = expected_error
+            body = response.get("body") or {}
+            error = body.get("error") or {}
+            if response.get("status") != expected_status:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.status: expected {expected_status}"
+                )
+            if set(body) != {"error"}:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body: typed ApiErrorResponse required"
+                )
+            if error.get("code") != expected_code:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.error.code: "
+                    f"expected {expected_code!r}"
+                )
+            if error.get("retryable") is not False:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.error.retryable: expected false"
+                )
+            continue
+
+        if response.get("status") != 200:
+            errors.append(
+                f"{opid}.{scenario_name}.response.status: overview scenario must return 200"
+            )
+            continue
+        body = response.get("body")
+        if not isinstance(body, dict):
+            errors.append(f"{opid}.{scenario_name}.response.body: object required")
+            continue
+        body_path = f"{opid}.{scenario_name}.response.body"
+        if set(body) != {"targetJobId", "rounds"}:
+            errors.append(
+                f"{body_path}: closed overview requires exactly targetJobId and rounds"
+            )
+        for key_path, key in _walk_keys(body):
+            if key in REPORT_OVERVIEW_FORBIDDEN_BODY_KEYS:
+                errors.append(f"{body_path}.{key_path}: forbidden overview field {key!r}")
+
+        rounds = body.get("rounds")
+        if not isinstance(rounds, list) or not 2 <= len(rounds) <= 5:
+            errors.append(f"{body_path}.rounds: requires 2 to 5 canonical rounds")
+            continue
+        seen_rounds: set[tuple[Any, Any]] = set()
+        previous_sequence = 0
+        for index, item in enumerate(rounds):
+            item_path = f"{body_path}.rounds[{index}]"
+            if not isinstance(item, dict):
+                errors.append(f"{item_path}: round overview object required")
+                continue
+            if set(item) != {"round", "currentReport", "latestAttempt"}:
+                errors.append(
+                    f"{item_path}: requires exactly round/currentReport/latestAttempt; "
+                    "nullable fields must be explicit"
+                )
+            round_ref = item.get("round")
+            if not isinstance(round_ref, dict) or set(round_ref) != {
+                "roundId",
+                "roundSequence",
+            }:
+                errors.append(f"{item_path}.round: closed PracticeRoundRef required")
+                continue
+            round_id = round_ref.get("roundId")
+            sequence = round_ref.get("roundSequence")
+            identity = (round_id, sequence)
+            if identity in seen_rounds:
+                errors.append(f"{item_path}.round: duplicate canonical round identity")
+            seen_rounds.add(identity)
+            if not isinstance(sequence, int) or sequence <= previous_sequence:
+                errors.append(f"{item_path}.round.roundSequence: rounds must be ordered")
+            elif not isinstance(round_id, str) or not round_id.startswith(
+                f"round-{sequence}-"
+            ):
+                errors.append(
+                    f"{item_path}.round: roundId sequence must equal roundSequence"
+                )
+            previous_sequence = sequence if isinstance(sequence, int) else previous_sequence
+
+            current = item.get("currentReport")
+            if current is not None and (
+                not isinstance(current, dict) or set(current) != {"id", "generatedAt"}
+            ):
+                errors.append(f"{item_path}.currentReport: closed id/generatedAt summary required")
+            latest = item.get("latestAttempt")
+            if latest is None:
+                continue
+            if not isinstance(latest, dict) or set(latest) != {
+                "id",
+                "status",
+                "errorCode",
+                "createdAt",
+            }:
+                errors.append(
+                    f"{item_path}.latestAttempt: closed id/status/errorCode/createdAt summary required"
+                )
+                continue
+            status = latest.get("status")
+            error_code = latest.get("errorCode")
+            if status == "failed":
+                if not isinstance(error_code, str) or not error_code:
+                    errors.append(
+                        f"{item_path}.latestAttempt.errorCode: failed attempt requires a code"
+                    )
+            elif error_code is not None:
+                errors.append(
+                    f"{item_path}.latestAttempt.errorCode: non-failed attempt requires null"
+                )
+
+    positive = {
+        name: ((scenarios.get(name) or {}).get("response") or {}).get("body") or {}
+        for name in REPORT_OVERVIEW_SCENARIO_ORDER
+        if name not in REPORT_OVERVIEW_ERROR_MATRIX
+    }
+    if positive.get("default", {}).get("rounds") and any(
+        item.get("currentReport") is not None or item.get("latestAttempt") is not None
+        for item in positive["default"]["rounds"]
+        if isinstance(item, dict)
+    ):
+        errors.append(f"{opid}.default: all canonical rounds must be explicitly empty")
+
+    expected_latest_status = {
+        "prior-ready-newer-queued": "queued",
+        "prior-ready-newer-generating": "generating",
+        "prior-ready-newer-failed": "failed",
+    }
+    for scenario_name, expected_status in expected_latest_status.items():
+        rounds = positive.get(scenario_name, {}).get("rounds") or []
+        matches = [
+            item for item in rounds
+            if isinstance(item, dict)
+            and item.get("currentReport") is not None
+            and isinstance(item.get("latestAttempt"), dict)
+            and item["latestAttempt"].get("status") == expected_status
+            and item["latestAttempt"].get("id") != item["currentReport"].get("id")
+        ]
+        if not matches:
+            errors.append(
+                f"{opid}.{scenario_name}: prior ready plus newer {expected_status} attempt required"
+            )
+
+    current_ready_rounds = positive.get("current-ready", {}).get("rounds") or []
+    if not any(
+        isinstance(item, dict)
+        and item.get("currentReport") is not None
+        and item.get("latestAttempt") is None
+        for item in current_ready_rounds
+    ):
+        errors.append(f"{opid}.current-ready: current report with null latest attempt required")
+
+    latest_ready_rounds = positive.get("latest-ready-is-current", {}).get("rounds") or []
+    if not any(
+        isinstance(item, dict)
+        and isinstance(item.get("currentReport"), dict)
+        and isinstance(item.get("latestAttempt"), dict)
+        and item["latestAttempt"].get("status") == "ready"
+        and item["latestAttempt"].get("id") == item["currentReport"].get("id")
+        for item in latest_ready_rounds
+    ):
+        errors.append(
+            f"{opid}.latest-ready-is-current: latest ready must share current report id"
+        )
 
 
 def _practice_round_ref(sequence: int, round_type: str) -> dict[str, Any]:
@@ -995,6 +1423,233 @@ def check_practice_conversation_semantics(
     return
 
 
+def _check_practice_message_sequence(
+    path: str, messages: Any, errors: List[str]
+) -> None:
+    if not isinstance(messages, list):
+        errors.append(f"{path}: messages must be an array")
+        return
+    seen_message_ids: set[str] = set()
+    seen_client_ids: set[str] = set()
+    for index, message in enumerate(messages):
+        message_path = f"{path}[{index}]"
+        if not isinstance(message, dict):
+            errors.append(f"{message_path}: message must be an object")
+            continue
+        message_id = message.get("id")
+        if not isinstance(message_id, str) or not message_id:
+            errors.append(f"{message_path}.id: non-empty message id required")
+        elif message_id in seen_message_ids:
+            errors.append(f"{message_path}.id: duplicate message id {message_id!r}")
+        else:
+            seen_message_ids.add(message_id)
+
+        role = message.get("role")
+        if role == "assistant":
+            for forbidden in ("clientMessageId", "replyStatus"):
+                if forbidden in message:
+                    errors.append(
+                        f"{message_path}.{forbidden}: assistant recovery field forbidden"
+                    )
+            continue
+        if role != "user":
+            errors.append(f"{message_path}.role: expected user or assistant")
+            continue
+
+        client_message_id = message.get("clientMessageId")
+        if not isinstance(client_message_id, str) or not client_message_id:
+            errors.append(f"{message_path}.clientMessageId: user field required")
+        elif client_message_id in seen_client_ids:
+            errors.append(
+                f"{message_path}.clientMessageId: duplicate user replay identity"
+            )
+        else:
+            seen_client_ids.add(client_message_id)
+        reply_status = message.get("replyStatus")
+        if reply_status not in PRACTICE_REPLY_STATUSES:
+            errors.append(
+                f"{message_path}.replyStatus: expected one of "
+                f"{sorted(PRACTICE_REPLY_STATUSES)!r}"
+            )
+            continue
+        next_message = messages[index + 1] if index + 1 < len(messages) else None
+        has_immediate_assistant = (
+            isinstance(next_message, dict) and next_message.get("role") == "assistant"
+        )
+        if reply_status == "complete" and not has_immediate_assistant:
+            errors.append(
+                f"{message_path}.replyStatus: complete requires exactly one following assistant"
+            )
+        if reply_status != "complete" and index != len(messages) - 1:
+            errors.append(
+                f"{message_path}.replyStatus: unresolved user message must be the final projection"
+            )
+
+
+def check_practice_reply_recovery_semantics(
+    opid: str, scenarios: dict, errors: List[str]
+) -> None:
+    if opid == "getPracticeSession":
+        for scenario_name, scenario in scenarios.items():
+            response = scenario.get("response") or {}
+            if response.get("status") != 200:
+                continue
+            body = response.get("body") or {}
+            _check_practice_message_sequence(
+                f"{opid}.{scenario_name}.response.body.messages",
+                body.get("messages"),
+                errors,
+            )
+
+        expected_status = {
+            "reply-pending": "pending",
+            "reply-retryable-failed": "retryable_failed",
+            "reply-terminal-failed": "terminal_failed",
+            "reply-complete": "complete",
+        }
+        shared_identity: tuple[Any, ...] | None = None
+        for scenario_name, reply_status in expected_status.items():
+            scenario = scenarios.get(scenario_name) or {}
+            response = scenario.get("response") or {}
+            body = response.get("body") or {}
+            messages = body.get("messages") or []
+            users = [
+                message
+                for message in messages
+                if isinstance(message, dict) and message.get("role") == "user"
+            ]
+            if not users:
+                errors.append(f"{opid}.{scenario_name}: recovery user message required")
+                continue
+            user = users[-1]
+            if user.get("replyStatus") != reply_status:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.messages: expected "
+                    f"replyStatus={reply_status!r}"
+                )
+            identity = (
+                body.get("id"),
+                user.get("id"),
+                user.get("clientMessageId"),
+                user.get("content"),
+            )
+            if shared_identity is None:
+                shared_identity = identity
+            elif identity != shared_identity:
+                errors.append(
+                    f"{opid}.{scenario_name}: recovery scenarios must share session/user identity"
+                )
+        retryable = scenarios.get("reply-retryable-failed") or {}
+        marker = ((retryable.get("response") or {}).get("headers") or {}).get(
+            "X-Recovery-Marker"
+        )
+        if marker != "reload-same-client-message-id":
+            errors.append(
+                f"{opid}.reply-retryable-failed.response.headers.X-Recovery-Marker: "
+                "expected reload-same-client-message-id"
+            )
+        return
+
+    if opid != "sendPracticeMessage":
+        return
+    if tuple(scenarios) != PRACTICE_SEND_SCENARIO_ORDER:
+        errors.append(
+            f"{opid}: scenarios must be exactly {list(PRACTICE_SEND_SCENARIO_ORDER)!r}; "
+            f"got {list(scenarios)!r}"
+        )
+
+    for scenario_name, expected in PRACTICE_SEND_FAILURE_MATRIX.items():
+        scenario = scenarios.get(scenario_name) or {}
+        response = scenario.get("response") or {}
+        body = response.get("body")
+        status, code, retryable, details = expected
+        if not isinstance(body, dict) or set(body) != {"error"}:
+            errors.append(
+                f"{opid}.{scenario_name}.response.body: typed ApiErrorResponse required"
+            )
+            continue
+        error = body.get("error")
+        if not isinstance(error, dict):
+            errors.append(f"{opid}.{scenario_name}.response.body.error: object required")
+            continue
+        if response.get("status") != status:
+            errors.append(f"{opid}.{scenario_name}.response.status: expected {status}")
+        if error.get("code") != code:
+            errors.append(
+                f"{opid}.{scenario_name}.response.body.error.code: expected {code!r}"
+            )
+        if error.get("retryable") is not retryable:
+            errors.append(
+                f"{opid}.{scenario_name}.response.body.error.retryable: expected {retryable}"
+            )
+        if error.get("details") != details:
+            errors.append(
+                f"{opid}.{scenario_name}.response.body.error.details: expected {details!r}"
+            )
+        for required in ("message", "requestId"):
+            if not isinstance(error.get(required), str) or not error[required]:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.error.{required}: non-empty string required"
+                )
+
+    for scenario_name in ("default", "retry-success-same-client-message"):
+        scenario = scenarios.get(scenario_name) or {}
+        body = ((scenario.get("response") or {}).get("body") or {})
+        session = body.get("session") or {}
+        messages = session.get("messages")
+        _check_practice_message_sequence(
+            f"{opid}.{scenario_name}.response.body.session.messages",
+            messages,
+            errors,
+        )
+        user = body.get("userMessage") or {}
+        assistant = body.get("assistantMessage") or {}
+        request = ((scenario.get("request") or {}).get("body") or {})
+        if user.get("role") != "user" or user.get("replyStatus") != "complete":
+            errors.append(
+                f"{opid}.{scenario_name}.response.body.userMessage: complete user required"
+            )
+        if user.get("clientMessageId") != request.get("clientMessageId"):
+            errors.append(
+                f"{opid}.{scenario_name}: response user must preserve request clientMessageId"
+            )
+        if assistant.get("role") != "assistant" or any(
+            field in assistant for field in ("clientMessageId", "replyStatus")
+        ):
+            errors.append(
+                f"{opid}.{scenario_name}.response.body.assistantMessage: assistant recovery fields forbidden"
+            )
+        if isinstance(messages, list):
+            if sum(
+                isinstance(message, dict) and message.get("id") == user.get("id")
+                for message in messages
+            ) != 1:
+                errors.append(
+                    f"{opid}.{scenario_name}: exactly one projected user message required"
+                )
+            if sum(
+                isinstance(message, dict) and message.get("id") == assistant.get("id")
+                for message in messages
+            ) != 1:
+                errors.append(
+                    f"{opid}.{scenario_name}: exactly one projected assistant message required"
+                )
+
+    timeout_request = (
+        ((scenarios.get("ai-timeout-retryable") or {}).get("request") or {}).get("body")
+        or {}
+    )
+    retry_request = (
+        ((scenarios.get("retry-success-same-client-message") or {}).get("request") or {}).get("body")
+        or {}
+    )
+    if retry_request != timeout_request:
+        errors.append(
+            f"{opid}.retry-success-same-client-message.request.body: retry must reuse "
+            "the exact clientMessageId and text from ai-timeout-retryable"
+        )
+
+
 def check_privacy_and_ids(opid: str, data: dict, errors: List[str]) -> None:
     for path, value in _walk_strings(data):
         if TEMP_ID_RE.search(value):
@@ -1054,11 +1709,15 @@ def validate(repo_root: Path) -> List[str]:
             check_status_declared(opid, op, scenario_name, scenario, errors)
             check_schema(opid, op, scenario_name, scenario, spec, errors)
         check_required_named_scenarios(opid, scenarios, errors)
+        check_target_job_paste_only_semantics(opid, scenarios, errors)
+        if opid == "listTargetJobReports":
+            check_target_job_reports_overview_semantics(scenarios, errors)
         if opid == "getFeedbackReport":
             check_feedback_report_semantics(scenarios, errors)
         check_practice_round_semantics(opid, scenarios, errors)
         check_practice_voice_playable_refs(opid, scenarios, errors)
         check_practice_conversation_semantics(opid, scenarios, errors)
+        check_practice_reply_recovery_semantics(opid, scenarios, errors)
         check_provenance(opid, scenarios.get("default") or {}, errors)
         check_p0_export_error_code(opid, scenarios, errors)
         check_d20_out_of_scope_fixture_keys(opid, data, errors)

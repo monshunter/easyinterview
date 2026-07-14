@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { StrictMode } from "react";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -12,7 +13,10 @@ import { AppRuntimeProvider } from "../../runtime/AppRuntimeProvider";
 import { DisplayPreferencesProvider } from "../../display/DisplayPreferencesProvider";
 import { NavigationProvider } from "../../navigation/NavigationProvider";
 import { HomeScreen } from "./HomeScreen";
-import { storePendingImportSource } from "./pendingImportState";
+import {
+  consumePendingImportIntent,
+  storePendingImportIntent,
+} from "./pendingImportState";
 
 import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
@@ -23,6 +27,10 @@ type ListResumesResponse = Awaited<ReturnType<EasyInterviewClient["listResumes"]
 
 const defaultListResumesResponse = listResumesFixture.scenarios.default.response
   .body as ListResumesResponse;
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 function createClient(scenario?: string) {
   const fetch = createFixtureBackedFetch(
@@ -44,31 +52,33 @@ function renderHome(
   options?: {
     routeParams?: Record<string, string>;
     getMeScenario?: "authenticated" | "unauthenticated";
+    strict?: boolean;
   },
 ) {
   const navigate = vi.fn();
+  const screen = (
+    <DisplayPreferencesProvider>
+      <AppRuntimeProvider
+        client={client}
+        requestOptions={{
+          getMe: {
+            headers: {
+              Prefer: `example=${options?.getMeScenario ?? "unauthenticated"}`,
+            },
+          },
+        }}
+      >
+        <NavigationProvider value={{ navigate }}>
+          <HomeScreen
+            route={{ name: "home", params: options?.routeParams ?? {} }}
+          />
+        </NavigationProvider>
+      </AppRuntimeProvider>
+    </DisplayPreferencesProvider>
+  );
   return {
     navigate,
-    ...render(
-      <DisplayPreferencesProvider>
-        <AppRuntimeProvider
-          client={client}
-          requestOptions={{
-            getMe: {
-              headers: {
-                Prefer: `example=${options?.getMeScenario ?? "unauthenticated"}`,
-              },
-            },
-          }}
-        >
-          <NavigationProvider value={{ navigate }}>
-            <HomeScreen
-              route={{ name: "home", params: options?.routeParams ?? {} }}
-            />
-          </NavigationProvider>
-        </AppRuntimeProvider>
-      </DisplayPreferencesProvider>,
-    ),
+    ...render(options?.strict ? <StrictMode>{screen}</StrictMode> : screen),
   };
 }
 
@@ -81,6 +91,9 @@ describe("pending import production boundary", () => {
     );
 
     expect(source).not.toContain(resetApi);
+    expect(source).not.toContain("PendingImportSource");
+    expect(source).not.toContain('source: "upload"');
+    expect(source).not.toContain('source: "url"');
   });
 });
 
@@ -105,89 +118,106 @@ describe("HomeAuthGate — paste import", () => {
     expect(importSpy).not.toHaveBeenCalled();
   });
 
-  it("restores pending paste import after login without carrying raw JD in route params", async () => {
+  it("restores one exact pending paste import after login under StrictMode", async () => {
     const jdText = "Senior Frontend Engineer needed";
-    const pendingImportId = storePendingImportSource({
-      source: "paste",
+    const resumeId = "01918fa0-0000-7000-8000-000000001000";
+    const originalIdempotencyKey = "ik-original-login-intent";
+    const opaquePendingImportId = storePendingImportIntent({
       rawText: jdText,
+      targetLanguage: "zh-CN",
+      resumeId,
+      idempotencyKey: originalIdempotencyKey,
     });
-    const client = createClient("manual-text-primary");
+    const client = createClient("paste-primary");
     const importSpy = vi.spyOn(client, "importTargetJob");
     const { navigate } = renderHome(client, {
       getMeScenario: "authenticated",
       routeParams: {
-        pendingImportId,
-        source: "paste",
-        resumeId: "01918fa0-0000-7000-8000-000000001000",
+        opaquePendingImportId,
       },
+      strict: true,
     });
 
     await waitFor(() => {
       expect(importSpy).toHaveBeenCalledTimes(1);
     });
 
-    expect(importSpy.mock.calls[0]?.[0]).toMatchObject({
-      source: { type: "manual_text", rawText: jdText },
+    expect(importSpy.mock.calls[0]?.[0]).toEqual({
+      rawText: jdText,
+      targetLanguage: "zh-CN",
+      resumeId,
+    });
+    expect(importSpy.mock.calls[0]?.[1]?.idempotencyKey).toBe(
+      originalIdempotencyKey,
+    );
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith({
+        name: "parse",
+        params: {
+          targetJobId: "01918fa0-0000-7000-8000-000000002001",
+          resumeId,
+        },
+      });
+    });
+    expect(JSON.stringify({ opaquePendingImportId })).not.toContain(jdText);
+    expect(consumePendingImportIntent(opaquePendingImportId)).toBeNull();
+  });
+
+  it("fails closed when the opaque pending import is missing", async () => {
+    const client = createClient("paste-primary");
+    const importSpy = vi.spyOn(client, "importTargetJob");
+    const { navigate } = renderHome(client, {
+      getMeScenario: "authenticated",
+      routeParams: { opaquePendingImportId: "pending-import-missing" },
+    });
+
+    expect(await screen.findByTestId("home-import-error")).toHaveTextContent(
+      "Paste the JD and select a resume again",
+    );
+    expect(importSpy).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith({ name: "home", params: {} });
+  });
+
+  it("fails closed when the pending import has expired", async () => {
+    const now = vi.spyOn(Date, "now").mockReturnValue(0);
+    const opaquePendingImportId = storePendingImportIntent({
+      rawText: "Expired JD",
       targetLanguage: "en",
+      resumeId: "01918fa0-0000-7000-8000-000000001000",
+      idempotencyKey: "ik-expired",
     });
-    await waitFor(() => {
-      expect(navigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "parse",
-          params: expect.objectContaining({
-            targetJobId: "01918fa0-0000-7000-8000-000000002001",
-            source: "paste",
-            resumeId: "01918fa0-0000-7000-8000-000000001000",
-          }),
-        }),
-      );
-    });
-    expect(
-      JSON.stringify({
-        pendingImportId,
-        source: "paste",
-        resumeId: "01918fa0-0000-7000-8000-000000001000",
-      }),
-    ).not.toContain(jdText);
-  });
-});
-
-describe("HomeAuthGate — url import", () => {
-  it("does not create URL pending action before a resume is selected", async () => {
-    const client = createClient();
-    const { navigate } = renderHome(client);
+    now.mockReturnValue(Number.MAX_SAFE_INTEGER);
+    const client = createClient("paste-primary");
     const importSpy = vi.spyOn(client, "importTargetJob");
-
-    await waitFor(() => {
-      expect(screen.getByText("URL")).toBeInTheDocument();
+    const { navigate } = renderHome(client, {
+      getMeScenario: "authenticated",
+      routeParams: { opaquePendingImportId },
     });
 
-    await userEvent.click(screen.getByText("URL"));
-    const urlInput = await screen.findByTestId("home-modal-url-input");
-    await userEvent.type(urlInput, "https://acme.example/careers/senior");
-    await userEvent.click(screen.getByTestId("home-modal-url-continue"));
-
-    expect(navigate).not.toHaveBeenCalled();
+    expect(await screen.findByTestId("home-import-error")).toBeInTheDocument();
     expect(importSpy).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith({ name: "home", params: {} });
+    now.mockRestore();
   });
-});
 
-describe("HomeAuthGate — upload import", () => {
-  it("does not create upload pending action before a resume is selected", async () => {
-    const client = createClient();
-    const { navigate } = renderHome(client);
+  it("fails closed when the pending import was already consumed", async () => {
+    const opaquePendingImportId = storePendingImportIntent({
+      rawText: "Already consumed JD",
+      targetLanguage: "en",
+      resumeId: "01918fa0-0000-7000-8000-000000001000",
+      idempotencyKey: "ik-consumed",
+    });
+    expect(consumePendingImportIntent(opaquePendingImportId)).not.toBeNull();
+    const client = createClient("paste-primary");
     const importSpy = vi.spyOn(client, "importTargetJob");
-
-    await waitFor(() => {
-      expect(screen.getByTestId("home-upload-trigger")).toBeInTheDocument();
+    const { navigate } = renderHome(client, {
+      getMeScenario: "authenticated",
+      routeParams: { opaquePendingImportId },
     });
 
-    await userEvent.click(screen.getByTestId("home-upload-trigger"));
-    const continueBtn = await screen.findByTestId("home-modal-upload-continue");
-    await userEvent.click(continueBtn);
-
-    expect(navigate).not.toHaveBeenCalled();
+    expect(await screen.findByTestId("home-import-error")).toBeInTheDocument();
     expect(importSpy).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith({ name: "home", params: {} });
   });
 });
 

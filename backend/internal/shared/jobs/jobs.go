@@ -16,7 +16,6 @@ const (
 	JobTypeResumeParse    JobType = "resume_parse"
 	JobTypeReportGenerate JobType = "report_generate"
 	JobTypeResumeTailor   JobType = "resume_tailor"
-	JobTypeSourceRefresh  JobType = "source_refresh"
 	JobTypePrivacyExport  JobType = "privacy_export"
 	JobTypePrivacyDelete  JobType = "privacy_delete"
 	JobTypeEmailDispatch  JobType = "email_dispatch"
@@ -27,7 +26,6 @@ const (
 	AsynqTaskResumeParse    AsynqTask = "resume.parse"
 	AsynqTaskReportGenerate AsynqTask = "report.generate"
 	AsynqTaskResumeTailor   AsynqTask = "resume.tailor"
-	AsynqTaskSourceRefresh  AsynqTask = "source.refresh"
 	AsynqTaskPrivacyExport  AsynqTask = "privacy.export"
 	AsynqTaskPrivacyDelete  AsynqTask = "privacy.delete"
 	AsynqTaskEmailDispatch  AsynqTask = "email.dispatch"
@@ -43,7 +41,6 @@ var JobTriggerEventSemantics = map[JobType]JobTriggerEventSemantic{
 	JobTypeResumeParse:    JobTriggerEventSemanticTriggerCreatesJob,
 	JobTypeReportGenerate: JobTriggerEventSemanticSourceEventOnly,
 	JobTypeResumeTailor:   JobTriggerEventSemanticTriggerCreatesJob,
-	JobTypeSourceRefresh:  JobTriggerEventSemanticTriggerCreatesJob,
 	JobTypePrivacyExport:  JobTriggerEventSemanticTriggerCreatesJob,
 	JobTypePrivacyDelete:  JobTriggerEventSemanticTriggerCreatesJob,
 	JobTypeEmailDispatch:  JobTriggerEventSemanticTriggerCreatesJob,

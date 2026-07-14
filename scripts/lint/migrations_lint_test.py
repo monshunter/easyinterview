@@ -299,6 +299,34 @@ def test_grounded_report_v18_is_current_shape_without_compatibility_columns() ->
     assert "content_repair_attempted" not in normalized_sql
 
 
+def test_targetjob_paste_only_schema_removes_source_storage_but_preserves_independent_sources() -> None:
+    normalized_sql = migrations_lint.normalize_sql(current_migration_up_sql())
+    enum_sources = current_enum_sources()
+
+    for removed in (
+        "target_job_attachment",
+        "create table target_job_sources",
+        "source_file_object_id",
+        "source_refresh",
+    ):
+        assert removed not in normalized_sql
+        assert removed not in enum_sources
+
+    target_jobs_start = normalized_sql.index("create table target_jobs")
+    target_jobs_end = normalized_sql.index("create table target_job_requirements")
+    target_jobs = normalized_sql[target_jobs_start:target_jobs_end]
+    assert "source_type" not in target_jobs
+    assert "source_url" not in target_jobs
+    assert "raw_jd_text text" in target_jobs
+
+    assert "create table source_records" in normalized_sql
+    assert "table: source_records, column: owner_type" in enum_sources
+    assert "table: source_records, column: source_type" in enum_sources
+    assert "table: source_records, column: freshness_status" in enum_sources
+    assert "table: file_objects, column: purpose" in enum_sources
+    assert "resume" in enum_sources and "privacy_export" in enum_sources
+
+
 def test_grounded_report_v18_lint_rejects_missing_current_rename() -> None:
     sql = current_migration_up_sql().replace(
         "RENAME COLUMN retry_focus_competency_codes TO retry_focus_dimension_codes;",

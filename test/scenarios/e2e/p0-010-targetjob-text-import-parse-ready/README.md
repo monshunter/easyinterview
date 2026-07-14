@@ -1,4 +1,4 @@
-# E2E.P0.010 TargetJob Text Import Parse Ready
+# E2E.P0.010 TargetJob Paste Import Parse Ready
 
 > **场景 ID**: E2E.P0.010
 > **执行方式**: automated
@@ -8,15 +8,15 @@
 
 ## 1 Given
 
-已登录用户准备 `manual_text` JD、`targetLanguage`、cookie/session 上下文与 `Idempotency-Key`。`APP_ENV=test` 使用 deterministic stub / fake AI 与 in-process runner kernel，不依赖真实 provider。
+已登录用户准备合法的 `{rawText,targetLanguage,resumeId}`、cookie/session 上下文与 `Idempotency-Key`。`APP_ENV=test` 使用 deterministic stub / fake AI 与 in-process runner kernel，不依赖真实 provider。
 
 ## 2 When
 
-场景执行 `importTargetJob -> target_import parse -> listTargetJobs -> getTargetJob -> updateTargetJob`，并覆盖同用户 idempotency dedupe 的 store gate。
+场景执行 paste-only `importTargetJob -> target_import parse -> listTargetJobs -> getTargetJob -> updateTargetJob`，并以同一 idempotency key 重放导入。
 
 ## 3 Then
 
-`POST /targets/import` 返回 generated `TargetJobWithJob` 与 queued `target_import` job；解析完成后详情返回 `analysisStatus=ready`、requirements、summary/fitSummary provenance；列表包含该 TargetJob；`PATCH /targets/{id}` 可更新合法 status / notes 且不改 `analysisStatus`；outbox 含 `target.import.requested` 与 `target.parsed`，且 payload 不泄露 JD 原文、prompt 或 response。
+`POST /targets/import` 返回 generated `TargetJobWithJob` 与 queued `target_import` job；幂等重放不新增 TargetJob；`rawText` 只作为 `target_jobs.raw_jd_text` 持久化。解析完成后详情返回 `analysisStatus=ready`、requirements、summary/fitSummary provenance；列表包含该 TargetJob；`PATCH /targets/{id}` 可更新合法 status / notes 且不改 `analysisStatus`。`target.import.requested` / `target.parsed` 与 job payload 不含 JD 原文、`sourceType`、`sourceUrl`、prompt 或 response，且不产生 source refresh job。
 
 ## 4 执行
 

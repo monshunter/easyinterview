@@ -30,6 +30,7 @@ export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
   resume_versions: "/resume-versions",
   parse: "/parse",
   practice: "/practice",
+  reports: "/reports",
   generating: "/generating",
   report: "/report",
   settings: "/settings",
@@ -61,8 +62,8 @@ const PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = (() => {
   return map;
 })();
 
-// workspace is a collection/list route. Item context belongs to parse,
-// practice routes; generating/report resolve frozen facts from reportId only.
+// workspace is a collection/list route. Target context belongs to parse,
+// practice and reports; generating/report resolve frozen facts from reportId only.
 const WORKSPACE_SAFE = new Set<string>();
 
 const PRACTICE_SAFE = new Set([
@@ -87,6 +88,8 @@ const REPORT_SAFE = new Set([
   "reportId",
 ]);
 
+const REPORTS_SAFE = new Set(["targetJobId"]);
+
 const RESUME_VERSIONS_SAFE = new Set([
   "resumeId",
   "flow",
@@ -99,12 +102,11 @@ const PARSE_SAFE = new Set([
   "targetJobId",
   "resumeId",
   "importId",
-  "source",
   // product-scope D-17 keeps the jd_match -> parse reverse handoff outside
   // the current parse allowlist.
 ]);
 
-const HOME_SAFE = new Set(["pendingImportId", "source", "resumeId"]);
+const HOME_SAFE = new Set(["opaquePendingImportId"]);
 
 const SETTINGS_SAFE = new Set(["tab"]);
 
@@ -134,6 +136,7 @@ const ROUTE_SAFE_PARAMS: Readonly<Record<RouteName, ReadonlySet<string>>> = {
   resume_versions: RESUME_VERSIONS_SAFE,
   parse: PARSE_SAFE,
   practice: PRACTICE_SAFE,
+  reports: REPORTS_SAFE,
   generating: GENERATING_SAFE,
   report: REPORT_SAFE,
   settings: SETTINGS_SAFE,

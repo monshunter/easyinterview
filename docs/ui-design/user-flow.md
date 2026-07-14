@@ -1,8 +1,8 @@
 # EasyInterview 目标用户流程
 
-> **版本**: 2.25
+> **版本**: 2.26
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 文档目的
 
@@ -14,6 +14,7 @@
 Home
   -> JD 导入
   -> Parse & Confirm
+     └─ 面试报告 -> Reports(current target)
   -> Interview Session
   -> Generating
   -> Report Dashboard
@@ -29,7 +30,7 @@ Resume
 Interview
   -> 浏览面试规划列表
   -> 回访当前面试规划
-  -> 切换 JD / 简历 / 轮次
+  -> 查看当前规划报告
   -> 立即面试
 ```
 
@@ -51,6 +52,7 @@ Parse & Confirm
 ├─ 核对必需项 / 加分项 / 隐性关注点
 ├─ 查看已绑定简历
 ├─ 确认 InterviewRound
+├─ 右上角 面试报告 -> Reports(targetJobId)
 └─ 立即面试 -> Practice
 ```
 
@@ -90,9 +92,16 @@ Report Dashboard
 ├─ 证据详情
 ├─ 复练当前轮
 └─ 进入下一轮
+
+Reports(targetJobId)
+├─ 只显示当前规划 canonical rounds
+├─ 当前可用报告 -> Report Dashboard
+├─ 最新生成中 -> Generating
+├─ 空 / 加载 / 失败
+└─ 返回 -> Parse current plan detail
 ```
 
-报告必须隶属于 session。`复练当前轮` 和 `进入下一轮` 是唯一一对开练 CTA。
+报告详情必须隶属于 session；Reports 只是当前规划范围的索引，不是全局中心或第二种报告内容形态。`复练当前轮` 和 `进入下一轮` 是唯一一对开练 CTA。Report/Generating 有可信 target context 时返回 Reports，无可信上下文时安全返回 Workspace。
 
 ## 7 简历流程
 
@@ -114,6 +123,7 @@ Resume
 ```text
 登录触发点
 ├─ 立即面试
+├─ 打开当前规划报告深链
 ├─ 复练当前轮
 ├─ 进入下一轮
 ├─ 保存简历
@@ -150,6 +160,7 @@ Auth
 | 用户没有简历 | 首页和 Parse 提供创建简历入口 |
 | 用户未登录执行写入动作 | 进入邮箱验证码登录，成功后接续 pendingAction |
 | Practice 请求等待 / 失败 / 刷新 | pending 锁输入并显示思考；只有 server retryable failure 在原 row 显示 retry；刷新通过 `getPracticeSession` 恢复原 `clientMessageId/replyStatus` |
+| `/reports` 缺失/非法/无权 targetJobId | 不展示其他规划或 stale rows，提供安全返回 Workspace；未登录时只用合法 targetJobId 接续鉴权 |
 | `#route=debrief` / `#route=debrief_full` | 归一到 `home` |
 | `#route=profile` | 归一到 `home` |
 | 范围外 `auth_reset` | 归一到 `auth_login` |
@@ -158,4 +169,5 @@ Auth
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.26 | 增加从规划详情进入 target-scoped Reports 的流程，并锁定 current/latest-only、Back 路径、鉴权与非全局入口边界。 |
 | 2026-07-13 | 2.25 | Practice 增加即时 user row、pending thinking/输入锁、failed-row retry 与服务端 reply-state 刷新恢复。 |

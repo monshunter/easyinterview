@@ -1,8 +1,8 @@
 # URL-Addressable Routing
 
-> **版本**: 1.9
+> **版本**: 1.11
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -29,10 +29,11 @@
 | `home` | `/` | `pendingImportId`, `source`, `resumeId` | visible |
 | `workspace` | `/workspace` | none | visible |
 | `resume_versions` | `/resume-versions` | `resumeId`, `flow`, `createMode`, `targetJobId` | visible |
-| `parse` | `/parse` | `jdId`, `targetJobId`, `resumeId`, `importId`, `source` | visible |
+| `parse` | `/parse` | `targetJobId`, `resumeId` | visible |
 | `practice` | `/practice` | `sessionId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `sourceReportId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `language` | hidden |
-| `generating` | `/generating` | `sessionId`, `reportId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount` | hidden |
-| `report` | `/report` | `sessionId`, `reportId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount`, `reportStatus`, `errorCode` | visible |
+| `reports` | `/reports` | `targetJobId` | visible |
+| `generating` | `/generating` | `reportId` | hidden |
+| `report` | `/report` | `reportId` | visible |
 | `settings` | `/settings` | `tab` | visible |
 | `auth_login` | `/auth/login` | `next`, `email`, encoded pendingAction safe params | visible |
 | `auth_verify` | `/auth/verify` | `email`, encoded pendingAction safe params | visible |
@@ -96,11 +97,21 @@ Blocked payload categories:
 - Remove the false route-store consumer comment and do not add a replacement wrapper.
 - BDD is not applicable because the export has no executable caller. Alternative gates are a focused source-surface red/green test, route codec/store regressions, typecheck and owner/global checks.
 
+### 6.4 Phase 11 target-scoped Reports route
+
+- Register protected context route `reports` at `/reports`; its safe-param allowlist contains only `targetJobId`, chrome stays visible, and the route is deliberately absent from `PRIMARY_NAV_ROUTES` / TopBar.
+- Missing or invalid Reports target identity automatically uses `replaceRoute(workspace)` so the bad deep link does not remain immediately behind a pushed workspace entry. The route-store bootstrap canonicalizer must not overwrite a newer child mount redirect with its stale initial URL.
+- Keep `parse` free of `section=reports` and strip hostile `section`, `reportId`, status and round query inputs. Narrow `report` / `generating` to reportId-only locators; trusted target context for Back comes from API responses, never URL or pendingAction.
+- Cover direct open, reload, App navigation, replace/back/forward, hash adapter and SPA host fallback in P0.088/P0.090. Cover unauthenticated direct-open and exact targetJobId-only pendingAction restoration in P0.089.
+- Gate with route codec/store/App/auth/privacy/host fallback tests, TopBar negative, owner contexts, docs/diff and pruning checks. Existing route history remains regression evidence; this Phase reopens the completed owner in place.
+
 ## 7 验收标准
 
 - Every current route serializes to and parses from its canonical URL with sorted safe query params.
 - Direct open, reload, App navigation, replace, back and forward preserve route state without double-push behavior.
 - `practice` and `generating` stay chrome-hidden when opened by canonical URL.
+- `reports` is protected and chrome-visible, accepts only `targetJobId`, survives direct/reload/history/auth restore, and never appears in TopBar.
+- Parse strips legacy `section=reports`; report/generating preserve only reportId and cannot use query state as trusted report context.
 - Hash adapter inputs continue to work for static preview and pixel parity harness.
 - Auth pendingAction restore returns to the original canonical route using safe params only.
 - Hostile URL / hash / history state input is scrubbed into canonical safe state.
@@ -121,6 +132,8 @@ Blocked payload categories:
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.11 | Use replace-only workspace recovery for invalid Reports deep links and prevent stale bootstrap canonicalization from recreating the bad URL. |
+| 2026-07-14 | 1.10 | Reopen in place for protected `/reports`, targetJobId-only deep links/auth restore, no TopBar entry, no Parse section compatibility, and reportId-only report/generating routes. |
 | 2026-07-10 | 1.9 | Remove the unconsumed routeUrlsEqual wrapper and false consumer comment. |
 | 2026-07-10 | 1.8 | Reconcile P0.089 workspace hostile-input evidence with the query-free canonical route contract. |
 | 2026-07-10 | 1.7 | Align the route owner and P0.088 with workspace zero-query and current resume-workshop safe params. |

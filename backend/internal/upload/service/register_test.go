@@ -99,6 +99,34 @@ func TestCreateUploadPresignRejectsResumeDOCXBeforePresign(t *testing.T) {
 	}
 }
 
+func TestCreateUploadPresignRejectsRemovedTargetJobAttachmentPurpose(t *testing.T) {
+	repo := &fakeRepository{}
+	objects := &fakeObjectStore{}
+	svc := service.New(service.Options{
+		Repository: repo,
+		Objects:    objects,
+		Now:        fixedNow,
+		NewID:      func() string { return "file-1" },
+	})
+
+	_, err := svc.CreateUploadPresign(context.Background(), service.CreatePresignInput{
+		UserID:         "user-1",
+		IdempotencyKey: "idem-1",
+		Purpose:        "target_job_attachment",
+		FileName:       "job.txt",
+		ContentType:    "text/plain",
+		ByteSize:       1024,
+		PresignTTL:     10 * time.Minute,
+		MaxBytes:       10485760,
+	})
+	if !errors.Is(err, service.ErrValidationFailed) {
+		t.Fatalf("err = %v, want ErrValidationFailed", err)
+	}
+	if repo.created.ID != "" || objects.presignObjectKey != "" {
+		t.Fatalf("removed purpose must not create or presign: created=%+v key=%q", repo.created, objects.presignObjectKey)
+	}
+}
+
 func TestRegisterFileObjectMarksPendingUploadedAfterObjectExists(t *testing.T) {
 	repo := &fakeRepository{record: fileObject("file-1", store.StatusPending)}
 	objects := &fakeObjectStore{exists: true, statSize: 1024}

@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { EasyInterviewClient } from "../../../../api/generated/client";
@@ -89,15 +89,49 @@ function buildClient(responses: FeedbackReport[]) {
       index += 1;
       return value;
     },
+    async listTargetJobs() {
+      return {
+        items: [],
+        pageInfo: { hasNextPage: false, nextCursor: null },
+      } as never;
+    },
+    async listResumes() { throw new Error("parse resume read is outside this test"); },
+    async listTargetJobReports() { throw new Error("parse report overview read is outside this test"); },
     getTargetJob,
     getResume,
   } as unknown as EasyInterviewClient;
   return { client, getTargetJob, getResume };
 }
 
-afterEach(() => localStorage.removeItem("ei-lang"));
+afterEach(() => {
+  localStorage.removeItem("ei-lang");
+  window.history.replaceState(null, "", "/");
+});
 
 describe("GeneratingScreen honest state projection", () => {
+  it("returns a failed report to the API-trusted reports page", async () => {
+    const trustedTargetJobId = "01918fa0-0000-7000-8000-000000002000";
+    const { client } = buildClient([makeReport({
+      status: "failed",
+      errorCode: "AI_PROVIDER_TIMEOUT",
+      targetJobId: trustedTargetJobId,
+    })]);
+    window.history.replaceState(
+      null,
+      "",
+      `/generating?reportId=${REPORT_ID}&targetJobId=route-target-must-be-ignored`,
+    );
+
+    render(<App client={client} />);
+
+    fireEvent.click(await screen.findByTestId("generating-error-back-to-workspace"));
+    await waitFor(() => {
+      expect(window.location.pathname + window.location.search).toBe(
+        `/reports?targetJobId=${trustedTargetJobId}`,
+      );
+    });
+  });
+
   it("shows only the real generating status without fake progress, observations, notify, or records promises", async () => {
     localStorage.setItem("ei-lang", "zh");
     const { client } = buildClient([makeReport({ status: "generating" })]);
@@ -142,7 +176,7 @@ describe("GeneratingScreen honest state projection", () => {
 
     const surface = await screen.findByTestId("generating-screen");
     expect(surface).toHaveStyle({ minHeight: "100vh" });
-    const state = screen.getByTestId("generating-error-state");
+    const state = await screen.findByTestId("generating-error-state");
     expect(state).toHaveAttribute("data-error-kind", "contextTooLarge");
     expect(screen.getByTestId("generating-header-eyebrow")).toHaveTextContent("报告不可用");
     expect(screen.getByTestId("generating-header-title")).toHaveTextContent("本次材料与对话过长");

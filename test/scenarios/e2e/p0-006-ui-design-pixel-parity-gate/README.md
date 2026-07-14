@@ -44,8 +44,8 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
   positive）。
 - `tests/pixel-parity/home.spec.ts` — Home hero / textarea / aux cards DOM 锚点、
   bounding box 与 dark/customAccent token 变化。
-- `tests/pixel-parity/parse.spec.ts` — Home 到 parse 入口、textarea submit enable、
-  upload modal DOM 锚点。
+- `tests/pixel-parity/parse.spec.ts` — Parse 只读规划详情、页面级报告入口、
+  无嵌入报告列表与 desktop/mobile source parity。
 - `tests/pixel-parity/workspace.spec.ts` — workspace empty + full-state DOM anchor、
   bounding box、modal、theme 与 screenshot smoke；full-state 通过 server-bound
   initial route bootstrap 进入，不依赖 Home recent card 的 `resume-unbound`。
@@ -55,13 +55,15 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
 - `tests/pixel-parity/practice.spec.ts`、`generating.spec.ts`、`report.spec.ts`
   — 面试、生成与报告核心页面 DOM、布局、主题与
   screenshot smoke。
+- `tests/pixel-parity/reports.spec.ts` — 当前规划独立报告列表的
+  ready/loading/empty/error/latest-ready/mismatch 状态、隔离与 1440/390 parity。
 
 `webServer` 由 `frontend/scripts/serve-pixel-parity.mjs` 提供（Node 内置
 模块；同时挂载 `frontend/dist` 与 `ui-design/`，并暴露 `/health` 探活）。
 
 ## 3 Then
 
-- 全部 Playwright 用例（12 个 spec × 2 project）PASS、0 failed。
+- 全部 Playwright 用例（13 个 spec × 2 project）PASS、0 failed。
 - TopBar 三入口 testid 在两个 project 下都存在；TopBar shell 高 58 / padding
   0 32 / border-bottom 1px solid `rgb(221, 226, 236)`。
 - 默认 home 渲染 `topbar-nav-home[aria-current=page]`、`topbar-dark-toggle`
@@ -99,7 +101,7 @@ pnpm --filter @easyinterview/frontend test:pixel-parity:install
 `.test-output/e2e/p0-006-ui-design-pixel-parity-gate/trigger.log`。
 `verify.sh` 断言日志包含 passing summary 且没有 failed summary，并 grep
 out-of-scope-module testid 不在 trigger 输出里的 failing trace 出现，同时确认当前
-12 个 parity spec 已实际执行。
+13 个 parity spec 已实际执行。
 
 ## 5 污染控制
 

@@ -2,6 +2,17 @@ import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import {
+  configureDeterministicPage,
+  expectFullPagePixelParity,
+  expectPixelParity,
+  expectSurfaceParity,
+  normalizedText,
+  pauseDeterministicClock,
+  settleVisualSurface,
+  surfaceSnapshot,
+} from "./report-parity-helpers";
+
 /**
  * Phase 6.2 — Parse screen DOM anchor and loading state parity.
  *
@@ -69,7 +80,7 @@ async function mockParseReadyApis(page: import("@playwright/test").Page): Promis
       await fulfillFixture(route, "openapi/fixtures/Auth/getMe.json", "authenticated");
       return;
     }
-    if (method === "GET" && path.startsWith("/targets/")) {
+    if (method === "GET" && /^\/targets\/[^/]+$/.test(path)) {
       await fulfillFixture(route, "openapi/fixtures/TargetJobs/getTargetJob.json");
       return;
     }
@@ -105,7 +116,7 @@ async function mockParseConfirmApis(
       await fulfillFixture(route, "openapi/fixtures/TargetJobs/listTargetJobs.json");
       return;
     }
-    if (method === "GET" && path.startsWith("/targets/")) {
+    if (method === "GET" && /^\/targets\/[^/]+$/.test(path)) {
       await fulfillFixture(route, "openapi/fixtures/TargetJobs/getTargetJob.json");
       return;
     }
@@ -202,27 +213,7 @@ test.describe("parse screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='home-jd-submit']")).toBeEnabled();
   });
 
-  test("upload modal opens and closes", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForSelector("[data-testid='home-jd-textarea']");
-
-    // Click upload button (or upload link)
-    const uploadTrigger = page.locator("[data-testid='home-jd-upload-trigger']");
-    if ((await uploadTrigger.count()) > 0) {
-      await uploadTrigger.click();
-      await expect(
-        page.locator("[data-testid='home-modal-upload-dropzone']"),
-      ).toBeVisible();
-
-      // Close with X
-      await page.click("[data-testid='home-modal-upload-close']");
-      await expect(
-        page.locator("[data-testid='home-modal-upload-dropzone']"),
-      ).toHaveCount(0);
-    }
-  });
-
-  test("ready target job response keeps ui-design loading demo before preview", async ({
+  test("ready target job response keeps the loading demo free of internal metadata", async ({
     page,
   }, testInfo) => {
     await mockParseReadyApis(page);
@@ -234,18 +225,42 @@ test.describe("parse screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='parse-loading-step-1']")).toBeVisible();
     await expect(page.locator("[data-testid='parse-loading-step-2']")).toBeVisible();
     await expect(page.locator("[data-testid='parse-loading-step-3']")).toBeVisible();
-    await expect(page.locator("[data-testid='parse-loading-footer']")).toBeVisible();
+    await expect(page.locator("[data-testid='parse-loading-footer']")).toHaveCount(0);
     await expect(page.locator("[data-testid='parse-basics-title']")).toHaveCount(0);
 
+    const loadingSurface = page.locator("[data-testid='route-parse']");
+    const loadingDomAudit = await loadingSurface.evaluate((root) => {
+      const elements = [root, ...root.querySelectorAll("*")];
+      return {
+        text: root.textContent ?? "",
+        attributes: elements.flatMap((element) =>
+          Array.from(element.attributes, ({ name, value }) => `${name}=${value}`),
+        ),
+      };
+    });
+    const loadingAccessibilityAudit = await loadingSurface.ariaSnapshot();
+    const internalMetadata =
+      /\b(model|provider|rubric|prompt|provenance|version|hash|typical|latency)\b|模型|供应商|评分规则|提示词|溯源|版本|哈希|典型耗时/iu;
+    expect(loadingDomAudit.text).not.toMatch(internalMetadata);
+    expect(loadingDomAudit.attributes.join("\n")).not.toMatch(internalMetadata);
+    expect(loadingAccessibilityAudit).not.toMatch(internalMetadata);
+
     await freezeVisualAnimations(page);
-    const screenshot = await page.locator("[data-testid='route-parse']").screenshot();
+    const viewport = page.viewportSize();
+    expect(viewport).not.toBeNull();
+    const screenshotPath = testInfo.outputPath(
+      `parse-loading-formal-${testInfo.project.name}.png`,
+    );
+    const screenshot = await page
+      .locator("[data-testid='route-parse']")
+      .screenshot({ path: screenshotPath });
     await testInfo.attach("parse-ready-response-loading-demo", {
-      body: screenshot,
+      path: screenshotPath,
       contentType: "image/png",
     });
     expect(screenshot.length).toBeGreaterThan(10_000);
     console.log(
-      `E2E.P0.015 ready-response loading browser gate screenshotBytes=${screenshot.length}`,
+      `E2E.P0.015 ready-response loading browser gate project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} screenshotBytes=${screenshot.length}`,
     );
 
     await page.waitForTimeout(1_000);
@@ -254,6 +269,159 @@ test.describe("parse screen DOM anchor parity", () => {
 
     await page.waitForTimeout(2_600);
     await expect(page.locator("[data-testid='parse-basics-title']")).toBeVisible();
+  });
+
+  test("parse loading matches the UI truth at desktop and mobile", async ({
+    page,
+    context,
+  }, testInfo) => {
+    const prototype = await context.newPage();
+    await Promise.all([
+      configureDeterministicPage(page, "zh"),
+      configureDeterministicPage(prototype, "zh"),
+      mockParseReadyApis(page),
+    ]);
+
+    const formalRoot = "[data-testid='route-parse']";
+    const prototypeRoot = "[data-screen-label='parse'] > div:last-child > .ei-fadein";
+    // Warm the transformed prototype bundle first. Reloading it after the
+    // formal loading row appears resets both independent loading demos close
+    // enough to compare their initial step without racing the 3.2 s preview
+    // transition against esbuild/module startup.
+    // The formal Parse route is authenticated by mockParseReadyApis. Keep the
+    // golden preview in the same auth state; on mobile the wider signed-in
+    // user control changes the TopBar wrap height, which is part of the source
+    // layout contract rather than Parse content.
+    await prototype.goto("/ui-design/#route=parse&lang=zh&signedIn=1");
+    await prototype.locator(prototypeRoot).waitFor();
+    await page.goto("/parse?targetJobId=01918fa0-0000-7000-8000-000000002000");
+    await page.locator("[data-testid='parse-loading-step-0']").waitFor();
+    await prototype.reload();
+    await prototype.locator(prototypeRoot).waitFor();
+    // A reload can preserve the golden page's prior scroll offset while its
+    // sticky TopBar remains pinned. Reset both surfaces before comparing
+    // viewport-relative boxes and full-page pixels.
+    await Promise.all([
+      page.evaluate(() => window.scrollTo(0, 0)),
+      prototype.evaluate(() => window.scrollTo(0, 0)),
+    ]);
+    await Promise.all([settleVisualSurface(page), settleVisualSurface(prototype)]);
+    await Promise.all([
+      pauseDeterministicClock(page),
+      pauseDeterministicClock(prototype),
+    ]);
+
+    const internalMetadata =
+      /\b(model|provider|rubric|prompt|provenance|version|hash|typical|latency)\b|模型|供应商|评分规则|提示词|溯源|版本|哈希|典型耗时/iu;
+    for (const [surface, root] of [
+      [page, formalRoot],
+      [prototype, prototypeRoot],
+    ] as const) {
+      const audit = await surface.locator(root).evaluate((node) => {
+        const elements = [node, ...node.querySelectorAll("*")];
+        return {
+          text: node.textContent ?? "",
+          attributes: elements.flatMap((element) =>
+            Array.from(element.attributes, ({ name, value }) => `${name}=${value}`),
+          ),
+        };
+      });
+      expect(audit.text).not.toMatch(internalMetadata);
+      expect(audit.attributes.join("\n")).not.toMatch(internalMetadata);
+      expect(await surface.locator(root).ariaSnapshot()).not.toMatch(internalMetadata);
+    }
+
+    const surfaces = [
+      {
+        label: "parse loading root",
+        formal: formalRoot,
+        prototype: prototypeRoot,
+        properties: ["min-height", "display", "align-items", "justify-content", "padding"],
+      },
+      {
+        label: "parse loading content",
+        formal: `${formalRoot} > div`,
+        prototype: `${prototypeRoot} > div`,
+        properties: ["max-width", "width"],
+      },
+      {
+        label: "parse loading label",
+        formal: `${formalRoot} > div > .ei-label`,
+        prototype: `${prototypeRoot} > div > .ei-label`,
+        properties: ["color", "margin-bottom", "font-size", "font-family", "letter-spacing"],
+      },
+      {
+        label: "parse loading title",
+        formal: `${formalRoot} > div > .ei-serif`,
+        prototype: `${prototypeRoot} > div > .ei-serif`,
+        properties: ["font-size", "color", "letter-spacing", "line-height", "margin-bottom"],
+      },
+      {
+        label: "parse loading steps",
+        formal: `${formalRoot} > div > div:nth-child(3)`,
+        prototype: `${prototypeRoot} > div > div:nth-child(3)`,
+        properties: ["display", "flex-direction", "gap"],
+      },
+    ] as const;
+    for (const surface of surfaces) {
+      const [formal, golden] = await Promise.all([
+        surfaceSnapshot(page, surface.formal, surface.properties),
+        surfaceSnapshot(prototype, surface.prototype, surface.properties),
+      ]);
+      expectSurfaceParity(formal, golden, surface.label);
+    }
+
+    const viewport = page.viewportSize();
+    expect(viewport).not.toBeNull();
+    for (const surface of [page, prototype]) {
+      expect(await surface.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+        viewport!.width,
+      );
+    }
+    const formalScreenshotPath = testInfo.outputPath(
+      `parse-loading-formal-parity-${testInfo.project.name}.png`,
+    );
+    const prototypeScreenshotPath = testInfo.outputPath(
+      `parse-loading-prototype-parity-${testInfo.project.name}.png`,
+    );
+    const formalViewportScreenshotPath = testInfo.outputPath(
+      `parse-loading-formal-viewport-${testInfo.project.name}.png`,
+    );
+    const [formalScreenshot, prototypeScreenshot] = await Promise.all([
+      page.screenshot({ path: formalScreenshotPath, fullPage: true, animations: "disabled" }),
+      prototype.screenshot({ path: prototypeScreenshotPath, fullPage: true, animations: "disabled" }),
+    ]);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const formalViewportScreenshot = await page.screenshot({
+      path: formalViewportScreenshotPath,
+      fullPage: false,
+      animations: "disabled",
+    });
+    await Promise.all([
+      testInfo.attach(`parse-loading-formal-${testInfo.project.name}`, {
+        path: formalScreenshotPath,
+        contentType: "image/png",
+      }),
+      testInfo.attach(`parse-loading-prototype-${testInfo.project.name}`, {
+        path: prototypeScreenshotPath,
+        contentType: "image/png",
+      }),
+      testInfo.attach(`parse-loading-formal-viewport-${testInfo.project.name}`, {
+        path: formalViewportScreenshotPath,
+        contentType: "image/png",
+      }),
+    ]);
+    expect(formalViewportScreenshot.length).toBeGreaterThan(10_000);
+    const changedRatio = await expectFullPagePixelParity(
+      page,
+      prototype,
+      testInfo,
+      `parse-loading-${testInfo.project.name}`,
+    );
+    console.log(
+      `E2E.P0.015 parse loading parity browser gate project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} formalScreenshotBytes=${formalScreenshot.length} prototypeScreenshotBytes=${prototypeScreenshot.length} changedRatio=${changedRatio.toFixed(6)}`,
+    );
+    await prototype.close();
   });
 
   test("readonly plan detail exposes only direct start with bound resume context", async ({
@@ -309,6 +477,120 @@ test.describe("parse screen DOM anchor parity", () => {
     console.log(
       `E2E.P0.016 parse readonly-detail browser gate resumeId=01918fa0-0000-7000-8000-000000001000 screenshotBytes=${screenshot.length}`,
     );
+  });
+
+  test("plan-detail reports entry matches the UI truth and keeps Parse report-free", async ({
+    page,
+    context,
+  }, testInfo) => {
+    const prototype = await context.newPage();
+    const reportRequests: string[] = [];
+    page.on("request", (request) => {
+      if (/\/api\/v1\/targets\/[^/]+\/reports(?:\?|$)/.test(request.url())) {
+        reportRequests.push(request.url());
+      }
+    });
+    await Promise.all([
+      configureDeterministicPage(page, "zh"),
+      configureDeterministicPage(prototype, "zh"),
+      mockParseConfirmApis(page, async () => undefined),
+    ]);
+
+    const entry = "[data-testid='parse-reports-entry']";
+    await Promise.all([
+      page.goto(
+        "/parse?targetJobId=01918fa0-0000-7000-8000-000000002000&section=reports",
+      ),
+      prototype.goto(
+        "/ui-design/#route=parse&lang=zh&signedIn=1&targetJobId=tj-1&section=reports",
+      ),
+    ]);
+    await Promise.all([
+      page.locator(entry).waitFor({ timeout: 8_000 }),
+      prototype.locator(entry).waitFor({ timeout: 8_000 }),
+    ]);
+    await Promise.all([settleVisualSurface(page), settleVisualSurface(prototype)]);
+    await Promise.all([pauseDeterministicClock(page), pauseDeterministicClock(prototype)]);
+
+    expect(await normalizedText(page, entry)).toBe(await normalizedText(prototype, entry));
+    expect(reportRequests).toHaveLength(0);
+    expect(new URL(page.url()).searchParams.has("section")).toBe(false);
+    await expect(page.locator("[data-testid='parse-reports']")).toHaveCount(0);
+    await expect(page.locator("[data-testid^='parse-report-round-']")).toHaveCount(0);
+    await expect(prototype.locator("[data-testid='parse-reports']")).toHaveCount(0);
+    await expect(prototype.locator("[data-testid^='parse-report-round-']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='topbar-nav-reports']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='topbar-primary-nav'] button")).toHaveCount(3);
+    await expect(prototype.locator(".ei-topbar-nav button")).toHaveCount(3);
+    await expect(prototype.locator(".ei-topbar-nav")).not.toContainText("面试报告");
+
+    const surfaces = [
+      {
+        label: "plan-detail reports entry wrapper",
+        selector: entry,
+        properties: ["display", "flex-shrink", "font-family"],
+      },
+      {
+        label: "plan-detail reports entry button",
+        selector: `${entry} button`,
+        properties: ["height", "padding", "font-size", "font-weight", "background-color", "color", "border", "border-radius", "font-family", "letter-spacing"],
+      },
+    ] as const;
+    for (const surface of surfaces) {
+      const [formal, golden] = await Promise.all([
+        surfaceSnapshot(page, surface.selector, surface.properties),
+        surfaceSnapshot(prototype, surface.selector, surface.properties),
+      ]);
+      expectSurfaceParity(formal, golden, surface.label);
+    }
+
+    const viewport = page.viewportSize();
+    expect(viewport).not.toBeNull();
+    for (const surface of [page, prototype]) {
+      expect(
+        await surface.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(viewport!.width);
+    }
+    const changedRatio = await expectPixelParity(
+      page,
+      prototype,
+      entry,
+      testInfo,
+      `parse-reports-entry-${testInfo.project.name}`,
+    );
+    const formalScreenshotPath = testInfo.outputPath(
+      `parse-reports-entry-formal-${testInfo.project.name}.png`,
+    );
+    const prototypeScreenshotPath = testInfo.outputPath(
+      `parse-reports-entry-prototype-${testInfo.project.name}.png`,
+    );
+    await Promise.all([
+      page.locator(entry).screenshot({ path: formalScreenshotPath, animations: "disabled" }),
+      prototype.locator(entry).screenshot({ path: prototypeScreenshotPath, animations: "disabled" }),
+    ]);
+    await Promise.all([
+      testInfo.attach(`parse-reports-entry-formal-${testInfo.project.name}`, {
+        path: formalScreenshotPath,
+        contentType: "image/png",
+      }),
+      testInfo.attach(`parse-reports-entry-prototype-${testInfo.project.name}`, {
+        path: prototypeScreenshotPath,
+        contentType: "image/png",
+      }),
+    ]);
+
+    await page.locator(`${entry} button`).click();
+    await page.waitForURL(/\/reports\?targetJobId=/);
+    const destination = new URL(page.url());
+    expect(destination.pathname).toBe("/reports");
+    expect([...destination.searchParams.keys()]).toEqual(["targetJobId"]);
+    expect(destination.searchParams.get("targetJobId")).toBe(
+      "01918fa0-0000-7000-8000-000000002000",
+    );
+    console.log(
+      `E2E.P0.016 plan-detail reports entry project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} parseListRequestsBeforeClick=0 topbarReportsEntry=0 embeddedReports=0 sectionReportsAccepted=false destination=/reports targetJobId=01918fa0-0000-7000-8000-000000002000 changedRatio=${changedRatio.toFixed(6)}`,
+    );
+    await prototype.close();
   });
 
   test("start interview hands off directly to practice with bound resume", async ({

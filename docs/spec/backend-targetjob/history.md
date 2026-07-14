@@ -1,13 +1,15 @@
 # Backend TargetJob History
 
-> **版本**: 2.10
+> **版本**: 2.12
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 2.12 | 删除 TargetJob/DB 的最新报告指针；本域只提供 owned TargetJob + canonical round catalog，当前 ready report/latest attempt 由 backend-review overview 投影。 | 001-targetjob-import-and-parse-bootstrap Phase 19 |
+| 2026-07-13 | 2.11 | TargetJob import 收敛为 paste-only `{rawText,targetLanguage,resumeId}` 与 `raw_jd_text` 唯一事实源，删除 URL/file/manual-form/source-refresh 及来源专属合同。 | 001-targetjob-import-and-parse-bootstrap Phase 18 |
 | 2026-07-12 | 2.10 | `practiceProgress` 只接纳 TargetJob 绑定 resume 的 plan/completion 事实；canonical rounds 要求完整 provenance、小写 type allowlist、正 int32 严格递增但可不连续，下一轮按现有 canonical successor 选择。 | 001-targetjob-import-and-parse-bootstrap Phase 17 |
 | 2026-07-12 | 2.9 | `practiceProgress` 改为从 canonical rounds 与已完成 PracticeSession 台账投影 completed prefix 和 current next round；禁止读取全局 latest plan 或维护第二份可变进度。 | 001-targetjob-import-and-parse-bootstrap Phase 17 |
 | 2026-07-10 | 2.8 | TargetJob parse/source refresh handlers 直接实现 canonical runner contract；删除本域重复 runtime、async job 类型与 claim/finalize SQL。 | backend-async-runner/001 |

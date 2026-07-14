@@ -1,8 +1,8 @@
 # DB Migrations Baseline Spec
 
-> **版本**: 1.36
+> **版本**: 1.37
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 背景与目标
 
@@ -102,7 +102,8 @@
 | D-22 | Practice conversation schema | 删除 `practice_turns`、`question_assessments`、`practice_plans.question_budget/mode`、`practice_sessions.turn_count/hints_enabled`；新增 `practice_messages` | pre-launch baseline 原地修订，不保留旧表/列兼容层 |
 | D-23 | Practice plan 规范化轮次身份 | `practice_plans` additive 新增 nullable `round_id` / `round_sequence`，并以 CHECK 保证二者同时为 null 或同时非 null 且 sequence > 0；所有新写入必须成对有值。legacy plan 仅在 user/target/current-resume 绑定一致、TargetJob 未删除、sequence 为正 int32，且结构化轮次可按唯一时长无歧义匹配时由 backfill registry 填充；零/多匹配、错绑、删除或溢出保持 null。 | 完成进度从 session ledger + plan round identity 投影；不在 `target_jobs` 新增可变进度列；legacy null 记录不得被当前轮复用；实现语义变化必须更新 manifest checksum，避免旧 ledger 误跳过 |
 | D-24 | TargetJob paste-only schema | 保留 `target_jobs.raw_jd_text`；删除 TargetJob 来源列、来源表、JD attachment purpose 与 JD source refresh jobType；保留独立 `source_records`、resume/privacy purposes | 项目未上线，原地修订 baseline 与 enum/check source，不增加兼容 migration 或影子列 |
-| D-25 | Practice reply recovery | `practice_messages.reply_status` 对 user 必填且只允许 `pending/retryable_failed/terminal_failed/complete`，assistant 必须为 NULL；`client_message_id` 仍是 session 内唯一 replay key | pending/failure/complete 成为后端事实；刷新后可恢复原 ID，禁止浏览器存储充当状态源 |
+| D-25 | Practice reply recovery | `practice_messages.reply_status` 对 user 必填且只允许 `pending/retryable_failed/terminal_failed/complete`；user 同时持久化内部 `reply_generation >= 1`，且仅 `pending` 持有 `reply_lease_expires_at`。assistant 的三项恢复字段均为 NULL；`client_message_id` 仍是 session 内唯一 replay key | 每次同 ID reserve 递增 generation，固定 90 秒 lease；GET 与同 ID reserve 惰性收敛过期 pending，commit/fail 以 generation CAS 隔离迟到 worker。generation/lease 不进入 OpenAPI |
+| D-26 | TargetJob report pointer removal | `target_jobs` 不保存 `latest_report_id` 或其他可变“当前报告”指针；报告当前态从 `feedback_reports` 与冻结 round context 按 backend-review 规则投影 | 避免一份易漂移的去规范化事实；项目未上线，原地修订 baseline/up/down、store 与 contract，不保留兼容列 |
 
 #### 3.1.1 Field-Level Enum / Check 来源矩阵
 
@@ -208,7 +209,8 @@
 | C-12 | Practice plan round identity migration | DB 含新 plan、唯一时长 legacy plan、同一时长多轮 legacy plan | 执行 `000017` up/backfill/down/up | 新 plan 可保存成对 round identity；唯一匹配 legacy plan 可审计回填；歧义 legacy plan 保持 null；pair CHECK、正数 CHECK 与 partial lookup index 存在；`target_jobs` 不出现 progress 列 | [001](./plans/001-bootstrap/plan.md) |
 | C-13 | Grounded report storage migration | DB 同时含 queued/current-ready 与 pre-contract development report rows | 执行 `000018` up/down/up | summary、`report-context.v1`与report/plan dimension focus列可逆，且`llm_attempt_count`/同义产品retry列不存在；current completion可原子写入，pre-contract invalid context只fail closed、不被伪造或兼容读取；privacy删除和非内容存储面均通过 | [001](./plans/001-bootstrap/plan.md) |
 | C-14 | TargetJob paste-only schema migration | baseline 仍含旧 TargetJob source/attachment/refresh 结构 | 执行 001 Phase 10 的 clean/populated up/down/up 与 zero-ref probes | `raw_jd_text`、独立 `source_records`、resume/privacy purpose 保留；旧来源列/表、JD attachment purpose 与 JD source refresh jobType 不存在 | [001](./plans/001-bootstrap/plan.md) |
-| C-15 | Practice reply-status migration | baseline 含既有 completed message pairs、pending user row 与 assistant rows | 执行 001 Phase 11 的 clean/populated up/down/up | user row 状态约束正确、既有有回复 user 回填 complete、无回复 user 可恢复、assistant 为 NULL；原 client/reply 唯一约束与 privacy cascade 保持 | [001](./plans/001-bootstrap/plan.md) + backend-practice/002 |
+| C-15 | Practice reply recovery migration | baseline 含既有 completed message pairs、pending user row 与 assistant rows | 执行 001 Phase 11 的 clean/populated up/down/up | user row 状态/generation/lease 联合约束正确；pending 有 90 秒 lease，非 pending 清 lease，assistant 三项均为 NULL；原 client/reply 唯一约束与 privacy cascade 保持 | [001](./plans/001-bootstrap/plan.md) + backend-practice/002 |
+| C-16 | TargetJob report pointer removal | baseline 仍含 `target_jobs.latest_report_id` | 执行 001 Phase 12 的 clean/populated up/down/up | 该列及 store/generated/public response 引用不存在；`feedback_reports`、冻结 report context 与用户隔离索引保持可用 | [001](./plans/001-bootstrap/plan.md) + backend-review/001 |
 
 ## 7 关联计划
 

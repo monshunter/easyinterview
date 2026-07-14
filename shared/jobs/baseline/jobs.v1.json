@@ -53,17 +53,6 @@
       "triggerEventSemantic": "trigger_creates_job"
     },
     {
-      "apiFacing": false,
-      "asynqTask": "source.refresh",
-      "canonical": "source_refresh",
-      "ownerDomain": "C13",
-      "payloadSchema": {},
-      "priority": "low",
-      "redactedFields": null,
-      "triggerEvent": "target.parsed",
-      "triggerEventSemantic": "trigger_creates_job"
-    },
-    {
       "apiFacing": true,
       "asynqTask": "privacy.export",
       "canonical": "privacy_export",

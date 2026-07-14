@@ -8,7 +8,7 @@
 
 ## 1 Given
 
-已登录用户已有 `manual_text` TargetJob，F3 / A3 fake 可注入 `AI_PROVIDER_TIMEOUT`、`AI_OUTPUT_INVALID`、`AI_PROVIDER_SECRET_MISSING` 与 F3 disabled / unsupported profile。
+已登录用户使用合法 `{rawText,targetLanguage,resumeId}` 创建 TargetJob，F3 / A3 fake 可注入 `AI_PROVIDER_TIMEOUT`、`AI_OUTPUT_INVALID`、`AI_PROVIDER_SECRET_MISSING` 与 F3 disabled / unsupported profile。
 
 ## 2 When
 
@@ -16,7 +16,7 @@
 
 ## 3 Then
 
-retryable 失败写入 `target.analysis.failed.retryable=true`；non-retryable 失败写入 `retryable=false`；失败 `target_jobs` 资产被删除并级联清理 source / requirement，`GET /targets/{id}` 返回 404 且 `GET /targets` 不含失败 job；error envelope、outbox payload、log 与 metric 证据不含 prompt body、response body、provider secret 或 `Authorization:`。
+retryable 失败写入 `target.analysis.failed.retryable=true`；non-retryable 失败写入 `retryable=false`；失败 `target_jobs` 资产被删除并清理 requirements，`GET /targets/{id}` 返回 404 且 `GET /targets` 不含失败 job。场景不产生 source row、file reference 或 refresh job；error envelope、outbox payload、log 与 metric 证据不含 raw JD、prompt body、response body、provider secret 或 `Authorization:`。
 
 ## 4 执行
 

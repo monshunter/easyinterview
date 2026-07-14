@@ -1,3 +1,3 @@
 # Expected outcome
 
-Ordered messages render; the follow-up AI payload contains the complete resume tail marker; sending appends one user/assistant pair without a question header, counter, category, or sidebar.
+The submitted candidate answer appears before the server reply, reload preserves the pending recovery projection before lease expiry, and all conflicting actions remain disabled while pending. Focused service/repository contracts converge the same `clientMessageId` to one user row and one assistant reply, while API output exposes recovery fields only on the user message. Desktop 1440 and mobile 390 Practice screenshots retain current source SHA-256, per-PNG SHA-256, dimensions, viewport, and DPR evidence.

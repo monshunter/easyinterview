@@ -35,6 +35,10 @@ func TestActiveScopeNegativeSearch(t *testing.T) {
 		{`defaultTargetImportRubricVersion`, "out-of-scope after plan 001-baseline phase 3; F3 owns rubric versions now"},
 		{`defaultTargetImportModelProfileName`, "out-of-scope after plan 001-baseline phase 3; A3 owns profile names now"},
 		{`defaultTargetImportDataSourceVersion`, "out-of-scope after plan 001-baseline phase 3; F3 owns data source versions now"},
+		{`target_job_sources`, "paste-only TargetJob persistence has no source table"},
+		{`source_refresh`, "paste-only TargetJob parsing has no source refresh job"},
+		{`SourceRefreshHandler`, "paste-only TargetJob parsing has no source refresh handler"},
+		{`URLFetcher`, "paste-only TargetJob parsing has no URL fetch boundary"},
 	}
 
 	matches, err := filepath.Glob("*.go")
@@ -57,27 +61,13 @@ func TestActiveScopeNegativeSearch(t *testing.T) {
 	}
 }
 
-// TestActiveScopeNegativeSearchInUrlfetch covers the urlfetch sub-package
-// alongside the main targetjob package. The same forbidden tokens apply.
-func TestActiveScopeNegativeSearchInUrlfetch(t *testing.T) {
-	tokens := []string{`mistake.`, `growth.`, `"jd.parse"`, `"target.parse"`, `embedding`, `rerank`, `interview_round`}
+func TestURLFetchPackageIsDeleted(t *testing.T) {
 	files, err := filepath.Glob("urlfetch/*.go")
 	if err != nil {
-		t.Fatalf("glob urlfetch: %v", err)
+		t.Fatalf("glob urlfetch package: %v", err)
 	}
-	for _, f := range files {
-		if strings.HasSuffix(f, "_test.go") {
-			continue
-		}
-		raw, err := os.ReadFile(f)
-		if err != nil {
-			t.Fatalf("read %s: %v", f, err)
-		}
-		for _, kw := range tokens {
-			if bytes.Contains(raw, []byte(kw)) {
-				t.Errorf("urlfetch file %s contains forbidden token %q", f, kw)
-			}
-		}
+	if len(files) != 0 {
+		t.Fatalf("urlfetch package must be absent, found %v", files)
 	}
 }
 

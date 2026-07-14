@@ -150,35 +150,32 @@ hard gate, but it returns `401 Unauthorized` with the documented error
 envelope when a cookie is missing — the smoke calls below therefore include
 `Cookie: ei_session=fake` to exercise the success branch.
 
-### Curl smoke matrix (5 fixed operations)
+### Live smoke matrix (11 fixed operations)
 
-The plan §3.2 fixed-five smoke matches the fixtures byte-for-byte. Status
-codes other than `200` need the `code=<status>` Prefer parameter so Prism
-selects the right response.
+The repeatable smoke matches all selected defaults byte-for-byte. It retains
+the original five read/handoff checks and also covers the report overview plus
+every TargetJob default affected by removal of `latestReportId`. Status codes
+other than `200` use `Prefer: code=<status>, example=default` so Prism selects
+the declared response.
+
+| operationId | Method/path | Expected |
+|-------------|-------------|----------|
+| `getMe` | `GET /me` | 200 |
+| `listTargetJobs` | `GET /targets` | 200 |
+| `getTargetJob` | `GET /targets/{targetJobId}` | 200 |
+| `importTargetJob` | `POST /targets/import` | 202 |
+| `updateTargetJob` | `PATCH /targets/{targetJobId}` | 200 |
+| `archiveTargetJob` | `POST /targets/{targetJobId}/archive` | 202 |
+| `getPracticeSession` | `GET /practice/sessions/{sessionId}` | 200 |
+| `getFeedbackReport` | `GET /reports/{reportId}` | 200 |
+| `listTargetJobReports` | `GET /targets/{targetJobId}/reports` | 200 |
+| `createPracticePlan` | `POST /practice/plans` | 201 |
+| `requestPrivacyExport` | `POST /privacy/exports` | 501 |
+
+Run the matrix with:
 
 ```sh
-# 1. getMe
-curl -s -H 'Prefer: example=default' -H 'Cookie: ei_session=fake' \
-  http://127.0.0.1:4010/me
-
-# 2. listTargetJobs
-curl -s -H 'Prefer: example=default' -H 'Cookie: ei_session=fake' \
-  http://127.0.0.1:4010/targets
-
-# 3. getPracticeSession
-curl -s -H 'Prefer: example=default' -H 'Cookie: ei_session=fake' \
-  'http://127.0.0.1:4010/practice/sessions/01918fa0-0050-7a00-8a00-000000000050'
-
-# 4. getFeedbackReport
-curl -s -H 'Prefer: example=default' -H 'Cookie: ei_session=fake' \
-  'http://127.0.0.1:4010/reports/01918fa0-0070-7a00-8a00-000000000070'
-
-# 5. requestPrivacyExport (501 needs `code=501`)
-curl -s -X POST \
-  -H 'Prefer: code=501, example=default' \
-  -H 'Cookie: ei_session=fake' \
-  -H 'Idempotency-Key: 01918fa0-0001-7a00-8a00-aaaaaaaaaaaa' \
-  http://127.0.0.1:4010/privacy/exports
+python3 scripts/codegen/prism_fixture_smoke.py
 ```
 
 For each call, the response body must match the fixture's

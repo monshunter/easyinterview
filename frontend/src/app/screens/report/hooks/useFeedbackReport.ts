@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { EasyInterviewClient } from "../../../../api/generated/client";
 import type {
   ApiErrorCode,
   FeedbackReport,
@@ -19,6 +20,17 @@ export interface UseFeedbackReportResult {
   errorCode: ApiErrorCode | string | null;
   error: Error | null;
   refresh: () => void;
+}
+
+interface ReportOwner {
+  client: EasyInterviewClient | null;
+  reportId: string;
+}
+
+interface OwnedFeedbackReport {
+  client: EasyInterviewClient;
+  reportId: string;
+  value: FeedbackReport;
 }
 
 const HTTP_NOT_FOUND_MARKER = "HTTP 404";
@@ -43,7 +55,11 @@ export function useFeedbackReport(reportId: string): UseFeedbackReportResult {
       : "idle";
 
   const [state, setState] = useState<UseFeedbackReportState>(initial);
-  const [data, setData] = useState<FeedbackReport | null>(null);
+  const [stateOwner, setStateOwner] = useState<ReportOwner>(() => ({
+    client,
+    reportId,
+  }));
+  const [ownedData, setOwnedData] = useState<OwnedFeedbackReport | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [errorCode, setErrorCode] = useState<ApiErrorCode | string | null>(null);
   const [refreshSeq, setRefreshSeq] = useState(0);
@@ -54,11 +70,13 @@ export function useFeedbackReport(reportId: string): UseFeedbackReportResult {
   }, []);
 
   useEffect(() => {
+    setStateOwner({ client, reportId });
+    setOwnedData(null);
+    setError(null);
+    setErrorCode(null);
     if (!reportId) {
       setState("error");
-      setData(null);
       setError(new Error("missing reportId"));
-      setErrorCode(null);
       return;
     }
     if (!client) {
@@ -66,9 +84,6 @@ export function useFeedbackReport(reportId: string): UseFeedbackReportResult {
       return;
     }
     setState("loading");
-    setData(null);
-    setError(null);
-    setErrorCode(null);
 
     const seq = runSeqRef.current + 1;
     runSeqRef.current = seq;
@@ -78,7 +93,7 @@ export function useFeedbackReport(reportId: string): UseFeedbackReportResult {
       .getFeedbackReport(reportId, { signal: controller.signal })
       .then((next) => {
         if (runSeqRef.current !== seq) return;
-        setData(next);
+        setOwnedData({ client, reportId, value: next });
         setState("data");
         if (next.status === "failed") setErrorCode(next.errorCode ?? null);
       })
@@ -100,7 +115,20 @@ export function useFeedbackReport(reportId: string): UseFeedbackReportResult {
     };
   }, [client, reportId, refreshSeq]);
 
-  return { state, data, error, errorCode, refresh };
+  const stateOwnerMatches =
+    stateOwner.client === client && stateOwner.reportId === reportId;
+  const data =
+    ownedData?.client === client && ownedData.reportId === reportId
+      ? ownedData.value
+      : null;
+
+  return {
+    state: stateOwnerMatches ? state : initial,
+    data,
+    error: stateOwnerMatches ? error : null,
+    errorCode: stateOwnerMatches ? errorCode : null,
+    refresh,
+  };
 }
 
 function isAbortError(err: unknown): boolean {

@@ -16,7 +16,7 @@ export DATABASE_URL
       src/app/screens/practice/PracticeScreen.test.tsx \
       src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx \
       --reporter=verbose
-  ) | tee "$OUT/frontend-disabled-reason.log"
+  ) | tee "$OUT/frontend-completion-contract.log"
   (
     cd "$ROOT/backend"
     go test ./internal/api/practice ./internal/practice ./internal/store/practice \

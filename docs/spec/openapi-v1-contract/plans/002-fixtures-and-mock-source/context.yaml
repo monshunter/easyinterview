@@ -7,8 +7,8 @@ metadata:
   baseBranch: main
   branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.53
-    to: 1.54
+    from: 1.56
+    to: 1.58
 spec:
   defaultTarget: contract
   discovery:
@@ -52,6 +52,9 @@ spec:
       - validation blank rawText 422
       - Practice recovery fixtures
       - retryable failure same ID reload
+      - target job report overview fixtures
+      - current report latest attempt canonical rounds
+      - no latestReportId
   targets:
     contract:
       plan: ./plan.md
@@ -60,6 +63,7 @@ spec:
       references:
         - ../../decisions/OPENAPI-001-report-direct-semantics.md
         - ../../decisions/OPENAPI-002-targetjob-paste-only.md
+        - ../../decisions/OPENAPI-004-targetjob-report-overview.md
         - ../001-bootstrap/plan.md
         - ../003-breaking-change-gate/plan.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md

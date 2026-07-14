@@ -5,8 +5,8 @@ metadata:
   name: 001-baseline
   sequence: 1
   specVersion:
-    from: 2.40
-    to: 2.41
+    from: 2.41
+    to: 2.42
   branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: backend

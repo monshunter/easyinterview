@@ -20,6 +20,7 @@ for frontend_file in \
   useFeedbackReport.test.tsx \
   ConversationReport.test.tsx \
   useReportGenerationPoll.test.tsx \
+  GeneratingBackNavigation.test.tsx \
   GeneratingScreen.test.tsx; do
   grep -Fq "$frontend_file" "$LOG" || {
     echo "E2E.P0.058: $frontend_file did not run" >&2
@@ -30,6 +31,11 @@ for frontend_assertion in \
   'missing reportId stays in error and never fetches' \
   'surfaces an exhausted network check separately from a resource timeout and allows checking again' \
   'terminal report failures hide reload and keep the back action' \
+  'returns a ready report to the API-trusted reports page' \
+  'keeps the trusted reports return visible while a report is pending' \
+  'keeps the trusted reports return visible while generation is in progress' \
+  'falls back to workspace after first-load network exhaustion' \
+  'renders a three-field UUID-free Context Strip from frozen API context and preserves model prose under a different UI locale' \
   'renders REPORT_CONTEXT_TOO_LARGE as a back-only terminal state with actionable shorter-input copy' \
   'fails closed when non-empty replay focus is not backed by a needs-work dimension and same-code issue'; do
   grep -Fq "$frontend_assertion" "$LOG"

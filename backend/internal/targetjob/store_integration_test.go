@@ -13,6 +13,7 @@ import (
 	_ "github.com/lib/pq"
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/shared/events"
+	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
@@ -77,12 +78,19 @@ values
 	if _, err := db.ExecContext(ctx, `
 insert into target_jobs (
   id, user_id, status, analysis_status, title, company_name, target_language,
-  source_type, summary, fit_summary, resume_id, created_at, updated_at
+  raw_jd_text, summary, fit_summary, resume_id, created_at, updated_at
 ) values ($1, $2, 'draft', 'ready', 'Backend Engineer', 'Acme', 'en',
-          'manual_text', $3::jsonb, '{}'::jsonb, $4, $5, $5)`,
-		targetID, userID, string(nonContiguousRoundSummaryJSON()), resumeID, now,
+	          $3, $4::jsonb, '{}'::jsonb, $5, $6, $6)`,
+		targetID, userID, "practice progress raw jd", string(nonContiguousRoundSummaryJSON()), resumeID, now,
 	); err != nil {
 		t.Fatalf("insert target job: %v", err)
+	}
+	var persistedRawJD string
+	if err := db.QueryRowContext(ctx, `select raw_jd_text from target_jobs where id = $1`, targetID).Scan(&persistedRawJD); err != nil {
+		t.Fatalf("select target raw_jd_text: %v", err)
+	}
+	if persistedRawJD != "practice progress raw jd" {
+		t.Fatalf("raw_jd_text = %q, want persisted paste text", persistedRawJD)
 	}
 
 	insertPlan := func(id, boundResumeID string, roundID any, roundSequence any, createdAt time.Time) {
@@ -233,7 +241,128 @@ values ('019f50d0-0000-7000-8000-000000000032', $1, 1, 'session_completed', '{}'
 	t.Log("get-list-first-next-final-parity=PASS")
 }
 
-func TestSQLStoreIntegration_CompleteParseFailureDeletesTargetAndSources(t *testing.T) {
+func TestSQLStoreIntegration_ImportTargetJobPersistsRawJDAndEnforcesResumeOwnership(t *testing.T) {
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Fatal("DATABASE_URL is required for TargetJob paste-only import persistence integration gate")
+	}
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		t.Fatalf("open postgres: %v", err)
+	}
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		t.Fatalf("postgres ping failed for TargetJob paste-only import persistence integration gate: %v", err)
+	}
+
+	const (
+		userID           = "019f51d0-0000-7000-8000-000000000101"
+		otherUserID      = "019f51d0-0000-7000-8000-000000000102"
+		resumeID         = "019f51d0-0000-7000-8000-000000000103"
+		otherResumeID    = "019f51d0-0000-7000-8000-000000000104"
+		targetID         = "019f51d0-0000-7000-8000-000000000105"
+		rejectedTargetID = "019f51d0-0000-7000-8000-000000000106"
+		jobID            = "019f51d0-0000-7000-8000-000000000107"
+		eventID          = "019f51d0-0000-7000-8000-000000000108"
+		rejectedJobID    = "019f51d0-0000-7000-8000-000000000109"
+		rejectedEventID  = "019f51d0-0000-7000-8000-000000000110"
+	)
+	cleanup := func() {
+		_, _ = db.ExecContext(context.Background(), `delete from outbox_events where id in ($1, $2) or aggregate_id in ($3, $4)`, eventID, rejectedEventID, targetID, rejectedTargetID)
+		_, _ = db.ExecContext(context.Background(), `delete from async_jobs where id in ($1, $2) or resource_id in ($3, $4)`, jobID, rejectedJobID, targetID, rejectedTargetID)
+		_, _ = db.ExecContext(context.Background(), `delete from target_jobs where id in ($1, $2)`, targetID, rejectedTargetID)
+		_, _ = db.ExecContext(context.Background(), `delete from users where id in ($1, $2)`, userID, otherUserID)
+	}
+	cleanup()
+	t.Cleanup(cleanup)
+
+	now := time.Now().UTC().Truncate(time.Microsecond)
+	if _, err := db.ExecContext(ctx, `
+insert into users (id, email, display_name, created_at, updated_at)
+values
+  ($1, 'targetjob-import-owner@example.test', 'TargetJob Import Owner', $3, $3),
+  ($2, 'targetjob-import-other@example.test', 'TargetJob Import Other', $3, $3)`,
+		userID, otherUserID, now,
+	); err != nil {
+		t.Fatalf("insert users: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `
+insert into resumes (id, user_id, title, language, parse_status, parsed_summary, created_at, updated_at)
+values
+  ($1, $3, 'Owned resume', 'en', 'ready', '{}'::jsonb, $5, $5),
+  ($2, $4, 'Other resume', 'en', 'ready', '{}'::jsonb, $5, $5)`,
+		resumeID, otherResumeID, userID, otherUserID, now,
+	); err != nil {
+		t.Fatalf("insert resumes: %v", err)
+	}
+
+	store := targetjob.NewSQLStore(db)
+	result, err := store.ImportTargetJob(ctx, targetjob.ImportTargetJobInput{
+		UserID:                 userID,
+		DedupeKey:              "targetjob:integration:owned-resume",
+		TargetJobID:            targetID,
+		TargetLanguage:         "en",
+		ResumeID:               resumeID,
+		RawJDText:              "paste-only integration jd",
+		InitialLifecycleStatus: sharedtypes.TargetJobStatusDraft,
+		InitialAnalysisStatus:  sharedtypes.TargetJobParseStatusQueued,
+		JobID:                  jobID,
+		OutboxEventID:          eventID,
+		OutboxEventPayload:     []byte(`{"targetJobId":"019f51d0-0000-7000-8000-000000000105","userId":"019f51d0-0000-7000-8000-000000000101","targetLanguage":"en"}`),
+		JobPayload:             []byte(`{"targetJobId":"019f51d0-0000-7000-8000-000000000105","userId":"019f51d0-0000-7000-8000-000000000101","targetLanguage":"en"}`),
+		Now:                    now,
+	})
+	if err != nil {
+		t.Fatalf("ImportTargetJob with owned resume: %v", err)
+	}
+	if result.JobStatus != sharedtypes.JobStatusQueued || result.Existing {
+		t.Fatalf("import result = %+v, want new queued job", result)
+	}
+
+	var (
+		persistedRawJD  string
+		persistedResume string
+		analysisStatus  string
+	)
+	if err := db.QueryRowContext(ctx, `select raw_jd_text, resume_id::text, analysis_status from target_jobs where id = $1`, targetID).
+		Scan(&persistedRawJD, &persistedResume, &analysisStatus); err != nil {
+		t.Fatalf("select imported target: %v", err)
+	}
+	if persistedRawJD != "paste-only integration jd" || persistedResume != resumeID || analysisStatus != "queued" {
+		t.Fatalf("persisted target = raw %q resume %q analysis %q", persistedRawJD, persistedResume, analysisStatus)
+	}
+
+	_, err = store.ImportTargetJob(ctx, targetjob.ImportTargetJobInput{
+		UserID:                 userID,
+		DedupeKey:              "targetjob:integration:cross-user-resume",
+		TargetJobID:            rejectedTargetID,
+		TargetLanguage:         "en",
+		ResumeID:               otherResumeID,
+		RawJDText:              "must not persist",
+		InitialLifecycleStatus: sharedtypes.TargetJobStatusDraft,
+		InitialAnalysisStatus:  sharedtypes.TargetJobParseStatusQueued,
+		JobID:                  rejectedJobID,
+		OutboxEventID:          rejectedEventID,
+		OutboxEventPayload:     []byte(`{}`),
+		JobPayload:             []byte(`{}`),
+		Now:                    now,
+	})
+	if !errors.Is(err, targetjob.ErrTargetJobNotFound) {
+		t.Fatalf("cross-user resume import err = %v, want ErrTargetJobNotFound", err)
+	}
+	var rejectedCount int
+	if err := db.QueryRowContext(ctx, `select count(*) from target_jobs where id = $1`, rejectedTargetID).Scan(&rejectedCount); err != nil {
+		t.Fatalf("count rejected target: %v", err)
+	}
+	if rejectedCount != 0 {
+		t.Fatalf("cross-user resume import persisted target, count=%d", rejectedCount)
+	}
+}
+
+func TestSQLStoreIntegration_CompleteParseFailureDeletesTargetAndRequirements(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		t.Fatal("DATABASE_URL is required for TargetJob parse-failure persistence integration gate")
@@ -252,11 +381,10 @@ func TestSQLStoreIntegration_CompleteParseFailureDeletesTargetAndSources(t *test
 
 	userID := "019f40d0-0000-7000-8000-000000000001"
 	targetID := "019f40d0-0000-7000-8000-000000000002"
-	sourceID := "019f40d0-0000-7000-8000-000000000003"
+	requirementID := "019f40d0-0000-7000-8000-000000000003"
 	eventID := "019f40d0-0000-7000-8000-000000000004"
 	cleanup := func() {
 		_, _ = db.ExecContext(context.Background(), `delete from outbox_events where id = $1 or aggregate_id = $2`, eventID, targetID)
-		_, _ = db.ExecContext(context.Background(), `delete from target_job_sources where target_job_id = $1`, targetID)
 		_, _ = db.ExecContext(context.Background(), `delete from target_job_requirements where target_job_id = $1`, targetID)
 		_, _ = db.ExecContext(context.Background(), `delete from target_jobs where id = $1`, targetID)
 		_, _ = db.ExecContext(context.Background(), `delete from users where id = $1`, userID)
@@ -274,22 +402,30 @@ values ($1, $2, $3, $4, $4)`,
 	}
 	if _, err := db.ExecContext(ctx, `
 insert into target_jobs (
-  id, user_id, status, analysis_status, target_language, source_type,
+  id, user_id, status, analysis_status, target_language,
   raw_jd_text, summary, fit_summary, created_at, updated_at
-) values ($1, $2, 'draft', 'failed', 'zh-CN', 'manual_text', $3, '{}'::jsonb, '{}'::jsonb, $4, $4)`,
+) values ($1, $2, 'draft', 'failed', 'zh-CN', $3, '{}'::jsonb, '{}'::jsonb, $4, $4)`,
 		targetID, userID, "integration jd text", now,
 	); err != nil {
 		t.Fatalf("insert target job: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `
-insert into target_job_sources (id, target_job_id, source_type, snapshot_text, created_at)
-values ($1, $2, 'manual_text', $3, $4)`,
-		sourceID, targetID, "integration jd text", now,
+insert into target_job_requirements (
+  id, target_job_id, kind, label, evidence_level, display_order, created_at
+) values ($1, $2, 'must_have', 'Go', 'explicit', 1, $3)`,
+		requirementID, targetID, now,
 	); err != nil {
-		t.Fatalf("insert target job source: %v", err)
+		t.Fatalf("insert target job requirement: %v", err)
 	}
 
 	store := targetjob.NewSQLStore(db)
+	stored, err := store.GetTargetJobForParse(ctx, targetID)
+	if err != nil {
+		t.Fatalf("GetTargetJobForParse before failure: %v", err)
+	}
+	if stored.RawJDText != "integration jd text" {
+		t.Fatalf("raw_jd_text = %q before failure, want persisted paste text", stored.RawJDText)
+	}
 	if err := store.CompleteParseFailure(ctx, targetjob.CompleteParseFailureInput{
 		TargetJobID:        targetID,
 		FailedEventID:      eventID,
@@ -299,7 +435,7 @@ values ($1, $2, 'manual_text', $3, $4)`,
 		t.Fatalf("CompleteParseFailure: %v", err)
 	}
 
-	_, _, _, err = store.GetTargetJobByUser(ctx, userID, targetID)
+	_, _, err = store.GetTargetJobByUser(ctx, userID, targetID)
 	if !errors.Is(err, targetjob.ErrTargetJobNotFound) {
 		t.Fatalf("failed target must not be readable after failure commit, got %v", err)
 	}
@@ -311,12 +447,12 @@ values ($1, $2, 'manual_text', $3, $4)`,
 	if targetCount != 0 {
 		t.Fatalf("failed target row persisted, count=%d", targetCount)
 	}
-	var sourceCount int
-	if err := db.QueryRowContext(ctx, `select count(*) from target_job_sources where target_job_id = $1`, targetID).Scan(&sourceCount); err != nil {
-		t.Fatalf("count target_job_sources: %v", err)
+	var requirementCount int
+	if err := db.QueryRowContext(ctx, `select count(*) from target_job_requirements where target_job_id = $1`, targetID).Scan(&requirementCount); err != nil {
+		t.Fatalf("count target_job_requirements: %v", err)
 	}
-	if sourceCount != 0 {
-		t.Fatalf("failed target sources were not cascade-deleted, count=%d", sourceCount)
+	if requirementCount != 0 {
+		t.Fatalf("failed target requirements were not cascade-deleted, count=%d", requirementCount)
 	}
 	var eventName string
 	if err := db.QueryRowContext(ctx, `select event_name from outbox_events where id = $1`, eventID).Scan(&eventName); err != nil {

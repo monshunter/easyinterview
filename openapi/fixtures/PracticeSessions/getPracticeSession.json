@@ -26,6 +26,8 @@
               "seqNo": 2,
               "role": "user",
               "content": "我主导过一次跨团队设计系统迁移。",
+              "clientMessageId": "01918fa0-0000-7000-8000-000000007001",
+              "replyStatus": "complete",
               "createdAt": "2026-07-12T08:03:00Z"
             },
             {
@@ -66,6 +68,8 @@
               "seqNo": 2,
               "role": "user",
               "content": "好的，我准备好了。",
+              "clientMessageId": "01918fa0-2519-7630-8793-91587c02f863",
+              "replyStatus": "complete",
               "createdAt": "2026-04-28T13:45:12Z"
             },
             {
@@ -80,6 +84,8 @@
               "seqNo": 4,
               "role": "user",
               "content": "我叫林舟，在电商行业做了 5 年前端，主要做后台系统和复杂表单。我对这个岗位感兴趣是因为…",
+              "clientMessageId": "01918fa0-931b-7e83-8fea-541d5dc4f69e",
+              "replyStatus": "complete",
               "createdAt": "2026-04-28T13:45:12Z"
             },
             {
@@ -94,11 +100,161 @@
               "seqNo": 6,
               "role": "user",
               "content": "有一个就是我们的订单改价系统，涉及 40+ 字段…",
+              "clientMessageId": "01918fa0-b533-7a6b-86fb-a6f8053df28d",
+              "replyStatus": "pending",
               "createdAt": "2026-04-28T13:45:12Z"
             }
           ],
           "createdAt": "2026-04-28T12:00:00Z",
           "updatedAt": "2026-04-28T13:45:12Z"
+        }
+      }
+    },
+    "reply-pending": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-reply-pending"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000005010",
+          "planId": "01918fa0-0000-7000-8000-000000004000",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "running",
+          "language": "zh-CN",
+          "messages": [
+            {
+              "id": "01918fa0-0000-7000-8000-000000006009",
+              "seqNo": 1,
+              "role": "assistant",
+              "content": "请说明你如何处理一次高风险发布。",
+              "createdAt": "2026-07-13T08:02:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-000000006010",
+              "seqNo": 2,
+              "role": "user",
+              "content": "我先把风险拆成三类。",
+              "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+              "replyStatus": "pending",
+              "createdAt": "2026-07-13T08:03:00Z"
+            }
+          ],
+          "createdAt": "2026-07-13T08:02:00Z",
+          "updatedAt": "2026-07-13T08:03:00Z"
+        }
+      }
+    },
+    "reply-retryable-failed": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-reply-retryable-failed",
+          "X-Recovery-Marker": "reload-same-client-message-id"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000005010",
+          "planId": "01918fa0-0000-7000-8000-000000004000",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "running",
+          "language": "zh-CN",
+          "messages": [
+            {
+              "id": "01918fa0-0000-7000-8000-000000006009",
+              "seqNo": 1,
+              "role": "assistant",
+              "content": "请说明你如何处理一次高风险发布。",
+              "createdAt": "2026-07-13T08:02:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-000000006010",
+              "seqNo": 2,
+              "role": "user",
+              "content": "我先把风险拆成三类。",
+              "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+              "replyStatus": "retryable_failed",
+              "createdAt": "2026-07-13T08:03:00Z"
+            }
+          ],
+          "createdAt": "2026-07-13T08:02:00Z",
+          "updatedAt": "2026-07-13T08:03:01Z"
+        }
+      }
+    },
+    "reply-terminal-failed": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-reply-terminal-failed"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000005010",
+          "planId": "01918fa0-0000-7000-8000-000000004000",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "running",
+          "language": "zh-CN",
+          "messages": [
+            {
+              "id": "01918fa0-0000-7000-8000-000000006009",
+              "seqNo": 1,
+              "role": "assistant",
+              "content": "请说明你如何处理一次高风险发布。",
+              "createdAt": "2026-07-13T08:02:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-000000006010",
+              "seqNo": 2,
+              "role": "user",
+              "content": "我先把风险拆成三类。",
+              "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+              "replyStatus": "terminal_failed",
+              "createdAt": "2026-07-13T08:03:00Z"
+            }
+          ],
+          "createdAt": "2026-07-13T08:02:00Z",
+          "updatedAt": "2026-07-13T08:03:01Z"
+        }
+      }
+    },
+    "reply-complete": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-reply-complete"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000005010",
+          "planId": "01918fa0-0000-7000-8000-000000004000",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "running",
+          "language": "zh-CN",
+          "messages": [
+            {
+              "id": "01918fa0-0000-7000-8000-000000006009",
+              "seqNo": 1,
+              "role": "assistant",
+              "content": "请说明你如何处理一次高风险发布。",
+              "createdAt": "2026-07-13T08:02:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-000000006010",
+              "seqNo": 2,
+              "role": "user",
+              "content": "我先把风险拆成三类。",
+              "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+              "replyStatus": "complete",
+              "createdAt": "2026-07-13T08:03:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-000000006011",
+              "seqNo": 3,
+              "role": "assistant",
+              "content": "哪一类风险最容易被团队低估？",
+              "createdAt": "2026-07-13T08:03:02Z"
+            }
+          ],
+          "createdAt": "2026-07-13T08:02:00Z",
+          "updatedAt": "2026-07-13T08:03:02Z"
         }
       }
     },

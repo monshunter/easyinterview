@@ -14,6 +14,7 @@ import hashlib
 import importlib.util
 import json
 import pathlib
+import re
 import subprocess
 import sys
 import textwrap
@@ -49,6 +50,23 @@ def _run(prompts_dir: pathlib.Path, migrations_dir: pathlib.Path) -> subprocess.
 def test_baseline_passes():
     result = _run(REPO_ROOT / "config/prompts", REPO_ROOT / "migrations")
     assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+
+
+def test_target_import_prompt_uses_only_raw_text_and_language_tokens():
+    body = (
+        REPO_ROOT / "config/prompts/target.import.parse/v0.1.0.md"
+    ).read_text(encoding="utf-8")
+
+    assert set(re.findall(r"\{\{([a-z0-9_]+)\}\}", body)) == {"jd_text", "language"}
+
+    normalized_body = " ".join(body.lower().split())
+    for forbidden_wording in (
+        "jd source url",
+        "source url",
+        "page heading",
+        "metadata-like lines",
+    ):
+        assert forbidden_wording not in normalized_body
 
 
 def test_report_v020_direct_semantics_and_old_keys_absent():

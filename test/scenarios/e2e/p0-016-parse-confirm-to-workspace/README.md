@@ -1,73 +1,39 @@
-# E2E.P0.016 — Parse Readonly Receipt + Start Handoff
+# E2E.P0.016 — Parse readonly plan, reports entry, and Start handoff
 
 > **Scenario ID**: E2E.P0.016
 > **Owner**: frontend-home-job-picks-and-parse/001-home-jd-import-and-parse
 > **Status**: Ready
-> **Execution**: automated
+> **Execution**: Vitest + source contract + frontend build + Playwright
+
+## Given / When / Then
+
+- **Given** an authenticated user opens a saved, readonly interview plan with a backend-owned `resumeId` and 2–5 canonical `TargetJob.summary.interviewRounds[]`.
+- **When** the plan detail renders at desktop 1440x900 or mobile 390x844, the user can open `parse-reports-entry` from the content header or start the current round.
+- **Then** the entry navigates exactly to `/reports?targetJobId=<uuid>`; Parse does not embed a reports list, does not call `listTargetJobReports`, does not accept the retired `section=reports` parameter, and the global TopBar still has only Home / Interview / Resume. The existing readonly and direct Start behavior remains unchanged.
 
 ## Scope
 
-Verifies the parse success detail as a readonly saved-plan receipt:
-- Basic fields render as readonly text; notes/edit inputs are absent.
-- Requirement evidence badges are not toggle buttons.
-- Hidden signals and round assumptions are display-only.
-- Round assumptions shown in Parse and Home recent cards use saved 2~5 item `TargetJob.summary.interviewRounds[]`; count, type/name, duration, and focus come from the backend LLM parse result with no static four-round fallback.
-- Shared TargetJob navigation context derives round IDs/names through the same round-assumption mapper instead of local default round strings.
-- The saved bound `resumeId` is inherited from TargetJob; route-only `resumeId` is ignored for binding.
-- Missing bound resume disables Start without exposing resume picker, resume options, create-resume fallback, Save plan, Cancel, or success Re-parse controls.
-- Start interview does not call `updateTargetJob`; it directly uses `getPracticePlan` / `createPracticePlan` / `startPracticeSession` and reaches `practice`.
-- Unauthenticated users without a verified saved resume cannot trigger Start pendingAction.
+- Keeps Basic fields, requirement evidence, hidden signals, saved round assumptions and bound resume display readonly.
+- Keeps Start disabled when the saved plan has no bound resume and prevents route-only resume authority.
+- Keeps direct Start on `getPracticePlan` / `createPracticePlan` / `startPracticeSession`, with no `updateTargetJob` call.
+- Adds one page-level `parse-reports-entry` in the plan-detail header; the entry is not a TopBar item.
+- Treats `/parse?...&section=reports` as hostile legacy input: the canonical URL drops `section`, the page does not scroll/focus a report section, and no embedded report DOM appears.
+- Leaves report overview loading and rendering to independent `ReportsScreen`; P0.059 owns its current-plan list and state parity.
 
-## Fixture Variants
+## Deterministic evidence
 
-- `openapi/fixtures/TargetJobs/getTargetJob.json`: ready TargetJob with saved `resumeId` and `currentPracticePlanId`.
-- `openapi/fixtures/Resumes/listResumes.json`: ready list + empty variant.
-- `openapi/fixtures/PracticePlans/getPracticePlan.json` / `createPracticePlan.json`: existing or newly created plan.
-- `openapi/fixtures/PracticeSessions/startPracticeSession.json`: started session.
-- `openapi/fixtures/Auth/getMe.json`: authenticated + unauthenticated.
-
-## Verification Points
-
-- Parse detail exposes no editable inputs, requirement toggles, hidden remove buttons, resume picker, Save plan, Cancel, or success Re-parse.
-- Parse detail does not call `updateTargetJob` during Start.
-- Browser-level readonly detail keeps real ready `resumeId` visible and never emits `resume-unbound`.
-- Browser-level Start reaches `/practice` directly with `targetJobId`, `resumeId`, `planId`, and `sessionId`.
-- Focused UI tests prove `parse-round-*` and `home-recent-mock-rail-*` consume backend-generated structured interview rounds.
-- Focused navigation tests prove `interviewContextFromTargetJob` no longer emits local default round strings.
-- Browser-level readonly detail attaches a screenshot and emits `screenshotBytes=` after asserting the rendered round cards.
-- Real backend mode generated-client gate still proves TargetJobs read/import/update API routing; the UI subcase separately proves Parse success detail is not an `updateTargetJob` consumer.
+- `scripts/source_contract_test.py` proves `ReportsScreen.tsx` is the only production screen consumer of `listTargetJobReports`, Parse has exactly one entry and no embedded list, `PARSE_SAFE` has no `section`, and TopBar has no reports entry.
+- `ParseReports.test.tsx`, route and TopBar unit tests prove the exact handoff and negative contracts.
+- `frontend/tests/pixel-parity/parse.spec.ts` compares the formal/prototype entry at 1440x900 and 390x844 using DOM text, computed style, absolute bounding boxes and pixelmatch ≤0.5%; it attaches formal/prototype entry screenshots.
+- The same Playwright run retains readonly plan and direct Start regression coverage.
 
 ## Scripts
 
-- `scripts/setup.sh` — auth state selection (signed-in/out)
-- `scripts/trigger.sh` — execute readonly detail and direct Start flow
-- `scripts/verify.sh` — assert readonly controls, no target patch, practice route, no `resume-unbound`
-- `scripts/cleanup.sh` — reset auth state
+- `scripts/setup.sh` — resets the scenario-owned output and writes `setup.env`.
+- `scripts/trigger.sh` — runs source, focused Vitest, frontend build and desktop/mobile Playwright gates.
+- `scripts/verify.sh` — binds actual runner/pass markers and the entry/no-request/no-TopBar/no-section evidence.
+- `scripts/cleanup.sh` — removes only the transient setup marker and leaves current-run logs for inspection.
 
-## Offline Limitations
+## Environment
 
-- Requires getMe fixture variant for auth state selection.
-- Requires listResumes fixture for ready/empty variants.
-- Requires practice plan/session fixtures for direct Start handoff.
-
-## Real Backend Overlay
-
-- The trigger first runs `src/api/targetJob.realApiMode.test.ts` with
-  `VITE_EI_API_MODE=real` and
-  `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, proving the production
-  generated client routes `listTargetJobs`, `createUploadPresign`,
-  `importTargetJob`, `getTargetJob`, and `updateTargetJob` to the real backend
-  base URL with cookie credentials, Idempotency-Key side effects, and
-  provenance roundtrip.
-- The parse UI subcases remain fixture-backed for deterministic readonly DOM,
-  missing-resume disabled gate, no-PATCH assertion, screenshot acceptance, and direct practice handoff.
-
-## Browser Route/Context Gate
-
-- The trigger builds `frontend/dist` and runs Playwright
-  `tests/pixel-parity/parse.spec.ts --grep "readonly plan detail exposes|start interview hands off directly"`.
-- The browser gate opens `/parse?targetJobId=...`, mocks generated API
-  responses, verifies the readonly receipt has only Start as the success action,
-  asserts no `updateTargetJob` PATCH calls were made, checks the 2~5 rendered
-  structured rounds, attaches a readonly-detail screenshot, verifies Start reaches
-  `practice`, and rejects `resume-unbound` / `workspace-missing-resume` success markers.
+This scenario is self-contained and uses fixture-backed Vitest/Playwright plus the static parity server. It does not require the shared Docker or host-run backend/frontend environment.

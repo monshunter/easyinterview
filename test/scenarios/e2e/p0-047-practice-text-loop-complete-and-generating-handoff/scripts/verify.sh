@@ -5,13 +5,15 @@ OUT="$ROOT/.test-output/e2e/p0-047-practice-text-loop-complete-and-generating-ha
 LOG="$OUT/trigger.log"
 OWNER_LOG="$OUT/completion-owner.log"
 DATABASE_LOG="$OUT/completion-database.log"
-FRONTEND_LOG="$OUT/frontend-disabled-reason.log"
+FRONTEND_LOG="$OUT/frontend-completion-contract.log"
 ARTIFACT="$OUT/completion-backend-evidence.json"
 OWNER_COMMAND="cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice -run '^(TestE2EP0047RejectsZeroAnswerCompletion|TestE2EP0047FreezesReportContext|TestE2EP0047CompletionReplayPreservesReportContext)$' -count=1 -v"
 
 "$ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG" E2E.P0.047
-grep -Fq 'TestE2EP0047RejectsZeroAnswerCompletion' "$FRONTEND_LOG"
+grep -Fq 'ZERO_ANSWER_FINISH_DISABLED_PASS' "$FRONTEND_LOG"
 grep -Fq 'keeps Finish disabled while the latest committed candidate message still awaits an assistant reply' "$FRONTEND_LOG"
+grep -Fq 'P0.047 hands completion to Generating with reportId as the only URL and history locator' "$FRONTEND_LOG"
+grep -Fq 'retry of the same complete reuses the same Idempotency-Key' "$FRONTEND_LOG"
 
 for test_name in \
   TestE2EP0047RejectsZeroAnswerCompletion \

@@ -24,22 +24,21 @@ const (
 // downstream registerer (added in a later phase plan) emits stable label
 // orderings on the wire.
 var (
-	TargetJobImportsLabelKeys       = []string{"service", "operation", "source_type", "result", "error_code"}
-	TargetJobParseDurationLabelKeys = []string{"service", "job_type", "source_type", "language", "result"}
-	TargetJobParseFailuresLabelKeys = []string{"service", "job_type", "source_type", "language", "error_code", "result"}
+	TargetJobImportsLabelKeys       = []string{"service", "operation", "result", "error_code"}
+	TargetJobParseDurationLabelKeys = []string{"service", "job_type", "language", "result"}
+	TargetJobParseFailuresLabelKeys = []string{"service", "job_type", "language", "error_code", "result"}
 )
 
 // f1AllowedTargetJobMetricLabels enumerates every label key any TargetJob
 // metric is permitted to use. This is a STRICT allowlist; adding a new key
 // requires an F1 spec revision (see observability-stack spec §4.1).
 var f1AllowedTargetJobMetricLabels = map[string]struct{}{
-	"service":     {},
-	"operation":   {},
-	"job_type":    {},
-	"source_type": {},
-	"language":    {},
-	"result":      {},
-	"error_code":  {},
+	"service":    {},
+	"operation":  {},
+	"job_type":   {},
+	"language":   {},
+	"result":     {},
+	"error_code": {},
 }
 
 // IsF1AllowedTargetJobMetricLabel reports whether label key is permitted by

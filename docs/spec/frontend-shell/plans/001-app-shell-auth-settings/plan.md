@@ -52,7 +52,7 @@
 | `completeMyProfile` | `openapi/fixtures/Auth/completeMyProfile.json#default` | `AuthProfileSetupScreen` | backend-auth `PATCH /me` handler | backend user display name, terms acceptance and profile completion fields | 无 | Auth focused tests、E2E.P0.101 |
 | `logout` | `openapi/fixtures/Auth/logout.json#default` | `AuthLogoutScreen`、TopBar logout route、dev mock client state clear | backend-auth logout handler | backend clears session cookie/session | 无 | dev mock tests、E2E.P0.032、E2E.P0.101 |
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json#default\|empty\|one-job\|twelve-plus` | Home recent records visibility under authenticated runtime | targetjob list handler behind session middleware | `target_jobs` filtered by session user | 无 | Home auth guard tests、E2E.P0.102 |
-| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json#manual-text-primary` | Home submit via auth gate + safe pendingAction | targetjob import handler behind session middleware | `target_jobs` / async parse job | target job parse may use AI after authenticated import | Home auth gate tests、E2E.P0.102 |
+| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json#paste-primary` | Home submit via auth gate + safe pendingAction | targetjob import handler behind session middleware | `target_jobs` / async parse job | target job parse may use AI after authenticated import | Home auth gate tests、E2E.P0.102 |
 | `N/A` UI shell/settings/display | N/A | `routes.ts`、`normalizeRoute.ts`、`routeUrl.ts`、`TopBar`、`SettingsScreen`、`DisplayPreferencesProvider` | 无 API 变更 | frontend local display preference only | 无 | focused Vitest、pixel parity / visual smoke owners、E2E.P0.001、E2E.P0.004、E2E.P0.032 |
 
 ## 5 验收标准

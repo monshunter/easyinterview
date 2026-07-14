@@ -315,7 +315,6 @@ upload:
   presignTTLSeconds: 600
   maxBytes:
     resume: 2097152
-    targetJobAttachment: 10485760
     privacyExport: 5242880
 `)
 	loader, err := config.Load(config.Options{ConfigDir: dir})
@@ -787,7 +786,6 @@ upload:
   presignTTLSeconds: 600
   maxBytes:
     resume: 2097152
-    targetJobAttachment: 10485760
     privacyExport: 5242880
 `)
 	loader, err := config.Load(config.Options{ConfigDir: dir})
@@ -1019,9 +1017,11 @@ ai:
 		t.Fatalf("runtime missing handler/handlers/AI wiring: %+v", runtime)
 	}
 	_, handlesTargetImport := runtime.Handlers[string(jobs.JobTypeTargetImport)]
-	_, handlesSourceRefresh := runtime.Handlers[string(jobs.JobTypeSourceRefresh)]
-	if !handlesTargetImport || !handlesSourceRefresh {
-		t.Fatalf("runtime does not contribute target_import/source_refresh handlers: %+v", runtime.Handlers)
+	if !handlesTargetImport {
+		t.Fatalf("runtime does not contribute target_import handler: %+v", runtime.Handlers)
+	}
+	if len(runtime.Handlers) != 2 {
+		t.Fatalf("targetjob runtime must contribute only target_import and privacy_delete handlers: %+v", runtime.Handlers)
 	}
 	resp, _, err := runtime.ParseAI.Complete(context.Background(), "target.import.default", aiclient.CompletePayload{
 		Messages: []aiclient.Message{{Role: "user", Content: "Backend Engineer JD"}},

@@ -6,7 +6,7 @@
  *
  * Three primary nav entries: home / workspace / resume_versions
  * (out-of-scope product entries are outside the current route catalog).
- * Context routes: parse / practice / generating / report.
+ * Context routes: parse / practice / reports / generating / report.
  * User-menu routes: settings / auth_logout.
  * Auth pages: auth_login / auth_verify / auth_profile_setup / auth_logout.
  * auth_reset is outside the current route catalog per product-scope D-16; it normalizes back to auth_login.
@@ -25,6 +25,7 @@ export const PRIMARY_NAV_ROUTES = [
 export const CONTEXT_ROUTES = [
   "parse",
   "practice",
+  "reports",
   "generating",
   "report",
 ] as const;
@@ -65,7 +66,7 @@ export function isChromeHidden(name: RouteName): boolean {
   return NO_CHROME_ROUTES.has(name);
 }
 
-/** Only Practice carries mutable interview context. Report routes use reportId only. */
+/** Only Practice hydrates mutable interview context; report routes resolve their own locators. */
 export const INTERVIEW_CONTEXT_ROUTES: ReadonlySet<string> = new Set([
   "practice",
 ]);

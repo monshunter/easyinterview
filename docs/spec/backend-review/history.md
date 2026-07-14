@@ -1,8 +1,8 @@
 # Backend Review History
 
-> **版本**: 1.23
+> **版本**: 1.25
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 修订记录
 
@@ -10,6 +10,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 1.25 | `listTargetJobReports` wire/selection 保持不变，唯一 UI consumer 从 Parse 迁移到 target-scoped ReportsScreen；当前规划隔离与状态/截图由 P0.059 承接。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-14 | 1.24 | 用户确认 R-A：保留 `listTargetJobReports` route/operationId，但删除分页完整列表，改为按当前 TargetJob canonical rounds 返回最小 `currentReport/latestAttempt` 概览；锁定独立排序、identity/context fail-closed 与 Parse-only consumer。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
 | 2026-07-13 | 1.23 | 最终report prompt保留paired complete example；产品验收要求机械100%与固定五类至少4/5语义通过，严格P0.100继续11/11+blind review。run59381机械9/9、语义8/9、场景4/5，产品通过但strict FAIL。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) + F3/004 + P0.100 |
 | 2026-07-13 | 1.21 | report job显式max_attempts4，并以running+claimed attempts fence全部report/outbox/audit/job副作用；run35622于7/11中止非PASS。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
 | 2026-07-13 | 1.20 | 用户确认报告generation与judge分别使用max4-call budget。Generation每次pre-call durable reserve、invalid按当前violations多轮targeted/whole repair、retryable provider backoff/requeue、nonretryable立即终止、crash/replay cap4；judge仅重试provider/protocol invalid，valid negative不重采样。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) + F3/004 + P0.100 |

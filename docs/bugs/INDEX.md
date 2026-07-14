@@ -191,6 +191,9 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0169](./BUG-0169.md) | Closeout contract gates drifted from current source ownership | medium | resolved | 2026-07-14 | `fix(interview): close turn UX and report navigation (BUG-0167, BUG-0168, BUG-0169)` |
+| [BUG-0168](./BUG-0168.md) | P0.006 verifier treated business failed counters as Playwright failures | medium | resolved | 2026-07-14 | `fix(interview): close turn UX and report navigation (BUG-0167, BUG-0168, BUG-0169)` |
+| [BUG-0167](./BUG-0167.md) | P0.058 report evidence fixture omitted required practice reply state | medium | resolved | 2026-07-14 | `fix(interview): close turn UX and report navigation (BUG-0167, BUG-0168, BUG-0169)` |
 | [BUG-0164](./BUG-0164.md) | P0.058 verifier counted Go subtests as root tests | medium | resolved | 2026-07-12 | `fix(report): ground report semantics and reliability (BUG-0164, BUG-0165, BUG-0166)` |
 | [BUG-0157](./BUG-0157.md) | P0.098 shadowed TargetJob fixture left a stale persistence assertion | medium | resolved | 2026-07-10 | `fix(test): align full-funnel target fixture (BUG-0157)` |
 | [BUG-0156](./BUG-0156.md) | root test gate omitted Python tooling and skill contracts | medium | resolved | 2026-07-10 | `fix(test): aggregate Python contract tests (BUG-0156)` |

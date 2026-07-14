@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -38,8 +37,8 @@ func (e *ServiceImportError) Error() string {
 }
 
 // Service is the handler-facing TargetJob orchestrator. Phase 2.1 lands the
-// synchronous import path: it decodes the B2 oneOf source variant, derives
-// a user-scoped dedupe key, validates inputs, and hands a fully-shaped
+// synchronous import path: it validates the paste-only request, derives a
+// user-scoped dedupe key, and hands a fully-shaped
 // ImportTargetJobInput to the Store. The runner side, F3+A3 calls, and
 // outbox publish flow are layered in Phase 3 / Phase 4.
 type Service struct {
@@ -77,13 +76,11 @@ func NewService(opts ServiceOptions) *Service {
 // ImportRequest is the service-layer command produced by the handler after
 // it parses an `importTargetJob` request body and headers.
 type ImportRequest struct {
-	UserID          string
-	IdempotencyKey  string
-	TargetLanguage  string
-	ResumeID        string
-	TitleHint       string
-	CompanyNameHint string
-	Source          any // B2 TargetJobImportSource oneOf, decoded as map[string]any
+	UserID         string
+	IdempotencyKey string
+	TargetLanguage string
+	ResumeID       string
+	RawText        string
 }
 
 // ImportResponse is what the handler renders into the generated
@@ -94,8 +91,8 @@ type ImportResponse struct {
 }
 
 // ImportTargetJob performs the synchronous portion of `POST /targets/import`:
-// decoding the source variant, deriving the dedupe key, validating inputs,
-// building the runner-bound or manual_form store input, and translating the
+// validating the paste-only request, deriving the dedupe key, building the
+// runner-bound store input, and translating the
 // store result back into a generated `Job` shape.
 func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (ImportResponse, error) {
 	if s == nil || s.store == nil || s.newID == nil {
@@ -115,9 +112,9 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 		return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeValidationFailed, Message: "resumeId is required"}
 	}
 
-	decoded, err := decodeImportSource(in.Source)
-	if err != nil {
-		return ImportResponse{}, err
+	rawText := strings.TrimSpace(in.RawText)
+	if rawText == "" {
+		return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeValidationFailed, Message: "rawText is required"}
 	}
 
 	now := s.now()
@@ -131,72 +128,14 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 		TargetJobID:            targetJobID,
 		TargetLanguage:         strings.TrimSpace(in.TargetLanguage),
 		ResumeID:               resumeID,
-		APISourceType:          decoded.SourceType,
+		RawJDText:              rawText,
 		InitialLifecycleStatus: sharedtypes.TargetJobStatusDraft,
-		Title:                  pickHint(in.TitleHint, decoded.Title),
-		CompanyName:            pickHint(in.CompanyNameHint, decoded.CompanyName),
+		InitialAnalysisStatus:  sharedtypes.TargetJobParseStatusQueued,
 		JobID:                  jobID,
 		Now:                    now,
 	}
-
-	switch decoded.SourceType {
-	case SourceTypeURL:
-		sanitized, err := sanitizeJDURL(decoded.URL)
-		if err != nil {
-			return ImportResponse{}, err
-		}
-		storeIn.InitialAnalysisStatus = sharedtypes.TargetJobParseStatusQueued
-		storeIn.SourceURL = sanitized
-		storeIn.SourceID = s.newID()
-		// The runner handler fills SourceSnapshotText after fetch.
-		if err := s.attachRunnerEnvelope(&storeIn); err != nil {
-			return ImportResponse{}, err
-		}
-	case SourceTypeManualText:
-		storeIn.InitialAnalysisStatus = sharedtypes.TargetJobParseStatusQueued
-		storeIn.RawJDText = decoded.RawText
-		storeIn.SourceID = s.newID()
-		storeIn.SourceSnapshotText = decoded.RawText
-		if err := s.attachRunnerEnvelope(&storeIn); err != nil {
-			return ImportResponse{}, err
-		}
-	case SourceTypeFile:
-		// Spec D-9 / plan 3.2: confirm the referenced upload belongs to the
-		// caller and was uploaded with the target_job_attachment purpose.
-		// Cross-user / soft-deleted IDs surface as TARGET_JOB_NOT_FOUND so
-		// the handler returns 404 without leaking existence; mismatched
-		// purpose surfaces as TARGET_IMPORT_SOURCE_INVALID.
-		attachment, err := s.store.LookupFileAttachmentForUser(ctx, in.UserID, decoded.FileObjectID)
-		if err != nil {
-			if errors.Is(err, ErrTargetJobNotFound) {
-				return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeTargetJobNotFound, Message: "file attachment not found"}
-			}
-			return ImportResponse{}, err
-		}
-		if attachment.Purpose != "target_job_attachment" {
-			return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "file attachment purpose is not target_job_attachment"}
-		}
-		storeIn.InitialAnalysisStatus = sharedtypes.TargetJobParseStatusQueued
-		storeIn.SourceFileObjectID = decoded.FileObjectID
-		storeIn.SourceID = s.newID()
-		if err := s.attachRunnerEnvelope(&storeIn); err != nil {
-			return ImportResponse{}, err
-		}
-	case SourceTypeManualForm:
-		storeIn.InitialAnalysisStatus = sharedtypes.TargetJobParseStatusReady
-		storeIn.RawJDText = decoded.RawDescription
-		// Spec D-11 / plan 3.1: at least one draft must_have requirement.
-		storeIn.DraftRequirements = []RequirementRecord{
-			{
-				ID:           s.newID(),
-				Kind:         RequirementMustHave,
-				Label:        defaultDraftRequirementLabel(decoded.RawDescription),
-				DisplayOrder: 1,
-			},
-		}
-		// no SourceID, no OutboxEventID -> store treats as manual_form path
-	default:
-		return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: fmt.Sprintf("unsupported source type %q", decoded.SourceType)}
+	if err := s.attachRunnerEnvelope(&storeIn); err != nil {
+		return ImportResponse{}, err
 	}
 
 	res, err := s.store.ImportTargetJob(ctx, storeIn)
@@ -224,7 +163,6 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 func (s *Service) attachRunnerEnvelope(in *ImportTargetJobInput) error {
 	in.OutboxEventID = s.newID()
 	outboxPayload, err := BuildTargetImportRequestedPayload(TargetImportRequestedInput{
-		APISourceType:  in.APISourceType,
 		TargetJobID:    in.TargetJobID,
 		TargetLanguage: in.TargetLanguage,
 		UserID:         in.UserID,
@@ -241,7 +179,6 @@ func (s *Service) attachRunnerEnvelope(in *ImportTargetJobInput) error {
 	jobPayload, err := BuildTargetImportJobPayload(TargetImportJobPayload{
 		TargetJobID:    in.TargetJobID,
 		UserID:         in.UserID,
-		SourceType:     string(in.APISourceType),
 		TargetLanguage: in.TargetLanguage,
 	})
 	if err != nil {
@@ -275,111 +212,6 @@ func (s *Service) dedupeKey(namespace, userID, idempotencyKey string) string {
 	h.Write([]byte("|"))
 	h.Write([]byte(strings.TrimSpace(idempotencyKey)))
 	return "target_import:" + hex.EncodeToString(h.Sum(nil))
-}
-
-// decodedSource is the union of typed B2 source variants after JSON
-// unmarshalling. Only the fields relevant to the surfaced source variant
-// are populated; the rest stay zero.
-type decodedSource struct {
-	SourceType     SourceType
-	URL            string
-	RawText        string
-	FileObjectID   string
-	Title          string
-	CompanyName    string
-	RawDescription string
-}
-
-func decodeImportSource(raw any) (decodedSource, error) {
-	if raw == nil {
-		return decodedSource{}, &ServiceImportError{Code: sharederrors.CodeValidationFailed, Message: "source is required"}
-	}
-	rawMap, ok := raw.(map[string]any)
-	if !ok {
-		// Try to round-trip via JSON for robustness against non-map shapes.
-		buf, err := json.Marshal(raw)
-		if err != nil {
-			return decodedSource{}, &ServiceImportError{Code: sharederrors.CodeValidationFailed, Message: "source must be an object"}
-		}
-		if err := json.Unmarshal(buf, &rawMap); err != nil || rawMap == nil {
-			return decodedSource{}, &ServiceImportError{Code: sharederrors.CodeValidationFailed, Message: "source must be an object"}
-		}
-	}
-	typeStr, _ := rawMap["type"].(string)
-	switch SourceType(typeStr) {
-	case SourceTypeURL:
-		urlStr, _ := rawMap["url"].(string)
-		urlStr = strings.TrimSpace(urlStr)
-		if urlStr == "" {
-			return decodedSource{}, &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "url is required for source type=url"}
-		}
-		return decodedSource{SourceType: SourceTypeURL, URL: urlStr}, nil
-	case SourceTypeManualText:
-		text, _ := rawMap["rawText"].(string)
-		text = strings.TrimSpace(text)
-		if text == "" {
-			return decodedSource{}, &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "rawText is required for source type=manual_text"}
-		}
-		return decodedSource{SourceType: SourceTypeManualText, RawText: text}, nil
-	case SourceTypeFile:
-		fileObjectID, _ := rawMap["fileObjectId"].(string)
-		fileObjectID = strings.TrimSpace(fileObjectID)
-		if fileObjectID == "" {
-			return decodedSource{}, &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "fileObjectId is required for source type=file"}
-		}
-		return decodedSource{SourceType: SourceTypeFile, FileObjectID: fileObjectID}, nil
-	case SourceTypeManualForm:
-		title, _ := rawMap["title"].(string)
-		title = strings.TrimSpace(title)
-		if title == "" {
-			return decodedSource{}, &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "title is required for source type=manual_form"}
-		}
-		rawDesc, _ := rawMap["rawDescription"].(string)
-		rawDesc = strings.TrimSpace(rawDesc)
-		if rawDesc == "" {
-			return decodedSource{}, &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "rawDescription is required for source type=manual_form"}
-		}
-		companyPtr, _ := rawMap["companyName"].(string)
-		return decodedSource{
-			SourceType:     SourceTypeManualForm,
-			Title:          title,
-			CompanyName:    strings.TrimSpace(companyPtr),
-			RawDescription: rawDesc,
-		}, nil
-	default:
-		return decodedSource{}, &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: fmt.Sprintf("unsupported source type %q", typeStr)}
-	}
-}
-
-// sanitizeJDURL performs the synchronous-stage URL hygiene checks: scheme
-// must be https, no fragment, query string is preserved structurally but
-// snapshot recording (Phase 3.3) strips secrets. Full SSRF guard (DNS,
-// private-network rejection, redirect inspection) is the Phase 3.3 fetcher's
-// responsibility — this helper only rejects the unmistakable up-front
-// violations so the runner does not spin up on bad input.
-func sanitizeJDURL(raw string) (string, error) {
-	u, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil {
-		return "", &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "url is malformed"}
-	}
-	if !strings.EqualFold(u.Scheme, "https") {
-		return "", &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "url scheme must be https"}
-	}
-	if u.Host == "" {
-		return "", &ServiceImportError{Code: sharederrors.CodeTargetImportSourceInvalid, Message: "url host is required"}
-	}
-	u.User = nil
-	u.RawQuery = ""
-	u.ForceQuery = false
-	u.Fragment = ""
-	return u.String(), nil
-}
-
-func pickHint(hint, decoded string) string {
-	if strings.TrimSpace(hint) != "" {
-		return strings.TrimSpace(hint)
-	}
-	return strings.TrimSpace(decoded)
 }
 
 // ListRequest is the service-layer command produced by the handler from the
@@ -440,7 +272,7 @@ func (s *Service) GetTargetJob(ctx context.Context, userID, targetJobID string) 
 	if userID == "" || targetJobID == "" {
 		return api.TargetJob{}, fmt.Errorf("userId and targetJobId are required")
 	}
-	rec, reqs, _, err := s.store.GetTargetJobByUser(ctx, userID, targetJobID)
+	rec, reqs, err := s.store.GetTargetJobByUser(ctx, userID, targetJobID)
 	if err != nil {
 		if errors.Is(err, ErrTargetJobNotFound) {
 			return api.TargetJob{}, &ServiceImportError{Code: sharederrors.CodeTargetJobNotFound, Message: "target job not found"}
@@ -495,7 +327,7 @@ func (s *Service) UpdateTargetJob(ctx context.Context, in UpdateRequest) (api.Ta
 		}
 		return api.TargetJob{}, err
 	}
-	reloaded, reqs, _, err := s.store.GetTargetJobByUser(ctx, in.UserID, in.TargetJobID)
+	reloaded, reqs, err := s.store.GetTargetJobByUser(ctx, in.UserID, in.TargetJobID)
 	if err != nil {
 		// The mutation succeeded, but the read-side reload failed. Return the
 		// locked update row without derived facts rather than invent progress.
@@ -599,18 +431,12 @@ func recordToAPI(rec TargetJobRecord, reqs []RequirementRecord) api.TargetJob {
 		PracticeProgress:       practiceProgress,
 		Requirements:           []api.TargetJobRequirement{},
 		ResumeId:               optionalString(rec.ResumeID),
-		SourceType:             string(rec.SourceType),
-		SourceUrl:              optionalString(rec.SourceURL),
 		Status:                 rec.Status,
 		Summary:                summary,
 		FitSummary:             decodeTargetJobFitSummary(rec.FitSummary),
 		TargetLanguage:         rec.TargetLanguage,
 		Title:                  rec.Title,
 		UpdatedAt:              rec.UpdatedAt.UTC().Format(time.RFC3339),
-	}
-	if rec.LatestReportID != "" {
-		v := rec.LatestReportID
-		out.LatestReportId = &v
 	}
 	for _, r := range reqs {
 		out.Requirements = append(out.Requirements, api.TargetJobRequirement{
@@ -787,20 +613,4 @@ func optionalString(v string) *string {
 		return nil
 	}
 	return &v
-}
-
-// defaultDraftRequirementLabel synthesizes the manual_form draft requirement
-// label from the first non-empty description line, capped for compact list
-// rendering. Empty descriptions fall back to a generic draft label.
-func defaultDraftRequirementLabel(rawDescription string) string {
-	for _, line := range strings.Split(rawDescription, "\n") {
-		t := strings.TrimSpace(line)
-		if t != "" {
-			if len(t) > 120 {
-				t = t[:120]
-			}
-			return t
-		}
-	}
-	return "Manual draft requirement"
 }

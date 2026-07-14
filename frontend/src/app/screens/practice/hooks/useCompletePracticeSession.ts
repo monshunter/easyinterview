@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { ApiClientError } from "../../../../api/generated/client";
 import type {
   CompletePracticeSessionRequest,
   ReportWithJob,
@@ -30,6 +31,20 @@ export interface UseCompletePracticeSessionResult {
 
 const FAILURE_FALLBACK_THRESHOLD = 3;
 
+interface CompletionScope {
+  sessionId: string;
+  active: boolean;
+  idempotencyKey: string | null;
+  inFlight: Promise<ReportWithJob> | null;
+  successReport: ReportWithJob | null;
+  attempts: number;
+}
+
+interface CompletionStateSnapshot {
+  sessionId: string;
+  state: CompleteState;
+}
+
 /**
  * Item 4.1 — completePracticeSession orchestrator.
  *
@@ -50,78 +65,113 @@ export function useCompletePracticeSession(
   const { ctx } = useInterviewContext();
   const sessionId = explicitSessionId ?? ctx.sessionId ?? "";
 
-  const idempotencyKeyRef = useRef<string | null>(null);
-  const inFlightRef = useRef<Promise<ReportWithJob> | null>(null);
-  const successReportRef = useRef<ReportWithJob | null>(null);
-  const attemptsRef = useRef(0);
+  const scopeRef = useRef<CompletionScope>(createCompletionScope(sessionId));
+  if (scopeRef.current.sessionId !== sessionId) {
+    scopeRef.current = createCompletionScope(sessionId);
+  }
+  const renderScope = scopeRef.current;
+  const [stateSnapshot, setStateSnapshot] = useState<CompletionStateSnapshot>(() => ({
+    sessionId,
+    state: { kind: "idle" },
+  }));
+  const state = stateSnapshot.sessionId === sessionId
+    ? stateSnapshot.state
+    : { kind: "idle" } satisfies CompleteState;
 
-  const [state, setState] = useState<CompleteState>({ kind: "idle" });
+  useEffect(() => {
+    renderScope.active = true;
+    return () => {
+      renderScope.active = false;
+    };
+  }, [renderScope]);
 
   const reset = useCallback(() => {
-    idempotencyKeyRef.current = null;
-    inFlightRef.current = null;
-    successReportRef.current = null;
-    attemptsRef.current = 0;
-    setState({ kind: "idle" });
-  }, []);
+    const scope = scopeRef.current;
+    if (scope.sessionId !== sessionId) return;
+    scope.idempotencyKey = null;
+    scope.inFlight = null;
+    scope.successReport = null;
+    scope.attempts = 0;
+    setStateSnapshot({ sessionId, state: { kind: "idle" } });
+  }, [sessionId]);
 
   const complete = useCallback(async (): Promise<ReportWithJob> => {
     if (!client) throw new Error("useCompletePracticeSession: client missing");
     if (!sessionId) {
       throw new Error("useCompletePracticeSession: sessionId missing");
     }
-    if (successReportRef.current) {
-      return successReportRef.current;
+    const scope = scopeRef.current.sessionId === sessionId
+      ? scopeRef.current
+      : createCompletionScope(sessionId);
+    if (scopeRef.current !== scope) {
+      scopeRef.current = scope;
     }
-    if (inFlightRef.current) {
-      return inFlightRef.current;
+    const isCurrentScope = () => (
+      scope.active
+      && scopeRef.current === scope
+      && scope.sessionId === sessionId
+    );
+    if (scope.successReport) {
+      return scope.successReport;
     }
-    if (!idempotencyKeyRef.current) {
-      idempotencyKeyRef.current = newIdempotencyBatch().complete;
+    if (scope.inFlight) {
+      return scope.inFlight;
     }
-    setState({ kind: "loading" });
+    if (!scope.idempotencyKey) {
+      scope.idempotencyKey = newIdempotencyBatch().complete;
+    }
+    setStateSnapshot({ sessionId, state: { kind: "loading" } });
     const body: CompletePracticeSessionRequest = {
       clientCompletedAt: new Date().toISOString(),
     };
-    attemptsRef.current += 1;
+    scope.attempts += 1;
     const headers: Record<string, string> = {
-      "Idempotency-Key": idempotencyKeyRef.current,
+      "Idempotency-Key": scope.idempotencyKey,
     };
     const promise = client
       .completePracticeSession(sessionId, body, { headers })
       .then((report) => {
+        if (!isCurrentScope()) return report;
         // Success — cache the report so subsequent clicks short-circuit
         // without minting a new key (handoff is one-shot per session).
-        inFlightRef.current = null;
-        idempotencyKeyRef.current = null;
-        successReportRef.current = report;
-        attemptsRef.current = 0;
-        setState({ kind: "success", report });
+        scope.inFlight = null;
+        scope.idempotencyKey = null;
+        scope.successReport = report;
+        scope.attempts = 0;
+        setStateSnapshot({ sessionId, state: { kind: "success", report } });
         return report;
       })
       .catch((err: unknown) => {
-        inFlightRef.current = null;
         const wrapped = err instanceof Error ? err : new Error(String(err));
-        const code = parseHttpStatus(wrapped.message);
-        const retryable = code === null || (code >= 500 && code < 600);
+        if (!isCurrentScope()) throw wrapped;
+        scope.inFlight = null;
+        const code = wrapped instanceof ApiClientError ? wrapped.status : null;
+        const retryable = wrapped instanceof ApiClientError
+          && (wrapped.kind === "transport"
+            || (wrapped.kind === "http"
+              && (wrapped.apiError?.error.retryable === true
+                || (wrapped.apiError === null && code !== null && code >= 500 && code < 600))));
         const fallbackBackToWorkspace =
-          attemptsRef.current >= FAILURE_FALLBACK_THRESHOLD;
+          scope.attempts >= FAILURE_FALLBACK_THRESHOLD;
         // Non-retryable errors (4xx) clear the inflight key so a fresh
         // attempt mints a new id; retryable errors keep the same key.
         if (!retryable) {
-          idempotencyKeyRef.current = null;
+          scope.idempotencyKey = null;
         }
-        setState({
-          kind: "error",
-          message: wrapped.message,
-          code,
-          attempts: attemptsRef.current,
-          retryable,
-          fallbackBackToWorkspace,
+        setStateSnapshot({
+          sessionId,
+          state: {
+            kind: "error",
+            message: wrapped.message,
+            code,
+            attempts: scope.attempts,
+            retryable,
+            fallbackBackToWorkspace,
+          },
         });
         throw wrapped;
       });
-    inFlightRef.current = promise;
+    scope.inFlight = promise;
     return promise;
   }, [client, sessionId]);
 
@@ -136,7 +186,13 @@ export function useCompletePracticeSession(
   );
 }
 
-function parseHttpStatus(message: string): number | null {
-  const m = /^HTTP (\d{3}) /.exec(message);
-  return m ? Number(m[1]) : null;
+function createCompletionScope(sessionId: string): CompletionScope {
+  return {
+    sessionId,
+    active: true,
+    idempotencyKey: null,
+    inFlight: null,
+    successReport: null,
+    attempts: 0,
+  };
 }

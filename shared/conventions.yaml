@@ -50,12 +50,6 @@ errors:
   - code: TARGET_JOB_NOT_FOUND
     message: "target job not found"
     retryable: false
-  - code: TARGET_IMPORT_SOURCE_INVALID
-    message: "target import source is invalid or unreachable per policy"
-    retryable: false
-  - code: TARGET_IMPORT_SOURCE_UNAVAILABLE
-    message: "target import source is temporarily unavailable"
-    retryable: true
   - code: TARGET_INVALID_STATE_TRANSITION
     message: "target job state transition is not allowed"
     retryable: false

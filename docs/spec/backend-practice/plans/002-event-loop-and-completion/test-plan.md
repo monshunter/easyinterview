@@ -1,8 +1,8 @@
 # 002 Conversation Message Loop Test Plan
 
-> **版本**: 2.7
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 2.8
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 ## Phase 1: Store
 - Reserve/replay/mismatch/concurrency/sequence/reply uniqueness and rollback tests.
@@ -49,3 +49,12 @@
 - Service/API tests require failure status to be committed before the error response and `getPracticeSession` to expose user `clientMessageId/replyStatus` while assistant messages omit both.
 - OpenAPI/fixture/generated tests cover pending, retryable-failed, terminal-failed and complete read projections plus typed `ApiClientError` JSON/non-JSON/empty/Abort/transport behavior.
 - Integration/BDD proves AI failure → reload → same-ID retry → one user/assistant pair, with no browser business-storage dependency and no raw-content leakage.
+
+## Phase 11: Lease, generation fence and evidence freshness
+
+- Migration RED/GREEN covers role/status/generation/lease constraints: user generation is positive, exactly pending has a lease, assistant has neither, and every legacy/direct-SQL user fixture supplies a valid generation.
+- Store unit RED/GREEN uses an injected server clock and covers `new → pending(G1,+90s)`, GET expiry to `retryable_failed(G1)`, same-ID expired/retryable takeover to `pending(G2,+90s)`, Fail/Commit lease clearing, unexpired/different-ID conflicts and stale-generation zero-write conflicts.
+- Real PostgreSQL runs exactly the four Phase 11 integration tests with independent connections and a start barrier. Sequential reserve calls do not satisfy the concurrency gate. The stale-worker case must pause G1, expire through GET, reserve G2, release both stale Commit and Fail, then commit G2 and count one assistant reply.
+- Service/API tests prove `Now` reaches GET/reserve consistently, generation is carried only across internal Reserve/Commit/Fail calls, stale conflicts map deterministically, and the public response never includes generation/lease.
+- Scenario contract tests require a shared tracked Practice source-path manifest for P0.044/P0.046, trigger-time/current SHA-256 equality, screenshot SHA-256/dimensions/viewport and the exact Phase 11 markers；they reject FAIL/no-tests/missing paths/stale artifacts.
+- Focused implementation order is migration SQL contract → store unit/domain → real PostgreSQL four-test set → service/API/OpenAPI/codegen/fixture → P0.044/P0.046 serial setup/trigger/verify/cleanup → full regression/docs/diff.

@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { EasyInterviewClient } from "../../../../api/generated/client";
 import type {
   ApiErrorCode,
   FeedbackReport,
 } from "../../../../api/generated/types";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
+import { isValidFeedbackReport } from "../../report/reportContract";
 
 export type ReportGenerationPollState =
   | "idle"
   | "polling"
   | "ready"
   | "failed"
+  | "invalid"
   | "timeout"
   | "error"
   | "paused";
@@ -20,8 +23,8 @@ export interface UseReportGenerationPollOptions {
   /** Fired when the poller observes status='ready'. */
   onReady?: (report: FeedbackReport) => void;
   /**
-   * Fired when the poller observes status='failed' (errorCode from B1
-   * AI_* enum) or HTTP 404 (errorCode = REPORT_NOT_FOUND).
+   * Fired when the poller observes a contract-valid status='failed' response
+   * or HTTP 404 (errorCode = REPORT_NOT_FOUND).
    */
   onFailed?: (errorCode: ApiErrorCode | string) => void;
   /** Exponential backoff start; multiplied by `backoffFactor` per attempt. */
@@ -43,6 +46,17 @@ export interface UseReportGenerationPollResult {
 
 export interface PollScheduler {
   schedule: (ms: number, cb: () => void) => () => void;
+}
+
+interface PollOwner {
+  client: EasyInterviewClient | null;
+  reportId: string;
+}
+
+interface OwnedFeedbackReport {
+  client: EasyInterviewClient;
+  reportId: string;
+  value: FeedbackReport;
 }
 
 const DEFAULT_INITIAL_DELAY_MS = 1500;
@@ -69,7 +83,7 @@ const defaultScheduler: PollScheduler = {
  * Polls `getFeedbackReport(reportId)` until the AI generation either succeeds,
  * fails, or hits max attempts. Surface contract:
  *
- * - State machine: idle → polling ↔ paused / error → ready | failed | timeout.
+ * - State machine: idle → polling ↔ paused / error → ready | failed | invalid | timeout.
  * - Exponential backoff: initial 1.5s × 1.5 capped at 8s; max attempts 49.
  * - Visibility / focus: poller suspends while the tab is hidden and resumes
  *   on visible / focus. Suspension does not consume an attempt.
@@ -105,7 +119,11 @@ export function useReportGenerationPoll(
 
   const [state, setState] = useState<ReportGenerationPollState>(initialState);
   const [attemptCount, setAttemptCount] = useState(0);
-  const [report, setReport] = useState<FeedbackReport | null>(null);
+  const [stateOwner, setStateOwner] = useState<PollOwner>(() => ({
+    client,
+    reportId,
+  }));
+  const [ownedReport, setOwnedReport] = useState<OwnedFeedbackReport | null>(null);
   const [errorCode, setErrorCode] = useState<ApiErrorCode | string | null>(null);
 
   const onReadyRef = useRef(onReady);
@@ -125,13 +143,16 @@ export function useReportGenerationPoll(
     if (!reportId || !client) return;
     resumePlanRef.current = null;
     setAttemptCount(0);
-    setReport(null);
     setErrorCode(null);
     setState("polling");
     runSeqRef.current += 1;
   }, [client, reportId]);
 
   useEffect(() => {
+    setStateOwner({ client, reportId });
+    setAttemptCount(0);
+    setOwnedReport(null);
+    setErrorCode(null);
     if (!reportId) {
       setState("error");
       return;
@@ -143,9 +164,6 @@ export function useReportGenerationPoll(
     // (Re)mount: start fresh.
     resumePlanRef.current = null;
     runSeqRef.current += 1;
-    setAttemptCount(0);
-    setReport(null);
-    setErrorCode(null);
     setState("polling");
   }, [client, reportId]);
 
@@ -192,7 +210,11 @@ export function useReportGenerationPoll(
         .getFeedbackReport(reportId, { signal: controller.signal })
         .then((next) => {
           if (cancelled || runSeqRef.current !== seq) return;
-          setReport(next);
+          if (!isValidFeedbackReport(next, reportId)) {
+            finalize("invalid", "AI_OUTPUT_INVALID");
+            return;
+          }
+          setOwnedReport({ client, reportId, value: next });
           if (next.status === "ready") {
             finalize("ready", null);
             onReadyRef.current?.(next);
@@ -293,11 +315,18 @@ export function useReportGenerationPoll(
     };
   }, [client, reportId]);
 
+  const stateOwnerMatches =
+    stateOwner.client === client && stateOwner.reportId === reportId;
+  const report =
+    ownedReport?.client === client && ownedReport.reportId === reportId
+      ? ownedReport.value
+      : null;
+
   return {
-    state,
-    attemptCount,
+    state: stateOwnerMatches ? state : initialState,
+    attemptCount: stateOwnerMatches ? attemptCount : 0,
     report,
-    errorCode,
+    errorCode: stateOwnerMatches ? errorCode : null,
     retry,
   };
 }

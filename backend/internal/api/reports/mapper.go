@@ -5,6 +5,40 @@ import (
 	reviewdomain "github.com/monshunter/easyinterview/backend/internal/review"
 )
 
+func toAPITargetJobReportsOverview(overview reviewdomain.TargetJobReportsOverviewRecord) api.TargetJobReportsOverview {
+	out := api.TargetJobReportsOverview{
+		TargetJobId: overview.TargetJobID,
+		Rounds:      make([]api.TargetJobReportRoundOverview, 0, len(overview.Rounds)),
+	}
+	for _, round := range overview.Rounds {
+		item := api.TargetJobReportRoundOverview{
+			Round: api.PracticeRoundRef{
+				RoundId:       round.Round.RoundID,
+				RoundSequence: round.Round.RoundSequence,
+			},
+		}
+		if round.CurrentReport != nil {
+			item.CurrentReport = &api.TargetJobCurrentReportSummary{
+				Id:          round.CurrentReport.ID,
+				GeneratedAt: round.CurrentReport.GeneratedAt.UTC().Format(timeFormatRFC3339),
+			}
+		}
+		if round.LatestAttempt != nil {
+			item.LatestAttempt = &api.TargetJobReportAttemptSummary{
+				Id:        round.LatestAttempt.ID,
+				Status:    round.LatestAttempt.Status,
+				CreatedAt: round.LatestAttempt.CreatedAt.UTC().Format(timeFormatRFC3339),
+			}
+			if round.LatestAttempt.ErrorCode != nil {
+				code := api.ApiErrorCode(*round.LatestAttempt.ErrorCode)
+				item.LatestAttempt.ErrorCode = &code
+			}
+		}
+		out.Rounds = append(out.Rounds, item)
+	}
+	return out
+}
+
 func toAPIFeedbackReport(report reviewdomain.FeedbackReportRecord) api.FeedbackReport {
 	out := api.FeedbackReport{
 		Id:                       report.ID,

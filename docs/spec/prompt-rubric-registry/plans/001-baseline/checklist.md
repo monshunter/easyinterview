@@ -1,6 +1,6 @@
 # F3 Baseline Registry, Resolve and Lint Gates Checklist
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
 > **更新日期**: 2026-07-13
 
@@ -75,7 +75,9 @@
 
 ## Phase 12: TargetJob raw-text-only prompt input
 
-- [ ] 12.1 RED: prompt lint/hash、seed drift、registry snapshot 与 TargetJob render tests 要求 JD 内容只来自 `{{jd_text}}`，`{{target_language}}` 仅指定输出语言；旧 source token/wording 存在时失败。
-- [ ] 12.2 GREEN: 删除 current prompt 的 URL/source metadata token 与说明，重算 YAML hash、同步 baseline seed body/hash，并删除 renderer 旧变量替换；不增加 alias 或兼容层。
+- [x] 12.1 RED: prompt lint/hash、seed drift、registry snapshot 与 TargetJob render tests 要求 JD 内容只来自 `{{jd_text}}`，沿用 `{{language}}` 指定输出语言且禁止 `{{target_language}}` alias；旧 source token/wording 存在时失败。
+  <!-- verified: 2026-07-13 method=prompt-contract-red evidence="focused prompt contract failed because current token set still contained jd_source_url; test locks jd_text+language and forbids target_language alias" -->
+- [x] 12.2 GREEN: 删除 current prompt 的 URL/source metadata token 与说明，重算 YAML hash、同步 baseline seed body/hash，并删除 renderer 旧变量替换；不增加 alias 或兼容层。
+  <!-- verified: 2026-07-13 method=prompt-source-green evidence="current prompt token set is exactly jd_text+language; hash 9ab316e... propagated to metadata, seed and resolved snapshot; renderer no longer accepts/replaces jd_source_url" -->
 - [ ] 12.3 REGRESSION-GATE: prompt/profile/migration lints、registry/TargetJob focused tests 与 resolved snapshot parity 通过，渲染结果只含 raw JD text 与目标语言。
 - [ ] 12.4 ZERO-REF/BDD-GATE: active prompt、seed、renderer 与 F3 current docs 旧 source token/wording 零命中；合法历史/显式负测排除。BDD 不适用，以 Red/Green、lint/hash/seed/snapshot 作为替代 gate。

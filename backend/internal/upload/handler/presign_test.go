@@ -88,13 +88,17 @@ func TestCreateUploadPresignRejectsExpiredOrMismatchedIdempotencyKey(t *testing.
 }
 
 func TestCreateUploadPresignPurposeValidation(t *testing.T) {
-	h := newTestHandler(&fakePresignService{})
-	req := newPresignRequest(`{"purpose":"unknown","fileName":"resume.pdf","contentType":"application/pdf","byteSize":128}`)
-	rec := httptest.NewRecorder()
+	for _, purpose := range []string{"unknown", "target_job_attachment"} {
+		t.Run(purpose, func(t *testing.T) {
+			h := newTestHandler(&fakePresignService{})
+			req := newPresignRequest(`{"purpose":"` + purpose + `","fileName":"resume.pdf","contentType":"application/pdf","byteSize":128}`)
+			rec := httptest.NewRecorder()
 
-	h.CreateUploadPresign(rec, req)
+			h.CreateUploadPresign(rec, req)
 
-	assertAPIError(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
+			assertAPIError(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
+		})
+	}
 }
 
 func TestCreateUploadPresignByteSizeLimit(t *testing.T) {
@@ -218,9 +222,8 @@ func newTestHandler(svc uploadhandler.PresignService) *uploadhandler.Handler {
 		},
 		PresignTTL: 10 * time.Minute,
 		MaxBytesByPurpose: map[string]int64{
-			"resume":                2097152,
-			"target_job_attachment": 10485760,
-			"privacy_export":        5242880,
+			"resume":         2097152,
+			"privacy_export": 5242880,
 		},
 	})
 }

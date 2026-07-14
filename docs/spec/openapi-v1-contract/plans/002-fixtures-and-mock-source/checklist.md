@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.16
+> **版本**: 1.18
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -62,18 +62,42 @@
 
 ## Phase 8: OPENAPI-002 paste-only fixtures
 
-- [ ] 8.1 RED: focused fixture/schema tests reject empty/space/tab/newline-only `rawText`, old source wrapper, URL/file/manual-form/title/company/extra request fields, TargetJob `sourceType/sourceUrl` responses and `target_job_attachment`; current positive fixtures fail before migration.
-- [ ] 8.2 GREEN: make `importTargetJob` default/manual-text requests exactly `{rawText,targetLanguage,resumeId}` with non-whitespace text; add canonical `validation-blank-raw-text`=`422/VALIDATION_FAILED/retryable=false/details.field=rawText`, whose negative harness asserts the exact `/rawText` schema violation without skipping request validation; remove URL/file/manual-form positive scenarios and source response fields; preserve 37-operation fixture coverage.
-- [ ] 8.3 GREEN: remove only TargetJob attachment purpose/scenarios from `createUploadPresign`; keep resume/privacy purpose coverage and the generic upload operation.
-- [ ] 8.4 Update prototype data/mapping and run `make sync-fixtures-from-prototype` twice; second run is byte-identical and cannot restore old source fields or import variants.
-- [ ] 8.5 Run `make validate-fixtures`, example rendering and Prism byte parity for import/list/get TargetJob plus upload presign; hand exact markers to mock/frontend/backend owners.
-- [ ] 8.6 BDD/ZERO-REFERENCE-GATE: P0.010/P0.015 consume paste-only states; current positive fixture/prototype/example surfaces contain zero positive/runtime `TargetJobImportSource*|target_job_attachment|sourceType/sourceUrl|url/file/manual_form` import variants. ADR/oracle and exact negative declarations are allowed; whole-file/directory exclusions are forbidden.
+- [x] 8.1 RED: focused fixture/schema tests reject empty/space/tab/newline-only `rawText`, old source wrapper, URL/file/manual-form/title/company/extra request fields, TargetJob `sourceType/sourceUrl` responses and `target_job_attachment`; current positive fixtures fail before migration.
+  <!-- verified: 2026-07-13 method=tdd-red evidence="Focused fixture/schema tests failed on the old positive source variants, source response fields, TargetJob attachment purpose and missing whitespace-only rawText rejection before GREEN." -->
+- [x] 8.2 GREEN: make `importTargetJob` `default` / `paste-primary` requests exactly `{rawText,targetLanguage,resumeId}` with non-whitespace text; add canonical `validation-blank-raw-text`=`422/VALIDATION_FAILED/retryable=false/details.field=rawText`, whose negative harness asserts the exact `/rawText` schema violation without skipping request validation; remove URL/file/manual-form positive scenarios and source response fields; preserve 37-operation fixture coverage.
+  <!-- verified: 2026-07-13 method=fixture-validator evidence="default/paste-primary are exact flattened success bodies; canonical whitespace-only 422 validates its response while failing request only at /rawText; 37 operation fixtures PASS." -->
+- [x] 8.3 GREEN: remove only TargetJob attachment purpose/scenarios from `createUploadPresign`; keep resume/privacy purpose coverage and the generic upload operation.
+  <!-- verified: 2026-07-13 method=fixture+schema evidence="target_job_attachment is rejected; resume/privacy_export remain positive; createUploadPresign remains present and Prism returns the exact 201 default fixture." -->
+- [x] 8.4 Update prototype data/mapping and run `make sync-fixtures-from-prototype` twice; second run is byte-identical and cannot restore old source fields or import variants.
+  <!-- verified: 2026-07-13 method=prototype-sync-twice evidence="Two consecutive syncs populated five prototype fixtures; SHA-256 manifests for all 44 fixture JSON files were identical after run one and run two; TargetJob paste-primary remained canonical." -->
+- [x] 8.5 Run `make validate-fixtures`, example rendering and Prism byte parity for import/list/get TargetJob plus upload presign; hand exact markers to mock/frontend/backend owners.
+  <!-- verified: 2026-07-13 method=validate+render+live-prism evidence="37 fixtures validate; 53 sync/render/validator tests PASS; rendered example sha256=e4ddbd14c5b4...; live Prism import=202, list/get=200 and upload=201 bodies are byte-equal to defaults." -->
+- [x] 8.6 BDD/ZERO-REFERENCE-GATE: P0.010/P0.015 consume paste-only states; current positive fixture/prototype/example surfaces contain zero positive/runtime `TargetJobImportSource*|target_job_attachment|sourceType/sourceUrl|url/file/manual_form` import variants. ADR/oracle and exact negative declarations are allowed; whole-file/directory exclusions are forbidden.
+  <!-- verified: 2026-07-13 method=scenario+semantic-zero-ref evidence="E2E.P0.010/P0.015 PASS; positive fixture/prototype/rendered example surfaces contain no obsolete TargetJob import variants; explicit rejected-payload tests remain." -->
 
 ## Phase 9: Practice message recovery fixtures
 
-- [ ] 9.1 RED: fixture-validator tests reject user messages missing `clientMessageId/replyStatus`, assistant messages containing recovery fields, invalid status, duplicate retry messages and non-typed error bodies.
-- [ ] 9.2 GREEN: `getPracticeSession` provides pending/retryable-failed/terminal-failed/complete projections with stable same user ID; only complete has exactly one assistant reply.
-- [ ] 9.3 FAILURE-MATRIX: `sendPracticeMessage` includes exact validation 422, auth 401, not-found 404, pending-conflict 409, same-ID mismatch 409 and retryable AI-timeout 502 scenarios with locked code/retryable/details markers and reservation expectations.
-- [ ] 9.4 REPLAY-GATE: paired retry-success uses the same `clientMessageId` and text after retryable failure, transitions the existing user projection to complete and creates exactly one assistant; mismatch/terminal cases never retry.
-- [ ] 9.5 PARITY-GATE: validate fixtures, render examples and run Prism byte parity for `getPracticeSession` / `sendPracticeMessage`; mock runtime unknown-scenario behavior stays fail-loudly.
-- [ ] 9.6 BDD-Gate: hand exact markers to mock-contract-suite/001, frontend-workspace-and-practice/002, backend-practice/002 and P0.046; scenario proof covers reload → same-ID retry with no duplicate user/assistant message.
+- [x] 9.1 RED: fixture-validator tests reject user messages missing `clientMessageId/replyStatus`, assistant messages containing recovery fields, invalid status, duplicate retry messages and non-typed error bodies.
+  <!-- verified: 2026-07-13 method=tdd-red evidence="Mutation tests failed for missing/invalid user recovery fields, assistant leakage, duplicate retry rows and malformed error responses before schema/fixture GREEN." -->
+- [x] 9.2 GREEN: `getPracticeSession` provides pending/retryable-failed/terminal-failed/complete projections with stable same user ID; only complete has exactly one assistant reply.
+  <!-- verified: 2026-07-13 method=fixture-validator evidence="Canonical reply-pending/reply-retryable-failed/reply-terminal-failed/reply-complete projections validate with stable client identity; only complete owns one assistant reply." -->
+- [x] 9.3 FAILURE-MATRIX: `sendPracticeMessage` includes exact validation 422, auth 401, not-found 404, pending-conflict 409, same-ID mismatch 409 and retryable AI-timeout 502 scenarios with locked code/retryable/details markers and reservation expectations.
+  <!-- verified: 2026-07-13 method=fixture-matrix evidence="validation-empty-text/auth-unauthorized/session-not-found/reply-pending-conflict/client-message-mismatch/ai-timeout-retryable exact status, code, retryable and details markers validate." -->
+- [x] 9.4 REPLAY-GATE: paired retry-success uses the same `clientMessageId` and text after retryable failure, transitions the existing user projection to complete and creates exactly one assistant; mismatch/terminal cases never retry.
+  <!-- verified: 2026-07-13 method=paired-fixture+store evidence="retry-success-same-client-message reuses exact ID/text and yields one complete user plus one assistant; store gates reject pending/terminal retry and mismatch." -->
+- [x] 9.5 PARITY-GATE: validate fixtures, render examples and run Prism byte parity for `getPracticeSession` / `sendPracticeMessage`; mock runtime unknown-scenario behavior stays fail-loudly.
+  <!-- verified: 2026-07-13 method=validate+render+live-prism evidence="37 fixtures validate; rendered example sha256=e4ddbd14c5b4...; live Prism get/send default bodies are byte-equal; mock transport tests retain fail-loud unknown scenario behavior." -->
+- [x] 9.6 BDD-Gate: hand exact markers to mock-contract-suite/001, frontend-workspace-and-practice/002, backend-practice/002 and P0.046; scenario proof covers reload → same-ID retry with no duplicate user/assistant message.
+  <!-- verified: 2026-07-13 method=scenario-run evidence="P0.046 consumed current get/send recovery fixtures plus API/service/store markers and isolated PostgreSQL readback; retry reused the same ID/text and produced exactly one user/assistant pair." -->
+
+## Phase 10: OPENAPI-004 TargetJob report overview fixtures
+
+- [x] 10.1 RED: validator/prototype tests reject flat full-report pages, missing canonical rounds, nullable-field omission, invalid latest status/errorCode and TargetJob `latestReportId`.
+  <!-- verified: 2026-07-14 method=fixture-prototype-red evidence="make validate-fixtures fails with 8 exact old items/pageInfo versus required targetJobId/rounds errors; focused tests also fail on the absent overview semantic helper, four TargetJob fixtures exposing latestReportId, and prototype sync restoring the old pointer/flat response." -->
+- [x] 10.2 GREEN: fixture matrix covers empty/current/latest-pending/latest-failed/latest-ready/tie-break and fail-closed context cases with minimal closed summaries.
+  <!-- verified: 2026-07-14 method=fixture-schema-semantic-green evidence="Eleven named scenarios cover all-empty, current-ready, prior-ready plus newer queued/generating/failed, latest-ready-is-current, ready tie-break, hidden 404 and invalid/missing frozen-context fail-closed; focused mutation tests and all 37 fixture validation PASS with minimal closed summaries." -->
+- [x] 10.3 GREEN: remove `latestReportId` from every TargetJob fixture and prototype sync; run sync twice with identical tree hash and no replacement pointer.
+  <!-- verified: 2026-07-14 method=prototype-sync-idempotency evidence="Four TargetJob fixtures and the sync renderer contain no latestReportId; 63 fixture/sync/CLI tests PASS, two consecutive sync runs produce identical fixture-tree sha256=d312ca1cb5151bf9b1685317faf43cde8caf2d7a0bf5ed82db17c25991c78192, and current positive surfaces have no replacement pointer." -->
+- [x] 10.4 PARITY-GATE: validate/render/live Prism byte parity passes for list reports and affected TargetJob defaults; mock runtime consumes the same bytes.
+  <!-- verified: 2026-07-14 method=render+live-prism+mock-contract evidence="All 37 fixtures validate; derived OpenAPI sha256=189bc6376f263db1742984e491ae86866dafd47f2469c6c7b394ff777a483e0c; Prism 5.14.2 returned byte-equal defaults for 11 operations including listTargetJobReports plus list/get/import/update/archive TargetJob; smoke contract 4/4 and lint-mock-contract PASS." -->
+- [ ] 10.5 HANDOFF/ZERO-REF: backend-review/frontend-report/P0.059 consume current overview markers；P0.016 proves Parse has no list consumer；positive/runtime fixture/example/prototype surfaces contain no cursor/pageInfo/full report/latest-report-pointer compatibility fields.

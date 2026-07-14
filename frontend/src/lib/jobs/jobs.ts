@@ -5,7 +5,6 @@ export const JOB_TYPE_TARGET_IMPORT = "target_import" as const;
 export const JOB_TYPE_RESUME_PARSE = "resume_parse" as const;
 export const JOB_TYPE_REPORT_GENERATE = "report_generate" as const;
 export const JOB_TYPE_RESUME_TAILOR = "resume_tailor" as const;
-export const JOB_TYPE_SOURCE_REFRESH = "source_refresh" as const;
 export const JOB_TYPE_PRIVACY_EXPORT = "privacy_export" as const;
 export const JOB_TYPE_PRIVACY_DELETE = "privacy_delete" as const;
 export const JOB_TYPE_EMAIL_DISPATCH = "email_dispatch" as const;
@@ -14,13 +13,12 @@ export const ASYNQ_TASK_TARGET_IMPORT = "target.import" as const;
 export const ASYNQ_TASK_RESUME_PARSE = "resume.parse" as const;
 export const ASYNQ_TASK_REPORT_GENERATE = "report.generate" as const;
 export const ASYNQ_TASK_RESUME_TAILOR = "resume.tailor" as const;
-export const ASYNQ_TASK_SOURCE_REFRESH = "source.refresh" as const;
 export const ASYNQ_TASK_PRIVACY_EXPORT = "privacy.export" as const;
 export const ASYNQ_TASK_PRIVACY_DELETE = "privacy.delete" as const;
 export const ASYNQ_TASK_EMAIL_DISPATCH = "email.dispatch" as const;
 
 export const API_FACING_JOB_TYPES = ["target_import", "resume_parse", "report_generate", "resume_tailor", "privacy_export", "privacy_delete"] as const;
-export type JobType = typeof JOB_TYPE_TARGET_IMPORT | typeof JOB_TYPE_RESUME_PARSE | typeof JOB_TYPE_REPORT_GENERATE | typeof JOB_TYPE_RESUME_TAILOR | typeof JOB_TYPE_SOURCE_REFRESH | typeof JOB_TYPE_PRIVACY_EXPORT | typeof JOB_TYPE_PRIVACY_DELETE | typeof JOB_TYPE_EMAIL_DISPATCH;
+export type JobType = typeof JOB_TYPE_TARGET_IMPORT | typeof JOB_TYPE_RESUME_PARSE | typeof JOB_TYPE_REPORT_GENERATE | typeof JOB_TYPE_RESUME_TAILOR | typeof JOB_TYPE_PRIVACY_EXPORT | typeof JOB_TYPE_PRIVACY_DELETE | typeof JOB_TYPE_EMAIL_DISPATCH;
 export const JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB = "trigger_creates_job" as const;
 export const JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY = "source_event_only" as const;
 export type JobTriggerEventSemantic = typeof JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB | typeof JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY;
@@ -29,7 +27,6 @@ export const JOB_TRIGGER_EVENT_SEMANTICS = {
   resume_parse: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
   report_generate: JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY,
   resume_tailor: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
-  source_refresh: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
   privacy_export: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
   privacy_delete: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,
   email_dispatch: JOB_TRIGGER_EVENT_SEMANTIC_TRIGGER_CREATES_JOB,

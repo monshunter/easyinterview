@@ -15,7 +15,6 @@ import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRun
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import importTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/importTargetJob.json";
-import createUploadPresignFixture from "../../../../../openapi/fixtures/Uploads/createUploadPresign.json";
 
 type ListResumesResponse = Awaited<ReturnType<EasyInterviewClient["listResumes"]>>;
 
@@ -30,7 +29,6 @@ function createClient(scenario?: string) {
       getMeFixture,
       listResumesFixture,
       importTargetJobFixture,
-      createUploadPresignFixture,
     ]),
     scenario ? { scenario } : undefined,
   );
@@ -70,17 +68,18 @@ function renderHome(client: EasyInterviewClient, options?: { lang?: Lang }) {
   };
 }
 
-describe("HomeImport — paste (manual_text)", () => {
-  it("calls importTargetJob with manual_text discriminator on Submit", async () => {
-    const client = createClient("manual-text-primary");
+describe("HomeImport — paste-only", () => {
+  it("submits the exact flattened request with trimmed raw text", async () => {
+    const client = createClient("paste-primary");
     const spy = vi.spyOn(client, "importTargetJob");
+    const uploadSpy = vi.spyOn(client, "createUploadPresign");
 
     renderHome(client);
     await selectDefaultResume();
 
     await userEvent.type(
       screen.getByTestId("home-jd-textarea"),
-      "Senior Frontend Engineer needed",
+      "  Senior Frontend Engineer needed  ",
     );
     await userEvent.click(screen.getByTestId("home-jd-submit"));
 
@@ -89,14 +88,12 @@ describe("HomeImport — paste (manual_text)", () => {
     });
 
     const callBody = spy.mock.calls[0]?.[0];
-    expect(callBody).toMatchObject({
-      source: {
-        type: "manual_text",
-        rawText: "Senior Frontend Engineer needed",
-      },
+    expect(callBody).toEqual({
+      rawText: "Senior Frontend Engineer needed",
       resumeId: RESUME_ID,
       targetLanguage: "zh-CN",
     });
+    expect(uploadSpy).not.toHaveBeenCalled();
 
     const callOpts = spy.mock.calls[0]?.[1];
     expect(callOpts?.idempotencyKey).toBeTruthy();
@@ -104,7 +101,7 @@ describe("HomeImport — paste (manual_text)", () => {
   });
 
   it("uses the current English UI locale as targetLanguage", async () => {
-    const client = createClient("manual-text-primary");
+    const client = createClient("paste-primary");
     const spy = vi.spyOn(client, "importTargetJob");
 
     renderHome(client, { lang: "en" });
@@ -125,8 +122,21 @@ describe("HomeImport — paste (manual_text)", () => {
     });
   });
 
-  it("navigates to parse on successful paste import", async () => {
-    const client = createClient("manual-text-primary");
+  it("blocks whitespace-only raw text before dispatch", async () => {
+    const client = createClient("paste-primary");
+    const spy = vi.spyOn(client, "importTargetJob");
+
+    renderHome(client);
+    await selectDefaultResume();
+
+    await userEvent.type(screen.getByTestId("home-jd-textarea"), "   \n  ");
+
+    expect(screen.getByTestId("home-jd-submit")).toBeDisabled();
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("navigates to parse with target and resume identifiers only", async () => {
+    const client = createClient("paste-primary");
     const { navigate } = renderHome(client);
     await selectDefaultResume();
 
@@ -137,129 +147,37 @@ describe("HomeImport — paste (manual_text)", () => {
     await userEvent.click(screen.getByTestId("home-jd-submit"));
 
     await waitFor(() => {
-      expect(navigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "parse",
-          params: expect.objectContaining({
-            targetJobId: "01918fa0-0000-7000-8000-000000002001",
-            source: "paste",
-          }),
-        }),
-      );
+      expect(navigate).toHaveBeenCalledWith({
+        name: "parse",
+        params: {
+          targetJobId: "01918fa0-0000-7000-8000-000000002001",
+          resumeId: RESUME_ID,
+        },
+      });
     });
   });
-});
 
-describe("HomeImport — url import", () => {
-  it("opens URL modal and calls importTargetJob with url discriminator", async () => {
-    const client = createClient("default");
-    const spy = vi.spyOn(client, "importTargetJob");
-
-    renderHome(client);
-    await selectDefaultResume();
-
-    await userEvent.click(screen.getByText("URL"));
-
-    const urlInput = await screen.findByTestId("home-modal-url-input");
-    await userEvent.type(urlInput, "https://acme.example/careers/senior");
-
-    await userEvent.click(screen.getByTestId("home-modal-url-continue"));
-
-    await waitFor(() => {
-      expect(spy).toHaveBeenCalledTimes(1);
-    });
-
-    const callBody = spy.mock.calls[0]?.[0];
-    expect(callBody).toMatchObject({
-      source: {
-        type: "url",
-        url: "https://acme.example/careers/senior",
-      },
-      resumeId: RESUME_ID,
-      targetLanguage: "zh-CN",
-    });
-
-    const callOpts = spy.mock.calls[0]?.[1];
-    expect(callOpts?.idempotencyKey).toBeTruthy();
-  });
-
-  it("navigates to parse on successful url import", async () => {
-    const client = createClient("default");
+  it("renders a user-safe import failure and keeps the paste ready to retry", async () => {
+    const client = createClient("paste-primary");
+    const importError = new Error("HTTP 422: VALIDATION_FAILED");
+    const importSpy = vi
+      .spyOn(client, "importTargetJob")
+      .mockRejectedValue(importError);
     const { navigate } = renderHome(client);
     await selectDefaultResume();
 
-    await userEvent.click(screen.getByText("URL"));
-    const urlInput = await screen.findByTestId("home-modal-url-input");
-    await userEvent.type(urlInput, "https://acme.example/careers/senior");
+    const textarea = screen.getByTestId("home-jd-textarea");
+    await userEvent.type(textarea, "Senior Frontend Engineer needed");
+    await userEvent.click(screen.getByTestId("home-jd-submit"));
 
-    await userEvent.click(screen.getByTestId("home-modal-url-continue"));
-
-    await waitFor(() => {
-      expect(navigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "parse",
-          params: expect.objectContaining({ source: "url" }),
-        }),
-      );
-    });
-  });
-
-  it("shows inline error on 4xx import response", async () => {
-    const client = createClient("url-invalid-source");
-    renderHome(client);
-    await selectDefaultResume();
-
-    await userEvent.click(screen.getByText("URL"));
-    const urlInput = await screen.findByTestId("home-modal-url-input");
-    await userEvent.type(urlInput, "http://192.0.2.1/job");
-    await userEvent.click(screen.getByTestId("home-modal-url-continue"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("home-import-error")).toBeInTheDocument();
-    });
-  });
-});
-
-describe("HomeImport — upload flow", () => {
-  it("calls createUploadPresign then importTargetJob on upload modal confirm", async () => {
-    const client = createClient("default");
-    const presignSpy = vi.spyOn(client, "createUploadPresign");
-    const importSpy = vi.spyOn(client, "importTargetJob");
-
-    renderHome(client);
-    await selectDefaultResume();
-
-    const uploadBtn = screen.getByTestId("home-upload-trigger");
-    await userEvent.click(uploadBtn);
-
-    const continueBtn = await screen.findByTestId("home-modal-upload-continue");
-    await userEvent.click(continueBtn);
-
-    await waitFor(() => {
-      expect(presignSpy).toHaveBeenCalled();
-    });
-
-    const presignBody = presignSpy.mock.calls[0]?.[0];
-    expect(presignBody).toMatchObject({
-      purpose: "target_job_attachment",
-      fileName: "target-job-attachment.pdf",
-      contentType: "application/pdf",
-      byteSize: 0,
-    });
-
-    await waitFor(() => {
-      expect(importSpy).toHaveBeenCalled();
-    });
-
-    const importBody = importSpy.mock.calls[0]?.[0];
-    expect(importBody).toMatchObject({
-      source: {
-        type: "file",
-        fileObjectId: "01918fa0-0000-7000-8000-000000001100",
-      },
-      resumeId: RESUME_ID,
-      targetLanguage: "zh-CN",
-    });
+    expect(await screen.findByTestId("home-import-error")).toHaveTextContent(
+      "暂时无法创建面试规划，请稍后重试。",
+    );
+    expect(screen.queryByText("HTTP 422: VALIDATION_FAILED")).not.toBeInTheDocument();
+    expect(textarea).toHaveValue("Senior Frontend Engineer needed");
+    expect(screen.getByTestId("home-jd-submit")).toBeEnabled();
+    expect(importSpy).toHaveBeenCalledTimes(1);
+    expect(navigate).not.toHaveBeenCalled();
   });
 });
 
@@ -267,7 +185,7 @@ describe("HomeImport — privacy", () => {
   const jdText = "Senior Frontend Engineer needed for design system team";
 
   it("does not log JD raw text to console", async () => {
-    const client = createClient("manual-text-primary");
+    const client = createClient("paste-primary");
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     renderHome(client);
@@ -289,7 +207,7 @@ describe("HomeImport — privacy", () => {
   });
 
   it("does not put JD raw text in localStorage", async () => {
-    const client = createClient("manual-text-primary");
+    const client = createClient("paste-primary");
     const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
 
     renderHome(client);
@@ -311,7 +229,7 @@ describe("HomeImport — privacy", () => {
   });
 
   it("excludes JD raw text from navigation params", async () => {
-    const client = createClient("manual-text-primary");
+    const client = createClient("paste-primary");
     const { navigate } = renderHome(client);
     await selectDefaultResume();
 
@@ -333,16 +251,17 @@ describe("HomeImport — privacy", () => {
   });
 
   it("mockTransport spy does not record request bodies", async () => {
-    const client = createClient("default");
+    const client = createClient("paste-primary");
     const importSpy = vi.spyOn(client, "importTargetJob");
 
     renderHome(client);
     await selectDefaultResume();
 
-    await userEvent.click(screen.getByText("URL"));
-    const urlInput = await screen.findByTestId("home-modal-url-input");
-    await userEvent.type(urlInput, "https://example.com/jd/secret-role");
-    await userEvent.click(screen.getByTestId("home-modal-url-continue"));
+    await userEvent.type(
+      screen.getByTestId("home-jd-textarea"),
+      "Secret principal engineer role",
+    );
+    await userEvent.click(screen.getByTestId("home-jd-submit"));
 
     await waitFor(() => {
       expect(importSpy).toHaveBeenCalled();

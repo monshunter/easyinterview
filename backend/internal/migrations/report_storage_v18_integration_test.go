@@ -72,9 +72,9 @@ insert into resumes (
 	)
 	mustExecIntegration(t, ctx, db, `
 insert into target_jobs (
-  id,user_id,resume_id,status,analysis_status,title,target_language,source_type,
-  raw_jd_text,summary,fit_summary,created_at,updated_at
-) values ($1,$2,$3,'draft','ready','Platform Engineer','en','manual_text','job body','{}'::jsonb,'{}'::jsonb,$4,$4)`,
+	  id,user_id,resume_id,status,analysis_status,title,target_language,
+	  raw_jd_text,summary,fit_summary,created_at,updated_at
+) values ($1,$2,$3,'draft','ready','Platform Engineer','en','job body','{}'::jsonb,'{}'::jsonb,$4,$4)`,
 		targetID, userID, resumeID, now,
 	)
 	mustExecIntegration(t, ctx, db, `

@@ -16,7 +16,7 @@ type SessionResolver func(ctx context.Context) (userID string, ok bool)
 
 type reportService interface {
 	GetFeedbackReport(ctx context.Context, userID, reportID string) (reviewdomain.FeedbackReportRecord, error)
-	ListTargetJobReports(ctx context.Context, in reviewdomain.ListTargetJobReportsRequest) (reviewdomain.PaginatedFeedbackReportRecord, error)
+	ListTargetJobReports(ctx context.Context, in reviewdomain.ListTargetJobReportsRequest) (reviewdomain.TargetJobReportsOverviewRecord, error)
 }
 
 type HandlerOptions struct {
@@ -58,15 +58,21 @@ func writeServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, reviewdomain.ErrReportNotFound):
 		writeAPIError(w, http.StatusNotFound, sharederrors.CodeReportNotFound, "feedback report not found or not accessible", nil)
-	case errors.Is(err, reviewdomain.ErrInvalidCursor):
-		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "cursor is invalid", map[string]any{"field": "cursor"})
 	default:
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "report request failed", nil)
 	}
 }
 
 func writeAPIError(w http.ResponseWriter, status int, code string, message string, details map[string]any) {
+	writeAPIErrorWithRequestID(w, status, code, message, "", details)
+}
+
+func writeAPIErrorWithRequestID(w http.ResponseWriter, status int, code string, message, requestID string, details map[string]any) {
 	setPrivateReportHeaders(w)
+	requestID = strings.TrimSpace(requestID)
+	if requestID != "" {
+		w.Header().Set("X-Request-ID", requestID)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	meta := sharederrors.CodeRegistry[code]
@@ -74,7 +80,7 @@ func writeAPIError(w http.ResponseWriter, status int, code string, message strin
 		Error: api.ApiError{
 			Code:      code,
 			Message:   message,
-			RequestID: "",
+			RequestID: requestID,
 			Retryable: meta.Retryable,
 			Details:   details,
 		},
@@ -85,13 +91,6 @@ func writeAPIError(w http.ResponseWriter, status int, code string, message strin
 func setPrivateReportHeaders(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("Pragma", "no-cache")
-}
-
-func optionalString(value string) *string {
-	if strings.TrimSpace(value) == "" {
-		return nil
-	}
-	return &value
 }
 
 const timeFormatRFC3339 = "2006-01-02T15:04:05Z07:00"

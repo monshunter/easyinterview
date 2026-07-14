@@ -256,10 +256,9 @@ test("E2E.P0.098 completion refreshes Workspace and quick-start posts the backen
   expect(interceptedStartBody).toEqual({ planId: createdPlan.id });
   expect(interceptedStartIdempotencyKey).not.toBe("");
   await expect(page).toHaveURL(/\/practice\?/);
-  await expect(page.getByTestId("practice-screen")).toHaveAttribute(
-    "data-plan-id",
-    createdPlan.id,
-  );
+  await expect(page.getByTestId("practice-screen")).toBeVisible();
+  expect(new URL(page.url()).searchParams.get("planId")).toBe(createdPlan.id);
+  expect(new URL(page.url()).searchParams.get("sessionId")).toBe(INTERCEPTED_SESSION_ID);
 
   const persistedPlan = await getPracticePlan(page, createdPlan.id);
   expect(persistedPlan.roundId).toBe("round-2-technical");

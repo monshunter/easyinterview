@@ -1,8 +1,8 @@
 # Grounded Conversation Report Test Plan
 
-> **版本**: 2.18
-> **状态**: completed
-> **更新日期**: 2026-07-13
+> **版本**: 2.20
+> **状态**: active
+> **更新日期**: 2026-07-14
 
 ## Phase 1-5: Historical baseline
 
@@ -48,3 +48,10 @@
 - P0.058 `database` exact keys are `contextMismatchFailClosed`, `contextTooLargeStatus`, `fourInvalidStatus`, `failedReadyColumnsEmpty`. Its `runtime` exact keys are `contextTooLargeProviderCalls`, `outputRetryProviderCalls`, `fourInvalidProviderCalls`, `firstActionCallCount`, `secondActionInitialAttempt`, `retryStateDestroyedAfterAction`, `actionRetryScheduleSeconds`, `asyncAttemptsAffectProductAttempt`, `attemptFourTerminal`.
 - Exact Go tests own log/DB marker production; the corresponding scenario `verify.sh` is the sole writer of each `backend-evidence.json` artifact after validating the complete marker set.
 - `result=PASS` requires command exit 0, the exact test's `=== RUN` and `--- PASS:`, package `ok`, every required marker and DB case, schema-valid consumed P0.047 owner evidence, and zero `--- FAIL:`, package `FAIL`, `no tests to run`, raw cookie/JD/resume/transcript/prompt/output content. Frontend markers are composed separately and cannot replace backend PASS.
+
+## Phase 10: Canonical-round report overview
+
+- Contract tests reject pagination/full-report fields and assert the closed minimal objects: `round: PracticeRoundRef`, nullable `currentReport{id,generatedAt}` and nullable `latestAttempt{id,status,errorCode,createdAt}`.
+- Store tests enumerate every canonical round in order and exercise empty、prior-ready+newer-failed、generating-only、latest-ready and deterministic tie cases. Assertions lock `currentReport` ordering to `generated_at DESC, created_at DESC, id DESC` and `latestAttempt` ordering to `created_at DESC, id DESC`.
+- Failure/security tests cover hidden 404 plus invalid TargetJob summary、missing/invalid frozen context、row user/target/session mismatch、noncanonical round pair and ready-null-generatedAt. Every invalid case rejects the whole overview, makes no mutable/URL fallback call and leaks no partial identity.
+- Consumer/negative tests prove only target-scoped ReportsScreen uses `listTargetJobReports`; Parse/Report/Generating do not, Report/Generating continue `getFeedbackReport(reportId)`, and active runtime/generated/fixtures contain no paginated full-list or TargetJob latest-report pointer semantics.

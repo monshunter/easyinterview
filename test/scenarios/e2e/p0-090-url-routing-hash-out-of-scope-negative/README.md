@@ -21,17 +21,25 @@ swallow。
 
 ## 2 When
 
-- 启动 App 时浏览器 URL 为 `/#route=home` / `/#route=workspace&...` /
+- 启动 App 时浏览器 URL 为 `/#route=reports&targetJobId=<uuid>&section=reports&reportId=...&status=ready&roundId=...`、
+  `/#route=parse&targetJobId=...&section=reports&reportId=...&status=ready&roundId=...`、
+  `/#route=home` / `/#route=workspace&...` /
   `/#route=practice&mode=phone&...` / `/#route=practice&mode=voice&...` /
   `/#route=voice` /
   `/#route=welcome` 等范围外入口。
 - 启动 App 时浏览器 URL 为 `/totally-unknown?foo=bar` 或 `/voice?mode=voice`。
 - 对 `ROUTE_TO_PATH` 与 `FRONTEND_CANONICAL_PATHS` 做静态 negative grep。
+- 显式调用 `isCanonicalFrontendPath("/reports?targetJobId=<uuid>")` 验证 known
+  `/reports` SPA fallback，同时验证 TopBar 不存在 `topbar-nav-reports`。
 - 调用 `isCanonicalFrontendPath` 验证 `/api/*` / `/openapi/*` / `/health` /
   `/assets/*` / 文件请求被拒绝。
 
 ## 3 Then
 
+- Reports hash 规范化为只含 `targetJobId` 的 `/reports?targetJobId=<uuid>`，
+  chrome 可见但 Reports 不进入 TopBar。
+- Parse hash 中旧 `section=reports` / `reportId` / `status` / `roundId` 全部被过滤，
+  不恢复嵌入式报告区。
 - 每个 hash 启动后 URL 立即被 `replaceState` 重写为 canonical path，
   `location.hash` 为空。
 - Legacy `mode/modality` 参数（包括 `phone` 与 `voice`）全部被过滤，不形成任何电话模式入口。
@@ -43,7 +51,7 @@ swallow。
   全部映射到当前保留 canonical path，并且 `normalizeRouteName` 返回的
   不再是范围外 alias。
 - `ROUTE_TO_PATH` 与 `FRONTEND_CANONICAL_PATHS` 不包含任何范围外 path。
-- SPA fallback 对每个 canonical path 返回 index.html，对 `/api/*` /
+- SPA fallback 对 known `/reports` 与每个 canonical path 返回 index.html，对 `/api/*` /
   `/openapi/*` / `/health` / `/assets/*` / 任意带扩展名文件请求返回
   null（不 swallow）。
 
@@ -58,6 +66,6 @@ swallow。
 
 ## 5 污染控制
 
-场景在 vitest + jsdom 中运行，不写共享数据库；trigger.sh
+场景在 Python source contract + vitest + jsdom 中运行，不写共享数据库；trigger.sh
 仅产生 `.test-output/e2e/p0-090-url-routing-hash-out-of-scope-negative/trigger.log`
 作为验证证据，cleanup.sh 删除 setup marker，保留日志。

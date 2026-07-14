@@ -302,8 +302,28 @@ func toAPIPracticeSession(session domain.SessionRecord) api.PracticeSession {
 }
 
 func toAPIPracticeMessage(message domain.MessageRecord) api.PracticeMessage {
-	return api.PracticeMessage{
-		Id: message.ID, Role: message.Role, Content: message.Content, SeqNo: message.SeqNo,
+	switch message.Role {
+	case "user":
+		return api.NewPracticeMessageFromPracticeUserMessage(toAPIPracticeUserMessage(message))
+	case "assistant":
+		return api.NewPracticeMessageFromPracticeAssistantMessage(toAPIPracticeAssistantMessage(message))
+	default:
+		return api.PracticeMessage{}
+	}
+}
+
+func toAPIPracticeUserMessage(message domain.MessageRecord) api.PracticeUserMessage {
+	return api.PracticeUserMessage{
+		Id: message.ID, Role: "user", Content: message.Content, SeqNo: message.SeqNo,
+		ClientMessageId: message.ClientMessageID,
+		ReplyStatus:     api.PracticeReplyStatus(message.ReplyStatus),
+		CreatedAt:       message.CreatedAt.UTC().Format(timeFormatRFC3339),
+	}
+}
+
+func toAPIPracticeAssistantMessage(message domain.MessageRecord) api.PracticeAssistantMessage {
+	return api.PracticeAssistantMessage{
+		Id: message.ID, Role: "assistant", Content: message.Content, SeqNo: message.SeqNo,
 		CreatedAt: message.CreatedAt.UTC().Format(timeFormatRFC3339),
 	}
 }
@@ -331,6 +351,8 @@ func writeServiceError(w http.ResponseWriter, err error) {
 		case sharederrors.CodePracticeSessionNotFound:
 			status = http.StatusNotFound
 		case sharederrors.CodePracticeSessionConflict:
+			status = http.StatusConflict
+		case sharederrors.CodeIdempotencyKeyMismatch:
 			status = http.StatusConflict
 		case sharederrors.CodeAiProviderTimeout,
 			sharederrors.CodeAiOutputInvalid,

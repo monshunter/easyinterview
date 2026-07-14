@@ -12,7 +12,6 @@ const mockJob: TargetJob = {
   locationText: "San Francisco, CA",
   status: "preparing",
   analysisStatus: "ready",
-  sourceType: "manual_text",
   targetLanguage: "en",
   createdAt: "2026-01-01T00:00:00Z",
   updatedAt: "2026-05-01T00:00:00Z",

@@ -31,7 +31,6 @@ var defaultJobTypePriority = map[jobs.JobType]Priority{
 	jobs.JobTypeTargetImport:   PriorityDefault,
 	jobs.JobTypeResumeParse:    PriorityDefault,
 	jobs.JobTypeResumeTailor:   PriorityDefault,
-	jobs.JobTypeSourceRefresh:  PriorityLow,
 	jobs.JobTypeEmailDispatch:  PriorityLow,
 }
 

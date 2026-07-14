@@ -1,18 +1,26 @@
 # 报告仪表盘目标结构
 
-> **版本**: 1.30
+> **版本**: 1.32
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 目标
 
-报告以整场 conversation 为分析单位，帮助用户理解准备度、能力表现、证据与下一步。页面只展示后端持久化的 grounded direct semantic report，不按题目组织、不展示隐藏数值分，也不由前端推断报告含义。
+报告列表按当前面试规划组织，报告详情以整场 conversation 为分析单位。列表只展示当前 TargetJob canonical rounds 的当前可用报告与最新生成状态；详情帮助用户理解准备度、能力表现、证据与下一步。页面只展示后端持久化事实，不按题目组织、不展示隐藏数值分，也不由前端推断报告含义。
 
 ## 2 页面结构
 
 ```text
+ReportsScreen(targetJobId)
+├─ Back -> Parse current plan detail
+├─ Header / current TargetJob
+├─ loading / empty / error
+└─ Canonical round rows
+   ├─ currentReport -> ReportDashboard(reportId)
+   └─ latestAttempt -> ReportGenerating(reportId) / typed status
+
 ReportDashboard(reportId)
-├─ Back
+├─ Back -> ReportsScreen / Workspace fallback
 ├─ Header
 │  ├─ breadcrumb / title / subtitle
 │  ├─ 复练当前轮
@@ -32,7 +40,15 @@ ReportDashboard(reportId)
    └─ 下一步行动
 ```
 
-当前 UI 真理源是“三项指标 + 四个常驻区块，无 tab”。不得根据旧文档恢复四卡或四 tab。
+ReportsScreen 是规划范围的导航/索引页，不是第二种报告内容形态。ReportDashboard 的 UI 真理源仍是“三项指标 + 四个常驻区块，无 tab”，不得根据旧文档恢复四卡或四 tab。
+
+### 2.1 当前规划报告列表
+
+- 入口位于 Parse 内容区标题行右上角，进入 `/reports?targetJobId=<uuid>`；不加入全局 TopBar。
+- 同时读取 `getTargetJob(targetJobId)` 与 `listTargetJobReports(targetJobId)`。前者提供当前规划与 canonical round display，后者只提供 `currentReport/latestAttempt`；target、round ID/sequence/count/order 任一不一致即整页 fail closed。
+- 每轮只展示当前可用报告和最新生成状态：queued/generating 可进入 Generating，failed 为本地化状态且无同 report Retry，latest ready 与 current 同 ID 时去重；ID 不同时只说明最近一次生成已完成，不展开完整历史版本。
+- loading、empty、network/contract error、跨用户/target mismatch 和 stale response 均有明确状态；target 切换首帧清空旧 rows，其他规划 sentinel 不得出现。
+- Reports Back 返回 `parse?targetJobId=<当前可信 id>`；缺失/非法 target 提供安全返回 workspace，不从其他 query 推断规划。
 
 ## 3 诚实生成态
 
@@ -40,7 +56,7 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 
 - 可以说明系统正在整理上下文、核对证据、形成建议，但不得显示与后端无关的百分比或自动完成阶段。
 - 不得展示固定示例作为“实时观察”。
-- 不得使用“好了通知我”或“稍后从记录查看”：当前没有通知/records 合同。
+- 不得使用“好了通知我”或虚构后台通知。当前 records 合同位于独立 ReportsScreen；Generating 只能在 trusted response 提供 `targetJobId` 时通过 Back 返回该页面，不能自行维护列表。
 - queued/generating 自动继续轮询；timeout/network 可“继续检查”；ready 后进入 report；failed/not found/invalid contract/`REPORT_CONTEXT_TOO_LARGE` 是终态，只能返回，不把重新 GET 伪装成重新生成。超限态说明本次材料与对话过长，并引导返回规划、缩短输入后开启新会话。
 - Report单次`GenerateReport`动作在后端调用内执行initial+最多3次retry与10s/20s/40s等待；动作返回销毁retry context，新动作清零。Runner的`async_jobs.attempts/max_attempts`与outbox/infra的30s/2m/10m/1h/6h都不是产品retry事实。Frontend使用`maxAttempts=49`、初始1.5s、×1.5、cap8s，总约6m04s，覆盖4×60s+10+20+40=5m10s并留约54s。整个queued/generating期间不显示attempt/retry/progress；轮询窗口耗尽只提供“继续检查”，不能显示为服务端failed。当前OpenAPI没有failed-report regenerate operation，不设计或宣称同report Retry入口。
 
@@ -83,10 +99,16 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 - 下一轮未知/末轮/加载失败/重复派生 ID 时 disabled 并提供可访问原因；任一 start 进行中时两枚 CTA 都 disabled。
 - Replay/Next derived 请求只携带 goal + sourceReportId；后端从 source report/plan 投影全部 settings、round 与 focus。Replay 始终允许：有 issue-backed needs-work dimension 时使用服务端 focus，没有可支持 focus 时创建空 focus 的通用同轮复练。`context.hasNextRound=false` 时 Next disabled。
 
-## 6.1 事实源与语言边界
+### 6.1 事实源与语言边界
 
 - `reportId` 是唯一 locator；status/error、target/resume/round label 与 CTA identity 全部来自 `getFeedbackReport.context`。route 中冲突参数必须忽略。
 - UI chrome、enum、固定 CTA/错误文案随 UI locale；LLM summary/dimension/evidence/action label 使用 report language，前端不得翻译或改写。
+
+### 6.2 Back 与报告记录恢复
+
+- Ready Report、pending/queued/generating、API failed terminal state、timeout/network continue-check state若已有 trusted `targetJobId`，Back 导航到 `/reports?targetJobId=<id>`。
+- missing reportId、首读 404/网络失败、invalid payload 且没有可信 TargetJob identity 时，Back 导航到 `workspace`。
+- Report / Generating route 始终只携带 `reportId`；不得把 targetJobId 写入当前 route、从 URL/标题反推 identity，或调用 `listTargetJobReports`。该 operation 的唯一 UI consumer 是 ReportsScreen。
 
 ## 7 可读性与响应式
 
@@ -119,6 +141,7 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 - route status/error/target/resume/round 覆盖 API frozen facts。
 - client translation/rewrite of model summary/dimension/evidence/action labels。
 - user-visible or accessibility-exposed session/report UUID/internal locator。
+- global/cross-target Report Center、完整历史版本列表、Parse/Report/Generating reports-list consumer 或 route-provided targetJobId authority。
 
 ## 10 验收标准
 
@@ -134,11 +157,15 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 | R-8 | reportId-only / conflicting route | 深链刷新/点击 CTA | API frozen status/context 获胜 |
 | R-9 | UI locale != report language | 打开报告 | chrome 本地化，模型语义保持报告原文 |
 | R-10 | ready report has internal IDs | 打开 desktop/mobile 报告 | Context Strip 只显示 target/round/resume；可见 DOM、可访问名称与截图都不暴露 session/report UUID |
+| R-11 | trusted target context / no trusted identity | 从 ready/pending/failed/recoverable generating 点击 Back，或在 missing/first-load failure 点击 Back | 有 trusted target 时进入 `/reports?targetJobId=...`；否则进入 workspace；report/generating route 仍只含 reportId |
+| R-12 | 当前 TargetJob overview populated/empty/loading/error | 直开或刷新 `/reports?targetJobId=...` | 只展示当前规划 canonical rounds 的 current/latest，不展示其他规划或完整历史；mismatch/stale fail closed，desktop/mobile prototype/formal parity 通过 |
 
 ## 11 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.32 | 增加独立 target-scoped ReportsScreen，锁定 current/latest-only、规划隔离、四态与 desktop/mobile parity；Report/Generating trusted Back 改回该列表。 |
+| 2026-07-14 | 1.31 | 将 Report/Generating Back 收敛为 trusted target -> Parse reports anchor、无可信 identity -> Workspace fallback，并禁止顶层报告中心与 route target authority。 |
 | 2026-07-13 | 1.30 | Context Strip 删除 session/report UUID 等内部 locator，只保留 target/round/resume，并要求 desktop/mobile 可见与可访问负向验收。 |
 | 2026-07-13 | 1.29 | Correct report timing ownership to action-local initial+3 with10s/20s/40s; async attempts are infrastructure-only. Keep maxAttempts49/6m04s and no unsupported failed-report regenerate UI. |
 | 2026-07-13 | 1.28 | Lock report use of business10s/20s/40s under durable max4 and frontend maxAttempts49 (~6m04s)；separate business cap80 from infra delivery and expose no internal attempt/progress. |

@@ -8,7 +8,7 @@ LOG="$OUT/trigger.log"
 if test -s "$LOG" \
   && grep -Fq 'E2E.P0.059: Playwright pixel parity complete' "$LOG" \
   && ! grep -Eq -- '--- FAIL:|^FAIL($|[[:space:]])|[[:space:]][1-9][0-9]* failed' "$LOG"; then
-  rm -rf "$OUT" "$ROOT/frontend/.playwright-output"
+  rm -rf "$OUT"
 else
   rm -f "$OUT/setup.env"
 fi

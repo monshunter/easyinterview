@@ -11,7 +11,6 @@ import {
   JOB_TRIGGER_EVENT_SEMANTICS,
   JOB_TYPE_EMAIL_DISPATCH,
   JOB_TYPE_REPORT_GENERATE,
-  JOB_TYPE_SOURCE_REFRESH,
   JOB_TYPE_TARGET_IMPORT,
   EMAIL_DISPATCH_REDACTED_FIELDS,
 } from './jobs';
@@ -35,7 +34,8 @@ describe('generated job contract', () => {
 
   it('keeps internal-only jobs out of the API-facing subset', () => {
     expect(API_FACING_JOB_TYPES).toContain('target_import');
-    expect(API_FACING_JOB_TYPES).not.toContain(JOB_TYPE_SOURCE_REFRESH);
+    expect(API_FACING_JOB_TYPES).not.toContain('source_refresh');
+    expect(JOB_TRIGGER_EVENT_SEMANTICS).not.toHaveProperty('source_refresh');
     expect(API_FACING_JOB_TYPES).not.toContain(JOB_TYPE_EMAIL_DISPATCH);
   });
 

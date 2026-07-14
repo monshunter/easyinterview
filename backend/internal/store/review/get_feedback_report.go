@@ -8,8 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/lib/pq"
+	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
+	practicedomain "github.com/monshunter/easyinterview/backend/internal/practice"
 	reviewdomain "github.com/monshunter/easyinterview/backend/internal/review"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -28,89 +31,225 @@ func (r *Repository) GetFeedbackReport(ctx context.Context, userID, reportID str
 	return report, nil
 }
 
-func (r *Repository) ListTargetJobReports(ctx context.Context, in reviewdomain.ListTargetJobReportsInput) (reviewdomain.ListTargetJobReportsResult, error) {
+func (r *Repository) ListTargetJobReports(ctx context.Context, userID, targetJobID string) (reviewdomain.TargetJobReportsOverviewRecord, error) {
 	if err := r.checkDB(); err != nil {
-		return reviewdomain.ListTargetJobReportsResult{}, err
+		return reviewdomain.TargetJobReportsOverviewRecord{}, err
 	}
-	owned, err := r.targetJobOwnedByUser(ctx, in.TargetJobID, in.UserID)
+	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {
-		return reviewdomain.ListTargetJobReportsResult{}, err
+		return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("begin target job report overview snapshot: %w", err)
 	}
-	if !owned {
-		return reviewdomain.ListTargetJobReportsResult{}, reviewdomain.ErrReportNotFound
-	}
-	pageSize := reviewdomain.EffectiveReportPageSize(in.PageSize)
-	args := []any{in.UserID, in.TargetJobID}
-	query := `
-	select fr.id::text, fr.session_id::text, fr.target_job_id::text, fr.status, fr.error_code, fr.summary, fr.generation_context,
-	       fr.preparedness_level, fr.dimension_assessments, fr.highlights, fr.issues, fr.next_actions,
-	       fr.retry_focus_dimension_codes, fr.prompt_version, fr.rubric_version, fr.model_id,
-	       fr.language, fr.feature_flag, fr.data_source_version, fr.created_at, fr.updated_at
-	from feedback_reports fr
-where fr.user_id = $1 and fr.target_job_id = $2`
-	if strings.TrimSpace(in.Cursor) != "" {
-		if in.CursorCreatedAt.IsZero() || strings.TrimSpace(in.CursorID) == "" {
-			createdAt, id, err := reviewdomain.DecodeCursor(in.Cursor)
-			if err != nil {
-				return reviewdomain.ListTargetJobReportsResult{}, reviewdomain.ErrInvalidCursor
-			}
-			in.CursorCreatedAt = createdAt
-			in.CursorID = id
-		}
-		args = append(args, in.CursorCreatedAt, in.CursorID)
-		query += ` and (fr.created_at, fr.id) < ($3, $4)`
-	}
-	args = append(args, pageSize+1)
-	query += fmt.Sprintf(`
-order by fr.created_at desc, fr.id desc
-limit $%d`, len(args))
+	defer func() { _ = tx.Rollback() }()
 
-	rows, err := r.db.QueryContext(ctx, query, args...)
+	var currentSummaryRaw []byte
+	err = tx.QueryRowContext(ctx, `
+select tj.summary
+from target_jobs tj
+where tj.id = $1 and tj.user_id = $2 and tj.deleted_at is null`, targetJobID, userID).Scan(&currentSummaryRaw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return reviewdomain.TargetJobReportsOverviewRecord{}, reviewdomain.ErrReportNotFound
+	}
 	if err != nil {
-		return reviewdomain.ListTargetJobReportsResult{}, fmt.Errorf("list feedback_reports: %w", err)
+		return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("load target job report overview summary: %w", err)
+	}
+	currentRounds, err := practicedomain.ParseCanonicalReportRounds(currentSummaryRaw)
+	if err != nil {
+		return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("%w: current target job canonical summary: %v", reviewdomain.ErrReportContextInvalid, err)
+	}
+	overview := reviewdomain.TargetJobReportsOverviewRecord{
+		TargetJobID: targetJobID,
+		Rounds:      make([]reviewdomain.TargetJobReportRoundOverviewRecord, len(currentRounds)),
+	}
+	roundIndexes := make(map[reportRoundPair]int, len(currentRounds))
+	for i, round := range currentRounds {
+		overview.Rounds[i].Round = reviewdomain.PracticeRoundRefRecord{RoundID: round.ID, RoundSequence: round.Sequence}
+		roundIndexes[reportRoundPair{ID: round.ID, Sequence: round.Sequence}] = i
+	}
+
+	rows, err := tx.QueryContext(ctx, `
+select fr.id::text, fr.user_id::text, fr.session_id::text, fr.target_job_id::text,
+       ps.user_id::text, ps.target_job_id::text, fr.status, fr.error_code,
+       fr.generation_context, fr.generated_at, fr.created_at
+from feedback_reports fr
+left join practice_sessions ps on ps.id = fr.session_id
+where fr.target_job_id = $1 or ps.target_job_id = $1`, targetJobID)
+	if err != nil {
+		return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("list target job report attempts: %w", err)
 	}
 	defer rows.Close()
 
-	items := make([]reviewdomain.FeedbackReportRecord, 0, pageSize)
+	currentSelections := make([]targetJobCurrentSelection, len(currentRounds))
 	for rows.Next() {
-		item, err := scanFeedbackReport(rows)
+		attempt, err := scanTargetJobReportAttempt(rows)
 		if err != nil {
-			return reviewdomain.ListTargetJobReportsResult{}, err
+			return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("%w: scan report overview attempt: %v", reviewdomain.ErrReportContextInvalid, err)
 		}
-		items = append(items, item)
+		if err := validateTargetJobReportAttemptIdentity(attempt, userID, targetJobID); err != nil {
+			return reviewdomain.TargetJobReportsOverviewRecord{}, err
+		}
+		if len(bytes.TrimSpace(attempt.GenerationContext)) == 0 {
+			return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("%w: report overview attempt", reviewdomain.ErrReportContextMissing)
+		}
+		frozen, err := decodeFrozenReportContext(attempt.GenerationContext)
+		if err != nil {
+			return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("%w: decode frozen report context: %v", reviewdomain.ErrReportContextInvalid, err)
+		}
+		if attempt.SessionID != frozen.Conversation.SessionID || attempt.TargetJobID != frozen.TargetJob.ID {
+			return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("%w: frozen report row identity mismatch", reviewdomain.ErrReportContextInvalid)
+		}
+		roundIndex, ok := roundIndexes[reportRoundPair{ID: frozen.Round.ID, Sequence: frozen.Round.Sequence}]
+		if !ok {
+			return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("%w: frozen report round pair is not current canonical round", reviewdomain.ErrReportContextInvalid)
+		}
+		if err := validateTargetJobReportAttemptState(attempt); err != nil {
+			return reviewdomain.TargetJobReportsOverviewRecord{}, err
+		}
+
+		latest := reviewdomain.TargetJobReportAttemptSummaryRecord{
+			ID: attempt.ID, Status: attempt.Status, CreatedAt: attempt.CreatedAt,
+		}
+		if attempt.Status == sharedtypes.ReportStatusFailed {
+			code := strings.TrimSpace(attempt.ErrorCode.String)
+			latest.ErrorCode = &code
+		}
+		if shouldReplaceLatestAttempt(latest, overview.Rounds[roundIndex].LatestAttempt) {
+			overview.Rounds[roundIndex].LatestAttempt = &latest
+		}
+		if attempt.Status == sharedtypes.ReportStatusReady {
+			candidate := targetJobCurrentSelection{
+				Summary:   reviewdomain.TargetJobCurrentReportSummaryRecord{ID: attempt.ID, GeneratedAt: attempt.GeneratedAt.Time},
+				CreatedAt: attempt.CreatedAt,
+				Present:   true,
+			}
+			if shouldReplaceCurrentReport(candidate, currentSelections[roundIndex]) {
+				currentSelections[roundIndex] = candidate
+				current := candidate.Summary
+				overview.Rounds[roundIndex].CurrentReport = &current
+			}
+		}
 	}
 	if err := rows.Err(); err != nil {
-		return reviewdomain.ListTargetJobReportsResult{}, fmt.Errorf("list feedback_reports rows: %w", err)
+		return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("iterate target job report attempts: %w", err)
 	}
-	hasMore := len(items) > pageSize
-	if hasMore {
-		items = items[:pageSize]
+	if err := rows.Close(); err != nil {
+		return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("close target job report attempts: %w", err)
 	}
-	nextCursor := ""
-	if hasMore && len(items) > 0 {
-		last := items[len(items)-1]
-		nextCursor = reviewdomain.EncodeCursor(last.CreatedAt, last.ID)
+	if err := tx.Commit(); err != nil {
+		return reviewdomain.TargetJobReportsOverviewRecord{}, fmt.Errorf("commit target job report overview snapshot: %w", err)
 	}
-	return reviewdomain.ListTargetJobReportsResult{
-		Items:      items,
-		NextCursor: nextCursor,
-		HasMore:    hasMore,
-		PageSize:   pageSize,
-	}, nil
+	return overview, nil
 }
 
-func (r *Repository) targetJobOwnedByUser(ctx context.Context, targetJobID, userID string) (bool, error) {
-	var owned bool
-	err := r.db.QueryRowContext(ctx, `
-	select exists(
-	  select 1
-	  from target_jobs
-	  where id = $1 and user_id = $2 and deleted_at is null
-	)`, targetJobID, userID).Scan(&owned)
-	if err != nil {
-		return false, fmt.Errorf("check target_jobs ownership: %w", err)
+type reportRoundPair struct {
+	ID       string
+	Sequence int32
+}
+
+type targetJobReportAttempt struct {
+	ID                 string
+	UserID             string
+	SessionID          string
+	TargetJobID        string
+	SessionUserID      sql.NullString
+	SessionTargetJobID sql.NullString
+	Status             sharedtypes.ReportStatus
+	ErrorCode          sql.NullString
+	GenerationContext  []byte
+	GeneratedAt        sql.NullTime
+	CreatedAt          time.Time
+}
+
+func scanTargetJobReportAttempt(row feedbackReportScanner) (targetJobReportAttempt, error) {
+	var attempt targetJobReportAttempt
+	var status string
+	if err := row.Scan(
+		&attempt.ID,
+		&attempt.UserID,
+		&attempt.SessionID,
+		&attempt.TargetJobID,
+		&attempt.SessionUserID,
+		&attempt.SessionTargetJobID,
+		&status,
+		&attempt.ErrorCode,
+		&attempt.GenerationContext,
+		&attempt.GeneratedAt,
+		&attempt.CreatedAt,
+	); err != nil {
+		return targetJobReportAttempt{}, err
 	}
-	return owned, nil
+	attempt.Status = sharedtypes.ReportStatus(status)
+	return attempt, nil
+}
+
+func validateTargetJobReportAttemptIdentity(attempt targetJobReportAttempt, userID, targetJobID string) error {
+	if attempt.UserID != userID || attempt.TargetJobID != targetJobID ||
+		!attempt.SessionUserID.Valid || attempt.SessionUserID.String != userID ||
+		!attempt.SessionTargetJobID.Valid || attempt.SessionTargetJobID.String != targetJobID ||
+		strings.TrimSpace(attempt.SessionID) == "" {
+		return fmt.Errorf("%w: report attempt identity mismatch", reviewdomain.ErrReportContextInvalid)
+	}
+	return nil
+}
+
+func validateTargetJobReportAttemptState(attempt targetJobReportAttempt) error {
+	switch attempt.Status {
+	case sharedtypes.ReportStatusQueued, sharedtypes.ReportStatusGenerating:
+		return nil
+	case sharedtypes.ReportStatusReady:
+		if !attempt.GeneratedAt.Valid {
+			return fmt.Errorf("%w: ready report generated_at is null", reviewdomain.ErrReportContextInvalid)
+		}
+		return nil
+	case sharedtypes.ReportStatusFailed:
+		code := strings.TrimSpace(attempt.ErrorCode.String)
+		if !attempt.ErrorCode.Valid || code == "" {
+			return fmt.Errorf("%w: failed report error code is missing", reviewdomain.ErrReportContextInvalid)
+		}
+		if !isKnownAPIErrorCode(code) {
+			return fmt.Errorf("%w: failed report error code is invalid", reviewdomain.ErrReportContextInvalid)
+		}
+		return nil
+	default:
+		return fmt.Errorf("%w: report status is invalid", reviewdomain.ErrReportContextInvalid)
+	}
+}
+
+func isKnownAPIErrorCode(code string) bool {
+	for _, candidate := range api.AllApiErrorCodes {
+		if string(candidate) == code {
+			return true
+		}
+	}
+	return false
+}
+
+type targetJobCurrentSelection struct {
+	Summary   reviewdomain.TargetJobCurrentReportSummaryRecord
+	CreatedAt time.Time
+	Present   bool
+}
+
+func shouldReplaceCurrentReport(candidate, current targetJobCurrentSelection) bool {
+	if !current.Present {
+		return true
+	}
+	if !candidate.Summary.GeneratedAt.Equal(current.Summary.GeneratedAt) {
+		return candidate.Summary.GeneratedAt.After(current.Summary.GeneratedAt)
+	}
+	if !candidate.CreatedAt.Equal(current.CreatedAt) {
+		return candidate.CreatedAt.After(current.CreatedAt)
+	}
+	return candidate.Summary.ID > current.Summary.ID
+}
+
+func shouldReplaceLatestAttempt(candidate reviewdomain.TargetJobReportAttemptSummaryRecord, current *reviewdomain.TargetJobReportAttemptSummaryRecord) bool {
+	if current == nil {
+		return true
+	}
+	if !candidate.CreatedAt.Equal(current.CreatedAt) {
+		return candidate.CreatedAt.After(current.CreatedAt)
+	}
+	return candidate.ID > current.ID
 }
 
 func (r *Repository) getFeedbackReport(ctx context.Context, userID, reportID string) (reviewdomain.FeedbackReportRecord, error) {

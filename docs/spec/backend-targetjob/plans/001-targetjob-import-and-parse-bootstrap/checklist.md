@@ -1,10 +1,12 @@
 # TargetJob Import and Parse Bootstrap Checklist
 
-> **版本**: 1.25
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 1.28
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
+
+> Phase 0–17 仅保留历史执行证据；其中 URL/file/manual-form/source-refresh 由 Phase 18 supersede，TargetJob latest-report pointer 由 Phase 19 supersede。当前完成判定以 Phase 18-19 与关联 active spec 为准。
 
 ## Phase 0: Owner contract remediation
 
@@ -23,7 +25,7 @@
 
 - [x] 2.1 实现 `importTargetJob` 同步阶段；验证: handler / service tests 覆盖 4 类 source 各自路径、`Idempotency-Key` 必填；`url` / `manual_text` / `file` 新建场景在事务内插入 `target_jobs` + `target_job_sources` + outbox `target.import.requested`（manual_text event `sourceType=text`）+ 派发 `target_import` job，202 响应包含 generated `TargetJobWithJob` + `Job(jobType=target_import,status=queued)`；`manual_form` 同步 ready 并返回 `Job(jobType=target_import,status=succeeded)`，不发 import requested / parsed 事件
 - [x] 2.2 实现 `listTargetJobs`；验证: tests 覆盖 status / analysisStatus / q / cursor / pageSize 过滤与索引使用、cursor base64url 编码 / decode、pageSize clamp 到 [1,100]、跨用户行不返回、软删行不返回、空结果返回 generated `PaginatedTargetJob` 空 envelope
-- [x] 2.3 实现 `getTargetJob`；验证: handler tests 覆盖按 `(user_id, target_job_id)` 读取、requirements 数组按 `display_order` 排序、`summary` / `fitSummary` / `provenance` 字段非空校验、`latestReportId` 可空最新报告指针（无关联报告时为 `null`）、越权 / 软删返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`
+- [x] 2.3 实现 `getTargetJob`；历史验证覆盖按 `(user_id, target_job_id)` 读取、requirements 排序、summary/fit/provenance 与 404 隔离；其中历史报告指针已由 Phase 19 supersede，不是当前正向合同。
 - [x] 2.4 实现 `updateTargetJob`；验证: handler tests 覆盖状态机合法迁移（`draft → preparing → applied → interviewing → offer | rejected → archived` + `archived` 兜底）、非法迁移返回 B1 `TARGET_INVALID_STATE_TRANSITION`、`Idempotency-Key` 跨用户隔离、仅写入非空字段、不修改 analysis_status
 - [x] 2.5 Remediation: 实现 `updateTargetJob` 按 `(user_id, idempotency_key)` 去重；验证: service / store tests 覆盖同一用户同 key 重复 PATCH 不重复执行 mutation、不同用户同 key 不复用记录、重复 key 返回同一 `targetJobId`，且不修改 `analysis_status`
 
@@ -148,9 +150,28 @@
 
 ## Phase 18: Paste-only JD import contract convergence
 
-- [ ] 18.1 RED: contract tests 必须证明旧 request source union、`TargetJob.sourceType/sourceUrl`、JD source 表/列、JD attachment purpose、URL fetch、同步手工表单、JD source refresh 与来源专属错误码当前仍可达；记录具体失败断言。
-- [ ] 18.2 GREEN: `importTargetJob` 只接受 `{rawText,targetLanguage,resumeId}`，空白返回 `VALIDATION_FAILED`；`target_jobs.raw_jd_text` 是唯一 JD 原文事实源，ParseExecutor 无 source fallback，所有有效请求只派发 queued `target_import`。
-- [ ] 18.3 GREEN: 删除 TargetJob URL/file/manual-form 分支、来源 response/event/metric 字段、来源表/列、JD attachment purpose、URL fetcher、JD source refresh job/event/handler/registration、来源专属错误码、`jd_source_url` prompt/config/seed 派生物；保留 resume/privacy upload 与独立 `source_records`。
-- [ ] 18.4 BDD-Gate: 修订并运行 `E2E.P0.010` direct rawText success/idempotency/ready 与 `E2E.P0.012` AI failure/recovery；删除 `E2E.P0.011` / `E2E.P0.013` 场景目录和 INDEX 行。
-- [ ] 18.5 Zero-ref: 对 production/OpenAPI/shared/config/migrations/prompts/generated/fixtures/scripts 运行精确负向搜索并通过；另以正向测试确认 `purpose=resume`、`privacy_export`、file_objects privacy cleanup 与独立 `source_records` 保持可用。
-- [ ] 18.6 运行 focused/full backend、codegen/check、fixture/event/migration/config/prompt、context/docs/diff gates，记录 RED/GREEN 与 BDD 证据后再恢复 completed。
+- [x] 18.1 RED: contract tests 必须证明旧 request source union、`TargetJob.sourceType/sourceUrl`、JD source 表/列、JD attachment purpose、URL fetch、同步手工表单、JD source refresh 与来源专属错误码当前仍可达；记录具体失败断言。
+  <!-- verified: 2026-07-13 evidence="OpenAPI/schema/event/migration/config and backend compile RED exposed source union/response fields, target_job_sources columns/table, target_job_attachment, urlfetch/source_refresh branches and removed source-specific error codes before GREEN edits." -->
+- [x] 18.2 GREEN: `importTargetJob` 只接受 `{rawText,targetLanguage,resumeId}`，空白返回 `VALIDATION_FAILED`；`target_jobs.raw_jd_text` 是唯一 JD 原文事实源，ParseExecutor 无 source fallback，所有有效请求只派发 queued `target_import`。
+  <!-- verified: 2026-07-13 evidence="Handler rejects removed source wrapper before Store; blank rawText returns HTTP 422; service/store tests prove trimmed raw_jd_text, resume ownership, user-scoped idempotency, exact source-free event/job payload and queued-only import; ParseExecutor reads only RawJDText; full targetjob package PASS." -->
+- [x] 18.3 GREEN: 删除 TargetJob URL/file/manual-form 分支、来源 response/event/metric 字段、来源表/列、JD attachment purpose、URL fetcher、JD source refresh job/event/handler/registration、来源专属错误码、`jd_source_url` prompt/config/seed 派生物；保留 resume/privacy upload 与独立 `source_records`。
+  <!-- verified: 2026-07-13 method=contract+runtime+prompt evidence="URL/file/manual-form/source response/event/metric/persistence/config branches and source-specific errors are removed; urlfetch directory is absent; target.import.parse token set is exactly jd_text+language with hash 9ab316e...; resume/privacy upload and source_records gates remain positive." -->
+- [x] 18.4 BDD-Gate: 修订并运行 `E2E.P0.010` direct rawText success/idempotency/ready 与 `E2E.P0.012` AI failure/recovery；删除 `E2E.P0.011` / `E2E.P0.013` 场景目录和 INDEX 行。
+  <!-- verified: 2026-07-13 method=scenario-run evidence="E2E.P0.010 and E2E.P0.012 setup/trigger/verify/cleanup PASS against the current host-run stack; P0.011/P0.013 directories and active INDEX entries are deleted." -->
+- [x] 18.5 Zero-ref: 对 production/OpenAPI/shared/config/migrations/prompts/generated/fixtures/scripts 运行精确负向搜索并通过；另以正向测试确认 `purpose=resume`、`privacy_export`、file_objects privacy cleanup 与独立 `source_records` 保持可用。
+  <!-- verified: 2026-07-13 method=scoped-negative+positive-contract evidence="Current runtime/schema/fixture/prompt scans have zero obsolete TargetJob source branches; SQL inventory contains no removed source columns; upload register/privacy tests and migration probes preserve resume, privacy_export, file cleanup and independent source_records." -->
+- [x] 18.6 HISTORICAL-SUPERSEDED: 上一轮最终汇总 gate 不作为 Phase 19 重开后的当前完成证据；当前 focused/full、zero-ref 与生命周期恢复仅由 19.5 承接。
+  <!-- superseded: 2026-07-14 decision="用户批准方案 A；不在已演进的 OpenAPI/数据库契约上伪跑前置汇总，也不复用历史 PASS。" current-owner="19.5" -->
+
+## Phase 19: Remove TargetJob latest-report pointer
+
+- [x] 19.1 RED: OpenAPI/generated/fixture、TargetJob store 与 baseline SQL tests 至少各暴露一个仍可达的 report pointer，并在 GREEN 前失败。
+  <!-- verified: 2026-07-14 method=tdd-red evidence="The baseline contract failed on latest_report_id; backend compilation failed where service still projected the field removed from generated TargetJob; frontend typecheck failed on the stale typed fixture. Current OpenAPI/generated/fixture negative contracts remained green and were not reverted." -->
+- [x] 19.2 GREEN: 原地删除 public field、DB column、scan/insert/update、codegen 与 fixture 引用；不增加兼容字段、trigger 或 replacement pointer。
+  <!-- verified: 2026-07-14 method=focused-go+vitest evidence="Baseline column, TargetJob record/SELECT/scan/service/sqlmock projections and the stale frontend fixture were removed in place. Migration focused, full TargetJob package and real-API fixture tests pass with no replacement pointer." -->
+- [x] 19.3 REGRESSION-GATE: TargetJob Get/List canonical rounds、practice progress、resume binding、archive/isolation 与 real PostgreSQL tests 通过。
+  <!-- verified: 2026-07-14 method=focused+real-postgres evidence="Full targetjob package passes with canonical Get/List progress, archive/isolation, resume binding and paste-only real PostgreSQL coverage after the clean environment rebuild." -->
+- [x] 19.4 HANDOFF-GATE: backend-review `listTargetJobReports` 成为 current ready/latest attempt 唯一 API owner，frontend-report-dashboard ReportsScreen / P0.059 消费 overview；Parse/P0.016 不再消费列表，本 Phase 不复制 report selection logic。
+  <!-- verified: 2026-07-14 method=consumer-negative+P0.016+P0.059 evidence="ReportsScreen is the sole frontend listTargetJobReports consumer; backend-review owns selection; Parse makes zero list requests and P0.016/P0.059 pass." -->
+- [x] 19.5 ZERO-REF: production/generated/OpenAPI/fixtures/migrations 中旧字段/列精确零命中，历史/负向审计之外无正向表述。
+  <!-- verified: 2026-07-14 decision="用户批准方案 A" method=aggregate-current-gates evidence="Current migration, OpenAPI, 37 fixtures, isolated-index codegen drift, full backend/frontend, context, docs, diff and active-surface negative gates pass; 18.6 remains historical-superseded." -->

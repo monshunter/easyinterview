@@ -5,7 +5,11 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 
 import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
-import { PRIMARY_NAV_ROUTES } from "../routes";
+import {
+  CONTEXT_ROUTES,
+  isChromeHidden,
+  PRIMARY_NAV_ROUTES,
+} from "../routes";
 
 import { TopBar } from "./TopBar";
 
@@ -34,6 +38,10 @@ describe("TopBar primary nav", () => {
     for (const name of PRIMARY_NAV_ROUTES) {
       expect(screen.getByTestId(`topbar-nav-${name}`)).toBeInTheDocument();
     }
+    expect(PRIMARY_NAV_ROUTES).not.toContain("reports");
+    expect(screen.queryByTestId("topbar-nav-reports")).not.toBeInTheDocument();
+    expect(CONTEXT_ROUTES).toContain("reports");
+    expect(isChromeHidden("reports")).toBe(false);
   });
 
   it("renders the resume nav label from the ui-design TopBar copy", () => {

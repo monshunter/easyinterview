@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "D-35",
+  "authority": {
+    "specDecision": "D-35",
+    "historyVersion": "1.54",
+    "productDecision": "方案 A"
+  },
+  "invariants": {
+    "inventory": {
+      "operations": 37,
+      "tags": 10
+    },
+    "getPracticeSession": {
+      "method": "GET",
+      "path": "/api/v1/practice/sessions/{sessionId}",
+      "operationId": "getPracticeSession",
+      "successStatus": 200,
+      "response": "PracticeSession"
+    },
+    "sendPracticeMessage": {
+      "method": "POST",
+      "path": "/api/v1/practice/sessions/{sessionId}/messages",
+      "operationId": "sendPracticeMessage",
+      "successStatus": 200,
+      "response": "SendPracticeMessageResponse"
+    },
+    "retryEndpoint": "forbidden"
+  },
+  "comparison": {
+    "mode": "exact-set",
+    "keyFields": [
+      "severity",
+      "path",
+      "kind",
+      "before",
+      "after"
+    ],
+    "orderSignificant": false,
+    "missingFinding": "fail",
+    "unexpectedFinding": "fail"
+  },
+  "findings": [
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PracticeMessage/oneOf",
+      "kind": "role_discriminated_union_added",
+      "before": "absent",
+      "after": "user=PracticeUserMessage,assistant=PracticeAssistantMessage;discriminator=role"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PracticeUserMessage/properties/clientMessageId",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "string"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PracticeUserMessage/properties/replyStatus",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "PracticeReplyStatus"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PracticeUserMessage/required",
+      "kind": "required_set_changed",
+      "before": "id,seqNo,role,content,createdAt",
+      "after": "id,seqNo,role,content,createdAt,clientMessageId,replyStatus"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PracticeUserMessage/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PracticeAssistantMessage/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/SendPracticeMessageResponse/properties/userMessage",
+      "kind": "ref_changed",
+      "before": "PracticeMessage",
+      "after": "PracticeUserMessage"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/SendPracticeMessageResponse/properties/assistantMessage",
+      "kind": "ref_changed",
+      "before": "PracticeMessage",
+      "after": "PracticeAssistantMessage"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/PracticeReplyStatus",
+      "kind": "schema_added",
+      "before": "absent",
+      "after": "enum(pending,retryable_failed,terminal_failed,complete)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/PracticeUserMessage",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "id,seqNo,role,content,createdAt,clientMessageId,replyStatus"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/PracticeAssistantMessage",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "id,seqNo,role,content,createdAt"
+    }
+  ]
+}

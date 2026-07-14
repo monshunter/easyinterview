@@ -1,8 +1,8 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 3.0
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 3.2
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -53,7 +53,22 @@
 
 ## Phase 9: User-visible internal locator removal
 
-- [ ] 9.1 RED-GREEN: prototype source/contract removes session/report UUID from Context Strip and preserves target/round/resume layout at desktop/mobile.
-- [ ] 9.2 RED-GREEN: formal `ReportContextStrip` removes distinct report/session sentinel UUIDs from text/title/tooltip/aria/accessibility DOM while OpenAPI/report contract UUID validation and CTA `sourceReportId` authority stay green.
-- [ ] 9.3 REGRESSION-GATE: delete orphan `report.context.session` zh/en keys；update P0.059 README/INDEX C-12 metadata；focused Report/i18n tests, UI source contracts, active negative, full frontend and typecheck/build pass.
-- [ ] 9.4 BDD-Gate: `E2E.P0.059` passes refreshed 1440/390 DOM/style/bbox/viewport/pixel parity under normal PASS cleanup；then `/agent-browser` captures the same real ready report from formal frontend as exact 1440x1200 / 390x844 `fullPage: true` files under `.test-output/acceptance/report-context-strip/<run-id>/`. The directory contains only the two fixed PNG names plus `manifest.json`, whose per-image path/SHA-256/state/viewport/fullPage/report+session sentinel absence and linked DOM/a11y audit all validate.
+- [x] 9.1 RED-GREEN: prototype source/contract removes session/report UUID from Context Strip and preserves target/round/resume layout at desktop/mobile.
+- [x] 9.2 RED-GREEN: formal `ReportContextStrip` removes distinct report/session sentinel UUIDs from text/title/tooltip/aria/accessibility DOM while OpenAPI/report contract UUID validation and CTA `sourceReportId` authority stay green.
+- [x] 9.3 REGRESSION-GATE: delete orphan `report.context.session` zh/en keys；update P0.059 README/INDEX C-12 metadata；focused Report/i18n tests, UI source contracts, active negative, full frontend and typecheck/build pass.
+  <!-- verified: 2026-07-14 method=focused+full evidence="Report/i18n and Context Strip negatives pass; UI 62/62, frontend 121 files/977 tests, typecheck/build and refreshed P0.059 metadata are green." -->
+- [x] 9.4 BDD-Gate: `E2E.P0.059` passes refreshed 1440/390 DOM/style/bbox/viewport/pixel parity under normal PASS cleanup；then `/agent-browser` captures the same real ready report from formal frontend as exact 1440x1200 / 390x844 `fullPage: true` files under `.test-output/acceptance/report-context-strip/<run-id>/`. The directory contains only the two fixed PNG names plus `manifest.json`, whose per-image path/SHA-256/state/viewport/fullPage/report+session sentinel absence and linked DOM/a11y audit all validate.
+  <!-- verified: 2026-07-14 scenario=E2E.P0.059 evidence="P0.059 passes 16/16 Playwright with max changedRatio 0.000060; acceptance directory 20260714-final contains exactly two PNGs plus manifest and recomputed SHA-256/state/viewport/fullPage/sentinel audits pass." -->
+
+## Phase 10: Independent current-plan reports list and Back recovery
+
+- [x] 10.1 RED-GREEN: prototype/formal 新增保留 App chrome 但不进入 TopBar 的 ReportsScreen；`/reports?targetJobId=...` 组合 `getTargetJob + listTargetJobReports`，覆盖 loading/empty/error/ready 与 1440/390 source parity。
+  <!-- verified: 2026-07-14 method=ui-contract+focused+pixel-parity evidence="UI 62/62, ReportsScreen 15/15 and P0.059 16/16 pass for ready/loading/empty/error and exact current-target rendering without a TopBar entry." -->
+- [x] 10.2 RED-GREEN: validator 精确闭合 response target、2~5 canonical round IDs/sequences/order/display、report locator 单轮唯一归属、same-ID-only-ready 与 current/latest cross-field nullability；A/B 规划隔离、跨用户/mismatch/extra/missing/unknown round、target switch 首帧清旧 rows 与 stale response fence 均 fail closed。
+  <!-- verified: 2026-07-14 method=focused-vitest evidence="TargetJob reports validator 40/40 + ReportsScreen 15/15 pass; negative cases cover cross-round locator reuse, same-ID non-ready, latest-ready without current, current without latest, canonical identity, A/B isolation, switch clearing and stale fences." -->
+- [x] 10.3 RED-GREEN: 每轮只展示 current report 与 latest attempt；ready/current links、queued/generating link、failed typed no-Retry、same-ID de-dup、different-ID latest-ready status 均正确，且没有完整历史列表或其他规划 sentinel。
+  <!-- verified: 2026-07-14 method=focused-vitest evidence="ReportsScreen 15-test matrix proves current/latest-only rendering, queued/generating links, typed failed no-Retry, same-ID de-dup, different ready status without a history action, and no foreign-plan sentinel." -->
+- [x] 10.4 RED-GREEN + BDD-Gate: Reports Back 精确回当前 `parse?targetJobId=...`；Report/Generating ready/pending/failed/recoverable/normal-generating 有 trusted target 时回 `/reports?targetJobId=...`，无可信 identity 回 workspace。P0.058/P0.059 覆盖该矩阵；report/generating route 保持 reportId-only。
+  <!-- verified: 2026-07-14 method=focused+P0.058+P0.059 evidence="Trusted target returns to Reports, missing/invalid/404/network-first-load falls back by replace to workspace without loops; report/generating URLs remain reportId-only." -->
+- [x] 10.5 POST-PASS: focused Reports/Report/Generating/route/i18n tests、UI source contract、typecheck/build、P0.058/P0.059、owner contexts、docs/diff，以及“Parse/Report/Generating 零 list consumer、ReportsScreen 唯一 consumer、TopBar 无入口、无 `section=reports`”负向 gate 全部通过后完成 Phase 10。
+  <!-- reverified: 2026-07-14 method=current-aggregate evidence="Root make test passed UI 62/62, Python 590 tests/5181 subtests, all Go packages and frontend 121 files/977 tests. Current P0.059 passed 10 focused Vitest files/137 tests, production build and 16 desktop/mobile Playwright parity tests; verify/cleanup, context, docs/diff and all scoped consumer/route/TopBar negatives pass." -->

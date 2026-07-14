@@ -94,13 +94,14 @@ type goEnumValueView struct {
 }
 
 type goSchemaView struct {
-	Kind        string // "enum" | "object" | "alias" | "any"
+	Kind        string // "enum" | "object" | "alias" | "union" | "any"
 	Name        string
 	PluralName  string
 	Comment     string
 	EnumValues  []goEnumValueView
 	Fields      []goFieldView
 	AliasTarget string
+	Union       *goUnionView
 }
 
 type goFieldView struct {
@@ -110,6 +111,26 @@ type goFieldView struct {
 	YAMLTag   string
 	OmitEmpty bool
 	Comment   string
+}
+
+type goUnionView struct {
+	DiscriminatorGoName   string
+	DiscriminatorJSONName string
+	Variants              []goUnionVariantView
+}
+
+type goUnionVariantView struct {
+	GoType                string
+	PrivateFieldName      string
+	DiscriminatorValue    string
+	RequiredFieldsLiteral string
+	EnumValidations       []goUnionEnumValidationView
+}
+
+type goUnionEnumValidationView struct {
+	GoFieldName string
+	JSONName    string
+	ConstNames  []string
 }
 
 // b1OwnedSchemas lists the openapi schema names whose Go representation is
@@ -154,7 +175,7 @@ func buildGoTypesData(doc *OpenAPI, conv *Conventions) (*goTypesData, error) {
 		if !ok {
 			continue
 		}
-		view, err := classifyGoSchema(name, raw)
+		view, err := classifyGoSchema(name, raw, schemas)
 		if err != nil {
 			return nil, err
 		}
@@ -173,8 +194,61 @@ func buildGoTypesData(doc *OpenAPI, conv *Conventions) (*goTypesData, error) {
 // handle object / string-enum / array / oneOf-nullable / allOf / $ref / primitive
 // patterns; everything else collapses to a `any` alias to keep generation
 // deterministic.
-func classifyGoSchema(name string, raw map[string]any) (goSchemaView, error) {
+func classifyGoSchema(name string, raw map[string]any, schemas map[string]any) (goSchemaView, error) {
 	view := goSchemaView{Name: name, PluralName: pluralize(name)}
+
+	if discriminator, variants, ok := closedDiscriminatedUnion(raw); ok {
+		view.Kind = "union"
+		view.Union = &goUnionView{
+			DiscriminatorGoName:   exportedGoName(discriminator),
+			DiscriminatorJSONName: discriminator,
+		}
+		for _, variant := range variants {
+			rawVariant, ok := schemas[variant.SchemaName].(map[string]any)
+			if !ok {
+				return view, fmt.Errorf("union %s references missing object schema %s", name, variant.SchemaName)
+			}
+			required := stringSlice(rawVariant["required"])
+			quotedRequired := make([]string, len(required))
+			for i, field := range required {
+				quotedRequired[i] = fmt.Sprintf("%q", field)
+			}
+			unionVariant := goUnionVariantView{
+				GoType:                variant.SchemaName,
+				PrivateFieldName:      lowerCamel(variant.SchemaName),
+				DiscriminatorValue:    variant.DiscriminatorValue,
+				RequiredFieldsLiteral: strings.Join(quotedRequired, ", "),
+			}
+			properties, _ := rawVariant["properties"].(map[string]any)
+			for jsonName, rawProperty := range properties {
+				property, _ := rawProperty.(map[string]any)
+				ref, _ := property["$ref"].(string)
+				enumName := extractRefName(ref)
+				rawEnum, _ := schemas[enumName].(map[string]any)
+				values, ok := rawEnum["enum"].([]any)
+				if enumName == "" || !ok || len(values) == 0 {
+					continue
+				}
+				validation := goUnionEnumValidationView{
+					GoFieldName: exportedGoName(jsonName),
+					JSONName:    jsonName,
+				}
+				for _, rawValue := range values {
+					value, ok := rawValue.(string)
+					if !ok {
+						continue
+					}
+					validation.ConstNames = append(validation.ConstNames, enumName+camelize(value))
+				}
+				unionVariant.EnumValidations = append(unionVariant.EnumValidations, validation)
+			}
+			sort.Slice(unionVariant.EnumValidations, func(i, j int) bool {
+				return unionVariant.EnumValidations[i].JSONName < unionVariant.EnumValidations[j].JSONName
+			})
+			view.Union.Variants = append(view.Union.Variants, unionVariant)
+		}
+		return view, nil
+	}
 
 	// String + enum → typed string + const block.
 	if t, _ := raw["type"].(string); t == "string" {
@@ -223,6 +297,17 @@ func classifyGoSchema(name string, raw map[string]any) (goSchemaView, error) {
 
 	view.Kind = "any"
 	return view, nil
+}
+
+func stringSlice(raw any) []string {
+	values, _ := raw.([]any)
+	out := make([]string, 0, len(values))
+	for _, rawValue := range values {
+		if value, ok := rawValue.(string); ok {
+			out = append(out, value)
+		}
+	}
+	return out
 }
 
 func isPaginatedEnvelopeAllOf(al []any) bool {

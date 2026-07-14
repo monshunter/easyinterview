@@ -1,3 +1,3 @@
 # Expected outcome
 
-Failures preserve retryability; empty resume context makes zero AI calls and persists no assistant reply; replay is exact, and no duplicate user or assistant message is persisted.
+Retryable failures preserve exactly one candidate row and expose one same-ID row-local retry. Exact lease expiry advances one generation once, stale workers write nothing, and both concurrent same/different-ID reservation races have one winner. A 95-second frontend timeout reconciles the same ID in both stale-read orders and remains fail-locked on missing/read failure. Terminal truth exposes no retry or duplicate ErrorState and routes only to `parse(targetJobId)`. Desktop 1440 and mobile 390 screenshots retain current source SHA-256, per-PNG SHA-256, dimensions, viewport, and DPR evidence.

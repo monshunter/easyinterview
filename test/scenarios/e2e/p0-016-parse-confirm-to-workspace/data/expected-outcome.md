@@ -1,15 +1,9 @@
 # Expected Outcome
 
-- `targetJob.realApiMode.test.ts` proves TargetJob read/update/import-path operations route to the real backend base URL with cookie credentials and side-effect `Idempotency-Key`.
-- `ParseScreen.test.tsx`, `ParseEdit.test.tsx`, `ParseAuthGate.test.tsx`, `ParseResumeBinding.test.tsx`, `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, and `navigation/interviewContext.test.ts` run and report passed tests.
-- Parse success detail renders Basic fields as readonly text; notes/edit inputs are absent.
-- Requirement evidence, hidden signals, round assumptions, and bound resume display have no edit/toggle/remove/picker controls.
-- Parse round cards and Home recent round rails display saved 2~5 item `TargetJob.summary.interviewRounds[]` count, type/name, duration, and focus instead of static round/default rail labels.
-- Playwright readonly detail acceptance attaches a screenshot and logs `E2E.P0.016 ... screenshotBytes=`.
-- Shared navigation context derives `roundId` / `roundName` from the TargetJob round-assumption mapper and does not emit the out-of-scope `Technical Round 1` string.
-- Parse preview inherits the saved TargetJob `resumeId`; route-only `resumeId` is ignored when TargetJob lacks a saved binding.
-- Parse disables Start when no saved bound resume is available, without offering in-place binding.
-- Browser-level readonly detail exposes only Start as the success footer action and makes no `updateTargetJob` request.
-- Browser-level Start reaches `/practice` with real ready `resumeId`, `targetJobId`, `planId`, and `sessionId`.
-- Unauthenticated users without a verified saved resume cannot trigger Start pendingAction.
-- Trigger log contains no success markers for `resume-unbound`, `workspace-missing-resume`, or workspace auto-start.
+- Parse displays one `parse-reports-entry` in the plan-detail content header and reaches `/reports?targetJobId=<uuid>`.
+- Parse does not call `listTargetJobReports`, does not embed `parse-reports` / round rows, and does not accept `section=reports`.
+- Formal TopBar and prototype TopBar each keep exactly three primary entries and contain no report navigation item.
+- Formal/prototype entry text, computed styles, absolute bounding boxes and screenshots match at 1440x900 and 390x844 within changed-pixel ratio ≤0.5%.
+- The readonly detail continues to show saved backend rounds and the bound resume without edit/picker controls.
+- Start still reaches `/practice` with trusted target/resume/plan/session context and makes no `updateTargetJob` request.
+- Source, Vitest, frontend build and six focused Playwright project cases all report PASS with no no-test/failure marker.

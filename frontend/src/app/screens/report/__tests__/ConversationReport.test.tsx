@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { EasyInterviewClient } from "../../../../api/generated/client";
@@ -7,11 +7,12 @@ import type { FeedbackReport } from "../../../../api/generated/types";
 import { App } from "../../../App";
 
 const REPORT_ID = "01918fa0-0000-7000-8000-000000007000";
+const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
 
 function report(overrides: Partial<FeedbackReport> = {}): FeedbackReport {
   return {
     id: REPORT_ID,
-    sessionId: "01918fa0-0000-7000-8000-000000005000",
+    sessionId: SESSION_ID,
     targetJobId: "01918fa0-0000-7000-8000-000000002000",
     status: "ready",
     errorCode: null,
@@ -59,6 +60,22 @@ function report(overrides: Partial<FeedbackReport> = {}): FeedbackReport {
   };
 }
 
+function failedReport(overrides: Partial<FeedbackReport> = {}): FeedbackReport {
+  return report({
+    status: "failed",
+    errorCode: "AI_PROVIDER_TIMEOUT",
+    summary: null,
+    preparednessLevel: null,
+    dimensionAssessments: [],
+    highlights: [],
+    issues: [],
+    nextActions: [],
+    retryFocusDimensionCodes: [],
+    provenance: null,
+    ...overrides,
+  });
+}
+
 function clientFor(value: FeedbackReport) {
   const getTargetJob = vi.fn(async () => { throw new Error("mutable target must not load"); });
   const getResume = vi.fn(async () => { throw new Error("mutable resume must not load"); });
@@ -74,6 +91,15 @@ function clientFor(value: FeedbackReport) {
         } as never;
       },
       async getFeedbackReport() { return value; },
+      async listTargetJobs() {
+        return {
+          items: [],
+          pageInfo: { hasNextPage: false, nextCursor: null },
+        } as never;
+      },
+      async listTargetJobReports() {
+        throw new Error("reports page data is outside this report-return test");
+      },
       getTargetJob,
       getResume,
     } as unknown as EasyInterviewClient,
@@ -82,10 +108,106 @@ function clientFor(value: FeedbackReport) {
   };
 }
 
-afterEach(() => localStorage.removeItem("ei-lang"));
+afterEach(() => {
+  localStorage.removeItem("ei-lang");
+  window.history.replaceState(null, "", "/");
+});
 
 describe("grounded direct-semantic feedback report", () => {
-  it("uses frozen API context, localizes enums, and preserves model prose under a different UI locale", async () => {
+  it("returns a ready report to the API-trusted reports page", async () => {
+    const trustedTargetJobId = "01918fa0-0000-7000-8000-000000002000";
+    const { client } = clientFor(report({ targetJobId: trustedTargetJobId }));
+    window.history.replaceState(
+      null,
+      "",
+      `/report?reportId=${REPORT_ID}&targetJobId=route-target-must-be-ignored`,
+    );
+
+    render(<App client={client} />);
+
+    fireEvent.click(await screen.findByTestId("report-back-button"));
+    await waitFor(() => {
+      expect(window.location.pathname + window.location.search).toBe(
+        `/reports?targetJobId=${trustedTargetJobId}`,
+      );
+    });
+  });
+
+  it("returns a valid failed report to the same API-trusted reports page", async () => {
+    const trustedTargetJobId = "01918fa0-0000-7000-8000-000000002000";
+    const { client } = clientFor(failedReport({ targetJobId: trustedTargetJobId }));
+    window.history.replaceState(null, "", `/report?reportId=${REPORT_ID}`);
+
+    render(<App client={client} />);
+
+    fireEvent.click(await screen.findByTestId("report-failure-back-to-workspace"));
+    await waitFor(() => {
+      expect(window.location.pathname + window.location.search).toBe(
+        `/reports?targetJobId=${trustedTargetJobId}`,
+      );
+    });
+  });
+
+  it("keeps the trusted reports return visible while a report is pending", async () => {
+    const trustedTargetJobId = "01918fa0-0000-7000-8000-000000002000";
+    const { client } = clientFor(
+      failedReport({
+        status: "generating",
+        errorCode: null,
+        targetJobId: trustedTargetJobId,
+      }),
+    );
+    window.history.replaceState(null, "", `/report?reportId=${REPORT_ID}`);
+
+    render(<App client={client} />);
+
+    fireEvent.click(await screen.findByTestId("report-pending-back-button"));
+    await waitFor(() => {
+      expect(window.location.pathname + window.location.search).toBe(
+        `/reports?targetJobId=${trustedTargetJobId}`,
+      );
+    });
+  });
+
+  it.each([
+    ["malformed queued", { ...failedReport({ status: "queued", errorCode: null }), context: null }],
+    ["malformed generating", { ...failedReport({ status: "generating", errorCode: null }), routeTarget: "must-not-survive" }],
+    ["unknown status", { ...failedReport(), status: "unknown" }],
+    ["invalid ready", { ...report(), summary: null }],
+    ["failed unknown error", { ...failedReport(), errorCode: "REPORT_UNKNOWN_FAILURE" }],
+  ])("renders typed invalid terminal for %s without trusting its target", async (_label, value) => {
+    const { client } = clientFor(value as unknown as FeedbackReport);
+    window.history.replaceState(null, "", `/report?reportId=${REPORT_ID}`);
+
+    render(<App client={client} />);
+
+    const failure = await screen.findByTestId("report-failure-state");
+    expect(failure).toHaveAttribute("data-contract-invalid", "true");
+    expect(screen.queryByTestId("report-pending-state")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("report-dashboard")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("report-failure-back-to-workspace"));
+    await waitFor(() => {
+      expect(window.location.pathname + window.location.search).toBe("/workspace");
+    });
+  });
+
+  it.each([
+    ["first-load network failure", new Error("network unavailable")],
+    ["not found", new Error("HTTP 404: REPORT_NOT_FOUND")],
+  ])("falls back to workspace after %s with no trusted response", async (_label, failure) => {
+    const { client } = clientFor(report());
+    vi.spyOn(client, "getFeedbackReport").mockRejectedValue(failure);
+    window.history.replaceState(null, "", `/report?reportId=${REPORT_ID}`);
+
+    render(<App client={client} />);
+
+    fireEvent.click(await screen.findByTestId("report-failure-back-to-workspace"));
+    await waitFor(() => {
+      expect(window.location.pathname + window.location.search).toBe("/workspace");
+    });
+  });
+
+  it("renders a three-field UUID-free Context Strip from frozen API context and preserves model prose under a different UI locale", async () => {
     localStorage.setItem("ei-lang", "en");
     const { client, getTargetJob, getResume } = clientFor(report());
     render(<App client={client} initialRoute={{
@@ -102,7 +224,19 @@ describe("grounded direct-semantic feedback report", () => {
 
     expect(await screen.findByTestId("report-dashboard")).toBeInTheDocument();
     expect(screen.getByTestId("report-header-title")).toHaveTextContent("星环科技 · 很长的高级前端工程师岗位名称");
-    expect(screen.getByTestId("report-context-session")).toHaveTextContent("01918fa0-0000-7000-8000-000000005000");
+    expect(screen.queryByTestId("report-context-session")).not.toBeInTheDocument();
+    const contextStrip = screen.getByTestId("report-context-strip");
+    expect(contextStrip.children).toHaveLength(3);
+    const dashboard = screen.getByTestId("report-dashboard");
+    const dashboardAttributes = [dashboard, ...dashboard.querySelectorAll("*")]
+      .flatMap((element) =>
+        Array.from(element.attributes, ({ name, value }) => `${name}=${value}`),
+      )
+      .join("\n");
+    for (const sentinel of [REPORT_ID, SESSION_ID]) {
+      expect(dashboard).not.toHaveTextContent(sentinel);
+      expect(dashboardAttributes).not.toContain(sentinel);
+    }
     expect(screen.getByTestId("report-context-round")).toHaveTextContent("技术一面 · 系统设计与工程取舍");
     expect(screen.getByText("模型原文：你的案例有清楚证据，但技术取舍需要补充。")).toBeInTheDocument();
     const actionLabel = screen.getByText("模型原文：补齐一个取舍案例后进入下一轮。");

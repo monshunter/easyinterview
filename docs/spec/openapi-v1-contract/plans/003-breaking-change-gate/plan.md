@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.12
+> **版本**: 1.15
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -120,6 +120,8 @@ The wrapper must verify the exact path, method and statuses. Any other status tr
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.14 | Add OPENAPI-004 exact old-baseline audit and guarded report-overview re-freeze phase. |
+| 2026-07-14 | 1.13 | Correct OPENAPI-002 from 15 to 17 exact findings and define the separate Practice machine oracle as a non-ADR projection of D-35/history 1.54/方案 A. |
 | 2026-07-13 | 1.12 | Fix OPENAPI-002 proposed/audit order and exact invariants; add a separate Practice message recovery correction audit phase. |
 | 2026-07-13 | 1.11 | Reopen Phase 6 for OPENAPI-002 exact TargetJob paste-only audit and guarded v1.0.0 re-freeze. |
 | 2026-07-12 | 1.10 | Require the normalized conditional-contract finding to encode baseline source prohibition and derived non-null source-only branches. |
@@ -147,11 +149,11 @@ Only after 001 schema/codegen, 002 fixtures/prototype/Prism and downstream consu
 
 ### 6.1 Authorize and snapshot before mutation
 
-Require accepted [OPENAPI-002](../../decisions/OPENAPI-002-targetjob-paste-only.md), product-owner approval, spec/history 1.54 and the machine oracle. Resolve the merge-base from `main` and snapshot the old `openapi/baseline/openapi-v1.0.0.yaml`; then let 001 update the proposed OpenAPI while the worktree baseline remains byte-unchanged. Only after the proposed source exists may this gate compare old baseline → proposed and persist the exact audit artifact.
+Require accepted [OPENAPI-002](../../decisions/OPENAPI-002-targetjob-paste-only.md) v1.2, product-owner approval, spec/history 1.56 and the machine oracle. Resolve the merge-base from `main` and snapshot the old `openapi/baseline/openapi-v1.0.0.yaml`; then let 001 update the proposed OpenAPI while the worktree baseline remains byte-unchanged. Only after the proposed source exists may this gate compare old baseline → proposed and persist the exact audit artifact.
 
 ### 6.2 Exact finding audit
 
-Extend/reuse base-ref mode to exact-match `OPENAPI-002-targetjob-paste-only.expected-findings.json` by the full five-key tuple. The expected set remains exactly 15 breaking findings. `rawText` is a new constrained required property: normalize its initial `minLength=1,pattern=\S` into the single `required_property_added.after` signature and do not emit a second constraint finding. A focused RED must prove the unnormalized extra finding fails exact-set; GREEN must equal 15. Missing/unexpected findings, severity/path/kind/before/after drift, wildcard authorizations, edited old baseline or a zero-finding simultaneous replacement must fail.
+Extend/reuse base-ref mode to exact-match `OPENAPI-002-targetjob-paste-only.expected-findings.json` by the full five-key tuple. The expected set is exactly 17 breaking findings. `rawText` is a new constrained required property: normalize its initial `minLength=1,pattern=\S` into the single `required_property_added.after` signature and do not emit a second constraint finding. The two source-only `ApiErrorCode` removals—`TARGET_IMPORT_SOURCE_INVALID` and `TARGET_IMPORT_SOURCE_UNAVAILABLE`—must each remain an independent `enum_value_removed` finding. Focused RED must prove both the unnormalized extra constraint and a stale 15-finding oracle fail exact-set; GREEN must equal 17. Missing/unexpected findings, severity/path/kind/before/after drift, wildcard authorizations, edited old baseline or a zero-finding simultaneous replacement must fail.
 
 The audit must separately enforce unchanged invariants: 37 operations / 10 tags；`POST /api/v1/targets/import`, operationId `importTargetJob`, `202 + TargetJobWithJob`；and `POST /api/v1/uploads/presign`, operationId `createUploadPresign`, `201 + UploadPresign`, with remaining resume/privacy purposes.
 
@@ -165,8 +167,18 @@ Preserve the deterministic old-baseline audit artifact under `openapi/baseline/a
 
 ### 7.1 Separate authority and audit
 
-Treat spec D-35 / history 1.54 and the product-approved方案 A as the correction authority. Snapshot the old baseline, keep it unchanged while 001 produces the role-discriminated Practice schema, and preserve a deterministic full five-key finding manifest before any re-freeze. Practice findings must be audited separately and must never be merged into OPENAPI-002's exact 15 allowset; missing or wildcard authorization fails.
+Treat spec D-35 / history 1.54 and the product-approved方案 A as the sole correction authority. The separate Practice machine oracle is only D-35's executable full five-key finding projection; it is not and must not require a third `OPENAPI-NNN` ADR. Snapshot the old baseline, keep it unchanged while 001 produces the role-discriminated Practice schema, and preserve the deterministic manifest before any re-freeze. Practice findings must be audited separately and must never be merged into OPENAPI-002's exact 17 allowset; missing or wildcard authorization fails.
 
 ### 7.2 Guarded re-freeze
 
 Do not re-freeze the Practice correction until 001 typed schema/codegen/`ApiClientError` gates, 002 get/send recovery fixtures, mock-contract-suite parity, backend-practice persistence, frontend typed consumer and P0.046 reload/same-ID retry all pass. Final proof requires the preserved old-baseline artifact plus clean current diff and independent fixture/codegen/consumer gates.
+
+## 10 Phase 8: OPENAPI-004 TargetJob report overview correction
+
+### 8.1 Accepted authority and exact oracle
+
+Require accepted OPENAPI-004 and spec/history 1.57 before proposed schema mutation. Snapshot the merge-base old baseline, keep the worktree baseline unchanged, and create a separate deterministic expected-findings oracle for only the report-overview correction. It must include removal of cursor/pageSize, response/full-pagination shape and TargetJob pointer plus the new required/closed schemas exactly as emitted by the normalizer; missing/extra/severity/path/kind/before/after drift or wildcard authorization fails.
+
+### 8.2 Invariants and guarded re-freeze
+
+Audit must prove 37 operations/10 tags and unchanged `GET /api/v1/targets/{targetJobId}/reports`, operationId `listTargetJobReports`, 200 response. Preserve the old-baseline artifact before mutation. Do not re-freeze until 001/002, migration/TargetJob, backend-review, target-scoped ReportsScreen/P0.059, Parse/Report/Generating zero-list-consumer and mock gates pass. Final proof requires preserved audit + clean current diff + independent lint/fixture/codegen/consumer gates; a clean diff alone is insufficient.

@@ -7,9 +7,16 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-090-url-routing-hash-out-of-scope-neg
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
+grep -Fq "source_contract_test.py" "$SCRIPT_DIR/trigger.sh"
+grep -Fq "Ran 2 tests" "$LOG_FILE"
+grep -Fq "OK" "$LOG_FILE"
 grep -Fq "src/app/scenarios/p0-090-url-routing-hash-out-of-scope-negative.test.tsx" "$LOG_FILE"
-grep -Eq 'Tests +11 passed \(11\)' "$LOG_FILE"
-grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
+grep -Fq "Reports hash bootstrap keeps targetJobId only" "$LOG_FILE"
+grep -Fq "legacy Parse report params are stripped" "$LOG_FILE"
+grep -Fq "SPA fallback explicitly serves the known /reports path" "$LOG_FILE"
+grep -Fq "canonicalizes a Reports hash to targetJobId-only /reports" "$LOG_FILE"
+grep -Eq 'Tests +[0-9]+ passed' "$LOG_FILE"
+grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE"
 
 # Out-of-scope-route grep: ROUTE_TO_PATH must not enumerate out-of-scope aliases.
 ROUTE_FILE="$REPO_ROOT/frontend/src/app/routeUrl.ts"

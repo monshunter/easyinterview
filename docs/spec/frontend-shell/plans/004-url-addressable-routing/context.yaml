@@ -6,7 +6,7 @@ metadata:
   sequence: 4
   specVersion:
     from: 1.14
-    to: 1.26
+    to: 1.28
 spec:
   defaultTarget: frontend
   discovery:
@@ -28,6 +28,13 @@ spec:
       - pendingAction
       - unsupported route params rejected
       - safe route params
+      - reports targetJobId only
+      - protected reports deep link
+      - invalid reports target replace workspace
+      - no reports back loop
+      - no reports TopBar entry
+      - no section reports compatibility
+      - report generating reportId only
       - workspace query stripping
       - reportId
       - reportStatus
@@ -68,6 +75,7 @@ spec:
           - resume_versions
           - parse
           - practice
+          - reports
           - generating
           - report
           - settings

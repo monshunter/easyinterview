@@ -29,7 +29,6 @@ func TestMain_SingleRuntimeShutdown(t *testing.T) {
 	})
 	executable := []jobs.JobType{
 		jobs.JobTypeTargetImport,
-		jobs.JobTypeSourceRefresh,
 		jobs.JobTypePrivacyDelete,
 		jobs.JobTypeResumeParse,
 		jobs.JobTypeResumeTailor,

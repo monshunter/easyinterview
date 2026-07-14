@@ -37,6 +37,7 @@ import { HomeScreen } from "./screens/home/HomeScreen";
 import { ParseScreen } from "./screens/parse/ParseScreen";
 import { PracticeScreen } from "./screens/practice/PracticeScreen";
 import { ReportScreen } from "./screens/report/ReportScreen";
+import { ReportsScreen } from "./screens/reports/ReportsScreen";
 import { ResumeWorkshopScreen } from "./screens/resume-workshop/ResumeWorkshopScreen";
 import { RouteShellScreen } from "./screens/RouteShellScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
@@ -100,6 +101,9 @@ function renderRouteScreen(
   }
   if (route.name === "practice") {
     return <PracticeScreen route={route} />;
+  }
+  if (route.name === "reports") {
+    return <ReportsScreen route={route} />;
   }
   if (route.name === "generating") {
     return <GeneratingScreen route={route} />;
@@ -203,8 +207,11 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
   initialRoute,
   children,
 }) => {
-  const { route, navigate } = useBrowserRoute({ initialRoute });
-  const navigationValue = useMemo(() => ({ navigate }), [navigate]);
+  const { route, navigate, replaceRoute } = useBrowserRoute({ initialRoute });
+  const navigationValue = useMemo(
+    () => ({ navigate, replaceRoute }),
+    [navigate, replaceRoute],
+  );
   const runtime = useAppRuntimeOptional();
   const signedIn = runtime?.auth.status === "authenticated";
   const routeForRender = useMemo<Route>(() => {

@@ -1,8 +1,8 @@
 # Grounded Conversation Report BDD Checklist
 
-> **版本**: 2.16
-> **状态**: completed
-> **更新日期**: 2026-07-13
+> **版本**: 2.18
+> **状态**: active
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -64,3 +64,10 @@
 - [x] Record `e2e-p0-100-20260713T030100Z-35622` as aborted after7/11 due L2 job/fencing/frontend-resume findings；never count it as PASS or marker evidence；the fresh post-L2 run supersedes it.
 - [x] Verify fails on product action attempt5、missing/wrong10s/20s/40s waits、failed reset、async/product attempt coupling、stale-worker mutation、invalid output、wrong scope、non-label mutation、valid-negative judge retry、fabrication or threshold miss；cleanup retains only redacted audit results.
   <!-- verified: 2026-07-13 evidence="P0.058 v3 negatives plus current P0.100 validators; final run59381 retains redacted strict FAIL rather than resampling" -->
+
+## E2E.P0.059 Canonical-round report overview handoff
+
+- [ ] Prepare one owned ready TargetJob whose canonical rounds cover both-null、prior-ready+newer-failed、generating-only and latest-ready cases, plus isolated cross-user/context/round-pair invalid rows.
+- [ ] Execute the focused `listTargetJobReports` handler/store/API contract gate and record canonical order, exact minimal wire, independent ordering and hidden-404/fail-closed markers without report semantic content.
+- [ ] Compose the backend evidence into registry-owned P0.059; ReportsScreen joins display from current TargetJob summary, isolates the target, exposes only valid report/generating links and latest status, while Parse/Report/Generating never call the list operation and no global/history center appears.
+- [ ] Verify invalid owner/context/round/ready-generatedAt data returns no partial overview and cleanup removes scenario rows while retaining only redacted IDs/digests.

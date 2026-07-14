@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.0
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 3.2
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -46,6 +46,9 @@
   <!-- verified: 2026-07-13 evidence="P0.058 verify+cleanup PASS with typed failure UI and redaction checks" -->
 - [x] Verify action attempt4/nonretryable API failed is terminal，while maxAttempts49/network exhaustion never mutates server state；action-local retry, async job attempts and outbox infra schedules are not conflated in UI copy or timing.
   <!-- verified: 2026-07-13 evidence="v3 runtime records attempt4/reset/separation; frontend 51 tests reject fabricated terminal/progress copy" -->
+- [x] Revision 2026-07-14 covers pending/normal/failed/recoverable generating with trusted target -> `/reports?targetJobId=...`, plus missing reportId/404/first-load network/invalid payload without trusted target -> `workspace` fallback.
+- [x] Revision 2026-07-14 rejects route/title/reportId target inference and proves Report/Generating never consume `listTargetJobReports`；only ReportsScreen does.
+  <!-- verified: 2026-07-14 scenario=E2E.P0.058 evidence="Final four-stage wrapper PASS; frontend 8 files/82 tests and three backend exact packages execute, including the named three-field UUID-free Context Strip marker and trusted/missing-context navigation matrix." -->
 
 ## E2E.P0.059 Strong parity
 
@@ -53,9 +56,12 @@
 - [x] Trigger records DOM/style/bbox and prototype/formal/diff PNGs; changed-pixel ratio must be ≤0.5% using pixelmatch threshold 0.1.
 - [x] Verify rejects non-empty-buffer-only evidence and requires visual + active stale-contract negatives; cleanup keeps failure artifacts only.
   <!-- verified: 2026-07-13 scenario="E2E.P0.059" evidence="source/DOM/style/bbox/pixel threshold gate, stale-contract negatives, production build and 12 Playwright cases PASS; cleanup PASS" -->
-- [ ] Revision 2026-07-13 removes session/report UUID from prototype/formal visible and accessible Context Strip, then executes clean 1440/390 DOM/style/bbox/viewport/pixel parity.
-- [ ] Revision 2026-07-13 updates P0.059 README/INDEX to C-12, verifies distinct UUID sentinels are UI/a11y-negative but contract/CTA-positive, preserves normal PASS cleanup, then captures the same formal real ready report at exact 1440x1200 / 390x844 with `fullPage: true` into `.test-output/acceptance/report-context-strip/<run-id>/`.
-- [ ] Acceptance directory contains only `report-context-strip-desktop-1440x1200.png`, `report-context-strip-mobile-390x844.png`, `manifest.json`; recomputed SHA-256 matches each manifest row, `state=ready`/viewport/fullPage are exact, target/round/resume are visible, and report/session sentinel absence is linked to passing DOM/a11y negative evidence.
+- [x] Revision 2026-07-13 removes session/report UUID from prototype/formal visible and accessible Context Strip, then executes clean 1440/390 DOM/style/bbox/viewport/pixel parity.
+- [x] Revision 2026-07-13 updates P0.059 README/INDEX to C-12, verifies distinct UUID sentinels are UI/a11y-negative but contract/CTA-positive, preserves normal PASS cleanup, then captures the same formal real ready report at exact 1440x1200 / 390x844 with `fullPage: true` into `.test-output/acceptance/report-context-strip/<run-id>/`.
+- [x] Acceptance directory contains only `report-context-strip-desktop-1440x1200.png`, `report-context-strip-mobile-390x844.png`, `manifest.json`; recomputed SHA-256 matches each manifest row, `state=ready`/viewport/fullPage are exact, target/round/resume are visible, and report/session sentinel absence is linked to passing DOM/a11y negative evidence.
+- [x] Revision 2026-07-14 independent ReportsScreen covers populated/empty/loading/error × 1440/390，only current TargetJob canonical rounds/current/latest，A/B isolation、mismatch/stale fail-close、different-ready status and no full history.
+- [x] Revision 2026-07-14 ready report Back uses the same response's trusted `targetJobId` and reaches `/reports?targetJobId=...`; current report URL remains reportId-only and existing report parity is unchanged.
+  <!-- verified: 2026-07-14 scenario=E2E.P0.059 evidence="Full wrapper PASS with 137/137 Vitest and 16/16 Playwright; max changedRatio 0.000060. Formal real acceptance manifests prove current-plan-only rows and UUID-free Context Strip at both viewports." -->
 
 ## E2E.P0.099 Real full-stack screenshots
 

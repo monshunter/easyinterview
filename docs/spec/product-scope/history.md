@@ -1,13 +1,14 @@
 # Product Scope History
 
-> **版本**: 2.20
+> **版本**: 2.21
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 2.21 | D-27：面试规划详情内容区右上进入 target-scoped ReportsScreen；只展示当前规划 current/latest，Parse 无嵌入列表，TopBar 无报告入口，trusted Back 返回 Reports。 | frontend-home 001 + frontend-report 001 + frontend-shell 004 |
 | 2026-07-13 | 2.20 | 用户确认方案 A：Practice 发送采用即时 user row、pending thinking/输入锁、failed-row retry，并由服务端持久化原 message identity/reply state 保障刷新恢复。 | backend-practice/002 + frontend-workspace-and-practice/002 + openapi-v1-contract/001 |
 | 2026-07-13 | 2.19 | Home JD intake 只保留粘贴文本框和 `{ rawText, targetLanguage, resumeId }` 请求合同；删除其他 JD 导入形态，保留 Resume 上传能力。 | frontend-home-job-picks-and-parse/001 + contract/backend owners |
 | 2026-07-12 | 2.18 | 删除首次 Parse 页已不存在的“仅保存规划”分叉；确认一次提交同时持久化规划并直接进入 Practice，回访仍从既有入口承接。 | frontend-workspace-and-practice/001 + UI module-job-workspace |

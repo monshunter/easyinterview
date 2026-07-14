@@ -1,8 +1,8 @@
 # 002 Practice Continuous Conversation Test Plan
 
-> **版本**: 2.5
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 2.6
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 ## Phase 1: Prototype/source
 - DOM shape, disabled phone control, no stale question/hint/phone-positive source, desktop/mobile geometry.
@@ -39,3 +39,13 @@
 - The recovery integration path is explicit: AI failure → page reload → `getPracticeSession` returns the same user text/clientMessageId as `retryable_failed` → retry → exactly one assistant reply and no duplicate user row.
 - Finish-state tests cover pending, retryable-failed, retrying and terminal-recovery in addition to existing loader/completion guards；no unresolved message state can enable completion.
 - Pixel parity uses identical pending/failed fixtures at 1440 and 390, comparing DOM, computed style, key bounding boxes, viewport overflow and screenshot diff; P0.044/P0.046 record current runtime evidence.
+
+## Phase 10: Timeout reconciliation, terminal recovery and fresh parity
+
+- UI source contract RED/GREEN covers injected initial `replyStatus`, immediate/persisted pending, retryable icon and terminal generic CTA. Promise success-only mocks are insufficient；terminal and retry branches must be reachable.
+- `usePracticeMessages` tests assert the exact request body plus forwarded `AbortSignal`. Loader/reconcile tests assert cleanup abort, bounded reads and preservation/fail-locking of unresolved same-session data after refresh failure.
+- PracticeScreen fake-timer tests assert no timeout at 94,999 ms, POST abort + same-ID GET at 95,000 ms, adoption of each authoritative status, missing-ID/read-failure unresolved fallback, no new-ID send, and stale late POST/reconcile responses ignored after a newer request sequence.
+- Terminal tests assert no retry/thinking, safe localized copy, exactly one current-plan action and exact route `{name:"parse", params:{targetJobId}}`; they reject workspace, planId, composer send and raw error text.
+- Pixel-parity Playwright compares formal and prototype surfaces for four states at 1440x900 and 390x844 using DOM snapshot, computed styles, key bounding boxes, overflow and screenshot ratio；scenario screenshots record exact pixel dimensions and SHA-256.
+- Scenario contract tests require the shared tracked source manifest to include UI docs/source, prototype contract, formal Practice hooks/screen/i18n/route/generated client, OpenAPI/templates/Practice fixtures, backend practice/store/migration, fingerprint helper and P0.044/P0.046 directories. Both scripts reject missing/changed paths, mismatched trigger/current SHA-256, missing PNG hashes, FAIL and no-tests output.
+- TDD order: source RED/GREEN → hook/screen RED → cancellation/timeout/reconcile/route GREEN → focused/full frontend → parity → scenario contract → serial P0.044/P0.046 → docs/diff closeout.

@@ -13,7 +13,9 @@ test -s "$LOG_FILE"
 for marker in \
   '--- PASS: TestSendPracticeMessageExactReplayReturnsOriginalResultWithoutAICall' \
   '--- PASS: TestSendPracticeMessageMapsClientMismatchAndCrossUserAccess' \
-  '--- PASS: TestSQLRepositoryReservePracticeMessageRetriesPendingUserMessage' \
+  '--- PASS: TestSendPracticeMessagePendingSameIDDoesNotCallAI' \
+  '--- PASS: TestSQLRepositoryReservePracticeMessageRetriesOnlyRetryableFailure' \
+  '--- PASS: TestSQLRepositoryReservePracticeMessageRejectsPendingAndTerminalSameID' \
   '--- PASS: TestSQLRepositoryReservePracticeMessageRejectsNewMessageWhileReplyPending' \
   '--- PASS: TestSendPracticeMessageMapsConflictAndIsolationErrors'; do
   grep -Fq -- "$marker" "$LOG_FILE"
@@ -32,5 +34,5 @@ done
 
 mkdir -p "$RUN_DIR"
 cp "$LOG_FILE" "$RUN_DIR/trigger.log"
-printf '{"scenario":"E2E.P0.025","status":"passed","method":"focused-handler-domain-store","validBddEvidence":true,"verifiedAt":"%s","evidence":"%s","snapshot":"message replay pending-retry mismatch and cross-user isolation contracts"}\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$RUN_DIR/trigger.log" > "$RUN_DIR/result.json"
+printf '{"scenario":"E2E.P0.025","status":"passed","method":"focused-handler-domain-store","validBddEvidence":true,"verifiedAt":"%s","evidence":"%s","snapshot":"message replay pending no-resend retryable-only retry mismatch and cross-user isolation contracts"}\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$RUN_DIR/trigger.log" > "$RUN_DIR/result.json"
 cp "$RUN_DIR/result.json" "$RESULT_FILE"

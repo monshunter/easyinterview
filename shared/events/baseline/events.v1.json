@@ -2,28 +2,10 @@
   "eventLocalEnums": [
     {
       "description": "Event-local enum; does not enter B1 / B2 public enums.",
-      "name": "TargetImportSourceType",
-      "values": [
-        "url",
-        "text",
-        "file"
-      ]
-    },
-    {
-      "description": "Event-local enum; does not enter B1 / B2 public enums.",
       "name": "ResumeTailorMode",
       "values": [
         "gap_review",
         "bullet_suggestions"
-      ]
-    },
-    {
-      "description": "Event-local enum; does not enter B1 / B2 public enums.",
-      "name": "SourceFreshnessStatus",
-      "values": [
-        "fresh",
-        "stale",
-        "failed"
       ]
     }
   ],
@@ -32,13 +14,9 @@
       "aggregateType": "target_job",
       "name": "target.import.requested",
       "optionalPayload": {},
-      "piiBoundary": "IDs only; no raw JD text or URL body.",
+      "piiBoundary": "IDs and language only; no raw JD text.",
       "producer": "api",
       "requiredPayload": {
-        "sourceType": {
-          "source": "spec:3.1.4",
-          "type": "$ref:event.TargetImportSourceType"
-        },
         "targetJobId": {
           "source": "spec:3.1.4",
           "type": "uuidv7"
@@ -297,32 +275,6 @@
           "type": "uuidv7"
         },
         "targetJobId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        }
-      },
-      "version": 1
-    },
-    {
-      "aggregateType": "source_record",
-      "name": "source.refreshed",
-      "optionalPayload": {},
-      "piiBoundary": "No source snapshot content or URL secret.",
-      "producer": "backend_async",
-      "requiredPayload": {
-        "freshnessStatus": {
-          "source": "spec:3.1.4",
-          "type": "$ref:event.SourceFreshnessStatus"
-        },
-        "ownerId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "ownerType": {
-          "source": "spec:3.1.4",
-          "type": "string"
-        },
-        "sourceRecordId": {
           "source": "spec:3.1.4",
           "type": "uuidv7"
         }

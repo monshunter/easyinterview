@@ -4,6 +4,7 @@ from pathlib import Path
 
 import yaml
 import scripts.lint.openapi_inventory as inventory
+import scripts.lint.validate_fixtures as fixture_validator
 
 
 class OpenAPIInventoryContractTest(unittest.TestCase):
@@ -30,6 +31,302 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         )
         self.assertNotIn(("get", "/practice/sessions"), inventory.IK_REQUIRED)
         self.assertNotIn(("get", "/practice/sessions"), inventory.IK_FORBIDDEN)
+
+    def test_targetjob_report_overview_is_closed_and_keeps_endpoint_inventory(self) -> None:
+        decision = Path(
+            "docs/spec/openapi-v1-contract/decisions/OPENAPI-004-targetjob-report-overview.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("> **状态**: accepted", decision)
+
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        operation = data["paths"]["/targets/{targetJobId}/reports"]["get"]
+        self.assertEqual("listTargetJobReports", operation["operationId"])
+        self.assertEqual(
+            ["targetJobId"],
+            [parameter["name"] for parameter in operation["parameters"] if "name" in parameter],
+        )
+        self.assertEqual(
+            [
+                "#/components/parameters/XRequestID",
+                "#/components/parameters/Traceparent",
+                "#/components/parameters/AcceptLanguage",
+                "#/components/parameters/XClientVersion",
+            ],
+            [parameter["$ref"] for parameter in operation["parameters"] if "$ref" in parameter],
+        )
+        self.assertEqual(
+            "#/components/schemas/TargetJobReportsOverview",
+            operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"],
+        )
+
+        schemas = data["components"]["schemas"]
+        self.assertNotIn("PaginatedFeedbackReport", schemas)
+        self.assertNotIn("latestReportId", schemas["TargetJob"]["properties"])
+        self.assertIs(False, schemas["PracticeRoundRef"]["additionalProperties"])
+
+        expected_shapes = {
+            "TargetJobReportsOverview": (
+                ["targetJobId", "rounds"],
+                ["targetJobId", "rounds"],
+            ),
+            "TargetJobReportRoundOverview": (
+                ["round", "currentReport", "latestAttempt"],
+                ["round", "currentReport", "latestAttempt"],
+            ),
+            "TargetJobCurrentReportSummary": (
+                ["id", "generatedAt"],
+                ["id", "generatedAt"],
+            ),
+            "TargetJobReportAttemptSummary": (
+                ["id", "status", "errorCode", "createdAt"],
+                ["id", "status", "errorCode", "createdAt"],
+            ),
+        }
+        for schema_name, (required, properties) in expected_shapes.items():
+            with self.subTest(schema=schema_name):
+                schema = schemas[schema_name]
+                self.assertEqual("object", schema["type"])
+                self.assertIs(False, schema["additionalProperties"])
+                self.assertEqual(required, schema["required"])
+                self.assertEqual(properties, list(schema["properties"]))
+
+        round_overview = schemas["TargetJobReportRoundOverview"]
+        self.assertEqual(
+            "#/components/schemas/PracticeRoundRef",
+            round_overview["properties"]["round"]["$ref"],
+        )
+        self.assertEqual(
+            (2, 5),
+            (
+                schemas["TargetJobReportsOverview"]["properties"]["rounds"]["minItems"],
+                schemas["TargetJobReportsOverview"]["properties"]["rounds"]["maxItems"],
+            ),
+        )
+        self.assertEqual(
+            [
+                {"$ref": "#/components/schemas/TargetJobCurrentReportSummary"},
+                {"type": "null"},
+            ],
+            round_overview["properties"]["currentReport"]["oneOf"],
+        )
+        self.assertEqual(
+            [
+                {"$ref": "#/components/schemas/TargetJobReportAttemptSummary"},
+                {"type": "null"},
+            ],
+            round_overview["properties"]["latestAttempt"]["oneOf"],
+        )
+
+        attempt = schemas["TargetJobReportAttemptSummary"]
+        self.assertEqual(
+            "#/components/schemas/ReportStatus",
+            attempt["properties"]["status"]["$ref"],
+        )
+        self.assertEqual(
+            [
+                {"$ref": "#/components/schemas/ApiErrorCode"},
+                {"type": "null"},
+            ],
+            attempt["properties"]["errorCode"]["oneOf"],
+        )
+
+        valid = {
+            "targetJobId": "01918fa0-0000-7000-8000-000000000001",
+            "rounds": [
+                {
+                    "round": {
+                        "roundId": "round-1-technical",
+                        "roundSequence": 1,
+                    },
+                    "currentReport": {
+                        "id": "01918fa0-0000-7000-8000-000000000010",
+                        "generatedAt": "2026-07-14T01:02:03Z",
+                    },
+                    "latestAttempt": {
+                        "id": "01918fa0-0000-7000-8000-000000000011",
+                        "status": "failed",
+                        "errorCode": "AI_PROVIDER_TIMEOUT",
+                        "createdAt": "2026-07-14T01:03:03Z",
+                    },
+                },
+                {
+                    "round": {
+                        "roundId": "round-2-manager",
+                        "roundSequence": 2,
+                    },
+                    "currentReport": None,
+                    "latestAttempt": None,
+                },
+            ],
+        }
+        errors: list[str] = []
+        fixture_validator.schema_validate(
+            valid,
+            schemas["TargetJobReportsOverview"],
+            root=data,
+            path="response",
+            errors=errors,
+        )
+        self.assertEqual([], errors)
+
+        for status in ("queued", "generating", "ready"):
+            with self.subTest(valid_status=status):
+                body = copy.deepcopy(valid)
+                body["rounds"][0]["latestAttempt"]["status"] = status
+                body["rounds"][0]["latestAttempt"]["errorCode"] = None
+                errors = []
+                fixture_validator.schema_validate(
+                    body,
+                    schemas["TargetJobReportsOverview"],
+                    root=data,
+                    path="response",
+                    errors=errors,
+                )
+                self.assertEqual([], errors)
+
+        invalid_values = [
+            {**valid, "pageInfo": {}},
+            {
+                **valid,
+                "rounds": [{"round": valid["rounds"][0]["round"], "currentReport": None}],
+            },
+            {
+                **valid,
+                "rounds": [
+                    {
+                        **valid["rounds"][0],
+                        "latestAttempt": {
+                            **valid["rounds"][0]["latestAttempt"],
+                            "status": "generating",
+                        },
+                    }
+                ],
+            },
+            {
+                **valid,
+                "rounds": [
+                    {
+                        **valid["rounds"][0],
+                        "latestAttempt": {
+                            **valid["rounds"][0]["latestAttempt"],
+                            "errorCode": None,
+                        },
+                    },
+                    valid["rounds"][1],
+                ],
+            },
+            {
+                **valid,
+                "rounds": [
+                    {
+                        **valid["rounds"][0],
+                        "round": {
+                            **valid["rounds"][0]["round"],
+                            "unexpected": True,
+                        },
+                    }
+                ],
+            },
+            {
+                **valid,
+                "rounds": [
+                    {
+                        **valid["rounds"][0],
+                        "currentReport": {
+                            **valid["rounds"][0]["currentReport"],
+                            "provenance": {},
+                        },
+                    }
+                ],
+            },
+        ]
+        for index, body in enumerate(invalid_values):
+            with self.subTest(invalid=index):
+                errors = []
+                fixture_validator.schema_validate(
+                    body,
+                    schemas["TargetJobReportsOverview"],
+                    root=data,
+                    path="response",
+                    errors=errors,
+                )
+                self.assertTrue(errors, body)
+
+        self.assertEqual(37, len(inventory.EXPECTED_OPERATIONS))
+        self.assertEqual(10, len(inventory.EXPECTED_TAGS))
+
+    def test_targetjob_report_overview_semantic_linter_rejects_legacy_and_open_shapes(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        errors: list[str] = []
+        inventory.validate_targetjob_report_overview_contract(data, errors)
+        self.assertEqual([], errors)
+
+        mutated = copy.deepcopy(data)
+        operation = mutated["paths"]["/targets/{targetJobId}/reports"]["get"]
+        operation["parameters"].insert(
+            1,
+            {"name": "cursor", "in": "query", "schema": {"type": "string"}},
+        )
+        schemas = mutated["components"]["schemas"]
+        schemas["PaginatedFeedbackReport"] = {"type": "object"}
+        schemas["TargetJob"]["properties"]["latestReportId"] = {"type": "string"}
+        schemas["PracticeRoundRef"].pop("additionalProperties")
+        schemas["TargetJobReportsOverview"]["properties"]["rounds"].pop("minItems")
+        schemas["TargetJobReportRoundOverview"]["properties"]["round"] = {
+            "type": "object"
+        }
+        schemas["TargetJobReportRoundOverview"].pop("additionalProperties")
+        schemas["TargetJobReportAttemptSummary"]["required"].remove("errorCode")
+        errors = []
+        inventory.validate_targetjob_report_overview_contract(mutated, errors)
+
+        self.assertTrue(any("named parameters" in error for error in errors), errors)
+        self.assertTrue(any("PaginatedFeedbackReport" in error for error in errors), errors)
+        self.assertTrue(any("latestReportId" in error for error in errors), errors)
+        self.assertTrue(any("PracticeRoundRef" in error for error in errors), errors)
+        self.assertTrue(any("2..5" in error for error in errors), errors)
+        self.assertTrue(any("round must reference" in error for error in errors), errors)
+        self.assertTrue(any("additionalProperties" in error for error in errors), errors)
+        self.assertTrue(any("errorCode" in error and "required" in error for error in errors), errors)
+
+    def test_targetjob_report_overview_generated_artifacts_are_typed(self) -> None:
+        generated = yaml.safe_load(
+            Path("backend/internal/api/generated/openapi.yaml").read_text(encoding="utf-8")
+        )
+        ts_types = Path("frontend/src/api/generated/types.ts").read_text(encoding="utf-8")
+        ts_client = Path("frontend/src/api/generated/client.ts").read_text(encoding="utf-8")
+        go_types = Path("backend/internal/api/generated/types.gen.go").read_text(encoding="utf-8")
+        go_server = Path("backend/internal/api/generated/server.gen.go").read_text(encoding="utf-8")
+
+        operation = generated["paths"]["/targets/{targetJobId}/reports"]["get"]
+        self.assertEqual(
+            "#/components/schemas/TargetJobReportsOverview",
+            operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"],
+        )
+        self.assertNotIn("PaginatedFeedbackReport", generated["components"]["schemas"])
+
+        for type_name in (
+            "TargetJobReportsOverview",
+            "TargetJobReportRoundOverview",
+            "TargetJobCurrentReportSummary",
+            "TargetJobReportAttemptSummary",
+        ):
+            self.assertIn(f"export interface {type_name}", ts_types)
+            self.assertNotIn(f"export type {type_name} = any", ts_types)
+            self.assertIn(f"type {type_name} struct", go_types)
+
+        self.assertNotIn("PaginatedFeedbackReport", ts_types)
+        self.assertNotIn("PaginatedFeedbackReport", go_types)
+        self.assertNotIn("latestReportId", ts_types)
+        self.assertNotIn("LatestReportId", go_types)
+        self.assertIn(
+            "async listTargetJobReports(targetJobId: string, opts?: RequestOptions): Promise<Types.TargetJobReportsOverview>",
+            ts_client,
+        )
+        self.assertIn(
+            "ListTargetJobReports(w http.ResponseWriter, r *http.Request, targetJobId string)",
+            go_server,
+        )
 
     def test_practice_voice_turn_operation_is_registered_as_session_side_effect(self) -> None:
         path = "/practice/sessions/{sessionId}/voice-turns"
@@ -167,7 +464,34 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
 
         self.assertNotIn("PracticeMode", schemas)
         self.assertNotIn("QuestionReviewStatus", schemas)
-        self.assertEqual(["user", "assistant"], schemas["PracticeMessage"]["properties"]["role"]["enum"])
+
+        message = schemas["PracticeMessage"]
+        self.assertEqual(
+            [
+                {"$ref": "#/components/schemas/PracticeUserMessage"},
+                {"$ref": "#/components/schemas/PracticeAssistantMessage"},
+            ],
+            message["oneOf"],
+        )
+        self.assertEqual("role", message["discriminator"]["propertyName"])
+        self.assertEqual(
+            {
+                "user": "#/components/schemas/PracticeUserMessage",
+                "assistant": "#/components/schemas/PracticeAssistantMessage",
+            },
+            message["discriminator"]["mapping"],
+        )
+
+        user_message = schemas["PracticeUserMessage"]
+        assistant_message = schemas["PracticeAssistantMessage"]
+        self.assertFalse(user_message["additionalProperties"])
+        self.assertFalse(assistant_message["additionalProperties"])
+        self.assertEqual(["user"], user_message["properties"]["role"]["enum"])
+        self.assertEqual(["assistant"], assistant_message["properties"]["role"]["enum"])
+        self.assertTrue({"clientMessageId", "replyStatus"}.issubset(user_message["required"]))
+        self.assertTrue({"clientMessageId", "replyStatus"}.issubset(user_message["properties"]))
+        self.assertTrue({"clientMessageId", "replyStatus"}.isdisjoint(assistant_message["required"]))
+        self.assertTrue({"clientMessageId", "replyStatus"}.isdisjoint(assistant_message["properties"]))
         self.assertIn("PRACTICE_PLAN_NOT_FOUND", schemas["ApiErrorCode"]["enum"])
         self.assertIn("PRACTICE_SESSION_NOT_FOUND", schemas["ApiErrorCode"]["enum"])
 
@@ -275,6 +599,149 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertFalse(request["properties"]["sourceReportId"].get("nullable", False))
         self.assertEqual(2, len(request["oneOf"]))
 
+    def test_openapi_002_targetjob_intake_is_paste_only_and_operations_are_stable(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        schemas = data["components"]["schemas"]
+
+        request = schemas["ImportTargetJobRequest"]
+        self.assertEqual("object", request["type"])
+        self.assertFalse(request["additionalProperties"])
+        self.assertEqual(["rawText", "targetLanguage", "resumeId"], request["required"])
+        self.assertEqual(
+            {"rawText", "targetLanguage", "resumeId"},
+            set(request["properties"]),
+        )
+        self.assertEqual("string", request["properties"]["rawText"]["type"])
+        self.assertEqual(1, request["properties"]["rawText"]["minLength"])
+        self.assertEqual(r"\S", request["properties"]["rawText"]["pattern"])
+
+        for removed_schema in (
+            "TargetJobImportSourceURL",
+            "TargetJobImportSourceManualText",
+            "TargetJobImportSourceFile",
+            "TargetJobImportSourceManualForm",
+            "TargetJobImportSource",
+        ):
+            self.assertNotIn(removed_schema, schemas)
+
+        target_job = schemas["TargetJob"]
+        self.assertNotIn("sourceType", target_job["required"])
+        self.assertNotIn("sourceType", target_job["properties"])
+        self.assertNotIn("sourceUrl", target_job["properties"])
+        self.assertEqual(
+            ["resume", "privacy_export"],
+            schemas["UploadPresignRequest"]["properties"]["purpose"]["enum"],
+        )
+
+        import_operation = data["paths"]["/targets/import"]["post"]
+        self.assertEqual("importTargetJob", import_operation["operationId"])
+        self.assertEqual(
+            "#/components/schemas/ImportTargetJobRequest",
+            import_operation["requestBody"]["content"]["application/json"]["schema"]["$ref"],
+        )
+        self.assertEqual(
+            "#/components/schemas/TargetJobWithJob",
+            import_operation["responses"]["202"]["content"]["application/json"]["schema"]["$ref"],
+        )
+
+        presign_operation = data["paths"]["/uploads/presign"]["post"]
+        self.assertEqual("createUploadPresign", presign_operation["operationId"])
+        self.assertEqual(
+            "#/components/schemas/UploadPresignRequest",
+            presign_operation["requestBody"]["content"]["application/json"]["schema"]["$ref"],
+        )
+        self.assertEqual(
+            "#/components/schemas/UploadPresign",
+            presign_operation["responses"]["201"]["content"]["application/json"]["schema"]["$ref"],
+        )
+        self.assertEqual(37, len(inventory.EXPECTED_OPERATIONS))
+        self.assertEqual(10, len(inventory.EXPECTED_TAGS))
+
+    def test_targetjob_paste_only_semantic_linter_rejects_source_compatibility(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        errors: list[str] = []
+
+        inventory.validate_targetjob_paste_only_contract(data, errors)
+
+        self.assertEqual([], errors)
+
+        mutated = copy.deepcopy(data)
+        request = mutated["components"]["schemas"]["ImportTargetJobRequest"]
+        request["properties"]["source"] = {"type": "object"}
+        request["required"].append("source")
+        mutated["components"]["schemas"]["TargetJob"]["properties"]["sourceUrl"] = {
+            "type": "string",
+        }
+        mutated["components"]["schemas"]["UploadPresignRequest"]["properties"]["purpose"]["enum"].append(
+            "target_job_attachment"
+        )
+        next(tag for tag in mutated["tags"] if tag["name"] == "Uploads")["description"] = (
+            "Pre-signed object-storage URLs for resume / JD attachment uploads."
+        )
+        errors = []
+
+        inventory.validate_targetjob_paste_only_contract(mutated, errors)
+
+        self.assertTrue(any("ImportTargetJobRequest" in error and "properties" in error for error in errors), errors)
+        self.assertTrue(any("TargetJob" in error and "sourceUrl" in error for error in errors), errors)
+        self.assertTrue(any("UploadPresignRequest.purpose" in error for error in errors), errors)
+        self.assertTrue(any("Uploads tag description" in error for error in errors), errors)
+
+    def test_targetjob_paste_only_request_accepts_text_and_rejects_legacy_payloads(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        schema = data["components"]["schemas"]["ImportTargetJobRequest"]
+        resume_id = "01918fa0-0001-7000-8000-000000000001"
+        valid = {
+            "rawText": "Senior backend engineer\nGo and PostgreSQL required.",
+            "targetLanguage": "zh-CN",
+            "resumeId": resume_id,
+        }
+        errors: list[str] = []
+        fixture_validator.schema_validate(
+            valid,
+            schema,
+            root=data,
+            path="request",
+            errors=errors,
+        )
+        self.assertEqual([], errors)
+
+        invalid_payloads = [
+            {**valid, "rawText": value}
+            for value in ("", " ", "\t", "\n", " \t\n ")
+        ] + [
+            {
+                "source": {"type": "manual_text", "rawText": valid["rawText"]},
+                "targetLanguage": "zh-CN",
+                "resumeId": resume_id,
+            },
+            {**valid, "source": {"type": "url", "url": "https://example.com/jd"}},
+            {**valid, "source": {"type": "file", "fileObjectId": resume_id}},
+            {
+                **valid,
+                "source": {
+                    "type": "manual_form",
+                    "title": "Backend engineer",
+                    "rawDescription": "legacy",
+                },
+            },
+            {**valid, "fileObjectId": resume_id},
+            {**valid, "titleHint": "Backend engineer"},
+            {**valid, "companyNameHint": "Example"},
+            {**valid, "unexpected": True},
+        ]
+        for index, body in enumerate(invalid_payloads):
+            with self.subTest(index=index, body=body):
+                errors = []
+                fixture_validator.schema_validate(
+                    body,
+                    schema,
+                    root=data,
+                    path="request",
+                    errors=errors,
+                )
+                self.assertTrue(errors, body)
+
     def test_practice_session_exposes_ordered_messages_without_turn_state(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         schemas = data["components"]["schemas"]
@@ -305,11 +772,32 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
     def test_practice_message_generated_artifacts_are_in_sync(self) -> None:
         generated = yaml.safe_load(Path("backend/internal/api/generated/openapi.yaml").read_text(encoding="utf-8"))
         ts_types = Path("frontend/src/api/generated/types.ts").read_text(encoding="utf-8")
+        go_types = Path("backend/internal/api/generated/types.gen.go").read_text(encoding="utf-8")
 
-        self.assertIn("PracticeMessage", generated["components"]["schemas"])
-        self.assertNotIn("PracticeTurn", generated["components"]["schemas"])
-        self.assertIn("export interface PracticeMessage", ts_types)
+        generated_schemas = generated["components"]["schemas"]
+        self.assertEqual(
+            [
+                {"$ref": "#/components/schemas/PracticeUserMessage"},
+                {"$ref": "#/components/schemas/PracticeAssistantMessage"},
+            ],
+            generated_schemas["PracticeMessage"]["oneOf"],
+        )
+        self.assertNotIn("PracticeTurn", generated_schemas)
+        self.assertIn(
+            "export type PracticeMessage = PracticeUserMessage | PracticeAssistantMessage;",
+            ts_types,
+        )
+        self.assertNotIn("export interface PracticeMessage", ts_types)
         self.assertNotIn("export interface PracticeTurn", ts_types)
+
+        union_start = go_types.index("type PracticeMessage struct {")
+        union_end = go_types.index("type PracticeSession struct {", union_start)
+        go_union = go_types[union_start:union_end]
+        self.assertIn("func (value PracticeMessage) MarshalJSON()", go_union)
+        self.assertIn("func (value *PracticeMessage) UnmarshalJSON", go_union)
+        self.assertIn("decoder.DisallowUnknownFields()", go_union)
+        self.assertNotIn("any", go_union)
+        self.assertNotIn("type PracticeMessage = any", go_types)
 
     def test_practice_round_identity_and_progress_contract_is_additive(self) -> None:
         for path in (

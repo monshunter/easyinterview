@@ -20,8 +20,6 @@
           "companyName": "Acme",
           "locationText": "Shanghai · Hybrid",
           "targetLanguage": "zh-CN",
-          "sourceType": "url",
-          "sourceUrl": "https://acme.example/careers/senior-frontend",
           "summary": {
             "coreThemes": [
               "Design-system & component-library leadership",
@@ -94,7 +92,6 @@
               "dataSourceVersion": "target_job.v17"
             }
           },
-          "latestReportId": "01918fa0-0000-7000-8000-000000007000",
           "openQuestionIssueCount": 2,
           "createdAt": "2026-04-22T09:30:00Z",
           "updatedAt": "2026-07-09T13:45:12Z",

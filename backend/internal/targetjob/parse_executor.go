@@ -14,7 +14,6 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 )
 
 // FeatureKeyTargetImportParse is the F3 feature_key consumed by the parse
@@ -47,18 +46,11 @@ type PromptRegistryClient interface {
 // (featureKey, language) tuple is not enabled for the active profile.
 var ErrPromptUnsupported = errors.New("prompt registry: feature/language is not enabled")
 
-// URLFetcher is the urlfetch boundary used by the parse executor. The
-// production implementation is *urlfetch.Fetcher.
-type URLFetcher interface {
-	Fetch(ctx context.Context, rawURL string) (urlfetch.FetchResult, error)
-}
-
 // ParseExecutorOptions wires the parse executor.
 type ParseExecutorOptions struct {
 	Store    Store
 	Registry PromptRegistryClient
 	AI       aiclient.AIClient
-	Fetcher  URLFetcher
 	NewID    IDGenerator
 	Now      func() time.Time
 }
@@ -68,7 +60,6 @@ type ParseExecutor struct {
 	store    Store
 	registry PromptRegistryClient
 	ai       aiclient.AIClient
-	fetcher  URLFetcher
 	newID    IDGenerator
 	now      func() time.Time
 }
@@ -82,7 +73,6 @@ func NewParseExecutor(opts ParseExecutorOptions) *ParseExecutor {
 		store:    opts.Store,
 		registry: opts.Registry,
 		ai:       opts.AI,
-		fetcher:  opts.Fetcher,
 		newID:    opts.NewID,
 		now:      opts.Now,
 	}
@@ -127,7 +117,7 @@ func (p *ParseExecutor) Handle(ctx context.Context, job runner.ClaimedJob) runne
 		return runner.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: "parse executor not initialised"}
 	}
 	targetJobID := job.ResourceID
-	target, sources, err := p.store.GetTargetJobForParse(ctx, targetJobID)
+	target, err := p.store.GetTargetJobForParse(ctx, targetJobID)
 	if err != nil {
 		if errors.Is(err, ErrTargetJobNotFound) {
 			return runner.JobOutcome{
@@ -139,17 +129,6 @@ func (p *ParseExecutor) Handle(ctx context.Context, job runner.ClaimedJob) runne
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), false)
 	}
 
-	var fetchedURLBody string
-	var sourceURLForPrompt string
-	if target.SourceType == SourceTypeURL {
-		fetched, err := p.fetchURLSnapshot(ctx, target, sources)
-		if err != nil {
-			return p.translateAndFail(ctx, targetJobID, err)
-		}
-		fetchedURLBody = fetched.Body
-		sourceURLForPrompt = fetched.SanitizedURL
-	}
-
 	resolution, err := p.registry.Resolve(ctx, FeatureKeyTargetImportParse, target.TargetLanguage)
 	if err != nil {
 		// F3 disabled / unsupported / config-invalid all map to non-retryable
@@ -157,18 +136,9 @@ func (p *ParseExecutor) Handle(ctx context.Context, job runner.ClaimedJob) runne
 		return p.fail(ctx, targetJobID, sharederrors.CodeAiProviderConfigInvalid, err.Error(), false)
 	}
 
-	jdText := fetchedURLBody
+	jdText := strings.TrimSpace(target.RawJDText)
 	if strings.TrimSpace(jdText) == "" {
-		jdText = target.RawJDText
-		for _, src := range sources {
-			if src.SnapshotText != "" {
-				jdText = src.SnapshotText
-				break
-			}
-		}
-	}
-	if strings.TrimSpace(jdText) == "" {
-		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportSourceInvalid, "no JD text available for parse", false)
+		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, "target job raw JD text is empty", false)
 	}
 
 	metadata := aiclient.CallMetadata{
@@ -188,7 +158,7 @@ func (p *ParseExecutor) Handle(ctx context.Context, job runner.ClaimedJob) runne
 		metadata.OutputSchema = *resolution.OutputSchema
 	}
 	complete, aiMeta, err := p.ai.Complete(ctx, resolution.ModelProfileName, aiclient.CompletePayload{
-		Messages: buildPromptMessages(resolution, target.TargetLanguage, jdText, sourceURLForPrompt),
+		Messages: buildPromptMessages(resolution, target.TargetLanguage, jdText),
 		Metadata: metadata,
 	})
 	if err != nil {
@@ -266,7 +236,6 @@ func (p *ParseExecutor) Handle(ctx context.Context, job runner.ClaimedJob) runne
 		Requirements:       requirements,
 		ParsedEventID:      p.newID(),
 		ParsedEventPayload: rawParsed,
-		SourceRefreshJobID: p.newID(),
 		Now:                now,
 	}); err != nil {
 		return runner.JobOutcome{
@@ -277,33 +246,6 @@ func (p *ParseExecutor) Handle(ctx context.Context, job runner.ClaimedJob) runne
 	}
 
 	return runner.JobOutcome{Succeeded: true}
-}
-
-func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRecord, sources []SourceRecord) (urlfetch.FetchResult, error) {
-	if p.fetcher == nil {
-		return urlfetch.FetchResult{}, fmt.Errorf("%w: url fetcher not configured", urlfetch.ErrSourceUnavailable)
-	}
-	if target.SourceURL == "" {
-		return urlfetch.FetchResult{}, fmt.Errorf("%w: no source url recorded", urlfetch.ErrInvalidSource)
-	}
-	var sourceID string
-	for _, s := range sources {
-		if s.SourceType == SourceTypeURL {
-			sourceID = s.ID
-			break
-		}
-	}
-	if sourceID == "" {
-		return urlfetch.FetchResult{}, fmt.Errorf("%w: url source row not found", urlfetch.ErrInvalidSource)
-	}
-	res, err := p.fetcher.Fetch(ctx, target.SourceURL)
-	if err != nil {
-		return urlfetch.FetchResult{}, err
-	}
-	if err := p.store.UpdateSourceSnapshot(ctx, sourceID, res.SanitizedURL, res.Body, res.FetchedAt, p.now()); err != nil {
-		return urlfetch.FetchResult{}, err
-	}
-	return res, nil
 }
 
 func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message string, retryable bool) runner.JobOutcome {
@@ -337,17 +279,6 @@ func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message str
 		ErrorCode:    code,
 		ErrorMessage: safeFailureMessage(code, message),
 		Retryable:    retryable,
-	}
-}
-
-func (p *ParseExecutor) translateAndFail(ctx context.Context, targetJobID string, err error) runner.JobOutcome {
-	switch {
-	case errors.Is(err, urlfetch.ErrInvalidSource):
-		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportSourceInvalid, err.Error(), false)
-	case errors.Is(err, urlfetch.ErrSourceUnavailable):
-		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportSourceUnavailable, err.Error(), true)
-	default:
-		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), true)
 	}
 }
 
@@ -398,7 +329,7 @@ func decodeParseResponse(content string) (parseAIResponse, error) {
 	return out, nil
 }
 
-func buildPromptMessages(resolution PromptResolution, language string, jdText string, sourceURL string) []aiclient.Message {
+func buildPromptMessages(resolution PromptResolution, language string, jdText string) []aiclient.Message {
 	messages := make([]aiclient.Message, 0, 2)
 	if system := strings.TrimSpace(resolution.SystemMessage); system != "" {
 		messages = append(messages, aiclient.Message{Role: "system", Content: system})
@@ -407,7 +338,6 @@ func buildPromptMessages(resolution PromptResolution, language string, jdText st
 	if template := strings.TrimSpace(resolution.UserMessageTemplate); template != "" {
 		user = strings.ReplaceAll(template, "{{jd_text}}", jdText)
 		user = strings.ReplaceAll(user, "{{language}}", language)
-		user = strings.ReplaceAll(user, "{{jd_source_url}}", sourceURL)
 		user = strings.TrimSpace(user)
 	}
 	if user != "" {
@@ -569,9 +499,7 @@ func safeFailureMessage(code, msg string) string {
 		sharederrors.CodeAiOutputInvalid,
 		sharederrors.CodeAiUnsupportedCapability,
 		sharederrors.CodeAiProviderSecretMissing,
-		sharederrors.CodeAiProviderConfigInvalid,
-		sharederrors.CodeTargetImportSourceInvalid,
-		sharederrors.CodeTargetImportSourceUnavailable:
+		sharederrors.CodeAiProviderConfigInvalid:
 		return code
 	default:
 		return redactErrorMessage(msg)
@@ -600,24 +528,4 @@ func redactErrorMessage(msg string) string {
 		}
 	}
 	return msg
-}
-
-// SourceRefreshHandler is the minimal JobHandler for source_refresh rows
-// enqueued in 4.5. It marks target_job_sources.freshness_status as 'stale'
-// without fetching external data or exposing the source URL.
-type SourceRefreshHandler struct {
-	Store Store
-	Now   func() time.Time
-}
-
-// Handle satisfies JobHandler.
-func (h *SourceRefreshHandler) Handle(ctx context.Context, job runner.ClaimedJob) runner.JobOutcome {
-	now := time.Now().UTC()
-	if h.Now != nil {
-		now = h.Now()
-	}
-	if err := h.Store.UpdateSourceFreshness(ctx, job.ResourceID, FreshnessStale, now); err != nil {
-		return runner.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: err.Error(), Retryable: true}
-	}
-	return runner.JobOutcome{Succeeded: true}
 }

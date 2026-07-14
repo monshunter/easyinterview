@@ -64,6 +64,7 @@ func TestTargetJobMetricsRejectForbiddenLabels(t *testing.T) {
 		"user_id",
 		"user",
 		"email",
+		"source_type",
 		"source_url",
 		"url",
 		"prompt_version",
@@ -83,13 +84,12 @@ func TestTargetJobMetricsRejectForbiddenLabels(t *testing.T) {
 
 func TestTargetJobMetricsAllowedLabelSet(t *testing.T) {
 	want := map[string]bool{
-		"service":     true,
-		"operation":   true,
-		"job_type":    true,
-		"source_type": true,
-		"language":    true,
-		"result":      true,
-		"error_code":  true,
+		"service":    true,
+		"operation":  true,
+		"job_type":   true,
+		"language":   true,
+		"result":     true,
+		"error_code": true,
 	}
 	got := targetjob.AllowedTargetJobMetricLabels()
 	if len(got) != len(want) {

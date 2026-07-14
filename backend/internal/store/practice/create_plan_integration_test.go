@@ -70,9 +70,9 @@ insert into resumes (
 		`],"provenance":{"promptVersion":"v0.1.0","rubricVersion":"v0.1.0","modelId":"fixture-model","language":"zh-CN","featureFlag":"none","dataSourceVersion":"target-job.v1"}}`
 	if _, err := db.ExecContext(ctx, `
 insert into target_jobs (
-  id,user_id,resume_id,status,analysis_status,title,target_language,source_type,
+  id,user_id,resume_id,status,analysis_status,title,target_language,
   summary,fit_summary,created_at,updated_at
-) values ($1,$2,$3,'draft','ready','Platform Engineer','zh-CN','manual_text',$4::jsonb,'{}'::jsonb,$5,$5)`, targetID, userID, resumeID, summary, now); err != nil {
+) values ($1,$2,$3,'draft','ready','Platform Engineer','zh-CN',$4::jsonb,'{}'::jsonb,$5,$5)`, targetID, userID, resumeID, summary, now); err != nil {
 		t.Fatalf("insert target job: %v", err)
 	}
 

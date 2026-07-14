@@ -1,52 +1,49 @@
 package reports
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
 
-	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	reviewdomain "github.com/monshunter/easyinterview/backend/internal/review"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
 func (h *Handler) ListTargetJobReports(w http.ResponseWriter, r *http.Request, targetJobID string) {
+	requestID := strings.TrimSpace(r.Header.Get("X-Request-ID"))
+	if requestID != "" {
+		w.Header().Set("X-Request-ID", requestID)
+	}
 	if h == nil || h.service == nil {
-		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "report service is not configured", nil)
+		writeAPIErrorWithRequestID(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "report service is not configured", requestID, nil)
 		return
 	}
 	userID, ok := h.resolveUser(r)
 	if !ok {
-		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required", nil)
+		writeAPIErrorWithRequestID(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required", requestID, nil)
 		return
 	}
-	q := r.URL.Query()
 	req := reviewdomain.ListTargetJobReportsRequest{
 		UserID:      userID,
 		TargetJobID: targetJobID,
-		Cursor:      q.Get("cursor"),
-	}
-	if pageSize := strings.TrimSpace(q.Get("pageSize")); pageSize != "" {
-		var n int
-		if _, err := fmt.Sscanf(pageSize, "%d", &n); err == nil {
-			req.PageSize = n
-		}
 	}
 	res, err := h.service.ListTargetJobReports(r.Context(), req)
 	if err != nil {
-		writeServiceError(w, err)
+		writeTargetJobReportsError(w, requestID, err)
 		return
 	}
-	out := api.PaginatedFeedbackReport{
-		Items: make([]api.FeedbackReport, 0, len(res.Items)),
-		PageInfo: api.PageInfo{
-			NextCursor: optionalString(res.PageInfo.NextCursor),
-			PageSize:   res.PageInfo.PageSize,
-			HasMore:    res.PageInfo.HasMore,
-		},
+	writeJSON(w, http.StatusOK, toAPITargetJobReportsOverview(res))
+}
+
+func writeTargetJobReportsError(w http.ResponseWriter, requestID string, err error) {
+	switch {
+	case errors.Is(err, reviewdomain.ErrReportNotFound):
+		writeAPIErrorWithRequestID(w, http.StatusNotFound, sharederrors.CodeTargetJobNotFound, "Target job not found.", requestID, map[string]any{"resource": "target_job"})
+	case errors.Is(err, reviewdomain.ErrReportContextMissing):
+		writeAPIErrorWithRequestID(w, http.StatusInternalServerError, sharederrors.CodeAiOutputInvalid, "Report context could not be validated.", requestID, map[string]any{"reason": "missing_generation_context"})
+	case errors.Is(err, reviewdomain.ErrReportContextInvalid):
+		writeAPIErrorWithRequestID(w, http.StatusInternalServerError, sharederrors.CodeAiOutputInvalid, "Report context could not be validated.", requestID, map[string]any{"reason": "invalid_generation_context"})
+	default:
+		writeAPIErrorWithRequestID(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "report request failed", requestID, nil)
 	}
-	for _, item := range res.Items {
-		out.Items = append(out.Items, toAPIFeedbackReport(item))
-	}
-	writeJSON(w, http.StatusOK, out)
 }

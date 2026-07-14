@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  *
  * Phase 2.7 — ReportFailureState focused gates.
- *  - All AI_* enum values map to dedicated copy (TestReportFailureStateRendersErrorCodeMatrix)
- *  - REPORT_NOT_FOUND routes through failureState.notFound.* keys, NOT AI_*
+ *  - Internal provider/config error details never render in visible or accessible UI.
+ *  - REPORT_NOT_FOUND routes through dedicated failureState.notFound.* copy.
  *  - Terminal report failures do not offer a fake regeneration action.
  *  - Only recoverable transport errors expose a reload action.
  */
@@ -25,26 +25,20 @@ const AI_ENUM: ReadonlyArray<ApiErrorCode> = [
 ];
 
 describe("ReportFailureState", () => {
-  it("renders the AI_* enum matrix without collapsing to UNKNOWN (TestReportFailureStateRendersErrorCodeMatrix)", () => {
-    const renderedTexts: Record<string, string> = {};
+  it("hides the AI_* enum matrix behind one user-safe terminal state", () => {
     for (const code of AI_ENUM) {
       const { unmount } = render(
         <ReportFailureState
           errorCode={code}
           onRetry={() => undefined}
-          onBackToWorkspace={() => undefined}
+          onBack={() => undefined}
+          backDestination="workspace"
         />,
       );
-      const codeLabel = screen.getByTestId("report-failure-error-code").textContent ?? "";
-      renderedTexts[code] = codeLabel;
-      // Each AI_* enum must surface a non-fallback string. The UNKNOWN map key
-      // is reserved for true catch-alls.
-      expect(codeLabel.length).toBeGreaterThan(0);
+      expect(screen.queryByTestId("report-failure-error-code")).not.toBeInTheDocument();
+      expect(document.body).not.toHaveTextContent(code);
       unmount();
     }
-    const distinct = new Set(Object.values(renderedTexts));
-    // 6 AI_* codes → at least 6 distinct strings, none falling through to UNKNOWN.
-    expect(distinct.size).toBeGreaterThanOrEqual(AI_ENUM.length);
   });
 
   it("REPORT_NOT_FOUND uses the dedicated notFound copy and hides the retry CTA (TestReportFailureStateRendersNotFoundCopy)", () => {
@@ -54,7 +48,8 @@ describe("ReportFailureState", () => {
       <ReportFailureState
         errorCode="REPORT_NOT_FOUND"
         onRetry={onRetry}
-        onBackToWorkspace={onBack}
+        onBack={onBack}
+        backDestination="workspace"
       />,
     );
     const root = screen.getByTestId("report-failure-state");
@@ -72,11 +67,15 @@ describe("ReportFailureState", () => {
       <ReportFailureState
         errorCode="AI_PROVIDER_TIMEOUT"
         onRetry={onRetry}
-        onBackToWorkspace={onBack}
+        onBack={onBack}
+        backDestination="reports"
       />,
     );
     expect(screen.queryByTestId("report-failure-retry-cta")).not.toBeInTheDocument();
-    screen.getByTestId("report-failure-back-to-workspace").click();
+    const back = screen.getByTestId("report-failure-back-to-workspace");
+    expect(back).toHaveAttribute("data-back-destination", "reports");
+    expect(back).toHaveTextContent("Back to interview reports");
+    back.click();
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
@@ -87,21 +86,23 @@ describe("ReportFailureState", () => {
         errorCode={null}
         recoverable
         onRetry={onRetry}
-        onBackToWorkspace={() => undefined}
+        onBack={() => undefined}
+        backDestination="workspace"
       />,
     );
     screen.getByTestId("report-failure-retry-cta").click();
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back to UNKNOWN copy when errorCode is null or unrecognized", () => {
+  it("uses generic copy without exposing an unknown error-code panel", () => {
     render(
       <ReportFailureState
         errorCode={null}
         onRetry={() => undefined}
-        onBackToWorkspace={() => undefined}
+        onBack={() => undefined}
+        backDestination="workspace"
       />,
     );
-    expect(screen.getByTestId("report-failure-error-code").textContent ?? "").not.toBe("");
+    expect(screen.queryByTestId("report-failure-error-code")).not.toBeInTheDocument();
   });
 });

@@ -12,7 +12,6 @@ function targetJob(overrides: Partial<TargetJob> = {}): TargetJob {
     companyName: "Acme",
     locationText: "Shanghai",
     targetLanguage: "zh-CN",
-    sourceType: "url",
     requirements: [],
     openQuestionIssueCount: 0,
     createdAt: "2026-04-22T09:30:00Z",

@@ -65,7 +65,11 @@
 
 ## Phase 7: Remove JD attachment upload purpose
 
-- [ ] 7.1 RED: B1/B3/OpenAPI、B4、A4 与 backend-upload 各 owner test 共同证明 JD attachment purpose 与专属 maxBytes 仍可达；本 owner 锁定 purpose validation/handler 分支和 `resume` / `privacy_export` 正向基线。
-- [ ] 7.2 GREEN: 先消费 OpenAPI/B4 purpose 与 A4 Phase 12 maxBytes handoff，再只删除 backend-upload handler/service 自有分支；不直接修改 A4 config/validator/composition 或 B4 DB constraint，并保留 endpoint、state machine、resume register 与 privacy delete。
-- [ ] 7.3 BDD-Gate: E2E.P0.033 证明 resume roundtrip、JD attachment purpose 被拒绝、privacy export purpose 仍合法。
-- [ ] 7.4 Zero-ref: OpenAPI/generated/backend/migrations/config/fixtures/scripts 精确搜索旧 purpose 为零，resume/privacy focused/full gates 通过。
+- [x] 7.1 RED: B1/B3/OpenAPI、B4、A4 与 backend-upload 各 owner test 共同证明 JD attachment purpose 与专属 maxBytes 仍可达；本 owner 锁定 purpose validation/handler 分支和 `resume` / `privacy_export` 正向基线。
+  <!-- verified: 2026-07-13 method=service-purpose-red evidence="direct upload service test accepted target_job_attachment and returned nil before GREEN; handler/config tests lock rejection plus resume/privacy limits" -->
+- [x] 7.2 GREEN: 先消费 OpenAPI/B4 purpose 与 A4 Phase 12 maxBytes handoff，再只删除 backend-upload handler/service 自有分支；不直接修改 A4 config/validator/composition 或 B4 DB constraint，并保留 endpoint、state machine、resume register 与 privacy delete。
+  <!-- verified: 2026-07-13 method=owner-green evidence="OpenAPI and runtime accept only resume/privacy_export; service rejects target_job_attachment; full backend go test ./... passes." -->
+- [x] 7.3 BDD-Gate: E2E.P0.033 证明 resume roundtrip、JD attachment purpose 被拒绝、privacy export purpose 仍合法。
+  <!-- verified: 2026-07-13 method=live-scenario evidence="P0.033 setup/trigger/verify/cleanup PASS against live PostgreSQL and MinIO after repairing stale auth request data and an over-broad status grep; signed PUT/register/privacy delete completed and removed JD purpose was rejected." -->
+- [x] 7.4 Zero-ref: OpenAPI/generated/backend/migrations/config/fixtures/scripts 精确搜索旧 purpose 为零，resume/privacy focused/full gates 通过。
+  <!-- verified: 2026-07-13 method=negative-search evidence="No production target_job_attachment/targetJobAttachment hit remains outside explicit negative tests; make codegen-check, backend go test ./..., and P0.033 live owner gates pass." -->

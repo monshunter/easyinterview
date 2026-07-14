@@ -96,15 +96,11 @@ func TestHandler_ImportTargetJob_Returns202WithTargetJobWithJob(t *testing.T) {
 	h, _ := newWiredHandler(t,
 		"018f2a40-0000-7000-9000-0000000000a1", // target id
 		"018f2a40-0000-7000-9000-0000000000f1", // job id
-		"018f2a40-0000-7000-9000-0000000000c1", // source id
 		"018f2a40-0000-7000-9000-0000000000e1", // outbox id
 	)
 
 	body := api.ImportTargetJobRequest{
-		Source: map[string]any{
-			"type":    "manual_text",
-			"rawText": "Backend Engineer needed.",
-		},
+		RawText:        "Backend Engineer needed.",
 		TargetLanguage: "en",
 		ResumeId:       "018f2a40-0000-7000-9000-0000000000r1",
 	}
@@ -133,7 +129,7 @@ func TestHandler_ImportTargetJob_Returns202WithTargetJobWithJob(t *testing.T) {
 func TestHandler_ImportTargetJob_RejectsMissingIdempotencyKey(t *testing.T) {
 	h, _ := newWiredHandler(t, "a", "b", "c", "d")
 	body, _ := json.Marshal(api.ImportTargetJobRequest{
-		Source:         map[string]any{"type": "manual_text", "rawText": "x"},
+		RawText:        "x",
 		TargetLanguage: "en",
 		ResumeId:       "018f2a40-0000-7000-9000-0000000000r1",
 	})
@@ -150,7 +146,7 @@ func TestHandler_ImportTargetJob_RejectsMissingIdempotencyKey(t *testing.T) {
 func TestHandler_ImportTargetJob_RejectsMissingSession(t *testing.T) {
 	h, _ := newWiredHandler(t, "a", "b", "c", "d")
 	body, _ := json.Marshal(api.ImportTargetJobRequest{
-		Source:         map[string]any{"type": "manual_text", "rawText": "x"},
+		RawText:        "x",
 		TargetLanguage: "en",
 		ResumeId:       "018f2a40-0000-7000-9000-0000000000r1",
 	})
@@ -165,15 +161,6 @@ func TestHandler_ImportTargetJob_RejectsMissingSession(t *testing.T) {
 }
 
 func TestHandler_ErrorResponsesUseGeneratedEnvelope(t *testing.T) {
-	errorBody := func() []byte {
-		body, _ := json.Marshal(api.ImportTargetJobRequest{
-			Source:         map[string]any{"type": "manual_text", "rawText": "x"},
-			TargetLanguage: "en",
-			ResumeId:       "018f2a40-0000-7000-9000-0000000000r1",
-		})
-		return body
-	}
-
 	t.Run("list missing session", func(t *testing.T) {
 		h, _ := newWiredHandler(t)
 		rec := httptest.NewRecorder()
@@ -197,18 +184,39 @@ func TestHandler_ErrorResponsesUseGeneratedEnvelope(t *testing.T) {
 		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeTargetJobNotFound, false)
 	})
 
-	t.Run("import source unavailable", func(t *testing.T) {
-		h, store := newWiredHandler(t, "target-1", "job-1", "source-1", "outbox-1")
-		store.err = &targetjob.ServiceImportError{Code: sharederrors.CodeTargetImportSourceUnavailable, Message: "source temporarily unavailable"}
-		req := httptest.NewRequest(http.MethodPost, "/targets/import", bytes.NewReader(errorBody()))
+	t.Run("import blank rawText", func(t *testing.T) {
+		h, _ := newWiredHandler(t)
+		body, _ := json.Marshal(api.ImportTargetJobRequest{
+			RawText:        " \n\t ",
+			TargetLanguage: "en",
+			ResumeId:       "018f2a40-0000-7000-9000-0000000000r1",
+		})
+		req := httptest.NewRequest(http.MethodPost, "/targets/import", bytes.NewReader(body))
 		req.Header.Set(targetjob.IdempotencyKeyHeader, "key-1")
 		req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
 		rec := httptest.NewRecorder()
 		h.ImportTargetJob(rec, req)
-		if rec.Code != http.StatusBadGateway {
+		if rec.Code != http.StatusUnprocessableEntity {
 			t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 		}
-		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeTargetImportSourceUnavailable, true)
+		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeValidationFailed, false)
+	})
+
+	t.Run("import rejects removed source wrapper", func(t *testing.T) {
+		h, store := newWiredHandler(t)
+		body := []byte(`{"rawText":"Backend Engineer JD","targetLanguage":"en","resumeId":"resume-1","source":{"type":"url","url":"https://example.test/job"}}`)
+		req := httptest.NewRequest(http.MethodPost, "/targets/import", bytes.NewReader(body))
+		req.Header.Set(targetjob.IdempotencyKeyHeader, "key-source-wrapper")
+		req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
+		rec := httptest.NewRecorder()
+		h.ImportTargetJob(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+		}
+		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeValidationFailed, false)
+		if store.callCount != 0 {
+			t.Fatalf("removed source wrapper must not reach store: calls=%d", store.callCount)
+		}
 	})
 
 	t.Run("update invalid transition", func(t *testing.T) {
@@ -221,7 +229,7 @@ func TestHandler_ErrorResponsesUseGeneratedEnvelope(t *testing.T) {
 		req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
 		rec := httptest.NewRecorder()
 		h.UpdateTargetJob(rec, req, "target-1")
-		if rec.Code != http.StatusBadRequest {
+		if rec.Code != http.StatusConflict {
 			t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 		}
 		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeTargetInvalidStateTransition, false)
@@ -252,7 +260,6 @@ func TestHandler_ArchiveTargetJob_Returns202AndRequiresIdempotencyKey(t *testing
 		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
 		Title:          "Backend Engineer",
 		CompanyName:    "Acme",
-		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 		CreatedAt:      now,
 		UpdatedAt:      now,
@@ -297,7 +304,6 @@ func TestHandler_GetAndListTargetJobs_ReturnPracticeProgressWithWireParity(t *te
 		AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
 		Title:               "Backend Engineer",
 		CompanyName:         "Acme",
-		SourceType:          targetjob.SourceTypeManualText,
 		TargetLanguage:      "en",
 		Summary:             threeRoundSummaryJSON(),
 		PracticeFactsLoaded: true,
@@ -357,7 +363,6 @@ func TestHandler_GetTargetJob_OmitsPracticeProgressWhenSummaryIsInvalid(t *testi
 		Status:         sharedtypes.TargetJobStatusInterviewing,
 		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
 		Title:          "Backend Engineer",
-		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 		Summary:        json.RawMessage(`{"interviewRounds":[]}`),
 		CreatedAt:      now,

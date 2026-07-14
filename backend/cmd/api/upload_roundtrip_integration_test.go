@@ -92,7 +92,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 	handler := buildAPIHandler(loader, apiRuntimeFlags{}, authService, runtime.Handler, practiceRoutes{}, uploadRoutes, resumeRoutes{}, reportRoutes{}, jobsRoutes{})
 
 	start := httptest.NewRecorder()
-	handler.ServeHTTP(start, httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", strings.NewReader(`{"email":"`+email+`","purpose":"signup","displayName":"Upload Roundtrip"}`)))
+	handler.ServeHTTP(start, httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", strings.NewReader(`{"email":"`+email+`"}`)))
 	if start.Code != http.StatusAccepted {
 		t.Fatalf("start auth status = %d body=%s", start.Code, start.Body.String())
 	}
@@ -106,6 +106,65 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 		t.Fatalf("verify auth status = %d body=%s", verify.Code, verify.Body.String())
 	}
 	sessionCookie := requireUploadRoundtripSessionCookie(t, verify)
+
+	t.Run("rejects_removed_target_job_attachment_purpose", func(t *testing.T) {
+		var before int
+		if err := db.QueryRowContext(ctx, `select count(*) from file_objects where user_id=$1`, userID).Scan(&before); err != nil {
+			t.Fatalf("count file objects before removed purpose request: %v", err)
+		}
+		removedPurpose := serveUploadRoundtripPresign(
+			handler,
+			sessionCookie,
+			"upload-roundtrip-removed-jd-purpose-key",
+			[]byte(`{"purpose":"target_job_attachment","fileName":"job.pdf","contentType":"application/pdf","byteSize":1024}`),
+		)
+		if removedPurpose.Code != http.StatusUnprocessableEntity {
+			t.Fatalf("removed purpose status = %d body=%s", removedPurpose.Code, removedPurpose.Body.String())
+		}
+		var body api.ApiErrorResponse
+		if err := json.Unmarshal(removedPurpose.Body.Bytes(), &body); err != nil {
+			t.Fatalf("decode removed purpose response: %v", err)
+		}
+		if body.Error.Code != "VALIDATION_FAILED" || body.Error.Details["field"] != "purpose" {
+			t.Fatalf("removed purpose error = %+v", body.Error)
+		}
+		var after int
+		if err := db.QueryRowContext(ctx, `select count(*) from file_objects where user_id=$1`, userID).Scan(&after); err != nil {
+			t.Fatalf("count file objects after removed purpose request: %v", err)
+		}
+		if after != before {
+			t.Fatalf("removed purpose created file_objects rows: before=%d after=%d", before, after)
+		}
+		t.Logf("P0.033 JD purpose rejection: status=422 row_count=%d", after)
+	})
+
+	var privacyExport api.UploadPresign
+	t.Run("preserves_privacy_export_boundary", func(t *testing.T) {
+		privacyExportRec := serveUploadRoundtripPresign(
+			handler,
+			sessionCookie,
+			"upload-roundtrip-privacy-export-key",
+			[]byte(`{"purpose":"privacy_export","fileName":"privacy-export.zip","contentType":"application/zip","byteSize":5242880}`),
+		)
+		if privacyExportRec.Code != http.StatusCreated {
+			t.Fatalf("privacy export presign status = %d body=%s", privacyExportRec.Code, privacyExportRec.Body.String())
+		}
+		if err := json.Unmarshal(privacyExportRec.Body.Bytes(), &privacyExport); err != nil {
+			t.Fatalf("decode privacy export presign: %v", err)
+		}
+		var purpose, uploadStatus string
+		var byteSize int64
+		if err := db.QueryRowContext(ctx, `
+select purpose, byte_size, upload_status
+from file_objects
+where id=$1 and user_id=$2`, privacyExport.FileObjectId, userID).Scan(&purpose, &byteSize, &uploadStatus); err != nil {
+			t.Fatalf("read privacy export file object: %v", err)
+		}
+		if purpose != "privacy_export" || byteSize != 5_242_880 || uploadStatus != "pending" {
+			t.Fatalf("privacy export row = purpose=%q byte_size=%d upload_status=%q", purpose, byteSize, uploadStatus)
+		}
+		t.Logf("P0.033 privacy_export: status=201 byte_size=%d upload_status=%s", byteSize, uploadStatus)
+	})
 
 	presignBody := []byte(`{"purpose":"resume","fileName":"resume.pdf","contentType":"application/pdf","byteSize":1024}`)
 	firstPresign := serveUploadRoundtripPresign(handler, sessionCookie, "upload-roundtrip-presign-key", presignBody)
@@ -181,7 +240,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 	if !processed {
 		t.Fatal("privacy_delete job was not processed")
 	}
-	assertUploadRoundtripPrivacyDelete(t, db, presign.FileObjectId, privacyRequestID, email)
+	assertUploadRoundtripPrivacyDelete(t, db, []string{presign.FileObjectId, privacyExport.FileObjectId}, privacyRequestID, email)
 }
 
 type uploadRoundtripLiveConfig struct {
@@ -266,7 +325,6 @@ upload:
   presignTTLSeconds: 600
   maxBytes:
     resume: 2097152
-    targetJobAttachment: 10485760
     privacyExport: 5242880
 ai:
   providerRegistryPath: "`+providersPath+`"
@@ -367,14 +425,16 @@ where id = $2 and job_type = 'privacy_delete' and status = 'queued'`, first, job
 	return nil
 }
 
-func assertUploadRoundtripPrivacyDelete(t *testing.T, db *sql.DB, fileObjectID string, privacyRequestID string, email string) {
+func assertUploadRoundtripPrivacyDelete(t *testing.T, db *sql.DB, fileObjectIDs []string, privacyRequestID string, email string) {
 	t.Helper()
-	var fileCount int
-	if err := db.QueryRow(`select count(*) from file_objects where id = $1`, fileObjectID).Scan(&fileCount); err != nil {
-		t.Fatalf("count file object after privacy delete: %v", err)
-	}
-	if fileCount != 0 {
-		t.Fatalf("file object %s still exists after privacy delete", fileObjectID)
+	for _, fileObjectID := range fileObjectIDs {
+		var fileCount int
+		if err := db.QueryRow(`select count(*) from file_objects where id = $1`, fileObjectID).Scan(&fileCount); err != nil {
+			t.Fatalf("count file object after privacy delete: %v", err)
+		}
+		if fileCount != 0 {
+			t.Fatalf("file object %s still exists after privacy delete", fileObjectID)
+		}
 	}
 	var requestStatus string
 	if err := db.QueryRow(`select status from privacy_requests where id = $1`, privacyRequestID).Scan(&requestStatus); err != nil {
@@ -404,12 +464,14 @@ limit 1`, privacyRequestID).Scan(&jobStatus, &errorCode, &errorMessage)
 	if userCount != 0 {
 		t.Fatalf("users row with deleted email %q still exists after privacy delete", email)
 	}
-	var auditMetadata string
-	if err := db.QueryRow(`select metadata::text from audit_events where resource_id = $1 and action = 'privacy.file_object_deleted'`, fileObjectID).Scan(&auditMetadata); err != nil {
-		t.Fatalf("select privacy file audit tombstone: %v", err)
-	}
-	if !strings.Contains(auditMetadata, fileObjectID) || strings.Contains(auditMetadata, "objectKey") {
-		t.Fatalf("invalid audit tombstone metadata: %s", auditMetadata)
+	for _, fileObjectID := range fileObjectIDs {
+		var auditMetadata string
+		if err := db.QueryRow(`select metadata::text from audit_events where resource_id = $1 and action = 'privacy.file_object_deleted'`, fileObjectID).Scan(&auditMetadata); err != nil {
+			t.Fatalf("select privacy file audit tombstone: %v", err)
+		}
+		if !strings.Contains(auditMetadata, fileObjectID) || strings.Contains(auditMetadata, "objectKey") {
+			t.Fatalf("invalid audit tombstone metadata: %s", auditMetadata)
+		}
 	}
 }
 

@@ -2,7 +2,6 @@ import type { FC } from "react";
 
 import type { ApiErrorCode } from "../../../../api/generated/types";
 import { useI18n } from "../../../i18n/messages";
-import { failureErrorCodeKey } from "../readiness";
 
 interface ReportFailureStateProps {
   errorCode: ApiErrorCode | string | null;
@@ -11,15 +10,14 @@ interface ReportFailureStateProps {
   contractInvalid?: boolean;
   recoverable?: boolean;
   onRetry?: () => void;
-  onBackToWorkspace: () => void;
+  onBack: () => void;
+  backDestination: "reports" | "workspace";
 }
 
 /**
- * Source-level mirror of ui-design/src/screen-report.jsx::ReportFailureState
- * (lines 61-77). Two distinct copy decks:
- *  - AI_* enum failures map through failureErrorCodeKey() to error-specific text.
- *  - REPORT_NOT_FOUND uses dedicated `failureState.notFound.{title,desc}` keys
- *    so cross-user 404s never leak existence of another user's report.
+ * Source-level mirror of ui-design/src/screen-report.jsx::ReportFailureState.
+ * Internal provider/config error codes select no visible copy. REPORT_NOT_FOUND
+ * uses dedicated user-safe state text so cross-user 404s never leak existence.
  */
 export const ReportFailureState: FC<ReportFailureStateProps> = ({
   errorCode,
@@ -27,7 +25,8 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
   contractInvalid,
   recoverable,
   onRetry,
-  onBackToWorkspace,
+  onBack,
+  backDestination,
 }) => {
   const { t } = useI18n();
   const isNotFound = notFound || errorCode === "REPORT_NOT_FOUND";
@@ -46,9 +45,6 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
       : isNotFound
         ? "report.failureState.notFound.desc"
         : "report.failureState.desc";
-  const codeLabel = isNotFound
-    ? t("report.failureState.errorCode.REPORT_NOT_FOUND")
-    : t(failureErrorCodeKey(errorCode));
   return (
     <div
       data-testid="report-failure-state"
@@ -115,18 +111,6 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
         >
           {t(descKey)}
         </div>
-        <div
-          data-testid="report-failure-error-code"
-          style={{
-            fontSize: 12,
-            color: "var(--ei-color-fg-tertiary)",
-            fontFamily: "var(--ei-font-mono)",
-            marginBottom: 18,
-            letterSpacing: "0.04em",
-          }}
-        >
-          {codeLabel}
-        </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {recoverable && onRetry ? (
             <button
@@ -150,7 +134,8 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
           <button
             type="button"
             data-testid="report-failure-back-to-workspace"
-            onClick={onBackToWorkspace}
+            data-back-destination={backDestination}
+            onClick={onBack}
             style={{
               padding: "10px 16px",
               background: "transparent",
@@ -162,7 +147,11 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
               fontSize: 13,
             }}
           >
-            {t("report.failureState.backToWorkspace")}
+            {t(
+              backDestination === "reports"
+                ? "report.failureState.backToReports"
+                : "report.failureState.backToWorkspace",
+            )}
           </button>
         </div>
       </div>

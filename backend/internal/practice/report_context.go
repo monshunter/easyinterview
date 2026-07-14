@@ -131,7 +131,7 @@ func BuildReportContextSnapshot(in ReportContextSnapshotInput) (ReportContextSna
 	conversation.SessionID = strings.TrimSpace(conversation.SessionID)
 	conversation.Language = strings.TrimSpace(conversation.Language)
 
-	rounds, err := canonicalReportRounds(target.Summary)
+	rounds, err := ParseCanonicalReportRounds(target.Summary)
 	if err != nil {
 		return ReportContextSnapshot{}, err
 	}
@@ -187,8 +187,17 @@ func ValidateReportContextSnapshot(snapshot ReportContextSnapshot) error {
 	if snapshot.Conversation.SessionID == "" || snapshot.Conversation.MessageCount <= 0 || snapshot.Conversation.LastMessageSeqNo <= 0 {
 		return fmt.Errorf("report context terminal conversation coordinate is invalid")
 	}
-	if len(snapshot.CanonicalRounds) < 2 || len(snapshot.CanonicalRounds) > 5 {
-		return fmt.Errorf("report context canonical round catalog must contain 2 to 5 rounds")
+	summaryRounds, err := ParseCanonicalReportRounds(snapshot.TargetJob.Summary)
+	if err != nil {
+		return err
+	}
+	if len(snapshot.CanonicalRounds) != len(summaryRounds) {
+		return fmt.Errorf("report context canonical round catalog does not match frozen target summary")
+	}
+	for i := range summaryRounds {
+		if snapshot.CanonicalRounds[i] != summaryRounds[i] {
+			return fmt.Errorf("report context canonical round catalog does not match frozen target summary")
+		}
 	}
 	currentIndex := -1
 	for i, round := range snapshot.CanonicalRounds {
@@ -200,13 +209,18 @@ func ValidateReportContextSnapshot(snapshot ReportContextSnapshot) error {
 	if currentIndex < 0 || snapshot.Round.ID != snapshot.Plan.RoundID || snapshot.Round.Sequence != snapshot.Plan.RoundSequence {
 		return fmt.Errorf("report context current round binding is invalid")
 	}
+	if snapshot.Round != snapshot.CanonicalRounds[currentIndex] {
+		return fmt.Errorf("report context current round does not match frozen canonical round catalog")
+	}
 	if snapshot.HasNextRound != (currentIndex+1 < len(snapshot.CanonicalRounds)) {
 		return fmt.Errorf("report context next-round projection is invalid")
 	}
 	return nil
 }
 
-func canonicalReportRounds(raw json.RawMessage) ([]ReportRoundSnapshot, error) {
+// ParseCanonicalReportRounds validates a frozen/current TargetJob summary and
+// returns the canonical report round catalog derived from it.
+func ParseCanonicalReportRounds(raw json.RawMessage) ([]ReportRoundSnapshot, error) {
 	if len(raw) == 0 || !json.Valid(raw) {
 		return nil, fmt.Errorf("report context target summary is invalid")
 	}

@@ -14,8 +14,10 @@ grep -Fq -- '--- PASS: TestE2EP0010HTTPTextImportParseReady' "$LOG_FILE"
 grep -Eq 'ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api' "$LOG_FILE"
 
 for forbidden in \
-  'Lead React platform and design system programs.' \
-  'We are hiring a Senior Frontend Engineer to lead React platform work.' \
+  'Private scenario JD text that must stay out of evidence logs.' \
+  'sourceType' \
+  'sourceUrl' \
+  'source_refresh' \
   'prompt body' \
   'response body' \
   'Authorization:'; do

@@ -4,67 +4,293 @@
     "default": {
       "response": {
         "status": 200,
-        "headers": {"X-Request-ID": "req_2026-07-12-report-list"},
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-empty"},
         "body": {
-          "items": [
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "rounds": [
             {
-              "id": "01918fa0-0000-7000-8000-000000007000",
-              "sessionId": "01918fa0-0000-7000-8000-000000005000",
-              "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-              "status": "ready",
-              "errorCode": null,
-              "summary": "回答结构清楚，技术取舍仍需补充备选方案与量化验证。",
-              "context": {
-                "sourcePlanId": "01918fa0-0000-7000-8000-000000004000",
-                "targetJobTitle": "Senior Platform Engineer",
-                "targetJobCompany": "Acme",
-                "resumeId": "01918fa0-0000-7000-8000-000000001000",
-                "resumeDisplayName": "Platform Engineering Resume",
-                "roundId": "round-1-technical",
-                "roundSequence": 1,
-                "roundName": "Technical Interview",
-                "roundType": "technical",
-                "language": "zh-CN",
-                "hasNextRound": true
-              },
-              "preparednessLevel": "needs_practice",
-              "dimensionAssessments": [
-                {"code": "structured_communication", "label": "结构化表达", "status": "meets_bar", "confidence": "high"},
-                {"code": "technical_tradeoffs", "label": "技术取舍", "status": "needs_work", "confidence": "medium"}
-              ],
-              "highlights": [
-                {"dimensionCode": "structured_communication", "evidence": "回答按背景、行动和结果展开，并明确了个人职责。", "confidence": "high"}
-              ],
-              "issues": [
-                {"dimensionCode": "technical_tradeoffs", "evidence": "没有比较备选方案的成本、风险和验证标准。", "confidence": "medium"}
-              ],
-              "nextActions": [
-                {"type": "retry_current_round", "label": "复练当前技术轮，补齐技术取舍证据。"}
-              ],
-              "retryFocusDimensionCodes": ["technical_tradeoffs"],
-              "provenance": {
-                "promptVersion": "v0.2.0",
-                "rubricVersion": "v0.2.0",
-                "modelId": "model-profile:report.generate.default",
-                "language": "zh-CN",
-                "featureFlag": "none",
-                "dataSourceVersion": "report-context.v1"
-              },
-              "createdAt": "2026-07-12T08:30:00Z",
-              "updatedAt": "2026-07-12T08:31:00Z"
+              "round": {"roundId": "round-1-technical", "roundSequence": 1},
+              "currentReport": null,
+              "latestAttempt": null
+            },
+            {
+              "round": {"roundId": "round-2-manager", "roundSequence": 2},
+              "currentReport": null,
+              "latestAttempt": null
+            },
+            {
+              "round": {"roundId": "round-3-culture", "roundSequence": 3},
+              "currentReport": null,
+              "latestAttempt": null
             }
-          ],
-          "pageInfo": {"nextCursor": null, "pageSize": 20, "hasMore": false}
+          ]
         }
       }
     },
-    "empty": {
+    "current-ready": {
       "response": {
         "status": 200,
-        "headers": {"X-Request-ID": "req_2026-07-12-report-list-empty"},
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-current-ready"},
         "body": {
-          "items": [],
-          "pageInfo": {"nextCursor": null, "pageSize": 20, "hasMore": false}
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "rounds": [
+            {
+              "round": {"roundId": "round-1-technical", "roundSequence": 1},
+              "currentReport": {
+                "id": "01918fa0-0000-7000-8000-000000007001",
+                "generatedAt": "2026-07-13T14:20:00Z"
+              },
+              "latestAttempt": null
+            },
+            {
+              "round": {"roundId": "round-2-manager", "roundSequence": 2},
+              "currentReport": null,
+              "latestAttempt": null
+            },
+            {
+              "round": {"roundId": "round-3-culture", "roundSequence": 3},
+              "currentReport": null,
+              "latestAttempt": null
+            }
+          ]
+        }
+      }
+    },
+    "prior-ready-newer-queued": {
+      "response": {
+        "status": 200,
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-newer-queued"},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "rounds": [
+            {
+              "round": {"roundId": "round-1-technical", "roundSequence": 1},
+              "currentReport": {
+                "id": "01918fa0-0000-7000-8000-000000007001",
+                "generatedAt": "2026-07-13T14:20:00Z"
+              },
+              "latestAttempt": {
+                "id": "01918fa0-0000-7000-8000-000000007011",
+                "status": "queued",
+                "errorCode": null,
+                "createdAt": "2026-07-14T09:10:00Z"
+              }
+            },
+            {
+              "round": {"roundId": "round-2-manager", "roundSequence": 2},
+              "currentReport": null,
+              "latestAttempt": null
+            },
+            {
+              "round": {"roundId": "round-3-culture", "roundSequence": 3},
+              "currentReport": null,
+              "latestAttempt": null
+            }
+          ]
+        }
+      }
+    },
+    "prior-ready-newer-generating": {
+      "response": {
+        "status": 200,
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-newer-generating"},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "rounds": [
+            {
+              "round": {"roundId": "round-1-technical", "roundSequence": 1},
+              "currentReport": {
+                "id": "01918fa0-0000-7000-8000-000000007001",
+                "generatedAt": "2026-07-13T14:20:00Z"
+              },
+              "latestAttempt": {
+                "id": "01918fa0-0000-7000-8000-000000007012",
+                "status": "generating",
+                "errorCode": null,
+                "createdAt": "2026-07-14T09:12:00Z"
+              }
+            },
+            {
+              "round": {"roundId": "round-2-manager", "roundSequence": 2},
+              "currentReport": null,
+              "latestAttempt": null
+            },
+            {
+              "round": {"roundId": "round-3-culture", "roundSequence": 3},
+              "currentReport": null,
+              "latestAttempt": null
+            }
+          ]
+        }
+      }
+    },
+    "prior-ready-newer-failed": {
+      "response": {
+        "status": 200,
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-newer-failed"},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "rounds": [
+            {
+              "round": {"roundId": "round-1-technical", "roundSequence": 1},
+              "currentReport": {
+                "id": "01918fa0-0000-7000-8000-000000007001",
+                "generatedAt": "2026-07-13T14:20:00Z"
+              },
+              "latestAttempt": {
+                "id": "01918fa0-0000-7000-8000-000000007013",
+                "status": "failed",
+                "errorCode": "AI_PROVIDER_TIMEOUT",
+                "createdAt": "2026-07-14T09:14:00Z"
+              }
+            },
+            {
+              "round": {"roundId": "round-2-manager", "roundSequence": 2},
+              "currentReport": null,
+              "latestAttempt": null
+            },
+            {
+              "round": {"roundId": "round-3-culture", "roundSequence": 3},
+              "currentReport": null,
+              "latestAttempt": null
+            }
+          ]
+        }
+      }
+    },
+    "latest-ready-is-current": {
+      "response": {
+        "status": 200,
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-latest-ready"},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "rounds": [
+            {
+              "round": {"roundId": "round-1-technical", "roundSequence": 1},
+              "currentReport": {
+                "id": "01918fa0-0000-7000-8000-000000007021",
+                "generatedAt": "2026-07-14T09:20:00Z"
+              },
+              "latestAttempt": {
+                "id": "01918fa0-0000-7000-8000-000000007021",
+                "status": "ready",
+                "errorCode": null,
+                "createdAt": "2026-07-14T09:15:00Z"
+              }
+            },
+            {
+              "round": {"roundId": "round-2-manager", "roundSequence": 2},
+              "currentReport": null,
+              "latestAttempt": null
+            },
+            {
+              "round": {"roundId": "round-3-culture", "roundSequence": 3},
+              "currentReport": null,
+              "latestAttempt": null
+            }
+          ]
+        }
+      }
+    },
+    "ready-tie-break": {
+      "response": {
+        "status": 200,
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-ready-tie-break"},
+        "body": {
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "rounds": [
+            {
+              "round": {"roundId": "round-1-technical", "roundSequence": 1},
+              "currentReport": {
+                "id": "01918fa0-0000-7000-8000-000000007039",
+                "generatedAt": "2026-07-14T10:00:00Z"
+              },
+              "latestAttempt": {
+                "id": "01918fa0-0000-7000-8000-000000007038",
+                "status": "ready",
+                "errorCode": null,
+                "createdAt": "2026-07-14T10:05:00Z"
+              }
+            },
+            {
+              "round": {"roundId": "round-2-manager", "roundSequence": 2},
+              "currentReport": {
+                "id": "01918fa0-0000-7000-8000-000000007049",
+                "generatedAt": "2026-07-14T10:00:00Z"
+              },
+              "latestAttempt": {
+                "id": "01918fa0-0000-7000-8000-000000007049",
+                "status": "ready",
+                "errorCode": null,
+                "createdAt": "2026-07-14T09:59:00Z"
+              }
+            },
+            {
+              "round": {"roundId": "round-3-culture", "roundSequence": 3},
+              "currentReport": null,
+              "latestAttempt": null
+            }
+          ]
+        }
+      }
+    },
+    "cross-user-not-found": {
+      "response": {
+        "status": 404,
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-cross-user"},
+        "body": {
+          "error": {
+            "code": "TARGET_JOB_NOT_FOUND",
+            "message": "Target job not found.",
+            "requestId": "req_2026-07-14-report-overview-cross-user",
+            "retryable": false,
+            "details": {"resource": "target_job"}
+          }
+        }
+      }
+    },
+    "target-not-found": {
+      "response": {
+        "status": 404,
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-not-found"},
+        "body": {
+          "error": {
+            "code": "TARGET_JOB_NOT_FOUND",
+            "message": "Target job not found.",
+            "requestId": "req_2026-07-14-report-overview-not-found",
+            "retryable": false,
+            "details": {"resource": "target_job"}
+          }
+        }
+      }
+    },
+    "invalid-frozen-context": {
+      "response": {
+        "status": 500,
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-invalid-context"},
+        "body": {
+          "error": {
+            "code": "AI_OUTPUT_INVALID",
+            "message": "Report context could not be validated.",
+            "requestId": "req_2026-07-14-report-overview-invalid-context",
+            "retryable": false,
+            "details": {"reason": "invalid_generation_context"}
+          }
+        }
+      }
+    },
+    "missing-frozen-context": {
+      "response": {
+        "status": 500,
+        "headers": {"X-Request-ID": "req_2026-07-14-report-overview-missing-context"},
+        "body": {
+          "error": {
+            "code": "AI_OUTPUT_INVALID",
+            "message": "Report context could not be validated.",
+            "requestId": "req_2026-07-14-report-overview-missing-context",
+            "retryable": false,
+            "details": {"reason": "missing_generation_context"}
+          }
         }
       }
     }

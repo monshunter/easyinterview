@@ -22,12 +22,16 @@ mkdir -p "$OUT"
   grep -q 'TestRepositoryRegisterUploadedChecksObjectWhileRowLocked' "$OUT/trigger.log"
   grep -q 'TestBuildAPIHandlerMountsUploadPresignBehindSessionMiddleware' "$OUT/trigger.log"
   grep -q 'TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip' "$OUT/trigger.log"
+  grep -q 'TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip/rejects_removed_target_job_attachment_purpose' "$OUT/trigger.log"
+  grep -q 'P0.033 JD purpose rejection: status=422 row_count=0' "$OUT/trigger.log"
+  grep -q 'TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip/preserves_privacy_export_boundary' "$OUT/trigger.log"
+  grep -q 'P0.033 privacy_export: status=201 byte_size=5242880 upload_status=pending' "$OUT/trigger.log"
   grep -q 'TestDeleteFileObjectsForUser' "$OUT/trigger.log"
   grep -q 'TestInsertAuditTombstoneIntegrationDoesNotPersistObjectKey' "$OUT/trigger.log"
   cd "$ROOT/backend"
   go test ./internal/upload/handler -run TestCreateUploadPresignFixtureParity -count=1
   cd "$ROOT"
-  if rg -n 'registered|deleted_pending' backend/internal/upload migrations; then
+  if rg -n "[\"'](registered|deleted_pending)[\"']" backend/internal/upload migrations; then
     exit 1
   fi
   if rg -n 'upload-route-frontend-signed|hardcode S3 SDK|frontend-signed' backend test/scenarios/e2e/p0-033-file-presign-register-roundtrip --glob '!**/verify.sh'; then
@@ -39,6 +43,8 @@ mkdir -p "$OUT"
   echo "fixture byte diff: covered by TestCreateUploadPresignFixtureParity"
   echo "DB state machine: covered by store transition tests"
   echo "live HTTP presign -> MinIO PUT -> RegisterFileObject -> DELETE /api/v1/me: covered by TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip"
+  echo "removed JD attachment purpose: live HTTP 422 with zero file_objects side effects"
+  echo "privacy_export boundary: live HTTP 201 with 5MB pending file_object"
   echo "object key before/after: covered by live roundtrip and DeleteFileObjectsForUser object-first unit test"
   echo "privacy tombstone: covered by integration-tag audit tombstone test"
 } | tee "$OUT/verify.log"

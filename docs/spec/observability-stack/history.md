@@ -1,13 +1,14 @@
 # Observability Stack History
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 1.12 | TargetJob 收敛为单一粘贴文本导入后，从全局 allowed labels 和三项 TargetJob 指标移除无信息量的常量来源标签；保留 bounded `error_code`、`language` 与隐私红线。 | backend-targetjob/001 Phase 18 |
 | 2026-07-10 | 1.11 | 将业务指标前缀约束改为当前五类 domain prefix 正向 allowlist。 | tech-debt pruning |
 | 2026-07-07 | 1.10 | Auth 指标 owner 对齐 email-code plan；业务指标前缀收敛为 target / practice / report / resume / privacy。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-08 | 1.9 | 登记 C4 TargetJob import/parse 最小指标，并将有界 `error_code` / `source_type` 纳入 allowed labels；禁止 URL、target id、user id、prompt version 或自由文本进入 labels。 | backend-targetjob/001 Phase 0 |

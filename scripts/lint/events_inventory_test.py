@@ -45,19 +45,9 @@ def valid_events_data() -> dict:
         },
         "eventLocalEnums": [
             {
-                "name": "TargetImportSourceType",
-                "description": "Event-local enum; does not enter B1 or B2 public enums.",
-                "values": ["url", "text", "file"],
-            },
-            {
                 "name": "ResumeTailorMode",
                 "description": "Event-local enum; does not enter B1 or B2 public enums.",
                 "values": ["gap_review", "bullet_suggestions"],
-            },
-            {
-                "name": "SourceFreshnessStatus",
-                "description": "Event-local enum; does not enter B1 or B2 public enums.",
-                "values": ["fresh", "stale", "failed"],
             },
         ],
         "events": valid_event_entries(),
@@ -93,13 +83,6 @@ EXPECTED_JOBS = {
         "triggerEvent": "api:request_tailor",
         "ownerDomain": "C7",
         "priority": "default",
-    },
-    "source_refresh": {
-        "asynqTask": "source.refresh",
-        "apiFacing": False,
-        "triggerEvent": "target.parsed",
-        "ownerDomain": "C13",
-        "priority": "low",
     },
     "privacy_export": {
         "asynqTask": "privacy.export",
@@ -160,7 +143,7 @@ def valid_jobs_data() -> dict:
             "resume_parse",
             "report_generate",
             "resume_tailor",
-                    "privacy_export",
+            "privacy_export",
             "privacy_delete",
         ],
         "jobs": jobs,
@@ -168,7 +151,7 @@ def valid_jobs_data() -> dict:
 
 
 EXPECTED_EVENT_PAYLOADS = {
-    "target.import.requested": ["targetJobId", "userId", "sourceType", "targetLanguage"],
+    "target.import.requested": ["targetJobId", "userId", "targetLanguage"],
     "target.parsed": ["targetJobId", "userId", "analysisStatus", "requirementCount", "coreThemes"],
     "target.analysis.failed": ["targetJobId", "errorCode", "retryable"],
     "practice.session.started": ["sessionId", "planId", "targetJobId", "goal", "language"],
@@ -178,7 +161,6 @@ EXPECTED_EVENT_PAYLOADS = {
     "report.generation.failed": ["reportId", "sessionId", "errorCode", "retryable"],
     "resume.parse.completed": ["resumeId", "userId", "parseStatus"],
     "resume.tailor.completed": ["tailorRunId", "resumeId", "targetJobId", "mode", "status"],
-    "source.refreshed": ["sourceRecordId", "ownerType", "ownerId", "freshnessStatus"],
     "privacy.request.created": ["privacyRequestId", "userId", "requestType"],
     "privacy.request.completed": ["privacyRequestId", "userId", "requestType", "status"],
 }
@@ -202,7 +184,6 @@ def valid_event_entries() -> list[dict]:
         "report.generation.failed": "feedback_report",
         "resume.parse.completed": "resume",
         "resume.tailor.completed": "resume",
-        "source.refreshed": "source_record",
         "privacy.request.created": "privacy_request",
         "privacy.request.completed": "privacy_request",
     }
@@ -217,7 +198,6 @@ def valid_event_entries() -> list[dict]:
         "report.generation.failed": "backend_async",
         "resume.parse.completed": "backend_async",
         "resume.tailor.completed": "backend_async",
-        "source.refreshed": "backend_async",
         "privacy.request.created": "api",
         "privacy.request.completed": "backend_async",
     }
@@ -238,10 +218,8 @@ def valid_event_entries() -> list[dict]:
 def event_payload_fields(event_name: str, names: list[str]) -> dict[str, dict[str, str]]:
     out = {name: {"type": payload_type(name), "source": "spec:3.1.4"} for name in names}
     overrides = {
-        ("target.import.requested", "sourceType"): "$ref:event.TargetImportSourceType",
         ("resume.tailor.completed", "mode"): "$ref:event.ResumeTailorMode",
         ("resume.tailor.completed", "status"): "$ref:b1.ReportStatus",
-        ("source.refreshed", "freshnessStatus"): "$ref:event.SourceFreshnessStatus",
         ("privacy.request.completed", "status"): "$ref:b1.PrivacyRequestStatus",
     }
     for (event, field), typ in overrides.items():
@@ -259,8 +237,6 @@ def payload_type(name: str) -> str:
         "reportId",
         "resumeId",
         "tailorRunId",
-        "sourceRecordId",
-        "ownerId",
         "privacyRequestId",
     }
     int_fields = {
@@ -321,7 +297,7 @@ class EventsInventoryEnvelopeTest(unittest.TestCase):
 
         self.assertTrue(any("producer" in err and "api" in err and "cron" in err for err in errs), errs)
 
-    def test_requires_full_13_event_inventory(self) -> None:
+    def test_requires_full_12_event_inventory(self) -> None:
         data = valid_events_data()
         data["events"] = [event for event in data["events"] if event["name"] != "report.generated"]
 
@@ -382,20 +358,20 @@ class EventsInventoryEnvelopeTest(unittest.TestCase):
         self.assertTrue(any("ResumeTailorMode" in err and "eventLocalEnums" in err for err in errs), errs)
 
     def test_rejects_event_local_enum_collision_with_b1(self) -> None:
-        conventions = {"enums": [{"name": "TargetImportSourceType"}]}
+        conventions = {"enums": [{"name": "ResumeTailorMode"}]}
 
         errs = self.linter.validate_events_yaml(valid_events_data(), conventions)
 
-        self.assertTrue(any("TargetImportSourceType" in err and "B1" in err for err in errs), errs)
+        self.assertTrue(any("ResumeTailorMode" in err and "B1" in err for err in errs), errs)
 
     def test_requires_event_local_payload_fields_to_use_aliases(self) -> None:
         data = valid_events_data()
-        target_import = next(event for event in data["events"] if event["name"] == "target.import.requested")
-        target_import["requiredPayload"]["sourceType"]["type"] = "string"
+        resume_tailor = next(event for event in data["events"] if event["name"] == "resume.tailor.completed")
+        resume_tailor["requiredPayload"]["mode"]["type"] = "string"
 
         errs = self.linter.validate_events_yaml(data)
 
-        self.assertTrue(any("sourceType" in err and "$ref:event.TargetImportSourceType" in err for err in errs), errs)
+        self.assertTrue(any("mode" in err and "$ref:event.ResumeTailorMode" in err for err in errs), errs)
 
 
 class EventsInventoryJobsTest(unittest.TestCase):
@@ -412,7 +388,7 @@ class EventsInventoryJobsTest(unittest.TestCase):
     def test_valid_jobs_contract_passes(self) -> None:
         self.assertEqual([], self.linter.validate_jobs_yaml(valid_jobs_data(), valid_events_data()))
 
-    def test_requires_all_8_canonical_jobs(self) -> None:
+    def test_requires_all_7_canonical_jobs(self) -> None:
         data = valid_jobs_data()
         data["jobs"] = [job for job in data["jobs"] if job["canonical"] != "email_dispatch"]
 
@@ -467,12 +443,12 @@ class EventsInventoryJobsTest(unittest.TestCase):
 
     def test_source_event_only_requires_api_facing_job(self) -> None:
         data = valid_jobs_data()
-        source_refresh = next(job for job in data["jobs"] if job["canonical"] == "source_refresh")
-        source_refresh["triggerEventSemantic"] = "source_event_only"
+        email_dispatch = next(job for job in data["jobs"] if job["canonical"] == "email_dispatch")
+        email_dispatch["triggerEventSemantic"] = "source_event_only"
 
         errs = self.linter.validate_jobs_yaml(data, valid_events_data())
 
-        self.assertTrue(any("source_refresh" in err and "apiFacing" in err for err in errs), errs)
+        self.assertTrue(any("email_dispatch" in err and "apiFacing" in err for err in errs), errs)
 
     def test_source_event_only_requires_real_event_trigger(self) -> None:
         data = valid_jobs_data()

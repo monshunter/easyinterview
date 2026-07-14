@@ -1,39 +1,8 @@
 package targetjob
 
 import (
-	"fmt"
 	"strings"
-	"time"
 )
-
-// URL fetch boundary constants. These are code-owned, not app-level config:
-// per spec D-7 they form the auditable SSRF / latency / size envelope and
-// must be readable by `grep` in this package alone. See plan 3.3 for the
-// SSRF test matrix that consumes these values.
-const (
-	// URLFetchTimeout caps each JD source HTTP request. Spec D-7 fixes 10s.
-	URLFetchTimeout = 10 * time.Second
-
-	// URLFetchBodyCap is the maximum body (in bytes) read from a JD source
-	// before the response is rejected as oversized. Spec D-7 fixes 1 MiB.
-	URLFetchBodyCap = 1 << 20
-
-	// URLFetchUserAgentTemplate is the explicit crawler identifier. The
-	// %s format verb receives the running build version; an empty version
-	// defaults to "dev". Spec D-7 forbids spoofing other UAs.
-	URLFetchUserAgentTemplate = "EasyInterview JD-Crawler/%s (+https://easyinterview.local/crawler)"
-)
-
-// URLFetchUserAgent returns the canonical UA string to attach to outbound
-// JD fetch HTTP requests. version "" maps to "dev" so unit tests and
-// uninitialized boot paths still produce a valid identifier.
-func URLFetchUserAgent(version string) string {
-	v := strings.TrimSpace(version)
-	if v == "" {
-		v = "dev"
-	}
-	return fmt.Sprintf(URLFetchUserAgentTemplate, v)
-}
 
 // IsTestAppEnv reports whether the supplied APP_ENV value is the only
 // environment in which stub AI providers are permitted (spec C-10 / plan

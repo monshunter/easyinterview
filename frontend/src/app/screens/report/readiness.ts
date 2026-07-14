@@ -1,5 +1,4 @@
 import type {
-  ApiErrorCode,
   Confidence,
   DimensionStatus,
   ReadinessTier,
@@ -36,33 +35,4 @@ const CONFIDENCE_LABEL: Record<Confidence, MessageKey> = {
 
 export function confidenceLabel(confidence: Confidence): MessageKey {
   return CONFIDENCE_LABEL[confidence];
-}
-
-const FAILURE_LABEL_BY_CODE: Partial<Record<ApiErrorCode, MessageKey>> = {
-  AI_PROVIDER_TIMEOUT: "report.failureState.errorCode.AI_PROVIDER_TIMEOUT",
-  AI_PROVIDER_SECRET_MISSING:
-    "report.failureState.errorCode.AI_PROVIDER_SECRET_MISSING",
-  AI_PROVIDER_CONFIG_INVALID:
-    "report.failureState.errorCode.AI_PROVIDER_CONFIG_INVALID",
-  AI_OUTPUT_INVALID: "report.failureState.errorCode.AI_OUTPUT_INVALID",
-  AI_FALLBACK_EXHAUSTED: "report.failureState.errorCode.AI_FALLBACK_EXHAUSTED",
-  AI_UNSUPPORTED_CAPABILITY:
-    "report.failureState.errorCode.AI_UNSUPPORTED_CAPABILITY",
-  REPORT_CONTEXT_TOO_LARGE:
-    "report.failureState.errorCode.REPORT_CONTEXT_TOO_LARGE",
-};
-
-/**
- * Maps a failure errorCode to a report.failureState.errorCode.* i18n key.
- * REPORT_NOT_FOUND is intentionally NOT routed through this map — callers
- * branch to the `failureState.notFound.*` keys instead so the cross-user
- * not-found UI stays visually and semantically distinct from AI_* failures.
- */
-export function failureErrorCodeKey(
-  code: ApiErrorCode | string | null,
-): MessageKey {
-  if (code && code in FAILURE_LABEL_BY_CODE) {
-    return FAILURE_LABEL_BY_CODE[code as ApiErrorCode]!;
-  }
-  return "report.failureState.errorCode.UNKNOWN";
 }

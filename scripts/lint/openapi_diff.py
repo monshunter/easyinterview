@@ -38,6 +38,7 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import re
@@ -786,6 +787,13 @@ OPENAPI_001_CONDITIONAL_CONTRACT = (
     "derived-retry-next-sourceReportId-required-nonnull-only"
 )
 OPENAPI_001_FINDING_KEYS = ("severity", "path", "kind", "before", "after")
+OPENAPI_002_SOURCE_SCHEMAS = (
+    "TargetJobImportSourceURL",
+    "TargetJobImportSourceManualText",
+    "TargetJobImportSourceFile",
+    "TargetJobImportSourceManualForm",
+    "TargetJobImportSource",
+)
 CONSTRAINT_KEYS = (
     "minLength",
     "maxLength",
@@ -870,6 +878,10 @@ def _normalized_finding(
         "before": before,
         "after": after,
     }
+
+
+def _compact_schema(schema: Any) -> str:
+    return json.dumps(schema, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def normalize_openapi_001_findings(
@@ -1082,6 +1094,1164 @@ def normalize_openapi_001_findings(
     return findings
 
 
+def _openapi_002_property_signature(schema: Any) -> str:
+    if not isinstance(schema, dict):
+        return "unknown"
+    enum = schema.get("enum")
+    if isinstance(enum, list):
+        return f"enum({','.join(str(value) for value in enum)})"
+    signature = _type_signature(schema)
+    constraints = _format_constraints(schema)
+    return f"{signature}({constraints})" if constraints else signature
+
+
+def normalize_openapi_002_findings(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """Normalize the OPENAPI-002 TargetJob paste-only correction surface.
+
+    The Practice message correction is intentionally audited by its separate
+    decision gate. This normalizer covers every OPENAPI-002-owned schema
+    surface plus ApiErrorCode deltas sourced by the TargetJob cleanup. A newly
+    required property carries its initial constraints in one signature, so
+    rawText does not also produce a second constraint_added finding.
+    """
+
+    findings: List[Dict[str, Any]] = []
+    baseline_schemas = ((baseline.get("components") or {}).get("schemas") or {})
+    current_schemas = ((current.get("components") or {}).get("schemas") or {})
+
+    for name in OPENAPI_002_SOURCE_SCHEMAS:
+        if name in baseline_schemas and name not in current_schemas:
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer("components", "schemas", name),
+                    "schema_removed",
+                    "present",
+                    "absent",
+                )
+            )
+
+    for name in ("ImportTargetJobRequest", "TargetJob"):
+        base_schema = baseline_schemas.get(name)
+        current_schema = current_schemas.get(name)
+        schema_path = _json_pointer("components", "schemas", name)
+        if not isinstance(base_schema, dict):
+            continue
+        if not isinstance(current_schema, dict):
+            findings.append(
+                _normalized_finding(
+                    "breaking", schema_path, "schema_removed", "present", "absent"
+                )
+            )
+            continue
+
+        base_properties = base_schema.get("properties") or {}
+        current_properties = current_schema.get("properties") or {}
+        current_required = set(current_schema.get("required") or [])
+        owned_properties = (
+            {"source", "titleHint", "companyNameHint", "rawText"}
+            if name == "ImportTargetJobRequest"
+            else {"sourceType", "sourceUrl"}
+        )
+
+        for property_name, base_property in base_properties.items():
+            if property_name not in owned_properties:
+                continue
+            property_path = _json_pointer(
+                "components", "schemas", name, "properties", property_name
+            )
+            if property_name not in current_properties:
+                findings.append(
+                    _normalized_finding(
+                        "breaking",
+                        property_path,
+                        "property_removed",
+                        _openapi_002_property_signature(base_property),
+                        "absent",
+                    )
+                )
+                continue
+            current_property = current_properties[property_name]
+            before_signature = _openapi_002_property_signature(base_property)
+            after_signature = _openapi_002_property_signature(current_property)
+            if before_signature != after_signature:
+                findings.append(
+                    _normalized_finding(
+                        "breaking",
+                        property_path,
+                        "property_changed",
+                        before_signature,
+                        after_signature,
+                    )
+                )
+
+        for property_name, current_property in current_properties.items():
+            if property_name not in owned_properties:
+                continue
+            if property_name in base_properties:
+                continue
+            property_path = _json_pointer(
+                "components", "schemas", name, "properties", property_name
+            )
+            required = property_name in current_required
+            findings.append(
+                _normalized_finding(
+                    "breaking" if required else "additive",
+                    property_path,
+                    "required_property_added" if required else "property_added",
+                    "absent",
+                    _openapi_002_property_signature(current_property),
+                )
+            )
+
+        base_required = list(base_schema.get("required") or [])
+        current_required_list = list(current_schema.get("required") or [])
+        if base_required != current_required_list:
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer("components", "schemas", name, "required"),
+                    "required_set_changed",
+                    ",".join(base_required),
+                    ",".join(current_required_list),
+                )
+            )
+
+        base_closure = base_schema.get("additionalProperties", "unspecified")
+        current_closure = current_schema.get("additionalProperties", "unspecified")
+        if base_closure != current_closure:
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer(
+                        "components", "schemas", name, "additionalProperties"
+                    ),
+                    "closed_object",
+                    base_closure,
+                    current_closure,
+                )
+            )
+
+    base_upload_purpose = (
+        (((baseline_schemas.get("UploadPresignRequest") or {}).get("properties") or {}).get("purpose") or {}).get("enum")
+        or []
+    )
+    current_upload_purpose = (
+        (((current_schemas.get("UploadPresignRequest") or {}).get("properties") or {}).get("purpose") or {}).get("enum")
+        or []
+    )
+    if list(base_upload_purpose) != list(current_upload_purpose):
+        removed = any(value not in current_upload_purpose for value in base_upload_purpose)
+        findings.append(
+            _normalized_finding(
+                "breaking" if removed else "additive",
+                _json_pointer(
+                    "components",
+                    "schemas",
+                    "UploadPresignRequest",
+                    "properties",
+                    "purpose",
+                    "enum",
+                ),
+                "enum_value_removed" if removed else "enum_value_added",
+                ",".join(str(value) for value in base_upload_purpose),
+                ",".join(str(value) for value in current_upload_purpose),
+            )
+        )
+
+    base_error_codes = list((baseline_schemas.get("ApiErrorCode") or {}).get("enum") or [])
+    current_error_codes = list((current_schemas.get("ApiErrorCode") or {}).get("enum") or [])
+    error_path = _json_pointer("components", "schemas", "ApiErrorCode", "enum")
+    for value in base_error_codes:
+        if value not in current_error_codes:
+            findings.append(
+                _normalized_finding(
+                    "breaking", error_path, "enum_value_removed", str(value), "absent"
+                )
+            )
+    for value in current_error_codes:
+        if value not in base_error_codes:
+            findings.append(
+                _normalized_finding(
+                    "additive", error_path, "enum_value_added", "absent", str(value)
+                )
+            )
+
+    return findings
+
+
+def normalize_d_35_findings(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """Normalize only the Practice durable-message correction surface.
+
+    D-35 is deliberately separate from OPENAPI-002: TargetJob findings
+    can neither authorize nor hide a Practice contract mutation.
+    """
+
+    findings: List[Dict[str, Any]] = []
+    baseline_schemas = ((baseline.get("components") or {}).get("schemas") or {})
+    current_schemas = ((current.get("components") or {}).get("schemas") or {})
+    base_message = baseline_schemas.get("PracticeMessage") or {}
+    current_message = current_schemas.get("PracticeMessage") or {}
+    base_required = list(base_message.get("required") or [])
+    base_properties = base_message.get("properties") or {}
+
+    if "oneOf" not in base_message and "oneOf" in current_message:
+        branches = current_message.get("oneOf") or []
+        branch_names = [_type_signature(branch) for branch in branches]
+        discriminator = (current_message.get("discriminator") or {}).get(
+            "propertyName"
+        )
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer("components", "schemas", "PracticeMessage", "oneOf"),
+                "role_discriminated_union_added",
+                "absent",
+                f"user={branch_names[0] if branch_names else 'missing'},"
+                f"assistant={branch_names[1] if len(branch_names) > 1 else 'missing'};"
+                f"discriminator={discriminator or 'missing'}",
+            )
+        )
+
+    for keyword in ("type", "properties", "required", "additionalProperties"):
+        if keyword in current_message:
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer("components", "schemas", "PracticeMessage", keyword),
+                    "legacy_keyword_retained",
+                    "absent",
+                    _compact_schema(current_message[keyword]),
+                )
+            )
+
+    user_schema = current_schemas.get("PracticeUserMessage")
+    assistant_schema = current_schemas.get("PracticeAssistantMessage")
+    base_user_schema = baseline_schemas.get("PracticeUserMessage")
+    base_assistant_schema = baseline_schemas.get("PracticeAssistantMessage")
+    if isinstance(user_schema, dict):
+        user_properties = user_schema.get("properties") or {}
+        user_required = list(user_schema.get("required") or [])
+        if isinstance(base_user_schema, dict):
+            expected_user_properties = base_user_schema.get("properties") or {}
+            expected_user_required = list(base_user_schema.get("required") or [])
+            expected_user_closure = base_user_schema.get(
+                "additionalProperties", "unspecified"
+            )
+        else:
+            expected_user_properties = copy.deepcopy(base_properties)
+            if "role" in expected_user_properties:
+                expected_user_properties["role"] = {
+                    "type": "string",
+                    "enum": ["user"],
+                }
+            expected_user_properties.update(
+                {
+                    "clientMessageId": {"type": "string", "format": "uuid"},
+                    "replyStatus": {"$ref": "#/components/schemas/PracticeReplyStatus"},
+                }
+            )
+            expected_user_required = base_required
+            expected_user_closure = "unspecified"
+            for property_name in ("clientMessageId", "replyStatus"):
+                if property_name not in user_properties:
+                    continue
+                findings.append(
+                    _normalized_finding(
+                        "breaking",
+                        _json_pointer(
+                            "components",
+                            "schemas",
+                            "PracticeUserMessage",
+                            "properties",
+                            property_name,
+                        ),
+                        (
+                            "required_property_added"
+                            if property_name in user_required
+                            else "property_added"
+                        ),
+                        "absent",
+                        _type_signature(user_properties[property_name]),
+                    )
+                )
+        for property_name in sorted(set(user_properties) | set(expected_user_properties)):
+            if property_name in {"clientMessageId", "replyStatus"}:
+                continue
+            expected_property = expected_user_properties.get(property_name)
+            current_property = user_properties.get(property_name)
+            if expected_property != current_property:
+                findings.append(
+                    _normalized_finding(
+                        "breaking" if expected_property is not None else "additive",
+                        _json_pointer(
+                            "components",
+                            "schemas",
+                            "PracticeUserMessage",
+                            "properties",
+                            property_name,
+                        ),
+                        "property_changed" if expected_property is not None else "property_added",
+                        _compact_schema(expected_property) if expected_property is not None else "absent",
+                        _compact_schema(current_property) if current_property is not None else "absent",
+                    )
+                )
+        if expected_user_required != user_required:
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer(
+                        "components", "schemas", "PracticeUserMessage", "required"
+                    ),
+                    "required_set_changed",
+                    ",".join(expected_user_required),
+                    ",".join(user_required),
+                )
+            )
+        current_user_closure = user_schema.get("additionalProperties", "unspecified")
+        if expected_user_closure != current_user_closure:
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer(
+                        "components",
+                        "schemas",
+                        "PracticeUserMessage",
+                        "additionalProperties",
+                    ),
+                    "closed_object",
+                    expected_user_closure,
+                    current_user_closure,
+                )
+            )
+
+    if isinstance(assistant_schema, dict):
+        assistant_properties = assistant_schema.get("properties") or {}
+        if isinstance(base_assistant_schema, dict):
+            expected_assistant_properties = base_assistant_schema.get("properties") or {}
+            expected_assistant_closure = base_assistant_schema.get(
+                "additionalProperties", "unspecified"
+            )
+        else:
+            expected_assistant_properties = copy.deepcopy(base_properties)
+            if "role" in expected_assistant_properties:
+                expected_assistant_properties["role"] = {
+                    "type": "string",
+                    "enum": ["assistant"],
+                }
+            expected_assistant_closure = "unspecified"
+        current_assistant_closure = assistant_schema.get(
+            "additionalProperties", "unspecified"
+        )
+        if expected_assistant_closure != current_assistant_closure:
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer(
+                        "components",
+                        "schemas",
+                        "PracticeAssistantMessage",
+                        "additionalProperties",
+                    ),
+                    "closed_object",
+                    expected_assistant_closure,
+                    current_assistant_closure,
+                )
+            )
+        for property_name in sorted(
+            set(assistant_properties) | set(expected_assistant_properties)
+        ):
+            expected_property = expected_assistant_properties.get(property_name)
+            current_property = assistant_properties.get(property_name)
+            if expected_property != current_property:
+                findings.append(
+                    _normalized_finding(
+                        "breaking" if expected_property is not None else "additive",
+                        _json_pointer(
+                            "components",
+                            "schemas",
+                            "PracticeAssistantMessage",
+                            "properties",
+                            property_name,
+                        ),
+                        "property_changed" if expected_property is not None else "property_added",
+                        _compact_schema(expected_property) if expected_property is not None else "absent",
+                        _compact_schema(current_property) if current_property is not None else "absent",
+                    )
+                )
+
+    base_response = baseline_schemas.get("SendPracticeMessageResponse") or {}
+    current_response = current_schemas.get("SendPracticeMessageResponse") or {}
+    base_response_properties = base_response.get("properties") or {}
+    current_response_properties = current_response.get("properties") or {}
+    for property_name in ("userMessage", "assistantMessage"):
+        before = _type_signature(base_response_properties.get(property_name) or {})
+        after = _type_signature(current_response_properties.get(property_name) or {})
+        if before != after:
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer(
+                        "components",
+                        "schemas",
+                        "SendPracticeMessageResponse",
+                        "properties",
+                        property_name,
+                    ),
+                    "ref_changed",
+                    before,
+                    after,
+                )
+            )
+    base_response_required = list(base_response.get("required") or [])
+    current_response_required = list(current_response.get("required") or [])
+    if base_response_required != current_response_required:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer(
+                    "components", "schemas", "SendPracticeMessageResponse", "required"
+                ),
+                "required_set_changed",
+                ",".join(base_response_required),
+                ",".join(current_response_required),
+            )
+        )
+    for property_name in sorted(
+        set(base_response_properties) | set(current_response_properties)
+    ):
+        if property_name in {"userMessage", "assistantMessage"}:
+            continue
+        before_property = base_response_properties.get(property_name)
+        after_property = current_response_properties.get(property_name)
+        if before_property != after_property:
+            findings.append(
+                _normalized_finding(
+                    "breaking" if before_property is not None else "additive",
+                    _json_pointer(
+                        "components",
+                        "schemas",
+                        "SendPracticeMessageResponse",
+                        "properties",
+                        property_name,
+                    ),
+                    "property_changed" if before_property is not None else "property_added",
+                    _compact_schema(before_property) if before_property is not None else "absent",
+                    _compact_schema(after_property) if after_property is not None else "absent",
+                )
+            )
+
+    base_session = baseline_schemas.get("PracticeSession")
+    current_session = current_schemas.get("PracticeSession")
+    if base_session != current_session:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer("components", "schemas", "PracticeSession"),
+                "unchanged_schema_drifted",
+                _compact_schema(base_session),
+                _compact_schema(current_session),
+            )
+        )
+
+    for name in (
+        "PracticeReplyStatus",
+        "PracticeUserMessage",
+        "PracticeAssistantMessage",
+    ):
+        if name in baseline_schemas or name not in current_schemas:
+            continue
+        schema = current_schemas[name]
+        required = list(schema.get("required") or []) if isinstance(schema, dict) else []
+        if name == "PracticeReplyStatus" and isinstance(schema, dict):
+            enum = schema.get("enum") or []
+            kind = "schema_added"
+            after = f"enum({','.join(str(value) for value in enum)})"
+        else:
+            kind = "schema_added_with_required_fields" if required else "schema_added"
+            after = ",".join(required) if required else "present"
+        findings.append(
+            _normalized_finding(
+                "additive",
+                _json_pointer("components", "schemas", name),
+                kind,
+                "absent",
+                after,
+            )
+        )
+
+    baseline_practice_paths = {
+        path for path in (baseline.get("paths") or {}) if path.startswith("/practice/sessions")
+    }
+    current_practice_paths = {
+        path for path in (current.get("paths") or {}) if path.startswith("/practice/sessions")
+    }
+    for path in sorted(baseline_practice_paths - current_practice_paths):
+        findings.append(
+            _normalized_finding(
+                "breaking", _json_pointer("paths", path), "endpoint_removed", "present", "absent"
+            )
+        )
+    for path in sorted(current_practice_paths - baseline_practice_paths):
+        findings.append(
+            _normalized_finding(
+                "additive", _json_pointer("paths", path), "endpoint_added", "absent", "present"
+            )
+        )
+
+    return findings
+
+
+OPENAPI_004_REPORT_PATH = "/api/v1/targets/{targetJobId}/reports"
+OPENAPI_004_NEW_SCHEMAS = (
+    "TargetJobReportsOverview",
+    "TargetJobReportRoundOverview",
+    "TargetJobCurrentReportSummary",
+    "TargetJobReportAttemptSummary",
+)
+
+
+def normalize_openapi_004_findings(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """Normalize only the OPENAPI-004 report-overview correction surface."""
+
+    findings: List[Dict[str, Any]] = []
+    baseline_operation = _operation_at_contract_path(
+        baseline, OPENAPI_004_REPORT_PATH, "GET"
+    ) or {}
+    current_operation = _operation_at_contract_path(
+        current, OPENAPI_004_REPORT_PATH, "GET"
+    ) or {}
+    baseline_parameters = {
+        parameter.get("name"): parameter
+        for parameter in baseline_operation.get("parameters") or []
+        if isinstance(parameter, dict) and parameter.get("name")
+    }
+    current_parameters = {
+        parameter.get("name"): parameter
+        for parameter in current_operation.get("parameters") or []
+        if isinstance(parameter, dict) and parameter.get("name")
+    }
+    report_pointer = _json_pointer(
+        "paths", "/targets/{targetJobId}/reports", "get"
+    )
+    for parameter_name in ("cursor", "pageSize"):
+        parameter = baseline_parameters.get(parameter_name)
+        if parameter is not None and parameter_name not in current_parameters:
+            required = "required" if parameter.get("required") else "optional"
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    f"{report_pointer}/parameters/{parameter_name}",
+                    "parameter_removed",
+                    f"{parameter.get('in', 'query')}:{required}",
+                    "absent",
+                )
+            )
+
+    baseline_response = _success_response_schema(baseline_operation, 200)
+    current_response = _success_response_schema(current_operation, 200)
+    if baseline_response != current_response:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                f"{report_pointer}/responses/200/content/application~1json/schema",
+                "response_ref_changed",
+                baseline_response or "absent",
+                current_response or "absent",
+            )
+        )
+
+    baseline_schemas = ((baseline.get("components") or {}).get("schemas") or {})
+    current_schemas = ((current.get("components") or {}).get("schemas") or {})
+    baseline_target = baseline_schemas.get("TargetJob") or {}
+    current_target = current_schemas.get("TargetJob") or {}
+    baseline_target_properties = baseline_target.get("properties") or {}
+    current_target_properties = current_target.get("properties") or {}
+    latest_report = baseline_target_properties.get("latestReportId")
+    if latest_report is not None and "latestReportId" not in current_target_properties:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer(
+                    "components", "schemas", "TargetJob", "properties", "latestReportId"
+                ),
+                "property_removed",
+                _type_signature(latest_report),
+                "absent",
+            )
+        )
+
+    if (
+        "PaginatedFeedbackReport" in baseline_schemas
+        and "PaginatedFeedbackReport" not in current_schemas
+    ):
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer("components", "schemas", "PaginatedFeedbackReport"),
+                "schema_removed",
+                "present",
+                "absent",
+            )
+        )
+
+    baseline_round = baseline_schemas.get("PracticeRoundRef") or {}
+    current_round = current_schemas.get("PracticeRoundRef") or {}
+    baseline_closure = baseline_round.get("additionalProperties", "unspecified")
+    current_closure = current_round.get("additionalProperties", "unspecified")
+    if baseline_closure != current_closure:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer(
+                    "components", "schemas", "PracticeRoundRef", "additionalProperties"
+                ),
+                "closed_object",
+                baseline_closure,
+                current_closure,
+            )
+        )
+
+    for schema_name in OPENAPI_004_NEW_SCHEMAS:
+        if schema_name in baseline_schemas or schema_name not in current_schemas:
+            continue
+        schema = current_schemas[schema_name]
+        required = list(schema.get("required") or []) if isinstance(schema, dict) else []
+        findings.append(
+            _normalized_finding(
+                "additive",
+                _json_pointer("components", "schemas", schema_name),
+                "schema_added_with_required_fields" if required else "schema_added",
+                "absent",
+                ",".join(required) if required else "present",
+            )
+        )
+        if isinstance(schema, dict) and schema.get("additionalProperties") is False:
+            findings.append(
+                _normalized_finding(
+                    "additive",
+                    _json_pointer(
+                        "components", "schemas", schema_name, "additionalProperties"
+                    ),
+                    "closed_object",
+                    "absent",
+                    False,
+                )
+            )
+        if schema_name == "TargetJobReportsOverview" and isinstance(schema, dict):
+            rounds = (schema.get("properties") or {}).get("rounds") or {}
+            bounds = _format_constraints(rounds)
+            if bounds:
+                findings.append(
+                    _normalized_finding(
+                        "additive",
+                        _json_pointer(
+                            "components",
+                            "schemas",
+                            schema_name,
+                            "properties",
+                            "rounds",
+                        ),
+                        "canonical_array_bounds_added",
+                        "absent",
+                        bounds,
+                    )
+                )
+    return findings
+
+
+def validate_openapi_004_contract(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    baseline_schemas = ((baseline.get("components") or {}).get("schemas") or {})
+    schemas = ((current.get("components") or {}).get("schemas") or {})
+    if "PaginatedFeedbackReport" not in baseline_schemas:
+        errors.append("old baseline must contain PaginatedFeedbackReport")
+    if "PaginatedFeedbackReport" in schemas:
+        errors.append("PaginatedFeedbackReport must be removed")
+    baseline_target_properties = (
+        (baseline_schemas.get("TargetJob") or {}).get("properties") or {}
+    )
+    target_properties = (schemas.get("TargetJob") or {}).get("properties") or {}
+    if "latestReportId" not in baseline_target_properties:
+        errors.append("old baseline TargetJob must contain latestReportId")
+    if "latestReportId" in target_properties:
+        errors.append("TargetJob latestReportId must be removed")
+
+    baseline_round = baseline_schemas.get("PracticeRoundRef") or {}
+    current_round = schemas.get("PracticeRoundRef") or {}
+    normalized_round = copy.deepcopy(current_round)
+    if normalized_round.pop("additionalProperties", None) is not False:
+        errors.append("PracticeRoundRef must set additionalProperties=false")
+    if normalized_round != baseline_round:
+        errors.append("PracticeRoundRef may change only object closure")
+
+    expected_shapes = {
+        "TargetJobReportsOverview": (
+            ["targetJobId", "rounds"],
+            {"targetJobId", "rounds"},
+            {"type", "required", "additionalProperties", "properties"},
+        ),
+        "TargetJobReportRoundOverview": (
+            ["round", "currentReport", "latestAttempt"],
+            {"round", "currentReport", "latestAttempt"},
+            {"type", "required", "additionalProperties", "properties"},
+        ),
+        "TargetJobCurrentReportSummary": (
+            ["id", "generatedAt"],
+            {"id", "generatedAt"},
+            {"type", "required", "additionalProperties", "properties"},
+        ),
+        "TargetJobReportAttemptSummary": (
+            ["id", "status", "errorCode", "createdAt"],
+            {"id", "status", "errorCode", "createdAt"},
+            {"type", "required", "additionalProperties", "allOf", "properties"},
+        ),
+    }
+    for schema_name, (required, property_names, keywords) in expected_shapes.items():
+        schema = schemas.get(schema_name) or {}
+        if schema.get("type") != "object" or schema.get("additionalProperties") is not False:
+            errors.append(f"{schema_name} must be a closed object")
+        if schema.get("required") != required:
+            errors.append(f"{schema_name} required fields must equal {required}")
+        if set(schema.get("properties") or {}) != property_names:
+            errors.append(f"{schema_name} properties must equal {sorted(property_names)}")
+        if set(schema) != keywords:
+            errors.append(f"{schema_name} must not declare extra schema keywords")
+
+    overview = (schemas.get("TargetJobReportsOverview") or {}).get("properties") or {}
+    if overview.get("targetJobId") != {"type": "string", "format": "uuid"}:
+        errors.append("TargetJobReportsOverview targetJobId must be UUID")
+    rounds = overview.get("rounds") or {}
+    if rounds != {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 5,
+        "items": {"$ref": "#/components/schemas/TargetJobReportRoundOverview"},
+    }:
+        errors.append("TargetJobReportsOverview rounds must be canonical 2..5 summaries")
+
+    round_properties = (
+        (schemas.get("TargetJobReportRoundOverview") or {}).get("properties") or {}
+    )
+    if round_properties.get("round") != {
+        "$ref": "#/components/schemas/PracticeRoundRef"
+    }:
+        errors.append("report overview round must reference PracticeRoundRef")
+    if [_type_signature(branch) for branch in (round_properties.get("currentReport") or {}).get("oneOf") or []] != [
+        "TargetJobCurrentReportSummary",
+        "null",
+    ]:
+        errors.append("currentReport must be required nullable current summary")
+    if [_type_signature(branch) for branch in (round_properties.get("latestAttempt") or {}).get("oneOf") or []] != [
+        "TargetJobReportAttemptSummary",
+        "null",
+    ]:
+        errors.append("latestAttempt must be required nullable attempt summary")
+
+    current_properties = (
+        (schemas.get("TargetJobCurrentReportSummary") or {}).get("properties") or {}
+    )
+    if current_properties != {
+        "id": {"type": "string", "format": "uuid"},
+        "generatedAt": {"type": "string", "format": "date-time"},
+    }:
+        errors.append("current report summary fields must remain minimal and typed")
+
+    attempt = schemas.get("TargetJobReportAttemptSummary") or {}
+    attempt_properties = attempt.get("properties") or {}
+    if attempt_properties != {
+        "id": {"type": "string", "format": "uuid"},
+        "status": {"$ref": "#/components/schemas/ReportStatus"},
+        "errorCode": {
+            "oneOf": [
+                {"$ref": "#/components/schemas/ApiErrorCode"},
+                {"type": "null"},
+            ]
+        },
+        "createdAt": {"type": "string", "format": "date-time"},
+    }:
+        errors.append("latest attempt fields must remain minimal and typed")
+    expected_conditional = [
+        {
+            "if": {
+                "required": ["status"],
+                "properties": {"status": {"const": "failed"}},
+            },
+            "then": {
+                "properties": {
+                    "errorCode": {"$ref": "#/components/schemas/ApiErrorCode"}
+                }
+            },
+            "else": {"properties": {"errorCode": {"type": "null"}}},
+        }
+    ]
+    if attempt.get("allOf") != expected_conditional:
+        errors.append("latest attempt errorCode must be non-null only for failed status")
+    return errors
+
+
+def validate_openapi_004_invariants(
+    baseline: Dict[str, Any], current: Dict[str, Any], invariants: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    inventory = invariants.get("inventory") or {}
+    operation_count = _operation_count(current)
+    tag_names = [
+        str(tag.get("name"))
+        for tag in current.get("tags") or []
+        if isinstance(tag, dict) and tag.get("name")
+    ]
+    if operation_count != inventory.get("operations"):
+        errors.append(
+            f"OPENAPI-004 operations must equal {inventory.get('operations')}, got {operation_count}"
+        )
+    if len(tag_names) != inventory.get("tags") or len(set(tag_names)) != inventory.get(
+        "tags"
+    ):
+        errors.append(
+            f"OPENAPI-004 tags must equal {inventory.get('tags')} unique entries, got {len(tag_names)}"
+        )
+
+    expected = invariants.get("listTargetJobReports") or {}
+    baseline_operation = _operation_at_contract_path(
+        baseline, str(expected.get("path") or ""), str(expected.get("method") or "")
+    )
+    current_operation = _operation_at_contract_path(
+        current, str(expected.get("path") or ""), str(expected.get("method") or "")
+    )
+    if baseline_operation is None or current_operation is None:
+        errors.append("listTargetJobReports method/path must remain unchanged")
+        return errors
+    if baseline_operation.get("operationId") != expected.get(
+        "operationId"
+    ) or current_operation.get("operationId") != expected.get("operationId"):
+        errors.append("listTargetJobReports operationId must remain unchanged")
+    status = expected.get("successStatus")
+    if _success_response_schema(baseline_operation, status) != expected.get(
+        "baselineResponse"
+    ):
+        errors.append("old baseline listTargetJobReports response drifted")
+    if _success_response_schema(current_operation, status) != expected.get("response"):
+        errors.append("listTargetJobReports 200 response must equal TargetJobReportsOverview")
+    if set(str(code) for code in baseline_operation.get("responses") or {}) != set(
+        str(code) for code in current_operation.get("responses") or {}
+    ):
+        errors.append("listTargetJobReports response statuses must remain unchanged")
+    expected_parameters = [
+        parameter
+        for parameter in baseline_operation.get("parameters") or []
+        if not (
+            isinstance(parameter, dict)
+            and parameter.get("name") in {"cursor", "pageSize"}
+        )
+    ]
+    if current_operation.get("parameters") != expected_parameters:
+        errors.append("listTargetJobReports parameters may only remove cursor/pageSize")
+    return errors
+
+
+def validate_d_35_contract(
+    current: Dict[str, Any], baseline: Optional[Dict[str, Any]] = None
+) -> List[str]:
+    schemas = ((current.get("components") or {}).get("schemas") or {})
+    baseline_schemas = (
+        ((baseline.get("components") or {}).get("schemas") or {}) if baseline else {}
+    )
+    errors: List[str] = []
+    message = schemas.get("PracticeMessage") or {}
+    expected_branches = [
+        "PracticeUserMessage",
+        "PracticeAssistantMessage",
+    ]
+    if [_type_signature(branch) for branch in message.get("oneOf") or []] != expected_branches:
+        errors.append("PracticeMessage oneOf must equal user then assistant projections")
+    discriminator = message.get("discriminator") or {}
+    if discriminator.get("propertyName") != "role" or discriminator.get("mapping") != {
+        "user": "#/components/schemas/PracticeUserMessage",
+        "assistant": "#/components/schemas/PracticeAssistantMessage",
+    }:
+        errors.append("PracticeMessage must use the exact role discriminator mapping")
+    if set(message) != {"oneOf", "discriminator"}:
+        errors.append("PracticeMessage must not retain legacy or extra schema keywords")
+
+    reply_status = schemas.get("PracticeReplyStatus") or {}
+    if reply_status.get("type") != "string" or reply_status.get("enum") != [
+        "pending",
+        "retryable_failed",
+        "terminal_failed",
+        "complete",
+    ]:
+        errors.append("PracticeReplyStatus must equal the four durable reply states")
+    if set(reply_status) != {"type", "enum"}:
+        errors.append("PracticeReplyStatus must not declare extra schema keywords")
+
+    base_required = ["id", "seqNo", "role", "content", "createdAt"]
+    expected_base_properties = {
+        "id": {"type": "string", "format": "uuid"},
+        "seqNo": {"type": "integer", "format": "int32", "minimum": 1},
+        "role": {"type": "string", "enum": ["user", "assistant"]},
+        "content": {"type": "string"},
+        "createdAt": {"type": "string", "format": "date-time"},
+    }
+    if baseline_schemas:
+        baseline_message = baseline_schemas.get("PracticeMessage") or {}
+        if baseline_message.get("required") != base_required:
+            errors.append("baseline PracticeMessage required fields drifted")
+        if baseline_message.get("properties") != expected_base_properties:
+            errors.append("baseline PracticeMessage field contract drifted")
+    for name, role, required in (
+        (
+            "PracticeUserMessage",
+            "user",
+            base_required + ["clientMessageId", "replyStatus"],
+        ),
+        ("PracticeAssistantMessage", "assistant", base_required),
+    ):
+        schema = schemas.get(name) or {}
+        properties = schema.get("properties") or {}
+        if schema.get("type") != "object" or schema.get("additionalProperties") is not False:
+            errors.append(f"{name} must be a closed object")
+        if set(schema) != {"type", "additionalProperties", "required", "properties"}:
+            errors.append(f"{name} must not declare extra schema keywords")
+        if schema.get("required") != required:
+            errors.append(f"{name} required fields must equal {required}")
+        if (properties.get("role") or {}).get("enum") != [role]:
+            errors.append(f"{name} must fix role={role}")
+        if name == "PracticeUserMessage":
+            if _type_signature(properties.get("clientMessageId") or {}) != "string":
+                errors.append("PracticeUserMessage clientMessageId must be a string")
+            if _type_signature(properties.get("replyStatus") or {}) != "PracticeReplyStatus":
+                errors.append("PracticeUserMessage replyStatus must reference PracticeReplyStatus")
+        elif "clientMessageId" in properties or "replyStatus" in properties:
+            errors.append("PracticeAssistantMessage must forbid recovery fields")
+        expected_properties = copy.deepcopy(expected_base_properties)
+        expected_properties["role"] = {"type": "string", "enum": [role]}
+        if name == "PracticeUserMessage":
+            expected_properties.update(
+                {
+                    "clientMessageId": {"type": "string", "format": "uuid"},
+                    "replyStatus": {
+                        "$ref": "#/components/schemas/PracticeReplyStatus"
+                    },
+                }
+            )
+        if properties != expected_properties:
+            errors.append(f"{name} properties must exactly preserve the role projection")
+
+    response = schemas.get("SendPracticeMessageResponse") or {}
+    response_properties = response.get("properties") or {}
+    if _type_signature(response_properties.get("userMessage") or {}) != "PracticeUserMessage":
+        errors.append("send response userMessage must reference PracticeUserMessage")
+    if (
+        _type_signature(response_properties.get("assistantMessage") or {})
+        != "PracticeAssistantMessage"
+    ):
+        errors.append("send response assistantMessage must reference PracticeAssistantMessage")
+    if baseline_schemas:
+        baseline_response = baseline_schemas.get("SendPracticeMessageResponse") or {}
+        normalized_response = copy.deepcopy(response)
+        normalized_properties = normalized_response.get("properties") or {}
+        normalized_properties["userMessage"] = {
+            "$ref": "#/components/schemas/PracticeMessage"
+        }
+        normalized_properties["assistantMessage"] = {
+            "$ref": "#/components/schemas/PracticeMessage"
+        }
+        if normalized_response != baseline_response:
+            errors.append(
+                "SendPracticeMessageResponse may change only user/assistant projection refs"
+            )
+        if schemas.get("PracticeSession") != baseline_schemas.get("PracticeSession"):
+            errors.append("PracticeSession must remain byte-equivalent to the old schema")
+        new_practice_schemas = {
+            name
+            for name in set(schemas) - set(baseline_schemas)
+            if name.startswith("Practice")
+        }
+        if new_practice_schemas != {
+            "PracticeReplyStatus",
+            "PracticeUserMessage",
+            "PracticeAssistantMessage",
+        }:
+            errors.append(
+                f"unexpected new Practice schemas: {sorted(new_practice_schemas)}"
+            )
+    session_messages = (
+        ((schemas.get("PracticeSession") or {}).get("properties") or {}).get("messages")
+        or {}
+    )
+    if _type_signature(session_messages.get("items") or {}) != "PracticeMessage":
+        errors.append("PracticeSession messages must reference PracticeMessage")
+    return errors
+
+
+def _operation_at_contract_path(
+    doc: Dict[str, Any], contract_path: str, method: str
+) -> Optional[Dict[str, Any]]:
+    paths = doc.get("paths") or {}
+    candidates = [contract_path]
+    for server in doc.get("servers") or []:
+        if not isinstance(server, dict):
+            continue
+        prefix = str(server.get("url") or "").rstrip("/")
+        if prefix and contract_path.startswith(prefix + "/"):
+            candidates.append(contract_path[len(prefix) :])
+    for candidate in candidates:
+        path_item = paths.get(candidate)
+        if isinstance(path_item, dict):
+            operation = path_item.get(method.lower())
+            if isinstance(operation, dict):
+                return operation
+    return None
+
+
+def _success_response_schema(operation: Dict[str, Any], status: Any) -> str:
+    responses = operation.get("responses") or {}
+    response = responses.get(str(status))
+    if response is None:
+        response = responses.get(status)
+    if not isinstance(response, dict):
+        return ""
+    schema = (((response.get("content") or {}).get("application/json") or {}).get("schema"))
+    return _type_signature(schema or {})
+
+
+def validate_openapi_002_invariants(
+    current: Dict[str, Any], invariants: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    inventory = invariants.get("inventory") or {}
+    expected_operations = inventory.get("operations")
+    expected_tags = inventory.get("tags")
+    operation_count = _operation_count(current)
+    tag_names = [
+        str(tag.get("name"))
+        for tag in current.get("tags") or []
+        if isinstance(tag, dict) and tag.get("name")
+    ]
+    if operation_count != expected_operations:
+        errors.append(
+            f"OPENAPI-002 operations must equal {expected_operations}, got {operation_count}"
+        )
+    if len(tag_names) != expected_tags or len(set(tag_names)) != expected_tags:
+        errors.append(
+            f"OPENAPI-002 tags must equal {expected_tags} unique entries, got {len(tag_names)}"
+        )
+
+    for invariant_name in ("importTargetJob", "createUploadPresign"):
+        expected = invariants.get(invariant_name) or {}
+        operation = _operation_at_contract_path(
+            current, str(expected.get("path") or ""), str(expected.get("method") or "")
+        )
+        if operation is None:
+            errors.append(
+                f"{invariant_name} must remain {expected.get('method')} {expected.get('path')}"
+            )
+            continue
+        if operation.get("operationId") != expected.get("operationId"):
+            errors.append(
+                f"{invariant_name} operationId must equal {expected.get('operationId')}"
+            )
+        response_name = _success_response_schema(operation, expected.get("successStatus"))
+        if response_name != expected.get("response"):
+            errors.append(
+                f"{invariant_name} response {expected.get('successStatus')} must equal {expected.get('response')}"
+            )
+
+    upload_invariant = invariants.get("createUploadPresign") or {}
+    expected_purposes = list(upload_invariant.get("remainingPurposes") or [])
+    current_purposes = list(
+        (
+            (
+                (
+                    (((current.get("components") or {}).get("schemas") or {}).get("UploadPresignRequest") or {}).get("properties")
+                    or {}
+                ).get("purpose")
+                or {}
+            ).get("enum")
+            or []
+        )
+    )
+    if current_purposes != expected_purposes:
+        errors.append(
+            f"createUploadPresign remaining purposes must equal {expected_purposes}, got {current_purposes}"
+        )
+
+    if invariants.get("compatibilityAliases") == "forbidden":
+        current_schemas = ((current.get("components") or {}).get("schemas") or {})
+        aliases = [name for name in OPENAPI_002_SOURCE_SCHEMAS if name in current_schemas]
+        if aliases:
+            errors.append(f"OPENAPI-002 compatibility aliases are forbidden: {aliases}")
+    return errors
+
+
+def validate_d_35_invariants(
+    baseline: Dict[str, Any], current: Dict[str, Any], invariants: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    inventory = invariants.get("inventory") or {}
+    expected_operations = inventory.get("operations")
+    expected_tags = inventory.get("tags")
+    operation_count = _operation_count(current)
+    tag_names = [
+        str(tag.get("name"))
+        for tag in current.get("tags") or []
+        if isinstance(tag, dict) and tag.get("name")
+    ]
+    if operation_count != expected_operations:
+        errors.append(
+            f"D-35 operations must equal {expected_operations}, got {operation_count}"
+        )
+    if len(tag_names) != expected_tags or len(set(tag_names)) != expected_tags:
+        errors.append(
+            f"D-35 tags must equal {expected_tags} unique entries, got {len(tag_names)}"
+        )
+    baseline_paths = baseline.get("paths") or {}
+    current_paths = current.get("paths") or {}
+    baseline_practice_paths = {
+        path for path in baseline_paths if path.startswith("/practice/sessions")
+    }
+    current_practice_paths = {
+        path for path in current_paths if path.startswith("/practice/sessions")
+    }
+    if baseline_practice_paths != current_practice_paths:
+        errors.append("D-35 must not add or remove Practice session paths")
+
+    for invariant_name in ("getPracticeSession", "sendPracticeMessage"):
+        expected = invariants.get(invariant_name) or {}
+        method = str(expected.get("method") or "")
+        path = str(expected.get("path") or "")
+        current_operation = _operation_at_contract_path(current, path, method)
+        baseline_operation = _operation_at_contract_path(baseline, path, method)
+        if current_operation is None:
+            errors.append(
+                f"{invariant_name} must remain {expected.get('method')} {expected.get('path')}"
+            )
+            continue
+        if current_operation.get("operationId") != expected.get("operationId"):
+            errors.append(
+                f"{invariant_name} operationId must equal {expected.get('operationId')}"
+            )
+        response_name = _success_response_schema(
+            current_operation, expected.get("successStatus")
+        )
+        if response_name != expected.get("response"):
+            errors.append(
+                f"{invariant_name} response {expected.get('successStatus')} must equal {expected.get('response')}"
+            )
+        if baseline_operation != current_operation:
+            errors.append(f"D-35 must not mutate {invariant_name} operation metadata")
+    return errors
+
+
 def _finding_key(finding: Dict[str, Any]) -> Tuple[str, str, str, str, str]:
     return tuple(str(finding.get(key, "")) for key in OPENAPI_001_FINDING_KEYS)  # type: ignore[return-value]
 
@@ -1105,6 +2275,40 @@ def validate_decision_record(text: str, decision_id: str) -> List[str]:
         errors.append(f"decision record must declare ID {decision_id}")
     if not re.search(r"^> \*\*状态\*\*: accepted\s*$", text, re.MULTILINE):
         errors.append("decision record status must be accepted")
+    return errors
+
+
+def validate_exact_set_oracle(
+    oracle: Dict[str, Any], decision_id: str
+) -> List[str]:
+    errors: List[str] = []
+    if oracle.get("decisionId") != decision_id:
+        errors.append("oracle decisionId does not match requested decision")
+    comparison = oracle.get("comparison") or {}
+    if comparison.get("mode") != "exact-set" or comparison.get("keyFields") != list(
+        OPENAPI_001_FINDING_KEYS
+    ):
+        errors.append("oracle must use exact-set with severity/path/kind/before/after")
+    if comparison.get("orderSignificant") is not False:
+        errors.append("oracle exact-set comparison must be order-insensitive")
+    if comparison.get("missingFinding") != "fail" or comparison.get(
+        "unexpectedFinding"
+    ) != "fail":
+        errors.append("oracle must fail on missing and unexpected findings")
+
+    findings = oracle.get("findings")
+    if not isinstance(findings, list):
+        errors.append("oracle findings must be a list")
+        return errors
+    required_keys = set(OPENAPI_001_FINDING_KEYS)
+    for index, finding in enumerate(findings):
+        if not isinstance(finding, dict) or set(finding) != required_keys:
+            errors.append(
+                f"oracle finding {index} must contain exactly severity/path/kind/before/after"
+            )
+            continue
+        if any("*" in str(finding[key]) for key in OPENAPI_001_FINDING_KEYS):
+            errors.append(f"oracle finding {index} must not use wildcard authorization")
     return errors
 
 
@@ -1284,6 +2488,363 @@ def run_openapi_001_audit(
     return 0 if not errors else 1
 
 
+def run_openapi_002_audit(
+    args: argparse.Namespace,
+    repo_root: Path,
+    baseline_path: Path,
+    current_path: Path,
+) -> int:
+    decision_path = Path(args.decision_record).resolve() if args.decision_record else None
+    oracle_path = Path(args.oracle).resolve() if args.oracle else None
+    errors: List[str] = []
+    if decision_path is None or not decision_path.is_file():
+        errors.append("OPENAPI-002 audit requires --decision-record")
+    if oracle_path is None or not oracle_path.is_file():
+        errors.append("OPENAPI-002 audit requires --oracle")
+
+    base_ref = args.base_ref or "main"
+    base_commit = _git_merge_base(repo_root, "HEAD", base_ref)
+    if base_commit is None:
+        base_commit = _git_rev_parse(repo_root, base_ref)
+    baseline_text: Optional[str] = None
+    if base_commit is None:
+        errors.append(f"cannot resolve base ref {base_ref!r}")
+    else:
+        baseline_text = _git_show(repo_root, base_commit, baseline_path)
+        if baseline_text is None:
+            errors.append(
+                f"cannot load {baseline_path.relative_to(repo_root)} from {base_commit}"
+            )
+
+    current_text = current_path.read_text(encoding="utf-8")
+    worktree_baseline_text = baseline_path.read_text(encoding="utf-8")
+    if baseline_text is not None and worktree_baseline_text != baseline_text:
+        errors.append("OPENAPI-002 worktree baseline differs from base-ref snapshot")
+    baseline_doc = yaml.safe_load(baseline_text) if baseline_text is not None else {}
+    current_doc = yaml.safe_load(current_text) or {}
+
+    oracle: Dict[str, Any] = {}
+    expected_findings: List[Dict[str, Any]] = []
+    if decision_path is not None and decision_path.is_file():
+        errors.extend(
+            validate_decision_record(
+                decision_path.read_text(encoding="utf-8"), args.decision_id
+            )
+        )
+    if oracle_path is not None and oracle_path.is_file():
+        try:
+            loaded_oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            errors.append(f"cannot parse OPENAPI-002 oracle: {exc}")
+        else:
+            if isinstance(loaded_oracle, dict):
+                oracle = loaded_oracle
+                errors.extend(validate_exact_set_oracle(oracle, args.decision_id))
+                raw_findings = oracle.get("findings")
+                if isinstance(raw_findings, list):
+                    expected_findings = [
+                        finding for finding in raw_findings if isinstance(finding, dict)
+                    ]
+            else:
+                errors.append("OPENAPI-002 oracle must be a JSON object")
+
+    actual_findings = normalize_openapi_002_findings(baseline_doc or {}, current_doc)
+    if len(expected_findings) != len(actual_findings):
+        errors.append(
+            f"OPENAPI-002 exact-set expected {len(expected_findings)} findings but actual {len(actual_findings)}"
+        )
+    errors.extend(compare_finding_sets(expected_findings, actual_findings))
+    errors.extend(validate_openapi_002_invariants(current_doc, oracle.get("invariants") or {}))
+
+    sorted_findings = sorted(actual_findings, key=_finding_key)
+    payload: Dict[str, Any] = OrderedDict(
+        schemaVersion=1,
+        decisionId=args.decision_id,
+        mode="exact-set",
+        keyFields=list(OPENAPI_001_FINDING_KEYS),
+        baselineSource=(
+            f"git:{base_commit}:{baseline_path.relative_to(repo_root)}"
+            if base_commit is not None
+            else None
+        ),
+        currentSource=str(current_path.relative_to(repo_root)),
+        baselineSha256=_sha256_text(baseline_text or ""),
+        currentSha256=_sha256_text(current_text),
+        summary=_format_summary(sorted_findings),
+        expectedFindingCount=len(expected_findings),
+        findingCount=len(sorted_findings),
+        findings=sorted_findings,
+        errors=errors,
+    )
+    _write_json_payload(payload, args.output)
+    return 0 if not errors else 1
+
+
+def validate_openapi_004_authority(
+    repo_root: Path, oracle: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    if oracle.get("authority") != {
+        "decision": "OPENAPI-004",
+        "specDecision": "D-36",
+        "historyVersion": "1.57",
+        "productDecision": "R-A",
+    }:
+        errors.append(
+            "OPENAPI-004 authority must bind accepted decision, spec D-36, history 1.57 and R-A"
+        )
+
+    contract_dir = repo_root / "docs" / "spec" / "openapi-v1-contract"
+    spec_path = contract_dir / "spec.md"
+    history_path = contract_dir / "history.md"
+    decision_path = (
+        contract_dir / "decisions" / "OPENAPI-004-targetjob-report-overview.md"
+    )
+    spec_text = spec_path.read_text(encoding="utf-8") if spec_path.is_file() else ""
+    history_text = (
+        history_path.read_text(encoding="utf-8") if history_path.is_file() else ""
+    )
+    decision_text = (
+        decision_path.read_text(encoding="utf-8") if decision_path.is_file() else ""
+    )
+    spec_rows = [line for line in spec_text.splitlines() if re.search(r"\|\s*D-36\s*\|", line)]
+    if not any("OPENAPI-004" in line and "TargetJob" in line for line in spec_rows):
+        errors.append("OPENAPI-004 requires current spec D-36 authority")
+    history_rows = [
+        line for line in history_text.splitlines() if re.search(r"\|\s*1\.57\s*\|", line)
+    ]
+    if not any(
+        "OPENAPI-004" in line and "TargetJob" in line for line in history_rows
+    ):
+        errors.append("OPENAPI-004 requires history 1.57 authority")
+    if "R-A" not in decision_text:
+        errors.append("OPENAPI-004 decision record must preserve product decision R-A")
+    return errors
+
+
+def run_openapi_004_audit(
+    args: argparse.Namespace,
+    repo_root: Path,
+    baseline_path: Path,
+    current_path: Path,
+) -> int:
+    decision_path = Path(args.decision_record).resolve() if args.decision_record else None
+    oracle_path = Path(args.oracle).resolve() if args.oracle else None
+    errors: List[str] = []
+    if decision_path is None or not decision_path.is_file():
+        errors.append("OPENAPI-004 audit requires --decision-record")
+    if oracle_path is None or not oracle_path.is_file():
+        errors.append("OPENAPI-004 audit requires --oracle")
+
+    base_ref = args.base_ref or "main"
+    base_commit = _git_merge_base(repo_root, "HEAD", base_ref)
+    if base_commit is None:
+        base_commit = _git_rev_parse(repo_root, base_ref)
+    baseline_text: Optional[str] = None
+    if base_commit is None:
+        errors.append(f"cannot resolve base ref {base_ref!r}")
+    else:
+        baseline_text = _git_show(repo_root, base_commit, baseline_path)
+        if baseline_text is None:
+            errors.append(
+                f"cannot load {baseline_path.relative_to(repo_root)} from {base_commit}"
+            )
+
+    current_text = current_path.read_text(encoding="utf-8")
+    worktree_baseline_text = baseline_path.read_text(encoding="utf-8")
+    if baseline_text is not None and worktree_baseline_text != baseline_text:
+        errors.append("OPENAPI-004 worktree baseline differs from base-ref snapshot")
+    baseline_doc = yaml.safe_load(baseline_text) if baseline_text is not None else {}
+    current_doc = yaml.safe_load(current_text) or {}
+
+    oracle: Dict[str, Any] = {}
+    expected_findings: List[Dict[str, Any]] = []
+    if decision_path is not None and decision_path.is_file():
+        errors.extend(
+            validate_decision_record(
+                decision_path.read_text(encoding="utf-8"), args.decision_id
+            )
+        )
+    if oracle_path is not None and oracle_path.is_file():
+        try:
+            loaded_oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            errors.append(f"cannot parse OPENAPI-004 oracle: {exc}")
+        else:
+            if isinstance(loaded_oracle, dict):
+                oracle = loaded_oracle
+                errors.extend(validate_exact_set_oracle(oracle, args.decision_id))
+                raw_findings = oracle.get("findings")
+                if isinstance(raw_findings, list):
+                    expected_findings = [
+                        finding for finding in raw_findings if isinstance(finding, dict)
+                    ]
+            else:
+                errors.append("OPENAPI-004 oracle must be a JSON object")
+
+    errors.extend(validate_openapi_004_authority(repo_root, oracle))
+    actual_findings = normalize_openapi_004_findings(
+        baseline_doc or {}, current_doc
+    )
+    if len(expected_findings) != len(actual_findings):
+        errors.append(
+            f"OPENAPI-004 exact-set expected {len(expected_findings)} findings but actual {len(actual_findings)}"
+        )
+    errors.extend(compare_finding_sets(expected_findings, actual_findings))
+    errors.extend(validate_openapi_004_contract(baseline_doc or {}, current_doc))
+    errors.extend(
+        validate_openapi_004_invariants(
+            baseline_doc or {}, current_doc, oracle.get("invariants") or {}
+        )
+    )
+
+    sorted_findings = sorted(actual_findings, key=_finding_key)
+    payload: Dict[str, Any] = OrderedDict(
+        schemaVersion=1,
+        decisionId=args.decision_id,
+        mode="exact-set",
+        keyFields=list(OPENAPI_001_FINDING_KEYS),
+        authority=oracle.get("authority"),
+        baselineSource=(
+            f"git:{base_commit}:{baseline_path.relative_to(repo_root)}"
+            if base_commit is not None
+            else None
+        ),
+        currentSource=str(current_path.relative_to(repo_root)),
+        baselineSha256=_sha256_text(baseline_text or ""),
+        currentSha256=_sha256_text(current_text),
+        summary=_format_summary(sorted_findings),
+        expectedFindingCount=len(expected_findings),
+        findingCount=len(sorted_findings),
+        findings=sorted_findings,
+        errors=errors,
+    )
+    _write_json_payload(payload, args.output)
+    return 0 if not errors else 1
+
+
+def validate_d_35_authority(
+    repo_root: Path, oracle: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    authority = oracle.get("authority") or {}
+    if authority != {
+        "specDecision": "D-35",
+        "historyVersion": "1.54",
+        "productDecision": "方案 A",
+    }:
+        errors.append("D-35 authority must bind spec D-35, history 1.54 and 方案 A")
+
+    contract_dir = repo_root / "docs" / "spec" / "openapi-v1-contract"
+    spec_path = contract_dir / "spec.md"
+    history_path = contract_dir / "history.md"
+    spec_text = spec_path.read_text(encoding="utf-8") if spec_path.is_file() else ""
+    history_text = (
+        history_path.read_text(encoding="utf-8") if history_path.is_file() else ""
+    )
+    spec_rows = [line for line in spec_text.splitlines() if re.search(r"\|\s*D-35\s*\|", line)]
+    if not any("Practice" in line and "方案 A" in line for line in spec_rows):
+        errors.append("D-35 requires current spec D-35 authority for Practice 方案 A")
+    history_rows = [
+        line
+        for line in history_text.splitlines()
+        if re.search(r"\|\s*1\.54\s*\|", line)
+    ]
+    if not any("Practice" in line and "方案 A" in line for line in history_rows):
+        errors.append("D-35 requires history 1.54 authority for Practice 方案 A")
+    return errors
+
+
+def run_d_35_audit(
+    args: argparse.Namespace,
+    repo_root: Path,
+    baseline_path: Path,
+    current_path: Path,
+) -> int:
+    oracle_path = Path(args.oracle).resolve() if args.oracle else None
+    errors: List[str] = []
+    if oracle_path is None or not oracle_path.is_file():
+        errors.append("D-35 audit requires --oracle")
+
+    base_ref = args.base_ref or "main"
+    base_commit = _git_merge_base(repo_root, "HEAD", base_ref)
+    if base_commit is None:
+        base_commit = _git_rev_parse(repo_root, base_ref)
+    baseline_text: Optional[str] = None
+    if base_commit is None:
+        errors.append(f"cannot resolve base ref {base_ref!r}")
+    else:
+        baseline_text = _git_show(repo_root, base_commit, baseline_path)
+        if baseline_text is None:
+            errors.append(
+                f"cannot load {baseline_path.relative_to(repo_root)} from {base_commit}"
+            )
+
+    current_text = current_path.read_text(encoding="utf-8")
+    worktree_baseline_text = baseline_path.read_text(encoding="utf-8")
+    if baseline_text is not None and worktree_baseline_text != baseline_text:
+        errors.append("D-35 worktree baseline differs from base-ref snapshot")
+    baseline_doc = yaml.safe_load(baseline_text) if baseline_text is not None else {}
+    current_doc = yaml.safe_load(current_text) or {}
+
+    oracle: Dict[str, Any] = {}
+    expected_findings: List[Dict[str, Any]] = []
+    if oracle_path is not None and oracle_path.is_file():
+        try:
+            loaded_oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            errors.append(f"cannot parse D-35 oracle: {exc}")
+        else:
+            if isinstance(loaded_oracle, dict):
+                oracle = loaded_oracle
+                errors.extend(validate_exact_set_oracle(oracle, args.decision_id))
+                raw_findings = oracle.get("findings")
+                if isinstance(raw_findings, list):
+                    expected_findings = [
+                        finding for finding in raw_findings if isinstance(finding, dict)
+                    ]
+            else:
+                errors.append("D-35 oracle must be a JSON object")
+
+    errors.extend(validate_d_35_authority(repo_root, oracle))
+    actual_findings = normalize_d_35_findings(baseline_doc or {}, current_doc)
+    if len(expected_findings) != len(actual_findings):
+        errors.append(
+            f"D-35 exact-set expected {len(expected_findings)} findings but actual {len(actual_findings)}"
+        )
+    errors.extend(compare_finding_sets(expected_findings, actual_findings))
+    errors.extend(validate_d_35_contract(current_doc, baseline_doc or {}))
+    errors.extend(
+        validate_d_35_invariants(
+            baseline_doc or {}, current_doc, oracle.get("invariants") or {}
+        )
+    )
+
+    sorted_findings = sorted(actual_findings, key=_finding_key)
+    payload: Dict[str, Any] = OrderedDict(
+        schemaVersion=1,
+        decisionId=args.decision_id,
+        mode="exact-set",
+        keyFields=list(OPENAPI_001_FINDING_KEYS),
+        authority=oracle.get("authority"),
+        baselineSource=(
+            f"git:{base_commit}:{baseline_path.relative_to(repo_root)}"
+            if base_commit is not None
+            else None
+        ),
+        currentSource=str(current_path.relative_to(repo_root)),
+        baselineSha256=_sha256_text(baseline_text or ""),
+        currentSha256=_sha256_text(current_text),
+        summary=_format_summary(sorted_findings),
+        expectedFindingCount=len(expected_findings),
+        findingCount=len(sorted_findings),
+        findings=sorted_findings,
+        errors=errors,
+    )
+    _write_json_payload(payload, args.output)
+    return 0 if not errors else 1
+
+
 def run(args: argparse.Namespace) -> int:
     repo_root = Path(args.repo_root).resolve()
 
@@ -1310,9 +2871,35 @@ def run(args: argparse.Namespace) -> int:
         return 1
 
     if args.decision_id:
-        if args.decision_id != "OPENAPI-001":
+        if args.decision_id not in {
+            "OPENAPI-001",
+            "OPENAPI-002",
+            "OPENAPI-004",
+            "D-35",
+        }:
             sys.stderr.write(f"ERROR: unsupported decision audit: {args.decision_id}\n")
             return 1
+        if args.decision_id == "OPENAPI-004":
+            return run_openapi_004_audit(
+                args,
+                repo_root,
+                baseline_path,
+                current_path,
+            )
+        if args.decision_id == "D-35":
+            return run_d_35_audit(
+                args,
+                repo_root,
+                baseline_path,
+                current_path,
+            )
+        if args.decision_id == "OPENAPI-002":
+            return run_openapi_002_audit(
+                args,
+                repo_root,
+                baseline_path,
+                current_path,
+            )
         return run_openapi_001_audit(
             args,
             repo_root,

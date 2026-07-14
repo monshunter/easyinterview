@@ -25,7 +25,6 @@ type fakeStore struct {
 	listResult           targetjob.ListResult
 	getRecord            targetjob.TargetJobRecord
 	getRequirements      []targetjob.RequirementRecord
-	getSources           []targetjob.SourceRecord
 	getErr               error
 	updateResult         targetjob.TargetJobRecord
 	updateErr            error
@@ -41,8 +40,6 @@ type fakeStore struct {
 	archiveResult        targetjob.TargetJobRecord
 	archiveErr           error
 	capturedArchiveInput targetjob.ArchiveTargetJobInput
-	fileLookup           targetjob.FileAttachmentRecord
-	fileLookupErr        error
 }
 
 func (f *fakeStore) ImportTargetJob(_ context.Context, in targetjob.ImportTargetJobInput) (targetjob.ImportTargetJobResult, error) {
@@ -60,9 +57,6 @@ func (f *fakeStore) ImportTargetJob(_ context.Context, in targetjob.ImportTarget
 			JobCreatedAt: in.Now,
 			JobUpdatedAt: in.Now,
 		}
-		if in.OutboxEventID == "" {
-			res.JobStatus = sharedtypes.JobStatusSucceeded
-		}
 	}
 	return res, nil
 }
@@ -71,13 +65,9 @@ func (f *fakeStore) InsertTargetJob(context.Context, targetjob.TargetJobRecord) 
 	panic("not used")
 }
 
-func (f *fakeStore) InsertTargetJobSource(context.Context, targetjob.SourceRecord) error {
-	panic("not used")
-}
-
-func (f *fakeStore) GetTargetJobByUser(_ context.Context, _ string, _ string) (targetjob.TargetJobRecord, []targetjob.RequirementRecord, []targetjob.SourceRecord, error) {
+func (f *fakeStore) GetTargetJobByUser(_ context.Context, _ string, _ string) (targetjob.TargetJobRecord, []targetjob.RequirementRecord, error) {
 	f.getCallCount++
-	return f.getRecord, f.getRequirements, f.getSources, f.getErr
+	return f.getRecord, f.getRequirements, f.getErr
 }
 
 func (f *fakeStore) ListTargetJobsForUser(_ context.Context, _ string, filter targetjob.ListFilter) (targetjob.ListResult, error) {
@@ -120,34 +110,14 @@ func (f *fakeStore) CompleteParseFailure(context.Context, targetjob.CompletePars
 	panic("not used")
 }
 
-func (f *fakeStore) UpdateSourceFreshness(context.Context, string, targetjob.FreshnessStatus, time.Time) error {
-	panic("not used")
-}
-func (f *fakeStore) UpdateSourceSnapshot(context.Context, string, string, string, time.Time, time.Time) error {
-	panic("not used")
-}
-
-func (f *fakeStore) EnqueueSourceRefresh(context.Context, string, string, time.Time) error {
-	return nil
-}
 func (f *fakeStore) WriteParseFailedOutbox(context.Context, string, string, []byte, time.Time) error {
 	return nil
 }
 func (f *fakeStore) WriteTargetParsedOutbox(context.Context, string, string, []byte, time.Time) error {
 	return nil
 }
-func (f *fakeStore) GetTargetJobForParse(context.Context, string) (targetjob.TargetJobRecord, []targetjob.SourceRecord, error) {
-	return targetjob.TargetJobRecord{}, nil, nil
-}
-
-func (f *fakeStore) LookupFileAttachmentForUser(_ context.Context, userID string, fileObjectID string) (targetjob.FileAttachmentRecord, error) {
-	if f.fileLookupErr != nil {
-		return targetjob.FileAttachmentRecord{}, f.fileLookupErr
-	}
-	if f.fileLookup.ID == "" {
-		return targetjob.FileAttachmentRecord{ID: fileObjectID, UserID: userID, Purpose: "target_job_attachment"}, nil
-	}
-	return f.fileLookup, nil
+func (f *fakeStore) GetTargetJobForParse(context.Context, string) (targetjob.TargetJobRecord, error) {
+	return targetjob.TargetJobRecord{}, nil
 }
 
 func newServiceWithFake(ids ...string) (*targetjob.Service, *fakeStore) {
@@ -171,11 +141,10 @@ func newServiceWithFake(ids ...string) (*targetjob.Service, *fakeStore) {
 	return svc, store
 }
 
-func TestService_ImportTargetJob_ManualTextRunnerPath(t *testing.T) {
+func TestService_ImportTargetJob_DirectRawTextRunnerPath(t *testing.T) {
 	svc, store := newServiceWithFake(
 		"018f2a40-0000-7000-9000-0000000000a1", // target_job id
 		"018f2a40-0000-7000-9000-0000000000f1", // job id
-		"018f2a40-0000-7000-9000-0000000000c1", // source id
 		"018f2a40-0000-7000-9000-0000000000e1", // outbox id
 	)
 
@@ -184,10 +153,7 @@ func TestService_ImportTargetJob_ManualTextRunnerPath(t *testing.T) {
 		IdempotencyKey: "key-1",
 		TargetLanguage: "en",
 		ResumeID:       testResumeID,
-		Source: map[string]any{
-			"type":    "manual_text",
-			"rawText": "We are hiring a Backend Engineer with strong Go experience.",
-		},
+		RawText:        "  We are hiring a Backend Engineer with strong Go experience.  ",
 	})
 	if err != nil {
 		t.Fatalf("ImportTargetJob: %v", err)
@@ -198,28 +164,52 @@ func TestService_ImportTargetJob_ManualTextRunnerPath(t *testing.T) {
 	if resp.TargetJobID != "018f2a40-0000-7000-9000-0000000000a1" {
 		t.Fatalf("target id: %s", resp.TargetJobID)
 	}
-	if store.captured.APISourceType != targetjob.SourceTypeManualText {
-		t.Fatalf("captured source type: %s", store.captured.APISourceType)
-	}
 	if store.captured.OutboxEventID == "" || store.captured.JobPayload == nil || store.captured.OutboxEventPayload == nil {
-		t.Fatal("runner envelope must be attached for manual_text")
+		t.Fatal("runner envelope must be attached for direct rawText import")
 	}
-	// Verify outbox payload sourceType is the event-local "text"
+	if store.captured.RawJDText != "We are hiring a Backend Engineer with strong Go experience." {
+		t.Fatalf("rawText was not trimmed and persisted exactly: %q", store.captured.RawJDText)
+	}
 	var outbox map[string]any
 	if err := json.Unmarshal(store.captured.OutboxEventPayload, &outbox); err != nil {
 		t.Fatalf("unmarshal outbox: %v", err)
 	}
-	if outbox["sourceType"] != "text" {
-		t.Fatalf("manual_text must map to event sourceType=text, got %v", outbox["sourceType"])
+	if len(outbox) != 3 || outbox["targetJobId"] == nil || outbox["userId"] == nil || outbox["targetLanguage"] == nil {
+		t.Fatalf("outbox payload must contain only targetJobId/userId/targetLanguage: %v", outbox)
 	}
-	if !strings.Contains(string(store.captured.JobPayload), `"sourceType":"manual_text"`) {
-		t.Fatalf("job payload missing manual_text source: %s", string(store.captured.JobPayload))
+	if _, ok := outbox["sourceType"]; ok {
+		t.Fatalf("outbox payload must be source-free: %v", outbox)
 	}
-	if store.captured.SourceSnapshotText == "" {
-		t.Fatal("manual_text snapshot_text must be set to rawText")
+	var jobPayload map[string]any
+	if err := json.Unmarshal(store.captured.JobPayload, &jobPayload); err != nil {
+		t.Fatalf("unmarshal job payload: %v", err)
+	}
+	if len(jobPayload) != 3 || jobPayload["targetJobId"] == nil || jobPayload["userId"] == nil || jobPayload["targetLanguage"] == nil {
+		t.Fatalf("job payload must contain only targetJobId/userId/targetLanguage: %v", jobPayload)
+	}
+	if _, ok := jobPayload["sourceType"]; ok {
+		t.Fatalf("job payload must be source-free: %v", jobPayload)
 	}
 	if store.captured.ResumeID != testResumeID {
 		t.Fatalf("resume binding was not passed to store: %+v", store.captured)
+	}
+}
+
+func TestService_ImportTargetJob_RejectsBlankRawText(t *testing.T) {
+	svc, store := newServiceWithFake()
+	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
+		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
+		IdempotencyKey: "key-blank",
+		TargetLanguage: "en",
+		ResumeID:       testResumeID,
+		RawText:        " \n\t ",
+	})
+	var svcErr *targetjob.ServiceImportError
+	if !errors.As(err, &svcErr) || svcErr.Code != sharederrors.CodeValidationFailed {
+		t.Fatalf("expected VALIDATION_FAILED for blank rawText, got %v", err)
+	}
+	if store.callCount != 0 {
+		t.Fatalf("blank rawText must fail before persistence, calls=%d", store.callCount)
 	}
 }
 
@@ -232,180 +222,11 @@ func TestService_ImportTargetJob_RequiresResumeID(t *testing.T) {
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
 		IdempotencyKey: "key-missing-resume",
 		TargetLanguage: "en",
-		Source: map[string]any{
-			"type":    "manual_text",
-			"rawText": "We are hiring a Backend Engineer.",
-		},
+		RawText:        "We are hiring a Backend Engineer.",
 	})
 	var svcErr *targetjob.ServiceImportError
 	if !errors.As(err, &svcErr) || svcErr.Code != "VALIDATION_FAILED" {
 		t.Fatalf("expected VALIDATION_FAILED for missing resumeId, got %v", err)
-	}
-}
-
-func TestService_ImportTargetJob_URLRunnerPathValidatesHttps(t *testing.T) {
-	svc, store := newServiceWithFake(
-		"018f2a40-0000-7000-9000-0000000000a2",
-		"018f2a40-0000-7000-9000-0000000000f2",
-		"018f2a40-0000-7000-9000-0000000000c2",
-		"018f2a40-0000-7000-9000-0000000000e2",
-	)
-
-	resp, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
-		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
-		IdempotencyKey: "key-2",
-		TargetLanguage: "zh-CN",
-		ResumeID:       testResumeID,
-		Source: map[string]any{
-			"type": "url",
-			"url":  "https://jobs.example.com/role/123?token=secret#share",
-		},
-	})
-	if err != nil {
-		t.Fatalf("ImportTargetJob URL: %v", err)
-	}
-	if resp.Job.Status != sharedtypes.JobStatusQueued {
-		t.Fatalf("URL path must yield queued, got %s", resp.Job.Status)
-	}
-	if !strings.HasPrefix(store.captured.SourceURL, "https://jobs.example.com") {
-		t.Fatalf("URL not preserved: %s", store.captured.SourceURL)
-	}
-	if strings.Contains(store.captured.SourceURL, "#share") {
-		t.Fatal("fragment must be stripped per Phase 2.1 sanitisation")
-	}
-	if strings.Contains(store.captured.SourceURL, "token=secret") || strings.Contains(store.captured.SourceURL, "?") {
-		t.Fatalf("query secret must be stripped from stored URL, got %s", store.captured.SourceURL)
-	}
-}
-
-func TestService_ImportTargetJob_URLRejectsHTTP(t *testing.T) {
-	svc, _ := newServiceWithFake(
-		"018f2a40-0000-7000-9000-0000000000a3",
-		"018f2a40-0000-7000-9000-0000000000f3",
-	)
-	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
-		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
-		IdempotencyKey: "key-3",
-		TargetLanguage: "en",
-		ResumeID:       testResumeID,
-		Source: map[string]any{
-			"type": "url",
-			"url":  "http://insecure.example.com",
-		},
-	})
-	var apiErr *targetjob.ServiceImportError
-	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_IMPORT_SOURCE_INVALID" {
-		t.Fatalf("expected TARGET_IMPORT_SOURCE_INVALID, got %v", err)
-	}
-}
-
-func TestService_ImportTargetJob_FilePath(t *testing.T) {
-	svc, store := newServiceWithFake(
-		"018f2a40-0000-7000-9000-0000000000a4",
-		"018f2a40-0000-7000-9000-0000000000f4",
-		"018f2a40-0000-7000-9000-0000000000c4",
-		"018f2a40-0000-7000-9000-0000000000e4",
-	)
-	store.fileLookup = targetjob.FileAttachmentRecord{
-		ID:      "018f2a40-0000-7000-9000-0000000000ff",
-		UserID:  "018f2a40-0000-7000-9000-0000000000b1",
-		Purpose: "target_job_attachment",
-	}
-	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
-		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
-		IdempotencyKey: "key-4",
-		TargetLanguage: "en",
-		ResumeID:       testResumeID,
-		Source: map[string]any{
-			"type":         "file",
-			"fileObjectId": "018f2a40-0000-7000-9000-0000000000ff",
-		},
-	})
-	if err != nil {
-		t.Fatalf("file path: %v", err)
-	}
-	if store.captured.SourceFileObjectID != "018f2a40-0000-7000-9000-0000000000ff" {
-		t.Fatalf("file object id not propagated: %s", store.captured.SourceFileObjectID)
-	}
-	if store.captured.OutboxEventID == "" {
-		t.Fatal("file path must attach runner envelope")
-	}
-}
-
-func TestService_ImportTargetJob_FilePath_RejectsCrossUserOrDeleted(t *testing.T) {
-	svc, store := newServiceWithFake("a", "b", "c", "d")
-	store.fileLookupErr = targetjob.ErrTargetJobNotFound
-	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
-		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
-		IdempotencyKey: "k",
-		TargetLanguage: "en",
-		ResumeID:       testResumeID,
-		Source: map[string]any{
-			"type":         "file",
-			"fileObjectId": "018f2a40-0000-7000-9000-0000000000ff",
-		},
-	})
-	var apiErr *targetjob.ServiceImportError
-	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_JOB_NOT_FOUND" {
-		t.Fatalf("expected TARGET_JOB_NOT_FOUND, got %v", err)
-	}
-}
-
-func TestService_ImportTargetJob_FilePath_RejectsWrongPurpose(t *testing.T) {
-	svc, store := newServiceWithFake("a", "b", "c", "d")
-	store.fileLookup = targetjob.FileAttachmentRecord{
-		ID:      "018f2a40-0000-7000-9000-0000000000ff",
-		UserID:  "018f2a40-0000-7000-9000-0000000000b1",
-		Purpose: "resume", // wrong purpose
-	}
-	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
-		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
-		IdempotencyKey: "k",
-		TargetLanguage: "en",
-		ResumeID:       testResumeID,
-		Source: map[string]any{
-			"type":         "file",
-			"fileObjectId": "018f2a40-0000-7000-9000-0000000000ff",
-		},
-	})
-	var apiErr *targetjob.ServiceImportError
-	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_IMPORT_SOURCE_INVALID" {
-		t.Fatalf("expected TARGET_IMPORT_SOURCE_INVALID, got %v", err)
-	}
-}
-
-func TestService_ImportTargetJob_ManualFormSyncReady(t *testing.T) {
-	svc, store := newServiceWithFake(
-		"018f2a40-0000-7000-9000-0000000000a5", // target id
-		"018f2a40-0000-7000-9000-0000000000f5", // job id
-		"018f2a40-0000-7000-9000-0000000000d5", // requirement id
-	)
-	resp, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
-		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
-		IdempotencyKey: "key-5",
-		TargetLanguage: "en",
-		ResumeID:       testResumeID,
-		Source: map[string]any{
-			"type":           "manual_form",
-			"title":          "Senior PM",
-			"companyName":    "Acme",
-			"rawDescription": "Lead product strategy.",
-		},
-	})
-	if err != nil {
-		t.Fatalf("manual_form: %v", err)
-	}
-	if resp.Job.Status != sharedtypes.JobStatusSucceeded {
-		t.Fatalf("manual_form must yield succeeded, got %s", resp.Job.Status)
-	}
-	if store.captured.OutboxEventID != "" {
-		t.Fatal("manual_form must NOT attach outbox envelope")
-	}
-	if len(store.captured.DraftRequirements) != 1 || store.captured.DraftRequirements[0].Kind != targetjob.RequirementMustHave {
-		t.Fatalf("manual_form must seed at least 1 must_have draft: %+v", store.captured.DraftRequirements)
-	}
-	if store.captured.InitialAnalysisStatus != sharedtypes.TargetJobParseStatusReady {
-		t.Fatalf("manual_form analysis_status must be ready, got %s", store.captured.InitialAnalysisStatus)
 	}
 }
 
@@ -414,7 +235,8 @@ func TestService_ImportTargetJob_RequiresIdempotencyKey(t *testing.T) {
 	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
 		UserID:         "u",
 		TargetLanguage: "en",
-		Source:         map[string]any{"type": "manual_text", "rawText": "x"},
+		ResumeID:       testResumeID,
+		RawText:        "x",
 	})
 	if !errors.Is(err, targetjob.ErrIdempotencyKeyRequired) {
 		t.Fatalf("expected ErrIdempotencyKeyRequired, got %v", err)
@@ -422,23 +244,23 @@ func TestService_ImportTargetJob_RequiresIdempotencyKey(t *testing.T) {
 }
 
 func TestService_ImportTargetJob_DedupeKeyIsUserScoped(t *testing.T) {
-	svc, store := newServiceWithFake("a", "b", "c", "d")
+	svc, store := newServiceWithFake("a", "b", "c")
 	_, _ = svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
 		UserID:         "user-1",
 		IdempotencyKey: "shared-key",
 		TargetLanguage: "en",
 		ResumeID:       testResumeID,
-		Source:         map[string]any{"type": "manual_text", "rawText": "JD A"},
+		RawText:        "JD A",
 	})
 	keyForUser1 := store.captured.DedupeKey
 
-	svc2, store2 := newServiceWithFake("e", "f", "g", "h")
+	svc2, store2 := newServiceWithFake("e", "f", "g")
 	_, _ = svc2.ImportTargetJob(context.Background(), targetjob.ImportRequest{
 		UserID:         "user-2",
 		IdempotencyKey: "shared-key", // same idempotency key as user-1
 		TargetLanguage: "en",
 		ResumeID:       testResumeID,
-		Source:         map[string]any{"type": "manual_text", "rawText": "JD B"},
+		RawText:        "JD B",
 	})
 	keyForUser2 := store2.captured.DedupeKey
 
@@ -460,7 +282,6 @@ func TestService_ListTargetJobs_PassesFiltersAndShapesPaginated(t *testing.T) {
 			Status:         sharedtypes.TargetJobStatusPreparing,
 			AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
 			Title:          "Backend",
-			SourceType:     targetjob.SourceTypeManualText,
 			TargetLanguage: "en",
 			CreatedAt:      created,
 			UpdatedAt:      created,
@@ -536,7 +357,6 @@ func TestService_ListTargetJobs_ProjectsCanonicalPracticeProgressIndependentOfLi
 				Status:              lifecycleStatus,
 				AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
 				Title:               "Backend",
-				SourceType:          targetjob.SourceTypeManualText,
 				TargetLanguage:      "en",
 				Summary:             threeRoundSummaryJSON(),
 				PracticeFactsLoaded: true,
@@ -591,7 +411,6 @@ func TestService_GetTargetJob_HidesCompletedFactsAfterFirstCanonicalGap(t *testi
 		Status:              sharedtypes.TargetJobStatusInterviewing,
 		AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
 		Title:               "Backend",
-		SourceType:          targetjob.SourceTypeManualText,
 		TargetLanguage:      "en",
 		Summary:             threeRoundSummaryJSON(),
 		PracticeFactsLoaded: true,
@@ -628,7 +447,6 @@ func TestService_GetTargetJob_ProjectsFirstRoundAndAllCompleted(t *testing.T) {
 			Status:              sharedtypes.TargetJobStatusDraft,
 			AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
 			Title:               "Backend",
-			SourceType:          targetjob.SourceTypeManualText,
 			TargetLanguage:      "en",
 			Summary:             threeRoundSummaryJSON(),
 			PracticeFactsLoaded: true,
@@ -659,7 +477,6 @@ func TestService_GetTargetJob_ProjectsFirstRoundAndAllCompleted(t *testing.T) {
 			Status:              sharedtypes.TargetJobStatusPreparing,
 			AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
 			Title:               "Backend",
-			SourceType:          targetjob.SourceTypeManualText,
 			TargetLanguage:      "en",
 			Summary:             threeRoundSummaryJSON(),
 			PracticeFactsLoaded: true,
@@ -697,7 +514,6 @@ func TestService_GetTargetJob_ProjectsNonContiguousCanonicalSequences(t *testing
 		Status:              sharedtypes.TargetJobStatusInterviewing,
 		AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
 		Title:               "Backend",
-		SourceType:          targetjob.SourceTypeManualText,
 		TargetLanguage:      "en",
 		Summary:             nonContiguousRoundSummaryJSON(),
 		PracticeFactsLoaded: true,
@@ -761,7 +577,6 @@ func TestService_GetAndListTargetJob_PracticeProgressFailsClosedForInvalidSummar
 				Status:              sharedtypes.TargetJobStatusInterviewing,
 				AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
 				Title:               "Backend",
-				SourceType:          targetjob.SourceTypeManualText,
 				TargetLanguage:      "en",
 				Summary:             tc.summary,
 				PracticeFactsLoaded: true,
@@ -800,7 +615,6 @@ func TestService_GetTargetJob_PracticeProgressFailsClosedWhenFactsAreUnloaded(t 
 		Status:         sharedtypes.TargetJobStatusInterviewing,
 		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
 		Title:          "Backend",
-		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 		Summary:        threeRoundSummaryJSON(),
 		ReadyPlanFacts: []targetjob.ReadyPracticePlanFact{{
@@ -857,7 +671,6 @@ func TestService_UpdateTargetJob_AllowsLegalTransition(t *testing.T) {
 		Status:         sharedtypes.TargetJobStatusDraft,
 		CreatedAt:      now,
 		UpdatedAt:      now,
-		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 	}
 	store.updateResult = targetjob.TargetJobRecord{
@@ -866,7 +679,6 @@ func TestService_UpdateTargetJob_AllowsLegalTransition(t *testing.T) {
 		Status:         sharedtypes.TargetJobStatusPreparing,
 		CreatedAt:      now,
 		UpdatedAt:      now,
-		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 	}
 	target := sharedtypes.TargetJobStatusPreparing
@@ -893,7 +705,6 @@ func TestService_UpdateTargetJob_PassesUserScopedDedupeToStore(t *testing.T) {
 		Status:         sharedtypes.TargetJobStatusDraft,
 		CreatedAt:      now,
 		UpdatedAt:      now,
-		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 	}
 	store.updateResult = store.getRecord
@@ -930,7 +741,6 @@ func TestService_UpdateTargetJob_FirstResponseMatchesIdempotentReplayPracticePro
 		AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
 		Title:               "Backend",
 		CompanyName:         "Acme",
-		SourceType:          targetjob.SourceTypeManualText,
 		TargetLanguage:      "en",
 		Summary:             nonContiguousRoundSummaryJSON(),
 		PracticeFactsLoaded: true,
@@ -994,7 +804,6 @@ func TestService_UpdateTargetJob_DedupeHitBypassesLaterStateTransition(t *testin
 		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
 		CreatedAt:      now,
 		UpdatedAt:      now,
-		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 	}
 	status := sharedtypes.TargetJobStatusPreparing
@@ -1061,7 +870,6 @@ func TestService_UpdateTargetJob_AllowsArchivedFromAnyState(t *testing.T) {
 		ID:             "018f2a40-0000-7000-9000-0000000000a1",
 		UserID:         "u1",
 		Status:         sharedtypes.TargetJobStatusOffer,
-		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 	}
 	store.updateResult = store.getRecord
@@ -1095,7 +903,6 @@ func TestService_ArchiveTargetJob_PersistsWithUserScopedDedupe(t *testing.T) {
 		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
 		Title:          "Backend Engineer",
 		CompanyName:    "Acme",
-		SourceType:     targetjob.SourceTypeManualText,
 		TargetLanguage: "en",
 		CreatedAt:      now,
 		UpdatedAt:      now,
@@ -1157,20 +964,5 @@ func TestService_ArchiveTargetJob_RequiresIdempotencyKey(t *testing.T) {
 	})
 	if !errors.Is(err, targetjob.ErrIdempotencyKeyRequired) {
 		t.Fatalf("expected ErrIdempotencyKeyRequired, got %v", err)
-	}
-}
-
-func TestService_ImportTargetJob_RejectsUnknownSource(t *testing.T) {
-	svc, _ := newServiceWithFake("a", "b")
-	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
-		UserID:         "u",
-		IdempotencyKey: "k",
-		TargetLanguage: "en",
-		ResumeID:       testResumeID,
-		Source:         map[string]any{"type": "satellite_uplink"},
-	})
-	var apiErr *targetjob.ServiceImportError
-	if !errors.As(err, &apiErr) || apiErr.Code != "TARGET_IMPORT_SOURCE_INVALID" {
-		t.Fatalf("expected TARGET_IMPORT_SOURCE_INVALID, got %v", err)
 	}
 }

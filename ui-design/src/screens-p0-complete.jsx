@@ -16,9 +16,19 @@ const PlanBindingPill = ({ T, icon, label, title, meta }) => (
   </div>
 );
 
-const ParseScreen = ({ T, lang, nav, requestAuth }) => {
+const ParseScreen = ({ T, lang, nav, requestAuth, params = {} }) => {
   const [stage, setStage] = React.useState("loading"); // loading -> preview
   const [step, setStep] = React.useState(0);
+  const [compactLayout, setCompactLayout] = React.useState(() => window.matchMedia?.("(max-width: 720px)").matches || false);
+
+  React.useEffect(() => {
+    const query = window.matchMedia?.("(max-width: 720px)");
+    if (!query) return;
+    const update = () => setCompactLayout(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   const steps = lang === "en" ? [
     "Extracting title, level, location",
@@ -52,8 +62,6 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
     level: "P6 / Senior",
     location: "上海 · 混合办公（周 3 天在办）",
     language: "中文",
-    source: "https://star-ring.com/careers/frontend-sr",
-    fetched: lang === "en" ? "just now" : "刚刚抓取",
     mustHave: [
       { t: "React 18 + TypeScript 生产经验", hit: true },
       { t: "5+ 年前端 / Web 开发", hit: true },
@@ -82,7 +90,7 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
   const resumeOptions = window.getWorkspaceResumeOptions ? window.getWorkspaceResumeOptions(lang) : [];
   const selectedResumeId = resumeOptions[0]?.id || "";
   const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId);
-  const targetJob = window.EI_DATA.targetJobs[0];
+  const targetJob = window.EI_DATA.targetJobs.find((item) => item.id === params.targetJobId) || window.EI_DATA.targetJobs[0];
   const progress = window.eiResolvePracticeProgress(parsed.rounds, targetJob.practiceProgress);
 
   const roundLabel = (round) => `${round?.name || ""}${round?.durationMinutes ? ` · ${round.durationMinutes}m` : ""}`;
@@ -147,11 +155,6 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
               );
             })}
           </div>
-          <div style={{ marginTop: 40, paddingTop: 20, borderTop: `1px dotted ${T.rule}`, fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)", lineHeight: 1.6 }}>
-            <div>model · claude-haiku-4.5 · zh-CN</div>
-            <div>rubric · jd-parse-v1.3 · prompt@a8f2e1</div>
-            <div>typical · 3–6s · this one · slightly richer JD</div>
-          </div>
         </div>
       </div>
     );
@@ -170,9 +173,9 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
   };
 
   return (
-    <div className="ei-fadein" style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 48px 96px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
-        <div>
+    <div className="ei-fadein" style={{ maxWidth: 1200, margin: "0 auto", padding: compactLayout ? "24px 16px 72px" : "32px 48px 96px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
+        <div style={{ minWidth: 0, flex: "1 1 520px" }}>
           <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>
             {lang === "en" ? "STEP 2 OF 2 · REVIEW & LAUNCH" : "第 2 / 2 步 · 核对并启动"}
           </div>
@@ -185,13 +188,11 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
               : "开始前核对已保存的 JD、绑定简历和面试轮次快照。"}
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div className="ei-label" style={{ color: T.ink3, marginBottom: 4 }}>{lang === "en" ? "SOURCE" : "来源"}</div>
-          <div style={{ fontSize: 12, fontFamily: "var(--ei-mono)", color: T.ink2, maxWidth: 280, wordBreak: "break-all" }}>
-            {parsed.source}
-          </div>
-          <div style={{ fontSize: 11, color: T.ink3, marginTop: 4 }}>{parsed.fetched}</div>
-        </div>
+        <span data-testid="parse-reports-entry" style={{ flexShrink: 0 }}>
+          <Btn T={T} variant="secondary" icon="arrow_right" onClick={() => nav("reports", { targetJobId: targetJob.id })}>
+            {lang === "en" ? "Interview reports" : "面试报告"}
+          </Btn>
+        </span>
       </div>
 
       {/* Basic fields */}
@@ -316,6 +317,143 @@ const RequirementBlock = ({ T, title, items, HitDot }) => (
 );
 
 // ═══════════════════════════════════════════════════════════════════
+// #2 CURRENT PLAN REPORTS — canonical rounds with current/latest only
+// ═══════════════════════════════════════════════════════════════════
+const ReportsScreen = ({ T, lang, nav, params = {}, demoState }) => {
+  const targetJob = window.EI_DATA.targetJobs.find((item) => item.id === params.targetJobId);
+  const canonicalRounds = window.EI_DATA.jdSample.interviewRounds || [];
+  const reportDemoStates = new Set(["ready", "loading", "empty", "error", "latest-ready", "mismatch"]);
+  const reportDemoState = reportDemoStates.has(demoState) ? demoState : "ready";
+  const readyOverview = window.EI_DATA.reportOverviewFixtures.ready;
+  let overview = window.EI_DATA.reportOverviewFixtures[reportDemoState] || readyOverview;
+
+  if (reportDemoState === "empty") {
+    overview = {
+      state: "ready",
+      targetJobId: targetJob?.id,
+      rounds: canonicalRounds.map((round) => ({
+        round: { roundId: `round-${round.sequence}-${round.type}`, roundSequence: round.sequence },
+        currentReport: null,
+        latestAttempt: null,
+      })),
+    };
+  } else if (reportDemoState === "latest-ready") {
+    overview = {
+      ...readyOverview,
+      rounds: readyOverview.rounds.map((item) => item.round.roundSequence === 2
+        ? {
+            ...item,
+            latestAttempt: { id: "report-25", status: "ready", errorCode: null, createdAt: "2026-07-14T10:20:00Z" },
+          }
+        : item),
+    };
+  } else if (reportDemoState === "mismatch") {
+    overview = { ...readyOverview, targetJobId: "tj-other-plan" };
+  }
+
+  const hasIdentityError = overview.state === "ready" && (
+    !targetJob ||
+    overview.targetJobId !== targetJob.id ||
+    !Array.isArray(overview.rounds) ||
+    overview.rounds.length !== canonicalRounds.length ||
+    overview.rounds.some((item, index) => {
+      const round = canonicalRounds[index];
+      const expectedRoundId = round ? `round-${round.sequence}-${round.type}` : "";
+      return !round || !item?.round || item.round.roundId !== expectedRoundId || item.round.roundSequence !== round.sequence;
+    })
+  );
+  const hasError = !targetJob || overview.state === "error" || hasIdentityError;
+  const isEmpty = !hasError && overview.state === "ready" && overview.rounds.every((item) => !item.currentReport && !item.latestAttempt);
+  const formatDate = (value) => new Intl.DateTimeFormat(lang === "en" ? "en-US" : "zh-CN", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(value));
+  const back = () => targetJob ? nav("parse", { targetJobId: targetJob.id }) : nav("workspace");
+
+  return (
+    <main className="ei-fadein" data-testid="reports-screen" style={{ maxWidth: 1120, margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}>
+      <button data-testid="reports-back-button" onClick={back} style={{ border: 0, background: "transparent", color: T.ink3, cursor: "pointer", marginBottom: 20, padding: 0 }}>
+        ← {targetJob ? (lang === "en" ? "Interview plan" : "面试规划") : (lang === "en" ? "Interviews" : "面试")}
+      </button>
+
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 20, flexWrap: "wrap", marginBottom: 24 }}>
+        <div style={{ minWidth: 0, flex: "1 1 520px" }}>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "INTERVIEW REPORTS" : "面试报告"}</div>
+          <h1 className="ei-serif" style={{ margin: 0, fontSize: 36, color: T.ink, lineHeight: 1.2, overflowWrap: "anywhere" }}>
+            {targetJob ? `${targetJob.company} · ${targetJob.title}` : (lang === "en" ? "Current interview plan" : "当前面试规划")}
+          </h1>
+          <p style={{ margin: "10px 0 0", color: T.ink2, fontSize: 14, lineHeight: 1.65 }}>
+            {lang === "en" ? "See the current report and latest generation status for each round in this plan." : "查看当前面试规划各轮次的可用报告与最新生成状态。"}
+          </p>
+        </div>
+      </header>
+
+      {!hasError && overview.state === "loading" ? (
+        <Card T={T}>
+          <div data-testid="reports-loading" role="status" style={{ color: T.ink3, fontSize: 13, lineHeight: 1.65 }}>
+            {lang === "en" ? "Loading reports for this interview plan…" : "正在读取当前面试规划的报告…"}
+          </div>
+        </Card>
+      ) : hasError ? (
+        <Card T={T}>
+          <div data-testid="reports-error" role="alert">
+            <div className="ei-label" style={{ color: T.danger, marginBottom: 10 }}>{lang === "en" ? "REPORTS UNAVAILABLE" : "报告暂时不可用"}</div>
+            <div className="ei-serif" style={{ color: T.ink, fontSize: 24, marginBottom: 10 }}>{lang === "en" ? "This plan's reports could not be verified." : "无法确认当前规划的报告。"}</div>
+            <p style={{ color: T.ink2, fontSize: 13, lineHeight: 1.65, margin: "0 0 18px" }}>{lang === "en" ? "Return to the interview plan and try again later." : "请返回面试规划，稍后再试。"}</p>
+            <Btn T={T} variant="secondary" onClick={back}>{targetJob ? (lang === "en" ? "Back to interview plan" : "返回面试规划") : (lang === "en" ? "Back to interviews" : "返回面试")}</Btn>
+          </div>
+        </Card>
+      ) : isEmpty ? (
+        <Card T={T}>
+          <div data-testid="reports-empty" role="status">
+            <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "NO REPORTS YET" : "暂无面试报告"}</div>
+            <div className="ei-serif" style={{ color: T.ink, fontSize: 24, marginBottom: 10 }}>{lang === "en" ? "Complete a round to create its first report." : "完成一个轮次后，这里会显示对应报告。"}</div>
+            <p style={{ color: T.ink2, fontSize: 13, lineHeight: 1.65, margin: 0 }}>{lang === "en" ? "Only reports from this interview plan will appear here." : "这里仅展示当前面试规划的报告。"}</p>
+          </div>
+        </Card>
+      ) : (
+        <Card T={T} pad={0}>
+          <div data-testid="reports-list">
+            {overview.rounds.map((item, index) => {
+              const round = canonicalRounds[index];
+              const latestStatus = item.latestAttempt?.status;
+              const latestIsDifferent = !!item.latestAttempt && item.latestAttempt.id !== item.currentReport?.id;
+              const showGenerating = latestIsDifferent && (latestStatus === "queued" || latestStatus === "generating");
+              const showFailed = latestIsDifferent && latestStatus === "failed";
+              const showLatestReady = latestIsDifferent && latestStatus === "ready";
+              return (
+                <div key={item.round.roundId} data-testid={`reports-round-${item.round.roundSequence}`} style={{ padding: "18px 22px", borderBottom: index < overview.rounds.length - 1 ? `1px dotted ${T.rule}` : "none", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                  <div style={{ minWidth: 0, flex: "1 1 320px" }}>
+                    <div style={{ color: T.ink, fontSize: 14, fontWeight: 500, overflowWrap: "anywhere" }}>{round.name} · {round.durationMinutes}m</div>
+                    <div style={{ color: T.ink3, fontSize: 11.5, lineHeight: 1.55, marginTop: 5 }}>
+                      {item.currentReport
+                        ? `${lang === "en" ? "Current report" : "当前报告"} · ${formatDate(item.currentReport.generatedAt)}`
+                        : (lang === "en" ? "No completed report yet" : "暂无已完成报告")}
+                      {showGenerating && <span> · {lang === "en" ? "A new report is being prepared" : "新报告生成中"}</span>}
+                      {showFailed && <span data-testid="reports-failed"> · {lang === "en" ? "The latest generation failed" : "最近一次生成失败"}</span>}
+                      {showLatestReady && <span data-testid="reports-latest-ready"> · {lang === "en" ? "The latest generation is ready" : "最近一次生成已完成"}</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {item.currentReport && (
+                      <span data-testid="reports-current">
+                        <Btn T={T} variant="secondary" size="sm" icon="arrow_right" onClick={() => nav("report", { reportId: item.currentReport.id })}>{lang === "en" ? "Open report" : "查看报告"}</Btn>
+                      </span>
+                    )}
+                    {showGenerating && (
+                      <span data-testid="reports-generating">
+                        <Btn T={T} variant="secondary" size="sm" icon="arrow_right" onClick={() => nav("generating", { reportId: item.latestAttempt.id })}>{lang === "en" ? "View generation" : "查看生成状态"}</Btn>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+    </main>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════
 // #3 REPORT GENERATING — async intermediate screen
 // ═══════════════════════════════════════════════════════════════════
 const ReportGeneratingScreen = ({ T, lang, nav, params = {} }) => {
@@ -325,7 +463,6 @@ const ReportGeneratingScreen = ({ T, lang, nav, params = {} }) => {
   const isWaiting = reportMatches && (status === "queued" || status === "generating");
   const isRecoverable = reportMatches && (status === "timeout" || status === "network_error");
   const isOversize = reportMatches && status === "failed" && report.errorCode === "REPORT_CONTEXT_TOO_LARGE";
-  const isTerminal = !reportMatches || status === "failed" || (!isWaiting && !isRecoverable && status !== "ready");
   const continueCheck = () => window.location.reload();
 
   React.useEffect(() => {
@@ -394,12 +531,12 @@ const ReportGeneratingScreen = ({ T, lang, nav, params = {} }) => {
           {description}
         </div>
 
-        {(isRecoverable || isTerminal) && (
-          <div style={{ marginTop: 28, paddingTop: 16, borderTop: `1px solid ${T.rule}`, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {isRecoverable && <Btn T={T} variant="accent" size="sm" onClick={continueCheck}>{lang === "en" ? "Check again" : "继续检查"}</Btn>}
-            <Btn T={T} variant="secondary" size="sm" onClick={() => nav("workspace")}>{lang === "en" ? "Back to workspace" : "返回面试规划"}</Btn>
-          </div>
-        )}
+        <div style={{ marginTop: 28, paddingTop: 16, borderTop: `1px solid ${T.rule}`, display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {isRecoverable && <Btn T={T} variant="accent" size="sm" onClick={continueCheck}>{lang === "en" ? "Check again" : "继续检查"}</Btn>}
+          <span data-testid="generating-back-button">
+            <Btn T={T} variant="secondary" size="sm" onClick={() => reportMatches && report.targetJobId ? nav("reports", { targetJobId: report.targetJobId }) : nav("workspace")}>{reportMatches && report.targetJobId ? (lang === "en" ? "Back to interview reports" : "返回面试报告") : (lang === "en" ? "Back to workspace" : "返回面试")}</Btn>
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -661,5 +798,6 @@ const SettingsProfile = ({ T, lang, fontPreset, setFontPreset }) => {
 };
 
 window.ParseScreen = ParseScreen;
+window.ReportsScreen = ReportsScreen;
 window.ReportGeneratingScreen = ReportGeneratingScreen;
 window.SettingsScreen = SettingsScreen;

@@ -12,9 +12,8 @@ import (
 type Purpose string
 
 const (
-	PurposeResume              Purpose = "resume"
-	PurposeTargetJobAttachment Purpose = "target_job_attachment"
-	PurposePrivacyExport       Purpose = "privacy_export"
+	PurposeResume        Purpose = "resume"
+	PurposePrivacyExport Purpose = "privacy_export"
 )
 
 type UploadStatus string

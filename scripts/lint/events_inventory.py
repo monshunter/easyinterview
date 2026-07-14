@@ -19,9 +19,7 @@ ALLOWED_EVENT_DOMAINS = {
     "practice",
     "report",
     "resume",
-    "source",
     "privacy",
-    "jd_match",
 }
 ALLOWED_PAST_TENSE_VERBS = {
     "requested",
@@ -32,7 +30,6 @@ ALLOWED_PAST_TENSE_VERBS = {
     "failed",
     "created",
     "changed",
-    "refreshed",
 }
 EXPECTED_ENVELOPE_FIELDS = {
     "eventId": {"type": "$ref:b1.UUIDv7", "required": True},
@@ -47,9 +44,7 @@ EXPECTED_ENVELOPE_FIELDS = {
 }
 EXPECTED_PRODUCERS = ["api", "backend_async", "dispatcher", "review"]
 EXPECTED_EVENT_LOCAL_ENUMS = {
-    "TargetImportSourceType": ["url", "text", "file"],
     "ResumeTailorMode": ["gap_review", "bullet_suggestions"],
-    "SourceFreshnessStatus": ["fresh", "stale", "failed"],
 }
 EXPECTED_EVENTS = {
     "target.import.requested": {
@@ -58,7 +53,6 @@ EXPECTED_EVENTS = {
         "requiredPayload": {
             "targetJobId": "uuidv7",
             "userId": "uuidv7",
-            "sourceType": "$ref:event.TargetImportSourceType",
             "targetLanguage": "string",
         },
     },
@@ -155,16 +149,6 @@ EXPECTED_EVENTS = {
             "status": "$ref:b1.ReportStatus",
         },
     },
-    "source.refreshed": {
-        "producer": "backend_async",
-        "aggregateType": "source_record",
-        "requiredPayload": {
-            "sourceRecordId": "uuidv7",
-            "ownerType": "string",
-            "ownerId": "uuidv7",
-            "freshnessStatus": "$ref:event.SourceFreshnessStatus",
-        },
-    },
     "privacy.request.created": {
         "producer": "api",
         "aggregateType": "privacy_request",
@@ -214,13 +198,6 @@ EXPECTED_JOBS = {
         "triggerEvent": "api:request_tailor",
         "ownerDomain": "C7",
         "priority": "default",
-    },
-    "source_refresh": {
-        "asynqTask": "source.refresh",
-        "apiFacing": False,
-        "triggerEvent": "target.parsed",
-        "ownerDomain": "C13",
-        "priority": "low",
     },
     "privacy_export": {
         "asynqTask": "privacy.export",

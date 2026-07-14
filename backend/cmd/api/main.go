@@ -54,7 +54,6 @@ import (
 	storepractice "github.com/monshunter/easyinterview/backend/internal/store/practice"
 	storereview "github.com/monshunter/easyinterview/backend/internal/store/review"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 	uploadhandler "github.com/monshunter/easyinterview/backend/internal/upload/handler"
 	"github.com/monshunter/easyinterview/backend/internal/upload/objectstore"
 	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
@@ -598,9 +597,8 @@ func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) 
 			Session:    currentUserFromContext,
 			PresignTTL: presignTTL,
 			MaxBytesByPurpose: map[string]int64{
-				string(uploadstore.PurposeResume):              int64(loader.GetInt("upload.maxBytes.resume")),
-				string(uploadstore.PurposeTargetJobAttachment): int64(loader.GetInt("upload.maxBytes.targetJobAttachment")),
-				string(uploadstore.PurposePrivacyExport):       int64(loader.GetInt("upload.maxBytes.privacyExport")),
+				string(uploadstore.PurposeResume):        int64(loader.GetInt("upload.maxBytes.resume")),
+				string(uploadstore.PurposePrivacyExport): int64(loader.GetInt("upload.maxBytes.privacyExport")),
 			},
 		}),
 		Idempotency: idempotency.New(idempotency.MiddlewareOptions{
@@ -778,11 +776,6 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 		return nil, fmt.Errorf("build targetjob AI runtime: %w", err)
 	}
 
-	fetcher := urlfetch.New(urlfetch.FetcherOptions{
-		UserAgent: targetjob.URLFetchUserAgent(loader.GetString("runtime.appVersion")),
-		Timeout:   targetjob.URLFetchTimeout,
-		BodyCap:   targetjob.URLFetchBodyCap,
-	})
 	var parseAI aiclient.AIClient = aiRuntime.Client
 	if targetjob.IsTestAppEnv(loader.AppEnv()) {
 		parseAI = targetjob.NewDeterministicParseAIClient(parseAI)
@@ -810,7 +803,6 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 		Store:    store,
 		Registry: targetjob.NewRegistryAdapter(registryClient),
 		AI:       parseAI,
-		Fetcher:  fetcher,
 		NewID:    idx.NewID,
 	})
 	privacyDeleteHandler := privacyrunner.NewPrivacyDeleteHandler(privacyrunner.PrivacyDeleteHandlerOptions{
@@ -819,7 +811,6 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 	})
 	handlers := map[string]runner.Handler{
 		string(jobs.JobTypeTargetImport):  executor,
-		string(jobs.JobTypeSourceRefresh): &targetjob.SourceRefreshHandler{Store: store},
 		string(jobs.JobTypePrivacyDelete): privacyDeleteHandler,
 	}
 	return &targetJobRuntime{

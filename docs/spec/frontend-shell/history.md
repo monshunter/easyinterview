@@ -1,13 +1,14 @@
 # Frontend Shell History
 
-> **版本**: 1.26
+> **版本**: 1.28
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-14
 
 ## 1 Change Log
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 1.28 | 注册受保护且仅接受 `targetJobId` 的 `/reports` 上下文 route；保留 chrome 但不加入三入口 TopBar，缺失/非法 target 以 replace-only 回 workspace 且无 Back 循环，并删除 Parse reports section 与 detail/generating 非 reportId 参数权威。 | [004-url-addressable-routing](./plans/004-url-addressable-routing/plan.md) |
 | 2026-07-07 | 1.26 | Active spec / history 压缩为当前 App shell、三入口 TopBar、email-code auth、profile setup guard、settings 双 tab、display preferences、canonical URL and protected route guard contract。 | product-scope/001-core-loop-module-pruning Phase 6.124 |
 | 2026-07-07 | 1.25 | 对齐验证码、Browser History、安全 pendingAction 和账号记录可见性措辞。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-07 | 1.24 | 对齐当前 route catalog、auth flow、safe params and unsupported route normalization。 | product-scope/001-core-loop-module-pruning |

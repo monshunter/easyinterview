@@ -55,6 +55,16 @@ describe("resolveInitialRoute priority", () => {
     });
   });
 
+  it("restores a Reports deep link with targetJobId only", () => {
+    setLocation(
+      "/reports?targetJobId=tj-1&section=reports&reportId=rpt-1&status=ready&roundId=round-1",
+    );
+    expect(resolveInitialRoute()).toEqual({
+      name: "reports",
+      params: { targetJobId: "tj-1" },
+    });
+  });
+
   it("drops unsafe canonical params during initial resolution", () => {
     setLocation("/workspace?targetJobId=tj-1&rawText=raw");
     expect(resolveInitialRoute()).toEqual({
@@ -82,10 +92,12 @@ describe("resolveInitialRoute priority", () => {
   });
 
   it("treats home with safe query params as canonical", () => {
-    setLocation("/?pendingImportId=imp-1&source=paste");
+    setLocation(
+      "/?opaquePendingImportId=imp-1&pendingImportId=legacy&source=paste&resumeId=rv-1",
+    );
     expect(resolveInitialRoute()).toEqual({
       name: "home",
-      params: { pendingImportId: "imp-1", source: "paste" },
+      params: { opaquePendingImportId: "imp-1" },
     });
   });
 

@@ -17,7 +17,6 @@ describe('generated event contract', () => {
 
   it('exposes typed payload surfaces', () => {
     const targetImport: TargetImportRequestedPayload = {
-      sourceType: 'url',
       targetJobId: '0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e',
       targetLanguage: 'en-US',
       userId: '0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e',
@@ -32,7 +31,7 @@ describe('generated event contract', () => {
       targetJobId: '0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e',
     };
 
-    expect(targetImport.sourceType).toBe('url');
+    expect(targetImport.targetLanguage).toBe('en-US');
     expect(reportGenerated.preparednessLevel).toBe('basically_ready');
   });
 

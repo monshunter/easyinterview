@@ -40,6 +40,7 @@ node_modules/
 .vite/
 .tmp/
 *.log
+.playwright-output*
 
 # ── Python ───────────────────────────────────────────────────────
 __pycache__/

@@ -7,8 +7,6 @@ import (
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
-const ReportListMaxPageSize = 50
-
 var ErrReportNotFound = errReportNotFound{}
 
 type errReportNotFound struct{}
@@ -95,43 +93,32 @@ type FeedbackReportRecord struct {
 type ListTargetJobReportsRequest struct {
 	UserID      string
 	TargetJobID string
-	Cursor      string
-	PageSize    int
 }
 
-type ListTargetJobReportsInput struct {
-	UserID          string
-	TargetJobID     string
-	Cursor          string
-	CursorCreatedAt time.Time
-	CursorID        string
-	PageSize        int
+type PracticeRoundRefRecord struct {
+	RoundID       string
+	RoundSequence int32
 }
 
-type ListTargetJobReportsResult struct {
-	Items      []FeedbackReportRecord
-	NextCursor string
-	HasMore    bool
-	PageSize   int
+type TargetJobCurrentReportSummaryRecord struct {
+	ID          string
+	GeneratedAt time.Time
 }
 
-type PageInfo struct {
-	NextCursor string
-	PageSize   int
-	HasMore    bool
+type TargetJobReportAttemptSummaryRecord struct {
+	ID        string
+	Status    sharedtypes.ReportStatus
+	ErrorCode *string
+	CreatedAt time.Time
 }
 
-type PaginatedFeedbackReportRecord struct {
-	Items    []FeedbackReportRecord
-	PageInfo PageInfo
+type TargetJobReportRoundOverviewRecord struct {
+	Round         PracticeRoundRefRecord
+	CurrentReport *TargetJobCurrentReportSummaryRecord
+	LatestAttempt *TargetJobReportAttemptSummaryRecord
 }
 
-func EffectiveReportPageSize(pageSize int) int {
-	if pageSize <= 0 {
-		return sharedtypes.DefaultPageSize
-	}
-	if pageSize > ReportListMaxPageSize {
-		return ReportListMaxPageSize
-	}
-	return pageSize
+type TargetJobReportsOverviewRecord struct {
+	TargetJobID string
+	Rounds      []TargetJobReportRoundOverviewRecord
 }

@@ -1,8 +1,8 @@
 # 002 Practice Continuous Conversation BDD Plan
 
-> **版本**: 2.5
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 2.6
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 ## Scenario Matrix
 | ID | Type | Phase | Given | When | Then |
@@ -11,3 +11,5 @@
 | E2E.P0.045 | alternate/regression | 2 | text session + phone params | load/operate UI | no side/question/hint; phone disabled; still text |
 | E2E.P0.046 | failure/reload/recovery | 3/6/9 | loader failure, typed retryable AI/network failure persisted as `retryable_failed` with a next draft, or terminal validation/auth/not-found/conflict/mismatch | inspect failed row, reload and recover | loader refreshes independently；AI failure → reload restores the server original text/same clientMessageId and one row-local retry；same-ID retry preserves draft and converges to exactly one user/reply pair；terminal errors expose no retry and re-read server truth；Finish remains disabled until convergence |
 | E2E.P0.047 | primary/recovery/boundary | 4/6/7/8 | opening-only zero-answer session, one-answer session, or transient completion failure | inspect Finish, direct-call completion, finish/retry | zero-answer UI is disabled with localized accessible reason and backend independently rejects with zero side effects; one-answer completion/replay reaches generating with reportId as the only URL/history/API locator and no copied business identity/status |
+| E2E.P0.044 | lease-aligned pending UX | 10 | current tracked sources, one deferred POST and one persisted pending server row before 90-second lease expiry | submit/reload, inspect pending and let server truth converge | immediate/persisted row and thinking lock match prototype/formal at 1440/390；no duplicate send；fresh source/screenshot hashes prove current evidence |
+| E2E.P0.046 | timeout and terminal recovery | 10 | POST crosses 95 seconds, stale response may return, server row can be pending/retryable/terminal/complete | abort, reconcile the same ID, retry only retryable or choose terminal CTA | authoritative state wins；uncertain read stays fail-locked；stale response is ignored；terminal has one `parse(targetJobId)` CTA；lease/fence/concurrency/timeout/terminal/fingerprint markers all pass |

@@ -1,8 +1,8 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.22
+> **版本**: 1.25
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -86,6 +86,7 @@ git diff --check
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-07-14 | 1.23 | Correct OPENAPI-002 to an exact 17-finding boundary including both source-only ApiErrorCode removals; keep the separate D-35 Practice machine oracle non-ADR. |
 | 2026-07-13 | 1.22 | Add Practice durable reply-state, same-ID recovery and typed TypeScript ApiClientError phase; tighten OPENAPI-002 rawText/oracle/invariant gates. |
 | 2026-07-13 | 1.21 | Reopen Phase 13 for OPENAPI-002 TargetJob paste-only schema, generated artifacts and consumer handoff. |
 | 2026-07-13 | 1.20 | Keep max4 generation/judge audit internal-only；no attempt/retry/reason/scope/progress field or retry endpoint，and no new expected OpenAPI finding. |
@@ -167,13 +168,13 @@ After [OPENAPI-002](../../decisions/OPENAPI-002-targetjob-paste-only.md) is acce
 
 ### 13.2 GREEN source, codegen and freeze invariant
 
-Delete all five `TargetJobImportSource*` schemas, flatten and constrain `ImportTargetJobRequest`, remove TargetJob source provenance properties and remove only the TargetJob attachment enum value. Regenerate Go/TS artifacts and assert no compatibility union, discriminator, alias or legacy generated type remains. `importTargetJob` remains operationId `importTargetJob`, `POST /api/v1/targets/import`, `202 + TargetJobWithJob`; `createUploadPresign` remains operationId `createUploadPresign`, `POST /api/v1/uploads/presign`, `201 + UploadPresign`; inventory remains 37 operations / 10 tags. The current baseline cannot be edited until 003 Phase 6 preserves the exact old-baseline audit and all downstream gates pass.
+Delete all five `TargetJobImportSource*` schemas, flatten and constrain `ImportTargetJobRequest`, remove TargetJob source provenance properties and remove only the TargetJob attachment enum value. The same correction removes source-only `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` from `ApiErrorCode` while retaining `VALIDATION_FAILED` / `TARGET_IMPORT_FAILED`; both removals are independent entries in the exact 17-finding oracle. Regenerate Go/TS artifacts and assert no compatibility union, discriminator, alias or legacy generated type remains. `importTargetJob` remains operationId `importTargetJob`, `POST /api/v1/targets/import`, `202 + TargetJobWithJob`; `createUploadPresign` remains operationId `createUploadPresign`, `POST /api/v1/uploads/presign`, `201 + UploadPresign`; inventory remains 37 operations / 10 tags. The current baseline cannot be edited until 003 Phase 6 preserves the exact old-baseline audit and all downstream gates pass.
 
 ### 13.3 Operation matrix
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `importTargetJob` | `TargetJobs/importTargetJob.json` paste-only default/manual-text | Home paste submit and Parse polling | backend-targetjob generated adapter/service/runner | TargetJob + async job; no URL/file source provenance | parse pasted JD text | P0.010/P0.015 paste-only |
+| `importTargetJob` | `TargetJobs/importTargetJob.json` paste-only `default` / `paste-primary` | Home paste submit and Parse polling | backend-targetjob generated adapter/service/runner | TargetJob + async job; no URL/file source provenance | parse pasted JD text | P0.010/P0.015 paste-only |
 | `createUploadPresign` | `Uploads/createUploadPresign.json` resume/privacy only | Resume Workshop/privacy consumers; no Home consumer | backend-upload generated adapter/service | file object for remaining purposes only | none | existing resume/privacy scenarios; no TargetJob attachment |
 | `listTargetJobs` / `getTargetJob` | TargetJobs list/get without source fields | Home/Workspace/Parse/Report | backend-targetjob list/get adapters | current TargetJob projection without source provenance | none after persisted parse | P0.010/P0.015/P0.018/P0.057 |
 
@@ -227,4 +228,22 @@ Consumer contract tests must fail on `error.message` regex/string parsing；retr
 
 ### 14.5 Contract audit and downstream handoff
 
-This union/persistence correction changes existing Practice message validation semantics. 003 must audit old-baseline → proposed findings separately from OPENAPI-002（不得并入其 exact 15 allowset），preserve the artifact before baseline mutation, then wait for 002 fixture matrix、mock-contract-suite parity、backend-practice persistence、frontend-workspace-and-practice typed consumer and P0.046 before re-freeze. Operation/tag inventory stays 37/10；no retry endpoint, client-side business-state store or compatibility message schema is allowed.
+This union/persistence correction changes existing Practice message validation semantics. D-35 + history 1.54 + the product-approved 方案 A remain the sole governance authority. 003 must use a separate Practice machine oracle as D-35's executable five-key finding projection—not as a third `OPENAPI-NNN` ADR—and must never merge those findings into OPENAPI-002's exact 17 allowset. Preserve both owner-specific artifacts before baseline mutation, then wait for 002 fixture matrix、mock-contract-suite parity、backend-practice persistence、frontend-workspace-and-practice typed consumer and P0.046 before re-freeze. Operation/tag inventory stays 37/10；no retry endpoint, client-side business-state store or compatibility message schema is allowed.
+
+## 15 OPENAPI-004 TargetJob canonical-round report overview
+
+### 15.1 RED contract boundary
+
+Consume accepted OPENAPI-004 before schema mutation. Focused schema/generator tests must fail while `listTargetJobReports` still accepts cursor/pageSize or returns `PaginatedFeedbackReport`, while `TargetJob.latestReportId` remains, or while the new overview permits unknown/missing fields. Lock the unchanged endpoint method/path/operationId/200 and 37/10 inventory.
+
+### 15.2 GREEN minimal wire
+
+Replace the response with closed `TargetJobReportsOverview{targetJobId,rounds}`. Each round item requires `round: PracticeRoundRef`, nullable `currentReport={id,generatedAt}` and nullable `latestAttempt={id,status,errorCode,createdAt}`; all properties are required, nullable values use explicit null, and failed-only errorCode is enforced. Remove cursor/pageSize, `PaginatedFeedbackReport` and `TargetJob.latestReportId`; do not expose full report, summary, provenance, model/rubric, session/plan locator, compatibility alias or replacement pointer. Regenerate typed Go/TS artifacts.
+
+### 15.3 Operation matrix and handoff
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `listTargetJobReports` | `Reports/listTargetJobReports.json` canonical rounds/current/latest/empty/fail-closed cases | target-scoped ReportsScreen via generated client | backend-review list overview service/store | owned TargetJob canonical summary + `feedback_reports.generation_context/status/generated_at/created_at`；no TargetJob pointer | none | P0.059 |
+
+003 must exact-audit OPENAPI-004 from old baseline before re-freeze. 002 fixtures/Prism, db/targetjob cleanup, backend-review selection and frontend consumers must all pass before baseline mutation.

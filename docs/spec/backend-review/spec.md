@@ -1,8 +1,8 @@
 # Backend Review Spec
 
-> **版本**: 1.23
+> **版本**: 1.25
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 背景与目标
 
@@ -17,7 +17,7 @@
 | operation / async path | frontend consumer | persistence | AI dependency | scenario coverage |
 |------------------------|-------------------|-------------|---------------|-------------------|
 | `getFeedbackReport` | generating/report | `feedback_reports` | none on read | `E2E.P0.056`, `E2E.P0.058`, `E2E.P0.099` |
-| `listTargetJobReports` | report records | `feedback_reports` | none on read | focused handler/store contract gate |
+| `listTargetJobReports` | target-scoped ReportsScreen | `feedback_reports` + current TargetJob canonical round summary | none on read | focused handler/store contract gate + `E2E.P0.059` |
 | `report_generate` | async runner | `feedback_reports`, jobs/outbox/audit/task-runs | `report.generate` | `E2E.P0.056`, `E2E.P0.058`, `E2E.P0.099`, `E2E.P0.100` |
 
 `completePracticeSession` 与 `createPracticePlan` 是跨 owner handoff，不是本 subject 的实现 operation：前者由 `backend-practice/002` 产出 `practice-completion-evidence.v1`，后者由 `backend-practice/004` 产出 server-derived replay markers；本 subject 只消费对应 reference/marker。
@@ -135,6 +135,28 @@ OpenAPI ready read model 对用户返回相同业务 shape 与最小 frozen `con
 
 P0.100 在调用 judge 前必须按同一决策表机械拒绝非例外 empty focus、focus 与全部 needs-work same-code issue 集合不精确相等、`I >= 2` empty focus 和重复 action type，避免让 judge 为结构性 invalid 输出背书；失败诊断只保留有界 `issue_count`、`needs_work_count`、action type、focus count/mode、token count 与 digest 等脱敏结构坐标，不保留 report/context/transcript 正文。
 
+### 2.9 TargetJob 轮次报告概览
+
+`GET /targets/{targetJobId}/reports` 与 operationId `listTargetJobReports` 保持不变，但返回合同从“分页的完整报告记录列表”收敛为当前 TargetJob 的 canonical round 概览。请求不再接受 `cursor/pageSize`；响应是 closed object `TargetJobReportsOverview`，只包含 `targetJobId` 与按当前 `TargetJob.summary.interviewRounds[]` canonical 顺序排列的 `rounds[]`：
+
+```text
+TargetJobReportsOverview
+├─ targetJobId: uuid
+└─ rounds: TargetJobReportRoundOverview[]
+   ├─ round: PracticeRoundRef
+   ├─ currentReport: { id: uuid, generatedAt: date-time } | null
+   └─ latestAttempt: { id: uuid, status: ReportStatus, errorCode: ApiErrorCode | null, createdAt: date-time } | null
+```
+
+所有 object 均为 closed，列出的 properties 均 required；可空性只通过 `currentReport | null`、`latestAttempt | null` 与 `errorCode | null` 显式表达。
+
+- `rounds[]` 必须逐项覆盖当前 canonical round，即使该轮 `currentReport` 与 `latestAttempt` 都为 `null`；显示名称、type、duration、focus 等信息由独立 ReportsScreen 将 `PracticeRoundRef` 与当前 TargetJob summary join，overview 不复制可变展示字段。
+- `currentReport` 只从 owned、同 TargetJob、同 canonical round pair、`status=ready` 且 `generated_at IS NOT NULL` 的报告中选择，稳定顺序为 `generated_at DESC, created_at DESC, id DESC`。
+- `latestAttempt` 从同一 ownership / TargetJob / canonical round 边界内的全部状态选择，稳定顺序为 `created_at DESC, id DESC`；`errorCode` 必须显式 nullable。
+- 两个指针彼此独立：较新的 queued/generating/failed attempt 不得覆盖较早但仍有效的 ready `currentReport`；最新 attempt 自身 ready 时允许同一 report 同时出现在两个位置。
+- TargetJob 不存在、已删除或非当前用户所有时沿用 hidden 404。当前 TargetJob canonical summary 无效、report frozen context 缺失/无效、row user/target/session identity 不一致、冻结 round pair 不属于当前 canonical rounds，或 ready row 缺 `generated_at` 时，整个 overview fail closed；不得返回 partial rounds、从 mutable row/URL 推断 round、或使用 fallback identity。
+- 本 operation 只服务 target-scoped ReportsScreen，不承载完整报告内容、summary/readiness/provenance/model/rubric，不建立全局/跨规划 Report Center、timeline、完整历史或第二套报告详情。Parse、Report 与 Generating 不消费该 operation；后两者继续只通过 `reportId` 调用 `getFeedbackReport`。
+
 ## 3 模块边界
 
 | 边界 | Owner | 说明 |
@@ -162,6 +184,7 @@ P0.100 在调用 judge 前必须按同一决策表机械拒绝非例外 empty fo
 | C-9 | 深链事实源 | 仅有 reportId 或 URL 带冲突 identity/status | 读取报告/点击 CTA | 状态、Context Strip 与动作 identity 均来自 frozen report context，route 不能覆盖 | 001 |
 | C-10 | Judge bounded retry | generation output完整合法 | evaluator调用 | 独立budget=4；仅provider retryable或protocol/schema invalid重试；结构合法negative verdict typed content-rejected并终端FAIL，不重采样 | 001 + F3 004 + P0.100 |
 | C-11 | Report job/fencing | report job创建、reap/takeover、迟到worker | generation persistence/finalize | async `max_attempts`只约束基础设施执行恢复；仅running+claimed attempt可写report/outbox/audit/job，stale worker零领域副作用；不得充当产品retry counter | 001 + backend-async-runner/001 |
+| C-12 | TargetJob 轮次报告概览 | owned ready TargetJob 含 canonical rounds，且各轮可有 ready / queued / generating / failed 历史 | 调用 `listTargetJobReports` | 无分页地返回每个 canonical round 的 `PracticeRoundRef + currentReport + latestAttempt`；两个指针按各自稳定顺序独立选择，非法 ownership/context/round identity 整体 fail closed，不返回完整报告内容 | 001 |
 
 ## 5 关联计划
 
@@ -171,6 +194,8 @@ P0.100 在调用 judge 前必须按同一决策表机械拒绝非例外 empty fo
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.25 | Move the unchanged canonical-round overview consumer from embedded Parse to the independent target-scoped ReportsScreen and P0.059; no wire, schema, persistence, or selection change. |
+| 2026-07-14 | 1.24 | 将 `listTargetJobReports` 收敛为 Parse 消费的 canonical-round overview，锁定最小 wire、独立 current/latest 排序、完整 round coverage 与 fail-closed 边界。 |
 | 2026-07-13 | 1.23 | 区分机械100%、固定五类4/5语义产品验收与严格P0.100 11/11诊断；记录最终prompt run59381为产品通过、strict FAIL。 |
 | 2026-07-13 | 1.22 | Replace report-lifetime durable retry budget with per-user-action in-memory `1+3` and `10s/20s/40s`; new action resets, async job attempts remain infrastructure-only. |
 | 2026-07-13 | 1.21 | L2：report job explicit max_attempts4；running+claimed-attempt lease fencing covers success/failure/report/outbox/audit/job；run35622 aborted7/11 not PASS. |

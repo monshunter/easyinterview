@@ -27,6 +27,35 @@ export interface RequestOptions {
 	query?: Record<string, string | number | boolean | undefined>;
 }
 
+export type ApiClientErrorKind = "http" | "abort" | "transport";
+
+export class ApiClientError extends Error {
+	readonly kind: ApiClientErrorKind;
+	readonly status: number | null;
+	readonly apiError: Types.ApiErrorResponse | null;
+
+	constructor(
+		kind: ApiClientErrorKind,
+		status: number | null,
+		apiError: Types.ApiErrorResponse | null,
+		cause?: unknown,
+	) {
+		const transportDetail = kind === "transport" && cause instanceof Error
+			? `: ${cause.message}`
+			: "";
+		const message = kind === "http"
+			? `HTTP ${status ?? "unknown"}${apiError ? ` ${apiError.error.code}` : ""}`
+			: kind === "abort"
+				? "Request aborted"
+				: `Request transport failed${transportDetail}`;
+		super(message, cause === undefined ? undefined : { cause });
+		this.name = "ApiClientError";
+		this.kind = kind;
+		this.status = status;
+		this.apiError = apiError;
+	}
+}
+
 const DEFAULT_BASE_URL = "/api/v1";
 
 function buildQuery(params?: Record<string, string | number | boolean | undefined>): string {
@@ -50,6 +79,53 @@ function buildPath(template: string, params: Record<string, string>): string {
 	});
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseApiErrorResponse(text: string): Types.ApiErrorResponse | null {
+	if (text.trim() === "") return null;
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(text);
+	} catch {
+		return null;
+	}
+	if (!isRecord(parsed) || !isRecord(parsed.error)) return null;
+	const error = parsed.error;
+	if (
+		typeof error.code !== "string"
+		|| typeof error.message !== "string"
+		|| typeof error.requestId !== "string"
+		|| typeof error.retryable !== "boolean"
+		|| (error.details !== undefined && !isRecord(error.details))
+	) {
+		return null;
+	}
+	return {
+		error: {
+			code: error.code,
+			message: error.message,
+			requestId: error.requestId,
+			retryable: error.retryable,
+			...(error.details === undefined ? {} : { details: error.details }),
+		},
+	};
+}
+
+function isAbortError(cause: unknown): boolean {
+	return isRecord(cause) && cause.name === "AbortError";
+}
+
+function requestFailure(cause: unknown): ApiClientError {
+	return new ApiClientError(
+		isAbortError(cause) ? "abort" : "transport",
+		null,
+		null,
+		cause,
+	);
+}
+
 export class EasyInterviewClient {
 	readonly baseUrl: string;
 	readonly fetchFn: typeof fetch;
@@ -70,18 +146,28 @@ export class EasyInterviewClient {
 		if (body !== undefined) headers["Content-Type"] = "application/json";
 		if (opts?.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
 		const url = `${this.baseUrl}${path}${buildQuery(opts?.query)}`;
-		const response = await this.fetchFn(url, {
-			method,
-			headers,
-			body: body === undefined ? undefined : JSON.stringify(body),
-			credentials: "include",
-			signal: opts?.signal,
-		});
-		if (!response.ok && !okStatuses.includes(response.status)) {
-			const text = await response.text();
-			throw new Error(`HTTP ${response.status} ${response.statusText}: ${text}`);
+		let response: Response;
+		try {
+			response = await this.fetchFn(url, {
+				method,
+				headers,
+				body: body === undefined ? undefined : JSON.stringify(body),
+				credentials: "include",
+				signal: opts?.signal,
+			});
+		} catch (cause) {
+			throw requestFailure(cause);
 		}
-		const text = await response.text();
+		let text: string;
+		try {
+			text = await response.text();
+		} catch (cause) {
+			throw requestFailure(cause);
+		}
+		if (!response.ok && !okStatuses.includes(response.status)) {
+			const apiError = parseApiErrorResponse(text);
+			throw new ApiClientError("http", response.status, apiError);
+		}
 		if (response.status === 204 || text.trim() === "") {
 			return undefined as T;
 		}
@@ -401,7 +487,7 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** importTargetJob — post /targets/import: Import a target job from URL / text / file / manual form */
+	/** importTargetJob — post /targets/import: Import a target job from pasted JD text */
 	async importTargetJob(body: Types.ImportTargetJobRequest, opts?: RequestOptions): Promise<Types.TargetJobWithJob> {
 		return this.request<Types.TargetJobWithJob>(
 			"POST",
@@ -441,9 +527,9 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** listTargetJobReports — get /targets/{targetJobId}/reports: List feedback reports for a target job (cursor-paginated) */
-	async listTargetJobReports(targetJobId: string, opts?: RequestOptions): Promise<Types.PaginatedFeedbackReport> {
-		return this.request<Types.PaginatedFeedbackReport>(
+	/** listTargetJobReports — get /targets/{targetJobId}/reports: Get the canonical-round report overview for a target job */
+	async listTargetJobReports(targetJobId: string, opts?: RequestOptions): Promise<Types.TargetJobReportsOverview> {
+		return this.request<Types.TargetJobReportsOverview>(
 			"GET",
 			buildPath("/targets/{targetJobId}/reports", { targetJobId: targetJobId }),
 			undefined,

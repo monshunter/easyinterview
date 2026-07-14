@@ -117,6 +117,35 @@ class ScenarioScriptContractTest(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0, result.stdout)
 
+    def test_verify_requires_phase7_boundary_evidence(self) -> None:
+        self._trigger.write_text(
+            "\n".join(
+                [
+                    "=== RUN   TestCreateUploadPresign",
+                    "=== RUN   TestCreateUploadPresignCreatesPendingFileObjectAndPresignsObject",
+                    "=== RUN   TestRepositoryRegisterUploadedChecksObjectWhileRowLocked",
+                    "=== RUN   TestBuildAPIHandlerMountsUploadPresignBehindSessionMiddleware",
+                    "=== RUN   TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip",
+                    "=== RUN   TestDeleteFileObjectsForUser",
+                    "=== RUN   TestInsertAuditTombstoneIntegrationDoesNotPersistObjectKey",
+                    "PASS",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        result = subprocess.run(
+            [str(SCRIPT_DIR / "verify.sh")],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=60,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+
     def test_verify_rejects_no_tests_to_run(self) -> None:
         self._trigger.write_text(
             "\n".join(

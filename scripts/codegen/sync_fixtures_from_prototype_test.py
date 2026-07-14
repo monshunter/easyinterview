@@ -129,6 +129,83 @@ class SyncFixturesFromPrototypeTest(unittest.TestCase):
                 if current is not None:
                     self.assertIn((current["roundId"], current["roundSequence"]), refs)
 
+    def test_target_job_projection_never_restores_source_provenance(self) -> None:
+        out = _run(SYNC, self.repo)
+        self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
+
+        for operation_id in ("listTargetJobs", "getTargetJob"):
+            fixture = _read_json(
+                self.repo
+                / "openapi/fixtures/TargetJobs"
+                / f"{operation_id}.json"
+            )
+            body = fixture["scenarios"]["prototype-baseline"]["response"]["body"]
+            encoded = json.dumps(body, ensure_ascii=False)
+            with self.subTest(operationId=operation_id):
+                self.assertNotIn('"sourceType"', encoded)
+                self.assertNotIn('"sourceUrl"', encoded)
+
+    def test_target_job_projection_never_restores_latest_report_pointer(self) -> None:
+        out = _run(SYNC, self.repo)
+        self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
+
+        for operation_id in ("listTargetJobs", "getTargetJob"):
+            fixture = _read_json(
+                self.repo
+                / "openapi/fixtures/TargetJobs"
+                / f"{operation_id}.json"
+            )
+            body = fixture["scenarios"]["prototype-baseline"]["response"]["body"]
+            with self.subTest(operationId=operation_id):
+                self.assertNotIn("latestReportId", json.dumps(body))
+
+    def test_practice_projection_generates_deterministic_role_recovery_fields(self) -> None:
+        first = _run(SYNC, self.repo)
+        self.assertEqual(
+            first.returncode,
+            0,
+            msg=f"stdout={first.stdout}\nstderr={first.stderr}",
+        )
+        fixture_path = (
+            self.repo
+            / "openapi/fixtures/PracticeSessions/getPracticeSession.json"
+        )
+        first_messages = _read_json(fixture_path)["scenarios"]["prototype-baseline"][
+            "response"
+        ]["body"]["messages"]
+        users = [message for message in first_messages if message["role"] == "user"]
+        assistants = [
+            message for message in first_messages if message["role"] == "assistant"
+        ]
+        self.assertEqual(
+            ["complete", "complete", "pending"],
+            [message["replyStatus"] for message in users],
+        )
+        self.assertEqual(len(users), len({message["clientMessageId"] for message in users}))
+        for message in users:
+            self.assertRegex(
+                message["clientMessageId"],
+                r"^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            )
+        for message in assistants:
+            self.assertNotIn("clientMessageId", message)
+            self.assertNotIn("replyStatus", message)
+
+        first_client_ids = [message["clientMessageId"] for message in users]
+        second = _run(SYNC, self.repo)
+        self.assertEqual(second.returncode, 0)
+        second_messages = _read_json(fixture_path)["scenarios"]["prototype-baseline"][
+            "response"
+        ]["body"]["messages"]
+        self.assertEqual(
+            first_client_ids,
+            [
+                message["clientMessageId"]
+                for message in second_messages
+                if message["role"] == "user"
+            ],
+        )
+
     def test_feedback_report_projection_uses_direct_contract(self) -> None:
         out = _run(SYNC, self.repo)
         self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")

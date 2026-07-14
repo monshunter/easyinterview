@@ -7,7 +7,7 @@
  * `navigate(next)` API for screens, and preserves TopBar active state +
  * chrome hidden behavior under back / forward navigation.
  */
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FC } from "react";
@@ -64,6 +64,72 @@ describe("App browser-aware routing — Phase 2.2 navigate via History", () => {
       ),
     );
     expect(window.location.pathname + window.location.search).toBe("/workspace");
+    expect(window.history.length).toBe(startLength + 1);
+  });
+
+  it("direct-opens Reports with targetJobId only and keeps chrome visible", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/reports?targetJobId=01918fa0-0000-7000-8000-000000002000&section=reports&reportId=rpt-hostile&status=ready&roundId=round-hostile",
+    );
+    render(<App />);
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expect(window.location.pathname + window.location.search).toBe(
+      "/reports?targetJobId=01918fa0-0000-7000-8000-000000002000",
+    );
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-nav-reports")).not.toBeInTheDocument();
+  });
+
+  it.each(["/reports", "/reports?targetJobId=not-a-uuid"])(
+    "replaces an untrusted Reports deep link with workspace without adding a back-loop: %s",
+    async (url) => {
+      window.history.replaceState(null, "", url);
+      const pushState = vi.spyOn(window.history, "pushState");
+      const replaceState = vi.spyOn(window.history, "replaceState");
+
+      render(<App />);
+
+      await waitFor(() =>
+        expect(window.location.pathname + window.location.search).toBe(
+          "/workspace",
+        ),
+      );
+      expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
+      expect(pushState).not.toHaveBeenCalled();
+      expect(replaceState).toHaveBeenCalledWith(null, "", "/workspace");
+
+      pushState.mockRestore();
+      replaceState.mockRestore();
+    },
+  );
+
+  it("navigate(next) pushes a target-scoped Reports URL without legacy params", async () => {
+    render(
+      <App>
+        <NavTrigger
+          testid="go-reports"
+          to={{
+            name: "reports",
+            params: {
+              targetJobId: "01918fa0-0000-7000-8000-000000002000",
+              section: "reports",
+              reportId: "rpt-hostile",
+              status: "ready",
+              roundId: "round-hostile",
+            },
+          }}
+        />
+      </App>,
+    );
+    const startLength = window.history.length;
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("go-reports"));
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expect(window.location.pathname + window.location.search).toBe(
+      "/reports?targetJobId=01918fa0-0000-7000-8000-000000002000",
+    );
     expect(window.history.length).toBe(startLength + 1);
   });
 
@@ -171,6 +237,24 @@ describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () 
     );
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/workspace");
+  });
+
+  it("popstate restores Reports and scrubs incompatible query state", async () => {
+    render(<App />);
+    act(() => {
+      window.history.pushState(
+        { reportId: "rpt-history", rawText: "private" },
+        "",
+        "/reports?targetJobId=01918fa0-0000-7000-8000-000000002000&section=reports&reportId=rpt-history&status=ready&roundId=round-history",
+      );
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expect(window.location.pathname + window.location.search).toBe(
+      "/reports?targetJobId=01918fa0-0000-7000-8000-000000002000",
+    );
+    expect(window.history.state).toBeNull();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
   });
 
   it("popstate hydrates InterviewContext / chrome-hidden state for generating route", async () => {

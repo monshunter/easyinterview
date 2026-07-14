@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  ApiClientError,
+  type EasyInterviewClient,
+} from "../../../../api/generated/client";
 import type { PracticeSession } from "../../../../api/generated/types";
 import { useInterviewContext } from "../../../interview-context/InterviewContext";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
@@ -16,7 +20,13 @@ export interface UsePracticeSessionLoaderResult {
   data: PracticeSession | null;
   error: Error | null;
   refresh: () => void;
-  adopt: (session: PracticeSession) => boolean;
+  adopt: (session: PracticeSession, options?: { readToken?: number }) => boolean;
+  read: (options?: { signal?: AbortSignal }) => PracticeSessionRead;
+}
+
+export interface PracticeSessionRead {
+  token: number;
+  result: Promise<PracticeSession>;
 }
 
 interface PracticeSessionLoaderSnapshot {
@@ -25,6 +35,8 @@ interface PracticeSessionLoaderSnapshot {
   data: PracticeSession | null;
   error: Error | null;
 }
+
+const PRACTICE_SESSION_READ_TIMEOUT_MS = 10_000;
 
 /**
  * Item 1.3 — loads `getPracticeSession(sessionId)` from generated client and
@@ -62,15 +74,20 @@ export function usePracticeSessionLoader(
     error: null,
   }));
   const [reloadSeq, setReloadSeq] = useState(0);
-  const requestSeqRef = useRef(0);
+  const latestReadTokenRef = useRef(0);
 
   const refresh = useCallback(() => {
     setReloadSeq((value) => value + 1);
   }, []);
 
   const adopt = useCallback(
-    (session: PracticeSession): boolean => {
+    (session: PracticeSession, options?: { readToken?: number }): boolean => {
       if (!sessionId || session.id !== sessionId) return false;
+      if (options?.readToken !== undefined) {
+        if (options.readToken !== latestReadTokenRef.current) return false;
+      } else {
+        latestReadTokenRef.current += 1;
+      }
       setSnapshot({
         sessionId,
         state: "data",
@@ -84,6 +101,22 @@ export function usePracticeSessionLoader(
       return true;
     },
     [dispatch, sessionId],
+  );
+
+  const read = useCallback((options?: { signal?: AbortSignal }) => {
+    latestReadTokenRef.current += 1;
+    const token = latestReadTokenRef.current;
+    const result = !client
+      ? Promise.reject<PracticeSession>(new Error("usePracticeSessionLoader: client not mounted"))
+      : !sessionId
+        ? Promise.reject<PracticeSession>(new Error("usePracticeSessionLoader: sessionId missing"))
+        : readPracticeSessionBounded(client, sessionId, options?.signal);
+    return { token, result };
+  }, [client, sessionId]);
+
+  const isReadCurrent = useCallback(
+    (token: number) => latestReadTokenRef.current === token,
+    [],
   );
 
   useEffect(() => {
@@ -102,8 +135,7 @@ export function usePracticeSessionLoader(
     }
 
     let active = true;
-    const seq = requestSeqRef.current + 1;
-    requestSeqRef.current = seq;
+    const controller = new AbortController();
     setSnapshot((previous) => ({
       sessionId,
       state: "loading",
@@ -111,11 +143,12 @@ export function usePracticeSessionLoader(
       error: null,
     }));
 
-    client
-      .getPracticeSession(sessionId)
+    const pendingRead = read({ signal: controller.signal });
+    pendingRead.result
       .then((session) => {
-        if (!active || requestSeqRef.current !== seq) return;
-        if (adopt(session)) return;
+        if (!active) return;
+        if (!isReadCurrent(pendingRead.token)) return;
+        if (adopt(session, { readToken: pendingRead.token })) return;
         setSnapshot({
           sessionId,
           state: "error",
@@ -124,20 +157,27 @@ export function usePracticeSessionLoader(
         });
       })
       .catch((err: unknown) => {
-        if (!active || requestSeqRef.current !== seq) return;
+        if (!active) return;
+        if (!isReadCurrent(pendingRead.token)) return;
         const wrapped = err instanceof Error ? err : new Error(String(err));
-        setSnapshot({
+        const sessionLost = isHttpStatus(wrapped, 404);
+        setSnapshot((previous) => ({
           sessionId,
-          state: isHttpStatus(wrapped, 404) ? "sessionLost" : "error",
-          data: null,
+          state: sessionLost ? "sessionLost" : "error",
+          data: sessionLost
+            ? null
+            : previous.sessionId === sessionId
+              ? previous.data
+              : null,
           error: wrapped,
-        });
+        }));
       });
 
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [adopt, client, sessionId, reloadSeq]);
+  }, [adopt, client, isReadCurrent, read, sessionId, reloadSeq]);
 
   useEffect(() => {
     if (!sessionId || !client) return;
@@ -176,9 +216,46 @@ export function usePracticeSessionLoader(
     error: currentSnapshot.error,
     refresh,
     adopt,
+    read,
   };
 }
 
+function readPracticeSessionBounded(
+  client: EasyInterviewClient,
+  sessionId: string,
+  externalSignal?: AbortSignal,
+): Promise<PracticeSession> {
+  const controller = new AbortController();
+  const abortFromCaller = () => controller.abort();
+  if (externalSignal?.aborted) {
+    controller.abort();
+  } else {
+    externalSignal?.addEventListener("abort", abortFromCaller, { once: true });
+  }
+  const timeout = window.setTimeout(
+    () => controller.abort(),
+    PRACTICE_SESSION_READ_TIMEOUT_MS,
+  );
+  const aborted = new Promise<never>((_resolve, reject) => {
+    const rejectAbort = () => reject(new ApiClientError("abort", null, null));
+    if (controller.signal.aborted) {
+      rejectAbort();
+      return;
+    }
+    controller.signal.addEventListener("abort", rejectAbort, { once: true });
+  });
+
+  return Promise.race([
+    client.getPracticeSession(sessionId, { signal: controller.signal }),
+    aborted,
+  ]).finally(() => {
+    window.clearTimeout(timeout);
+    externalSignal?.removeEventListener("abort", abortFromCaller);
+  });
+}
+
 function isHttpStatus(error: Error, status: number): boolean {
-  return error.message.startsWith(`HTTP ${status} `);
+  return error instanceof ApiClientError
+    && error.kind === "http"
+    && error.status === status;
 }

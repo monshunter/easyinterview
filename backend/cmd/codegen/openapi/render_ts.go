@@ -164,6 +164,16 @@ func tsErrorCodeUnion(conv *Conventions) string {
 func classifyTSSchema(name string, raw map[string]any) tsSchemaView {
 	view := tsSchemaView{TSName: name, PluralName: pluralize(name)}
 
+	if _, variants, ok := closedDiscriminatedUnion(raw); ok {
+		types := make([]string, len(variants))
+		for i, variant := range variants {
+			types[i] = variant.SchemaName
+		}
+		view.Kind = "alias"
+		view.TSAliasTarget = strings.Join(types, " | ")
+		return view
+	}
+
 	if t, _ := raw["type"].(string); t == "string" {
 		if vs, ok := raw["enum"].([]any); ok && len(vs) > 0 {
 			parts := make([]string, 0, len(vs))

@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
-> **版本**: 1.16
+> **版本**: 1.19
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -46,15 +46,23 @@
 
 ## Phase 6: OPENAPI-002 TargetJob paste-only correction
 
-- [ ] 6.1 OWNER/GOVERNANCE-GATE: OPENAPI-002 is accepted, product-owner approval and spec/history 1.54 are recorded; capture merge-base old baseline, then update proposed OpenAPI while worktree baseline remains byte-unchanged, then audit old → proposed.
-- [ ] 6.2 RED-GREEN: base-ref audit folds new `rawText` minLength/pattern into `required_property_added.after` and exact-matches 15 findings; RED proves an extra constraint finding fails. Missing/unexpected/drifted finding, wildcard, edited baseline and simultaneous zero-finding replacement all fail.
+- [ ] 6.1 OWNER/GOVERNANCE-GATE: OPENAPI-002 v1.2 is accepted, product-owner approval and spec/history 1.56 are recorded; capture merge-base old baseline, then update proposed OpenAPI while worktree baseline remains byte-unchanged, then audit old → proposed.
+- [ ] 6.2 RED-GREEN: base-ref audit folds new `rawText` minLength/pattern into `required_property_added.after` and exact-matches 17 findings, including independent removal findings for `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE`; RED proves an extra constraint finding and a stale 15-finding oracle fail. Missing/unexpected/drifted finding, wildcard, edited baseline and simultaneous zero-finding replacement all fail.
 - [ ] 6.3 INVARIANT-GATE: audit proves 37/10 plus exact method/path/operationId/status/response for `importTargetJob` and `createUploadPresign`, with resume/privacy purposes retained.
 - [ ] 6.4 Preserve deterministic old-baseline JSON finding artifact before baseline mutation; 001/002/mock/frontend/backend/persistence/event/P0.010/P0.015 paste-only and scoped zero-reference gates all pass.
 - [ ] 6.5 Re-freeze `openapi-v1.0.0.yaml` only after 6.4; require clean current-baseline `make openapi-diff`, then independently run lint, fixture, codegen and downstream consumer gates. Historical clean PASS is not current evidence.
 
 ## Phase 7: Practice durable message recovery correction
 
-- [ ] 7.1 GOVERNANCE/RED: spec D-35/history 1.54 authorize方案 A；snapshot old baseline and fail until a separate deterministic five-key Practice finding manifest exists. Never add Practice findings to OPENAPI-002's 15.
+- [ ] 7.1 GOVERNANCE/RED: spec D-35/history 1.54 and the product-approved方案 A are the sole authority；snapshot old baseline and fail until a separate deterministic five-key Practice machine oracle exists. The oracle is D-35's executable projection, not a third `OPENAPI-NNN` ADR. Never add Practice findings to OPENAPI-002's exact 17.
 - [ ] 7.2 AUDIT-GATE: old baseline → proposed role-discriminated message schema exact-matches the Practice manifest while baseline remains unchanged; missing/extra/wildcard findings fail.
 - [ ] 7.3 HANDOFF-GATE: 001 schema/codegen/typed `ApiClientError`, 002 fixtures, mock runtime, backend persistence, frontend typed consumer and P0.046 reload/same-ID retry pass before re-freeze.
 - [ ] 7.4 RE-FREEZE: preserve the old-baseline artifact, then re-freeze and independently run current diff, lint, fixture, codegen and consumer gates.
+
+## Phase 8: OPENAPI-004 TargetJob report overview correction
+
+- [ ] 8.1 GOVERNANCE/RED: accepted OPENAPI-004 + spec/history 1.57 exist; old baseline snapshot is byte-stable; wrapper fails until a separate exact five-key report-overview oracle exists.
+- [ ] 8.2 AUDIT-GATE: old baseline → proposed schema exact-matches cursor/pageSize/flat response/TargetJob pointer removals and new closed required overview schemas; missing/extra/wildcard/drift fails.
+- [ ] 8.3 INVARIANT-GATE: 37/10 and exact listTargetJobReports method/path/operationId/200 remain unchanged.
+- [ ] 8.4 HANDOFF-GATE: 001/002, db/targetjob, backend-review, target-scoped ReportsScreen/P0.059, Parse/Report/Generating zero-list-consumer and mock gates pass before baseline edit.
+- [ ] 8.5 RE-FREEZE: preserve old-baseline artifact, re-freeze, then independently run current diff/lint/fixture/codegen/consumer and old-shape zero-reference gates.

@@ -1,13 +1,15 @@
 # Frontend Workspace and Practice History
 
-> **版本**: 1.40
+> **版本**: 1.42
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 1.42 | 用户确认 T-B/P-A：90 秒 backend lease 对应 95 秒 frontend POST timeout + 同 ID 对账；迟到 response 不覆盖新事实；terminal 展示通用 CTA 并精确返回 `parse(targetJobId)` 当前面试规划。 | [002-practice-text-event-loop](./plans/002-practice-text-event-loop/plan.md) Phase 10 + backend-practice/002 Phase 11 |
+| 2026-07-13 | 1.41 | 用户消息提交后立即显示 optimistic row；pending/retry 锁定 composer 并显示面试官思考；失败 retry 仅位于原消息底部且复用同一 ID。 | [002-practice-text-event-loop](./plans/002-practice-text-event-loop/plan.md) Phase 9 |
 | 2026-07-12 | 1.40 | 原地重开 Practice plan 002：Finish 在零 committed candidate user message 时原生禁用，显示 zh/en 可访问原因；backend 仍以 `VALIDATION_FAILED` 权威拒绝绕过 UI 的零回答完成。 | [002-practice-text-event-loop](./plans/002-practice-text-event-loop/plan.md) Phase 7 + backend-practice/002 Phase 9 |
 | 2026-07-12 | 1.39 | 将 GeneratingScreen 唯一 owner 转交 frontend-report-dashboard；workspace/practice 仅负责 completion 的 stable reportId handoff。 | [002-practice-text-event-loop](./plans/002-practice-text-event-loop/plan.md) + frontend-report-dashboard/001 |
 | 2026-07-12 | 1.38 | Frontend round normalizer 接受正 int32 严格递增但不连续的 canonical sequence（如 `1,2,4`），next 取下一条现有 round；P0.098 live browser reload/quick-start 在真实执行前保持未完成。 | [001-workspace-and-interview-context](./plans/001-workspace-and-interview-context/plan.md) Phase 25 |

@@ -1,8 +1,8 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 3.0
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 3.3
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,12 +11,14 @@
 
 ## 1 目标
 
-在既有 conversation report UI owner 内接入 grounded direct semantic report，修复 generating 伪实时语义、raw enum、CTA 推荐优先级、长内容/mobile 可读性与假强 parity gate；保持三指标 + 四常驻区块，不增加 tab 或平行页面。
+在既有 report UI owner 内交付规划范围的独立 ReportsScreen、grounded direct semantic report 与诚实 generating：列表只展示当前 TargetJob canonical rounds 的 current report 与 latest attempt，不做全局中心或完整历史；详情保持三指标 + 四常驻区块，并修复 generating 伪实时语义、raw enum、CTA 推荐优先级、长内容/mobile 可读性与假强 parity gate。
 
 ## 2 Operation Matrix
 
 | operationId | fixture | consumer | backend | persistence | AI | scenario |
 |-------------|---------|----------|---------|-------------|----|----------|
+| getTargetJob | `TargetJobs/getTargetJob.json` | ReportsScreen current target + canonical round display | targetjob handler/store | target_jobs.summary read | read none | P0.059 |
+| listTargetJobReports | `Reports/listTargetJobReports.json` | ReportsScreen current/latest pointers only | reports handler/store | feedback_reports + canonical target read | read none | P0.059 |
 | getFeedbackReport | `Reports/getFeedbackReport.json`: queued/generating/ready-needs-practice/ready-well-prepared/ready-empty-focus/failed/invalid-focus/long-content | generating/report; only status/context truth | reports handler/store | feedback_reports + frozen context | read none | P0.056/P0.057/P0.058/P0.059/P0.099 |
 | createPracticePlan | `PracticePlans/createPracticePlan.json`: retry/next/mismatch | replay handler; no focus input | practice handler/store | practice_plans + source report projection | none | P0.057/P0.070/P0.072 |
 | startPracticeSession | `PracticeSessions/startPracticeSession.json` | replay handler | practice handler/store | session/messages | practice.session.chat | P0.057 |
@@ -52,6 +54,8 @@
 | spec C-9 | business truth | 7 | deep-link/route-tamper tests | ReportScreen/ContextStrip/CTA | route status/identity authority |
 | spec C-10 | i18n boundary | 7 | mixed UI/report language tests | chrome vs semantic content | client translation of model labels/evidence/actions |
 | spec C-12 | privacy/UX negative | 9 | sentinel-ID DOM/a11y tests + P0.059 + browser acceptance manifest | ContextStrip target/round/resume | visible session/report UUID; deleted internal API/CTA identity |
+| spec C-13 | current-plan list | 10 | ReportsScreen target/overview table tests + P0.059 | ReportsScreen canonical round list | cross-target rows / full history / Parse list consumer |
+| spec C-14 | navigation recovery | 10 | Report/Generating Back table tests + P0.058/P0.059 | Back control | workspace-only back / route target authority / detail-screen list consumer |
 
 ## 5 实施步骤
 
@@ -113,6 +117,22 @@ P0.099 为当前 run 创建 en/zh ready rows 并捕获六图，不依赖 P0.100 
 
 面向用户的成功证据必须由 `/agent-browser` 从同一真实 backend ready report 的 formal frontend 另存到 `.test-output/acceptance/report-context-strip/<run-id>/`，不依赖场景临时输出。目录只允许三项：`report-context-strip-desktop-1440x1200.png`（exact 1440x1200）、`report-context-strip-mobile-390x844.png`（exact 390x844）与 `manifest.json`；两图都必须 `fullPage: true`，不得使用 prototype、fixture-only、裁剪图或额外状态图。manifest 逐图记录 relative path、SHA-256、`state=ready`、viewport、`fullPage=true`、同一 report 的脱敏 locator/digest、`reportSentinelAbsent=true`、`sessionSentinelAbsent=true`，并链接 DOM/a11y negative audit；截图正向显示 target/round/resume，负向不存在 report/session sentinel。
 
+### Phase 10: Independent current-plan reports list and Back recovery
+
+#### 10.1 Prototype, independent route and state model
+
+在 prototype/formal 新增独立 ReportsScreen：页面保留 App chrome，route 为 `/reports?targetJobId=<uuid>`，但不加入 TopBar。它以 `getTargetJob(targetJobId)` 提供当前规划与 canonical round display，以 `listTargetJobReports(targetJobId)` 提供 current/latest；loading、empty、network/contract error、ready 均有可访问状态。Parse 只提供入口，不承载列表。
+
+#### 10.2 Isolation, current/latest and no-history contract
+
+RED-GREEN 覆盖两个 TargetJob 数据集、请求 target 精确绑定、跨用户/target mismatch、missing/extra/noncanonical rounds、target switch 首帧清旧链接与 stale response fence。每个 report locator 只归属一个 canonical round；同轮 current/latest 同 ID 只允许 latest ready，latest ready 不得缺 current，current 不得缺 latest。每轮只显示 current ready 和 latest attempt：queued/generating 链接 Generating，failed typed 且无 Retry，latest ready 与 current 同 ID 不重复；latest ready 与 current 不同只表达“最近一次生成已完成”，仍只提供 current report 入口，不扩展为历史版本列表。
+
+#### 10.3 Back matrix and owner boundary
+
+ReportsScreen Back 精确返回 `parse?targetJobId=<current trusted id>`。缺失或非法 `/reports` target locator 以 `replaceRoute(workspace)` 安全替换当前 history entry，不得 push 后让 browser Back 反复重建坏链接。Report/Generating 的 ready、pending、failed、timeout/network 与正常 queued/generating 页面只要当前或最后可信 response 有 targetJobId，Back 都进入 `/reports?targetJobId=...`；missing reportId、404、首读网络失败或 invalid payload 无可信 identity 时回 workspace。Report/Generating route 保持 reportId-only，且二者不调用 `listTargetJobReports`；禁止从 route/title/reportId 推断 target identity。
+
+P0.059 证明独立列表的 current-plan isolation、四态与 1440/390 parity，并覆盖 ready report Back；P0.058 证明 generating/failure/fallback。P0.016 仅证明 Parse 入口与零嵌入，不再组合列表证据。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -123,6 +143,8 @@ P0.099 为当前 run 创建 en/zh ready rows 并捕获六图，不依赖 P0.100 
 - P0.099 desktop+390 截图与 current-run audit 闭环合法24/64可读性；200-code-point fuse、18/52 repair margin 或P0.100内容PASS都不能替代。
 - Report Context Strip 只显示 target/round/resume；session/report UUID 不出现在用户可见或可访问 UI，既有 API frozen context 与 CTA 行为保持不变。
 - Context Strip 正式验收只有同一 ready report 的 exact 1440x1200 / 390x844 两张 formal real UI full-page 图与固定 manifest；path/hash/state/viewport/fullPage、target/round/resume 可见和 report/session DOM/a11y/screenshot sentinel absence 全部可校验。
+- ReportsScreen 只展示当前 target 的 canonical rounds、current report 与 latest attempt，覆盖 loading/empty/error/identity mismatch/stale response；不展示其他规划或完整历史，desktop/mobile 与原型一致。
+- ReportsScreen Back 返回当前规划详情；Report/Generating Back 在 trusted target context 存在时进入 `/reports?targetJobId=...`，缺失可信 identity 时进入 workspace；detail/generating route 保持 reportId-only，且列表 operation 只有 ReportsScreen 消费。
 
 ## 7 风险与应对
 
@@ -135,11 +157,16 @@ P0.099 为当前 run 创建 en/zh ready rows 并捕获六图，不依赖 P0.100 
 | 前端重新成为业务事实源 | URL/request negative gate，后端 source report integration proof |
 | 空 focus 被误判为不可复练，或非法非空 focus 被静默删改 | 空数组显式正向 fixture；非空 cross-reference fail-closed table tests；前端不补默认 focus |
 | 把动作内产品retry、基础设施attempt或客户端窗口误当服务端失败 | 锁定action-local report / runner lease / outbox infra三层所有权；maxAttempts49耗尽只进入可继续检查态，terminal failed只来自API |
+| 列表混入其他规划或 stale response | `getTargetJob` 与 overview target/canonical round 双重闭合；target switch 首帧清旧 rows，request sequence fence 拒绝旧响应 |
+| Back 使用旧 route 或标题猜测 TargetJob | 只接受当前/最后可信 API response 的 targetJobId；缺失即 workspace fallback，并对 route target 与 detail-screen list consumer 做负向测试 |
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 3.3 | Add report-locator ownership/cross-field fail-closed gates and replace-only recovery for invalid Reports deep links. |
+| 2026-07-14 | 3.2 | Revise Phase 10 in place for an independent target-scoped ReportsScreen, current/latest-only isolation, complete states, trusted Back to `/reports`, and workspace fallback without API/schema changes. |
+| 2026-07-14 | 3.1 | Add unchecked Phase 10 for trusted-target Back to Parse reports, workspace fallback, reportId-only routes and no reports-list consumer. |
 | 2026-07-13 | 3.0 | Reopen in place to remove session/report UUID from the user-visible Context Strip and refresh deterministic desktop/mobile parity screenshots. |
 | 2026-07-13 | 2.9 | Correct report timing ownership to action-local initial+3 with 10s/20s/40s; async attempts are infrastructure-only. Keep maxAttempts49 math and prohibit unsupported failed-report regenerate claims. |
 | 2026-07-13 | 2.8 | L2：preserve poll attempt and next schedule across timer/in-flight hidden or blur；resume never resets to1 and one run remains capped at49. |

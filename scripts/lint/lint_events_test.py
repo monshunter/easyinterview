@@ -68,12 +68,12 @@ class LintEventsBaselineTest(unittest.TestCase):
 
     def test_detects_event_local_enum_member_removed(self) -> None:
         current = copy.deepcopy(self.events)
-        source_type = next(enum for enum in current["eventLocalEnums"] if enum["name"] == "TargetImportSourceType")
-        source_type["values"] = ["url", "text"]
+        tailor_mode = next(enum for enum in current["eventLocalEnums"] if enum["name"] == "ResumeTailorMode")
+        tailor_mode["values"] = ["gap_review"]
 
         errs = self.linter.compare_events_baseline(current, self.events)
 
-        self.assertTrue(any("TargetImportSourceType" in err and "file" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
+        self.assertTrue(any("ResumeTailorMode" in err and "bullet_suggestions" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
 
     def test_allows_additive_optional_payload_field(self) -> None:
         current = copy.deepcopy(self.events)
@@ -248,14 +248,14 @@ class LintEventsSourceScanTest(unittest.TestCase):
 
     def test_source_event_only_requires_api_facing_known_event_trigger(self) -> None:
         jobs = copy.deepcopy(self.jobs)
-        source_refresh = next(job for job in jobs["jobs"] if job["canonical"] == "source_refresh")
-        source_refresh["triggerEventSemantic"] = "source_event_only"
+        email_dispatch = next(job for job in jobs["jobs"] if job["canonical"] == "email_dispatch")
+        email_dispatch["triggerEventSemantic"] = "source_event_only"
         resume_parse = next(job for job in jobs["jobs"] if job["canonical"] == "resume_parse")
         resume_parse["triggerEventSemantic"] = "source_event_only"
 
         errs = self.linter.validate_jobs_contract_shape(jobs, self.events)
 
-        self.assertTrue(any("source_refresh" in err and "apiFacing" in err for err in errs), errs)
+        self.assertTrue(any("email_dispatch" in err and "apiFacing" in err for err in errs), errs)
         self.assertTrue(any("resume_parse" in err and "known eventName" in err for err in errs), errs)
 
     def test_rejects_redacted_field_added_to_email_dispatch_payload_schema(self) -> None:

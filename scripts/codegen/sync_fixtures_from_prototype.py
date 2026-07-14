@@ -81,16 +81,6 @@ LANGUAGE_TRANSLATION = {
     "en": "en",
 }
 
-SOURCE_TYPE_TRANSLATION = {
-    "粘贴 JD": "manual_text",
-    "岗位链接": "url",
-    "招聘方邮件": "manual_text",
-    "url": "url",
-    "manual_text": "manual_text",
-    "file": "file",
-    "manual_form": "manual_form",
-}
-
 READINESS_TIER = {
     0: "not_ready",
     1: "needs_practice",
@@ -188,8 +178,6 @@ def _build_target_job(raw: dict, jd: dict | None = None) -> OrderedDict:
         ("companyName", _translate_company(raw.get("company"))),
         ("locationText", raw.get("location")),
         ("targetLanguage", LANGUAGE_TRANSLATION.get(raw.get("language", "zh-CN"), "zh-CN")),
-        ("sourceType", SOURCE_TYPE_TRANSLATION.get(raw.get("source"), "manual_text")),
-        ("sourceUrl", None),
     ])
     if jd is not None:
         themes = list(jd.get("hidden", [])) or ["Cross-team alignment"]
@@ -238,12 +226,10 @@ def _build_target_job(raw: dict, jd: dict | None = None) -> OrderedDict:
             ("riskSignals", list(jd.get("hidden", []))[-1:] or ["Hiring manager pushes for measurable outcomes"]),
             ("provenance", _prov("target_job_fit.v2")),
         ])
-        base["latestReportId"] = uuidv7_for(f"report:tj:{raw['id']}")
     else:
         base["summary"] = None
         base["requirements"] = []
         base["fitSummary"] = None
-        base["latestReportId"] = None
     base["openQuestionIssueCount"] = int(raw.get("mistakes") or 0)
     progress = raw.get("practiceProgress")
     if isinstance(progress, dict):
@@ -298,13 +284,24 @@ def map_get_practice_session(data: dict) -> OrderedDict:
     session_id = uuidv7_for("session:prototype:tj-1")
     messages = []
     for index, item in enumerate(transcript):
-        messages.append(OrderedDict([
+        role = "assistant" if item.get("role") == "ai" else "user"
+        message = OrderedDict([
             ("id", uuidv7_for(f"message:prototype:tj-1:{index + 1}")),
             ("seqNo", index + 1),
-            ("role", "assistant" if item.get("role") == "ai" else "user"),
+            ("role", role),
             ("content", _sanitize_prototype_text(item.get("text"))),
-            ("createdAt", EARLIER if index == 0 else NOW),
-        ]))
+        ])
+        if role == "user":
+            next_item = transcript[index + 1] if index + 1 < len(transcript) else None
+            has_assistant_reply = (
+                isinstance(next_item, dict) and next_item.get("role") == "ai"
+            )
+            message["clientMessageId"] = uuidv7_for(
+                f"client-message:prototype:tj-1:{index + 1}"
+            )
+            message["replyStatus"] = "complete" if has_assistant_reply else "pending"
+        message["createdAt"] = EARLIER if index == 0 else NOW
+        messages.append(message)
     body = OrderedDict([
         ("id", session_id),
         ("planId", plan_id),

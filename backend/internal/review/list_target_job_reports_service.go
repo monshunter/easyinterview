@@ -5,41 +5,19 @@ import (
 	"strings"
 )
 
-func (s *Service) ListTargetJobReports(ctx context.Context, in ListTargetJobReportsRequest) (PaginatedFeedbackReportRecord, error) {
+func (s *Service) ListTargetJobReports(ctx context.Context, in ListTargetJobReportsRequest) (TargetJobReportsOverviewRecord, error) {
 	userID := strings.TrimSpace(in.UserID)
 	targetJobID := strings.TrimSpace(in.TargetJobID)
 	if userID == "" || targetJobID == "" {
-		return PaginatedFeedbackReportRecord{}, ErrReportNotFound
-	}
-	pageSize := EffectiveReportPageSize(in.PageSize)
-	listInput := ListTargetJobReportsInput{
-		UserID:      userID,
-		TargetJobID: targetJobID,
-		Cursor:      strings.TrimSpace(in.Cursor),
-		PageSize:    pageSize,
-	}
-	if listInput.Cursor != "" {
-		createdAt, id, err := DecodeCursor(listInput.Cursor)
-		if err != nil {
-			return PaginatedFeedbackReportRecord{}, ErrInvalidCursor
-		}
-		listInput.CursorCreatedAt = createdAt
-		listInput.CursorID = id
+		return TargetJobReportsOverviewRecord{}, ErrReportNotFound
 	}
 	reader, err := s.reportReader()
 	if err != nil {
-		return PaginatedFeedbackReportRecord{}, err
+		return TargetJobReportsOverviewRecord{}, err
 	}
-	res, err := reader.ListTargetJobReports(ctx, listInput)
+	res, err := reader.ListTargetJobReports(ctx, userID, targetJobID)
 	if err != nil {
-		return PaginatedFeedbackReportRecord{}, err
+		return TargetJobReportsOverviewRecord{}, err
 	}
-	return PaginatedFeedbackReportRecord{
-		Items: res.Items,
-		PageInfo: PageInfo{
-			NextCursor: res.NextCursor,
-			PageSize:   pageSize,
-			HasMore:    res.HasMore,
-		},
-	}, nil
+	return res, nil
 }

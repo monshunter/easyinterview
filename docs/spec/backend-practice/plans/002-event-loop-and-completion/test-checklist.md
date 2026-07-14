@@ -1,8 +1,8 @@
 # 002 Conversation Message Loop Test Checklist
 
-> **版本**: 2.7
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 2.8
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -38,7 +38,16 @@
 
 ## Phase 10: Durable reply-state recovery
 
-- [ ] Store transition and real PostgreSQL migration tests pass.
-- [ ] Service/API readback plus generated schema/fixture tests pass.
-- [ ] Typed TS error runtime JSON/non-JSON/empty/Abort/transport tests pass.
-- [ ] P0.046 reload/same-ID/unique-reply and privacy gates pass.
+- [x] Store transition and real PostgreSQL migration tests pass.
+- [x] Service/API readback plus generated schema/fixture tests pass.
+- [x] Typed TS error runtime JSON/non-JSON/empty/Abort/transport tests pass.
+- [x] P0.046 reload/same-ID/unique-reply and privacy gates pass.
+  <!-- verified: 2026-07-14 method=focused+full+scenario evidence="Store/service/API/generated contract and typed runtime error suites pass; P0.046 run e26ba887-5f71-4c25-834e-448b4595ede2 passes same-ID reload recovery, one assistant reply, privacy and desktop/mobile evidence." -->
+
+## Phase 11: Lease, generation fence and evidence freshness
+
+- [x] Migration SQL-contract and direct-SQL fixture tests pass for every role/status/generation/lease invariant.
+- [x] Store/domain injected-clock transition tests pass at before/exactly-after 90 seconds, including GET and same-ID reserve lazy convergence.
+- [x] All four named real PostgreSQL concurrency tests pass with independent connections/start barriers and exact row/reply/generation assertions.
+- [x] Service/API/OpenAPI/codegen/fixture regression passes and proves generation/lease remain internal.
+- [x] P0.044/P0.046 scenario contract, source fingerprint, screenshot hash/geometry and exact marker checks pass with fresh artifacts. (fresh serial runs `13f3b898-4054-4949-8b85-4a15df35c712` / `e26ba887-5f71-4c25-834e-448b4595ede2`)

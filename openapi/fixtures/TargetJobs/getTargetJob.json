@@ -15,8 +15,6 @@
           "companyName": "Acme",
           "locationText": "Shanghai · Hybrid",
           "targetLanguage": "zh-CN",
-          "sourceType": "url",
-          "sourceUrl": "https://acme.example/careers/senior-frontend",
           "summary": {
             "coreThemes": [
               "Design-system & component-library leadership",
@@ -101,7 +99,6 @@
               "dataSourceVersion": "target_job.v17"
             }
           },
-          "latestReportId": "01918fa0-0000-7000-8000-000000007000",
           "openQuestionIssueCount": 2,
           "createdAt": "2026-04-22T09:30:00Z",
           "updatedAt": "2026-04-28T12:00:00Z",
@@ -137,8 +134,6 @@
           "companyName": "Acme",
           "locationText": "上海 · 混合办公",
           "targetLanguage": "zh-CN",
-          "sourceType": "manual_text",
-          "sourceUrl": null,
           "summary": {
             "coreThemes": [
               "岗位上下文偏向 B 端复杂表单与数据可视化",
@@ -262,7 +257,6 @@
               "dataSourceVersion": "prototype-baseline.v1"
             }
           },
-          "latestReportId": "01918fa0-c3cb-7268-8404-d3b2603536d8",
           "openQuestionIssueCount": 0,
           "practiceProgress": {
             "status": "in_progress",
@@ -299,7 +293,6 @@
           "title": "Platform Engineer",
           "companyName": "Acme",
           "targetLanguage": "en",
-          "sourceType": "manual_text",
           "summary": {
             "interviewRounds": [
               {
@@ -355,7 +348,6 @@
           "title": "Platform Engineer",
           "companyName": "Acme",
           "targetLanguage": "en",
-          "sourceType": "manual_text",
           "summary": {
             "interviewRounds": [
               {

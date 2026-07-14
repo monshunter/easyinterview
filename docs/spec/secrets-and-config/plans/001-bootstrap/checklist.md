@@ -88,7 +88,9 @@
 
 ## Phase 12: TargetJob attachment maxBytes config removal
 
-- [ ] 12.1 RED: config schema、validator 与 backend API composition tests 要求 maxBytes 当前集合仅含 `resume` / `privacyExport`，并固定默认值 10MB / 5MB；旧 TargetJob attachment key 仍存在时测试失败。
-- [ ] 12.2 GREEN: 删除 `config/config.yaml`、platform config validator/fixtures/tests 与 backend API composition 中的旧 TargetJob attachment maxBytes binding，不增加 alias、fallback 或兼容读取。
+- [x] 12.1 RED: config schema、validator 与 backend API composition tests 要求 maxBytes 当前集合仅含 `resume` / `privacyExport`，并固定默认值 10MB / 5MB；旧 TargetJob attachment key 仍存在时测试失败。
+  <!-- verified: 2026-07-13 method=default-config-red evidence="focused test failed because upload.maxBytes.targetJobAttachment still resolved to 10485760 instead of being absent" -->
+- [x] 12.2 GREEN: 删除 `config/config.yaml`、platform config validator/fixtures/tests 与 backend API composition 中的旧 TargetJob attachment maxBytes binding，不增加 alias、fallback 或兼容读取。
+  <!-- verified: 2026-07-13 method=config+composition-green evidence="canonical config, validator required paths, cmd/api purpose-limit composition and all config fixtures now expose only resume=10MB/privacyExport=5MB; no alias or fallback" -->
 - [ ] 12.3 REGRESSION-GATE: `make lint-config`、platform config focused tests 与 backend API composition tests 通过；Resume/Privacy 非正数仍 fail-fast，presign TTL 和 10MB/5MB 默认值不变。
 - [ ] 12.4 ZERO-REF/BDD-GATE: active `config/`、platform config、backend API composition 与 A4 current docs 对旧 key 零命中；合法历史/显式负测排除。BDD 不适用，以 Red/Green focused tests、config lint、typed composition 与 zero-reference 作为替代 gate。

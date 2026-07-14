@@ -121,7 +121,7 @@ describe("Home resume selection", () => {
   });
 
   it("requires an explicit ready resume selection before importing a pasted JD", async () => {
-    const client = createClient("manual-text-primary");
+    const client = createClient("paste-primary");
     const listSpy = vi.spyOn(client, "listResumes");
     const importSpy = vi.spyOn(client, "importTargetJob");
     const { navigate } = renderHome(client);
@@ -239,5 +239,18 @@ describe("Home resume selection", () => {
       name: "resume_versions",
       params: { flow: "create" },
     });
+  });
+
+  it("does not expose the resume service error when resume loading fails", async () => {
+    const client = createClient("default");
+    vi.mocked(client.listResumes).mockRejectedValue(
+      new Error("HTTP 503 RESUME_PROVIDER_UNAVAILABLE"),
+    );
+
+    renderHome(client);
+
+    expect(await screen.findByText("简历暂时无法读取，请稍后重试。")).toBeInTheDocument();
+    expect(screen.queryByText("HTTP 503 RESUME_PROVIDER_UNAVAILABLE")).not.toBeInTheDocument();
+    expect(screen.getByTestId("home-jd-submit")).toBeDisabled();
   });
 });

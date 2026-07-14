@@ -99,12 +99,23 @@ type FailSessionStartInput struct {
 	FailedAt            time.Time
 }
 
+type PracticeReplyStatus string
+
+const (
+	PracticeReplyStatusPending         PracticeReplyStatus = "pending"
+	PracticeReplyStatusRetryableFailed PracticeReplyStatus = "retryable_failed"
+	PracticeReplyStatusTerminalFailed  PracticeReplyStatus = "terminal_failed"
+	PracticeReplyStatusComplete        PracticeReplyStatus = "complete"
+)
+
 type MessageRecord struct {
-	ID        string
-	Role      string
-	Content   string
-	SeqNo     int32
-	CreatedAt time.Time
+	ID              string
+	Role            string
+	Content         string
+	SeqNo           int32
+	ClientMessageID string
+	ReplyStatus     PracticeReplyStatus
+	CreatedAt       time.Time
 }
 
 type SessionRecord struct {

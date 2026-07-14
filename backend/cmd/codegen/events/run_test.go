@@ -78,14 +78,12 @@ func TestGenerateGoOutputs(t *testing.T) {
 		"sharedtypes.TargetJobParseStatus",
 		"PreparednessLevel",
 		"sharedtypes.ReadinessTier",
-		"SourceType",
-		"TargetImportSourceType",
 	} {
 		if !strings.Contains(events, want) {
 			t.Errorf("events.go missing %q", want)
 		}
 	}
-	for _, stale := range []string{"PracticeTurnCompleted", "PracticeMode", "TurnCount", "QuestionIssueCount"} {
+	for _, stale := range []string{"PracticeTurnCompleted", "PracticeMode", "TurnCount", "QuestionIssueCount", "TargetImportSourceType", "SourceFreshnessStatus", "SourceRefreshedPayload"} {
 		if strings.Contains(events, stale) {
 			t.Errorf("events.go contains stale practice question contract %q", stale)
 		}
@@ -134,7 +132,6 @@ func TestGenerateTSOutputs(t *testing.T) {
 	events := readFile(t, filepath.Join(tmp, "frontend/src/lib/events/events.ts"))
 	for _, want := range []string{
 		"import type {",
-		"export type TargetImportSourceType =",
 		`export const EVENT_NAME_REPORT_GENERATED = "report.generated" as const;`,
 		"export interface ReportGeneratedPayload",
 		"preparednessLevel: ReadinessTier;",
@@ -144,7 +141,7 @@ func TestGenerateTSOutputs(t *testing.T) {
 			t.Errorf("events.ts missing %q", want)
 		}
 	}
-	for _, stale := range []string{"PracticeTurnCompleted", "PracticeMode", "turnCount", "questionIssueCount"} {
+	for _, stale := range []string{"PracticeTurnCompleted", "PracticeMode", "turnCount", "questionIssueCount", "TargetImportSourceType", "SourceFreshnessStatus", "SourceRefreshedPayload"} {
 		if strings.Contains(events, stale) {
 			t.Errorf("events.ts contains stale practice question contract %q", stale)
 		}
@@ -178,7 +175,7 @@ func TestGenerateJSONSchemas(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadDir schemas: %v", err)
 	}
-	if got, want := len(entries), 13; got != want {
+	if got, want := len(entries), 12; got != want {
 		t.Fatalf("schema file count = %d, want %d", got, want)
 	}
 
@@ -198,9 +195,16 @@ func TestGenerateJSONSchemas(t *testing.T) {
 	if !strings.Contains(readinessRef, `"basically_ready"`) {
 		t.Fatalf("ReadinessTier ref must include current B1 enum values, got:\n%s", readinessRef)
 	}
-	sourceTypeRef := readFile(t, filepath.Join(tmp, "shared/events/refs/TargetImportSourceType.json"))
-	if !strings.Contains(sourceTypeRef, `"file"`) {
-		t.Fatalf("event-local enum ref must include values, got:\n%s", sourceTypeRef)
+	for _, removed := range []string{
+		"TargetImportSourceType.json",
+		"SourceFreshnessStatus.json",
+	} {
+		if _, err := os.Stat(filepath.Join(tmp, "shared/events/refs", removed)); !os.IsNotExist(err) {
+			t.Fatalf("removed event-local ref %s still exists: %v", removed, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(schemaDir, "source.refreshed.v1.json")); !os.IsNotExist(err) {
+		t.Fatalf("removed source.refreshed schema still exists: %v", err)
 	}
 }
 
@@ -323,7 +327,7 @@ func TestBreakingChangeFixtures(t *testing.T) {
 		},
 		{
 			name:   "enum member removal",
-			events: strings.Replace(baseEvents, "      - file\n", "", 1),
+			events: strings.Replace(baseEvents, "      - bullet_suggestions\n", "", 1),
 		},
 	}
 

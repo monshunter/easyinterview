@@ -35,20 +35,18 @@ var ForbiddenOutboxFields = []string{
 	"authorization",
 }
 
-// TargetImportRequestedInput captures the four fields B3 allows for the
+// TargetImportRequestedInput captures the three fields B3 allows for the
 // events.EventNameTargetImportRequested outbox event. The struct is intentionally
 // closed: any additional metadata the caller wants to record must be
 // added via B3 spec revision first, never piggy-backed here.
 type TargetImportRequestedInput struct {
-	APISourceType  SourceType
 	TargetJobID    string
 	TargetLanguage string
 	UserID         string
 }
 
 // BuildTargetImportRequestedPayload validates input shape and produces a
-// B3-typed outbox event payload. `manual_form` is rejected because that path
-// does not enter the async runner (D-13).
+// B3-typed outbox event payload.
 func BuildTargetImportRequestedPayload(in TargetImportRequestedInput) (events.TargetImportRequestedPayload, error) {
 	if in.TargetJobID == "" {
 		return events.TargetImportRequestedPayload{}, fmt.Errorf("%s: targetJobId is required", events.EventNameTargetImportRequested)
@@ -59,12 +57,7 @@ func BuildTargetImportRequestedPayload(in TargetImportRequestedInput) (events.Ta
 	if in.TargetLanguage == "" {
 		return events.TargetImportRequestedPayload{}, fmt.Errorf("%s: targetLanguage is required", events.EventNameTargetImportRequested)
 	}
-	srcType, err := events.MapAPISourceTypeToEvent(string(in.APISourceType))
-	if err != nil {
-		return events.TargetImportRequestedPayload{}, err
-	}
 	out := events.TargetImportRequestedPayload{
-		SourceType:     srcType,
 		TargetJobID:    in.TargetJobID,
 		TargetLanguage: in.TargetLanguage,
 		UserID:         in.UserID,
@@ -161,7 +154,6 @@ func assertNoForbiddenAnalysisFailedPayload(out events.TargetAnalysisFailedPaylo
 type TargetImportJobPayload struct {
 	TargetJobID    string `json:"targetJobId"`
 	UserID         string `json:"userId"`
-	SourceType     string `json:"sourceType"`
 	TargetLanguage string `json:"targetLanguage"`
 }
 
@@ -170,8 +162,8 @@ type TargetImportJobPayload struct {
 // `async_jobs.payload`. The same forbidden-token negative scan runs over
 // the marshalled bytes.
 func BuildTargetImportJobPayload(in TargetImportJobPayload) ([]byte, error) {
-	if in.TargetJobID == "" || in.UserID == "" || in.SourceType == "" || in.TargetLanguage == "" {
-		return nil, fmt.Errorf("%s payload requires targetJobId, userId, sourceType, targetLanguage", jobs.JobTypeTargetImport)
+	if in.TargetJobID == "" || in.UserID == "" || in.TargetLanguage == "" {
+		return nil, fmt.Errorf("%s payload requires targetJobId, userId, targetLanguage", jobs.JobTypeTargetImport)
 	}
 	if err := assertNoForbiddenOutboxFields(in); err != nil {
 		return nil, err

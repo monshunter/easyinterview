@@ -14,7 +14,6 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 )
 
 // TestPackageSourcesContainNoForbiddenLogStrings is the package-level
@@ -84,11 +83,10 @@ func TestParseExecutor_RedactsForbiddenTokensInErrorMessage(t *testing.T) {
 		Store:    store,
 		Registry: registry,
 		AI:       &fakeAIClient{},
-		Fetcher:  &fakeFetcher{},
 		NewID:    idSeq("redact"),
 		Now:      func() time.Time { return time.Now().UTC() },
 	})
-	store.target = targetjob.TargetJobRecord{ID: "tgt-1", SourceType: targetjob.SourceTypeManualText, RawJDText: "x"}
+	store.target = targetjob.TargetJobRecord{ID: "tgt-1", RawJDText: "x"}
 	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if outcome.Succeeded {
 		t.Fatal("expected failure, got success")
@@ -109,11 +107,10 @@ func TestParseExecutor_RedactsPromptResponseAndProviderSecretInErrorMessage(t *t
 		"Private JD body that must not leak",
 	} {
 		t.Run(leaked, func(t *testing.T) {
-			exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+			exec, store, _, ai := newParseExecutorWithFakes(t)
 			ai.err = errors.New(leaked)
 			store.target = targetjob.TargetJobRecord{
 				ID:             "tgt-privacy",
-				SourceType:     targetjob.SourceTypeManualText,
 				TargetLanguage: "en",
 				RawJDText:      "x",
 			}
@@ -137,15 +134,15 @@ func TestParseExecutor_RedactsPromptResponseAndProviderSecretInErrorMessage(t *t
 
 // TestParseExecutor_OutboxPayloadsContainOnlyAllowedTokens scans the
 // outbox payload bytes the executor produces and asserts none of the
-// forbidden tokens leak into the wire shape, even when the source values
-// contain them.
+// forbidden tokens leak into the wire shape, even when the pasted JD text
+// contains them.
 func TestParseExecutor_OutboxPayloadsContainOnlyAllowedTokens(t *testing.T) {
-	exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+	exec, store, _, ai := newParseExecutorWithFakes(t)
 	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
 	store.target = targetjob.TargetJobRecord{
 		ID: "tgt-1", UserID: "user-1",
-		SourceType: targetjob.SourceTypeManualText, TargetLanguage: "en",
-		RawJDText: "JD with secret Authorization: Bearer ABC123",
+		TargetLanguage: "en",
+		RawJDText:      "JD with secret Authorization: Bearer ABC123",
 	}
 	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if !outcome.Succeeded {
@@ -158,28 +155,14 @@ func TestParseExecutor_OutboxPayloadsContainOnlyAllowedTokens(t *testing.T) {
 	}
 }
 
-// TestSourceRefreshHandler_PayloadHasNoSourceURL guards 4.5: the internal-only
-// source_refresh job must never reflect the original source URL.
-func TestSourceRefreshHandler_PayloadHasNoSourceURL(t *testing.T) {
-	store := &pipelineFakeStore{}
-	h := &targetjob.SourceRefreshHandler{Store: store}
-	outcome := h.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
-	if !outcome.Succeeded {
-		t.Fatalf("source refresh: %+v", outcome)
-	}
-	// SourceRefreshHandler does not produce an outbox payload itself; the
-	// async_jobs payload is empty (`{}`). This test fails loudly if the
-	// shape changes to include URL data.
-}
-
 // TestImportTargetJob_DedupeKeyIsUserScopedAcrossServices exercises spec
 // 5.3 again at the redline level: even when two services share the same
 // pepper, hashes for different users must diverge so handler / store
 // behaviour cannot accidentally treat unrelated users as colliding.
 func TestImportTargetJob_DedupeKeyIsUserScopedAcrossServices(t *testing.T) {
-	store1 := &fakeStore{}
+	store1 := &pipelineFakeStore{}
 	idx1 := 0
-	store2 := &fakeStore{}
+	store2 := &pipelineFakeStore{}
 	idx2 := 0
 	gen1 := func() string {
 		idx1++
@@ -195,79 +178,23 @@ func TestImportTargetJob_DedupeKeyIsUserScopedAcrossServices(t *testing.T) {
 
 	if _, err := svc1.ImportTargetJob(context.Background(), targetjob.ImportRequest{
 		UserID: "user-A", IdempotencyKey: "key-overlap", TargetLanguage: "en", ResumeID: "resume-A",
-		Source: map[string]any{"type": "manual_text", "rawText": "JD A"},
+		RawText: "JD A",
 	}); err != nil {
 		t.Fatalf("svc1 import: %v", err)
 	}
 	if _, err := svc2.ImportTargetJob(context.Background(), targetjob.ImportRequest{
 		UserID: "user-B", IdempotencyKey: "key-overlap", TargetLanguage: "en", ResumeID: "resume-B",
-		Source: map[string]any{"type": "manual_text", "rawText": "JD B"},
+		RawText: "JD B",
 	}); err != nil {
 		t.Fatalf("svc2 import: %v", err)
 	}
-	if store1.captured.DedupeKey == "" || store2.captured.DedupeKey == "" {
+	if store1.importIn == nil || store2.importIn == nil {
+		t.Fatal("import inputs must be captured")
+	}
+	if store1.importIn.DedupeKey == "" || store2.importIn.DedupeKey == "" {
 		t.Fatal("dedupe keys must be populated")
 	}
-	if store1.captured.DedupeKey == store2.captured.DedupeKey {
-		t.Fatalf("dedupe key must be user-scoped, both got %s", store1.captured.DedupeKey)
+	if store1.importIn.DedupeKey == store2.importIn.DedupeKey {
+		t.Fatalf("dedupe key must be user-scoped, both got %s", store1.importIn.DedupeKey)
 	}
-}
-
-func TestImportTargetJob_URLQuerySecretDoesNotEnterStoreOrPayloads(t *testing.T) {
-	store := &fakeStore{}
-	ids := []string{
-		"018f2a40-0000-7000-9000-0000000000a1",
-		"018f2a40-0000-7000-9000-0000000000f1",
-		"018f2a40-0000-7000-9000-0000000000c1",
-		"018f2a40-0000-7000-9000-0000000000e1",
-	}
-	idx := 0
-	svc := targetjob.NewService(targetjob.ServiceOptions{
-		Store: store,
-		NewID: func() string {
-			v := ids[idx]
-			idx++
-			return v
-		},
-		Now:          func() time.Time { return time.Date(2026, 5, 9, 23, 10, 0, 0, time.UTC) },
-		DedupePepper: "shared-pepper",
-	})
-
-	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
-		UserID:         "user-url",
-		IdempotencyKey: "url-key",
-		TargetLanguage: "en",
-		ResumeID:       "resume-url",
-		Source: map[string]any{
-			"type": "url",
-			"url":  "https://jobs.example.com/role/123?token=super-secret#share",
-		},
-	})
-	if err != nil {
-		t.Fatalf("ImportTargetJob URL: %v", err)
-	}
-	for name, raw := range map[string]string{
-		"source_url": string(store.captured.SourceURL),
-		"outbox":     string(store.captured.OutboxEventPayload),
-		"job":        string(store.captured.JobPayload),
-	} {
-		if strings.Contains(raw, "super-secret") || strings.Contains(raw, "token=") || strings.Contains(raw, "#share") {
-			t.Fatalf("%s leaked URL secret: %s", name, raw)
-		}
-	}
-}
-
-// TestUrlFetcher_HasReasonableDefaultsAfterFactory keeps Phase 5 honest:
-// changing URLFetchTimeout or URLFetchBodyCap requires updating spec D-7
-// first, which is enforced separately by config_test.go. This test
-// asserts the fetcher honours those constants.
-func TestUrlFetcher_HasReasonableDefaultsAfterFactory(t *testing.T) {
-	if targetjob.URLFetchTimeout != 10*time.Second {
-		t.Fatalf("URLFetchTimeout drifted: %v", targetjob.URLFetchTimeout)
-	}
-	if targetjob.URLFetchBodyCap != 1<<20 {
-		t.Fatalf("URLFetchBodyCap drifted: %d", targetjob.URLFetchBodyCap)
-	}
-	// Construct a fetcher to confirm the factory accepts the canonical UA.
-	_ = urlfetch.New(urlfetch.FetcherOptions{UserAgent: targetjob.URLFetchUserAgent("test")})
 }

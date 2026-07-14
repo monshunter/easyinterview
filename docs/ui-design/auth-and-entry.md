@@ -1,8 +1,8 @@
 # 认证与默认入口
 
-> **版本**: 1.22
+> **版本**: 1.23
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 文档目的
 
@@ -18,6 +18,7 @@
 6. 已登录用户菜单只显示 `设置与隐私` 和 `退出登录`。
 7. `用户画像` 不是用户菜单入口。
 8. `复盘` 不是业务入口或登录触发点。
+9. `/reports?targetJobId=...` 是受保护的规划上下文页面；鉴权接续只保留合法 `targetJobId`，但它不进入 TopBar 一级导航。
 
 ## 3 默认入口
 
@@ -62,6 +63,7 @@ auth_logout
 | 动作 | 目标 route | 说明 |
 |------|------------|------|
 | 立即面试 | `practice` | 从 parse 或 workspace 发起 |
+| 打开当前规划报告 | `reports` | 从规划详情内容区入口或受保护深链发起；只携带 `targetJobId` |
 | 复练当前轮 | `practice` | 从 report header 发起 |
 | 进入下一轮 | `practice` | 从 report header 发起 |
 | 保存简历 | `resume_versions` | 创建或编辑简历 |
@@ -85,3 +87,4 @@ auth_logout
 3. 正式前端、URL fallback 和 scenario 都必须覆盖范围外入口负向。
 4. 设置页只承载账号、界面偏好和隐私数据控制。
 5. `import_jd` pendingAction 只接续粘贴文本入口；路由只携带 opaque pending id 与业务 ID，不携带 JD 原文或导入类型。
+6. `reports` pendingAction 只允许 `targetJobId`；`section`、report/status/round、原文和其他业务状态必须剔除。登录恢复后仍由受保护 API 校验规划归属。

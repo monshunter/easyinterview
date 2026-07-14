@@ -30,7 +30,10 @@ type ReportRepository interface {
 	PersistReportFailure(ctx context.Context, in ReportFailurePersistence) error
 }
 
-var ErrReportContextInvalid = errors.New("review: frozen report context invalid")
+var (
+	ErrReportContextInvalid = errors.New("review: frozen report context invalid")
+	ErrReportContextMissing = fmt.Errorf("%w: generation context is missing", ErrReportContextInvalid)
+)
 
 type ServiceOptions struct {
 	Registry        PromptResolver

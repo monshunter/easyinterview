@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.29
+> **版本**: 2.30
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 文档目的
 
@@ -18,7 +18,7 @@
 4. `复盘` 和 `用户画像` 不属于当前 UI 范围，不是一级导航、用户菜单入口、目标 route、静态原型页面或后续默认 workstream。
 5. `debrief`、`debrief_full`、`profile` 等范围外 hash / route 输入在静态原型中归一到 `home`，不得 materialize 范围外页面。
 6. `auth_profile_setup` 仍保留为首次登录资料补全页；这是账号资料补全，不是用户画像。
-7. 报告只有 session-scoped Dashboard；报告后续动作只有 `复练当前轮` 与 `进入下一轮`。
+7. 报告内容只有 session-scoped Dashboard；允许从规划详情内容区进入 target-scoped ReportsScreen 索引当前轮次报告，但不加入 TopBar、不形成全局中心或第二种报告内容形态。报告后续开练动作只有 `复练当前轮` 与 `进入下一轮`。
 8. 简历是一级模块：平铺列表、上传 / 粘贴创建、注册后直接详情、只读原始正文。
 9. 当前只开放连续文本面试；电话入口置灰，不产生 `phone` / `voice` route state，通用 speech 基础设施留待后续重新评审。
 10. 顶栏主题色、暗色模式、语言下拉和设置页字体预设是全局显示控制，不属于业务模块。
@@ -41,7 +41,7 @@
 │  └─ 最近模拟面试（最多 3 条 + 更多）
 ├─ Interview / 面试
 │  ├─ 面试规划列表（一级入口默认 landing）
-│  ├─ 面试规划详情 / 面试上下文确认（Parse 母版统一承接首次核对与回访）
+│  ├─ 面试规划详情 / 面试上下文确认（Parse 母版统一承接首次核对与回访；右上角进入当前规划报告）
 │  ├─ JD / 简历 / InterviewRound
 │  └─ 立即面试
 ├─ Interview Session
@@ -50,6 +50,10 @@
 │  ├─ 即时 user row + pending interviewer thinking
 │  ├─ server-owned reply state + failed-row same-ID retry
 │  └─ 结束并生成报告
+├─ Reports / 当前规划报告
+│  ├─ 当前 TargetJob canonical rounds
+│  ├─ 每轮 current report + latest generation state
+│  └─ 不展示其他规划或完整历史
 ├─ Report Dashboard
 │  ├─ 会话 / 岗位 / 简历 / 轮次上下文
 │  ├─ 准备度、维度、证据详情、下一步
@@ -129,12 +133,18 @@ Mock Interview Plan
 ├─ Resume
 ├─ InterviewRound
 ├─ InterviewSession
+├─ ReportsScreen(targetJobId)
 └─ ReportDashboard
 
 ReportDashboard
 ├─ 准备度、维度、证据详情和下一步
 ├─ 复练当前轮 -> Interview Session(same round)
 └─ 进入下一轮 -> Interview Session(next round)
+
+ReportsScreen(targetJobId)
+├─ Back -> InterviewPlanDetail(targetJobId)
+├─ current report -> ReportDashboard(reportId)
+└─ latest generating -> ReportGenerating(reportId)
 ```
 
 ## 6 页面层级规则
@@ -152,8 +162,9 @@ Resume
 ```text
 InterviewPlanDetail / ContextConfirm
 InterviewSession(sessionId)
-ReportGenerating(sessionId)
-ReportDashboard(sessionId)
+ReportsScreen(targetJobId)
+ReportGenerating(reportId)
+ReportDashboard(reportId)
 ```
 
 ### 6.3 用户菜单和认证页面
@@ -199,11 +210,13 @@ ROUTE_ALIASES
 5. Pixel parity 和 route tests 必须覆盖范围外入口负向断言。
 6. Home 必须只保留 JD textarea、ready Resume 下拉框和主 CTA；正式前端与静态原型都不得保留其他 JD intake 控件或弹窗，desktop 1440px 与 mobile 390px 截图必须证明该单一路径。
 7. Practice transient optimistic row 不得成为跨刷新事实源；`getPracticeSession` 必须恢复 user `clientMessageId/replyStatus`，pending/retryable/terminal/complete UI 由该服务端投影收敛。
+8. `ReportsScreen(targetJobId)` 是受保护、chrome-visible 的上下文页面，入口仅在规划详情内容区右上角；TopBar 仍严格为三入口。Parse 不嵌入列表或保留 `section=reports`，Report/Generating trusted Back 返回 ReportsScreen。
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.30 | 增加 target-scoped ReportsScreen 上下文层级；Parse 仅保留内容区入口，TopBar 仍三入口，报告详情仍是唯一内容形态。 |
 | 2026-07-13 | 2.29 | Practice conversation 增加服务端可恢复 reply state、即时消息/思考态与 failed-row same-ID retry 架构。 |
 | 2026-07-13 | 2.28 | Home JD intake 收敛为唯一粘贴文本框，保留 ready 简历选择与主 CTA，并要求 desktop/mobile 截图验收。 |
 | 2026-07-12 | 2.27 | 将正式前端既有的 mobile TopBar 两行/多行响应式、内容驱动高度和无 document 横向溢出规则回写为 UI 真理源，并要求带 App Shell 页面使用真实 TopBar 底部做绝对 viewport parity。 |

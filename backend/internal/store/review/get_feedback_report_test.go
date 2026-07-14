@@ -82,34 +82,6 @@ func TestGetFeedbackReportFrozenProjectionRejectsCrossUserAsNotFound(t *testing.
 	}
 }
 
-func TestListTargetJobReportsFrozenProjectionUsesSnapshot(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-	now := time.Date(2026, 7, 12, 8, 30, 0, 0, time.UTC)
-	mock.ExpectQuery(`(?s)select exists\(.*from target_jobs.*where id = \$1 and user_id = \$2 and deleted_at is null`).
-		WithArgs("target-1", "user-1").
-		WillReturnRows(sqlmock.NewRows([]string{"owned"}).AddRow(true))
-	mock.ExpectQuery(`(?s)select fr\.id::text, fr\.session_id::text, fr\.target_job_id::text, fr\.status, fr\.error_code, fr\.summary, fr\.generation_context,.*from feedback_reports fr\s+where fr\.user_id = \$1 and fr\.target_job_id = \$2\s+order by fr\.created_at desc, fr\.id desc\s+limit \$3`).
-		WithArgs("user-1", "target-1", 21).
-		WillReturnRows(feedbackReportProjectionRow(sharedtypes.ReportStatusReady, mustFrozenReportContextJSON(t), now))
-
-	got, err := NewRepository(db).ListTargetJobReports(context.Background(), reviewdomain.ListTargetJobReportsInput{
-		UserID: "user-1", TargetJobID: "target-1", PageSize: 20,
-	})
-	if err != nil {
-		t.Fatalf("ListTargetJobReports: %v", err)
-	}
-	if len(got.Items) != 1 || got.Items[0].Context.SourcePlanID != "plan-1" || got.Items[0].Context.RoundID != "round-1-technical" || got.Items[0].Summary == nil {
-		t.Fatalf("list projection did not use frozen report context: %#v", got)
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatal(err)
-	}
-}
-
 func assertReadyProjectionLossless(t *testing.T, got reviewdomain.FeedbackReportRecord) {
 	t.Helper()
 	if got.Summary == nil || *got.Summary != "回答结构清楚，技术取舍需要量化证据。" {

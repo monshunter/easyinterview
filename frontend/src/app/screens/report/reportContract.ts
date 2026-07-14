@@ -5,6 +5,7 @@ import type {
   GenerationProvenance,
   ReadinessTier,
 } from "../../../api/generated/types";
+import { isApiErrorCode } from "../../../api/runtimeApiErrorCode";
 
 const READINESS = new Set<ReadinessTier>([
   "not_ready",
@@ -27,6 +28,17 @@ const ROUND_TYPES = new Set([
   "other",
 ]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const REPORT_KEYS = [
+  "context", "createdAt", "dimensionAssessments", "errorCode", "highlights",
+  "id", "issues", "nextActions", "preparednessLevel", "provenance",
+  "retryFocusDimensionCodes", "sessionId", "status", "summary",
+  "targetJobId", "updatedAt",
+] as const;
+const CONTEXT_KEYS = [
+  "hasNextRound", "language", "resumeDisplayName", "resumeId", "roundId",
+  "roundName", "roundSequence", "roundType", "sourcePlanId",
+  "targetJobCompany", "targetJobTitle",
+] as const;
 
 export type ReadyFeedbackReport = FeedbackReport & {
   status: "ready";
@@ -36,28 +48,73 @@ export type ReadyFeedbackReport = FeedbackReport & {
   provenance: GenerationProvenance;
 };
 
-export function isValidReadyReport(report: FeedbackReport): report is ReadyFeedbackReport {
+/**
+ * Fail-closed runtime boundary for every FeedbackReport status.
+ * Callers must supply the route/request identity so a valid stale response can
+ * never become authority for navigation or rendering.
+ */
+export function isValidFeedbackReport(
+  value: unknown,
+  expectedReportId: string,
+): value is FeedbackReport {
+  const report = validatedReportBase(value);
+  if (!report || report.id !== expectedReportId) return false;
+
+  if (report.status === "ready") return validReadyPayload(report);
   if (
-    !exactKeys(report, [
-      "context", "createdAt", "dimensionAssessments", "errorCode", "highlights",
-      "id", "issues", "nextActions", "preparednessLevel", "provenance",
-      "retryFocusDimensionCodes", "sessionId", "status", "summary",
-      "targetJobId", "updatedAt",
-    ]) ||
-    report.status !== "ready" ||
-    report.errorCode !== null ||
+    report.status !== "queued" &&
+    report.status !== "generating" &&
+    report.status !== "failed"
+  ) return false;
+
+  const semanticArrays = [
+    report.dimensionAssessments,
+    report.highlights,
+    report.issues,
+    report.nextActions,
+    report.retryFocusDimensionCodes,
+  ];
+  if (
+    report.summary !== null ||
+    report.preparednessLevel !== null ||
+    report.provenance !== null ||
+    semanticArrays.some((items) => !Array.isArray(items) || items.length !== 0)
+  ) return false;
+
+  return report.status === "failed"
+    ? isApiErrorCode(report.errorCode)
+    : report.errorCode === null;
+}
+
+export function isValidReadyReport(value: unknown): value is ReadyFeedbackReport {
+  const report = validatedReportBase(value);
+  return report !== null && validReadyPayload(report);
+}
+
+function validatedReportBase(value: unknown): FeedbackReport | null {
+  if (!exactKeys(value, REPORT_KEYS)) return null;
+  const report = value as FeedbackReport;
+  if (
     !uuid(report.id) ||
     !uuid(report.sessionId) ||
     !uuid(report.targetJobId) ||
+    !dateTime(report.createdAt) ||
+    !dateTime(report.updatedAt) ||
+    !validContext(report.context)
+  ) return null;
+  return report;
+}
+
+function validReadyPayload(report: FeedbackReport): report is ReadyFeedbackReport {
+  if (
+    report.status !== "ready" ||
+    report.errorCode !== null ||
     !text(report.summary) ||
     report.summary.length > 360 ||
     !report.preparednessLevel ||
     !READINESS.has(report.preparednessLevel) ||
     !validProvenance(report.provenance) ||
-    report.provenance.language !== report.context?.language ||
-    !dateTime(report.createdAt) ||
-    !dateTime(report.updatedAt) ||
-    !validContext(report)
+    report.provenance.language !== report.context.language
   ) return false;
 
   const dimensions = report.dimensionAssessments;
@@ -135,15 +192,10 @@ export function isValidReadyReport(report: FeedbackReport): report is ReadyFeedb
   );
 }
 
-function validContext(report: FeedbackReport): boolean {
-  const context = report.context;
+function validContext(value: unknown): value is FeedbackReport["context"] {
+  if (!exactKeys(value, CONTEXT_KEYS)) return false;
+  const context = value as FeedbackReport["context"];
   return Boolean(
-    context &&
-    exactKeys(context, [
-      "hasNextRound", "language", "resumeDisplayName", "resumeId", "roundId",
-      "roundName", "roundSequence", "roundType", "sourcePlanId",
-      "targetJobCompany", "targetJobTitle",
-    ]) &&
     uuid(context.sourcePlanId) &&
     text(context.targetJobTitle) &&
     text(context.targetJobCompany) &&
@@ -151,7 +203,7 @@ function validContext(report: FeedbackReport): boolean {
     text(context.resumeDisplayName) &&
     text(context.roundId) &&
     ROUND_TYPES.has(context.roundType) &&
-    new RegExp(`^round-${context.roundSequence}-${context.roundType}$`).test(context.roundId) &&
+    context.roundId === `round-${context.roundSequence}-${context.roundType}` &&
     text(context.roundName) &&
     REPORT_LANGUAGES.has(context.language) &&
     Number.isInteger(context.roundSequence) &&

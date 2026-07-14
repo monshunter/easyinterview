@@ -5,6 +5,7 @@ import {
   ACTION_LABEL_WIRE_MAX_CODE_POINTS,
   isValidReadyReport,
 } from "../reportContract";
+import { resolveReportBackRoute } from "../reportBackRoute";
 
 function readyReport(): FeedbackReport {
   return {
@@ -58,6 +59,24 @@ function mutate(
   const value = structuredClone(readyReport()) as unknown as Record<string, unknown>;
   change(value);
   return value as unknown as FeedbackReport;
+}
+
+function nonReadyReport(
+  status: "queued" | "generating" | "failed",
+): FeedbackReport {
+  return {
+    ...readyReport(),
+    status,
+    errorCode: status === "failed" ? "AI_PROVIDER_TIMEOUT" : null,
+    summary: null,
+    preparednessLevel: null,
+    dimensionAssessments: [],
+    highlights: [],
+    issues: [],
+    nextActions: [],
+    retryFocusDimensionCodes: [],
+    provenance: null,
+  };
 }
 
 describe("ready FeedbackReport fail-closed contract", () => {
@@ -177,5 +196,42 @@ describe("ready FeedbackReport fail-closed contract", () => {
     });
 
     expect(isValidReadyReport(value)).toBe(false);
+  });
+});
+
+describe("Report/Generating trusted Back destination", () => {
+  const reportId = readyReport().id;
+  const targetJobId = readyReport().targetJobId;
+  const reportsRoute = {
+    name: "reports",
+    params: { targetJobId },
+  };
+  const workspaceRoute = { name: "workspace", params: {} };
+
+  it.each([
+    ["ready", readyReport()],
+    ["queued", nonReadyReport("queued")],
+    ["generating", nonReadyReport("generating")],
+    ["failed", nonReadyReport("failed")],
+  ])("uses the API target for a valid %s current or last response", (_status, value) => {
+    expect(resolveReportBackRoute(value, reportId)).toEqual(reportsRoute);
+  });
+
+  it.each([
+    ["no response", null],
+    ["stale report identity", { ...nonReadyReport("generating"), id: "01918fa0-0000-7000-8000-000000007999" }],
+    ["malformed target identity", { ...nonReadyReport("failed"), targetJobId: "route-target-must-not-be-trusted" }],
+    ["invalid ready payload", { ...readyReport(), summary: null }],
+    ["invalid non-ready payload", { ...nonReadyReport("queued"), nextActions: [{ type: "next_round", label: "must not survive" }] }],
+    ["failed payload with unknown error code", { ...nonReadyReport("failed"), errorCode: "REPORT_UNKNOWN_FAILURE" }],
+    [
+      "malformed round type",
+      {
+        ...nonReadyReport("generating"),
+        context: { ...nonReadyReport("generating").context, roundType: "[" },
+      },
+    ],
+  ])("falls back to workspace for %s", (_label, value) => {
+    expect(resolveReportBackRoute(value as FeedbackReport | null, reportId)).toEqual(workspaceRoute);
   });
 });

@@ -17,8 +17,8 @@
     soft、out-of-scope entries 0 命中。
   - `home.spec.ts`：Home hero / textarea / aux cards DOM 锚点、
     viewport 内布局与 dark mode token 变化。
-  - `parse.spec.ts`：Home 到 parse 入口、textarea submit enable、
-    upload modal DOM 锚点。
+  - `parse.spec.ts`：Parse 只读规划详情、页面级报告入口、无嵌入报告列表
+    与 desktop/mobile source parity。
   - `workspace.spec.ts`：empty state、server-bound full-state、
     modal、bounding box、theme、screenshot smoke 与 out-of-scope entry negative。
   - `resume-workshop.spec.ts` / `resume-workshop-create.spec.ts`：flat list、
@@ -26,6 +26,8 @@
     rewrite/edit negative。
   - `practice.spec.ts` / `generating.spec.ts` / `report.spec.ts`：
     面试、生成与报告页面 parity。
+  - `reports.spec.ts`：当前规划独立报告列表的六种状态、规划隔离与
+    desktop/mobile parity。
 - trigger.log 必须出现：
   - Playwright passed summary
   - 不含 failed summary

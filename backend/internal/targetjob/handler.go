@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -64,19 +65,23 @@ func (h *Handler) ImportTargetJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body api.ImportTargetJobRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&body); err != nil {
+		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "request body is malformed")
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "request body is malformed")
 		return
 	}
 
 	resp, err := h.service.ImportTargetJob(r.Context(), ImportRequest{
-		UserID:          userID,
-		IdempotencyKey:  idempotencyKey,
-		TargetLanguage:  body.TargetLanguage,
-		ResumeID:        body.ResumeId,
-		TitleHint:       derefString(body.TitleHint),
-		CompanyNameHint: derefString(body.CompanyNameHint),
-		Source:          body.Source,
+		UserID:         userID,
+		IdempotencyKey: idempotencyKey,
+		TargetLanguage: body.TargetLanguage,
+		ResumeID:       body.ResumeId,
+		RawText:        body.RawText,
 	})
 	if err != nil {
 		writeServiceError(w, err)
@@ -293,20 +298,15 @@ func writeServiceError(w http.ResponseWriter, err error) {
 	if errors.As(err, &svcErr) {
 		status := http.StatusBadRequest
 		switch svcErr.Code {
+		case sharederrors.CodeValidationFailed:
+			status = http.StatusUnprocessableEntity
 		case sharederrors.CodeTargetJobNotFound:
 			status = http.StatusNotFound
-		case sharederrors.CodeTargetImportSourceUnavailable:
-			status = http.StatusBadGateway
+		case sharederrors.CodeTargetInvalidStateTransition:
+			status = http.StatusConflict
 		}
 		writeAPIError(w, status, svcErr.Code, svcErr.Message)
 		return
 	}
 	writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeTargetImportFailed, "internal error")
-}
-
-func derefString(p *string) string {
-	if p == nil {
-		return ""
-	}
-	return *p
 }

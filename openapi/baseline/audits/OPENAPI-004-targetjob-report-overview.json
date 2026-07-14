@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-004",
+  "mode": "exact-set",
+  "keyFields": [
+    "severity",
+    "path",
+    "kind",
+    "before",
+    "after"
+  ],
+  "authority": {
+    "decision": "OPENAPI-004",
+    "specDecision": "D-36",
+    "historyVersion": "1.57",
+    "productDecision": "R-A"
+  },
+  "baselineSource": "git:2550c1b58472803755147dd648a4149632e86d8f:openapi/baseline/openapi-v1.0.0.yaml",
+  "currentSource": "openapi/openapi.yaml",
+  "baselineSha256": "e92eea4ca25618c9e6300b104ad6aea85b2b9e6094de8571349898bdecf29527",
+  "currentSha256": "7fda2df1d9815eec4d09e3c4e153cfeb8566e54f326f0c6be5fe84946d03cee7",
+  "summary": {
+    "breaking": 6,
+    "additive": 9,
+    "informational": 0
+  },
+  "expectedFindingCount": 15,
+  "findingCount": 15,
+  "findings": [
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobCurrentReportSummary",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "id,generatedAt"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobCurrentReportSummary/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportAttemptSummary",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "id,status,errorCode,createdAt"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportAttemptSummary/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportRoundOverview",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "round,currentReport,latestAttempt"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportRoundOverview/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportsOverview",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "targetJobId,rounds"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportsOverview/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportsOverview/properties/rounds",
+      "kind": "canonical_array_bounds_added",
+      "before": "absent",
+      "after": "minItems=2,maxItems=5"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PaginatedFeedbackReport",
+      "kind": "schema_removed",
+      "before": "present",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PracticeRoundRef/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/TargetJob/properties/latestReportId",
+      "kind": "property_removed",
+      "before": "string|null",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/paths/~1targets~1{targetJobId}~1reports/get/parameters/cursor",
+      "kind": "parameter_removed",
+      "before": "query:optional",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/paths/~1targets~1{targetJobId}~1reports/get/parameters/pageSize",
+      "kind": "parameter_removed",
+      "before": "query:optional",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/paths/~1targets~1{targetJobId}~1reports/get/responses/200/content/application~1json/schema",
+      "kind": "response_ref_changed",
+      "before": "PaginatedFeedbackReport",
+      "after": "TargetJobReportsOverview"
+    }
+  ],
+  "errors": []
+}

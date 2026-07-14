@@ -222,6 +222,275 @@ def _schema_properties(schemas: dict[str, Any], schema_name: str) -> dict[str, A
     return props if isinstance(props, dict) else {}
 
 
+def validate_targetjob_paste_only_contract(data: dict[str, Any], errors: list[str]) -> None:
+    """Lock OPENAPI-002's paste-only TargetJob wire surface.
+
+    The pre-launch correction intentionally has no source-wrapper or read-side
+    provenance compatibility path. Resume and privacy uploads remain valid.
+    """
+    schemas = ((data.get("components") or {}).get("schemas") or {})
+    request = schemas.get("ImportTargetJobRequest") or {}
+    request_properties = request.get("properties") or {}
+    expected_request_properties = ["rawText", "targetLanguage", "resumeId"]
+
+    if request.get("type") != "object":
+        errors.append("ImportTargetJobRequest.type must be object")
+    if request.get("additionalProperties") is not False:
+        errors.append("ImportTargetJobRequest must set additionalProperties=false")
+    if request.get("required") != expected_request_properties:
+        errors.append(
+            "ImportTargetJobRequest.required must exactly equal "
+            f"{expected_request_properties}; got {request.get('required')!r}"
+        )
+    if list(request_properties) != expected_request_properties:
+        errors.append(
+            "ImportTargetJobRequest.properties must exactly equal "
+            f"{expected_request_properties}; got {list(request_properties)!r}"
+        )
+
+    raw_text = request_properties.get("rawText") or {}
+    if raw_text.get("type") != "string":
+        errors.append("ImportTargetJobRequest.rawText.type must be string")
+    if raw_text.get("minLength") != 1:
+        errors.append("ImportTargetJobRequest.rawText.minLength must be 1")
+    if raw_text.get("pattern") != r"\S":
+        errors.append(r"ImportTargetJobRequest.rawText.pattern must be \\S")
+
+    for removed_schema in (
+        "TargetJobImportSourceURL",
+        "TargetJobImportSourceManualText",
+        "TargetJobImportSourceFile",
+        "TargetJobImportSourceManualForm",
+        "TargetJobImportSource",
+    ):
+        if removed_schema in schemas:
+            errors.append(f"removed TargetJob source schema still present: {removed_schema}")
+
+    target_job = schemas.get("TargetJob") or {}
+    target_properties = target_job.get("properties") or {}
+    target_required = target_job.get("required") or []
+    for removed_property in ("sourceType", "sourceUrl"):
+        if removed_property in target_properties:
+            errors.append(f"TargetJob must not expose {removed_property}")
+        if removed_property in target_required:
+            errors.append(f"TargetJob.required must not contain {removed_property}")
+
+    purpose_enum = (
+        (((schemas.get("UploadPresignRequest") or {}).get("properties") or {}).get("purpose") or {}).get("enum")
+    )
+    if purpose_enum != ["resume", "privacy_export"]:
+        errors.append(
+            "UploadPresignRequest.purpose must exactly preserve resume/privacy_export; "
+            f"got {purpose_enum!r}"
+        )
+
+    upload_tag = next(
+        (tag for tag in (data.get("tags") or []) if isinstance(tag, dict) and tag.get("name") == "Uploads"),
+        {},
+    )
+    expected_upload_description = (
+        "Pre-signed object-storage URLs for resume uploads and privacy-export artifacts."
+    )
+    if upload_tag.get("description") != expected_upload_description:
+        errors.append(
+            "Uploads tag description must describe only resume/privacy-export consumers; "
+            f"got {upload_tag.get('description')!r}"
+        )
+
+    operation_invariants = (
+        (
+            "/targets/import",
+            "post",
+            "importTargetJob",
+            "202",
+            "#/components/schemas/TargetJobWithJob",
+        ),
+        (
+            "/uploads/presign",
+            "post",
+            "createUploadPresign",
+            "201",
+            "#/components/schemas/UploadPresign",
+        ),
+    )
+    paths = data.get("paths") or {}
+    for path, method, operation_id, status, response_ref in operation_invariants:
+        operation = ((paths.get(path) or {}).get(method) or {})
+        if operation.get("operationId") != operation_id:
+            errors.append(
+                f"{method.upper()} {path} operationId must remain {operation_id!r}; "
+                f"got {operation.get('operationId')!r}"
+            )
+        response = ((operation.get("responses") or {}).get(status) or {})
+        actual_ref = (
+            (((response.get("content") or {}).get("application/json") or {}).get("schema") or {}).get("$ref")
+        )
+        if actual_ref != response_ref:
+            errors.append(
+                f"{method.upper()} {path} {status} response must remain {response_ref}; got {actual_ref!r}"
+            )
+
+
+def validate_targetjob_report_overview_contract(
+    data: dict[str, Any], errors: list[str]
+) -> None:
+    """Lock OPENAPI-004's no-pagination canonical-round overview wire."""
+    schemas = ((data.get("components") or {}).get("schemas") or {})
+    operation = (
+        (((data.get("paths") or {}).get("/targets/{targetJobId}/reports") or {}).get("get"))
+        or {}
+    )
+    if operation.get("operationId") != "listTargetJobReports":
+        errors.append(
+            "GET /targets/{targetJobId}/reports operationId must remain listTargetJobReports"
+        )
+
+    named_parameters = [
+        parameter.get("name")
+        for parameter in (operation.get("parameters") or [])
+        if isinstance(parameter, dict) and "name" in parameter
+    ]
+    if named_parameters != ["targetJobId"]:
+        errors.append(
+            "listTargetJobReports named parameters must exactly equal ['targetJobId']; "
+            f"got {named_parameters!r}"
+        )
+    parameter_refs = [
+        parameter.get("$ref")
+        for parameter in (operation.get("parameters") or [])
+        if isinstance(parameter, dict) and "$ref" in parameter
+    ]
+    expected_parameter_refs = [
+        "#/components/parameters/XRequestID",
+        "#/components/parameters/Traceparent",
+        "#/components/parameters/AcceptLanguage",
+        "#/components/parameters/XClientVersion",
+    ]
+    if parameter_refs != expected_parameter_refs:
+        errors.append(
+            "listTargetJobReports shared header refs must remain unchanged; "
+            f"got {parameter_refs!r}"
+        )
+
+    response_ref = (
+        (((((operation.get("responses") or {}).get("200") or {}).get("content") or {}).get("application/json") or {}).get("schema") or {}).get("$ref")
+    )
+    expected_response_ref = "#/components/schemas/TargetJobReportsOverview"
+    if response_ref != expected_response_ref:
+        errors.append(
+            "listTargetJobReports 200 response must reference "
+            f"{expected_response_ref}; got {response_ref!r}"
+        )
+
+    if "PaginatedFeedbackReport" in schemas:
+        errors.append("removed PaginatedFeedbackReport schema must not be present")
+    target_job_properties = ((schemas.get("TargetJob") or {}).get("properties") or {})
+    if "latestReportId" in target_job_properties:
+        errors.append("TargetJob must not expose latestReportId")
+    if (schemas.get("PracticeRoundRef") or {}).get("additionalProperties") is not False:
+        errors.append(
+            "PracticeRoundRef must set additionalProperties=false for the closed overview round"
+        )
+
+    expected_shapes: dict[str, tuple[list[str], list[str]]] = {
+        "TargetJobReportsOverview": (
+            ["targetJobId", "rounds"],
+            ["targetJobId", "rounds"],
+        ),
+        "TargetJobReportRoundOverview": (
+            ["round", "currentReport", "latestAttempt"],
+            ["round", "currentReport", "latestAttempt"],
+        ),
+        "TargetJobCurrentReportSummary": (
+            ["id", "generatedAt"],
+            ["id", "generatedAt"],
+        ),
+        "TargetJobReportAttemptSummary": (
+            ["id", "status", "errorCode", "createdAt"],
+            ["id", "status", "errorCode", "createdAt"],
+        ),
+    }
+    for schema_name, (required, properties) in expected_shapes.items():
+        schema = schemas.get(schema_name)
+        if not isinstance(schema, dict):
+            errors.append(f"missing components.schemas.{schema_name}")
+            continue
+        if schema.get("type") != "object":
+            errors.append(f"{schema_name}.type must be object")
+        if schema.get("additionalProperties") is not False:
+            errors.append(f"{schema_name} must set additionalProperties=false")
+        if schema.get("required") != required:
+            errors.append(
+                f"{schema_name}.required must exactly equal {required}; got {schema.get('required')!r}"
+            )
+        actual_properties = list((schema.get("properties") or {}).keys())
+        if actual_properties != properties:
+            errors.append(
+                f"{schema_name}.properties must exactly equal {properties}; got {actual_properties!r}"
+            )
+
+    round_overview = schemas.get("TargetJobReportRoundOverview") or {}
+    round_properties = round_overview.get("properties") or {}
+    if (round_properties.get("round") or {}).get("$ref") != "#/components/schemas/PracticeRoundRef":
+        errors.append("TargetJobReportRoundOverview.round must reference PracticeRoundRef")
+    overview_rounds = (
+        ((schemas.get("TargetJobReportsOverview") or {}).get("properties") or {}).get("rounds")
+        or {}
+    )
+    if overview_rounds.get("minItems") != 2 or overview_rounds.get("maxItems") != 5:
+        errors.append(
+            "TargetJobReportsOverview.rounds must preserve the canonical 2..5 catalog bounds"
+        )
+    expected_nullable_refs = {
+        "currentReport": "#/components/schemas/TargetJobCurrentReportSummary",
+        "latestAttempt": "#/components/schemas/TargetJobReportAttemptSummary",
+    }
+    for field_name, expected_ref in expected_nullable_refs.items():
+        actual = (round_properties.get(field_name) or {}).get("oneOf")
+        expected = [{"$ref": expected_ref}, {"type": "null"}]
+        if actual != expected:
+            errors.append(
+                f"TargetJobReportRoundOverview.{field_name} must be required explicit nullable {expected_ref}"
+            )
+
+    attempt = schemas.get("TargetJobReportAttemptSummary") or {}
+    attempt_properties = attempt.get("properties") or {}
+    if (attempt_properties.get("status") or {}).get("$ref") != "#/components/schemas/ReportStatus":
+        errors.append("TargetJobReportAttemptSummary.status must reference ReportStatus")
+    expected_error_code = [
+        {"$ref": "#/components/schemas/ApiErrorCode"},
+        {"type": "null"},
+    ]
+    if (attempt_properties.get("errorCode") or {}).get("oneOf") != expected_error_code:
+        errors.append(
+            "TargetJobReportAttemptSummary.errorCode must be required explicit nullable ApiErrorCode"
+        )
+    conditionals = attempt.get("allOf") or []
+    if len(conditionals) != 1:
+        errors.append(
+            "TargetJobReportAttemptSummary must define exactly one failed-only errorCode conditional"
+        )
+    else:
+        conditional = conditionals[0]
+        failed_const = (
+            ((((conditional.get("if") or {}).get("properties") or {}).get("status") or {}).get("const"))
+        )
+        then_ref = (
+            ((((conditional.get("then") or {}).get("properties") or {}).get("errorCode") or {}).get("$ref"))
+        )
+        else_type = (
+            ((((conditional.get("else") or {}).get("properties") or {}).get("errorCode") or {}).get("type"))
+        )
+        if (
+            failed_const != "failed"
+            or then_ref != "#/components/schemas/ApiErrorCode"
+            or else_type != "null"
+        ):
+            errors.append(
+                "TargetJobReportAttemptSummary.errorCode must be non-null only when status=failed"
+            )
+
+
 def validate_product_scope_contract(data: dict[str, Any], errors: list[str]) -> None:
     """Enforce product-scope v1.2 / current UI semantic invariants that are
     stronger than structural OpenAPI validity."""
@@ -480,6 +749,8 @@ def main(argv: list[str]) -> int:
             errors.append(f"{schema_name} cannot reach GenerationProvenance via $ref topology (spec §4.6)")
 
     validate_product_scope_contract(data, errors)
+    validate_targetjob_paste_only_contract(data, errors)
+    validate_targetjob_report_overview_contract(data, errors)
 
     # Sync against B1 truth source (spec C-8 partial).
     conventions_path = Path("shared/conventions.yaml")

@@ -5,27 +5,11 @@ package events
 
 import sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 
-type TargetImportSourceType string
-
-const (
-	TargetImportSourceTypeUrl  TargetImportSourceType = "url"
-	TargetImportSourceTypeText TargetImportSourceType = "text"
-	TargetImportSourceTypeFile TargetImportSourceType = "file"
-)
-
 type ResumeTailorMode string
 
 const (
 	ResumeTailorModeGapReview         ResumeTailorMode = "gap_review"
 	ResumeTailorModeBulletSuggestions ResumeTailorMode = "bullet_suggestions"
-)
-
-type SourceFreshnessStatus string
-
-const (
-	SourceFreshnessStatusFresh  SourceFreshnessStatus = "fresh"
-	SourceFreshnessStatusStale  SourceFreshnessStatus = "stale"
-	SourceFreshnessStatusFailed SourceFreshnessStatus = "failed"
 )
 
 const (
@@ -39,16 +23,14 @@ const (
 	EventNameReportGenerationFailed    EventName = "report.generation.failed"
 	EventNameResumeParseCompleted      EventName = "resume.parse.completed"
 	EventNameResumeTailorCompleted     EventName = "resume.tailor.completed"
-	EventNameSourceRefreshed           EventName = "source.refreshed"
 	EventNamePrivacyRequestCreated     EventName = "privacy.request.created"
 	EventNamePrivacyRequestCompleted   EventName = "privacy.request.completed"
 )
 
 type TargetImportRequestedPayload struct {
-	SourceType     TargetImportSourceType `json:"sourceType"`
-	TargetJobID    string                 `json:"targetJobId"`
-	TargetLanguage string                 `json:"targetLanguage"`
-	UserID         string                 `json:"userId"`
+	TargetJobID    string `json:"targetJobId"`
+	TargetLanguage string `json:"targetLanguage"`
+	UserID         string `json:"userId"`
 }
 
 type TargetParsedPayload struct {
@@ -115,13 +97,6 @@ type ResumeTailorCompletedPayload struct {
 	Status      sharedtypes.ReportStatus `json:"status"`
 	TailorRunID string                   `json:"tailorRunId"`
 	TargetJobID string                   `json:"targetJobId"`
-}
-
-type SourceRefreshedPayload struct {
-	FreshnessStatus SourceFreshnessStatus `json:"freshnessStatus"`
-	OwnerID         string                `json:"ownerId"`
-	OwnerType       string                `json:"ownerType"`
-	SourceRecordID  string                `json:"sourceRecordId"`
 }
 
 type PrivacyRequestCreatedPayload struct {

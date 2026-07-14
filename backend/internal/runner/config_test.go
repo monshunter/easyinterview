@@ -3,6 +3,8 @@ package runner
 import (
 	"testing"
 	"time"
+
+	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
 
 func TestRuntimeConfig_AsyncTimings(t *testing.T) {
@@ -39,5 +41,17 @@ func TestRuntimeConfig_FailsFastOnNonPositive(t *testing.T) {
 		if err := cfg.Validate(); err == nil {
 			t.Fatalf("%s: expected Validate to reject non-positive value", name)
 		}
+	}
+}
+
+func TestRuntimeConfig_CurrentJobPrioritiesExcludeTargetJobSourceRefresh(t *testing.T) {
+	if _, ok := defaultJobTypePriority[jobs.JobType("source_refresh")]; ok {
+		t.Fatal("removed source_refresh job must not have a runner priority mapping")
+	}
+	if got := PriorityForJobType(string(jobs.JobTypeTargetImport)); got != PriorityDefault {
+		t.Fatalf("target_import priority = %q, want %q", got, PriorityDefault)
+	}
+	if got := PriorityForJobType(string(jobs.JobTypeEmailDispatch)); got != PriorityLow {
+		t.Fatalf("email_dispatch priority = %q, want %q", got, PriorityLow)
 	}
 }

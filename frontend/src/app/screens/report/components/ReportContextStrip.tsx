@@ -6,8 +6,7 @@ import { useI18n, type MessageKey } from "../../../i18n/messages";
 export const ReportContextStrip: FC<{ report: FeedbackReport }> = ({ report }) => {
   const { t } = useI18n();
   const context = report.context;
-  const fields: Array<{ id: string; label: MessageKey; value: string; compact?: boolean }> = [
-    { id: "session", label: "report.context.session", value: report.sessionId, compact: true },
+  const fields: Array<{ id: string; label: MessageKey; value: string }> = [
     { id: "job", label: "report.context.job", value: `${context.targetJobCompany} · ${context.targetJobTitle}` },
     { id: "round", label: "report.context.round", value: context.roundName },
     { id: "resume", label: "report.context.resume", value: context.resumeDisplayName },
@@ -17,7 +16,7 @@ export const ReportContextStrip: FC<{ report: FeedbackReport }> = ({ report }) =
       {fields.map((field) => (
         <div key={field.id} data-testid={`report-context-${field.id}`} style={{ padding: "12px 14px", minWidth: 0, background: "var(--ei-color-bg-card)" }}>
           <div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 5 }}>{t(field.label)}</div>
-          <div title={field.value} style={{ color: "var(--ei-color-fg-secondary)", fontSize: 12.5, lineHeight: 1.5, overflowWrap: field.compact ? "normal" : "anywhere", whiteSpace: field.compact ? "nowrap" : "normal", overflow: field.compact ? "hidden" : "visible", textOverflow: field.compact ? "ellipsis" : "clip" }}>{field.value}</div>
+          <div title={field.value} style={{ color: "var(--ei-color-fg-secondary)", fontSize: 12.5, lineHeight: 1.5, overflowWrap: "anywhere" }}>{field.value}</div>
         </div>
       ))}
     </section>

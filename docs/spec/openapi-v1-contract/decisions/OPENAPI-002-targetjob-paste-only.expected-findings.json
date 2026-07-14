@@ -37,6 +37,20 @@
   "findings": [
     {
       "severity": "breaking",
+      "path": "/components/schemas/ApiErrorCode/enum",
+      "kind": "enum_value_removed",
+      "before": "TARGET_IMPORT_SOURCE_INVALID",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ApiErrorCode/enum",
+      "kind": "enum_value_removed",
+      "before": "TARGET_IMPORT_SOURCE_UNAVAILABLE",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
       "path": "/components/schemas/TargetJobImportSourceURL",
       "kind": "schema_removed",
       "before": "present",

@@ -362,13 +362,21 @@ func TestSQLRepositoryGetSessionReturnsOrderedMessages(t *testing.T) {
 	}
 	defer db.Close()
 	now := time.Unix(2, 0).UTC()
+	mock.ExpectBegin()
+	mock.ExpectQuery(`select id from practice_sessions where id=\$1 and user_id=\$2 for update`).WithArgs("session-1", "user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("session-1"))
+	mock.ExpectExec(`(?s)update practice_messages.*reply_lease_expires_at <= \$3`).
+		WithArgs(string(domain.PracticeReplyStatusRetryableFailed), "session-1", now, string(domain.PracticeReplyStatusPending)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectQuery(`select id, plan_id, target_job_id, status, language, created_at, updated_at`).WithArgs("user-1", "session-1").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "created_at", "updated_at"}).
 			AddRow("session-1", "plan-1", "target-1", string(sharedtypes.SessionStatusRunning), "zh-CN", now, now))
-	mock.ExpectQuery(`select id, role, content, seq_no, created_at from practice_messages`).WithArgs("session-1").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "created_at"}).
-			AddRow("m1", "assistant", "你好", 1, now).AddRow("m2", "user", "你好", 2, now))
-	session, err := NewSQLRepository(db).GetSession(context.Background(), "user-1", "session-1")
+	mock.ExpectQuery(`select id, role, content, seq_no, client_message_id::text, reply_status, created_at from practice_messages`).WithArgs("session-1").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "client_message_id", "reply_status", "created_at"}).
+			AddRow("m1", "assistant", "你好", 1, nil, nil, now).
+			AddRow("m2", "user", "你好", 2, "client-1", string(domain.PracticeReplyStatusPending), now))
+	mock.ExpectCommit()
+	session, err := NewSQLRepository(db).GetSession(context.Background(), "user-1", "session-1", now)
 	if err != nil {
 		t.Fatalf("GetSession: %v", err)
 	}
@@ -377,7 +385,7 @@ func TestSQLRepositoryGetSessionReturnsOrderedMessages(t *testing.T) {
 	}
 }
 
-func TestSQLRepositoryReservePracticeMessageRetriesPendingUserMessage(t *testing.T) {
+func TestSQLRepositoryReservePracticeMessagePreservesGroundingOnRetryableFailure(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
@@ -392,12 +400,16 @@ func TestSQLRepositoryReservePracticeMessageRetriesPendingUserMessage(t *testing
 				`[{"code":"system_design","label":"系统设计","status":"needs_work","confidence":"high"}]`,
 				`[{"dimensionCode":"system_design","evidence":"缺少容量估算","confidence":"high","sourceMessageSeqNos":[2]}]`,
 				"round-1-technical", 1, "technical", "技术面", "系统设计", now, now))
-	mock.ExpectQuery(`select u.id, u.role, u.content, u.seq_no`).WithArgs("session-1", "client-1").WillReturnRows(
-		sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "created_at", "assistant_id", "assistant_content", "assistant_seq", "assistant_created"}).
-			AddRow("m2", "user", "继续", 2, now, nil, nil, nil, nil))
-	mock.ExpectQuery(`select id, role, content, seq_no, created_at from practice_messages`).WithArgs("session-1").WillReturnRows(
-		sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "created_at"}).
-			AddRow("m1", "assistant", "你好", 1, now).AddRow("m2", "user", "继续", 2, now))
+	mock.ExpectQuery(`select u.id, u.role, u.content, u.seq_no, u.client_message_id::text, u.reply_status`).WithArgs("session-1", "client-1").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "client_message_id", "reply_status", "reply_generation", "reply_lease_expires_at", "created_at", "assistant_id", "assistant_content", "assistant_seq", "assistant_created"}).
+			AddRow("m2", "user", "继续", 2, "client-1", string(domain.PracticeReplyStatusRetryableFailed), int64(1), nil, now, nil, nil, nil, nil))
+	mock.ExpectQuery(`(?s)update practice_messages m.*set reply_status=\$1,.*reply_generation=reply_generation\+1,.*reply_lease_expires_at=\$2.*returning m\.reply_generation`).
+		WithArgs(string(domain.PracticeReplyStatusPending), now.Add(domain.PracticeReplyLeaseDuration), "m2", "session-1", "user-1", string(domain.PracticeReplyStatusRetryableFailed), int64(1)).
+		WillReturnRows(sqlmock.NewRows([]string{"reply_generation"}).AddRow(int64(2)))
+	mock.ExpectQuery(`select id, role, content, seq_no, client_message_id::text, reply_status, created_at from practice_messages`).WithArgs("session-1").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "client_message_id", "reply_status", "created_at"}).
+			AddRow("m1", "assistant", "你好", 1, nil, nil, now).
+			AddRow("m2", "user", "继续", 2, "client-1", string(domain.PracticeReplyStatusPending), now))
 	mock.ExpectCommit()
 
 	reservation, err := NewSQLRepository(db).ReservePracticeMessage(context.Background(), domain.ReservePracticeMessageInput{
@@ -459,16 +471,21 @@ func TestSQLRepositoryCommitPracticeMessageRejectsClosedSession(t *testing.T) {
 	now := time.Unix(4, 0).UTC()
 	in := domain.CommitPracticeMessageInput{
 		UserID: "user-1", SessionID: "session-1", UserMessageID: "m2",
-		AssistantMessageID: "m3", AssistantText: "我们继续。", Now: now,
+		ExpectedReplyGeneration: 1, AssistantMessageID: "m3", AssistantText: "我们继续。", Now: now,
 	}
 
 	mock.ExpectBegin()
-	mock.ExpectQuery(`select m.id, m.role, m.content, m.seq_no, m.created_at`).
-		WithArgs(in.UserMessageID, in.SessionID, in.UserID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "created_at"}).
-			AddRow("m2", "user", "继续", 2, now))
+	mock.ExpectQuery(`select id from practice_sessions where id=\$1 and user_id=\$2 for update`).WithArgs(in.SessionID, in.UserID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(in.SessionID))
+	mock.ExpectQuery(`select m.id, m.role, m.content, m.seq_no, m.client_message_id::text, m.reply_status, m.reply_generation, m.created_at`).
+		WithArgs(in.UserMessageID, in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "client_message_id", "reply_status", "reply_generation", "created_at"}).
+			AddRow("m2", "user", "继续", 2, "client-1", string(domain.PracticeReplyStatusPending), int64(1), now))
 	mock.ExpectExec(`insert into practice_messages`).
 		WithArgs(in.AssistantMessageID, in.SessionID, 3, in.AssistantText, in.UserMessageID, in.Now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(regexp.QuoteMeta("update practice_messages set reply_status=$1, reply_lease_expires_at=null where id=$2 and session_id=$3 and role='user' and reply_status=$4 and reply_generation=$5")).
+		WithArgs(string(domain.PracticeReplyStatusComplete), in.UserMessageID, in.SessionID, string(domain.PracticeReplyStatusPending), in.ExpectedReplyGeneration).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`update practice_sessions set status=\$1, updated_at=\$2 where id=\$3 and user_id=\$4 and status in \(\$5,\$6\)`).
 		WithArgs(string(sharedtypes.SessionStatusRunning), in.Now, in.SessionID, in.UserID,

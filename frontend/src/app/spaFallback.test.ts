@@ -69,6 +69,7 @@ describe("isCanonicalFrontendPath", () => {
   it("returns true with trailing slash or query string", () => {
     expect(isCanonicalFrontendPath("/workspace/")).toBe(true);
     expect(isCanonicalFrontendPath("/workspace?targetJobId=tj-1")).toBe(true);
+    expect(isCanonicalFrontendPath("/reports?targetJobId=tj-1")).toBe(true);
     expect(isCanonicalFrontendPath("/auth/login/?next=/workspace")).toBe(true);
   });
 
@@ -109,6 +110,10 @@ describe("resolveSpaFallback", () => {
       absolute: "/tmp/dist/index.html",
     });
     expect(resolveSpaFallback("/auth/login", "/tmp/dist")).toEqual({
+      kind: "file",
+      absolute: "/tmp/dist/index.html",
+    });
+    expect(resolveSpaFallback("/reports?targetJobId=tj-1", "/tmp/dist")).toEqual({
       kind: "file",
       absolute: "/tmp/dist/index.html",
     });

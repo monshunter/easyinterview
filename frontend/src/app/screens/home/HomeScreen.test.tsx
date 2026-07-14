@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
@@ -24,7 +24,20 @@ function wrap(ui: React.ReactElement, navigate = vi.fn()) {
 }
 
 describe("HomeScreen", () => {
-  it("keeps P0.014 scenario claims bounded to its Vitest runner evidence", () => {
+  it("has no parallel JD intake component or source branch", () => {
+    const source = readFileSync(resolve(__dirname, "HomeScreen.tsx"), "utf8");
+
+    expect(existsSync(resolve(__dirname, "JDAssistModal.tsx"))).toBe(false);
+    expect(existsSync(resolve(__dirname, "JDAssistModal.test.tsx"))).toBe(false);
+    expect(source).not.toContain("JDAssistModal");
+    expect(source).not.toContain("createUploadPresign");
+    expect(source).not.toContain("target_job_attachment");
+    expect(source).not.toContain('source: { type: "url"');
+    expect(source).not.toContain('source: { type: "file"');
+    expect(source).not.toContain('source: { type: "manual_text"');
+  });
+
+  it("binds P0.014 claims to Vitest plus desktop/mobile Playwright evidence", () => {
     const readme = readFileSync(resolve(SCENARIO_DIR, "README.md"), "utf8");
     const seed = readFileSync(resolve(SCENARIO_DIR, "data/seed-input.md"), "utf8");
     const expected = readFileSync(
@@ -45,10 +58,16 @@ describe("HomeScreen", () => {
       expect(trigger).toContain(testFile);
       expect(expected).toContain(testFile);
     }
-    expect(readme).toContain("stub fetch");
-    expect(assets).not.toMatch(
-      /Playwright|chromium|frontend dist|TopBar highlights|Theme switching|warm\/dark|Mobile responsive|UI-design golden|Real Backend Overlay|live backend/,
+    expect(trigger).toContain("tests/pixel-parity/home.spec.ts");
+    expect(trigger).toContain(
+      "paste-only Home matches the UI truth and captures desktop/mobile evidence",
     );
+    expect(expected).toContain("E2E.P0.014 home paste-only browser gate");
+    expect(assets).toContain("1440×900");
+    expect(assets).toContain("390×844");
+    expect(assets).toContain("formal/prototype");
+    expect(readme).toContain("stub fetch");
+    expect(assets).not.toMatch(/Real Backend Overlay|live backend/);
   });
 
   it("renders the home shell with required testids", () => {

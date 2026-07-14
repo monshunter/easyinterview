@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FC } from "react";
@@ -56,6 +56,9 @@ function buildClient(): EasyInterviewClient {
     ),
   });
 }
+
+beforeEach(() => window.history.replaceState(null, "", "/"));
+afterEach(() => window.history.replaceState(null, "", "/"));
 
 describe("requestAuth pending-action flow", () => {
   it("redirects to auth_login carrying the encoded pending action when not signed in", async () => {
@@ -117,20 +120,11 @@ describe("requestAuth pending-action flow", () => {
     await user.type(screen.getByTestId("auth-verify-code"), "654321");
     await user.click(screen.getByTestId("auth-verify-submit"));
 
-    // PracticeScreen exposes route param echo as data-* attrs on its root.
-    const practice = await screen.findByTestId("practice-screen");
-    expect(practice.getAttribute("data-plan-id")).toBe(
-      SAMPLE_ACTION.params.planId,
-    );
-    expect(practice.getAttribute("data-target-job-id")).toBe(
-      SAMPLE_ACTION.params.targetJobId,
-    );
-    expect(window.location.search).toContain(`jdId=${SAMPLE_ACTION.params.jdId}`);
-    expect(window.location.search).toContain(`resumeId=${SAMPLE_ACTION.params.resumeId}`);
-    expect(window.location.search).toContain(`roundId=${SAMPLE_ACTION.params.roundId}`);
-    expect(practice.getAttribute("data-session-id")).toBe(
-      SAMPLE_ACTION.params.sessionId,
-    );
+    await screen.findByTestId("practice-screen");
+    const restoredParams = new URLSearchParams(window.location.search);
+    for (const [key, value] of Object.entries(SAMPLE_ACTION.params)) {
+      expect(restoredParams.get(key), key).toBe(value);
+    }
   });
 
   it("navigates straight to the action route when the user is already signed in", async () => {
@@ -154,8 +148,57 @@ describe("requestAuth pending-action flow", () => {
 
     const user = userEvent.setup();
     await user.click(screen.getByTestId("probe-start-practice"));
-    const practice = await screen.findByTestId("practice-screen");
-    expect(practice.getAttribute("data-plan-id")).toBe("plan-tj-1");
-    expect(practice.getAttribute("data-target-job-id")).toBe("tj-1");
+    await screen.findByTestId("practice-screen");
+    const restoredParams = new URLSearchParams(window.location.search);
+    expect(restoredParams.get("planId")).toBe("plan-tj-1");
+    expect(restoredParams.get("targetJobId")).toBe("tj-1");
+    expect(restoredParams.get("sessionId")).toBe(SAMPLE_ACTION.params.sessionId);
+  });
+
+  it("restores an unauthenticated Reports deep link with targetJobId only", async () => {
+    window.history.replaceState(
+      { rawText: "private-history" },
+      "",
+      "/reports?targetJobId=01918fa0-0000-7000-8000-000000002000&section=reports&reportId=rpt-hostile&status=ready&roundId=round-hostile&rawText=private-query",
+    );
+    const { unmount } = render(
+      <App
+        client={buildClient()}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=unauthenticated" } },
+        }}
+      />,
+    );
+
+    await waitFor(() => screen.getByTestId("route-auth_login"));
+    expect(window.location.pathname).toBe("/auth/login");
+    const pending = new URLSearchParams(window.location.search);
+    expect(pending.get("pendingRoute")).toBe("reports");
+    expect(pending.get("targetJobId")).toBe(
+      "01918fa0-0000-7000-8000-000000002000",
+    );
+    for (const hostile of [
+      "section",
+      "reportId",
+      "status",
+      "roundId",
+      "rawText",
+    ]) {
+      expect(pending.has(hostile), hostile).toBe(false);
+    }
+    expect(window.history.state).toBeNull();
+
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("auth-login-email"), "alice@example.com");
+    await user.click(screen.getByTestId("auth-login-submit-email"));
+    await waitFor(() => screen.getByTestId("route-auth_verify"));
+    await user.type(screen.getByTestId("auth-verify-code"), "654321");
+    await user.click(screen.getByTestId("auth-verify-submit"));
+
+    await waitFor(() => screen.getByTestId("reports-screen"));
+    expect(window.location.pathname + window.location.search).toBe(
+      "/reports?targetJobId=01918fa0-0000-7000-8000-000000002000",
+    );
+    unmount();
   });
 });

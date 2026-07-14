@@ -50,7 +50,7 @@ insert into resumes (
 
 insert into target_jobs (
   id, user_id, resume_id, status, analysis_status, title, company_name,
-  location_text, target_language, source_type, raw_jd_text, summary,
+  location_text, target_language, raw_jd_text, summary,
   fit_summary, created_at, updated_at
 ) values (
   '019f6098-0000-7000-8000-000000000003',
@@ -62,7 +62,6 @@ insert into target_jobs (
   'P0.098 Systems',
   'Guangzhou',
   'zh-CN',
-  'manual_text',
   'Build and operate a Go, Kubernetes and GitOps platform.',
   '{
     "coreThemes":["platform engineering","Kubernetes","GitOps"],

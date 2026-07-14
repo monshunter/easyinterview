@@ -1,8 +1,8 @@
 # 002 Conversation Message Loop BDD Checklist
 
-> **版本**: 2.7
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 2.8
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -34,7 +34,16 @@
 
 ## Phase 10 server-recoverable reply state
 
-- [ ] P0.044 proves pending readback carries the original user clientMessageId and pending status, then commits exactly one assistant reply.
-- [ ] P0.046 proves retryable AI failure is persisted before error response, survives reload, and same-ID retry converges without duplicate user/reply rows.
-- [ ] P0.046 proves terminal failure readback has no retry path, cross-user access stays hidden, and no raw message/error content leaks outside authorized response/session content.
-- [ ] Current setup/trigger/verify/cleanup run records named backend + frontend recovery markers; historical PASS cannot close Phase 10.
+- [x] P0.044 proves pending readback carries the original user clientMessageId and pending status, then commits exactly one assistant reply.
+- [x] P0.046 proves retryable AI failure is persisted before error response, survives reload, and same-ID retry converges without duplicate user/reply rows.
+- [x] P0.046 proves terminal failure readback has no retry path, cross-user access stays hidden, and no raw message/error content leaks outside authorized response/session content.
+- [x] Current setup/trigger/verify/cleanup run records named backend + frontend recovery markers; historical PASS cannot close Phase 10.
+
+## Phase 11 lease-bounded generation recovery
+
+- [x] P0.044 proves immediate and persisted pending before lease expiry, then GET-based expiry convergence without duplicate send, using fresh desktop/mobile evidence.
+- [x] P0.046 executes the four exact real PostgreSQL concurrency tests and verifies lease recovery, one winning G2, stale G1 Commit/Fail fencing and one assistant reply.
+- [x] P0.046 proves the 95-second frontend timeout reconciles the same clientMessageId and terminal failure exposes a generic current-plan recovery CTA with no row retry.
+- [x] Both scenarios bind setup/trigger/verify evidence to one tracked source fingerprint and per-screenshot SHA-256/dimensions/viewport；verifier-time drift, missing paths, historical PASS, FAIL or no-tests fail closed.
+- [x] Serial setup → trigger → verify → cleanup passes on current code and isolated migrated PostgreSQL with every exact Phase 11 marker.
+  <!-- verified: 2026-07-14 evidence="Fresh P0.044/P0.046 serial runs passed current migration, contract, real concurrency, marker, fingerprint and eight-PNG evidence gates; isolated database residual=0." -->

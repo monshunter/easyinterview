@@ -3,7 +3,7 @@ import { useEffect, useState, type FC } from "react";
 import type { TargetJob } from "../../../api/generated/types";
 import { generateIdempotencyKey } from "../../../lib/conventions/idempotency";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
-import { useI18n } from "../../i18n/messages";
+import { useI18n, type MessageKey } from "../../i18n/messages";
 import {
   isTargetJobPracticeStartable,
   targetJobDetailRouteParams,
@@ -35,9 +35,9 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
   const { loading, jobs, error } = useWorkspaceTargetJobs();
   const [archivedJobIds, setArchivedJobIds] = useState<Set<string>>(() => new Set());
   const [startingJobId, setStartingJobId] = useState<string | null>(null);
-  const [startError, setStartError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<MessageKey | null>(null);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<MessageKey | null>(null);
 
   const visibleJobs = jobs.filter((job) => !archivedJobIds.has(job.id));
 
@@ -65,8 +65,8 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
     try {
       const started = await startPracticeFromParams(runtime.client, params, lang);
       navigate({ name: "practice", params: started.params });
-    } catch (err: unknown) {
-      setStartError(err instanceof Error ? err.message : String(err));
+    } catch {
+      setStartError("workspace.errors.start");
     } finally {
       setStartingJobId(null);
     }
@@ -74,7 +74,7 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
 
   const deletePlan = async (job: TargetJob) => {
     if (!runtime || runtime.auth.status !== "authenticated") {
-      setDeleteError(t("workspace.planList.deleteAuthError"));
+      setDeleteError("workspace.planList.deleteAuthError");
       return;
     }
 
@@ -89,8 +89,8 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
         next.add(job.id);
         return next;
       });
-    } catch (err: unknown) {
-      setDeleteError(err instanceof Error ? err.message : String(err));
+    } catch {
+      setDeleteError("workspace.errors.delete");
     } finally {
       setDeletingJobId(null);
     }
@@ -267,7 +267,7 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
             marginTop: 12,
           }}
         >
-          {deleteError}
+          {t(deleteError)}
         </div>
       ) : null}
       {startError ? (
@@ -279,7 +279,7 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
             marginTop: 12,
           }}
         >
-          {startError}
+          {t(startError)}
         </div>
       ) : null}
     </div>

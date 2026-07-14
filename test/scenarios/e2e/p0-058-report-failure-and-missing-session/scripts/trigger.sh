@@ -15,7 +15,7 @@ export PRACTICE_COMPLETION_EVIDENCE_PATH="$OWNER_EVIDENCE"
 
 {
   "$ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$ROOT"
-  echo "E2E.P0.058: validating seven focused failure contracts"
+  echo "E2E.P0.058: validating eight focused failure and return contracts"
   (
     cd "$ROOT/frontend"
     pnpm exec vitest run \
@@ -25,6 +25,7 @@ export PRACTICE_COMPLETION_EVIDENCE_PATH="$OWNER_EVIDENCE"
       src/app/screens/report/__tests__/useFeedbackReport.test.tsx \
       src/app/screens/report/__tests__/ConversationReport.test.tsx \
       src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx \
+      src/app/screens/generating/__tests__/GeneratingBackNavigation.test.tsx \
       src/app/screens/generating/__tests__/GeneratingScreen.test.tsx \
       --reporter=verbose
   ) | tee "$OUT/frontend.log"

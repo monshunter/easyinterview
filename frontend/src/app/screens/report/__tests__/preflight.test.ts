@@ -149,22 +149,45 @@ describe("frontend-report-dashboard/001 Phase 0 preflight", () => {
     ).not.toBeNull();
   });
 
-  it("openapi/fixtures/Reports/listTargetJobReports.json has empty scenario shape (TestListTargetJobReportsEmptyFixtureVariantExists)", () => {
+  it("openapi/fixtures/Reports/listTargetJobReports.json default is the canonical empty round overview", () => {
     const fixture = readRepoJson<FixtureFile>(
       "openapi/fixtures/Reports/listTargetJobReports.json",
     );
-    const empty = fixture.scenarios.empty;
+    const canonical = fixture.scenarios.default;
     expect(
-      empty,
-      "blocked on backend-review/001 Phase 0.4: listTargetJobReports.empty fixture missing",
+      canonical,
+      "blocked on backend-review/001 Phase 0.4: listTargetJobReports.default fixture missing",
     ).toBeDefined();
-    const body = empty!.response.body as {
-      items: unknown[];
-      pageInfo: { hasMore: boolean; nextCursor: unknown };
+    const body = canonical!.response.body as {
+      targetJobId?: unknown;
+      rounds?: Array<{
+        round?: { roundId?: unknown; roundSequence?: unknown };
+        currentReport?: unknown;
+        latestAttempt?: unknown;
+      }>;
+      items?: unknown;
+      pageInfo?: unknown;
     };
-    expect(body.items).toEqual([]);
-    expect(body.pageInfo.hasMore).toBe(false);
-    expect(body.pageInfo.nextCursor).toBeNull();
+    expect(body.targetJobId).toBe("01918fa0-0000-7000-8000-000000002000");
+    expect(body.rounds).toEqual([
+      {
+        round: { roundId: "round-1-technical", roundSequence: 1 },
+        currentReport: null,
+        latestAttempt: null,
+      },
+      {
+        round: { roundId: "round-2-manager", roundSequence: 2 },
+        currentReport: null,
+        latestAttempt: null,
+      },
+      {
+        round: { roundId: "round-3-culture", roundSequence: 3 },
+        currentReport: null,
+        latestAttempt: null,
+      },
+    ]);
+    expect(body).not.toHaveProperty("items");
+    expect(body).not.toHaveProperty("pageInfo");
   });
 
   it("shared/conventions.yaml registers REPORT_NOT_FOUND with 404 + retryable=false (TestReportNotFoundErrorCodeRegistered)", () => {
@@ -223,6 +246,7 @@ describe("frontend-report-dashboard/001 Phase 8 browser evidence", () => {
       ...ownerPaths,
       "frontend/tests/pixel-parity/generating.spec.ts",
       "frontend/tests/pixel-parity/report.spec.ts",
+      "frontend/tests/pixel-parity/reports.spec.ts",
       "test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/README.md",
       "test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/data/seed-input.md",
       "test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/data/expected-outcome.md",
@@ -266,6 +290,20 @@ describe("frontend-report-dashboard/001 Phase 8 browser evidence", () => {
       expect(source).toMatch(/timezoneId:\s*"UTC"/);
     }
 
+    const reportsParity = readRepoFile(
+      "frontend/tests/pixel-parity/reports.spec.ts",
+    );
+    expect(reportsParity).toMatch(/configureDeterministicPage/);
+    expect(reportsParity).toMatch(/normalizedText/);
+    expect(reportsParity).toMatch(/surfaceSnapshot/);
+    expect(reportsParity).toMatch(/expectSurfaceParity/);
+    expect(reportsParity).toMatch(/expectPixelParity/);
+    expect(reportsParity).toMatch(/deviceScaleFactor:\s*1/);
+    expect(reportsParity).toMatch(/timezoneId:\s*"UTC"/);
+    expect(reportsParity).toMatch(/currentPlanIsolation=true/);
+    expect(reportsParity).toMatch(/currentLatestOnly=true/);
+    expect(reportsParity).not.toMatch(/\/parse\?section=reports/);
+
     const reportParity = readRepoFile(
       "frontend/tests/pixel-parity/report.spec.ts",
     );
@@ -285,6 +323,7 @@ describe("frontend-report-dashboard/001 Phase 8 browser evidence", () => {
       "test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/scripts/trigger.sh",
     );
     expect(trigger).toContain("src/app/screens/report/__tests__/preflight.test.ts");
+    expect(trigger).toContain("tests/pixel-parity/reports.spec.ts");
   });
 });
 
@@ -414,7 +453,7 @@ describe("frontend-report-dashboard/001 Phase 11 P0.058 evidence", () => {
     ]) {
       expect(currentClaims).not.toMatch(unsupportedClaim);
     }
-    expect(readme).toContain("seven focused frontend Vitest files");
+    expect(readme).toContain("eight focused frontend Vitest files");
     expect(readme).toContain("REPORT_CONTEXT_TOO_LARGE");
 
     const focusedFiles = [
@@ -424,6 +463,7 @@ describe("frontend-report-dashboard/001 Phase 11 P0.058 evidence", () => {
       "src/app/screens/report/__tests__/useFeedbackReport.test.tsx",
       "src/app/screens/report/__tests__/ConversationReport.test.tsx",
       "src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx",
+      "src/app/screens/generating/__tests__/GeneratingBackNavigation.test.tsx",
       "src/app/screens/generating/__tests__/GeneratingScreen.test.tsx",
     ];
     for (const path of focusedFiles) {

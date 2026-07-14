@@ -238,11 +238,33 @@ from practice_plans where user_id = $1 and id = $2`, userID, planID).Scan(
 	return plan, nil
 }
 
-func (r *SQLRepository) GetSession(ctx context.Context, userID, sessionID string) (domain.SessionRecord, error) {
+func (r *SQLRepository) GetSession(ctx context.Context, userID, sessionID string, now time.Time) (domain.SessionRecord, error) {
 	if r == nil || r.db == nil {
 		return domain.SessionRecord{}, fmt.Errorf("practice SQL repository is not configured")
 	}
-	return selectSessionForUser(ctx, r.db, userID, sessionID)
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("begin get practice session: %w", err)
+	}
+	defer tx.Rollback()
+	if err := lockPracticeSessionForUser(ctx, tx, userID, sessionID); err != nil {
+		return domain.SessionRecord{}, err
+	}
+	if _, err := tx.ExecContext(ctx, `
+update practice_messages
+set reply_status=$1, reply_lease_expires_at=null
+where session_id=$2 and role='user' and reply_lease_expires_at <= $3 and reply_status=$4`,
+		string(domain.PracticeReplyStatusRetryableFailed), sessionID, now, string(domain.PracticeReplyStatusPending)); err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("expire pending practice message replies: %w", err)
+	}
+	session, err := selectSessionForUser(ctx, tx, userID, sessionID)
+	if err != nil {
+		return domain.SessionRecord{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("commit get practice session: %w", err)
+	}
+	return session, nil
 }
 
 func (r *SQLRepository) ListSessions(ctx context.Context, in domain.ListSessionsInput) (domain.ListSessionsResult, error) {
@@ -597,7 +619,7 @@ func queryMessages(ctx context.Context, q interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }, sessionID string) (*sql.Rows, error) {
 	rows, err := q.QueryContext(ctx, `
-select id, role, content, seq_no, created_at from practice_messages
+select id, role, content, seq_no, client_message_id::text, reply_status, created_at from practice_messages
 where session_id=$1 order by seq_no asc`, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("select practice messages: %w", err)
@@ -609,8 +631,23 @@ func scanMessages(rows *sql.Rows) ([]domain.MessageRecord, error) {
 	messages := []domain.MessageRecord{}
 	for rows.Next() {
 		var message domain.MessageRecord
-		if err := rows.Scan(&message.ID, &message.Role, &message.Content, &message.SeqNo, &message.CreatedAt); err != nil {
+		var clientMessageID, replyStatus sql.NullString
+		if err := rows.Scan(&message.ID, &message.Role, &message.Content, &message.SeqNo, &clientMessageID, &replyStatus, &message.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan practice message: %w", err)
+		}
+		message.ClientMessageID = clientMessageID.String
+		message.ReplyStatus = domain.PracticeReplyStatus(replyStatus.String)
+		switch message.Role {
+		case "user":
+			if !clientMessageID.Valid || !replyStatus.Valid || !validPracticeReplyStatus(message.ReplyStatus) {
+				return nil, fmt.Errorf("scan practice message: user recovery state is invalid")
+			}
+		case "assistant":
+			if clientMessageID.Valid || replyStatus.Valid {
+				return nil, fmt.Errorf("scan practice message: assistant recovery state is invalid")
+			}
+		default:
+			return nil, fmt.Errorf("scan practice message: role is invalid")
 		}
 		messages = append(messages, message)
 	}
@@ -618,6 +655,18 @@ func scanMessages(rows *sql.Rows) ([]domain.MessageRecord, error) {
 		return nil, fmt.Errorf("iterate practice messages: %w", err)
 	}
 	return messages, nil
+}
+
+func validPracticeReplyStatus(status domain.PracticeReplyStatus) bool {
+	switch status {
+	case domain.PracticeReplyStatusPending,
+		domain.PracticeReplyStatusRetryableFailed,
+		domain.PracticeReplyStatusTerminalFailed,
+		domain.PracticeReplyStatusComplete:
+		return true
+	default:
+		return false
+	}
 }
 
 type selectedStartSessionIdempotency struct {

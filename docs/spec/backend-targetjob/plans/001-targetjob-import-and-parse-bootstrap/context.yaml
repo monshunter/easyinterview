@@ -5,8 +5,8 @@ metadata:
   name: 001-targetjob-import-and-parse-bootstrap
   sequence: 1
   specVersion:
-    from: 2.10
-    to: 2.11
+    from: 2.11
+    to: 2.12
   branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: backend
@@ -50,6 +50,9 @@ spec:
       - VALIDATION_FAILED blank rawText
       - no target source variants
       - no jd attachment upload
+      - target job latest report pointer removed
+      - no latest report id
+      - backend review report overview owner
       - backend-internal goroutine runner kernel
       - idempotency user-scoped dedupe
       - privacy redline raw_jd_text

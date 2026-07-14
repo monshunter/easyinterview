@@ -83,18 +83,18 @@ func TestWrap_UsesGeneratedConstants(t *testing.T) {
 	}
 }
 
-// TargetJob bootstrap (backend-targetjob 001 Phase 0.1) requires four shared
-// error codes. They must be documented in CodeRegistry with the retryable
-// flag matching backend-targetjob spec D-10.
-func TestTargetJobErrorCodes_Documented(t *testing.T) {
+// TargetJob paste-only intake keeps generic validation/import failures and
+// removes source-specific errors that only applied to URL/file ingestion.
+func TestTargetJobPasteOnlyErrorCodes_Documented(t *testing.T) {
 	cases := []struct {
 		code      string
+		message   string
 		retryable bool
 	}{
-		{"TARGET_JOB_NOT_FOUND", false},
-		{"TARGET_IMPORT_SOURCE_INVALID", false},
-		{"TARGET_IMPORT_SOURCE_UNAVAILABLE", true},
-		{"TARGET_INVALID_STATE_TRANSITION", false},
+		{"VALIDATION_FAILED", "request validation failed", false},
+		{"TARGET_IMPORT_FAILED", "failed to import target job", true},
+		{"TARGET_JOB_NOT_FOUND", "target job not found", false},
+		{"TARGET_INVALID_STATE_TRANSITION", "target job state transition is not allowed", false},
 	}
 	for _, tc := range cases {
 		meta, ok := CodeRegistry[tc.code]
@@ -105,31 +105,25 @@ func TestTargetJobErrorCodes_Documented(t *testing.T) {
 		if meta.Retryable != tc.retryable {
 			t.Errorf("%s retryable = %v, want %v", tc.code, meta.Retryable, tc.retryable)
 		}
-		if meta.Message == "" {
-			t.Errorf("%s message must not be empty", tc.code)
+		if meta.Message != tc.message {
+			t.Errorf("%s message = %q, want %q", tc.code, meta.Message, tc.message)
+		}
+		if !contains(AllCodes, tc.code) {
+			t.Errorf("AllCodes missing %s", tc.code)
 		}
 	}
-	wantCodes := []string{
-		"CodeTargetJobNotFound",
-		"CodeTargetImportSourceInvalid",
-		"CodeTargetImportSourceUnavailable",
-		"CodeTargetInvalidStateTransition",
-	}
-	have := map[string]bool{}
-	for _, c := range AllCodes {
-		have[c] = true
-	}
-	for _, c := range []string{
-		"TARGET_JOB_NOT_FOUND",
+
+	for _, removed := range []string{
 		"TARGET_IMPORT_SOURCE_INVALID",
 		"TARGET_IMPORT_SOURCE_UNAVAILABLE",
-		"TARGET_INVALID_STATE_TRANSITION",
 	} {
-		if !have[c] {
-			t.Errorf("AllCodes missing %s", c)
+		if _, ok := CodeRegistry[removed]; ok {
+			t.Errorf("CodeRegistry still contains removed source-specific code %s", removed)
+		}
+		if contains(AllCodes, removed) {
+			t.Errorf("AllCodes still contains removed source-specific code %s", removed)
 		}
 	}
-	_ = wantCodes
 }
 
 func TestResumeExportErrorCode_Documented(t *testing.T) {

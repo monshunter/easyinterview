@@ -4,7 +4,9 @@
 package generated
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -81,30 +83,28 @@ type PrivacyRequestStatus = sharedtypes.PrivacyRequestStatus
 type ApiErrorCode string
 
 const (
-	ApiErrorCodeAUTHUNAUTHORIZED              ApiErrorCode = "AUTH_UNAUTHORIZED"
-	ApiErrorCodeTARGETIMPORTFAILED            ApiErrorCode = "TARGET_IMPORT_FAILED"
-	ApiErrorCodeTARGETJOBNOTFOUND             ApiErrorCode = "TARGET_JOB_NOT_FOUND"
-	ApiErrorCodeTARGETIMPORTSOURCEINVALID     ApiErrorCode = "TARGET_IMPORT_SOURCE_INVALID"
-	ApiErrorCodeTARGETIMPORTSOURCEUNAVAILABLE ApiErrorCode = "TARGET_IMPORT_SOURCE_UNAVAILABLE"
-	ApiErrorCodeTARGETINVALIDSTATETRANSITION  ApiErrorCode = "TARGET_INVALID_STATE_TRANSITION"
-	ApiErrorCodePRACTICESESSIONCONFLICT       ApiErrorCode = "PRACTICE_SESSION_CONFLICT"
-	ApiErrorCodePRACTICEPLANNOTFOUND          ApiErrorCode = "PRACTICE_PLAN_NOT_FOUND"
-	ApiErrorCodePRACTICESESSIONNOTFOUND       ApiErrorCode = "PRACTICE_SESSION_NOT_FOUND"
-	ApiErrorCodeREPORTNOTFOUND                ApiErrorCode = "REPORT_NOT_FOUND"
-	ApiErrorCodeREPORTNOTREADY                ApiErrorCode = "REPORT_NOT_READY"
-	ApiErrorCodeREPORTCONTEXTTOOLARGE         ApiErrorCode = "REPORT_CONTEXT_TOO_LARGE"
-	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE      ApiErrorCode = "RESUME_EXPORT_NOT_AVAILABLE"
-	ApiErrorCodeVALIDATIONFAILED              ApiErrorCode = "VALIDATION_FAILED"
-	ApiErrorCodeRESOURCENOTFOUND              ApiErrorCode = "RESOURCE_NOT_FOUND"
-	ApiErrorCodeIDEMPOTENCYKEYMISMATCH        ApiErrorCode = "IDEMPOTENCY_KEY_MISMATCH"
-	ApiErrorCodeRATELIMITED                   ApiErrorCode = "RATE_LIMITED"
-	ApiErrorCodeAIPROVIDERTIMEOUT             ApiErrorCode = "AI_PROVIDER_TIMEOUT"
-	ApiErrorCodeAIOUTPUTINVALID               ApiErrorCode = "AI_OUTPUT_INVALID"
-	ApiErrorCodeAIFALLBACKEXHAUSTED           ApiErrorCode = "AI_FALLBACK_EXHAUSTED"
-	ApiErrorCodeAIUNSUPPORTEDCAPABILITY       ApiErrorCode = "AI_UNSUPPORTED_CAPABILITY"
-	ApiErrorCodeAIPROVIDERCONFIGINVALID       ApiErrorCode = "AI_PROVIDER_CONFIG_INVALID"
-	ApiErrorCodeAIPROVIDERSECRETMISSING       ApiErrorCode = "AI_PROVIDER_SECRET_MISSING"
-	ApiErrorCodePRIVACYEXPORTNOTAVAILABLE     ApiErrorCode = "PRIVACY_EXPORT_NOT_AVAILABLE"
+	ApiErrorCodeAUTHUNAUTHORIZED             ApiErrorCode = "AUTH_UNAUTHORIZED"
+	ApiErrorCodeTARGETIMPORTFAILED           ApiErrorCode = "TARGET_IMPORT_FAILED"
+	ApiErrorCodeTARGETJOBNOTFOUND            ApiErrorCode = "TARGET_JOB_NOT_FOUND"
+	ApiErrorCodeTARGETINVALIDSTATETRANSITION ApiErrorCode = "TARGET_INVALID_STATE_TRANSITION"
+	ApiErrorCodePRACTICESESSIONCONFLICT      ApiErrorCode = "PRACTICE_SESSION_CONFLICT"
+	ApiErrorCodePRACTICEPLANNOTFOUND         ApiErrorCode = "PRACTICE_PLAN_NOT_FOUND"
+	ApiErrorCodePRACTICESESSIONNOTFOUND      ApiErrorCode = "PRACTICE_SESSION_NOT_FOUND"
+	ApiErrorCodeREPORTNOTFOUND               ApiErrorCode = "REPORT_NOT_FOUND"
+	ApiErrorCodeREPORTNOTREADY               ApiErrorCode = "REPORT_NOT_READY"
+	ApiErrorCodeREPORTCONTEXTTOOLARGE        ApiErrorCode = "REPORT_CONTEXT_TOO_LARGE"
+	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE     ApiErrorCode = "RESUME_EXPORT_NOT_AVAILABLE"
+	ApiErrorCodeVALIDATIONFAILED             ApiErrorCode = "VALIDATION_FAILED"
+	ApiErrorCodeRESOURCENOTFOUND             ApiErrorCode = "RESOURCE_NOT_FOUND"
+	ApiErrorCodeIDEMPOTENCYKEYMISMATCH       ApiErrorCode = "IDEMPOTENCY_KEY_MISMATCH"
+	ApiErrorCodeRATELIMITED                  ApiErrorCode = "RATE_LIMITED"
+	ApiErrorCodeAIPROVIDERTIMEOUT            ApiErrorCode = "AI_PROVIDER_TIMEOUT"
+	ApiErrorCodeAIOUTPUTINVALID              ApiErrorCode = "AI_OUTPUT_INVALID"
+	ApiErrorCodeAIFALLBACKEXHAUSTED          ApiErrorCode = "AI_FALLBACK_EXHAUSTED"
+	ApiErrorCodeAIUNSUPPORTEDCAPABILITY      ApiErrorCode = "AI_UNSUPPORTED_CAPABILITY"
+	ApiErrorCodeAIPROVIDERCONFIGINVALID      ApiErrorCode = "AI_PROVIDER_CONFIG_INVALID"
+	ApiErrorCodeAIPROVIDERSECRETMISSING      ApiErrorCode = "AI_PROVIDER_SECRET_MISSING"
+	ApiErrorCodePRIVACYEXPORTNOTAVAILABLE    ApiErrorCode = "PRIVACY_EXPORT_NOT_AVAILABLE"
 )
 
 // AllApiErrorCodes lists every defined value in declaration order.
@@ -112,8 +112,6 @@ var AllApiErrorCodes = []ApiErrorCode{
 	ApiErrorCodeAUTHUNAUTHORIZED,
 	ApiErrorCodeTARGETIMPORTFAILED,
 	ApiErrorCodeTARGETJOBNOTFOUND,
-	ApiErrorCodeTARGETIMPORTSOURCEINVALID,
-	ApiErrorCodeTARGETIMPORTSOURCEUNAVAILABLE,
 	ApiErrorCodeTARGETINVALIDSTATETRANSITION,
 	ApiErrorCodePRACTICESESSIONCONFLICT,
 	ApiErrorCodePRACTICEPLANNOTFOUND,
@@ -286,38 +284,10 @@ type DuplicateResumeRequest struct {
 	StructuredProfile any     `json:"structuredProfile,omitempty"`
 }
 
-type TargetJobImportSourceURL struct {
-	Type string `json:"type"`
-	Url  string `json:"url"`
-}
-
-type TargetJobImportSourceManualText struct {
-	RawText string `json:"rawText"`
-	Type    string `json:"type"`
-}
-
-type TargetJobImportSourceFile struct {
-	FileObjectId string `json:"fileObjectId"`
-	Type         string `json:"type"`
-}
-
-type TargetJobImportSourceManualForm struct {
-	CompanyName    *string `json:"companyName,omitempty"`
-	RawDescription string  `json:"rawDescription"`
-	Title          string  `json:"title"`
-	Type           string  `json:"type"`
-}
-
-// TargetJobImportSource is rendered as `any` because its OpenAPI shape uses constructs
-// (free-form oneOf, untyped maps) without a one-to-one Go translation.
-type TargetJobImportSource = any
-
 type ImportTargetJobRequest struct {
-	CompanyNameHint *string               `json:"companyNameHint,omitempty"`
-	ResumeId        string                `json:"resumeId"`
-	Source          TargetJobImportSource `json:"source"`
-	TargetLanguage  string                `json:"targetLanguage"`
-	TitleHint       *string               `json:"titleHint,omitempty"`
+	RawText        string `json:"rawText"`
+	ResumeId       string `json:"resumeId"`
+	TargetLanguage string `json:"targetLanguage"`
 }
 
 type TargetJobWithJob struct {
@@ -371,14 +341,11 @@ type TargetJob struct {
 	CurrentPracticePlanId  *string                `json:"currentPracticePlanId,omitempty"`
 	FitSummary             *TargetJobFitSummary   `json:"fitSummary,omitempty"`
 	Id                     string                 `json:"id"`
-	LatestReportId         *string                `json:"latestReportId,omitempty"`
 	LocationText           *string                `json:"locationText,omitempty"`
 	OpenQuestionIssueCount int32                  `json:"openQuestionIssueCount"`
 	PracticeProgress       *PracticeProgress      `json:"practiceProgress,omitempty"`
 	Requirements           []TargetJobRequirement `json:"requirements"`
 	ResumeId               *string                `json:"resumeId,omitempty"`
-	SourceType             string                 `json:"sourceType"`
-	SourceUrl              *string                `json:"sourceUrl,omitempty"`
 	Status                 TargetJobStatus        `json:"status"`
 	Summary                *TargetJobSummary      `json:"summary,omitempty"`
 	TargetLanguage         string                 `json:"targetLanguage"`
@@ -431,12 +398,146 @@ type StartPracticeSessionRequest struct {
 	PlanId string `json:"planId"`
 }
 
-type PracticeMessage struct {
+type PracticeReplyStatus string
+
+const (
+	PracticeReplyStatusPending         PracticeReplyStatus = "pending"
+	PracticeReplyStatusRetryableFailed PracticeReplyStatus = "retryable_failed"
+	PracticeReplyStatusTerminalFailed  PracticeReplyStatus = "terminal_failed"
+	PracticeReplyStatusComplete        PracticeReplyStatus = "complete"
+)
+
+// AllPracticeReplyStatuses lists every defined value in declaration order.
+var AllPracticeReplyStatuses = []PracticeReplyStatus{
+	PracticeReplyStatusPending,
+	PracticeReplyStatusRetryableFailed,
+	PracticeReplyStatusTerminalFailed,
+	PracticeReplyStatusComplete,
+}
+
+type PracticeUserMessage struct {
+	ClientMessageId string              `json:"clientMessageId"`
+	Content         string              `json:"content"`
+	CreatedAt       string              `json:"createdAt"`
+	Id              string              `json:"id"`
+	ReplyStatus     PracticeReplyStatus `json:"replyStatus"`
+	Role            string              `json:"role"`
+	SeqNo           int32               `json:"seqNo"`
+}
+
+type PracticeAssistantMessage struct {
 	Content   string `json:"content"`
 	CreatedAt string `json:"createdAt"`
 	Id        string `json:"id"`
 	Role      string `json:"role"`
 	SeqNo     int32  `json:"seqNo"`
+}
+
+type PracticeMessage struct {
+	practiceUserMessage      *PracticeUserMessage
+	practiceAssistantMessage *PracticeAssistantMessage
+}
+
+func NewPracticeMessageFromPracticeUserMessage(value PracticeUserMessage) PracticeMessage {
+	return PracticeMessage{practiceUserMessage: &value}
+}
+
+func (value PracticeMessage) AsPracticeUserMessage() (PracticeUserMessage, bool) {
+	if value.practiceUserMessage == nil {
+		return PracticeUserMessage{}, false
+	}
+	return *value.practiceUserMessage, true
+}
+
+func NewPracticeMessageFromPracticeAssistantMessage(value PracticeAssistantMessage) PracticeMessage {
+	return PracticeMessage{practiceAssistantMessage: &value}
+}
+
+func (value PracticeMessage) AsPracticeAssistantMessage() (PracticeAssistantMessage, bool) {
+	if value.practiceAssistantMessage == nil {
+		return PracticeAssistantMessage{}, false
+	}
+	return *value.practiceAssistantMessage, true
+}
+
+func (value PracticeMessage) MarshalJSON() ([]byte, error) {
+	selected := 0
+	var encoded []byte
+	var err error
+	if value.practiceUserMessage != nil {
+		selected++
+		if value.practiceUserMessage.Role != "user" {
+			return nil, fmt.Errorf("PracticeMessage: field role must be %q for PracticeUserMessage, got %q", "user", value.practiceUserMessage.Role)
+		}
+		switch value.practiceUserMessage.ReplyStatus {
+		case PracticeReplyStatusPending, PracticeReplyStatusRetryableFailed, PracticeReplyStatusTerminalFailed, PracticeReplyStatusComplete:
+		default:
+			return nil, fmt.Errorf("PracticeMessage: field replyStatus has invalid value %q", value.practiceUserMessage.ReplyStatus)
+		}
+		encoded, err = json.Marshal(value.practiceUserMessage)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if value.practiceAssistantMessage != nil {
+		selected++
+		if value.practiceAssistantMessage.Role != "assistant" {
+			return nil, fmt.Errorf("PracticeMessage: field role must be %q for PracticeAssistantMessage, got %q", "assistant", value.practiceAssistantMessage.Role)
+		}
+		encoded, err = json.Marshal(value.practiceAssistantMessage)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if selected != 1 {
+		return nil, fmt.Errorf("PracticeMessage: expected exactly one selected variant, got %d", selected)
+	}
+	return encoded, nil
+}
+
+func (value *PracticeMessage) UnmarshalJSON(data []byte) error {
+	if value == nil {
+		return fmt.Errorf("PracticeMessage: cannot unmarshal into nil receiver")
+	}
+	var discriminator struct {
+		Role string `json:"role"`
+	}
+	if err := json.Unmarshal(data, &discriminator); err != nil {
+		return fmt.Errorf("PracticeMessage: decode discriminator: %w", err)
+	}
+	switch discriminator.Role {
+	case "user":
+		if err := requireJSONFields(data, "id", "seqNo", "role", "content", "createdAt", "clientMessageId", "replyStatus"); err != nil {
+			return fmt.Errorf("PracticeMessage: %w", err)
+		}
+		var decoded PracticeUserMessage
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&decoded); err != nil {
+			return fmt.Errorf("PracticeMessage: decode user: %w", err)
+		}
+		switch decoded.ReplyStatus {
+		case PracticeReplyStatusPending, PracticeReplyStatusRetryableFailed, PracticeReplyStatusTerminalFailed, PracticeReplyStatusComplete:
+		default:
+			return fmt.Errorf("PracticeMessage: field replyStatus has invalid value %q", decoded.ReplyStatus)
+		}
+		*value = NewPracticeMessageFromPracticeUserMessage(decoded)
+		return nil
+	case "assistant":
+		if err := requireJSONFields(data, "id", "seqNo", "role", "content", "createdAt"); err != nil {
+			return fmt.Errorf("PracticeMessage: %w", err)
+		}
+		var decoded PracticeAssistantMessage
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&decoded); err != nil {
+			return fmt.Errorf("PracticeMessage: decode assistant: %w", err)
+		}
+		*value = NewPracticeMessageFromPracticeAssistantMessage(decoded)
+		return nil
+	default:
+		return fmt.Errorf("PracticeMessage: unknown role %q", discriminator.Role)
+	}
 }
 
 type PracticeSession struct {
@@ -512,10 +613,10 @@ type SendPracticeMessageRequest struct {
 }
 
 type SendPracticeMessageResponse struct {
-	Acknowledged     bool            `json:"acknowledged"`
-	AssistantMessage PracticeMessage `json:"assistantMessage"`
-	Session          PracticeSession `json:"session"`
-	UserMessage      PracticeMessage `json:"userMessage"`
+	Acknowledged     bool                     `json:"acknowledged"`
+	AssistantMessage PracticeAssistantMessage `json:"assistantMessage"`
+	Session          PracticeSession          `json:"session"`
+	UserMessage      PracticeUserMessage      `json:"userMessage"`
 }
 
 type CompletePracticeSessionRequest struct {
@@ -584,9 +685,27 @@ type FeedbackReport struct {
 	UpdatedAt                string                `json:"updatedAt"`
 }
 
-type PaginatedFeedbackReport struct {
-	Items    []FeedbackReport `json:"items"`
-	PageInfo PageInfo         `json:"pageInfo"`
+type TargetJobReportsOverview struct {
+	Rounds      []TargetJobReportRoundOverview `json:"rounds"`
+	TargetJobId string                         `json:"targetJobId"`
+}
+
+type TargetJobReportRoundOverview struct {
+	CurrentReport *TargetJobCurrentReportSummary `json:"currentReport"`
+	LatestAttempt *TargetJobReportAttemptSummary `json:"latestAttempt"`
+	Round         PracticeRoundRef               `json:"round"`
+}
+
+type TargetJobCurrentReportSummary struct {
+	GeneratedAt string `json:"generatedAt"`
+	Id          string `json:"id"`
+}
+
+type TargetJobReportAttemptSummary struct {
+	CreatedAt string        `json:"createdAt"`
+	ErrorCode *ApiErrorCode `json:"errorCode"`
+	Id        string        `json:"id"`
+	Status    ReportStatus  `json:"status"`
 }
 
 type RequestResumeTailorRequest struct {
@@ -646,4 +765,21 @@ type PrivacyRequest struct {
 type PrivacyRequestWithJob struct {
 	Job              Job    `json:"job"`
 	PrivacyRequestId string `json:"privacyRequestId"`
+}
+
+func requireJSONFields(data []byte, required ...string) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	for _, name := range required {
+		raw, ok := fields[name]
+		if !ok {
+			return fmt.Errorf("missing required field %q", name)
+		}
+		if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+			return fmt.Errorf("required field %q cannot be null", name)
+		}
+	}
+	return nil
 }

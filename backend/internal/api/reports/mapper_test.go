@@ -23,8 +23,8 @@ func (s projectionReportService) GetFeedbackReport(context.Context, string, stri
 	return s.report, s.err
 }
 
-func (s projectionReportService) ListTargetJobReports(context.Context, reviewdomain.ListTargetJobReportsRequest) (reviewdomain.PaginatedFeedbackReportRecord, error) {
-	return reviewdomain.PaginatedFeedbackReportRecord{}, s.err
+func (s projectionReportService) ListTargetJobReports(context.Context, reviewdomain.ListTargetJobReportsRequest) (reviewdomain.TargetJobReportsOverviewRecord, error) {
+	return reviewdomain.TargetJobReportsOverviewRecord{}, s.err
 }
 
 func TestFeedbackReportProjectionUsesExactFrozenContextForEveryStatus(t *testing.T) {
@@ -46,7 +46,7 @@ func TestFeedbackReportProjectionUsesExactFrozenContextForEveryStatus(t *testing
 		sharedtypes.ReportStatusReady,
 		sharedtypes.ReportStatusFailed,
 	} {
-			t.Run(string(status), func(t *testing.T) {
+		t.Run(string(status), func(t *testing.T) {
 			report := reviewdomain.FeedbackReportRecord{
 				ID: "report-1", SessionID: "session-1", TargetJobID: "target-1", Status: status,
 				Context: contextProjection, CreatedAt: time.Unix(1, 0).UTC(), UpdatedAt: time.Unix(2, 0).UTC(),

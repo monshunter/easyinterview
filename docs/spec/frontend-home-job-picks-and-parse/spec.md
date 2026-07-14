@@ -1,8 +1,8 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.21
+> **版本**: 2.23
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 背景与目标
 
@@ -40,6 +40,8 @@ Home 粘贴 JD
   - Loading 阶段只渲染 4 步进度与面向用户的等待说明；不得展示 model/provider、rubric/prompt/version/hash、provenance、典型耗时等内部调试或实现元数据。
   - 通过 generated `getTargetJob(targetJobId)` 轮询 `analysisStatus`，进入 preview 或 failed state。
   - Preview 阶段用户可见名称为“面试规划详情 / 面试上下文确认”，只读展示 Basic fields、requirements evidence、hidden signals、round assumptions 和已绑定 ready 简历。
+  - Preview 内容区标题行右上角展示“面试报告”页面级入口，点击后仅携带当前可信 `targetJobId` 进入 `/reports?targetJobId=<uuid>`；该入口不加入全局 TopBar。
+  - Preview 不嵌入报告列表、不调用 `listTargetJobReports`，也不接受 `section=reports` 或其他报告相关 query；独立报告列表与状态由 `frontend-report-dashboard` owner 承接。
   - Preview 成功态不提供字段编辑、requirements toggle、hidden signal 移除、重新解析、保存规划、取消或更换简历入口；解析成功即表示规划已保存，若用户想换 JD/简历，必须回到 Home 创建新规划。
   - Footer actions 只保留「立即面试」，并携带真实 `targetJobId`、`resumeId`、可选 `currentPracticePlanId` 和 `roundId` 进入 practice handoff。
   - 未登录启动通过 auth continuation 接续到 practice。
@@ -73,6 +75,7 @@ Home 粘贴 JD
 | D-12 | Recent card planning and start actions | Home 最近模拟面试卡片点击主体进入统一规划详情，`立即面试 / Start interview now` 主按钮直接使用 generated practice handoff 启动 PracticeSession；删除按钮只属于 workspace 面试列表 | 保留继续规划和快速启动两个明确动作，避免 Home recent 与 Interview list 行为分叉 |
 | D-13 | Parse loading 信息层级 | loading 只说明当前进度与等待状态，不暴露 model/provider、rubric/prompt/version/hash、provenance 或典型耗时 | 内部诊断信息留在受控日志/观测面，不进入用户界面 |
 | D-14 | JD intake 单一合同 | Home 与 `importTargetJob` 只保留 `{ rawText, targetLanguage, resumeId }` | 不保留 source discriminator；删除其他 JD 导入形态但不影响 Resume 上传 |
+| D-15 | 报告记录入口 | Parse 内容区右上角提供页面级“面试报告”入口，进入 `/reports?targetJobId=<uuid>`；入口不进入全局 TopBar，Parse 不嵌入或请求报告列表 | 用户在独立页面查看且只查看当前规划的轮次报告；Report/Generating 仍由各自 reportId-only 页面承接 |
 
 ## 4 设计约束
 
@@ -85,6 +88,8 @@ Home 粘贴 JD
 - Parse loading 的 DOM、截图和文案负向 gate 必须拒绝 `model`、`provider`、`rubric`、`prompt@`、版本/hash、`provenance`、`typical` 等内部实现标记；不能以折叠、弱化颜色或移动到底部代替删除。
 - Parse requirements evidence 只读展示 API 返回的 `evidenceLevel`；前端不得在详情页维护临时 hit toggle 或把确认状态写回后端。
 - Parse round assumptions 的卡片布局仍追溯 UI 真理源，但卡片数量必须来自 2~5 条 `TargetJob.summary.interviewRounds[]`；R 序号、标题、轮次类型、时长和 focus 也必须来自该数组。这些轮次由后端 LLM 根据 JD、行业/公司性质、岗位级别、团队/业务上下文和招聘流程线索推断，前端不得用 locale 或本地常量补齐轮数、HR/技术/经理面类型或分钟数。
+- Parse 的“面试报告”入口只在可信 ready TargetJob 上下文存在时可用，导航参数精确为 `{ targetJobId }`；入口不得复制 reportId/status/round 等业务事实，也不得写入全局 TopBar。
+- Parse DOM、effect、generated-client spy 与 route gate 必须证明报告列表、列表 loading/error/empty state、`listTargetJobReports` 请求和 `section=reports` 兼容逻辑全部不存在。未知 `section` 与报告相关 query 由路由层剔除，不能切换 TargetJob、report identity 或业务状态。
 - Home 最近模拟面试卡片与 Workspace plan handoff 不得维护独立 `DEFAULT_ROUNDS`、固定 4 轮、静态 `roundName` 或静态 duration 分支；相关显示或 route params 必须通过同一个 TargetJob structured round mapper 派生。
 - `importTargetJob` 是 side-effect operation，必须携带 `Idempotency-Key`；其请求体严格等于 `{ rawText, targetLanguage, resumeId }`，不得带 `source` 或其他 intake-only 字段。
 - Parse success detail 不调用 `updateTargetJob`；规划上下文来自已保存的 TargetJob + Resume binding 快照。
@@ -101,6 +106,7 @@ Home 粘贴 JD
 | Resume list | `backend-resume` | `listResumes` 只读 ready resume selection |
 | Practice handoff | `frontend-workspace-and-practice` | PracticePlan / PracticeSession 创建与 practice 跳转；workspace 仅作为列表回访入口，带上下文详情复用统一母版 |
 | Mock transport | `mock-contract-suite` | fixture-backed deterministic variants |
+| Reports / Report / Generating screens | `frontend-report-dashboard` | 独立 `/reports?targetJobId=...` 列表消费最小 canonical-round overview；Report/Generating 保持 reportId-only，并在可信规划上下文存在时返回该列表 |
 
 ## 6 Operation Matrix
 
@@ -127,10 +133,11 @@ Home 粘贴 JD
 | C-9 | Start interview | Preview 已绑定 ready 简历 | 点击「立即面试」 | 不调用 `updateTargetJob`，直接使用已保存 `targetJobId/resumeId/roundId/currentPracticePlanId` 创建或读取 PracticePlan 并启动 PracticeSession | 001 |
 | C-10 | Privacy / auth continuation | 未登录用户提交 JD，随后正常登录、刷新导致 vault 丢失、entry 过期或重复触发 continuation | 检查 pendingAction、vault consume、URL/storage/log/telemetry 与 import 调用 | `pendingAction` 只含 `opaquePendingImportId`；raw JD 只在一次性内存 vault。正常登录原子 consume 后 exact request 只提交一次；refresh/expired/duplicate consume 均不发起 import，清除无效 action 并返回 Home 显示本地化重新输入提示；fixture transport 不记录 request body | 001 |
 | C-11 | Workspace 回访统一详情 | `listTargetJobs` 返回已保存规划且有 `targetJobId/resumeId` | 用户从 `workspace` 规划列表打开规划 | 页面渲染同一个面试规划详情母版，不出现独立 workspace Header/Launcher/JD card 二次确认；返回动作回到面试规划列表 | 001 / frontend-workspace-and-practice 001 |
+| C-12 | 规划详情报告入口 | ready TargetJob 有可信 `targetJobId` | 打开面试规划详情并点击标题行右上角“面试报告” | 精确进入 `/reports?targetJobId=<uuid>`；入口不在全局 TopBar；Parse 不渲染报告列表、不调用 `listTargetJobReports`、不保留 `section=reports` 兼容逻辑，原只读详情与 Start 不受影响 | 001 |
 
 ## 8 关联计划
 
-- [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) — Home + Parse + unified plan detail 当前 owner 计划，覆盖 paste-only UI/API contract、generated-client request、real-mode gate、resume selection、recent mocks、parse/workspace unified detail readonly handoff 和 P0.014-P0.016/P0.018 BDD。
+- [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) — Home + Parse + unified plan detail 当前 owner 计划，覆盖 paste-only UI/API contract、generated-client request、real-mode gate、resume selection、recent mocks、规划详情报告入口、parse/workspace unified detail readonly handoff 和 P0.014-P0.016/P0.018 BDD。
 
 ## 9 关联文档
 

@@ -30,13 +30,18 @@ func (r *SQLRepository) ReservePracticeMessage(ctx context.Context, in domain.Re
 	var assistantID, assistantContent sql.NullString
 	var assistantSeq sql.NullInt64
 	var assistantCreated sql.NullTime
+	var existingGeneration int64
+	var existingLease sql.NullTime
 	err = tx.QueryRowContext(ctx, `
-select u.id, u.role, u.content, u.seq_no, u.created_at,
+select u.id, u.role, u.content, u.seq_no, u.client_message_id::text, u.reply_status,
+       u.reply_generation, u.reply_lease_expires_at, u.created_at,
        a.id, a.content, a.seq_no, a.created_at
 from practice_messages u
 left join practice_messages a on a.reply_to_message_id = u.id
-where u.session_id=$1 and u.client_message_id=$2`, in.SessionID, in.ClientMessageID).Scan(
-		&existing.ID, &existing.Role, &existing.Content, &existing.SeqNo, &existing.CreatedAt,
+where u.session_id=$1 and u.client_message_id=$2
+	for update of u`, in.SessionID, in.ClientMessageID).Scan(
+		&existing.ID, &existing.Role, &existing.Content, &existing.SeqNo, &existing.ClientMessageID, &existing.ReplyStatus,
+		&existingGeneration, &existingLease, &existing.CreatedAt,
 		&assistantID, &assistantContent, &assistantSeq, &assistantCreated,
 	)
 	if err == nil {
@@ -44,6 +49,37 @@ where u.session_id=$1 and u.client_message_id=$2`, in.SessionID, in.ClientMessag
 			return domain.PracticeMessageReservation{}, domain.ErrClientEventMismatch
 		}
 		if !assistantID.Valid {
+			switch existing.ReplyStatus {
+			case domain.PracticeReplyStatusRetryableFailed:
+				if existingLease.Valid {
+					return domain.PracticeMessageReservation{}, domain.ErrSessionConflict
+				}
+			case domain.PracticeReplyStatusPending:
+				if !existingLease.Valid || existingLease.Time.After(in.Now) {
+					return domain.PracticeMessageReservation{}, domain.ErrSessionConflict
+				}
+			default:
+				return domain.PracticeMessageReservation{}, domain.ErrSessionConflict
+			}
+			var nextGeneration int64
+			updateErr := tx.QueryRowContext(ctx, `
+update practice_messages m
+set reply_status=$1,
+    reply_generation=reply_generation+1,
+    reply_lease_expires_at=$2
+from practice_sessions s
+where m.id=$3 and m.session_id=$4 and m.session_id=s.id and s.user_id=$5
+  and m.role='user' and m.reply_status=$6 and m.reply_generation=$7
+returning m.reply_generation`,
+				string(domain.PracticeReplyStatusPending), in.Now.Add(domain.PracticeReplyLeaseDuration),
+				existing.ID, in.SessionID, in.UserID, string(existing.ReplyStatus), existingGeneration,
+			).Scan(&nextGeneration)
+			if updateErr != nil {
+				if stderrs.Is(updateErr, sql.ErrNoRows) {
+					return domain.PracticeMessageReservation{}, domain.ErrSessionConflict
+				}
+				return domain.PracticeMessageReservation{}, fmt.Errorf("retry failed practice message: %w", updateErr)
+			}
 			rows, queryErr := queryMessages(ctx, tx, in.SessionID)
 			if queryErr != nil {
 				return domain.PracticeMessageReservation{}, queryErr
@@ -60,8 +96,13 @@ where u.session_id=$1 and u.client_message_id=$2`, in.SessionID, in.ClientMessag
 				return domain.PracticeMessageReservation{}, fmt.Errorf("commit pending practice message retry: %w", commitErr)
 			}
 			reservation.UserMessage = existing
+			reservation.UserMessage.ReplyStatus = domain.PracticeReplyStatusPending
 			reservation.History = messages[:len(messages)-1]
+			reservation.ReplyGeneration = nextGeneration
 			return reservation, nil
+		}
+		if existing.ReplyStatus != domain.PracticeReplyStatusComplete {
+			return domain.PracticeMessageReservation{}, domain.ErrSessionConflict
 		}
 		assistant := domain.MessageRecord{ID: assistantID.String, Role: "assistant", Content: assistantContent.String, SeqNo: int32(assistantSeq.Int64), CreatedAt: assistantCreated.Time}
 		session, err := selectSessionForUser(ctx, tx, in.UserID, in.SessionID)
@@ -95,10 +136,18 @@ select exists(
 	if err := tx.QueryRowContext(ctx, `select coalesce(max(seq_no),0)+1 from practice_messages where session_id=$1`, in.SessionID).Scan(&nextSeq); err != nil {
 		return domain.PracticeMessageReservation{}, fmt.Errorf("select next practice message sequence: %w", err)
 	}
-	userMessage := domain.MessageRecord{ID: in.UserMessageID, Role: "user", Content: in.Text, SeqNo: nextSeq, CreatedAt: in.Now}
+	userMessage := domain.MessageRecord{
+		ID: in.UserMessageID, Role: "user", Content: in.Text, SeqNo: nextSeq,
+		ClientMessageID: in.ClientMessageID, ReplyStatus: domain.PracticeReplyStatusPending, CreatedAt: in.Now,
+	}
 	if _, err := tx.ExecContext(ctx, `
-insert into practice_messages (id, session_id, seq_no, role, content, client_message_id, created_at)
-values ($1,$2,$3,'user',$4,$5,$6)`, in.UserMessageID, in.SessionID, nextSeq, in.Text, in.ClientMessageID, in.Now); err != nil {
+insert into practice_messages (
+  id, session_id, seq_no, role, content, client_message_id, reply_status,
+  reply_generation, reply_lease_expires_at, created_at
+)
+values ($1,$2,$3,'user',$4,$5,$6,$7,$8,$9)`,
+		in.UserMessageID, in.SessionID, nextSeq, in.Text, in.ClientMessageID,
+		string(domain.PracticeReplyStatusPending), int64(1), in.Now.Add(domain.PracticeReplyLeaseDuration), in.Now); err != nil {
 		if isUniqueViolation(err) {
 			return domain.PracticeMessageReservation{}, domain.ErrSessionConflict
 		}
@@ -121,7 +170,60 @@ values ($1,$2,$3,'user',$4,$5,$6)`, in.UserMessageID, in.SessionID, nextSeq, in.
 	}
 	reservation.UserMessage = userMessage
 	reservation.History = history
+	reservation.ReplyGeneration = 1
 	return reservation, nil
+}
+
+func lockPracticeSessionForUser(ctx context.Context, tx *sql.Tx, userID, sessionID string) error {
+	var lockedSessionID string
+	err := tx.QueryRowContext(ctx, `select id from practice_sessions where id=$1 and user_id=$2 for update`, sessionID, userID).Scan(&lockedSessionID)
+	if stderrs.Is(err, sql.ErrNoRows) {
+		return domain.ErrSessionNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("lock practice session: %w", err)
+	}
+	return nil
+}
+
+func (r *SQLRepository) FailPracticeMessage(ctx context.Context, in domain.FailPracticeMessageInput) error {
+	if r == nil || r.db == nil {
+		return fmt.Errorf("practice SQL repository is not configured")
+	}
+	if in.ReplyStatus != domain.PracticeReplyStatusRetryableFailed && in.ReplyStatus != domain.PracticeReplyStatusTerminalFailed {
+		return fmt.Errorf("practice reply failure status is invalid")
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin fail practice message: %w", err)
+	}
+	defer tx.Rollback()
+	if err := lockPracticeSessionForUser(ctx, tx, in.UserID, in.SessionID); err != nil {
+		return err
+	}
+	result, err := tx.ExecContext(ctx, `
+update practice_messages m
+set reply_status=$1, reply_lease_expires_at=null
+from practice_sessions s
+where m.id=$2 and m.session_id=$3 and m.session_id=s.id and s.user_id=$4
+	and m.role='user' and m.reply_status=$5 and m.reply_generation=$6`,
+		string(in.ReplyStatus), in.UserMessageID, in.SessionID, in.UserID,
+		string(domain.PracticeReplyStatusPending), in.ExpectedReplyGeneration,
+	)
+	if err != nil {
+		return fmt.Errorf("fail practice message: %w", err)
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count failed practice message: %w", err)
+	}
+	if updated != 1 {
+		return domain.ErrSessionConflict
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit failed practice message: %w", err)
+	}
+	return nil
 }
 
 func loadMessageReservationContext(ctx context.Context, tx *sql.Tx, userID, sessionID string) (domain.PracticeMessageReservation, error) {
@@ -211,19 +313,27 @@ func (r *SQLRepository) CommitPracticeMessage(ctx context.Context, in domain.Com
 		return domain.SendPracticeMessageResult{}, fmt.Errorf("begin commit practice message: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockPracticeSessionForUser(ctx, tx, in.UserID, in.SessionID); err != nil {
+		return domain.SendPracticeMessageResult{}, err
+	}
 	var userMessage domain.MessageRecord
+	var replyGeneration int64
 	err = tx.QueryRowContext(ctx, `
-select m.id, m.role, m.content, m.seq_no, m.created_at
-from practice_messages m join practice_sessions s on s.id=m.session_id
-where m.id=$1 and m.session_id=$2 and s.user_id=$3 and m.role='user'
-for update of m`, in.UserMessageID, in.SessionID, in.UserID).Scan(
-		&userMessage.ID, &userMessage.Role, &userMessage.Content, &userMessage.SeqNo, &userMessage.CreatedAt,
+select m.id, m.role, m.content, m.seq_no, m.client_message_id::text, m.reply_status, m.reply_generation, m.created_at
+from practice_messages m
+where m.id=$1 and m.session_id=$2 and m.role='user'
+for update of m`, in.UserMessageID, in.SessionID).Scan(
+		&userMessage.ID, &userMessage.Role, &userMessage.Content, &userMessage.SeqNo,
+		&userMessage.ClientMessageID, &userMessage.ReplyStatus, &replyGeneration, &userMessage.CreatedAt,
 	)
 	if stderrs.Is(err, sql.ErrNoRows) {
-		return domain.SendPracticeMessageResult{}, domain.ErrSessionNotFound
+		return domain.SendPracticeMessageResult{}, domain.ErrSessionConflict
 	}
 	if err != nil {
 		return domain.SendPracticeMessageResult{}, fmt.Errorf("select reserved practice message: %w", err)
+	}
+	if userMessage.ReplyStatus != domain.PracticeReplyStatusPending || replyGeneration != in.ExpectedReplyGeneration {
+		return domain.SendPracticeMessageResult{}, domain.ErrSessionConflict
 	}
 	assistant := domain.MessageRecord{ID: in.AssistantMessageID, Role: "assistant", Content: strings.TrimSpace(in.AssistantText), SeqNo: userMessage.SeqNo + 1, CreatedAt: in.Now}
 	if _, err := tx.ExecContext(ctx, `
@@ -234,13 +344,27 @@ values ($1,$2,$3,'assistant',$4,$5,$6)`, assistant.ID, in.SessionID, assistant.S
 		}
 		return domain.SendPracticeMessageResult{}, fmt.Errorf("insert practice assistant message: %w", err)
 	}
-	result, err := tx.ExecContext(ctx, `update practice_sessions set status=$1, updated_at=$2 where id=$3 and user_id=$4 and status in ($5,$6)`,
+	result, err := tx.ExecContext(ctx, `update practice_messages set reply_status=$1, reply_lease_expires_at=null where id=$2 and session_id=$3 and role='user' and reply_status=$4 and reply_generation=$5`,
+		string(domain.PracticeReplyStatusComplete), in.UserMessageID, in.SessionID,
+		string(domain.PracticeReplyStatusPending), in.ExpectedReplyGeneration)
+	if err != nil {
+		return domain.SendPracticeMessageResult{}, fmt.Errorf("complete practice user message: %w", err)
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return domain.SendPracticeMessageResult{}, fmt.Errorf("count completed practice user messages: %w", err)
+	}
+	if updated != 1 {
+		return domain.SendPracticeMessageResult{}, domain.ErrSessionConflict
+	}
+	userMessage.ReplyStatus = domain.PracticeReplyStatusComplete
+	result, err = tx.ExecContext(ctx, `update practice_sessions set status=$1, updated_at=$2 where id=$3 and user_id=$4 and status in ($5,$6)`,
 		string(sharedtypes.SessionStatusRunning), in.Now, in.SessionID, in.UserID,
 		string(sharedtypes.SessionStatusRunning), string(sharedtypes.SessionStatusWaitingUserInput))
 	if err != nil {
 		return domain.SendPracticeMessageResult{}, fmt.Errorf("update practice session after message: %w", err)
 	}
-	updated, err := result.RowsAffected()
+	updated, err = result.RowsAffected()
 	if err != nil {
 		return domain.SendPracticeMessageResult{}, fmt.Errorf("count updated practice sessions after message: %w", err)
 	}

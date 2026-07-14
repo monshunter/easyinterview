@@ -1,8 +1,8 @@
 # URL-Addressable Routing Checklist
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -73,3 +73,14 @@
   <!-- verified: 2026-07-10 method=unconsumed-route-helper-removal evidence="Deleted the wrapper and comment with no replacement. Route codec/store/history pass 3 files/55 tests and non-test frontend symbol inventory is empty; formatRouteUrl and routeStore code are unchanged." -->
 - [x] 10.3 Run focused route codec/store tests, typecheck, symbol inventory, owner/product contexts, docs, diff and pruning gates; then restore the owner to `completed`.
   <!-- verified: 2026-07-10 method=unconsumed-route-helper-removal evidence="Route codec/store/history pass 3 files/55 tests; P0.088/P0.089/P0.090 pass 3 files/23 tests; typecheck and non-test symbol inventory pass. Shell/product contexts and docs/index/link/diff/pruning gates pass with real_residuals=0." -->
+
+## Phase 11: target-scoped Reports route
+
+- [x] 11.1 RED-GREEN: add `reports` to context routes and canonical `/reports` with `targetJobId` as its only safe param；keep chrome visible and `PRIMARY_NAV_ROUTES` / TopBar unchanged at three entries.
+  <!-- verified: 2026-07-14 method=route-tdd evidence="Routing/App/auth/privacy focused suite 152/152 passes with reports as a chrome-visible protected context route, targetJobId-only serialization, App dispatch and an unchanged three-entry TopBar." -->
+- [x] 11.2 RED-GREEN: Parse drops hostile `section=reports`/report/status/round inputs；report and generating serialize/restore reportId only；missing/invalid Reports target uses replace-only workspace recovery with no push/back-loop, and a child mount redirect cannot be overwritten by stale bootstrap canonicalization.
+  <!-- verified: 2026-07-14 method=route-tdd evidence="Reports/App history/route-store focused suite 40/40 proves replace without push for missing/invalid target plus canonical URL stability; route/privacy regressions keep hostile and legacy business parameters out of URL/history/pendingAction." -->
+- [x] 11.3 BDD-Gate: P0.088 covers `/reports` direct/reload/navigation/back-forward；P0.089 covers unauthenticated deep-link auth continuation with targetJobId-only restore and privacy zero-hit；P0.090 covers hash bootstrap、host fallback、unsupported params and TopBar negative.
+  <!-- verified: 2026-07-14 evidence="P0.088 86 tests, P0.089 15 tests and P0.090 87 tests pass; invalid/missing reports target uses replaceState, auth restores targetJobId only, hash/host fallback strips unsupported params and TopBar remains three items." -->
+- [x] 11.4 POST-PASS: focused route/store/App/auth/privacy/fallback tests、P0.088/P0.089/P0.090、frontend typecheck/build、owner contexts、docs/diff/pruning pass before restoring plan/checklist/BDD to `completed`.
+  <!-- verified: 2026-07-14 method=current-aggregate evidence="Focused routing/auth/privacy, full frontend 121 files/977 tests, typecheck/build, all three scenarios, owner context, docs, diff and pruning gates pass." -->

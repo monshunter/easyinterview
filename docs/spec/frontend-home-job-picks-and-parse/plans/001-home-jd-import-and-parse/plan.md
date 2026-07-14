@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.25
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 2.27
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.10 原地修订中把轮次假设升级为结构化 LLM/JD parse 合同：Parse 详情、Home 最近模拟面试卡片、Workspace 规划回访 handoff 和共享导航上下文必须使用同一份 TargetJob structured round mapper；卡片视觉仍复刻 UI 真理源，但轮次数量必须为 2~5，轮次类型、标题、时长和 focus 都必须来自后端保存的 `TargetJob.summary.interviewRounds[]`。v2.11-v2.14 继续收敛 recent card、workspace 详情与 quick-start。Phase 17 删除 Parse loading 内部元数据。Phase 18 把 Home JD intake 收敛为唯一粘贴文本框：用户粘贴 JD、显式选择一份 ready 简历，前端只提交 `{ rawText, targetLanguage, resumeId }`，随后进入统一详情页核对已保存的 JD、简历和由 LLM 推断的面试轮次；既有规划从 `workspace` 列表回访时也使用同一母版。
+本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.10 原地修订中把轮次假设升级为结构化 LLM/JD parse 合同：Parse 详情、Home 最近模拟面试卡片、Workspace 规划回访 handoff 和共享导航上下文必须使用同一份 TargetJob structured round mapper；卡片视觉仍复刻 UI 真理源，但轮次数量必须为 2~5，轮次类型、标题、时长和 focus 都必须来自后端保存的 `TargetJob.summary.interviewRounds[]`。v2.11-v2.14 继续收敛 recent card、workspace 详情与 quick-start。Phase 17 删除 Parse loading 内部元数据。Phase 18 把 Home JD intake 收敛为唯一粘贴文本框。Phase 19 在 Parse 内容区标题行右上角增加页面级“面试报告”入口，移除嵌入式列表、列表请求和 `section=reports` 兼容逻辑，并把独立列表交给现有 report owner。
 
 交付后的当前链路：
 
@@ -43,8 +43,8 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `contract`
-- **TDD 策略**: 通过 `/implement` -> `/tdd` 执行。Phase 18 先让 UI contract、Home Vitest、OpenAPI lint/fixture/generated drift、backend TargetJob tests 与 scenario contract 对旧多入口和旧 discriminator 失败，再最小删除 UI/modal/i18n、contract/generated、backend 分支与专属 scenario，最后重构 paste-only 提交 helper 与 opaque-ID one-shot auth vault；auth RED/GREEN 必须覆盖正常 consume、refresh/lost、expired 与 duplicate consume；每个 checklist item 的断言入口见 Phase 18。
-- **BDD 策略**: Feature plan requires BDD；当前 BDD gate 为 `E2E.P0.014`、`E2E.P0.015`、`E2E.P0.016` 与 `E2E.P0.018`。Phase 18 原地修订 P0.014/P0.015 为 paste-only，并要求 1440×900 / 390×844 Home 截图、DOM/style/bbox/viewport 证据；URL 专属场景从 active scenario registry 删除且不复用编号。
+- **TDD 策略**: 通过 `/implement` -> `/tdd` 执行。Phase 18 先让 UI contract、Home Vitest、OpenAPI lint/fixture/generated drift、backend TargetJob tests 与 scenario contract 对旧多入口和旧 discriminator 失败，再最小删除 UI/modal/i18n、contract/generated、backend 分支与专属 scenario，最后重构 paste-only 提交 helper 与 opaque-ID one-shot auth vault；auth RED/GREEN 必须覆盖正常 consume、refresh/lost、expired 与 duplicate consume。Phase 19 先让 prototype/source contract、Parse component/effect/route tests 对缺少页面级入口和仍存在的嵌入列表失败，再最小新增入口并删除列表请求、嵌入 DOM 与 `section=reports` 逻辑。
+- **BDD 策略**: Feature plan requires BDD；当前 BDD gate 为 `E2E.P0.014`、`E2E.P0.015`、`E2E.P0.016` 与 `E2E.P0.018`。Phase 18 原地修订 P0.014/P0.015 为 paste-only；Phase 19 原地扩展 P0.016 为规划详情右上角入口与 Parse 零嵌入/零列表请求。两者均要求 1440×900 / 390×844 DOM/style/bbox/viewport/screenshot 证据；不创建 sibling 场景或全局报告中心。
 - **替代验证 gate**: 不适用；本计划具备 TDD + BDD 双层验证。
 
 ## 4 当前实现合同
@@ -66,6 +66,9 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 - Parse 读取 ready 简历列表仅用于展示已绑定 `resumeId` 摘要；若 TargetJob 缺少有效 `resumeId`，Start 保持 disabled 并展示缺失上下文状态，不从 route-only `resumeId` 补绑简历。
 - Start interview 不调用 `updateTargetJob`，直接使用已保存 `targetJobId/resumeId/roundId/currentPracticePlanId` 调 `createPracticePlan` / `getPracticePlan` / `startPracticeSession` 并进入 practice。
 - `workspace?targetJobId=...` 普通回访不得强制播放 parse loading；应直接拉取 `getTargetJob` 并渲染同一详情母版 ready state。`workspace` 不读取 `autoStartPractice`，也不作为启动副作用路由。
+- TargetJob ready 后在详情标题行右上角渲染“面试报告”页面级入口；点击精确导航 `{ name: "reports", params: { targetJobId } }`，不在 TopBar 增加入口，也不把 report/status/round 写入 handoff。
+- Parse 不消费 `listTargetJobReports`，不渲染 per-round reports section，也不保留报告列表的 loading/error/empty state。列表数据、current/latest 状态和 report/generating 链接由 `frontend-report-dashboard` 的独立 ReportsScreen 负责。
+- Parse route 不接受 `section=reports` 或其他报告 query；旧 section 锚点、滚动/聚焦 effect、兼容解析与测试 helper 必须删除。未知 section 由 shared route filter 丢弃，不能影响 TargetJob identity 或业务状态。
 
 ### 4.3 Privacy / Auth
 
@@ -289,6 +292,24 @@ RED：OpenAPI lint/fixture/generated drift、backend request decode/service/stor
 
 原地修订 `E2E.P0.014` / `E2E.P0.015`，删除 URL 专属 `E2E.P0.011` 实体目录与 active INDEX 行（编号不复用）。P0.015 覆盖 paste success、当前 4xx/failed、idempotency、privacy 与 Parse loading；P0.014/P0.015 在 1440×900 和 390×844 捕获 Home paste-only 截图并验证 DOM、computed style、bbox、viewport。active truth-source zero-reference gate 必须扫描 `ui-design/`、`docs/ui-design/`、owner specs/plans、OpenAPI/generated、frontend Home、backend TargetJob 与 active scenarios，排除 work-journal/bug/report 等合法历史证据，并明确允许 Resume upload 资产。
 
+### Phase 19: Plan-detail report entry and independent-list handoff
+
+#### 19.1 Prototype and UI contract
+
+先在 `ui-design` Parse ready state 内容区标题行右上角加入“面试报告”页面级入口，并明确它不属于全局 TopBar。删除 Parse 中既有 Reports section；desktop/mobile DOM、style、bbox、viewport 先红后绿，且入口必须在 1440×900 / 390×844 下不挤压标题与说明。
+
+#### 19.2 Generated contract and mapper
+
+Parse 只从已验证的当前 TargetJob 取得 `targetJobId` 并导航到 `reports`；删除 Parse 内 `listTargetJobReports` 调用、overview loader/validator/render state 和相关 i18n。仓库负向 gate 证明 list operation 的正式 UI consumer 只位于 report owner，Parse effect 与测试 spy 的调用数为零。
+
+#### 19.3 Interaction and route recovery
+
+入口在可信 ready TargetJob 上下文存在时可用，点击后精确进入 `/reports?targetJobId=<uuid>`；不通过 route-only target 覆盖当前事实。删除 `section=reports` safe param、ready 后滚动/聚焦和兼容分支；Report/Generating 的返回路径改由 report owner 进入独立列表，Parse 不承接返回锚点。
+
+#### 19.4 BDD and parity
+
+原地扩展 `E2E.P0.016` 覆盖内容区右上入口、精确 target handoff、全局 TopBar 无报告入口、Parse 无嵌入列表/列表请求/section 兼容，以及 Start/只读详情回归；在 1440×900 / 390×844 对 prototype/formal 入口执行 DOM/computed-style/bbox/viewport/screenshot parity。独立 ReportsScreen 的数据状态与隔离由 report owner P0.058/P0.059 承接。
+
 ## 6 验收标准
 
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
@@ -303,12 +324,16 @@ RED：OpenAPI lint/fixture/generated drift、backend request decode/service/stor
 - Parse loading 只展示用户可理解的进度/等待状态；prototype、formal、desktop/mobile 截图和 active source 均不含 model/provider、rubric/prompt/version/hash、provenance 或 typical latency。
 - Home 只展示 JD textarea、ready Resume 下拉框和主 CTA；`importTargetJob` 只接受 `{ rawText, targetLanguage, resumeId }`，route 只携带 `targetJobId + resumeId`。
 - 非当前 JD intake 的 UI、public schema、generated type、backend branch、专属 fixture/scenario 和 active docs 为零；Resume 上传路径继续通过原 owner gates。
+- Parse 内容区标题行右上角展示“面试报告”，点击精确进入 `reports?targetJobId=...`；全局 TopBar 无该入口，既有只读详情与 Start 保持可用。
+- Parse 中 `listTargetJobReports` 调用、嵌入式报告 DOM、列表状态、`section=reports` safe param 与滚动/聚焦兼容逻辑为零；独立 ReportsScreen 与返回路径由 report/shell owner 验证。
 - `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.27 | Revise Phase 19 in place: move reports to an independent target-scoped page, keep only the plan-detail header entry, and delete Parse list requests, embedded UI, and section compatibility. |
+| 2026-07-14 | 2.26 | Add unchecked Phase 19 for the Parse canonical-round reports section, minimal overview mapper, typed state links, non-blocking failure, section anchor and P0.016 parity. |
 | 2026-07-13 | 2.25 | Reopen in place to make Home JD intake paste-only across UI, contract, backend and scenarios, with exact request shape, zero-reference gates and desktop/mobile screenshots. |
 | 2026-07-13 | 2.24 | Reopen in place to remove internal parse model/rubric/provenance/latency metadata and require clean desktop/mobile loading screenshots. |
 | 2026-07-10 | 2.23 | Reuse the shared real-backend verifier across the three Home/Parse scenarios. |

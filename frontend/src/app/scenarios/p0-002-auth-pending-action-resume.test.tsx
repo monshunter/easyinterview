@@ -11,7 +11,7 @@
  * with all five interview-context params (planId / targetJobId / jdId /
  * resumeId / roundId) intact.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { FC } from "react";
@@ -71,10 +71,12 @@ function buildClient(): EasyInterviewClient {
 
 describe("E2E.P0.002 auth pending-action resume", () => {
   it("redirects to auth_login when signed-out user clicks 立即面试 and restores practice context after verify", async () => {
+    window.history.replaceState(null, "", "/");
+    const client = buildClient();
+    const getPracticeSession = vi.spyOn(client, "getPracticeSession");
     render(
       <App
-        client={buildClient()}
-        initialRoute={{ name: "home", params: {} }}
+        client={client}
         requestOptions={{
           getMe: { headers: { Prefer: "example=unauthenticated" } },
         }}
@@ -107,18 +109,16 @@ describe("E2E.P0.002 auth pending-action resume", () => {
     await user.type(screen.getByTestId("auth-verify-code"), "654321");
     await user.click(screen.getByTestId("auth-verify-submit"));
 
-    // After practice route restore, PracticeScreen mounts (sessionId in
-    // pending action). PracticeScreen exposes route param echo via data-*
-    // attrs on its root for E2E inspection.
-    const practice = await screen.findByTestId("practice-screen");
-    expect(practice.getAttribute("data-plan-id")).toBe(
-      PRACTICE_PENDING_ACTION.params.planId,
-    );
-    expect(practice.getAttribute("data-target-job-id")).toBe(
-      PRACTICE_PENDING_ACTION.params.targetJobId,
-    );
-    expect(practice.getAttribute("data-session-id")).toBe(
-      PRACTICE_PENDING_ACTION.params.sessionId,
-    );
+    await screen.findByTestId("practice-screen");
+    const restoredParams = new URLSearchParams(window.location.search);
+    for (const [key, value] of Object.entries(PRACTICE_PENDING_ACTION.params)) {
+      expect(restoredParams.get(key), key).toBe(value);
+    }
+    await waitFor(() => {
+      expect(getPracticeSession).toHaveBeenCalledWith(
+        PRACTICE_PENDING_ACTION.params.sessionId,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    });
   });
 });

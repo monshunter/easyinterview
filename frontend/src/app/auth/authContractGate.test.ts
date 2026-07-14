@@ -30,6 +30,8 @@ const ALLOWED_NON_AUTH_OPERATIONS = new Set<string>([
   "createUploadPresign",
   "getTargetJob",
   "updateTargetJob",
+  // Target-scoped current-round report overview (frontend-report-dashboard)
+  "listTargetJobReports",
   // Phase 2-4 workspace-and-practice operations (frontend-workspace-and-practice)
   "getResume",
   "getPracticePlan",

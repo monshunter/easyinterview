@@ -152,9 +152,7 @@ describe("D1 shell i18n locale file structure", () => {
       "home.heroTitle",
       "home.jdPlaceholder",
       "home.pasteSource",
-      "home.uploadSource",
       "home.importBtn",
-      "home.orUpload",
       "home.recentSection",
       "home.recentSectionSub",
       "home.recentMore",
@@ -164,8 +162,8 @@ describe("D1 shell i18n locale file structure", () => {
       "home.resumeSelected",
       "home.resumeLoading",
       "home.resumeEmpty",
-      "home.resumeRequired",
       "home.resumeCreateLink",
+      "home.pendingImportInvalid",
     ];
 
     // product-scope D-22 keeps the home debrief CTA outside current scope.
@@ -174,6 +172,25 @@ describe("D1 shell i18n locale file structure", () => {
     for (const key of requiredKeys) {
       expect(zhSource).toContain(`"${key}"`);
       expect(enSource).toContain(`"${key}"`);
+    }
+
+    const retiredJdIntakeKeys = [
+      "home.uploadSource",
+      "home.orUpload",
+      "home.modalLabel",
+      "home.modalUploadTitle",
+      "home.modalUrlTitle",
+      "home.modalUploadDropzone",
+      "home.modalUploadHint",
+      "home.modalUrlLabel",
+      "home.modalUrlPlaceholder",
+      "home.modalUrlHint",
+      "home.modalCancel",
+      "home.modalContinue",
+    ];
+    for (const key of retiredJdIntakeKeys) {
+      expect(zhSource).not.toContain(`"${key}"`);
+      expect(enSource).not.toContain(`"${key}"`);
     }
   });
 

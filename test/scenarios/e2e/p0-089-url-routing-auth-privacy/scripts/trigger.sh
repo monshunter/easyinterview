@@ -8,6 +8,10 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-089-url-routing-auth-privacy"
 mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
+  python3 "$SCRIPT_DIR/source_contract_test.py"
   pnpm --filter @easyinterview/frontend test \
-    src/app/scenarios/p0-089-url-routing-auth-privacy.test.tsx
-) | tee "$OUTPUT_DIR/trigger.log"
+    src/app/auth/AppPendingAction.test.tsx \
+    src/app/AppRoutingPrivacy.test.tsx \
+    src/app/scenarios/p0-089-url-routing-auth-privacy.test.tsx \
+    --reporter=verbose
+) 2>&1 | tee "$OUTPUT_DIR/trigger.log"

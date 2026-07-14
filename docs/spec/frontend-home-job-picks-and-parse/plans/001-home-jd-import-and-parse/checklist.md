@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.25
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 2.27
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -119,19 +119,46 @@
 
 ## Phase 17: Parse loading internal-metadata removal
 
-- [ ] 17.1 RED-GREEN: prototype source contract rejects the Parse loading model/provider, rubric/prompt/version/hash, provenance and typical-latency footer while preserving four progress steps and responsive layout.
-- [ ] 17.2 RED-GREEN: formal Parse loading DOM removes the same internal metadata without changing polling, ready mapping or failed recovery.
-- [ ] 17.3 REGRESSION-GATE: focused Parse tests, UI source contract, typecheck/build and active negative search pass.
-- [ ] 17.4 BDD-Gate: `E2E.P0.015` passes with clean 1440/390 loading screenshots plus DOM/style/bbox/viewport parity evidence.
+- [x] 17.1 RED-GREEN: prototype source contract rejects the Parse loading model/provider, rubric/prompt/version/hash, provenance and typical-latency footer while preserving four progress steps and responsive layout.
+- [x] 17.2 RED-GREEN: formal Parse loading DOM removes the same internal metadata without changing polling, ready mapping or failed recovery.
+- [x] 17.3 REGRESSION-GATE: focused Parse tests, UI source contract, typecheck/build and active negative search pass.
+  <!-- verified: 2026-07-13 evidence="Parse/Report focused Vitest and desktop/mobile parity PASS; UI contract 58/58; full frontend 112 files/786 tests, typecheck and production build PASS; internal metadata and source locator negative assertions PASS." -->
+- [x] 17.4 BDD-Gate: `E2E.P0.015` passes with clean 1440/390 loading screenshots plus DOM/style/bbox/viewport parity evidence.
+  <!-- verified: 2026-07-13 method=scenario-run+pixel-parity evidence="E2E.P0.015 PASS; ready-response loading is metadata-free at 1440x900 and 390x844; formal/prototype Parse parity changedRatio desktop=0.000556 mobile=0.001499 after explicit scroll normalization." -->
 
 ## Phase 18: Paste-only Home JD intake
 
-- [ ] 18.1 RED-GREEN: prototype-first 更新 `ui-design/src/screen-home.jsx` 与 UI source contract，使 Home intake 仅渲染 textarea、ready Resume select 和 CTA；旧 source controls、辅助弹窗、触发 testid 与多入口 copy 必须先红后删，且 Resume 上传入口保持可用。
-- [ ] 18.2 RED-GREEN: OpenAPI、fixtures 与 generated Go/TS 将 `importTargetJob` public request 收敛为 exact flattened wire `{ rawText, targetLanguage, resumeId }`，拒绝 source discriminator、嵌套 source payload 和非文本 JD intake；Resume upload operation/fixture 不受影响。
-- [ ] 18.3 RED-GREEN: formal Home layout/import/i18n tests 证明只存在一个 paste submit path；删除 source controls/modal、source-specific branches、额外 locale keys 和 JD upload-client 调用，不新增 mode enum、compatibility adapter 或不可达 branch。
-- [ ] 18.4 RED-GREEN: Home auth `pendingAction` 只保存 `opaquePendingImportId`；一次性进程内 vault 保存 `{ rawText, targetLanguage, resumeId, idempotencyKey, expiresAt }` 并在登录成功后原子 consume 一次。正常路径以原 key 提交同一 exact request；refresh/lost、expired、duplicate consume 均不调用 import，清除 action、返回 Home 并显示本地化重新输入提示；route/browser storage/log/telemetry 均不得携带 JD 原文。
-- [ ] 18.5 RED-GREEN: backend TargetJob decode/service/store/runner 删除 public 多来源 union、URL fetch/refresh、JD attachment purpose、structured manual-form branch 及 source-specific persistence/event/config，同时保留文本 validation、idempotency、parse failure/retry、privacy 与 resume binding。
-- [ ] 18.6 REGRESSION-GATE: UI contract、Home focused Vitest、OpenAPI lint/fixture/generated drift、backend TargetJob tests、typecheck/build 与 Resume upload owner tests 全部通过。
-- [ ] 18.7 BDD-Gate: 原地修订 `E2E.P0.014` / `E2E.P0.015`，P0.015 覆盖 paste success、exact request、auth pending replay、4xx/failed、idempotency、privacy 与 Parse loading；在 1440×900 和 390×844 捕获 Home/Parse 截图并验证 DOM、computed style、bbox 与 viewport parity。
-- [ ] 18.8 ZERO-REF-GATE: 删除 URL 专属 `E2E.P0.011` 实体目录与 active INDEX 行且不复用编号；扫描 active UI truth、owner docs、OpenAPI/generated、frontend Home、backend TargetJob 与 active scenarios，确认旧 JD source controls/modal/route source/schema/fixture/branch/scenario 为零，排除 work-journal/bug/report 等合法历史证据并明确允许 Resume upload 资产。
-- [ ] 18.9 POST-PASS: owner spec/plan/checklist/BDD/context 与 document INDEX 完成 reconcile，`validate_context.py`、`sync-doc-index --check`、`make docs-check`、`git diff --check` 和 pruning gate 通过后再恢复 `completed`。
+- [x] 18.1 RED-GREEN: prototype-first 更新 `ui-design/src/screen-home.jsx` 与 UI source contract，使 Home intake 仅渲染 textarea、ready Resume select 和 CTA；旧 source controls、辅助弹窗、触发 testid 与多入口 copy 必须先红后删，且 Resume 上传入口保持可用。
+- [x] 18.2 RED-GREEN: OpenAPI、fixtures 与 generated Go/TS 将 `importTargetJob` public request 收敛为 exact flattened wire `{ rawText, targetLanguage, resumeId }`，拒绝 source discriminator、嵌套 source payload 和非文本 JD intake；Resume upload operation/fixture 不受影响。
+  <!-- verified: 2026-07-13 evidence="OpenAPI inventory 24 tests, generator tests, lint-openapi, fixture validator 37 operations and isolated-index codegen-check PASS; generated Go/TS request is flattened; upload fixture retains resume/privacy only." -->
+- [x] 18.3 RED-GREEN: formal Home layout/import/i18n tests 证明只存在一个 paste submit path；删除 source controls/modal、source-specific branches、额外 locale keys 和 JD upload-client 调用，不新增 mode enum、compatibility adapter 或不可达 branch。
+  <!-- verified: 2026-07-13 evidence="Home source-control/modal tests were RED before deletion; focused frontend 7 files/34 tests and full 112 files/786 tests PASS; typecheck/build PASS; JDAssistModal and unused locale keys are deleted." -->
+- [x] 18.4 RED-GREEN: Home auth `pendingAction` 只保存 `opaquePendingImportId`；一次性进程内 vault 保存 `{ rawText, targetLanguage, resumeId, idempotencyKey, expiresAt }` 并在登录成功后原子 consume 一次。正常路径以原 key 提交同一 exact request；refresh/lost、expired、duplicate consume 均不调用 import，清除 action、返回 Home 并显示本地化重新输入提示；route/browser storage/log/telemetry 均不得携带 JD 原文。
+  <!-- verified: 2026-07-13 evidence="One-shot pending import vault tests cover normal consume, lost/expired/duplicate consume, same idempotency key, no import on invalid recovery and no raw JD in route or browser storage; focused/full frontend gates PASS." -->
+- [x] 18.5 RED-GREEN: backend TargetJob decode/service/store/runner 删除 public 多来源 union、URL fetch/refresh、JD attachment purpose、structured manual-form branch 及 source-specific persistence/event/config，同时保留文本 validation、idempotency、parse failure/retry、privacy 与 resume binding。
+  <!-- verified: 2026-07-13 method=focused-backend+real-postgres+scenario evidence="TargetJob package and HTTP scenarios prove exact rawText import, user-scoped idempotency, resume binding, parse failure/recovery and source-free persistence/event/job paths; obsolete urlfetch package and source refresh registration are absent." -->
+- [x] 18.6 REGRESSION-GATE: UI contract、Home focused Vitest、OpenAPI lint/fixture/generated drift、backend TargetJob tests、typecheck/build 与 Resume upload owner tests 全部通过。
+  <!-- verified: 2026-07-14 method=focused-full+isolated-index-codegen evidence="UI source contract 59/59; Home/Parse focused Vitest 75/75; TargetJob and Upload Go packages, frontend typecheck/build, lint-openapi and 37-operation fixture validation pass. make codegen is byte-idempotent across 77 outputs, and make codegen-check passes against an isolated index containing the current intended contract without mutating the real index." -->
+- [x] 18.7 BDD-Gate: 原地修订 `E2E.P0.014` / `E2E.P0.015`，P0.015 覆盖 paste success、exact request、auth pending replay、4xx/failed、idempotency、privacy 与 Parse loading；在 1440×900 和 390×844 捕获 Home/Parse 截图并验证 DOM、computed style、bbox 与 viewport parity。
+  <!-- verified: 2026-07-13 method=scenario-run evidence="E2E.P0.014 and E2E.P0.015 setup/trigger/verify/cleanup PASS serially; Home formal/prototype changedRatio desktop=0.000323 mobile=0.000481; Parse changedRatio desktop=0.000556 mobile=0.001499 with exact viewport, DOM/style/bbox gates." -->
+- [x] 18.8 ZERO-REF-GATE: 删除 URL 专属 `E2E.P0.011` 实体目录与 active INDEX 行且不复用编号；扫描 active UI truth、owner docs、OpenAPI/generated、frontend Home、backend TargetJob 与 active scenarios，确认旧 JD source controls/modal/route source/schema/fixture/branch/scenario 为零，排除 work-journal/bug/report 等合法历史证据并明确允许 Resume upload 资产。
+  <!-- verified: 2026-07-14 method=exact-negative-scan evidence="P0.011 directory and active INDEX row, JDAssistModal files, urlfetch package, source.refreshed schema and source enum refs are absent. Current UI/OpenAPI/generated/TargetJob/shared/migration/config/prompt production scans have zero retired control/schema/event/job/handler/purpose/token hits; remaining owner-doc and active-scenario hits are normative negative assertions, while Resume upload and independent source_records stay explicitly allowed." -->
+- [x] 18.9 PHASE-HANDOFF: owner spec/plan/checklist/BDD/context 与 document INDEX 完成 reconcile，`validate_context.py`、`sync-doc-index --check`、`make docs-check`、`git diff --check` 和 pruning gate 通过；因 Phase 19 已重开，计划保持 `active`，最终 `completed` 仅由 19.7 承接。
+  <!-- verified: 2026-07-14 decision="用户批准方案 A" method=context+docs+diff+pruning evidence="frontend target context validation, sync-doc-index, docs links/fragments, git diff --check and pruning gate all pass; pruning reports real_residuals=0. Phase 18 hands off without claiming whole-plan completion." current-owner="19.7" -->
+
+## Phase 19: Plan-detail report entry and independent-list handoff
+
+- [x] 19.1 RED-GREEN: prototype/formal Parse ready state 在内容区标题行右上角增加“面试报告”页面级入口；1440×900/390×844 DOM/style/bbox/viewport/screenshot parity 保持，且全局 TopBar 不出现该入口。
+  <!-- verified: 2026-07-14 method=ui-contract+P0.016+acceptance-screenshots evidence="Prototype/formal source contract and P0.016 pass; exact desktop/mobile acceptance images show the content-header entry and three-item TopBar with no global report entry." -->
+- [x] 19.2 RED-GREEN: 入口只使用当前可信 TargetJob ID，点击精确导航 `{ name: "reports", params: { targetJobId } }`；缺失/非法上下文不得拼接 report/status/round authority。
+  <!-- verified: 2026-07-14 method=prototype+formal-vitest evidence="UI contract 62/62 and Parse report handoff focused tests prove the page-level entry uses only the loaded matching TargetJob ID and navigates to reports with targetJobId only." -->
+- [x] 19.3 RED-GREEN: 从 Parse prototype、formal component、i18n 与 tests 删除嵌入式报告列表、current/latest row、loading/error/empty state 和相关交互；原只读详情与 Start 行为不变。
+  <!-- verified: 2026-07-14 method=source-contract+focused-vitest evidence="Prototype contract 62/62 and Parse focused tests pass after embedded report DOM/state/actions and nine unreachable list locale keys were removed; only parse.reports.label remains for the page-level entry." -->
+- [x] 19.4 RED-GREEN: 删除 Parse 的 `listTargetJobReports` effect/loader/validator consumer；component/generated-client spy 证明 ready、loading、failed、target switch 均零列表请求，正式 consumer 只在 report owner。
+  <!-- verified: 2026-07-14 method=focused-vitest evidence="ParseReports.test.tsx 5/5 proves ready, loading, failed, hostile section and TargetJob switch make zero listTargetJobReports calls and render no list." -->
+- [x] 19.5 RED-GREEN: 删除 `section=reports` safe param、锚点、滚动/聚焦与兼容分支；hostile `section`/report/status/round query 被 shared route 层剔除且不能改变 TargetJob。
+  <!-- verified: 2026-07-14 method=route-tdd evidence="Routing/App/auth/privacy focused suite 152/152 and legacy P0.088/P0.089/P0.090 unit regressions 23/23 pass with Parse section/report/status/round inputs stripped and no focus/scroll branch." -->
+- [x] 19.6 BDD-Gate: 原地扩展 `E2E.P0.016` 覆盖右上入口、精确 target handoff、TopBar negative、Parse 无列表/无请求/无 section 兼容、只读详情与 Start 回归及 desktop/mobile parity。
+  <!-- verified: 2026-07-14 scenario=E2E.P0.016 evidence="Source 3/3, real API 1/1, Vitest 105/105, production build and Playwright 6/6 pass; formal/prototype changedRatio is 0 at both viewports." -->
+- [x] 19.7 POST-PASS: focused Parse/route/i18n tests、UI source contract、typecheck/build、P0.016、owner contexts、docs/diff 与 `listTargetJobReports` consumer negative gate 全部通过后再完成本 Phase。
+  <!-- verified: 2026-07-14 method=current-aggregate evidence="Parse/route/i18n, UI 62/62, frontend 121 files/977 tests, typecheck/build, P0.016, context and single-consumer negatives pass; docs/diff/pruning closeout is current." -->

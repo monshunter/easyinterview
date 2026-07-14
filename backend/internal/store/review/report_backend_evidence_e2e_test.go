@@ -336,9 +336,9 @@ insert into resumes (
 ) values ($1,$2,'Evidence Resume','Frozen resume','en','ready','{}'::jsonb,'resume source','paste','resume source','resume source','{}'::jsonb,$3,$3)`, f.resumeID, f.userID, f.now)
 	f.exec(t, `
 insert into target_jobs (
-  id,user_id,resume_id,status,analysis_status,title,company_name,target_language,source_type,
+  id,user_id,resume_id,status,analysis_status,title,company_name,target_language,
   raw_jd_text,summary,fit_summary,created_at,updated_at
-) values ($1,$2,$3,'draft','ready','Frozen Platform Engineer','Frozen Company','en','manual_text','frozen jd',$4::jsonb,'{}'::jsonb,$5,$5)`,
+) values ($1,$2,$3,'draft','ready','Frozen Platform Engineer','Frozen Company','en','frozen jd',$4::jsonb,'{}'::jsonb,$5,$5)`,
 		f.targetID, f.userID, f.resumeID, storeReportTargetSummaryJSON(), f.now)
 	f.exec(t, `
 insert into practice_plans (
@@ -396,7 +396,7 @@ func (f *storeReportEvidenceFixture) seedGeneratingReport(t *testing.T, offset i
 	clientMessageID := f.id(offset + 6)
 	f.exec(t, `insert into practice_sessions (id,user_id,plan_id,target_job_id,status,language,completed_at,created_at,updated_at) values ($1,$2,$3,$4,'completed','en',$5,$5,$5)`, sessionID, f.userID, f.planID, f.targetID, f.now)
 	f.exec(t, `insert into practice_messages (id,session_id,seq_no,role,content,created_at) values ($1,$2,1,'assistant','Describe the migration.',$3)`, assistant1, sessionID, f.now)
-	f.exec(t, `insert into practice_messages (id,session_id,seq_no,role,content,client_message_id,created_at) values ($1,$2,2,'user','I used queue backpressure and monitored saturation.',$3,$4)`, user2, sessionID, clientMessageID, f.now)
+	f.exec(t, `insert into practice_messages (id,session_id,seq_no,role,content,client_message_id,reply_status,reply_generation,created_at) values ($1,$2,2,'user','I used queue backpressure and monitored saturation.',$3,'complete',1,$4)`, user2, sessionID, clientMessageID, f.now)
 	f.exec(t, `insert into practice_messages (id,session_id,seq_no,role,content,reply_to_message_id,created_at) values ($1,$2,3,'assistant','What was the rollback plan?',$3,$4)`, assistant3, sessionID, user2, f.now)
 	f.exec(t, `insert into feedback_reports (id,user_id,session_id,target_job_id,status,generation_context,created_at,updated_at) values ($1,$2,$3,$4,'generating',$5::jsonb,$6,$6)`, reportID, f.userID, sessionID, f.targetID, snapshotRaw, f.now)
 	f.exec(t, `insert into async_jobs (id,job_type,resource_type,resource_id,status,attempts,max_attempts,payload,available_at,locked_at,created_at,updated_at) values ($1,'report_generate','feedback_report',$2,'running',1,4,'{}'::jsonb,$3,$3,$3,$3)`, jobID, reportID, f.now)

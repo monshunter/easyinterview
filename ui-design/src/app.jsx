@@ -78,6 +78,7 @@ const DEFAULT_INTERVIEW_CONTEXT = {
 
 const INTERVIEW_CONTEXT_ROUTES = new Set(["practice"]);
 const REPORT_LOCATOR_ROUTES = new Set(["generating", "report"]);
+const TARGET_JOB_LOCATOR_ROUTES = new Set(["parse", "reports"]);
 const normalizeRouteName = (name) => ROUTE_ALIASES[name] || name;
 const shouldCarryInterviewContext = (name) => INTERVIEW_CONTEXT_ROUTES.has(normalizeRouteName(name));
 const paramsFromSearch = (params) => {
@@ -107,6 +108,7 @@ const createInterviewContext = (params = {}, fallback = DEFAULT_INTERVIEW_CONTEX
 const paramsForRoute = (name, params = {}, fallback = DEFAULT_INTERVIEW_CONTEXT) => {
   const normalizedName = normalizeRouteName(name);
   if (REPORT_LOCATOR_ROUTES.has(normalizedName)) return stripUndefined({ reportId: params.reportId });
+  if (TARGET_JOB_LOCATOR_ROUTES.has(normalizedName)) return stripUndefined({ targetJobId: params.targetJobId });
   if (shouldCarryInterviewContext(normalizedName)) return createInterviewContext(params, fallback);
   return stripUndefined(params);
 };
@@ -263,12 +265,17 @@ const App = () => {
   // Apply font CSS vars
   useEffect(() => {
     document.documentElement.style.setProperty("--ei-serif", `"${tweaks.serifFamily}", Georgia, serif`);
-    document.documentElement.style.setProperty("--ei-sans", `"${tweaks.sansFamily}", -apple-system, sans-serif`);
+    document.documentElement.style.setProperty("--ei-sans", `"${tweaks.sansFamily}", "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`);
     document.body.style.background = T.bg;
     document.body.style.color = T.ink;
   }, [tweaks.serifFamily, tweaks.sansFamily, T.bg, T.ink]);
 
   const activeRouteName = normalizeRoute(route.name);
+  // Screenshot-only fixture selector. It is intentionally kept outside route.params,
+  // whose reports contract retains targetJobId as its sole locator.
+  const prototypeReportDemoState = activeRouteName === "reports"
+    ? new URLSearchParams(window.location.hash.slice(1)).get("reportState")
+    : undefined;
   const currentContext = React.useMemo(() => createInterviewContext(route.params || {}), [route.params]);
   const nav = (name, params = {}) => {
     const nextName = normalizeRoute(name);
@@ -324,7 +331,8 @@ const App = () => {
     workspace: <WorkspaceScreen T={T} lang={lang} nav={nav} />,
     practice: <PracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} jobId={currentContext.targetJobId} mode={route.params.mode} />,
     report: <ReportScreen T={T} lang={lang} nav={nav} params={route.params || {}} requestAuth={requestAuth} />,
-    parse: <ParseScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} />,
+    parse: <ParseScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} params={route.params || {}} />,
+    reports: <ReportsScreen T={T} lang={lang} nav={nav} params={route.params || {}} demoState={prototypeReportDemoState} />,
     generating: <ReportGeneratingScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     settings: <SettingsScreen T={T} lang={lang} fontPreset={tweaks.fontPreset} setFontPreset={setFontPreset} />,
     resume_versions: <ResumeVersionsScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,

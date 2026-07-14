@@ -2,21 +2,301 @@
   "operationId": "sendPracticeMessage",
   "scenarios": {
     "default": {
-      "request": {"headers": {}, "body": {"clientMessageId": "01918fa0-0000-7000-8000-000000006001", "text": "我主导过一次跨团队设计系统迁移。"}},
+      "request": {
+        "headers": {},
+        "body": {
+          "clientMessageId": "01918fa0-0000-7000-8000-000000007001",
+          "text": "我主导过一次跨团队设计系统迁移。"
+        }
+      },
       "response": {
         "status": 200,
-        "headers": {"X-Request-ID": "req_2026-07-12-message-send"},
+        "headers": {
+          "X-Request-ID": "req_2026-07-12-message-send"
+        },
         "body": {
           "acknowledged": true,
-          "session": {"id": "01918fa0-0000-7000-8000-000000005000", "planId": "01918fa0-0000-7000-8000-000000004000", "targetJobId": "01918fa0-0000-7000-8000-000000002000", "status": "running", "language": "zh-CN", "messages": [{"id": "01918fa0-0000-7000-8000-000000006000", "seqNo": 1, "role": "assistant", "content": "你好，我们直接开始。", "createdAt": "2026-07-12T08:02:00Z"}, {"id": "01918fa0-0000-7000-8000-000000006001", "seqNo": 2, "role": "user", "content": "我主导过一次跨团队设计系统迁移。", "createdAt": "2026-07-12T08:03:00Z"}, {"id": "01918fa0-0000-7000-8000-000000006002", "seqNo": 3, "role": "assistant", "content": "当时最难协调的分歧是什么？", "createdAt": "2026-07-12T08:03:01Z"}], "createdAt": "2026-07-12T08:02:00Z", "updatedAt": "2026-07-12T08:03:01Z"},
-          "userMessage": {"id": "01918fa0-0000-7000-8000-000000006001", "seqNo": 2, "role": "user", "content": "我主导过一次跨团队设计系统迁移。", "createdAt": "2026-07-12T08:03:00Z"},
-          "assistantMessage": {"id": "01918fa0-0000-7000-8000-000000006002", "seqNo": 3, "role": "assistant", "content": "当时最难协调的分歧是什么？", "createdAt": "2026-07-12T08:03:01Z"}
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "zh-CN",
+            "messages": [
+              {
+                "id": "01918fa0-0000-7000-8000-000000006000",
+                "seqNo": 1,
+                "role": "assistant",
+                "content": "你好，我们直接开始。",
+                "createdAt": "2026-07-12T08:02:00Z"
+              },
+              {
+                "id": "01918fa0-0000-7000-8000-000000006001",
+                "seqNo": 2,
+                "role": "user",
+                "content": "我主导过一次跨团队设计系统迁移。",
+                "clientMessageId": "01918fa0-0000-7000-8000-000000007001",
+                "replyStatus": "complete",
+                "createdAt": "2026-07-12T08:03:00Z"
+              },
+              {
+                "id": "01918fa0-0000-7000-8000-000000006002",
+                "seqNo": 3,
+                "role": "assistant",
+                "content": "当时最难协调的分歧是什么？",
+                "createdAt": "2026-07-12T08:03:01Z"
+              }
+            ],
+            "createdAt": "2026-07-12T08:02:00Z",
+            "updatedAt": "2026-07-12T08:03:01Z"
+          },
+          "userMessage": {
+            "id": "01918fa0-0000-7000-8000-000000006001",
+            "seqNo": 2,
+            "role": "user",
+            "content": "我主导过一次跨团队设计系统迁移。",
+            "clientMessageId": "01918fa0-0000-7000-8000-000000007001",
+            "replyStatus": "complete",
+            "createdAt": "2026-07-12T08:03:00Z"
+          },
+          "assistantMessage": {
+            "id": "01918fa0-0000-7000-8000-000000006002",
+            "seqNo": 3,
+            "role": "assistant",
+            "content": "当时最难协调的分歧是什么？",
+            "createdAt": "2026-07-12T08:03:01Z"
+          }
         }
       }
     },
-    "ai-timeout": {
-      "request": {"headers": {}, "body": {"clientMessageId": "01918fa0-0000-7000-8000-000000006003", "text": "我先把风险拆成三类。"}},
-      "response": {"status": 502, "headers": {"X-Request-ID": "req_2026-07-12-message-timeout"}, "body": {"error": {"code": "AI_PROVIDER_TIMEOUT", "message": "AI provider timed out while continuing the conversation", "requestId": "req_2026-07-12-message-timeout", "retryable": true}}}
+    "validation-empty-text": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientMessageId": "01918fa0-0000-7000-8000-000000007020",
+          "text": ""
+        }
+      },
+      "response": {
+        "status": 422,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-message-validation"
+        },
+        "body": {
+          "error": {
+            "code": "VALIDATION_FAILED",
+            "message": "text is required",
+            "requestId": "req_2026-07-13-message-validation",
+            "retryable": false,
+            "details": {
+              "field": "text",
+              "reservation": "not_created"
+            }
+          }
+        }
+      }
+    },
+    "auth-unauthorized": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientMessageId": "01918fa0-0000-7000-8000-000000007021",
+          "text": "我先说明背景。"
+        }
+      },
+      "response": {
+        "status": 401,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-message-auth"
+        },
+        "body": {
+          "error": {
+            "code": "AUTH_UNAUTHORIZED",
+            "message": "authentication required",
+            "requestId": "req_2026-07-13-message-auth",
+            "retryable": false,
+            "details": {
+              "reservation": "not_created"
+            }
+          }
+        }
+      }
+    },
+    "session-not-found": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientMessageId": "01918fa0-0000-7000-8000-000000007022",
+          "text": "我先说明背景。"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-message-session-not-found"
+        },
+        "body": {
+          "error": {
+            "code": "PRACTICE_SESSION_NOT_FOUND",
+            "message": "practice session not found",
+            "requestId": "req_2026-07-13-message-session-not-found",
+            "retryable": false,
+            "details": {
+              "reservation": "not_created"
+            }
+          }
+        }
+      }
+    },
+    "reply-pending-conflict": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+          "text": "我先把风险拆成三类。"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-message-pending-conflict"
+        },
+        "body": {
+          "error": {
+            "code": "PRACTICE_SESSION_CONFLICT",
+            "message": "the existing reply is still pending",
+            "requestId": "req_2026-07-13-message-pending-conflict",
+            "retryable": false,
+            "details": {
+              "reservation": "unchanged",
+              "replyStatus": "pending"
+            }
+          }
+        }
+      }
+    },
+    "client-message-mismatch": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+          "text": "这是同一个 ID 下被篡改的文本。"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-message-mismatch"
+        },
+        "body": {
+          "error": {
+            "code": "IDEMPOTENCY_KEY_MISMATCH",
+            "message": "clientMessageId was reused with different text",
+            "requestId": "req_2026-07-13-message-mismatch",
+            "retryable": false,
+            "details": {
+              "field": "clientMessageId",
+              "reservation": "unchanged"
+            }
+          }
+        }
+      }
+    },
+    "ai-timeout-retryable": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+          "text": "我先把风险拆成三类。"
+        }
+      },
+      "response": {
+        "status": 502,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-message-timeout"
+        },
+        "body": {
+          "error": {
+            "code": "AI_PROVIDER_TIMEOUT",
+            "message": "AI provider timed out while continuing the conversation",
+            "requestId": "req_2026-07-13-message-timeout",
+            "retryable": true,
+            "details": {
+              "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+              "reservation": "persisted",
+              "replyStatus": "retryable_failed"
+            }
+          }
+        }
+      }
+    },
+    "retry-success-same-client-message": {
+      "request": {
+        "headers": {},
+        "body": {
+          "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+          "text": "我先把风险拆成三类。"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-07-13-message-retry-success"
+        },
+        "body": {
+          "acknowledged": true,
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005010",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "zh-CN",
+            "messages": [
+              {
+                "id": "01918fa0-0000-7000-8000-000000006009",
+                "seqNo": 1,
+                "role": "assistant",
+                "content": "请说明你如何处理一次高风险发布。",
+                "createdAt": "2026-07-13T08:02:00Z"
+              },
+              {
+                "id": "01918fa0-0000-7000-8000-000000006010",
+                "seqNo": 2,
+                "role": "user",
+                "content": "我先把风险拆成三类。",
+                "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+                "replyStatus": "complete",
+                "createdAt": "2026-07-13T08:03:00Z"
+              },
+              {
+                "id": "01918fa0-0000-7000-8000-000000006011",
+                "seqNo": 3,
+                "role": "assistant",
+                "content": "哪一类风险最容易被团队低估？",
+                "createdAt": "2026-07-13T08:03:02Z"
+              }
+            ],
+            "createdAt": "2026-07-13T08:02:00Z",
+            "updatedAt": "2026-07-13T08:03:02Z"
+          },
+          "userMessage": {
+            "id": "01918fa0-0000-7000-8000-000000006010",
+            "seqNo": 2,
+            "role": "user",
+            "content": "我先把风险拆成三类。",
+            "clientMessageId": "01918fa0-0000-7000-8000-000000007010",
+            "replyStatus": "complete",
+            "createdAt": "2026-07-13T08:03:00Z"
+          },
+          "assistantMessage": {
+            "id": "01918fa0-0000-7000-8000-000000006011",
+            "seqNo": 3,
+            "role": "assistant",
+            "content": "哪一类风险最容易被团队低估？",
+            "createdAt": "2026-07-13T08:03:02Z"
+          }
+        }
+      }
     }
   }
 }

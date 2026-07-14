@@ -7,8 +7,8 @@ metadata:
   baseBranch: main
   branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.53
-    to: 1.54
+    from: 1.56
+    to: 1.58
 spec:
   defaultTarget: contract
   discovery:
@@ -26,14 +26,19 @@ spec:
       - REPORT_CONTEXT_TOO_LARGE additive enum
       - conditional contract baseline source forbidden
       - derived source required non-null
-      - OPENAPI-002 exact 15 findings
+      - OPENAPI-002 exact 17 findings
+      - TARGET_IMPORT_SOURCE_INVALID TARGET_IMPORT_SOURCE_UNAVAILABLE removed
       - TargetJob paste only pre-release correction
       - old baseline before re-freeze
       - importTargetJob invariant
       - createUploadPresign retained
       - target job import zero reference
       - Practice recovery separate finding audit
+      - D-35 Practice machine oracle non ADR
       - role discriminated PracticeMessage
+      - OPENAPI-004 report overview exact oracle
+      - listTargetJobReports invariant
+      - no latest report pointer
     keywords:
       - openapi-diff
       - additive only
@@ -55,6 +60,7 @@ spec:
       references:
         - ../../decisions/OPENAPI-001-report-direct-semantics.md
         - ../../decisions/OPENAPI-002-targetjob-paste-only.md
+        - ../../decisions/OPENAPI-004-targetjob-report-overview.md
         - ../001-bootstrap/plan.md
         - ../002-fixtures-and-mock-source/plan.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md

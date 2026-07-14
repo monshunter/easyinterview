@@ -9,7 +9,7 @@ import {
 
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
-import { useI18n } from "../../i18n/messages";
+import { useI18n, type MessageKey } from "../../i18n/messages";
 import {
   buildTargetJobRoundAssumptions,
   resolveTargetJobPracticeProgress,
@@ -105,16 +105,15 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const requestAuth = useRequestAuth();
   const [stage, setStage] = useState<Stage>(_mockStage ?? "loading");
   const [step, setStep] = useState(0);
-  const [targetJob, setTargetJob] = useState<TargetJob | null>(
-    _mockTargetJob ?? null,
-  );
+  const [loadedTargetJob, setLoadedTargetJob] = useState<TargetJob | null>(null);
+  const targetJob = _mockTargetJob ?? loadedTargetJob;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<MessageKey | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [resumesLoading, setResumesLoading] = useState(false);
   const [readyResumes, setReadyResumes] = useState<Resume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState("");
-  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState<MessageKey | null>(null);
   const [pollNonce, setPollNonce] = useState(0);
   const [pendingReadyJob, setPendingReadyJob] = useState<TargetJob | null>(null);
   const [loadingComplete, setLoadingComplete] = useState(false);
@@ -129,8 +128,12 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const isWorkspaceDetail = route.name === "workspace";
   const compactLayout = useParseCompactLayout();
   const routeTestId = isWorkspaceDetail ? "route-workspace" : "route-parse";
+  const rounds = useMemo(
+    () => buildTargetJobRoundAssumptions(targetJob),
+    [targetJob],
+  );
   const hydrateReadyJob = useCallback((job: TargetJob) => {
-    setTargetJob(job);
+    setLoadedTargetJob(job);
   }, []);
 
   useEffect(() => {
@@ -140,7 +143,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       clearTimeout(pollingRef.current);
       pollingRef.current = null;
     }
-    setTargetJob(null);
+    setLoadedTargetJob(null);
     setErrorMessage(null);
     setConfirmError(null);
     setReadyResumes([]);
@@ -292,11 +295,11 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             : "",
         );
       })
-      .catch((err: unknown) => {
+      .catch(() => {
         if (!active || resumeRequestSeqRef.current !== requestSeq) return;
         setReadyResumes([]);
         setSelectedResumeId("");
-        setResumeError(err instanceof Error ? err.message : String(err));
+        setResumeError("parse.errors.resumeLoad");
       })
       .finally(() => {
         if (active && resumeRequestSeqRef.current === requestSeq) {
@@ -318,6 +321,19 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const handleCancel = useCallback(() => {
     navigate(isWorkspaceDetail ? { name: "workspace", params: {} } : { name: "home", params: {} });
   }, [isWorkspaceDetail, navigate]);
+
+  const handleOpenReports = useCallback(() => {
+    if (
+      stage !== "preview" ||
+      route.name !== "parse" ||
+      !targetJobId ||
+      !targetJob ||
+      targetJob.id !== targetJobId
+    ) {
+      return;
+    }
+    navigate({ name: "reports", params: { targetJobId: targetJob.id } });
+  }, [navigate, route.name, stage, targetJob, targetJobId]);
 
   const handleReparse = useCallback(() => {
     if (pollingRef.current) {
@@ -364,8 +380,8 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         name: "practice",
         params: started.params,
       });
-    } catch (err: unknown) {
-      setConfirmError(err instanceof Error ? err.message : String(err));
+    } catch {
+      setConfirmError("parse.errors.start");
     } finally {
       setConfirming(false);
     }
@@ -702,22 +718,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               );
             })}
           </div>
-          <div
-            data-testid="parse-loading-footer"
-            style={{
-              marginTop: 40,
-              paddingTop: 20,
-              borderTop: "1px dotted var(--ei-color-rule-strong)",
-              fontSize: 12,
-              color: "var(--ei-color-fg-tertiary)",
-              fontFamily: "var(--ei-font-mono)",
-              lineHeight: 1.6,
-            }}
-          >
-            <div>model · backend-managed · current locale</div>
-            <div>rubric · target-job parse · provenance redacted</div>
-            <div>typical · 3–6s · this one · slightly richer JD</div>
-          </div>
         </div>
       </section>
     );
@@ -729,7 +729,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const hiddenSignals = requirements
     .filter((r) => r.kind === "hidden_signal")
     .map((r) => r.label);
-  const rounds = buildTargetJobRoundAssumptions(targetJob, t);
   const progress = resolveTargetJobPracticeProgress(targetJob);
   const launchDisabled =
     resumesLoading || !selectedResume || confirming || !progress.currentRound;
@@ -751,14 +750,14 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         data-testid="unified-plan-detail"
         style={{
           display: "flex",
-          flexDirection: compactLayout ? "column" : "row",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: compactLayout ? 16 : 24,
+          gap: 16,
+          flexWrap: "wrap",
           marginBottom: 24,
         }}
       >
-        <div>
+        <div style={{ minWidth: 0, flex: "1 1 520px" }}>
           <div
             className="ei-label"
             style={{
@@ -772,7 +771,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             data-testid="unified-plan-detail-title"
             className="ei-serif"
             style={{
-              fontSize: compactLayout ? 28 : 32,
+              fontSize: 32,
               margin: 0,
               color: "var(--ei-color-fg-primary)",
               letterSpacing: "-0.02em",
@@ -793,37 +792,60 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             {t("parse.previewSub")}
           </div>
         </div>
-        <div style={{ textAlign: compactLayout ? "left" : "right" }}>
-          <div
-            className="ei-label"
-            style={{
-              color: "var(--ei-color-fg-tertiary)",
-              marginBottom: 4,
-            }}
-          >
-            {t("parse.sourceLabel")}
-          </div>
-          <div
-            style={{
-              fontSize: 12,
-              fontFamily: "var(--ei-font-mono)",
-              color: "var(--ei-color-fg-secondary)",
-              maxWidth: 280,
-              wordBreak: "break-all",
-            }}
-          >
-            {targetJob?.sourceUrl ?? "—"}
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              color: "var(--ei-color-fg-tertiary)",
-              marginTop: 4,
-            }}
-          >
-            {t("parse.fetchedNow")}
-          </div>
-        </div>
+        {route.name === "parse" &&
+          targetJobId &&
+          targetJob?.id === targetJobId && (
+            <span data-testid="parse-reports-entry" style={{ flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={handleOpenReports}
+                onMouseDown={(event) => {
+                  event.currentTarget.style.transform = "translateY(0.5px)";
+                }}
+                onMouseUp={(event) => {
+                  event.currentTarget.style.transform = "";
+                }}
+                onMouseLeave={(event) => {
+                  event.currentTarget.style.transform = "";
+                }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  height: 38,
+                  padding: "0 16px",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  background: "var(--ei-color-bg-canvas)",
+                  color: "var(--ei-color-fg-primary)",
+                  border: "1px solid var(--ei-color-rule-strong)",
+                  borderRadius: 2,
+                  cursor: "pointer",
+                  opacity: 1,
+                  fontFamily: "var(--ei-font-sans)",
+                  letterSpacing: "-0.005em",
+                  transition: "transform .08s ease, opacity .15s",
+                }}
+              >
+                <svg
+                  aria-hidden="true"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle" }}
+                >
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+                {t("parse.reports.label")}
+              </button>
+            </span>
+          )}
       </div>
 
       {/* Basic fields */}
@@ -929,7 +951,16 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         }}
       >
         {/* Must Have */}
-        <div className="ei-screen-card" style={{ padding: 0 }}>
+        <div
+          style={{
+            background: "var(--ei-color-bg-card)",
+            border: "1px solid var(--ei-color-rule-strong)",
+            borderRadius: "var(--ei-radius-md)",
+            padding: 0,
+            cursor: "default",
+            transition: "border-color .15s, transform .15s",
+          }}
+        >
           <div
             style={{
               padding: "14px 20px",
@@ -991,7 +1022,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         </div>
 
         {/* Nice to Have */}
-        <div className="ei-screen-card" style={{ padding: 0 }}>
+        <div className="ei-screen-card" style={{ padding: 0, display: "block", gap: 0 }}>
           <div
             style={{
               padding: "14px 20px",
@@ -1372,7 +1403,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                     marginBottom: 4,
                   }}
                 >
-                  {t("parse.resumeEmptyTitle")}
+                  {resumeError ? t("parse.errorTitle") : t("parse.resumeEmptyTitle")}
                 </div>
                 <div
                   style={{
@@ -1382,7 +1413,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                     marginBottom: 12,
                   }}
                 >
-                  {resumeError ?? t("parse.resumeEmptyBody")}
+                  {resumeError ? t(resumeError) : t("parse.resumeEmptyBody")}
                 </div>
               </div>
             )}
@@ -1404,7 +1435,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             marginBottom: 12,
           }}
         >
-          {confirmError}
+          {t(confirmError)}
         </div>
       )}
       <div

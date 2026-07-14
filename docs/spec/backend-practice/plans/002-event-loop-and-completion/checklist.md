@@ -1,8 +1,8 @@
 # 002 — Conversation Message Loop and Completion Checklist
 
-> **版本**: 2.7
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 2.8
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -60,17 +60,43 @@
 
 ## Phase 10: Server-recoverable message reply state
 
-- [ ] 10.1 RED: store/service/API/OpenAPI tests prove failed reservations lack durable/public recovery status and `getPracticeSession` cannot return the original replay identity; generated TS error tests prove `retryable` is dropped.
-- [ ] 10.2 GREEN: baseline migration and store add user-only `reply_status=pending|retryable_failed|terminal_failed|complete`; reserve/fail/commit transitions are atomic, user-scoped and preserve unique user/reply rows.
-- [ ] 10.3 GREEN: generated `PracticeMessage` exposes user `clientMessageId/replyStatus`; `getPracticeSession` fixtures cover pending/retryable/terminal/complete and assistant messages omit recovery fields.
-- [ ] 10.4 GREEN: generated TS `ApiClientError` preserves HTTP status plus parsed `ApiErrorResponse`; JSON/non-JSON/empty/Abort/transport tests pass and no consumer parses `Error.message`.
-- [ ] 10.5 BDD-Gate: P0.046 proves AI failure → reload/readback → same-ID retry → one assistant reply, plus pending/terminal/cross-user/privacy gates; P0.044 remains the immediate-send pending/success owner.
-- [ ] 10.6 Run focused/full backend, OpenAPI/codegen/fixture, migration, frontend composed owner, context/docs/index/diff gates and restore completed only after current evidence is recorded.
+- [x] 10.1 RED: store/service/API/OpenAPI tests prove failed reservations lack durable/public recovery status and `getPracticeSession` cannot return the original replay identity; generated TS error tests prove `retryable` is dropped.
+  <!-- verified: 2026-07-13 method=tdd-red evidence="Migration/store/domain/API/schema/generated-client tests failed on absent durable status, missing readback identity, generic PracticeMessage and dropped typed error metadata." -->
+- [x] 10.2 GREEN: baseline migration and store add user-only `reply_status=pending|retryable_failed|terminal_failed|complete`; reserve/fail/commit transitions are atomic, user-scoped and preserve unique user/reply rows.
+  <!-- verified: 2026-07-13 method=unit+real-postgres evidence="User-only four-state persistence, detached bounded failure finalization, retryable-only CAS, transactional assistant+complete commit, replay, isolation and uniqueness all PASS." -->
+- [x] 10.3 GREEN: generated `PracticeMessage` exposes user `clientMessageId/replyStatus`; `getPracticeSession` fixtures cover pending/retryable/terminal/complete and assistant messages omit recovery fields.
+  <!-- verified: 2026-07-13 method=openapi+api+fixture evidence="Generated role union and API projection compile; canonical four-state fixtures validate; assistant JSON omits clientMessageId/replyStatus." -->
+- [x] 10.4 GREEN: generated TS `ApiClientError` preserves HTTP status plus parsed `ApiErrorResponse`; JSON/non-JSON/empty/Abort/transport tests pass and no consumer parses `Error.message`.
+  <!-- verified: 2026-07-13 method=generated-client+frontend-consumer evidence="Valid JSON preserves status/envelope; non-JSON, empty, Abort and transport keep apiError=null and never expose raw bodies. Practice send failure classification uses typed kind/retryable metadata and localized copy, with no Error.message parsing or technical-text leak." -->
+- [x] 10.5 BDD-Gate: P0.046 proves AI failure → reload/readback → same-ID retry → one assistant reply, plus pending/terminal/cross-user/privacy gates; P0.044 remains the immediate-send pending/success owner.
+  <!-- verified: 2026-07-13 method=scenario-run evidence="E2E.P0.044 and P0.046 serial setup/trigger/verify/cleanup PASS. P0.046 migrated a unique temporary PostgreSQL database, proved retry convergence, terminal readback, same-ID uniqueness, cross-user hiding and privacy cascade, then dropped the database with zero residuals." -->
+- [x] 10.6 HISTORICAL-SUPERSEDED: the previous final aggregate gate is not current completion evidence after Phase 11 reopened the owner; current focused/full validation and lifecycle restoration are owned only by 11.8.
+  <!-- superseded: 2026-07-14 decision="User approved Scheme A; do not attempt the pre-Phase-11 aggregate against the evolved OpenAPI/database contract or treat historical PASS as current evidence." current-owner="11.8" -->
+
+## Phase 11: Lease-bounded generation fencing and lazy convergence
+
+- [x] 11.1 RED: migration SQL-contract plus store/domain tests define user-only `reply_generation/reply_lease_expires_at`, the exact state-transition table and 90-second boundary before implementation.
+  <!-- verified: 2026-07-14 method=go-test-red evidence="Migration contract first failed on missing reply_generation bigint; store/domain focused build then failed on missing PracticeReplyLeaseDuration and reservation ReplyGeneration before any GREEN implementation." -->
+- [x] 11.2 GREEN: baseline migration and reservation model persist `pending(Gn, serverNow+90s)`；same-ID retry increments generation；Fail/Commit clear lease；assistant/public API never expose either internal field.
+  <!-- verified: 2026-07-14 method=go-unit+isolated-postgres evidence="Baseline joint constraints require positive non-null generation and a pending-only lease; reservations create G1/serverNow+90s, retries own G+1, and Fail/Commit clear the lease without public projection." -->
+- [x] 11.3 RED-GREEN: `getPracticeSession` and same-ID reserve each lazily converge an expired pending row under the authorized session lock；GET returns `retryable_failed(Gn)` while reserve atomically owns `pending(Gn+1,newLease)`；unexpired/different-ID/terminal/complete/mismatch paths fail closed.
+  <!-- verified: 2026-07-14 method=injected-clock+store-tests evidence="Focused tests first required the service clock, then passed for the pre-boundary, exact <= boundary, GET expiry and same-ID expired G1-to-G2 paths under the authorized session lock." -->
+- [x] 11.4 RED-GREEN: reserve returns generation internally；Commit/Fail require expected generation and stale G1 after a G2 reservation returns typed conflict with zero status/reply writes.
+  <!-- verified: 2026-07-14 method=store-unit+real-postgres evidence="Commit and Fail compare expected generation after authorization locking; stale G1 operations after G2 return conflict and leave status and assistant rows unchanged." -->
+- [x] 11.5 RED-GREEN: the four exact independent-connection PostgreSQL concurrency tests pass: `TestIntegrationPracticeReplyConcurrentNewIDsReserveOnce`, `TestIntegrationPracticeReplyConcurrentSameIDInitialReserveOnce`, `TestIntegrationPracticeReplyConcurrentExpiredSameIDRetryAdvancesOneGeneration`, `TestIntegrationPracticeReplyStaleGenerationFencedAfterGETRecovery`.
+  <!-- verified: 2026-07-14 method=isolated-postgres-concurrency evidence="All four exact tests passed with distinct pg_backend_pid values and a shared start barrier; the temporary database was force-dropped with residual count zero." -->
+- [x] 11.6 CONTRACT-GATE: service/API/OpenAPI/codegen/fixture tests prove `PracticeMessage` remains `clientMessageId + replyStatus` only and generation/lease never leak into response, URL, logs or frontend state.
+  <!-- verified: 2026-07-14 method=service-api-contract evidence="Practice service/API/store/migration packages pass; raw response and scoped production scans expose no generation or lease fields outside backend persistence internals, while current OpenAPI/codegen/fixtures retain only clientMessageId and replyStatus." -->
+- [x] 11.7 BDD-Gate: P0.044/P0.046 run against current code and isolated migrated PostgreSQL；required lease/fence/concurrency/95-second-reconcile/terminal-plan/fingerprint markers pass, every screenshot has SHA-256 + dimensions + viewport, and verifier rejects any source-fingerprint drift or historical artifact.
+  <!-- reverified: 2026-07-14 method=serial-scenario-run evidence="Current-source P0.044 run cd8c378d-6fcc-4045-a00f-c9129873e511 and P0.046 run dfc68a8f-41de-46e5-9b0c-1aec3fbb67fb passed against source SHA 3e644ae013ee2159937e4853c8f3f32a3f2bd1f1351fd6fe74d9b66aa2ea11d2; screenshots, exact lease/fence/concurrency/recovery markers, cleanup and isolated database residual=0 all passed." -->
+- [x] 11.8 Run focused/full backend, migration, OpenAPI/codegen/fixture, scenario contract, context/docs/diff gates；only then record current evidence and restore completed lifecycle.
+  <!-- reverified: 2026-07-14 decision="User approved Scheme A" method=current-full-aggregate evidence="Root make test passed UI 62/62, Python 590 tests/5181 subtests, all Go packages and frontend 121 files/977 tests after exact event/table sets and shared-verifier ownership were repaired; current P0.044/P0.046, context, docs, diff and pruning gates pass, while 10.6 remains historical-superseded." -->
 
 ## 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.8 | Reopen with unchecked Phase 11 for lease expiry, generation fencing, real concurrency and freshness-bound scenario evidence. |
 | 2026-07-13 | 2.7 | Reopen for durable reply status and refresh-safe same-ID recovery. |
 | 2026-07-12 | 2.6 | 锁定 002 completion 唯一 owner、精确 P0.047 tests/markers/artifact。 |
 | 2026-07-12 | 2.5 | 要求至少一条 candidate user message 后才能 completion，并原子冻结 report-context.v1。 |

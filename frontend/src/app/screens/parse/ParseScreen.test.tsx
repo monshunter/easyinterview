@@ -28,10 +28,10 @@ describe("ParseScreen", () => {
     expect(screen.getByTestId("parse-loading-step-1")).toBeInTheDocument();
     expect(screen.getByTestId("parse-loading-step-2")).toBeInTheDocument();
     expect(screen.getByTestId("parse-loading-step-3")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-loading-footer")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-loading-footer")).not.toBeInTheDocument();
   });
 
-  it("renders loading footer without frontend provider or prompt assumptions", () => {
+  it("does not render internal parse metadata while loading", () => {
     render(
       wrap(
         <ParseScreen
@@ -40,8 +40,10 @@ describe("ParseScreen", () => {
       ),
     );
 
-    const footer = screen.getByTestId("parse-loading-footer");
-    expect(footer.textContent).not.toMatch(/claude|haiku|prompt@/i);
+    expect(screen.queryByTestId("parse-loading-footer")).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(
+      /model|provider|rubric|prompt@|provenance|typical|latency/i,
+    );
   });
 
   it("renders shell data attributes", () => {
@@ -71,7 +73,6 @@ describe("ParseScreen", () => {
             locationText: "Shanghai · Hybrid",
             analysisStatus: "ready",
             status: "draft",
-            sourceType: "manual_text",
             targetLanguage: "zh-CN",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -207,7 +208,6 @@ describe("ParseScreen", () => {
             companyName: "Acme",
             analysisStatus: "ready",
             status: "draft",
-            sourceType: "manual_text",
             targetLanguage: "zh-CN",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -237,7 +237,6 @@ describe("ParseScreen", () => {
             companyName: "Acme",
             analysisStatus: "ready",
             status: "draft",
-            sourceType: "manual_text",
             targetLanguage: "zh-CN",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),

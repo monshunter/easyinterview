@@ -8,7 +8,7 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
 grep -Eq '[0-9]+ passed' "$LOG_FILE"
-if grep -Eq '[0-9]+ failed' "$LOG_FILE"; then
+if grep -Eq '^[[:space:]]*[0-9]+ failed([[:space:]]|$)' "$LOG_FILE"; then
   echo "[verify] trigger.log reports failed tests" >&2
   exit 1
 fi
@@ -23,6 +23,7 @@ for spec in \
   parse.spec.ts \
   practice.spec.ts \
   report.spec.ts \
+  reports.spec.ts \
   resume-workshop-create.spec.ts \
   resume-workshop.spec.ts \
   screens.spec.ts \

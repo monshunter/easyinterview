@@ -1,6 +1,6 @@
 # F3 Baseline Registry, Resolve and Lint Gates
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
 > **更新日期**: 2026-07-13
 
@@ -11,7 +11,7 @@
 
 本 owner 固化 F3 baseline registry 的当前可执行合同：6 个 baseline `feature_key` 使用 canonical `multi` prompt / rubric / output schema 真理源，`backend/internal/ai/registry` 提供加载、hash 校验、`ResolveActive`、cache、Judge interface 与 registry client，TargetJob 解析链路通过 adapter 消费 registry resolution，AI task run 与 OpenAPI provenance 保持字段闭环。
 
-本次 v1.11 将 `target.import.parse` 收敛为 raw JD text 唯一内容输入；current prompt、YAML hash、baseline seed、resolved snapshot 与 TargetJob renderer 必须同步删除 URL/source metadata token 和 wording，不保留兼容变量。
+本次 v1.12 将 `target.import.parse` 收敛为 raw JD text 唯一内容输入；current prompt、YAML hash、baseline seed、resolved snapshot 与 TargetJob renderer 必须同步删除 URL/source metadata token 和 wording，不保留兼容变量。输出语言继续使用既有 `{{language}}` token，不新增 `{{target_language}}` alias。
 
 本 owner 不实现 prompt 编辑 UI、不直接调用 AI provider、不持有 provider/model 字符串、不改变 A3 model profile 状态。真实 provider routing 归 A3，output schema 深化归 F3 `002`，language coordinate 收敛归 F3 `003`，real judge / eval归 F3 `004`。
 
@@ -130,4 +130,4 @@ make validate-fixtures
 
 ### Phase 12: TargetJob raw-text-only prompt input
 
-RED 先让 prompt lint/hash、seed drift、registry snapshot 与 TargetJob render tests 对旧 source token/wording 失败。GREEN 删除 current prompt 的 URL/source metadata 变量与说明，只保留 `{{jd_text}}` 和输出语言指令 `{{target_language}}`，重算 YAML hash、同步 baseline seed body/hash 并删除 renderer 旧变量替换。最终运行 prompt/profile/migration/registry/TargetJob gates，确认 resolved snapshot byte-semantic 一致且 active zero-reference 为零；BDD 不适用，以上 contract gates 为替代验证。
+RED 先让 prompt lint/hash、seed drift、registry snapshot 与 TargetJob render tests 对旧 source token/wording 失败。GREEN 删除 current prompt 的 URL/source metadata 变量与说明，只保留 `{{jd_text}}` 和既有输出语言指令 `{{language}}`，重算 YAML hash、同步 baseline seed body/hash并删除 renderer 旧 source 变量替换；禁止新增 `{{target_language}}` alias。最终运行 prompt/profile/migration/registry/TargetJob gates，确认 resolved snapshot byte-semantic 一致且 active zero-reference 为零；BDD 不适用，以上 contract gates 为替代验证。

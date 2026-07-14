@@ -1,13 +1,16 @@
 # Frontend Report Dashboard History
 
-> **版本**: 1.20
+> **版本**: 1.24
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 1.24 | 闭合 Reports overview locator 单轮唯一归属、same-ID-only-ready 与 current/latest cross-field fail-closed；缺失或非法 target 使用 replace-only workspace recovery，避免浏览器 Back 循环。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| 2026-07-14 | 1.23 | 用户修正确认：本 owner 原地承接独立 `/reports?targetJobId=...`，仅展示当前规划 canonical rounds 的 current/latest；Report/Generating trusted Back 返回该列表，无可信上下文回 workspace。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| 2026-07-14 | 1.22 | 用户确认 R-A：Report/Generating 在 trusted response 有 `targetJobId` 时 Back 到 `parse?...&section=reports`，缺失可信 identity 时回 workspace；保持 reportId-only route 且不消费 reports list。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-13 | 1.20 | Supersede 1.18的runner-owned/durable口径：10s/20s/40s属于单次`GenerateReport`动作内retry；async job attempts只作基础设施执行；保留maxAttempts49/6m04s诚实轮询且不虚构failed-report regenerate API。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-13 | 1.19 | hidden/blur发生在timer或in-flight时保留attempt/next delay；visible/focus从n+1继续，单run仍cap49。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-13 | 1.18 | Generating轮询锁定maxAttempts49（约6m04s），覆盖report复用business policy的10s/20s/40s与4×60s调用；business async与outbox/infra退避分离，UI不显示内部attempt/progress。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |

@@ -1,8 +1,8 @@
 # DB Migrations Baseline Bootstrap Checklist
 
-> **版本**: 1.21
+> **版本**: 1.23
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -20,7 +20,7 @@
 - [x] 2.1 final schema 保留当前 21 张应用表 + ADR-Q1 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；只允许这 24 张当前应用 / auth 支撑表。验证: SQL inventory probe 断言 24 张表全部存在，且关键 FK / soft-delete / sensitive hash 字段符合 spec §4.2 / §4.4
 - [x] 2.2 `make migrate-up` 后 public schema table count ≥26（含 `schema_migrations` / `schema_backfills`）。验证: 干净 Postgres 上执行 current full migration chain 后查询 `information_schema.tables`，结果 ≥26 并记录在 handoff
 - [x] 2.3 `outbox_events` 包含 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message`，并有 `(publish_status, next_attempt_at, created_at)` pending due 查询索引。验证: information_schema column probe + `pg_indexes` probe + pending due `EXPLAIN` 命中对应索引
-- [x] 2.4 `async_jobs.job_type` check 包含 B3 当前 8 个 canonical jobType（含 internal-only `source_refresh` / `email_dispatch` 与 contract-only `privacy_export`），且 B2 API-facing subset 仍为 6 项。验证: migration lint 读取 B3/B2 manifests 后断言 DB check 值等于 B3 canonical 8 项，且 B2 API-facing subset 未被 internal-only `source_refresh` / `email_dispatch` 扩大
+- [x] 2.4 Historical Phase 2 delivered an 8-item jobType check that still included `source_refresh`; Phase 10 supersedes that net-state. Current migration lint requires the DB check to equal B3's 7 canonical job types and proves only internal-only `email_dispatch` sits outside the six-item B2 API-facing subset.
 - [x] 2.5 `ai_task_runs` 包含 `model_family` / `model_profile_name` / `model_profile_version` / `fallback_chain` / `route` / `validation_status` / `output_schema_version` typed columns。验证: information_schema probe 断言 typed columns、`fallback_chain jsonb not null default '[]'::jsonb`，并有 dashboard 查询不依赖 JSONB path scan 的 SQL/explain probe
 - [x] 2.6 覆盖 B4 B-Tree 索引与可选 `target_jobs` GIN 全文索引。验证: `pg_indexes` inventory 与关键 query `EXPLAIN` probes 覆盖 B-Tree 与 dev 默认 `target_jobs` GIN 全文索引
 
@@ -84,14 +84,38 @@
 
 ## Phase 10: TargetJob paste-only schema net-state
 
-- [ ] 10.1 RED: migration lint/SQL contracts/inventory tests 要求 20+3+2，并断言旧 TargetJob 来源列/表、JD attachment purpose 与 JD source refresh jobType 不存在；记录当前失败证据。
-- [ ] 10.2 GREEN: 原地修订 baseline up/down、enum sources、privacy matrix 与 SQL contracts；删除旧结构，保留 `raw_jd_text`、独立 `source_records`、resume/privacy purpose，不创建兼容层。
-- [ ] 10.3 BDD-Gate: 不适用；替代 gate 运行 migration contract、enum-source lint、privacy dry-run、focused migration tests 与 clean/populated PostgreSQL up/down/up。
-- [ ] 10.4 Zero-ref: migrations/enum sources/backend migration probes 中旧结构精确零命中；正向 probe 证明 `raw_jd_text`、`source_records`、resume/privacy purpose 与 20+3+2 inventory。
+- [x] 10.1 RED: migration lint/SQL contracts/inventory tests 要求 20+3+2，并断言旧 TargetJob 来源列/表、JD attachment purpose 与 JD source refresh jobType 不存在；记录当前失败证据。
+  <!-- verified: 2026-07-13 method=sql+privacy+lint-red evidence="focused gates failed on target_job_attachment, target_job_sources, source_file_object_id, source_refresh and the 26-vs-25 privacy inventory" -->
+- [x] 10.2 GREEN: 原地修订 baseline up/down、enum sources、privacy matrix 与 SQL contracts；删除旧结构，保留 `raw_jd_text`、独立 `source_records`、resume/privacy purpose，不创建兼容层。
+  <!-- verified: 2026-07-13 commands="migration lint; migrations_lint targetjob contract; backend/internal/migrations full tests" result="PASS; baseline/down and 000009/000014 constraints reconciled in place; enum checks and privacy matrix updated; raw_jd_text/source_records/resume/privacy retained; no compatibility migration" -->
+- [x] 10.3 BDD-Gate: 不适用；替代 gate 运行 migration contract、enum-source lint、privacy dry-run、focused migration tests 与 clean/populated PostgreSQL up/down/up。
+  <!-- verified: 2026-07-13 method=real-postgres+migrate-check evidence="make migrate-check PASS; clean migrated temporary PostgreSQL accepted focused Practice/Review repository scenarios and was removed without touching shared data." -->
+- [x] 10.4 Zero-ref: migrations/enum sources/backend migration probes 中旧结构精确零命中；正向 probe 证明 `raw_jd_text`、`source_records`、resume/privacy purpose 与 20+3+2 inventory。
+  <!-- verified: 2026-07-13 method=sql-negative+positive-probes evidence="Exact SQL scan has zero TargetJob source table/column/purpose residues; migration contract and privacy probes retain raw_jd_text, independent source_records, resume/privacy purposes and canonical inventory." -->
 
 ## Phase 11: Practice reply-status net-state
 
-- [ ] 11.1 RED: SQL/enum/store contracts fail until `practice_messages.reply_status` exists with the exact user-only four-state allowlist and populated-row expectations.
-- [ ] 11.2 GREEN: revise baseline up/down, enum source and role CHECK so user rows carry `pending|retryable_failed|terminal_failed|complete`, assistant rows carry NULL, and original client/reply uniqueness remains intact.
-- [ ] 11.3 REGRESSION-GATE: migration/store tests cover pending→retryable/terminal→pending retry→complete, completed replay, illegal role/status pairs, duplicate reply and cross-session client IDs.
-- [ ] 11.4 BDD-Gate: not applicable; run migration lint, clean/populated PostgreSQL up/down/up, privacy cascade and backend-practice/002 composed persistence gates.
+- [x] 11.1 RED: SQL/enum/store contracts fail until `practice_messages.reply_status` exists with the exact user-only four-state allowlist and populated-row expectations.
+  <!-- verified: 2026-07-13 method=tdd-red evidence="SQL migration contract, domain types and store tests failed before reply_status and the four-state transition API existed; mismatch was also proven incorrectly collapsed into generic conflict." -->
+- [x] 11.2 GREEN: revise baseline up/down, enum source and role CHECK so user rows carry `pending|retryable_failed|terminal_failed|complete`, assistant rows carry NULL, and original client/reply uniqueness remains intact.
+  <!-- verified: 2026-07-13 method=migration+store-green evidence="Baseline and enum source enforce user-only pending/retryable_failed/terminal_failed/complete and assistant NULL; client-message and reply uniqueness remain intact." -->
+- [x] 11.3 REGRESSION-GATE: migration/store tests cover pending→retryable/terminal→pending retry→complete, completed replay, illegal role/status pairs, duplicate reply and cross-session client IDs.
+  <!-- verified: 2026-07-13 method=unit+real-postgres evidence="Five isolated PostgreSQL integrations plus store/domain tests cover atomic reserve/fail/CAS/commit, replay, illegal role/status pairs, duplicate reply, user isolation and cross-session IDs; assistant insert and user complete commit together." -->
+- [x] 11.4 BDD-Gate: not applicable; run migration lint, clean/populated PostgreSQL up/down/up, privacy cascade and backend-practice/002 composed persistence gates.
+  <!-- verified: 2026-07-13 method=isolated-postgres+migration-lint evidence="Migration lint and clean temporary PostgreSQL migration/integration gates PASS; privacy cascade remains intact; temporary database was destroyed with residual count 0 and shared data was untouched." -->
+- [x] 11.5 RED: SQL/store contracts require positive user `reply_generation`, pending-only `reply_lease_expires_at`, assistant-null recovery fields and exact 90-second lease creation.
+  <!-- verified: 2026-07-14 method=migration-store-red evidence="The focused migration contract failed first on the absent bigint generation column; store/domain focused compilation then failed on absent internal generation and lease-duration contracts, before baseline/store implementation." -->
+- [x] 11.6 GREEN: baseline up/down, direct SQL fixtures and enum/check probes implement the generation/lease joint constraint without changing the public PracticeMessage schema.
+  <!-- verified: 2026-07-14 method=migration-contract+isolated-postgres evidence="The baseline enforces user positive non-null generation, pending-only lease and assistant nulls; a real PostgreSQL negative probe also rejects missing generation instead of relying on CHECK UNKNOWN semantics." -->
+- [x] 11.7 CONCURRENCY-GATE: real PostgreSQL tests prove one winner for concurrent new IDs, one winner for same-ID retry generation, GET lazy expiry and stale G1 commit/fail fencing after G2.
+  <!-- verified: 2026-07-14 method=isolated-postgres-concurrency evidence="Four independently connected start-barrier tests pass for concurrent new/same IDs, expired G2 ownership and stale G1 Commit/Fail fencing; the older recovery integration also passes." -->
+- [ ] 11.8 REGRESSION-GATE: clean/populated up/down/up, privacy cascade, migration lint and backend-practice composed gates pass with no worker/scheduler or public lease/generation field.
+
+## Phase 12: TargetJob report pointer removal
+
+- [x] 12.1 RED: migration/store/OpenAPI tests fail while `target_jobs.latest_report_id` or `TargetJob.latestReportId` remains reachable.
+  <!-- verified: 2026-07-14 method=tdd-red evidence="The isolated target_jobs DDL contract failed on latest_report_id, while service/frontend compilation exposed stale projections against the already-evolved generated contract." -->
+- [x] 12.2 GREEN: remove the baseline column and all TargetJob scan/insert/update/generated/fixture projections in place; add no compatibility column, trigger or replacement pointer.
+  <!-- verified: 2026-07-14 method=migration+store+consumer-green evidence="The baseline and every TargetJob record/SQL/scan/service consumer are pointer-free; focused migration, full TargetJob and frontend real-API tests pass, and six current production surface scans are clean." -->
+- [ ] 12.3 REGRESSION-GATE: clean/populated PostgreSQL up/down/up plus TargetJob/review integrations preserve report rows, frozen context, user isolation and canonical overview ordering inputs.
+- [ ] 12.4 ZERO-REF: exact production/generated/OpenAPI/fixture/migration scan has no old field/column; backend-review current-report projection remains the sole owner.

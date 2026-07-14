@@ -1,8 +1,8 @@
 # Frontend Shell Spec
 
-> **版本**: 1.27
+> **版本**: 1.28
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-14
 
 ## 1 背景与目标
 
@@ -16,7 +16,7 @@
 
 - 默认入口：`home`。
 - 一级 TopBar 入口：`home`、`workspace`、`resume_versions`。
-- 上下文 route：`parse`、`practice`、`generating`、`report`。
+- 上下文 route：`parse`、`practice`、`reports`、`generating`、`report`。
 - 用户菜单 route：`settings`、`auth_logout`。
 - Auth route：`auth_login`、`auth_verify`、`auth_profile_setup`、`auth_logout`。
 - Settings：`个人资料` / `隐私与数据` 双 tab；个人资料 tab 承接账号基础信息、登录与安全展示、字体预设和产品信息。
@@ -48,11 +48,14 @@
 | D-7 | Canonical URL | Browser History path + safe query | URL 表达页面和稳定上下文，不表达后端 action 或敏感正文 |
 | D-8 | UI truth source | `docs/ui-design/` + `ui-design/` | 可见 UI 变更先更新静态原型，再迁移正式前端 |
 | D-9 | 主题色范围 | 预定义主题只保留 `ocean` / `plum`，另保留 custom accent | 移除 `warm` / `forest` active palette、TopBar option 和 locale 文案 |
+| D-10 | 规划范围报告路由 | `/reports?targetJobId=<uuid>` 是受保护的上下文 route，chrome visible，但不属于 TopBar 一级导航 | safe params 只允许 `targetJobId`；全局一级导航仍严格保持三入口 |
 
 ## 4 设计约束
 
 - Route normalization 只能把 unsupported route input 映射到当前 route catalog 或 `home`。
 - `practice` 和 `generating` 可以隐藏 TopBar；其他 route 默认保留 App chrome。
+- `reports` 保留 App chrome 但不得加入 `PRIMARY_NAV_ROUTES` / TopBar；直开、刷新、back/forward 和 auth continuation 只保留合法 `targetJobId`。
+- `parse` 不接受 `section=reports`；`report` / `generating` 的资源 locator 只接受 `reportId`。报告状态、target/round/resume 等业务事实必须由受保护 API response 提供，不能由 query/pendingAction 注入。
 - `pendingAction` 只包含 route name、canonical URL 和 safe params，例如 `targetJobId`、`resumeId`、`planId`、`sessionId`、`reportId`、`roundId`、`flow`、`tab`、`mode`、`modality`、`next`。
 - 登录成功恢复 route 前必须检查最新 `/me.profileCompletionRequired`；仍为 true 时进入 `auth_profile_setup` 并保留 safe pendingAction。
 - `auth_verify` 只从受控 input 读取 6 位验证码；验证码不得进入 URL、pendingAction、storage 或 browser navigation chain。
@@ -87,6 +90,7 @@
 | C-8 | Email-code profile setup | 新邮箱完成验证码验证 | `/me.profileCompletionRequired=true` | 先进入 `auth_profile_setup`，资料补全成功后再恢复 pendingAction 或 Home | 001-app-shell-auth-settings |
 | C-9 | Canonical URL | 用户打开、刷新或复制 frontend URL | Browser History parse / back / forward | Route、safe params、chrome behavior 和 auth gate 保持一致 | 004-url-addressable-routing |
 | C-10 | UI parity | Shell / TopBar / Auth / Settings 可见 UI 变更 | 运行 visual smoke / pixel parity owner gates | 正式前端与 `ui-design/` 源码结构和关键 computed style 对齐 | 002-app-shell-visual-system / 003-ui-design-pixel-parity-gate |
+| C-11 | Reports deep link | 用户直开/刷新 `/reports?targetJobId=<uuid>`，或未登录后完成鉴权 | route normalize / history / pendingAction restore | 仅合法 targetJobId 被保留并进入受保护 ReportsScreen；缺失/非法 target 以 replace-only 回 workspace 且不形成 Back 循环；chrome visible、TopBar 无报告入口；旧 `section` 与 report/status/round 等 query 被剔除 | 004-url-addressable-routing |
 
 ## 7 关联计划
 
@@ -99,5 +103,6 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.28 | 2026-07-14 | Add protected target-scoped `/reports` with targetJobId-only routing, no TopBar entry, no Parse section compatibility, and reportId-only detail/generating locators. |
 | 1.27 | 2026-07-09 | 收敛 TopBar 主题色范围为 deep ocean / plum / custom accent，移除 warm / forest active UI 合同。 |
 | 1.26 | 2026-07-07 | 压缩 active spec 为当前 App shell、email-code auth、settings、display、URL 和 route-guard 合同。 |

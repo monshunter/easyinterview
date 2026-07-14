@@ -41,7 +41,11 @@ func (s *conversationHandlerService) SendPracticeMessage(_ context.Context, in d
 		return domain.SendPracticeMessageResult{}, s.messageErr
 	}
 	now := time.Unix(2, 0).UTC()
-	user := domain.MessageRecord{ID: "m-user", Role: "user", Content: in.Text, SeqNo: 2, CreatedAt: now}
+	user := domain.MessageRecord{
+		ID: "m-user", Role: "user", Content: in.Text, SeqNo: 2,
+		ClientMessageID: in.ClientMessageID, ReplyStatus: domain.PracticeReplyStatusComplete,
+		CreatedAt: now,
+	}
 	assistant := domain.MessageRecord{ID: "m-assistant", Role: "assistant", Content: "继续说说你的取舍。", SeqNo: 3, CreatedAt: now}
 	return domain.SendPracticeMessageResult{Acknowledged: true, UserMessage: user, AssistantMessage: assistant,
 		Session: domain.SessionRecord{ID: in.SessionID, PlanID: "plan-1", TargetJobID: "target-1", Status: sharedtypes.SessionStatusRunning,
@@ -132,7 +136,7 @@ func TestSendPracticeMessageMapsConflictAndIsolationErrors(t *testing.T) {
 		code   string
 		status int
 	}{
-		{name: "client replay mismatch", code: "PRACTICE_SESSION_CONFLICT", status: http.StatusConflict},
+		{name: "client replay mismatch", code: "IDEMPOTENCY_KEY_MISMATCH", status: http.StatusConflict},
 		{name: "cross user session", code: "PRACTICE_SESSION_NOT_FOUND", status: http.StatusNotFound},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -306,6 +310,25 @@ func TestSendPracticeMessageReturnsConversationMessages(t *testing.T) {
 	}
 	if !result.Acknowledged || result.UserMessage.Role != "user" || result.AssistantMessage.Role != "assistant" {
 		t.Fatalf("unexpected result: %+v", result)
+	}
+	if result.UserMessage.ClientMessageId != "01918fa0-0000-7000-8000-000000000001" || result.UserMessage.ReplyStatus != api.PracticeReplyStatusComplete {
+		t.Fatalf("user recovery projection missing: %+v", result.UserMessage)
+	}
+	var rawResponse map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &rawResponse); err != nil {
+		t.Fatal(err)
+	}
+	assistant, _ := rawResponse["assistantMessage"].(map[string]any)
+	if _, found := assistant["clientMessageId"]; found {
+		t.Fatalf("assistant leaked clientMessageId: %s", rec.Body.String())
+	}
+	if _, found := assistant["replyStatus"]; found {
+		t.Fatalf("assistant leaked replyStatus: %s", rec.Body.String())
+	}
+	for _, internal := range []string{"replyGeneration", "replyLeaseExpiresAt", "reply_generation", "reply_lease_expires_at"} {
+		if strings.Contains(rec.Body.String(), internal) {
+			t.Fatalf("response leaked internal reply field %s: %s", internal, rec.Body.String())
+		}
 	}
 }
 

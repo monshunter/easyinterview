@@ -1,8 +1,8 @@
 # Backend TargetJob BDD Checklist
 
 > **版本**: 1.12
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -45,8 +45,9 @@
 
 ## Phase 18 paste-only scenario revision
 
-- [ ] RED: `E2E.P0.010` / `E2E.P0.012` 当前仍接受旧 source-shaped payload 或缺少 paste-only persistence negative assertion，先记录失败证据。
-- [ ] GREEN: P0.010 使用 `{rawText,targetLanguage,resumeId}`，证明 queued→ready、IK replay、`raw_jd_text` 唯一事实源、无来源字段/row/file ref/refresh job。
-- [ ] GREEN: P0.012 使用同一 wire，证明 AI retryable/non-retryable 失败、失败资产不可见、可重新粘贴，且日志/事件不泄漏原文。
-- [ ] 删除 `E2E.P0.011` / `E2E.P0.013` 场景实体与 INDEX 行，并通过 suite inventory zero-reference gate。
-- [ ] 执行 P0.010/P0.012 setup→trigger→verify→cleanup，记录当前运行证据。
+- [x] RED: `E2E.P0.010` / `E2E.P0.012` 当前仍接受旧 source-shaped payload 或缺少 paste-only persistence negative assertion，先记录失败证据。
+- [x] GREEN: P0.010 使用 `{rawText,targetLanguage,resumeId}`，证明 queued→ready、IK replay、`raw_jd_text` 唯一事实源、无来源字段/row/file ref/refresh job。
+- [x] GREEN: P0.012 使用同一 wire，证明 AI retryable/non-retryable 失败、失败资产不可见、可重新粘贴，且日志/事件不泄漏原文。
+- [x] 删除 `E2E.P0.011` / `E2E.P0.013` 场景实体与 INDEX 行，并通过 suite inventory zero-reference gate。
+- [x] 执行 P0.010/P0.012 setup→trigger→verify→cleanup，记录当前运行证据。
+  <!-- verified: 2026-07-13 method=cmd-api-http evidence="P0.010 result verifiedAt=2026-07-13T17:23:42Z and P0.012 result verifiedAt=2026-07-13T17:23:43Z both record status=passed, validBddEvidence=true; retired P0.011/P0.013 entities and active INDEX rows are absent." -->

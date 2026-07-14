@@ -127,6 +127,23 @@ func TestTargetImportPromptMatchesParseResponseSchema(t *testing.T) {
 				t.Fatalf("adapter.Resolve(%q): %v", tc.language, err)
 			}
 			body := resolved.UserMessageTemplate
+			for _, token := range []string{"{{jd_text}}", "{{language}}"} {
+				if !strings.Contains(body, token) {
+					t.Errorf("target.import.parse prompt must contain %q; body=%s", token, body)
+				}
+			}
+			for _, forbidden := range []string{
+				"{{jd_source_url}}",
+				"{{target_language}}",
+				"JD source URL",
+				"source URL",
+				"page heading",
+				"metadata-like lines",
+			} {
+				if strings.Contains(body, forbidden) {
+					t.Errorf("target.import.parse prompt must not contain removed source input %q; body=%s", forbidden, body)
+				}
+			}
 			for _, key := range []string{
 				"title",
 				"companyName",
@@ -208,7 +225,6 @@ func TestParseExecutorMetadataCarriesF3Triple(t *testing.T) {
 		target: targetjob.TargetJobRecord{
 			ID:             "tgt-1",
 			UserID:         "user-1",
-			SourceType:     targetjob.SourceTypeManualText,
 			TargetLanguage: "en",
 			RawJDText:      "JD text",
 		},
@@ -217,7 +233,6 @@ func TestParseExecutorMetadataCarriesF3Triple(t *testing.T) {
 		Store:    store,
 		Registry: adapter,
 		AI:       captured,
-		Fetcher:  &fakeFetcher{},
 		NewID:    func() string { return "id-1" },
 		Now:      func() time.Time { return time.Date(2026, 5, 9, 0, 0, 0, 0, time.UTC) },
 	})

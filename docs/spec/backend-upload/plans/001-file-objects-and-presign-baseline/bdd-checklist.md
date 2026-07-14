@@ -18,7 +18,11 @@
 
 ## Phase 7: JD attachment purpose contraction
 
-- [ ] RED: 扩展 E2E.P0.033 contract test，使缺少旧 JD purpose rejection、resume roundtrip 或 privacy_export 保留任一断言时先失败。
-- [ ] GREEN: scenario 消费 OpenAPI/B4 purpose 收缩与 A4 Phase 12 maxBytes handoff；以旧 `target_job_attachment` purpose 调 presign 返回 422 `VALIDATION_FAILED`，且不创建 DB row 或对象。
-- [ ] RETAIN: resume presign → PUT → register → privacy delete roundtrip 继续通过；`privacy_export` 5MB presign 返回 201/pending，TargetJob 不调用 upload endpoint。
-- [ ] BDD-Gate: 运行 E2E.P0.033 setup → trigger → verify → cleanup，保存旧 purpose rejection、resume roundtrip、privacy_export 5MB 与 zero-side-effect 证据；live gate skip/no-op 或任一证据缺失时不得勾选。
+- [x] RED: 扩展 E2E.P0.033 contract test，使缺少旧 JD purpose rejection、resume roundtrip 或 privacy_export 保留任一断言时先失败。
+  <!-- verified: 2026-07-13 evidence="verify failed against the prior live trigger log because Phase 7 subtest markers were absent; script contract now rejects missing boundary evidence." -->
+- [x] GREEN: scenario 消费 OpenAPI/B4 purpose 收缩与 A4 Phase 12 maxBytes handoff；以旧 `target_job_attachment` purpose 调 presign 返回 422 `VALIDATION_FAILED`，且不创建 DB row 或对象。
+  <!-- verified: 2026-07-13 evidence="live subtest returned 422 VALIDATION_FAILED/details.field=purpose and logged row_count=0." -->
+- [x] RETAIN: resume presign → PUT → register → privacy delete roundtrip 继续通过；`privacy_export` 5MB presign 返回 201/pending，TargetJob 不调用 upload endpoint。
+  <!-- verified: 2026-07-13 evidence="live MinIO resume signed PUT/register/privacy delete passed; privacy_export 5242880-byte request returned 201 and persisted pending before the same privacy delete removed both rows." -->
+- [x] BDD-Gate: 运行 E2E.P0.033 setup → trigger → verify → cleanup，保存旧 purpose rejection、resume roundtrip、privacy_export 5MB 与 zero-side-effect 证据；live gate skip/no-op 或任一证据缺失时不得勾选。
+  <!-- verified: 2026-07-13 evidence="setup/trigger/verify/cleanup PASS; 6 scenario script contract tests PASS; evidence retained under .test-output/e2e/p0-033-file-presign-register-roundtrip/." -->

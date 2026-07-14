@@ -4,7 +4,6 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
   const [input, setInput] = React.useState("");
   const [selectedResumeId, setSelectedResumeId] = React.useState("");
   const [parsing, setParsing] = React.useState(false);
-  const [assistOpen, setAssistOpen] = React.useState(null);
   const recentJobs = D.targetJobs || [];
   const recentPreviewJobs = recentJobs.slice(0, 3);
   const hasMoreRecentJobs = recentJobs.length > recentPreviewJobs.length;
@@ -14,7 +13,7 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
   const handleImport = () => {
     if (!input.trim() || !selectedResume) return;
     setParsing(true);
-    setTimeout(() => { setParsing(false); nav("parse", { source: "pasted", resumeId: selectedResume.id }); }, 400);
+    setTimeout(() => { setParsing(false); nav("parse", { resumeId: selectedResume.id }); }, 400);
   };
 
   const L = lang === "en" ? {
@@ -22,9 +21,7 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
     title: "Let's win the interview you already care about.",
     ph: "Paste the JD here…",
     pasteSource: "Paste JD",
-    uploadSource: "Upload JD file",
     importBtn: "Start interview now",
-    orUpload: "or upload .pdf / .docx / .md",
     active: "Recent mock interviews",
     activeSub: "Sorted by recent preparation. Each card is tied to one target job and interview round.",
     recentMore: "More",
@@ -39,9 +36,7 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
     title: "先把你已经拿在手里的那场面试，赢下来。",
     ph: "把 JD 粘贴到这里…",
     pasteSource: "粘贴 JD",
-    uploadSource: "上传 JD 文件",
     importBtn: "立即面试",
-    orUpload: "也可以上传 .pdf / .docx / .md",
     active: "最近模拟面试",
     activeSub: "按最近准备排序。每张卡片都对应一个目标岗位和一轮面试。",
     recentMore: "更多",
@@ -75,17 +70,6 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
                 fontFamily: "var(--ei-sans)",
               }}
             />
-            <div data-testid="home-jd-source-controls" style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.rule}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <div style={{ color: T.ink3, fontSize: 12.5, lineHeight: 1.5 }}>{L.orUpload}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <button data-testid="home-upload-trigger" onClick={() => setAssistOpen("upload")} style={{ background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 3, color: T.ink, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 34, padding: "0 12px", cursor: "pointer", fontWeight: 500 }}>
-                  <Icon name="upload" size={14} /> {L.uploadSource}
-                </button>
-                <button data-testid="home-url-trigger" onClick={() => setAssistOpen("url")} style={{ background: "transparent", border: "1px solid transparent", color: T.accent, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 34, padding: "0 12px", cursor: "pointer", fontWeight: 500 }}>
-                  <Icon name="link" size={14} /> URL
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -152,8 +136,6 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
           )}
         </div>
       )}
-
-      {assistOpen && <JDAssistModal T={T} lang={lang} type={assistOpen} onClose={() => setAssistOpen(null)} onConfirm={() => { if (!selectedResume) return; setAssistOpen(null); nav("parse", { source: assistOpen, resumeId: selectedResume.id }); }} />}
     </div>
   );
 };
@@ -165,7 +147,7 @@ const HomeEmptyState = ({ T, lang, onImport }) => (
       {lang === "en" ? "Start from a JD instead of showing sample interview data." : "从一份 JD 开始，不展示示例面试数据。"}
     </div>
     <div style={{ fontSize: 13.5, color: T.ink3, lineHeight: 1.6, marginBottom: 14 }}>
-      {lang === "en" ? "Paste or upload a target job description to create the first interview context." : "粘贴或上传目标岗位 JD 后，系统会生成第一条面试上下文。"}
+      {lang === "en" ? "Paste a target job description to create the first interview context." : "粘贴目标岗位 JD 后，系统会生成第一条面试上下文。"}
     </div>
     <Btn T={T} variant="secondary" icon="arrow_left" onClick={onImport}>{lang === "en" ? "Go to JD input" : "回到 JD 输入"}</Btn>
   </div>
@@ -255,51 +237,5 @@ const MiniRoundRail = ({ T, rounds, currentIndex }) => (
     </div>
   </div>
 );
-
-const JDAssistModal = ({ T, lang, type, onClose, onConfirm }) => {
-  const isUpload = type === "upload";
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(24, 20, 16, 0.24)", zIndex: 80, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
-      <div className="ei-fadein" onClick={(e) => e.stopPropagation()} style={{ width: "min(520px, 100%)", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 4, boxShadow: "0 24px 70px rgba(30, 22, 15, 0.24)", padding: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 18, marginBottom: 18 }}>
-          <div>
-            <div className="ei-label" style={{ color: T.ink3, marginBottom: 6 }}>{lang === "en" ? "JD INPUT" : "JD 输入"}</div>
-            <div className="ei-serif" style={{ fontSize: 23, color: T.ink }}>
-              {isUpload ? (lang === "en" ? "Upload a JD file" : "上传 JD 文件") : (lang === "en" ? "Import from URL" : "从 URL 导入")}
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: T.ink3, cursor: "pointer", padding: 4 }}>
-            <Icon name="x" size={16} />
-          </button>
-        </div>
-
-        {isUpload ? (
-          <div style={{ border: `1px dashed ${T.rule}`, background: T.bgSoft, borderRadius: 3, padding: "30px 22px", textAlign: "center" }}>
-            <Icon name="upload" size={24} color={T.accent} />
-            <div style={{ fontSize: 15, color: T.ink, marginTop: 12, fontWeight: 500 }}>
-              {lang === "en" ? "Drop a .pdf, .docx, or .md JD file here" : "拖入 .pdf / .docx / .md 格式的 JD 文件"}
-            </div>
-            <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 6 }}>
-              {lang === "en" ? "Prototype state: file picker is represented here." : "静态稿中用这个弹窗表示文件选择流程。"}
-            </div>
-          </div>
-        ) : (
-          <div>
-            <label className="ei-label" style={{ display: "block", color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "JD URL" : "JD 链接"}</label>
-            <input placeholder={lang === "en" ? "https://company.com/careers/job..." : "https://company.com/careers/job..."} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${T.rule}`, background: T.bgSoft, color: T.ink, borderRadius: 3, padding: "12px 14px", fontSize: 14, outline: "none", fontFamily: "var(--ei-sans)" }} />
-            <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 8 }}>
-              {lang === "en" ? "The system will fetch the JD, then open the interview plan detail for confirmation." : "系统会读取 JD 内容，然后进入面试规划详情确认。"}
-            </div>
-          </div>
-        )}
-
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
-          <Btn T={T} variant="ghost" onClick={onClose}>{lang === "en" ? "Cancel" : "取消"}</Btn>
-          <Btn T={T} variant="accent" iconRight="arrow_right" onClick={onConfirm}>{lang === "en" ? "Continue" : "继续解析"}</Btn>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 window.HomeScreen = HomeScreen;

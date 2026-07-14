@@ -1,13 +1,21 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 
+import type { RequestOptions } from "../../../../api/generated/client";
 import type { SendPracticeMessageResponse } from "../../../../api/generated/types";
-import { newId } from "../../../../lib/ids";
 import { useInterviewContext } from "../../../interview-context/InterviewContext";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 
+export interface PracticeMessageSubmission {
+  text: string;
+  clientMessageId: string;
+}
+
 export interface UsePracticeMessagesResult {
   ready: boolean;
-  sendMessage: (text: string) => Promise<SendPracticeMessageResponse>;
+  sendMessage: (
+    submission: PracticeMessageSubmission,
+    options?: Pick<RequestOptions, "signal">,
+  ) => Promise<SendPracticeMessageResponse>;
 }
 
 export function usePracticeMessages(explicitSessionId?: string): UsePracticeMessagesResult {
@@ -15,22 +23,16 @@ export function usePracticeMessages(explicitSessionId?: string): UsePracticeMess
   const client = runtime?.client;
   const { ctx } = useInterviewContext();
   const sessionId = explicitSessionId ?? ctx.sessionId ?? "";
-  const retryRef = useRef<{ text: string; clientMessageId: string } | null>(null);
 
-  const sendMessage = useCallback(async (rawText: string) => {
+  const sendMessage = useCallback(async (
+    submission: PracticeMessageSubmission,
+    options?: Pick<RequestOptions, "signal">,
+  ) => {
     if (!client) throw new Error("usePracticeMessages: client not mounted");
     if (!sessionId) throw new Error("usePracticeMessages: sessionId missing");
-    const text = rawText.trim();
-    if (!text) throw new Error("usePracticeMessages: text missing");
-    const clientMessageId = retryRef.current?.text === text ? retryRef.current.clientMessageId : newId();
-    retryRef.current = { text, clientMessageId };
-    try {
-      const result = await client.sendPracticeMessage(sessionId, { clientMessageId, text });
-      if (result.acknowledged) retryRef.current = null;
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    if (!submission.text.trim()) throw new Error("usePracticeMessages: text missing");
+    if (!submission.clientMessageId) throw new Error("usePracticeMessages: clientMessageId missing");
+    return client.sendPracticeMessage(sessionId, submission, options);
   }, [client, sessionId]);
 
   return useMemo(() => ({ ready: Boolean(client && sessionId), sendMessage }), [client, sessionId, sendMessage]);

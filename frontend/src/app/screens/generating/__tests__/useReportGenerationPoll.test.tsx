@@ -1,10 +1,11 @@
 /**
  * @vitest-environment jsdom
  *
- * Phase 1.7 — useReportGenerationPoll: 7-state machine, exponential backoff
+ * Phase 1.7 — useReportGenerationPoll: 8-state machine, exponential backoff
  * (1.5s × 1.5 capped at 8s, max attempts 49), visibility/focus pause-resume,
- * onReady / onFailed callbacks, unmount-cancel, no Idempotency-Key, cross-user
- * 404 → REPORT_NOT_FOUND failure path.
+ * onReady / onFailed callbacks, invalid payload terminal, owner-identity
+ * isolation, unmount-cancel, no Idempotency-Key, and cross-user 404 →
+ * REPORT_NOT_FOUND failure path.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -44,7 +45,7 @@ function makeReport(overrides: Partial<FeedbackReport>): FeedbackReport {
       roundSequence: 2,
       roundName: "Technical",
       roundType: "technical",
-      language: "en-US",
+      language: "en",
       hasNextRound: true,
     },
     dimensionAssessments: [],
@@ -55,6 +56,42 @@ function makeReport(overrides: Partial<FeedbackReport>): FeedbackReport {
     provenance: null,
     createdAt: "2026-05-16T00:00:00Z",
     updatedAt: "2026-05-16T00:00:01Z",
+    ...overrides,
+  };
+}
+
+function makeReadyReport(overrides: Partial<FeedbackReport> = {}): FeedbackReport {
+  return {
+    ...makeReport({}),
+    status: "ready",
+    summary: "Grounded summary.",
+    preparednessLevel: "basically_ready",
+    dimensionAssessments: [
+      {
+        code: "technical_depth",
+        label: "Technical depth",
+        status: "meets_bar",
+        confidence: "medium",
+      },
+    ],
+    highlights: [
+      {
+        dimensionCode: "technical_depth",
+        evidence: "The answer explains the decision with a concrete tradeoff.",
+        confidence: "medium",
+      },
+    ],
+    nextActions: [
+      { type: "review_evidence", label: "Review the cited evidence" },
+    ],
+    provenance: {
+      promptVersion: "v0.2.0",
+      rubricVersion: "v0.2.0",
+      modelId: "fixture",
+      language: "en",
+      featureFlag: "none",
+      dataSourceVersion: "fixture.v1",
+    },
     ...overrides,
   };
 }
@@ -202,7 +239,7 @@ describe("useReportGenerationPoll", () => {
     const client = buildClientWithSequence([
       makeReport({ status: "generating" }),
       makeReport({ status: "generating" }),
-      makeReport({ status: "ready", preparednessLevel: "basically_ready" }),
+      makeReadyReport(),
     ]);
     const onReady = vi.fn();
     const sched = manualScheduler();
@@ -259,6 +296,85 @@ describe("useReportGenerationPoll", () => {
     expect(onFailed.mock.calls[0]![0]).toBe("AI_PROVIDER_TIMEOUT");
   });
 
+  it("terminates an invalid 200 response without overwriting the last trusted report", async () => {
+    const lastTrusted = makeReport({ status: "generating" });
+    const invalid = {
+      ...lastTrusted,
+      context: null,
+    } as unknown as FeedbackReport;
+    const client = buildClientWithSequence([lastTrusted, invalid]);
+    const sched = manualScheduler();
+    const { result } = renderHook(
+      () => useReportGenerationPoll({
+        reportId: REPORT_ID,
+        scheduler: sched,
+        maxAttempts: 3,
+      }),
+      {
+        wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+      },
+    );
+
+    await waitFor(() => expect(result.current.report).toEqual(lastTrusted));
+    await act(async () => {
+      sched.flushNext();
+    });
+
+    await waitFor(() => expect(result.current.state).toBe("invalid"));
+    expect(result.current.report).toEqual(lastTrusted);
+    expect(sched.pending.some((entry) => !entry.cancelled)).toBe(false);
+  });
+
+  it.each([
+    [
+      "malformed queued context",
+      { ...makeReport({ status: "queued" }), context: null },
+    ],
+    [
+      "malformed generating top-level fields",
+      { ...makeReport({ status: "generating" }), routeTarget: "must-not-survive" },
+    ],
+    [
+      "unknown status",
+      { ...makeReport({ status: "generating" }), status: "unknown" },
+    ],
+    [
+      "invalid ready payload",
+      { ...makeReadyReport(), summary: null },
+    ],
+    [
+      "failed payload with unknown error code",
+      { ...makeReport({ status: "failed" }), errorCode: "REPORT_UNKNOWN_FAILURE" },
+    ],
+  ])("terminates the first invalid 200 response for %s", async (_label, value) => {
+    const client = buildClientWithSequence([value as unknown as FeedbackReport]);
+    const request = vi.spyOn(client, "getFeedbackReport");
+    const onReady = vi.fn();
+    const onFailed = vi.fn();
+    const sched = manualScheduler();
+    const { result } = renderHook(
+      () => useReportGenerationPoll({
+        reportId: REPORT_ID,
+        scheduler: sched,
+        maxAttempts: 3,
+        onReady,
+        onFailed,
+      }),
+      {
+        wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+      },
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    await act(async () => undefined);
+
+    expect(result.current.state).toBe("invalid");
+    expect(result.current.report).toBeNull();
+    expect(onReady).not.toHaveBeenCalled();
+    expect(onFailed).not.toHaveBeenCalled();
+    expect(sched.pending.some((entry) => !entry.cancelled)).toBe(false);
+  });
+
   it("HTTP 404 maps to failed + REPORT_NOT_FOUND (TestUseReportGenerationPollCrossUser404)", async () => {
     const client = buildClientWithSequence([
       { reject: new Error("HTTP 404 Not Found") },
@@ -305,10 +421,139 @@ describe("useReportGenerationPoll", () => {
     });
     await waitFor(() => expect(result.current.attemptCount).toBe(3));
     await waitFor(() => expect(result.current.state).toBe("timeout"));
+    expect(result.current.report?.targetJobId).toBe(
+      "01918fa0-0000-7000-8000-000000002000",
+    );
+  });
+
+  it("retains the last trusted response when a later network check is exhausted", async () => {
+    const lastTrusted = makeReport({ status: "generating" });
+    const client = buildClientWithSequence([
+      lastTrusted,
+      { reject: new Error("network unavailable") },
+    ]);
+    const sched = manualScheduler();
+    const { result } = renderHook(
+      () => useReportGenerationPoll({
+        reportId: REPORT_ID,
+        scheduler: sched,
+        maxAttempts: 2,
+      }),
+      {
+        wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+      },
+    );
+
+    await waitFor(() => expect(result.current.attemptCount).toBe(1));
+    await act(async () => {
+      sched.flushNext();
+    });
+    await waitFor(() => expect(result.current.state).toBe("error"));
+    expect(result.current.report).toEqual(lastTrusted);
+  });
+
+  it("keeps the last trusted response across a same-report retry that exhausts the network again", async () => {
+    const lastTrusted = makeReport({ status: "generating" });
+    const networkFailure = { reject: new Error("network unavailable") };
+    const client = buildClientWithSequence([
+      lastTrusted,
+      networkFailure,
+      networkFailure,
+    ]);
+    const sched = manualScheduler();
+    const { result } = renderHook(
+      () => useReportGenerationPoll({
+        reportId: REPORT_ID,
+        scheduler: sched,
+        maxAttempts: 2,
+      }),
+      {
+        wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+      },
+    );
+
+    await waitFor(() => expect(result.current.attemptCount).toBe(1));
+    await act(async () => {
+      sched.flushNext();
+    });
+    await waitFor(() => expect(result.current.state).toBe("error"));
+    expect(result.current.report).toEqual(lastTrusted);
+
+    act(() => result.current.retry());
+    await waitFor(() => expect(result.current.state).toBe("polling"));
+    await waitFor(() => expect(sched.pending.some((entry) => !entry.cancelled)).toBe(true));
+    await act(async () => {
+      sched.flushNext();
+    });
+    await waitFor(() => expect(result.current.state).toBe("error"));
+    expect(result.current.report).toEqual(lastTrusted);
+  });
+
+  it("clears the retained response when the report identity changes", async () => {
+    const lastTrusted = makeReport({ status: "generating" });
+    const nextReportId = "01918fa0-0000-7000-8000-000000007999";
+    const client = buildClientWithSequence([
+      lastTrusted,
+      { reject: new Error("network unavailable") },
+    ]);
+    const sched = manualScheduler();
+    const { result, rerender } = renderHook(
+      ({ reportId }) => useReportGenerationPoll({
+        reportId,
+        scheduler: sched,
+        maxAttempts: 2,
+      }),
+      {
+        initialProps: { reportId: REPORT_ID },
+        wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+      },
+    );
+
+    await waitFor(() => expect(result.current.report).toEqual(lastTrusted));
+    rerender({ reportId: nextReportId });
+
+    await waitFor(() => expect(result.current.report).toBeNull());
+  });
+
+  it("fails closed on the first render when the client owner changes for the same reportId", async () => {
+    const lastTrusted = makeReport({ status: "generating" });
+    const firstClient = buildClientWithSequence([lastTrusted]);
+    const secondClient = {
+      getFeedbackReport: vi.fn(() => new Promise<FeedbackReport>(() => undefined)),
+    } as unknown as EasyInterviewClient;
+    const sched = manualScheduler();
+    let activeClient = firstClient;
+    const reportsDuringRender: Array<FeedbackReport | null> = [];
+    const DynamicWrapper = ({ children }: { children: ReactNode }) => (
+      <Wrapper client={activeClient}>{children}</Wrapper>
+    );
+    const { result, rerender } = renderHook(
+      () => {
+        const value = useReportGenerationPoll({
+          reportId: REPORT_ID,
+          scheduler: sched,
+        });
+        reportsDuringRender.push(value.report);
+        return value;
+      },
+      { wrapper: DynamicWrapper },
+    );
+
+    await waitFor(() => expect(result.current.report).toEqual(lastTrusted));
+    const switchRenderStart = reportsDuringRender.length;
+    activeClient = secondClient;
+    rerender();
+
+    expect(reportsDuringRender[switchRenderStart]).toBeNull();
+    expect(result.current.report).toBeNull();
+    expect(secondClient.getFeedbackReport).toHaveBeenCalledWith(
+      REPORT_ID,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it("surfaces an exhausted network check separately from a resource timeout and allows checking again", async () => {
-    const ready = makeReport({ status: "ready", preparednessLevel: "basically_ready" });
+    const ready = makeReadyReport();
     const client = buildClientWithSequence([
       { reject: new Error("network unavailable") },
       ready,
@@ -326,6 +571,7 @@ describe("useReportGenerationPoll", () => {
     );
 
     await waitFor(() => expect(result.current.state).toBe("error"));
+    expect(result.current.report).toBeNull();
     act(() => result.current.retry());
     await waitFor(() => expect(result.current.state).toBe("ready"));
     expect(onReady).toHaveBeenCalledWith(ready);
@@ -652,7 +898,7 @@ describe("useReportGenerationPoll", () => {
     // carrying mutation headers. This is enforced by signature: getFeedbackReport
     // only accepts {signal, headers, query}. Assert via spy:
     const client = buildClientWithSequence([
-      makeReport({ status: "ready", preparednessLevel: "basically_ready" }),
+      makeReadyReport(),
     ]);
     const spy = vi.spyOn(client, "getFeedbackReport");
     const sched = manualScheduler();
@@ -699,10 +945,7 @@ describe("useReportGenerationPoll", () => {
   });
 
   it("does not invoke onReady more than once even if downstream re-renders (TestReadyCallbackDebouncesNavReport)", async () => {
-    const ready = makeReport({
-      status: "ready",
-      preparednessLevel: "basically_ready",
-    });
+    const ready = makeReadyReport();
     const client = buildClientWithSequence([ready, ready, ready]);
     const onReady = vi.fn();
     const sched = manualScheduler();

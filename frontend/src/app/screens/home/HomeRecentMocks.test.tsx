@@ -111,6 +111,18 @@ describe("HomeRecentMocks", () => {
     });
   });
 
+  it("renders a user-safe recent-plan load failure", async () => {
+    const client = createClient();
+    vi.spyOn(client, "listTargetJobs").mockRejectedValue(
+      new Error("HTTP 503 TARGET_JOB_STORE_UNAVAILABLE"),
+    );
+
+    renderHome(client);
+
+    expect(await screen.findByText("Recent interview plans cannot be loaded right now. Try again later.")).toBeInTheDocument();
+    expect(screen.queryByText("HTTP 503 TARGET_JOB_STORE_UNAVAILABLE")).not.toBeInTheDocument();
+  });
+
   it("filters non-ready or blank-title recent jobs", async () => {
     const client = createClient();
     const readyJob = defaultListTargetJobsResponse.items[0]!;
@@ -293,6 +305,27 @@ describe("HomeRecentMocks", () => {
     expect(navigate).not.toHaveBeenCalledWith(
       expect.objectContaining({ name: "parse" }),
     );
+  });
+
+  it("does not expose a backend error when recent quick-start fails", async () => {
+    const user = userEvent.setup();
+    const client = createClient("default");
+    vi.spyOn(client, "getPracticePlan").mockRejectedValue(
+      new Error("HTTP 503 PRACTICE_STORE_UNAVAILABLE"),
+    );
+    const { navigate } = renderHome(client);
+
+    const start = await screen.findByTestId(
+      "home-recent-mock-start-01918fa0-0000-7000-8000-000000002000",
+    );
+    await user.click(start);
+
+    expect(await screen.findByTestId("home-recent-start-error")).toHaveTextContent(
+      "The interview cannot be started right now. Please try again.",
+    );
+    expect(screen.queryByText("HTTP 503 PRACTICE_STORE_UNAVAILABLE")).not.toBeInTheDocument();
+    expect(start).toBeEnabled();
+    expect(navigate).not.toHaveBeenCalledWith(expect.objectContaining({ name: "practice" }));
   });
 
   it("disables quick-start after final backend progress with zero plan/session calls", async () => {

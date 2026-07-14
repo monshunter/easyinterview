@@ -71,7 +71,6 @@ const READY_TARGET_JOB: TargetJob = {
   locationText: "Location not set",
   status: "draft",
   analysisStatus: "ready",
-  sourceType: "manual_text",
   targetLanguage: "zh-CN",
   requirements: [],
   summary: {

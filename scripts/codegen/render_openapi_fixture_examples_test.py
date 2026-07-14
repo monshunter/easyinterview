@@ -102,6 +102,7 @@ class RenderOpenapiFixtureExamplesTest(unittest.TestCase):
             ("Auth", "deleteMe", "202"),
             ("TargetJobs", "listTargetJobs", "200"),
             ("PracticeSessions", "getPracticeSession", "200"),
+            ("PracticeSessions", "sendPracticeMessage", "200"),
             ("Reports", "getFeedbackReport", "200"),
             ("Privacy", "requestPrivacyExport", "501"),
         ]

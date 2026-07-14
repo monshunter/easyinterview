@@ -1,24 +1,24 @@
 # URL-Addressable Routing BDD Plan
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 ## 1 Scenario Map
 
 | 场景 ID | 场景 | 覆盖 Phase | 对应验收 | Checklist Gate |
 |---------|------|------------|----------|----------------|
-| E2E.P0.088 | canonical path deep-link / reload / back-forward | Phase 2 + Phase 4 | C-9 | Phase 4.3 |
-| E2E.P0.089 | auth pendingAction + URL privacy redline | Phase 3 | C-2 / C-7 | Phase 3.3 |
-| E2E.P0.090 | hash routing + unsupported route regression | Phase 1 + Phase 4 | C-4 / C-9 | Phase 4.4 |
+| E2E.P0.088 | canonical path deep-link / reload / back-forward | Phase 2 + Phase 4 + Phase 11 | C-9 / C-11 | Phase 4.3 / Phase 11.3 |
+| E2E.P0.089 | auth pendingAction + URL privacy redline | Phase 3 + Phase 11 | C-2 / C-7 / C-11 | Phase 3.3 / Phase 11.3 |
+| E2E.P0.090 | hash routing + unsupported route regression | Phase 1 + Phase 4 + Phase 11 | C-4 / C-9 / C-11 | Phase 4.4 / Phase 11.3 |
 
 ## 2 Scenario Details
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.088 | Canonical path deep-link / reload / browser history | Frontend app uses Browser History router; workspace input carries hostile detail/start params, while practice/generating/report/resume workshop inputs carry route-specific params | Open representative canonical URLs, reload, navigate across current routes, and use browser back/forward | Workspace canonicalizes to a query-free list route; other current routes preserve only their own safe params; TopBar/chrome state, reload and back/forward behavior remain correct without double-push | `test/scenarios/e2e/p0-088-url-addressable-routing-canonical/` |
-| E2E.P0.089 | Auth pendingAction + URL privacy redline | User is unauthenticated; the positive practice workflow contains safe IDs, while hostile workspace inputs carry route-incompatible params plus representative raw and secret markers | User triggers the auth-gated practice action, completes email-code mock auth, returns to practice, then opens hostile workspace auth/history inputs | Practice restore preserves its safe handoff IDs; hostile workspace direct-open and popstate inputs normalize to query-free workspace state; raw and secret markers have zero hits in URL, history, pendingAction, storage and logs | `test/scenarios/e2e/p0-089-url-routing-auth-privacy/` |
-| E2E.P0.090 | Hash routing + unsupported route regression | Static preview / pixel parity inputs use `#route=...`; unsupported paths and hash routes are available | Open representative hash URLs and unsupported direct URLs, then run routing/fallback regressions | Hash routes bootstrap through `normalizeRoute` and land on equivalent canonical state; unsupported inputs normalize to current routes or Home; canonical output never emits unsupported paths; frontend fallback does not swallow API/static/script paths | `test/scenarios/e2e/p0-090-url-routing-hash-out-of-scope-negative/` |
+| E2E.P0.088 | Canonical path deep-link / reload / browser history | Frontend app uses Browser History router; `/reports` may carry a valid、missing or invalid targetJobId while workspace and legacy report params include hostile inputs | Open representative canonical URLs including Reports, reload, navigate, and use browser back/forward | Valid Reports preserves only targetJobId and remains chrome-visible/protected；missing/invalid target replaces to workspace without push/back-loop；report/generating preserve only reportId；Parse strips legacy section；TopBar remains three entries and history has no double-push | `test/scenarios/e2e/p0-088-url-addressable-routing-canonical/` |
+| E2E.P0.089 | Auth pendingAction + URL privacy redline | User is unauthenticated and directly opens `/reports?targetJobId=...` with hostile extra/raw/secret params | Complete email-code mock auth and restore the protected route；also exercise hostile history input | Restore reaches Reports with only targetJobId；raw/secret and incompatible params have zero hits in URL、history、pendingAction、storage and logs | `test/scenarios/e2e/p0-089-url-routing-auth-privacy/` |
+| E2E.P0.090 | Hash routing + unsupported route regression | Static preview / parity inputs use `#route=reports&targetJobId=...`; legacy `section=reports` and unsupported paths/params are available | Open hash and direct URLs, then run routing/fallback regressions | Reports hash reaches equivalent canonical URL；legacy section/report/status params are stripped；known `/reports` host fallback works；unsupported inputs do not create screens or TopBar entries | `test/scenarios/e2e/p0-090-url-routing-hash-out-of-scope-negative/` |
 
 ## 3 Regression References
 

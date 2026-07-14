@@ -5,7 +5,8 @@ import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import { useFeedbackReport } from "../hooks/useFeedbackReport";
 import { confidenceLabel, dimensionStatusLabel, readinessTierLabel } from "../readiness";
-import { isValidReadyReport } from "../reportContract";
+import { resolveReportBackRoute } from "../reportBackRoute";
+import { isValidFeedbackReport, isValidReadyReport } from "../reportContract";
 import { useReplayCtaHandlers } from "../useReplayCtaHandlers";
 import { ReportContextStrip } from "./ReportContextStrip";
 import { ReportFailureState } from "./ReportFailureState";
@@ -19,37 +20,43 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
   const { t, lang } = useI18n();
   const { navigate } = useNavigation();
   const report = useFeedbackReport(reportId);
-  const readyReport = report.data?.id === reportId && isValidReadyReport(report.data)
+  const validReport = isValidFeedbackReport(report.data, reportId)
     ? report.data
     : null;
+  const readyReport = validReport?.status === "ready" && isValidReadyReport(validReport)
+    ? validReport
+    : null;
   const replay = useReplayCtaHandlers({ report: readyReport });
-  const goWorkspace = () => navigate({ name: "workspace", params: {} });
+  const backRoute = resolveReportBackRoute(report.data, reportId);
+  const backDestination = backRoute.name === "reports" ? "reports" : "workspace";
+  const goBack = () => navigate(backRoute);
 
   if (report.state === "notFound") {
-    return <ReportFailureState errorCode="REPORT_NOT_FOUND" notFound onBackToWorkspace={goWorkspace} />;
+    return <ReportFailureState errorCode="REPORT_NOT_FOUND" notFound onBack={goBack} backDestination={backDestination} />;
   }
   if (report.state === "error") {
-    return <ReportFailureState errorCode={report.errorCode} onRetry={report.refresh} recoverable onBackToWorkspace={goWorkspace} />;
+    return <ReportFailureState errorCode={report.errorCode} onRetry={report.refresh} recoverable onBack={goBack} backDestination={backDestination} />;
   }
   if (report.state === "loading" || report.state === "idle") {
     return <div data-testid="report-dashboard-loading" style={{ padding: 48 }}>{t("report.loading")}</div>;
   }
-  if (!report.data) {
-    return <ReportFailureState errorCode="AI_OUTPUT_INVALID" contractInvalid onBackToWorkspace={goWorkspace} />;
+  if (!validReport) {
+    return <ReportFailureState errorCode="AI_OUTPUT_INVALID" contractInvalid onBack={goBack} backDestination={backDestination} />;
   }
-  if (report.data.status === "queued" || report.data.status === "generating") {
+  if (validReport.status === "queued" || validReport.status === "generating") {
     return (
       <div data-testid="report-pending-state" style={{ maxWidth: 820, margin: "0 auto", padding: "72px clamp(16px, 5vw, 48px)" }}>
+        <button type="button" data-testid="report-pending-back-button" onClick={goBack} style={{ border: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", cursor: "pointer", marginBottom: 20 }}>← {t("report.back")}</button>
         <p>{t("report.pending")}</p>
         <button type="button" onClick={() => navigate({ name: "generating", params: { reportId } })}>{t("report.pending.cta")}</button>
       </div>
     );
   }
-  if (report.data.status === "failed") {
-    return <ReportFailureState errorCode={report.data.errorCode} onBackToWorkspace={goWorkspace} />;
+  if (validReport.status === "failed") {
+    return <ReportFailureState errorCode={validReport.errorCode} onBack={goBack} backDestination={backDestination} />;
   }
   if (!readyReport) {
-    return <ReportFailureState errorCode="AI_OUTPUT_INVALID" contractInvalid onBackToWorkspace={goWorkspace} />;
+    return <ReportFailureState errorCode="AI_OUTPUT_INVALID" contractInvalid onBack={goBack} backDestination={backDestination} />;
   }
 
   const data = readyReport;
@@ -66,7 +73,7 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
 
   return (
     <main data-testid="report-dashboard" className="ei-fadein" style={{ maxWidth: 1120, width: "100%", boxSizing: "border-box", margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}>
-      <button type="button" data-testid="report-back-button" onClick={goWorkspace} style={{ border: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", cursor: "pointer", marginBottom: 20 }}>← {t("report.back")}</button>
+      <button type="button" data-testid="report-back-button" onClick={goBack} style={{ border: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", cursor: "pointer", marginBottom: 20 }}>← {t("report.back")}</button>
       <ReportHeader
         breadcrumb={lang === "en" ? "CONVERSATION REPORT" : "会话报告"}
         title={`${data.context.targetJobCompany} · ${data.context.targetJobTitle}`}

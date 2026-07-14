@@ -40,6 +40,10 @@ REQUIRED_TERMS = (
     "VoiceSessionSurface",
     "PracticeWaveformBars",
     "listTargetJobReports",
+    "reportHistory",
+    "reportVersions",
+    "Report Center",
+    "报告中心",
     "--ei-bg",
     "--ei-ink",
     "--ei-accent",
@@ -84,6 +88,9 @@ def test_frontend_report_dashboard_out_of_scope_allows_negative_docs() -> None:
             "// negative: reportLayout / mistakesQueue / VoiceSessionSurface\n",
             encoding="utf-8",
         )
+        reports = root / "frontend" / "src" / "app" / "screens" / "reports" / "ReportsScreen.tsx"
+        reports.parent.mkdir(parents=True, exist_ok=True)
+        reports.write_text("client.listTargetJobReports(targetJobId);\n", encoding="utf-8")
         scripts_dir = root / "scripts" / "lint"
         scripts_dir.mkdir(parents=True, exist_ok=True)
         # Copy the lint script into the temp tree so its self-path skip still works.
@@ -98,6 +105,51 @@ def test_frontend_report_dashboard_out_of_scope_allows_negative_docs() -> None:
         assert result.returncode == 0, (
             f"lint flagged an allowed negative-assertion file:\nstdout={result.stdout}\nstderr={result.stderr}"
         )
+
+
+def test_frontend_report_dashboard_out_of_scope_allows_only_reports_screen_consumer() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        reports = root / "frontend/src/app/screens/reports/ReportsScreen.tsx"
+        reports.parent.mkdir(parents=True, exist_ok=True)
+        reports.write_text("client.listTargetJobReports(targetJobId);\n", encoding="utf-8")
+        scripts_dir = root / "scripts/lint"
+        scripts_dir.mkdir(parents=True, exist_ok=True)
+        copy_target = scripts_dir / "frontend_report_dashboard_out_of_scope.py"
+        copy_target.write_bytes(SCRIPT.read_bytes())
+
+        result = subprocess.run(
+            [sys.executable, str(copy_target), "--repo-root", str(root)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "only consumer=frontend/src/app/screens/reports/ReportsScreen.tsx" in result.stdout
+
+
+def test_frontend_report_dashboard_out_of_scope_rejects_any_second_list_consumer() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        reports = root / "frontend/src/app/screens/reports/ReportsScreen.tsx"
+        parse = root / "frontend/src/app/screens/parse/ParseScreen.tsx"
+        reports.parent.mkdir(parents=True, exist_ok=True)
+        parse.parent.mkdir(parents=True, exist_ok=True)
+        reports.write_text("client.listTargetJobReports(targetJobId);\n", encoding="utf-8")
+        parse.write_text("client.listTargetJobReports(targetJobId);\n", encoding="utf-8")
+        scripts_dir = root / "scripts/lint"
+        scripts_dir.mkdir(parents=True, exist_ok=True)
+        copy_target = scripts_dir / "frontend_report_dashboard_out_of_scope.py"
+        copy_target.write_bytes(SCRIPT.read_bytes())
+
+        result = subprocess.run(
+            [sys.executable, str(copy_target), "--repo-root", str(root)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert result.returncode == 1
+        assert "listTargetJobReports production screen consumers" in result.stdout
 
 
 if __name__ == "__main__":

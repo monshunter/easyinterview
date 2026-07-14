@@ -177,7 +177,7 @@ func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
 	mustContain(t, tsClient, "async requestPrivacyExport(opts?: RequestOptions): Promise<Types.ApiErrorResponse>")
 	mustContain(t, tsClient, "async listResumes(opts?: RequestOptions): Promise<Types.PaginatedResume>")
 	mustContain(t, tsClient, "if (!response.ok && !okStatuses.includes(response.status))")
-	mustContain(t, tsClient, "const text = await response.text()")
+	mustContain(t, tsClient, "text = await response.text()")
 	mustContain(t, tsClient, "if (response.status === 204 || text.trim() === \"\")")
 	mustContain(t, tsClient, "async createPracticeVoiceTurn(sessionId: string, body: Types.CreatePracticeVoiceTurnRequest, opts?: RequestOptions): Promise<unknown>")
 
@@ -275,6 +275,128 @@ func TestRun_GroundedReportAndTypedDerivedPlanTypes(t *testing.T) {
 	mustNotContain(t, tsTypes, "export interface DimensionResult")
 }
 
+func TestRun_TargetJobPasteOnlyTypesHaveNoSourceCompatibilitySurface(t *testing.T) {
+	repoRoot := mustFindRepoRoot(t)
+	tmp := t.TempDir()
+	openapiDst := filepath.Join(tmp, "openapi", "openapi.yaml")
+	if err := os.MkdirAll(filepath.Dir(openapiDst), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	mustCopy(t, filepath.Join(repoRoot, "openapi", "openapi.yaml"), openapiDst)
+	templates := filepath.Join(tmp, "openapi", "templates")
+	if err := mirrorDir(filepath.Join(repoRoot, "openapi", "templates"), templates); err != nil {
+		t.Fatalf("mirror templates: %v", err)
+	}
+	if err := Run(
+		openapiDst,
+		filepath.Join(repoRoot, "shared", "conventions.yaml"),
+		templates,
+		tmp,
+		false,
+	); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	goTypes := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/types.gen.go"))
+	mustMatch(t, goTypes, `(?s)type ImportTargetJobRequest struct \{.*?RawText\s+string\s+`+"`json:\"rawText\"`"+`.*?TargetLanguage\s+string\s+`+"`json:\"targetLanguage\"`"+`.*?ResumeId\s+string\s+`+"`json:\"resumeId\"`"+`.*?\n\}`)
+	mustNotContain(t, goTypes, "type TargetJobImportSource")
+	mustNotContain(t, goTypes, "TargetJobImportSourceURL")
+	mustNotContain(t, goTypes, "TargetJobImportSourceManualText")
+	mustNotContain(t, goTypes, "TargetJobImportSourceFile")
+	mustNotContain(t, goTypes, "TargetJobImportSourceManualForm")
+	mustNotContain(t, goTypes, "TargetJobAttachment")
+	mustBlockNotContain(t, goTypes, `type TargetJob struct \{`, "SourceType", "SourceUrl")
+
+	tsTypes := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/types.ts"))
+	mustMatch(t, tsTypes, `(?s)export interface ImportTargetJobRequest \{.*?rawText: string;.*?targetLanguage: string;.*?resumeId: string;.*?\n\}`)
+	mustNotContain(t, tsTypes, "TargetJobImportSource")
+	mustNotContain(t, tsTypes, "target_job_attachment")
+	mustBlockNotContain(t, tsTypes, `export interface TargetJob \{`, "sourceType", "sourceUrl")
+}
+
+func TestRun_PracticeMessageRecoveryUsesClosedTypedUnion(t *testing.T) {
+	repoRoot := mustFindRepoRoot(t)
+	tmp := t.TempDir()
+	openapiDst := filepath.Join(tmp, "openapi", "openapi.yaml")
+	if err := os.MkdirAll(filepath.Dir(openapiDst), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	mustCopy(t, filepath.Join(repoRoot, "openapi", "openapi.yaml"), openapiDst)
+	templates := filepath.Join(tmp, "openapi", "templates")
+	if err := mirrorDir(filepath.Join(repoRoot, "openapi", "templates"), templates); err != nil {
+		t.Fatalf("mirror templates: %v", err)
+	}
+	if err := Run(
+		openapiDst,
+		filepath.Join(repoRoot, "shared", "conventions.yaml"),
+		templates,
+		tmp,
+		false,
+	); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	openapiText := readFile(t, openapiDst)
+	mustMatch(t, openapiText, `(?s)PracticeMessage:\n\s+oneOf:\n\s+- \$ref: '#/components/schemas/PracticeUserMessage'\n\s+- \$ref: '#/components/schemas/PracticeAssistantMessage'\n\s+discriminator:\n\s+propertyName: role`)
+	mustMatch(t, openapiText, `(?s)PracticeUserMessage:\n\s+type: object\n\s+additionalProperties: false\n\s+required: \[id, seqNo, role, content, createdAt, clientMessageId, replyStatus\]`)
+	mustMatch(t, openapiText, `(?s)PracticeAssistantMessage:\n\s+type: object\n\s+additionalProperties: false\n\s+required: \[id, seqNo, role, content, createdAt\]`)
+
+	goTypes := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/types.gen.go"))
+	mustContain(t, goTypes, "type PracticeReplyStatus string")
+	mustContain(t, goTypes, `PracticeReplyStatusRetryableFailed PracticeReplyStatus = "retryable_failed"`)
+	mustContain(t, goTypes, "type PracticeUserMessage struct {")
+	mustContain(t, goTypes, "type PracticeAssistantMessage struct {")
+	mustContain(t, goTypes, "type PracticeMessage struct {")
+	mustContain(t, goTypes, "func NewPracticeMessageFromPracticeUserMessage(value PracticeUserMessage) PracticeMessage")
+	mustContain(t, goTypes, "func (value *PracticeMessage) UnmarshalJSON(data []byte) error")
+	mustNotContain(t, goTypes, "type PracticeMessage = any")
+
+	tsTypes := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/types.ts"))
+	mustContain(t, tsTypes, `export type PracticeReplyStatus = "pending" | "retryable_failed" | "terminal_failed" | "complete";`)
+	mustContain(t, tsTypes, "export interface PracticeUserMessage {")
+	mustContain(t, tsTypes, "\trole: \"user\";")
+	mustContain(t, tsTypes, "\tclientMessageId: string;")
+	mustContain(t, tsTypes, "\treplyStatus: PracticeReplyStatus;")
+	mustContain(t, tsTypes, "export interface PracticeAssistantMessage {")
+	mustContain(t, tsTypes, "\trole: \"assistant\";")
+	mustContain(t, tsTypes, "export type PracticeMessage = PracticeUserMessage | PracticeAssistantMessage;")
+	mustNotContain(t, tsTypes, "export type PracticeMessage = any")
+	mustNotContain(t, tsTypes, "export type PracticeMessage = unknown")
+}
+
+func TestRun_TypeScriptClientEmitsStructuredApiClientError(t *testing.T) {
+	repoRoot := mustFindRepoRoot(t)
+	tmp := t.TempDir()
+	openapiDst := filepath.Join(tmp, "openapi", "openapi.yaml")
+	if err := os.MkdirAll(filepath.Dir(openapiDst), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	mustCopy(t, filepath.Join(repoRoot, "openapi", "openapi.yaml"), openapiDst)
+	templates := filepath.Join(tmp, "openapi", "templates")
+	if err := mirrorDir(filepath.Join(repoRoot, "openapi", "templates"), templates); err != nil {
+		t.Fatalf("mirror templates: %v", err)
+	}
+	if err := Run(
+		openapiDst,
+		filepath.Join(repoRoot, "shared", "conventions.yaml"),
+		templates,
+		tmp,
+		false,
+	); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	tsClient := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/client.ts"))
+	mustContain(t, tsClient, `export type ApiClientErrorKind = "http" | "abort" | "transport";`)
+	mustContain(t, tsClient, "export class ApiClientError extends Error {")
+	mustContain(t, tsClient, "readonly status: number | null;")
+	mustContain(t, tsClient, "readonly apiError: Types.ApiErrorResponse | null;")
+	mustContain(t, tsClient, "parseApiErrorResponse(text)")
+	mustContain(t, tsClient, `new ApiClientError("http", response.status, apiError)`)
+	mustNotContain(t, tsClient, "${text}")
+	mustNotContain(t, tsClient, "throw new Error(`HTTP")
+}
+
 func mustFindRepoRoot(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()
@@ -313,6 +435,19 @@ func mustMatch(t *testing.T, haystack, pattern string) {
 	t.Helper()
 	if !regexp.MustCompile(pattern).MatchString(haystack) {
 		t.Fatalf("expected output to match %q", pattern)
+	}
+}
+
+func mustBlockNotContain(t *testing.T, haystack, blockStart string, needles ...string) {
+	t.Helper()
+	block := regexp.MustCompile(`(?s)` + blockStart + `.*?\n\}`).FindString(haystack)
+	if block == "" {
+		t.Fatalf("expected output to contain block starting with %q", blockStart)
+	}
+	for _, needle := range needles {
+		if strings.Contains(block, needle) {
+			t.Fatalf("expected block starting with %q not to contain %q", blockStart, needle)
+		}
 	}
 }
 

@@ -3,14 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"io"
-	"net"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -25,7 +20,6 @@ import (
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 )
 
 const (
@@ -36,15 +30,11 @@ const (
 func TestE2EP0010HTTPTextImportParseReady(t *testing.T) {
 	h := newTargetJobHTTPScenarioHarness(t, targetJobHTTPScenarioOptions{})
 
+	const rawText = "Private scenario JD text that must stay out of evidence logs."
 	importBody := api.ImportTargetJobRequest{
-		Source: map[string]any{
-			"type":    "manual_text",
-			"rawText": "Private scenario JD text that must stay out of evidence logs.",
-		},
-		TargetLanguage:  "zh-CN",
-		ResumeId:        targetJobHTTPScenarioResumeID,
-		TitleHint:       strPtr("Senior Frontend Engineer"),
-		CompanyNameHint: strPtr("Acme"),
+		RawText:        rawText,
+		TargetLanguage: "zh-CN",
+		ResumeId:       targetJobHTTPScenarioResumeID,
 	}
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/targets/import", "e2e-p0-010-import", importBody, http.StatusAccepted)
 	var imported api.TargetJobWithJob
@@ -58,6 +48,9 @@ func TestE2EP0010HTTPTextImportParseReady(t *testing.T) {
 	decodeJSON(t, duplicateRaw, &duplicate)
 	if duplicate.TargetJobId != imported.TargetJobId || h.store.targetCount() != 1 {
 		t.Fatalf("idempotent import did not return existing target: duplicate=%+v targets=%d", duplicate, h.store.targetCount())
+	}
+	if got := h.store.targets[imported.TargetJobId].RawJDText; got != rawText {
+		t.Fatalf("paste-only import did not persist exact rawText: got=%q want=%q", got, rawText)
 	}
 
 	h.runRunnerOnce(t, true)
@@ -90,73 +83,7 @@ func TestE2EP0010HTTPTextImportParseReady(t *testing.T) {
 		t.Fatalf("update changed wrong fields: %+v", updated)
 	}
 
-	assertNoEvidenceLeak(t, h.store.outboxPayloads(), "Private scenario JD text", "prompt body", "response body", "Authorization:")
-}
-
-func TestE2EP0011HTTPURLImportFetchAndParse(t *testing.T) {
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/role/1" {
-			t.Fatalf("unexpected URL fetch path: %s", r.URL.String())
-		}
-		_, _ = io.WriteString(w, "Fetched public JD text that must not appear in scenario evidence.")
-	}))
-	defer server.Close()
-	serverURL, err := url.Parse(server.URL)
-	if err != nil {
-		t.Fatalf("parse fixture server URL: %v", err)
-	}
-
-	fetcher := urlfetch.New(urlfetch.FetcherOptions{
-		UserAgent: targetjob.URLFetchUserAgent("scenario"),
-		Resolver: func(context.Context, string) ([]net.IP, error) {
-			return []net.IP{net.ParseIP("203.0.113.10")}, nil
-		},
-		HTTPClient: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // local httptest certificate
-			DialContext: func(ctx context.Context, network string, _ string) (net.Conn, error) {
-				var d net.Dialer
-				return d.DialContext(ctx, network, serverURL.Host)
-			},
-		}},
-		Now: fixedScenarioNow,
-	})
-	h := newTargetJobHTTPScenarioHarness(t, targetJobHTTPScenarioOptions{fetcher: fetcher})
-
-	raw := h.doJSON(t, http.MethodPost, "/api/v1/targets/import", "e2e-p0-011-url", api.ImportTargetJobRequest{
-		Source:         map[string]any{"type": "url", "url": "https://jobs.example.test/role/1?token=secret#frag"},
-		TargetLanguage: "en",
-		ResumeId:       targetJobHTTPScenarioResumeID,
-	}, http.StatusAccepted)
-	var imported api.TargetJobWithJob
-	decodeJSON(t, raw, &imported)
-	h.runRunnerOnce(t, true)
-
-	detailRaw := h.doJSON(t, http.MethodGet, "/api/v1/targets/"+imported.TargetJobId, "", nil, http.StatusOK)
-	var detail api.TargetJob
-	decodeJSON(t, detailRaw, &detail)
-	if detail.AnalysisStatus != sharedtypes.TargetJobParseStatusReady || detail.SourceUrl == nil || strings.Contains(*detail.SourceUrl, "token=secret") {
-		t.Fatalf("URL detail not ready or not sanitized: %+v", detail)
-	}
-	source := h.store.firstSource(imported.TargetJobId)
-	if source.SnapshotText == "" || source.FetchedAt == nil || source.FreshnessStatus != targetjob.FreshnessFresh {
-		t.Fatalf("URL source snapshot not persisted: %+v", source)
-	}
-	if strings.Contains(source.URL, "token=secret") || strings.Contains(source.URL, "#frag") {
-		t.Fatalf("source URL leaked secret material: %q", source.URL)
-	}
-
-	errorRaw := h.doJSON(t, http.MethodPost, "/api/v1/targets/import", "e2e-p0-011-invalid", api.ImportTargetJobRequest{
-		Source:         map[string]any{"type": "url", "url": "http://169.254.169.254/latest/meta-data"},
-		TargetLanguage: "en",
-		ResumeId:       targetJobHTTPScenarioResumeID,
-	}, http.StatusBadRequest)
-	var errResp api.ApiErrorResponse
-	decodeJSON(t, errorRaw, &errResp)
-	if errResp.Error.Code != sharederrors.CodeTargetImportSourceInvalid || errResp.Error.Retryable {
-		t.Fatalf("invalid URL did not map to TARGET_IMPORT_SOURCE_INVALID: %+v", errResp.Error)
-	}
-
-	assertNoEvidenceLeak(t, h.store.outboxPayloads(), "token=secret", "Fetched public JD text", "latest/meta-data", "Authorization:")
+	assertNoEvidenceLeak(t, h.store.outboxPayloads(), rawText, "prompt body", "response body", "Authorization:")
 }
 
 func TestE2EP0012HTTPParseFailureRetryableAndNonRetryable(t *testing.T) {
@@ -195,7 +122,7 @@ func TestE2EP0012HTTPParseFailureRetryableAndNonRetryable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			h := newTargetJobHTTPScenarioHarness(t, tc.options)
 			raw := h.doJSON(t, http.MethodPost, "/api/v1/targets/import", "e2e-p0-012-"+tc.name, api.ImportTargetJobRequest{
-				Source:         map[string]any{"type": "manual_text", "rawText": "Private JD body that must not leak."},
+				RawText:        "Private JD body that must not leak.",
 				TargetLanguage: "en",
 				ResumeId:       targetJobHTTPScenarioResumeID,
 			}, http.StatusAccepted)
@@ -230,46 +157,9 @@ func TestE2EP0012HTTPParseFailureRetryableAndNonRetryable(t *testing.T) {
 	}
 }
 
-func TestE2EP0013HTTPManualFormReady(t *testing.T) {
-	h := newTargetJobHTTPScenarioHarness(t, targetJobHTTPScenarioOptions{})
-	raw := h.doJSON(t, http.MethodPost, "/api/v1/targets/import", "e2e-p0-013-manual-form", api.ImportTargetJobRequest{
-		Source: map[string]any{
-			"type":           "manual_form",
-			"title":          "Frontend Architect",
-			"companyName":    "Acme",
-			"rawDescription": "Lead frontend architecture across squads. Must have React platform experience.",
-		},
-		TargetLanguage: "zh-CN",
-		ResumeId:       targetJobHTTPScenarioResumeID,
-	}, http.StatusAccepted)
-	var imported api.TargetJobWithJob
-	decodeJSON(t, raw, &imported)
-	if imported.Job.Status != sharedtypes.JobStatusSucceeded || imported.Job.JobType != api.JobTypeTargetImport {
-		t.Fatalf("manual_form must return terminal target_import job: %+v", imported.Job)
-	}
-	if processed, err := h.runtime.RunOnce(context.Background()); err != nil || processed {
-		t.Fatalf("manual_form must not queue target_import runner, processed=%v err=%v", processed, err)
-	}
-
-	detailRaw := h.doJSON(t, http.MethodGet, "/api/v1/targets/"+imported.TargetJobId, "", nil, http.StatusOK)
-	var detail api.TargetJob
-	decodeJSON(t, detailRaw, &detail)
-	if detail.AnalysisStatus != sharedtypes.TargetJobParseStatusReady || len(detail.Requirements) == 0 || detail.SourceType != string(targetjob.SourceTypeManualForm) {
-		t.Fatalf("manual_form detail not ready: %+v", detail)
-	}
-	listRaw := h.doJSON(t, http.MethodGet, "/api/v1/targets", "", nil, http.StatusOK)
-	var list api.PaginatedTargetJob
-	decodeJSON(t, listRaw, &list)
-	if len(list.Items) != 1 || list.Items[0].Id != imported.TargetJobId {
-		t.Fatalf("manual_form target missing from list: %+v", list)
-	}
-	assertNoEvidenceLeak(t, h.store.outboxPayloads(), "Lead frontend architecture across squads", "prompt body", "response body", "Authorization:")
-}
-
 type targetJobHTTPScenarioOptions struct {
 	ai       aiclient.AIClient
 	registry targetjob.PromptRegistryClient
-	fetcher  targetjob.URLFetcher
 }
 
 type targetJobHTTPScenarioHarness struct {
@@ -332,21 +222,15 @@ runtime:
 	if registry == nil {
 		registry = newStaticTestPromptRegistry()
 	}
-	fetcher := opts.fetcher
-	if fetcher == nil {
-		fetcher = &scenarioFetcher{}
-	}
 	executor := targetjob.NewParseExecutor(targetjob.ParseExecutorOptions{
 		Store:    store,
 		Registry: registry,
 		AI:       aiClient,
-		Fetcher:  fetcher,
 		NewID:    store.nextID,
 		Now:      fixedScenarioNow,
 	})
 	runtime := newScenarioJobRuntime(store, fixedScenarioNow, map[string]runner.Handler{
-		"target_import":  executor,
-		"source_refresh": &targetjob.SourceRefreshHandler{Store: store, Now: fixedScenarioNow},
+		"target_import": executor,
 	})
 	return &targetJobHTTPScenarioHarness{
 		handler: buildAPIHandler(loader, apiRuntimeFlags{}, authService, targetJobHandler, practiceRoutes{}, uploadRoutes{}, resumeRoutes{}, reportRoutes{}, jobsRoutes{}),
@@ -398,7 +282,6 @@ type scenarioTargetJobStore struct {
 	seq           int
 	targets       map[string]targetjob.TargetJobRecord
 	requirements  map[string][]targetjob.RequirementRecord
-	sources       map[string][]targetjob.SourceRecord
 	importDedupe  map[string]string
 	updateDedupe  map[string]string
 	archiveDedupe map[string]string
@@ -414,7 +297,6 @@ func newScenarioTargetJobStore() *scenarioTargetJobStore {
 	return &scenarioTargetJobStore{
 		targets:       map[string]targetjob.TargetJobRecord{},
 		requirements:  map[string][]targetjob.RequirementRecord{},
-		sources:       map[string][]targetjob.SourceRecord{},
 		importDedupe:  map[string]string{},
 		updateDedupe:  map[string]string{},
 		archiveDedupe: map[string]string{},
@@ -442,56 +324,35 @@ func (s *scenarioTargetJobStore) ImportTargetJob(_ context.Context, in targetjob
 		}, nil
 	}
 	rec := targetjob.TargetJobRecord{
-		ID:                 in.TargetJobID,
-		UserID:             in.UserID,
-		Status:             in.InitialLifecycleStatus,
-		AnalysisStatus:     in.InitialAnalysisStatus,
-		Title:              in.Title,
-		CompanyName:        in.CompanyName,
-		LocationText:       in.LocationText,
-		EmploymentType:     in.EmploymentType,
-		SeniorityLevel:     in.SeniorityLevel,
-		TargetLanguage:     in.TargetLanguage,
-		SourceType:         in.APISourceType,
-		SourceURL:          in.SourceURL,
-		SourceFileObjectID: in.SourceFileObjectID,
-		RawJDText:          in.RawJDText,
-		CreatedAt:          in.Now,
-		UpdatedAt:          in.Now,
+		ID:             in.TargetJobID,
+		UserID:         in.UserID,
+		Status:         in.InitialLifecycleStatus,
+		AnalysisStatus: in.InitialAnalysisStatus,
+		Title:          in.Title,
+		CompanyName:    in.CompanyName,
+		LocationText:   in.LocationText,
+		EmploymentType: in.EmploymentType,
+		SeniorityLevel: in.SeniorityLevel,
+		TargetLanguage: in.TargetLanguage,
+		ResumeID:       in.ResumeID,
+		RawJDText:      in.RawJDText,
+		CreatedAt:      in.Now,
+		UpdatedAt:      in.Now,
 	}
 	s.targets[in.TargetJobID] = rec
 	s.importDedupe[in.DedupeKey] = in.TargetJobID
-	if in.SourceID != "" {
-		s.sources[in.TargetJobID] = append(s.sources[in.TargetJobID], targetjob.SourceRecord{
-			ID:              in.SourceID,
-			TargetJobID:     in.TargetJobID,
-			SourceType:      in.APISourceType,
-			URL:             in.SourceURL,
-			FileObjectID:    in.SourceFileObjectID,
-			SnapshotText:    in.SourceSnapshotText,
-			FetchedAt:       in.SourceFetchedAt,
-			FreshnessStatus: targetjob.FreshnessFresh,
-			CreatedAt:       in.Now,
-		})
-	}
-	if len(in.DraftRequirements) > 0 {
-		s.requirements[in.TargetJobID] = normalizeRequirements(in.TargetJobID, in.DraftRequirements, in.Now)
-	}
-	status := sharedtypes.JobStatusSucceeded
-	if in.JobID != "" && len(in.JobPayload) > 0 {
-		status = sharedtypes.JobStatusQueued
-		s.jobs = append(s.jobs, runner.ClaimedJob{
-			JobID:        in.JobID,
-			JobType:      "target_import",
-			ResourceType: "target_job",
-			ResourceID:   in.TargetJobID,
-			Payload:      append([]byte{}, in.JobPayload...),
-			MaxAttempts:  3,
-			AvailableAt:  in.Now,
-		})
-		if len(in.OutboxEventPayload) > 0 {
-			s.outbox = append(s.outbox, append([]byte{}, in.OutboxEventPayload...))
-		}
+	status := sharedtypes.JobStatusQueued
+	s.jobs = append(s.jobs, runner.ClaimedJob{
+		JobID:        in.JobID,
+		JobType:      "target_import",
+		ResourceType: "target_job",
+		ResourceID:   in.TargetJobID,
+		Payload:      append([]byte{}, in.JobPayload...),
+		MaxAttempts:  3,
+		AvailableAt:  in.Now,
+	})
+	if len(in.OutboxEventPayload) > 0 {
+		s.outbox = append(s.outbox, append([]byte{}, in.OutboxEventPayload...))
 	}
 	s.jobByTarget[in.TargetJobID] = in.JobID
 	s.jobStatus[in.JobID] = status
@@ -508,16 +369,12 @@ func (s *scenarioTargetJobStore) InsertTargetJob(context.Context, targetjob.Targ
 	panic("not used")
 }
 
-func (s *scenarioTargetJobStore) InsertTargetJobSource(context.Context, targetjob.SourceRecord) error {
-	panic("not used")
-}
-
-func (s *scenarioTargetJobStore) GetTargetJobByUser(_ context.Context, userID string, targetJobID string) (targetjob.TargetJobRecord, []targetjob.RequirementRecord, []targetjob.SourceRecord, error) {
+func (s *scenarioTargetJobStore) GetTargetJobByUser(_ context.Context, userID string, targetJobID string) (targetjob.TargetJobRecord, []targetjob.RequirementRecord, error) {
 	rec, ok := s.targets[targetJobID]
 	if !ok || rec.UserID != userID || rec.DeletedAt != nil || rec.AnalysisStatus == sharedtypes.TargetJobParseStatusFailed {
-		return targetjob.TargetJobRecord{}, nil, nil, targetjob.ErrTargetJobNotFound
+		return targetjob.TargetJobRecord{}, nil, targetjob.ErrTargetJobNotFound
 	}
-	return rec, append([]targetjob.RequirementRecord{}, s.requirements[targetJobID]...), append([]targetjob.SourceRecord{}, s.sources[targetJobID]...), nil
+	return rec, append([]targetjob.RequirementRecord{}, s.requirements[targetJobID]...), nil
 }
 
 func (s *scenarioTargetJobStore) ListTargetJobsForUser(_ context.Context, userID string, filter targetjob.ListFilter) (targetjob.ListResult, error) {
@@ -630,17 +487,6 @@ func (s *scenarioTargetJobStore) CompleteParseSuccess(_ context.Context, in targ
 		return err
 	}
 	s.outbox = append(s.outbox, append([]byte{}, in.ParsedEventPayload...))
-	if in.SourceRefreshJobID != "" {
-		s.jobs = append(s.jobs, runner.ClaimedJob{
-			JobID:        in.SourceRefreshJobID,
-			JobType:      "source_refresh",
-			ResourceType: "target_job",
-			ResourceID:   in.TargetJobID,
-			MaxAttempts:  3,
-			AvailableAt:  in.Now,
-		})
-		s.jobStatus[in.SourceRefreshJobID] = sharedtypes.JobStatusQueued
-	}
 	return nil
 }
 
@@ -650,40 +496,7 @@ func (s *scenarioTargetJobStore) CompleteParseFailure(_ context.Context, in targ
 	s.outbox = append(s.outbox, payload)
 	delete(s.targets, in.TargetJobID)
 	delete(s.requirements, in.TargetJobID)
-	delete(s.sources, in.TargetJobID)
 	return nil
-}
-
-func (s *scenarioTargetJobStore) UpdateSourceFreshness(_ context.Context, targetJobID string, freshness targetjob.FreshnessStatus, _ time.Time) error {
-	sources := s.sources[targetJobID]
-	for i := range sources {
-		sources[i].FreshnessStatus = freshness
-	}
-	s.sources[targetJobID] = sources
-	return nil
-}
-
-func (s *scenarioTargetJobStore) UpdateSourceSnapshot(_ context.Context, sourceID string, sanitizedURL string, snapshotText string, fetchedAt time.Time, _ time.Time) error {
-	for targetID, sources := range s.sources {
-		for i := range sources {
-			if sources[i].ID == sourceID {
-				sources[i].URL = sanitizedURL
-				sources[i].SnapshotText = snapshotText
-				sources[i].FetchedAt = &fetchedAt
-				sources[i].FreshnessStatus = targetjob.FreshnessFresh
-				s.sources[targetID] = sources
-				rec := s.targets[targetID]
-				rec.SourceURL = sanitizedURL
-				s.targets[targetID] = rec
-				return nil
-			}
-		}
-	}
-	return targetjob.ErrTargetJobNotFound
-}
-
-func (s *scenarioTargetJobStore) LookupFileAttachmentForUser(context.Context, string, string) (targetjob.FileAttachmentRecord, error) {
-	return targetjob.FileAttachmentRecord{}, targetjob.ErrTargetJobNotFound
 }
 
 func (s *scenarioTargetJobStore) LeaseAsyncJob(_ context.Context, jobTypes []string, _ time.Time) (runner.ClaimedJob, bool, error) {
@@ -715,11 +528,6 @@ func (s *scenarioTargetJobStore) ReclaimExpiredLeases(context.Context, []string,
 	return 0, nil
 }
 
-func (s *scenarioTargetJobStore) EnqueueSourceRefresh(_ context.Context, jobID string, targetJobID string, now time.Time) error {
-	s.jobs = append(s.jobs, runner.ClaimedJob{JobID: jobID, JobType: "source_refresh", ResourceType: "target_job", ResourceID: targetJobID, AvailableAt: now})
-	return nil
-}
-
 func (s *scenarioTargetJobStore) WriteParseFailedOutbox(_ context.Context, _ string, _ string, payload []byte, _ time.Time) error {
 	s.failed = append(s.failed, append([]byte{}, payload...))
 	s.outbox = append(s.outbox, append([]byte{}, payload...))
@@ -731,22 +539,15 @@ func (s *scenarioTargetJobStore) WriteTargetParsedOutbox(_ context.Context, _ st
 	return nil
 }
 
-func (s *scenarioTargetJobStore) GetTargetJobForParse(_ context.Context, targetJobID string) (targetjob.TargetJobRecord, []targetjob.SourceRecord, error) {
+func (s *scenarioTargetJobStore) GetTargetJobForParse(_ context.Context, targetJobID string) (targetjob.TargetJobRecord, error) {
 	rec, ok := s.targets[targetJobID]
 	if !ok {
-		return targetjob.TargetJobRecord{}, nil, targetjob.ErrTargetJobNotFound
+		return targetjob.TargetJobRecord{}, targetjob.ErrTargetJobNotFound
 	}
-	return rec, append([]targetjob.SourceRecord{}, s.sources[targetJobID]...), nil
+	return rec, nil
 }
 
 func (s *scenarioTargetJobStore) targetCount() int { return len(s.targets) }
-
-func (s *scenarioTargetJobStore) firstSource(targetID string) targetjob.SourceRecord {
-	if len(s.sources[targetID]) == 0 {
-		return targetjob.SourceRecord{}
-	}
-	return s.sources[targetID][0]
-}
 
 func (s *scenarioTargetJobStore) outboxPayloads() [][]byte {
 	out := make([][]byte, 0, len(s.outbox))
@@ -859,10 +660,4 @@ func (r *staticTestPromptRegistry) Resolve(_ context.Context, featureKey string,
 		return targetjob.PromptResolution{}, targetjob.ErrPromptUnsupported
 	}
 	return r.resolution, nil
-}
-
-type scenarioFetcher struct{}
-
-func (f *scenarioFetcher) Fetch(context.Context, string) (urlfetch.FetchResult, error) {
-	return urlfetch.FetchResult{SanitizedURL: "https://jobs.example.com/role/1", Body: "Scenario JD body", FetchedAt: fixedScenarioNow()}, nil
 }

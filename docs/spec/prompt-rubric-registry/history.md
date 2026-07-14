@@ -1,6 +1,6 @@
 # Prompt Rubric Registry History
 
-> **版本**: 2.41
+> **版本**: 2.42
 > **状态**: active
 > **更新日期**: 2026-07-13
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 2.42 | 用户确认方案 A：TargetJob raw-text-only prompt 沿用 renderer/lint 已有 `{{language}}`，只删除 `{{jd_source_url}}`，不引入 `{{target_language}}` alias 或全仓 token 迁移。 | F3 001 Phase 12 |
 | 2026-07-13 | 2.41 | `target.import.parse` 收敛为 raw JD text 唯一内容输入；删除 URL/source metadata token 与 wording，并要求 prompt hash、seed、resolved snapshot 同步。 | F3 001 Phase 12 |
 | 2026-07-13 | 2.40 | 按用户确认保留 report 完整 JSON 示例；为 prioritization/tie-breaking 示例增加相邻 synthetic candidate input 与 anti-copy/current-context regeneration 规则，并同步 prompt hash、migration、resolved prompt、active DB 与 lint gate。 | F3 002/004 + BUG-0166 |
 | 2026-07-13 | 2.39 | 用户确认evalkit generation/judge各自max4 calls。Generation多轮动态repair/full validation；judge只重试provider/protocol invalid，valid negative typed terminal；manifest记录attempt/retry/reason/scope与聚合usage/latency。旧one-shot合同废止。 | F3 002/004 + backend-review/001 + P0.100 |

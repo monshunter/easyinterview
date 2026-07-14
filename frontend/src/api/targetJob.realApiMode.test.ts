@@ -13,7 +13,6 @@ const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000000014";
 const RESUME_ID = "01918fa0-0000-7000-8000-000000000010";
 const FILE_OBJECT_ID = "01918fa0-0000-7000-8000-000000000015";
 const RAW_JD_TEXT = "Lead React platform and design system programs.";
-const SOURCE_URL = "https://jobs.example.test/frontend-platform?secret=redacted";
 const PROVENANCE = {
 	dataSourceVersion: "targetjob-live-test-2026-05-22",
 	featureFlag: "targetjob.real_backend",
@@ -32,8 +31,6 @@ function buildTargetJob(overrides: Partial<TargetJob> = {}): TargetJob {
 		companyName: "Acme AI",
 		locationText: "Remote",
 		targetLanguage: "en",
-		sourceType: "manual_text",
-		sourceUrl: null,
 		requirements: [
 			{
 				id: "01918fa0-0000-7000-8000-000000000016",
@@ -61,7 +58,6 @@ function buildTargetJob(overrides: Partial<TargetJob> = {}): TargetJob {
 			riskSignals: ["Distributed systems scope"],
 			provenance: PROVENANCE,
 		},
-		latestReportId: null,
 		openQuestionIssueCount: 0,
 		createdAt: "2026-05-22T03:00:00Z",
 		updatedAt: "2026-05-22T03:30:00Z",
@@ -105,7 +101,7 @@ function createRealApiFetchSpy() {
 		if (route === "/uploads/presign" && method === "POST") {
 			const body: UploadPresign = {
 				fileObjectId: FILE_OBJECT_ID,
-				uploadUrl: "https://uploads.example.test/target-job-attachment",
+				uploadUrl: "https://uploads.example.test/resume",
 				method: "PUT",
 				headers: { "Content-Type": "application/pdf" },
 				expiresAt: "2026-05-22T04:00:00Z",
@@ -161,8 +157,8 @@ describe("TargetJob real API mode", () => {
 		const targets = await client.listTargetJobs({ query: { pageSize: 12 } });
 		const upload = await client.createUploadPresign(
 			{
-				purpose: "target_job_attachment",
-				fileName: "frontend-platform.pdf",
+				purpose: "resume",
+				fileName: "candidate-resume.pdf",
 				contentType: "application/pdf",
 				byteSize: 42_000,
 			},
@@ -170,10 +166,9 @@ describe("TargetJob real API mode", () => {
 		);
 		const imported = await client.importTargetJob(
 			{
-				source: { type: "manual_text", rawText: RAW_JD_TEXT },
+				rawText: RAW_JD_TEXT,
 				targetLanguage: "en",
 				resumeId: RESUME_ID,
-				titleHint: "Senior Frontend Engineer",
 			},
 			{ idempotencyKey: "ik_real_import" },
 		);
@@ -210,16 +205,16 @@ describe("TargetJob real API mode", () => {
 		for (const call of summary) {
 			expect(call.credentials).toBe("include");
 			expect(call.headers.get("Prefer")).toBeNull();
-			expect(`${call.path}${String(call.body ?? "")}`).not.toContain(SOURCE_URL);
 		}
 		expect(summary[1]?.headers.get("Idempotency-Key")).toBe("ik_real_upload");
 		expect(summary[2]?.headers.get("Idempotency-Key")).toBe("ik_real_import");
 		expect(summary[4]?.headers.get("Idempotency-Key")).toBe("ik_real_update");
 		expect(String(summary[0]?.body ?? "")).not.toContain(RAW_JD_TEXT);
 		expect(summary[2]?.path).not.toContain(RAW_JD_TEXT);
-		expect(JSON.parse(String(summary[2]?.body))).toMatchObject({
-			source: { type: "manual_text", rawText: RAW_JD_TEXT },
+		expect(JSON.parse(String(summary[2]?.body))).toEqual({
+			rawText: RAW_JD_TEXT,
 			targetLanguage: "en",
+			resumeId: RESUME_ID,
 		});
 	});
 });

@@ -170,7 +170,6 @@ PROVENANCE_OPERATIONS = {
         "fitSummary.provenance",
     ],
     "getFeedbackReport": ["provenance"],
-    "listTargetJobReports": ["items[*].provenance"],
     "getResumeTailorRun": ["provenance"],
     "getResume": ["structuredProfile.provenance"],
     "listResumes": ["items[*].structuredProfile.provenance"],
@@ -180,9 +179,22 @@ PROVENANCE_OPERATIONS = {
 
 LIST_OPERATIONS = [
     "listTargetJobs",
-    "listTargetJobReports",
     "listResumes",
 ]
+
+REPORT_OVERVIEW_SCENARIO_ORDER = (
+    "default",
+    "current-ready",
+    "prior-ready-newer-queued",
+    "prior-ready-newer-generating",
+    "prior-ready-newer-failed",
+    "latest-ready-is-current",
+    "ready-tie-break",
+    "cross-user-not-found",
+    "target-not-found",
+    "invalid-frozen-context",
+    "missing-frozen-context",
+)
 
 # *WithJob async operations and the JobType they must emit.
 WITH_JOB_OPERATIONS = {
@@ -204,6 +216,23 @@ REQUIRED_PRACTICE_SESSION_SCENARIOS = {
         "cross-user-not-found",
     },
     "createPracticeVoiceTurn": {"default"},
+    "getPracticeSession": {
+        "default",
+        "reply-pending",
+        "reply-retryable-failed",
+        "reply-terminal-failed",
+        "reply-complete",
+    },
+    "sendPracticeMessage": {
+        "default",
+        "validation-empty-text",
+        "auth-unauthorized",
+        "session-not-found",
+        "reply-pending-conflict",
+        "client-message-mismatch",
+        "ai-timeout-retryable",
+        "retry-success-same-client-message",
+    },
 }
 
 PROVENANCE_REQUIRED_FIELDS = [
@@ -455,6 +484,328 @@ class FixtureContentTest(unittest.TestCase):
                 self.assertEqual(body["job"]["jobType"], expected_job_type)
                 self.assertIn(body["job"]["status"], {"queued", "running"})
 
+    def test_target_job_import_fixture_uses_exact_paste_only_matrix(self) -> None:
+        scenarios = _load_fixture("importTargetJob", "TargetJobs")["scenarios"]
+
+        self.assertEqual(
+            ["default", "paste-primary", "validation-blank-raw-text"],
+            list(scenarios),
+        )
+        for scenario_name in ("default", "paste-primary"):
+            with self.subTest(scenario=scenario_name):
+                body = scenarios[scenario_name]["request"]["body"]
+                self.assertEqual({"rawText", "targetLanguage", "resumeId"}, set(body))
+                self.assertIsInstance(body["rawText"], str)
+                self.assertTrue(body["rawText"].strip())
+
+        negative = scenarios["validation-blank-raw-text"]
+        self.assertTrue(negative["request"]["body"]["rawText"])
+        self.assertFalse(negative["request"]["body"]["rawText"].strip())
+        self.assertEqual(422, negative["response"]["status"])
+        error = negative["response"]["body"]["error"]
+        self.assertEqual("VALIDATION_FAILED", error["code"])
+        self.assertIs(False, error["retryable"])
+        self.assertEqual("rawText", error["details"]["field"])
+
+    def test_target_job_import_schema_rejects_retired_and_blank_requests(self) -> None:
+        validator = _load_validator()
+        spec = _load_openapi()
+        schema = spec["components"]["schemas"]["ImportTargetJobRequest"]
+        resume_id = "01918fa0-0000-7000-8000-000000001000"
+        valid = {
+            "rawText": "Senior frontend engineer with React and SSR experience.",
+            "targetLanguage": "zh-CN",
+            "resumeId": resume_id,
+        }
+
+        valid_errors: list[str] = []
+        validator.schema_validate(
+            valid, schema, root=spec, path="request", errors=valid_errors
+        )
+        self.assertEqual([], valid_errors)
+
+        invalid = [
+            {**valid, "rawText": ""},
+            {**valid, "rawText": "   "},
+            {**valid, "rawText": "\t"},
+            {**valid, "rawText": "\n"},
+            {
+                "source": {"type": "url", "url": "https://acme.example/jobs/1"},
+                "targetLanguage": "zh-CN",
+                "resumeId": resume_id,
+            },
+            {**valid, "source": {"type": "manual_text", "rawText": valid["rawText"]}},
+            {**valid, "source": {"type": "file", "fileObjectId": resume_id}},
+            {
+                **valid,
+                "source": {
+                    "type": "manual_form",
+                    "title": "Senior frontend engineer",
+                    "companyName": "Acme",
+                    "rawDescription": valid["rawText"],
+                },
+            },
+            {**valid, "fileObjectId": resume_id},
+            {**valid, "titleHint": "Senior frontend engineer"},
+            {**valid, "companyNameHint": "Acme"},
+            {**valid, "unexpected": True},
+        ]
+        for index, body in enumerate(invalid):
+            with self.subTest(case=index):
+                errors: list[str] = []
+                validator.schema_validate(
+                    body, schema, root=spec, path="request", errors=errors
+                )
+                self.assertTrue(errors, body)
+
+    def test_only_canonical_blank_raw_text_scenario_may_fail_request_schema(self) -> None:
+        validator = _load_validator()
+        spec = _load_openapi()
+        op = validator.build_operation_index(spec)["importTargetJob"]["operation"]
+        scenario = {
+            "request": {
+                "headers": {},
+                "body": {
+                    "rawText": "   ",
+                    "targetLanguage": "zh-CN",
+                    "resumeId": "01918fa0-0000-7000-8000-000000001000",
+                },
+            },
+            "response": {
+                "status": 422,
+                "headers": {"X-Request-ID": "req_2026-07-13-blank-raw-text"},
+                "body": {
+                    "error": {
+                        "code": "VALIDATION_FAILED",
+                        "message": "rawText must contain non-whitespace content",
+                        "requestId": "req_2026-07-13-blank-raw-text",
+                        "retryable": False,
+                        "details": {"field": "rawText"},
+                    }
+                },
+            },
+        }
+
+        errors: list[str] = []
+        validator.check_schema(
+            "importTargetJob",
+            op,
+            "validation-blank-raw-text",
+            scenario,
+            spec,
+            errors,
+        )
+        self.assertEqual([], errors)
+
+        missing_resume = json.loads(json.dumps(scenario))
+        del missing_resume["request"]["body"]["resumeId"]
+        errors = []
+        validator.check_schema(
+            "importTargetJob",
+            op,
+            "validation-blank-raw-text",
+            missing_resume,
+            spec,
+            errors,
+        )
+        self.assertTrue(errors, "the canonical exception must require exactly /rawText")
+
+        errors = []
+        validator.check_schema(
+            "importTargetJob",
+            op,
+            "another-blank-request",
+            scenario,
+            spec,
+            errors,
+        )
+        self.assertTrue(errors, "scenario-name wildcards must not bypass request validation")
+
+    def test_target_job_read_fixture_semantics_reject_removed_source_fields(self) -> None:
+        validator = _load_validator()
+        for operation_id in (
+            "listTargetJobs",
+            "getTargetJob",
+            "updateTargetJob",
+            "archiveTargetJob",
+        ):
+            scenarios = _load_fixture(operation_id, "TargetJobs")["scenarios"]
+            errors: list[str] = []
+            validator.check_target_job_paste_only_semantics(
+                operation_id, scenarios, errors
+            )
+            with self.subTest(operationId=operation_id):
+                self.assertEqual([], errors)
+
+        clean = {
+            "default": {
+                "response": {"status": 200, "body": {"id": "target"}}
+            }
+        }
+        for removed in ("sourceType", "sourceUrl"):
+            mutated = json.loads(json.dumps(clean))
+            mutated["default"]["response"]["body"][removed] = (
+                "manual_text" if removed == "sourceType" else None
+            )
+            errors = []
+            validator.check_target_job_paste_only_semantics(
+                "getTargetJob", mutated, errors
+            )
+            with self.subTest(removed=removed):
+                self.assertTrue(any(removed in error for error in errors), errors)
+
+    def test_target_job_read_fixtures_forbid_latest_report_pointer(self) -> None:
+        validator = _load_validator()
+        for operation_id in (
+            "listTargetJobs",
+            "getTargetJob",
+            "updateTargetJob",
+            "archiveTargetJob",
+        ):
+            scenarios = _load_fixture(operation_id, "TargetJobs")["scenarios"]
+            errors: list[str] = []
+            validator.check_target_job_paste_only_semantics(
+                operation_id, scenarios, errors
+            )
+            encoded = json.dumps(scenarios, ensure_ascii=False)
+            with self.subTest(operationId=operation_id):
+                self.assertNotIn("latestReportId", encoded)
+                self.assertEqual([], errors)
+
+        mutated = {
+            "default": {
+                "response": {
+                    "status": 200,
+                    "body": {"id": "target", "latestReportId": None},
+                }
+            }
+        }
+        errors = []
+        validator.check_target_job_paste_only_semantics(
+            "getTargetJob", mutated, errors
+        )
+        self.assertTrue(
+            any("latestReportId" in error and "forbidden" in error for error in errors),
+            errors,
+        )
+
+    def test_target_job_reports_overview_fixture_is_closed_and_canonical(self) -> None:
+        validator = _load_validator()
+        scenarios = _load_fixture("listTargetJobReports", "Reports")["scenarios"]
+        errors: list[str] = []
+        validator.check_target_job_reports_overview_semantics(scenarios, errors)
+
+        self.assertEqual(REPORT_OVERVIEW_SCENARIO_ORDER, tuple(scenarios))
+        self.assertEqual([], errors)
+        for scenario_name, scenario in scenarios.items():
+            response = scenario["response"]
+            if response["status"] != 200:
+                continue
+            body = response["body"]
+            with self.subTest(scenario=scenario_name):
+                self.assertEqual({"targetJobId", "rounds"}, set(body))
+                self.assertGreaterEqual(len(body["rounds"]), 2)
+                self.assertLessEqual(len(body["rounds"]), 5)
+                for item in body["rounds"]:
+                    self.assertEqual(
+                        {"round", "currentReport", "latestAttempt"}, set(item)
+                    )
+                    self.assertEqual(
+                        {"roundId", "roundSequence"}, set(item["round"])
+                    )
+
+        forbidden = {
+            "items",
+            "pageInfo",
+            "cursor",
+            "sessionId",
+            "sourcePlanId",
+            "provenance",
+            "modelId",
+            "rubricVersion",
+            "summary",
+            "dimensionAssessments",
+            "practicePlanId",
+            "latestReportId",
+        }
+        for key_path, key in validator._walk_keys(scenarios):
+            with self.subTest(path=key_path):
+                self.assertNotIn(key, forbidden)
+
+    def test_target_job_reports_overview_semantics_reject_invalid_variants(self) -> None:
+        validator = _load_validator()
+        scenarios = _load_fixture("listTargetJobReports", "Reports")["scenarios"]
+
+        mutations: list[tuple[str, dict]] = []
+        flat = json.loads(json.dumps(scenarios))
+        flat["default"]["response"]["body"] = {"items": [], "pageInfo": {}}
+        mutations.append(("flat", flat))
+
+        missing_rounds = json.loads(json.dumps(scenarios))
+        del missing_rounds["default"]["response"]["body"]["rounds"]
+        mutations.append(("missing-rounds", missing_rounds))
+
+        missing_nullable = json.loads(json.dumps(scenarios))
+        del missing_nullable["default"]["response"]["body"]["rounds"][0][
+            "latestAttempt"
+        ]
+        mutations.append(("missing-nullable", missing_nullable))
+
+        invalid_error = json.loads(json.dumps(scenarios))
+        invalid_error["prior-ready-newer-failed"]["response"]["body"]["rounds"][
+            0
+        ]["latestAttempt"]["errorCode"] = None
+        mutations.append(("failed-without-error", invalid_error))
+
+        error_on_generating = json.loads(json.dumps(scenarios))
+        error_on_generating["prior-ready-newer-generating"]["response"]["body"][
+            "rounds"
+        ][0]["latestAttempt"]["errorCode"] = "AI_PROVIDER_TIMEOUT"
+        mutations.append(("non-failed-with-error", error_on_generating))
+
+        invalid_status = json.loads(json.dumps(scenarios))
+        invalid_status["prior-ready-newer-generating"]["response"]["body"][
+            "rounds"
+        ][0]["latestAttempt"]["status"] = "retryable_failed"
+        mutations.append(("invalid-status", invalid_status))
+
+        for name, mutation in mutations:
+            errors: list[str] = []
+            validator.check_target_job_reports_overview_semantics(mutation, errors)
+            with self.subTest(mutation=name):
+                self.assertTrue(errors)
+
+    def test_upload_presign_keeps_resume_and_privacy_only(self) -> None:
+        validator = _load_validator()
+        spec = _load_openapi()
+        schema = spec["components"]["schemas"]["UploadPresignRequest"]
+        scenarios = _load_fixture("createUploadPresign", "Uploads")["scenarios"]
+
+        self.assertEqual(["default", "privacy-export"], list(scenarios))
+        self.assertEqual(
+            {"resume", "privacy_export"},
+            {
+                scenario["request"]["body"]["purpose"]
+                for scenario in scenarios.values()
+            },
+        )
+        for purpose in ("resume", "privacy_export"):
+            body = json.loads(json.dumps(scenarios["default"]["request"]["body"]))
+            body["purpose"] = purpose
+            errors: list[str] = []
+            validator.schema_validate(
+                body, schema, root=spec, path="request", errors=errors
+            )
+            self.assertEqual([], errors, purpose)
+
+        rejected = json.loads(json.dumps(scenarios["default"]["request"]["body"]))
+        rejected["purpose"] = "target_job_attachment"
+        errors = []
+        validator.schema_validate(
+            rejected, schema, root=spec, path="request", errors=errors
+        )
+        self.assertTrue(any("target_job_attachment" in error for error in errors), errors)
+
     def test_practice_session_fixtures_declare_required_named_scenarios(self) -> None:
         for opid, expected in REQUIRED_PRACTICE_SESSION_SCENARIOS.items():
             scenarios = _load_fixture(opid, "PracticeSessions")["scenarios"]
@@ -463,6 +814,69 @@ class FixtureContentTest(unittest.TestCase):
                     expected.issubset(scenarios),
                     f"{opid}: missing required scenarios {sorted(expected - set(scenarios))}",
                 )
+
+    def test_practice_reply_recovery_fixtures_are_role_typed_and_replay_safe(self) -> None:
+        validator = _load_validator()
+        get_scenarios = _load_fixture("getPracticeSession", "PracticeSessions")["scenarios"]
+        send_scenarios = _load_fixture("sendPracticeMessage", "PracticeSessions")["scenarios"]
+
+        errors: list[str] = []
+        validator.check_practice_reply_recovery_semantics(
+            "getPracticeSession", get_scenarios, errors
+        )
+        validator.check_practice_reply_recovery_semantics(
+            "sendPracticeMessage", send_scenarios, errors
+        )
+        self.assertEqual([], errors)
+
+        invalid_get_mutations = []
+        missing_client_id = json.loads(json.dumps(get_scenarios))
+        del missing_client_id["reply-pending"]["response"]["body"]["messages"][-1]["clientMessageId"]
+        invalid_get_mutations.append(missing_client_id)
+
+        assistant_recovery = json.loads(json.dumps(get_scenarios))
+        assistant = assistant_recovery["reply-complete"]["response"]["body"]["messages"][-1]
+        assistant["clientMessageId"] = "01918fa0-0000-7000-8000-000000007010"
+        assistant["replyStatus"] = "complete"
+        invalid_get_mutations.append(assistant_recovery)
+
+        invalid_status = json.loads(json.dumps(get_scenarios))
+        invalid_status["reply-retryable-failed"]["response"]["body"]["messages"][-1]["replyStatus"] = "unknown"
+        invalid_get_mutations.append(invalid_status)
+
+        duplicate_retry = json.loads(json.dumps(get_scenarios))
+        duplicate_retry["reply-complete"]["response"]["body"]["messages"].append(
+            json.loads(json.dumps(duplicate_retry["reply-complete"]["response"]["body"]["messages"][-1]))
+        )
+        invalid_get_mutations.append(duplicate_retry)
+
+        for index, scenarios in enumerate(invalid_get_mutations):
+            with self.subTest(get_mutation=index):
+                mutation_errors: list[str] = []
+                validator.check_practice_reply_recovery_semantics(
+                    "getPracticeSession", scenarios, mutation_errors
+                )
+                self.assertTrue(mutation_errors)
+
+        untyped_error = json.loads(json.dumps(send_scenarios))
+        untyped_error["ai-timeout-retryable"]["response"]["body"] = {
+            "message": "raw provider timeout"
+        }
+        mutation_errors = []
+        validator.check_practice_reply_recovery_semantics(
+            "sendPracticeMessage", untyped_error, mutation_errors
+        )
+        self.assertTrue(mutation_errors)
+
+        changed_retry_id = json.loads(json.dumps(send_scenarios))
+        changed_retry_id["retry-success-same-client-message"]["request"]["body"]["clientMessageId"] = (
+            "01918fa0-0000-7000-8000-000000007011"
+        )
+        mutation_errors = []
+        validator.check_practice_reply_recovery_semantics(
+            "sendPracticeMessage", changed_retry_id, mutation_errors
+        )
+        self.assertTrue(mutation_errors)
 
     def test_schema_validator_enforces_round_pair_pattern_and_unique_progress(self) -> None:
         validator = _load_validator()

@@ -66,17 +66,62 @@ class PracticeConversationContractTest(unittest.TestCase):
         events = yaml.safe_load((ROOT / "shared/events.yaml").read_text(encoding="utf-8"))
         by_name = {entry["name"]: entry for entry in events["events"]}
 
-        self.assertEqual(13, len(by_name))
+        self.assertEqual(
+            {
+                "target.import.requested",
+                "target.parsed",
+                "target.analysis.failed",
+                "practice.session.started",
+                "practice.session.completed",
+                "report.generation.requested",
+                "report.generated",
+                "report.generation.failed",
+                "resume.parse.completed",
+                "resume.tailor.completed",
+                "privacy.request.created",
+                "privacy.request.completed",
+            },
+            set(by_name),
+        )
         self.assertNotIn("practice.turn.completed", by_name)
         self.assertNotIn("mode", by_name["practice.session.started"]["requiredPayload"])
         self.assertNotIn("turnCount", by_name["practice.session.completed"]["requiredPayload"])
         self.assertNotIn("questionIssueCount", by_name["report.generated"]["requiredPayload"])
 
-    def test_baseline_uses_messages_and_twenty_six_total_tables(self) -> None:
+    def test_baseline_uses_current_exact_table_set_and_messages(self) -> None:
         migration = (ROOT / "migrations/000001_create_baseline.up.sql").read_text(encoding="utf-8").lower()
         table_names = re.findall(r"^create table ([a-z0-9_]+) ", migration, flags=re.MULTILINE)
 
-        self.assertEqual(26, len(table_names))
+        self.assertEqual(
+            {
+                "schema_backfills",
+                "users",
+                "user_settings",
+                "file_objects",
+                "resume_assets",
+                "target_jobs",
+                "target_job_requirements",
+                "practice_plans",
+                "idempotency_records",
+                "practice_sessions",
+                "practice_session_events",
+                "practice_messages",
+                "feedback_reports",
+                "resume_tailor_runs",
+                "source_records",
+                "prompt_versions",
+                "rubric_versions",
+                "ai_task_runs",
+                "async_jobs",
+                "outbox_events",
+                "privacy_requests",
+                "audit_events",
+                "auth_challenges",
+                "sessions",
+                "external_identities",
+            },
+            set(table_names),
+        )
         self.assertIn("practice_messages", table_names)
         self.assertNotIn("practice_turns", table_names)
         self.assertNotIn("question_assessments", table_names)

@@ -177,6 +177,11 @@ test.describe("honest generating source, geometry, and screenshot parity", () =>
       testInfo,
       `generating-context-too-large-${testInfo.project.name}`,
     );
+    await failedPage.locator("[data-testid='generating-error-back-to-workspace']").click();
+    await expect.poll(() => {
+      const url = new URL(failedPage.url());
+      return url.pathname + url.search;
+    }).toBe(`/reports?targetJobId=${String(failed.targetJobId)}`);
 
     await Promise.all([
       queuedPage.close(),

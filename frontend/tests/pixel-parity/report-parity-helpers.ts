@@ -107,6 +107,10 @@ export async function settleVisualSurface(page: Page) {
   });
 }
 
+export async function pauseDeterministicClock(page: Page) {
+  await page.clock.pauseAt(FIXED_NOW);
+}
+
 export async function normalizedText(page: Page, selector: string) {
   return page.locator(selector).evaluate((node) =>
     (node.textContent ?? "").replace(/\s+/g, " ").trim(),

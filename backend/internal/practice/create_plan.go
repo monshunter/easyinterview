@@ -41,8 +41,9 @@ type Store interface {
 	CreatePlan(ctx context.Context, in CreatePlanStoreInput) (PlanRecord, error)
 	GetPlan(ctx context.Context, userID, planID string) (PlanRecord, error)
 	ListSessions(ctx context.Context, in ListSessionsInput) (ListSessionsResult, error)
-	GetSession(ctx context.Context, userID, sessionID string) (SessionRecord, error)
+	GetSession(ctx context.Context, userID, sessionID string, now time.Time) (SessionRecord, error)
 	ReservePracticeMessage(ctx context.Context, in ReservePracticeMessageInput) (PracticeMessageReservation, error)
+	FailPracticeMessage(ctx context.Context, in FailPracticeMessageInput) error
 	CommitPracticeMessage(ctx context.Context, in CommitPracticeMessageInput) (SendPracticeMessageResult, error)
 	CompleteSession(ctx context.Context, in CompleteSessionStoreInput) (CompleteSessionResult, error)
 	ReserveSessionStart(ctx context.Context, in StartSessionReservationInput) (SessionReservation, error)
@@ -325,7 +326,7 @@ func (s *Service) GetPracticeSession(ctx context.Context, userID, sessionID stri
 	if sessionID == "" {
 		return SessionRecord{}, sessionNotFoundError()
 	}
-	session, err := s.store.GetSession(ctx, userID, sessionID)
+	session, err := s.store.GetSession(ctx, userID, sessionID, s.now().UTC())
 	if stderrs.Is(err, ErrSessionNotFound) {
 		return SessionRecord{}, sessionNotFoundError()
 	}
@@ -349,6 +350,10 @@ func sessionNotFoundError() *ServiceError {
 
 func sessionConflictError() *ServiceError {
 	return &ServiceError{Code: sharederrors.CodePracticeSessionConflict, Message: "practice session is in conflicting state"}
+}
+
+func idempotencyKeyMismatchError() *ServiceError {
+	return &ServiceError{Code: sharederrors.CodeIdempotencyKeyMismatch, Message: "idempotency key was reused with a different request body"}
 }
 
 func validPracticeGoal(goal sharedtypes.PracticeGoal) bool {

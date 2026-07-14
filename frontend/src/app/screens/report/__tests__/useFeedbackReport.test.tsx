@@ -12,7 +12,10 @@ import type { ReactNode } from "react";
 
 import type { FeedbackReport } from "../../../../api/generated/types";
 import { EasyInterviewClient } from "../../../../api/generated/client";
-import { AppRuntimeProvider } from "../../../runtime/AppRuntimeProvider";
+import {
+  AppRuntimeContext,
+  AppRuntimeProvider,
+} from "../../../runtime/AppRuntimeProvider";
 import { useFeedbackReport } from "../hooks/useFeedbackReport";
 
 const REPORT_ID = "01918fa0-0000-7000-8000-000000007000";
@@ -140,5 +143,50 @@ describe("useFeedbackReport", () => {
     });
     await waitFor(() => expect(result.current.state).toBe("data"));
     expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed on the first render when the client owner changes for the same reportId", async () => {
+    const firstReport = makeReport();
+    const firstClient = buildClient([firstReport]);
+    const secondClient = {
+      getFeedbackReport: vi.fn(() => new Promise<FeedbackReport>(() => undefined)),
+    } as unknown as EasyInterviewClient;
+    let activeClient = firstClient;
+    const dataDuringRender: Array<FeedbackReport | null> = [];
+    const statesDuringRender: string[] = [];
+    const DynamicWrapper = ({ children }: { children: ReactNode }) => (
+      <AppRuntimeContext.Provider
+        value={{
+          client: activeClient,
+          runtime: { status: "ready", config: {} as never },
+          auth: { status: "unauthenticated" },
+          refreshAuth: () => undefined,
+        }}
+      >
+        {children}
+      </AppRuntimeContext.Provider>
+    );
+    const { result, rerender } = renderHook(
+      () => {
+        const value = useFeedbackReport(REPORT_ID);
+        dataDuringRender.push(value.data);
+        statesDuringRender.push(value.state);
+        return value;
+      },
+      { wrapper: DynamicWrapper },
+    );
+
+    await waitFor(() => expect(result.current.data).toEqual(firstReport));
+    const switchRenderStart = dataDuringRender.length;
+    activeClient = secondClient;
+    rerender();
+
+    expect(dataDuringRender[switchRenderStart]).toBeNull();
+    expect(statesDuringRender[switchRenderStart]).toBe("loading");
+    expect(result.current.data).toBeNull();
+    expect(secondClient.getFeedbackReport).toHaveBeenCalledWith(
+      REPORT_ID,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 });

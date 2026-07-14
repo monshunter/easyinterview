@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
 
+import {
+  configureDeterministicPage,
+  expectFullPagePixelParity,
+  expectSurfaceParity,
+  settleVisualSurface,
+  surfaceSnapshot,
+} from "./report-parity-helpers";
+
 /**
  * Phase 6.1 — Home screen DOM anchor and layout parity.
  *
@@ -8,7 +16,7 @@ import { expect, test } from "@playwright/test";
  * parse/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (hero, integrated source controls, textarea, resume picker, out-of-scope aux-card negatives)
+ * - DOM anchors (hero, paste-only textarea, resume picker, out-of-scope source/aux-card negatives)
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
  * - Mobile: textarea card not overflowing
@@ -66,7 +74,13 @@ test.describe("home screen DOM anchor parity", () => {
     );
     await expect(
       page.locator("[data-testid='home-jd-source-controls']"),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
+    await expect(page.locator("[data-testid='home-upload-trigger']")).toHaveCount(
+      0,
+    );
+    await expect(page.locator("[data-testid='home-url-trigger']")).toHaveCount(
+      0,
+    );
     await expect(page.locator("[data-testid='home-jd-textarea']")).toHaveCount(
       1,
     );
@@ -90,7 +104,7 @@ test.describe("home screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='home-aux-debrief']")).toHaveCount(0);
   });
 
-  test("home import layout keeps source controls integrated and submit below resume", async ({
+  test("home import layout keeps paste-only input and submit below resume", async ({
     page,
   }) => {
     await page.goto("/");
@@ -99,9 +113,6 @@ test.describe("home screen DOM anchor parity", () => {
     const placement = await page.evaluate(() => {
       const inputCard = document.querySelector(
         "[data-testid='home-jd-input-card']",
-      ) as HTMLElement | null;
-      const uploadTrigger = document.querySelector(
-        "[data-testid='home-upload-trigger']",
       ) as HTMLElement | null;
       const submitButton = document.querySelector(
         "[data-testid='home-jd-submit']",
@@ -121,7 +132,6 @@ test.describe("home screen DOM anchor parity", () => {
 
       if (
         !inputCard ||
-        !uploadTrigger ||
         !submitButton ||
         !resumeRow ||
         !submitRow ||
@@ -135,7 +145,6 @@ test.describe("home screen DOM anchor parity", () => {
       const createRect = createCta.getBoundingClientRect();
       return {
         viewportWidth: window.innerWidth,
-        uploadInsideInput: inputCard.contains(uploadTrigger),
         submitOutsideInput: !inputCard.contains(submitButton),
         submitAfterResume: Boolean(
           resumeRow.compareDocumentPosition(submitRow) &
@@ -146,7 +155,6 @@ test.describe("home screen DOM anchor parity", () => {
       };
     });
 
-    expect(placement.uploadInsideInput).toBe(true);
     expect(placement.submitOutsideInput).toBe(true);
     expect(placement.submitAfterResume).toBe(true);
     expect(placement.selectWidth).toBeLessThanOrEqual(362);
@@ -203,5 +211,141 @@ test.describe("home screen DOM anchor parity", () => {
     );
 
     expect(lightBg).not.toBe(darkBg);
+  });
+
+  test("paste-only Home matches the UI truth and captures desktop/mobile evidence", async ({
+    page,
+    context,
+  }, testInfo) => {
+    const prototype = await context.newPage();
+    await Promise.all([
+      configureDeterministicPage(page, "zh"),
+      configureDeterministicPage(prototype, "zh"),
+    ]);
+
+    // Signed-out formal Home intentionally has no business Resume rows. Mirror
+    // that data state in the golden preview while leaving its source layout and
+    // styling untouched, so the parity gate compares like-for-like UI states.
+    await prototype.route("**/ui-design/src/screen-workspace.jsx*", async (route) => {
+      const response = await route.fetch();
+      const source = await response.text();
+      await route.fulfill({
+        response,
+        contentType: "application/javascript; charset=utf-8",
+        body: `${source}\nwindow.getWorkspaceResumeOptions = () => [];`,
+      });
+    });
+
+    await Promise.all([
+      page.goto("/"),
+      prototype.goto("/ui-design/#route=home&lang=zh"),
+    ]);
+    await Promise.all([
+      page.locator("[data-testid='home-jd-textarea']").waitFor(),
+      prototype.locator("[data-testid='home-jd-textarea']").waitFor(),
+    ]);
+    await Promise.all([settleVisualSurface(page), settleVisualSurface(prototype)]);
+
+    for (const surface of [page, prototype]) {
+      await expect(surface.locator("[data-testid='home-jd-input-card']")).toHaveCount(1);
+      await expect(surface.locator("[data-testid='home-jd-textarea']")).toHaveCount(1);
+      await expect(surface.locator("[data-testid='home-resume-select']")).toHaveCount(1);
+      await expect(surface.locator("[data-testid='home-submit-row']")).toHaveCount(1);
+      await expect(surface.locator("[data-testid='home-jd-source-controls']")).toHaveCount(0);
+      await expect(surface.locator("[data-testid='home-upload-trigger']")).toHaveCount(0);
+      await expect(surface.locator("[data-testid='home-url-trigger']")).toHaveCount(0);
+    }
+
+    const surfaces = [
+      {
+        label: "JD input card",
+        formal: "[data-testid='home-jd-input-card']",
+        prototype: "[data-testid='home-jd-input-card']",
+        properties: ["background-color", "border-top-width", "border-top-color", "border-radius", "padding"],
+      },
+      {
+        label: "JD textarea",
+        formal: "[data-testid='home-jd-textarea']",
+        prototype: "[data-testid='home-jd-textarea']",
+        properties: ["width", "min-height", "font-size", "line-height", "color", "background-color"],
+      },
+      {
+        label: "Resume row",
+        formal: "[data-testid='home-resume-row']",
+        prototype: "[data-testid='home-resume-row']",
+        properties: ["display", "align-items", "gap", "flex-wrap"],
+      },
+      {
+        label: "Resume select",
+        formal: "[data-testid='home-resume-select']",
+        prototype: "[data-testid='home-resume-select']",
+        properties: ["width", "max-width", "min-height", "font-size", "padding", "border-radius"],
+      },
+      {
+        label: "Submit row",
+        formal: "[data-testid='home-submit-row']",
+        prototype: "[data-testid='home-submit-row']",
+        properties: ["display", "margin-top"],
+      },
+    ] as const;
+
+    for (const surface of surfaces) {
+      const [formal, golden] = await Promise.all([
+        surfaceSnapshot(page, surface.formal, surface.properties),
+        surfaceSnapshot(prototype, surface.prototype, surface.properties),
+      ]);
+      expectSurfaceParity(formal, golden, surface.label);
+    }
+
+    const viewport = page.viewportSize();
+    expect(viewport).not.toBeNull();
+    for (const surface of [page, prototype]) {
+      expect(await surface.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+        viewport!.width,
+      );
+    }
+
+    const formalScreenshotPath = testInfo.outputPath(`home-formal-${testInfo.project.name}.png`);
+    const prototypeScreenshotPath = testInfo.outputPath(`home-prototype-${testInfo.project.name}.png`);
+    const formalViewportScreenshotPath = testInfo.outputPath(
+      `home-formal-viewport-${testInfo.project.name}.png`,
+    );
+    const [formalScreenshot, prototypeScreenshot] = await Promise.all([
+      page.screenshot({ path: formalScreenshotPath, fullPage: true, animations: "disabled" }),
+      prototype.screenshot({ path: prototypeScreenshotPath, fullPage: true, animations: "disabled" }),
+    ]);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const formalViewportScreenshot = await page.screenshot({
+      path: formalViewportScreenshotPath,
+      fullPage: false,
+      animations: "disabled",
+    });
+    await Promise.all([
+      testInfo.attach(`home-formal-${testInfo.project.name}`, {
+        path: formalScreenshotPath,
+        contentType: "image/png",
+      }),
+      testInfo.attach(`home-prototype-${testInfo.project.name}`, {
+        path: prototypeScreenshotPath,
+        contentType: "image/png",
+      }),
+      testInfo.attach(`home-formal-viewport-${testInfo.project.name}`, {
+        path: formalViewportScreenshotPath,
+        contentType: "image/png",
+      }),
+    ]);
+    expect(formalScreenshot.length).toBeGreaterThan(10_000);
+    expect(prototypeScreenshot.length).toBeGreaterThan(10_000);
+    expect(formalViewportScreenshot.length).toBeGreaterThan(10_000);
+    const changedRatio = await expectFullPagePixelParity(
+      page,
+      prototype,
+      testInfo,
+      `home-paste-only-${testInfo.project.name}`,
+    );
+    console.log(
+      `E2E.P0.014 home paste-only browser gate project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} formalScreenshotBytes=${formalScreenshot.length} prototypeScreenshotBytes=${prototypeScreenshot.length} changedRatio=${changedRatio.toFixed(6)}`,
+    );
+    await prototype.close();
   });
 });

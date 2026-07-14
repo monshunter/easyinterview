@@ -8,7 +8,7 @@ import (
 
 type reportReadRepository interface {
 	GetFeedbackReport(ctx context.Context, userID, reportID string) (FeedbackReportRecord, error)
-	ListTargetJobReports(ctx context.Context, in ListTargetJobReportsInput) (ListTargetJobReportsResult, error)
+	ListTargetJobReports(ctx context.Context, userID, targetJobID string) (TargetJobReportsOverviewRecord, error)
 }
 
 func (s *Service) GetFeedbackReport(ctx context.Context, userID, reportID string) (FeedbackReportRecord, error) {

@@ -197,7 +197,7 @@ if (!window.eiToast) {
 }
 
 // ─────── Icons ───────
-const Icon = ({ name, size = 16, stroke = 1.5, style = {}, color = "currentColor" }) => {
+const Icon = ({ name, size = 16, stroke = 1.5, style = {}, color = "currentColor", ariaHidden = false }) => {
   const paths = {
     arrow_right: <path d="M5 12h14M13 6l6 6-6 6" />,
     arrow_left: <path d="M19 12H5M11 18l-6-6 6-6" />,
@@ -225,6 +225,7 @@ const Icon = ({ name, size = 16, stroke = 1.5, style = {}, color = "currentColor
     filter: <path d="M4 5h16l-6 8v5l-4 2v-7L4 5z" />,
     calendar: <><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 9h16M9 3v4M15 3v4"/></>,
     send: <path d="M4 12l16-8-5 17-4-7-7-2z" />,
+    refresh: <><path d="M20 11a8 8 0 1 0 2 5"/><path d="M20 4v7h-7"/></>,
     pin: <path d="M12 2l3 6 6 1-4.5 4 1 7L12 16l-5.5 4 1-7L3 9l6-1z" />,
     flag: <path d="M5 22V3h13l-3 5 3 5H5" />,
     clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
@@ -248,7 +249,7 @@ const Icon = ({ name, size = 16, stroke = 1.5, style = {}, color = "currentColor
     bookmark: <path d="M6 3h12v18l-6-4-6 4z" />,
   };
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle", ...style }}>
+    <svg aria-hidden={ariaHidden ? "true" : undefined} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle", ...style }}>
       {paths[name] || null}
     </svg>
   );
@@ -279,7 +280,7 @@ const Tag = ({ children, tone = "neutral", T }) => {
   );
 };
 
-const Btn = ({ children, onClick, variant = "primary", size = "md", icon, iconRight, T, style = {}, disabled, ariaDescribedby }) => {
+const Btn = ({ children, onClick, variant = "primary", size = "md", icon, iconRight, T, style = {}, disabled, ariaDescribedby, ...buttonProps }) => {
   const sizes = {
     sm: { px: 12, h: 30, fs: 13 },
     md: { px: 16, h: 38, fs: 14 },
@@ -294,7 +295,7 @@ const Btn = ({ children, onClick, variant = "primary", size = "md", icon, iconRi
   };
   const s = sizes[size]; const v = variants[variant];
   return (
-    <button onClick={disabled ? undefined : onClick} disabled={disabled} aria-describedby={disabled ? ariaDescribedby : undefined} style={{
+    <button {...buttonProps} onClick={disabled ? undefined : onClick} disabled={disabled} aria-describedby={disabled ? ariaDescribedby : undefined} style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
       height: s.h, padding: `0 ${s.px}px`, fontSize: s.fs, fontWeight: 500,
       background: v.bg, color: v.fg, border: `1px solid ${v.bd}`,
@@ -307,9 +308,9 @@ const Btn = ({ children, onClick, variant = "primary", size = "md", icon, iconRi
     onMouseUp={(e) => e.currentTarget.style.transform = ""}
     onMouseLeave={(e) => e.currentTarget.style.transform = ""}
     >
-      {icon && <Icon name={icon} size={s.fs + 2} />}
+      {icon && <Icon name={icon} size={s.fs + 2} ariaHidden />}
       {children}
-      {iconRight && <Icon name={iconRight} size={s.fs + 2} />}
+      {iconRight && <Icon name={iconRight} size={s.fs + 2} ariaHidden />}
     </button>
   );
 };

@@ -327,13 +327,13 @@ Example complete JSON output:
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-07-12T08:00:00Z'),
-  ('45833fb3-09e6-541e-bb57-abb93a056493', 'target.import.parse', 'v0.1.0', 'multi', '979db6afdd08218d7593379f9b477952e4eddf743fedbafe1b46bf53144f2a2a', $body$You are an expert technical interviewer assistant. Extract the interview-ready
+  ('45833fb3-09e6-541e-bb57-abb93a056493', 'target.import.parse', 'v0.1.0', 'multi', '9ab316e6345fc5a1511a9f2d661c2bb17efac65ba856c7f52a9eb122c1e4fa92', $body$You are an expert technical interviewer assistant. Extract the interview-ready
 target job model from the following job description. Respond strictly in the
 language identified by the `{{language}}` variable; if `{{language}}` is empty
 or unknown, respond in English.
 Always extract the canonical job title and company or hiring organization name
-when they are present anywhere in the JD text, source URL, page heading, or
-metadata-like lines. Do not leave them out when the JD includes them.
+when they are present anywhere in the JD text. Do not leave them out when the
+JD includes them.
 For `interviewRounds`, infer a reasonable interview plan from JD evidence,
 role seniority, company or industry nature, team or business context,
 role scope, hiring-process hints, and common interview practices for
@@ -346,7 +346,6 @@ interview concerns inferred from JD omissions, company or industry nature,
 business scenario, seniority, hiring-process wording, and risk or ambiguity
 signals.
 
-JD source URL (empty for non-URL imports): `{{jd_source_url}}`
 JD raw text:
 
 {{jd_text}}

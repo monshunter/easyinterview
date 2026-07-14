@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-004",
+  "baseline": "openapi/baseline/openapi-v1.0.0.yaml@merge-base(main)",
+  "proposed": "openapi/openapi.yaml@working-tree",
+  "authority": {
+    "decision": "OPENAPI-004",
+    "specDecision": "D-36",
+    "historyVersion": "1.57",
+    "productDecision": "R-A"
+  },
+  "invariants": {
+    "inventory": {
+      "operations": 37,
+      "tags": 10
+    },
+    "listTargetJobReports": {
+      "method": "GET",
+      "path": "/api/v1/targets/{targetJobId}/reports",
+      "operationId": "listTargetJobReports",
+      "successStatus": 200,
+      "baselineResponse": "PaginatedFeedbackReport",
+      "response": "TargetJobReportsOverview"
+    },
+    "canonicalRounds": {
+      "minItems": 2,
+      "maxItems": 5
+    },
+    "compatibilityAliases": "forbidden"
+  },
+  "comparison": {
+    "mode": "exact-set",
+    "keyFields": ["severity", "path", "kind", "before", "after"],
+    "orderSignificant": false,
+    "missingFinding": "fail",
+    "unexpectedFinding": "fail"
+  },
+  "findings": [
+    {
+      "severity": "breaking",
+      "path": "/paths/~1targets~1{targetJobId}~1reports/get/parameters/cursor",
+      "kind": "parameter_removed",
+      "before": "query:optional",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/paths/~1targets~1{targetJobId}~1reports/get/parameters/pageSize",
+      "kind": "parameter_removed",
+      "before": "query:optional",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/paths/~1targets~1{targetJobId}~1reports/get/responses/200/content/application~1json/schema",
+      "kind": "response_ref_changed",
+      "before": "PaginatedFeedbackReport",
+      "after": "TargetJobReportsOverview"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/TargetJob/properties/latestReportId",
+      "kind": "property_removed",
+      "before": "string|null",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PaginatedFeedbackReport",
+      "kind": "schema_removed",
+      "before": "present",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PracticeRoundRef/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportsOverview",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "targetJobId,rounds"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportsOverview/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportsOverview/properties/rounds",
+      "kind": "canonical_array_bounds_added",
+      "before": "absent",
+      "after": "minItems=2,maxItems=5"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportRoundOverview",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "round,currentReport,latestAttempt"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportRoundOverview/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobCurrentReportSummary",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "id,generatedAt"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobCurrentReportSummary/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportAttemptSummary",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "id,status,errorCode,createdAt"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/TargetJobReportAttemptSummary/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    }
+  ]
+}

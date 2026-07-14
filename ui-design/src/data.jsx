@@ -50,7 +50,6 @@ window.EI_DATA = {
       status: "面试中",
       statusTone: "amber",
       level: "P6",
-      source: "招聘方邮件",
       updatedAt: "2 小时前",
       readiness: 3, // 0-3: 未就绪 / 基本可面 / 建议再练 / 较为充分
       readinessLabel: "建议再练",
@@ -76,7 +75,6 @@ window.EI_DATA = {
       status: "准备中",
       statusTone: "neutral",
       level: "Senior",
-      source: "粘贴 JD",
       updatedAt: "昨天",
       readiness: 2,
       readinessLabel: "基本可面",
@@ -99,7 +97,6 @@ window.EI_DATA = {
       status: "草稿",
       statusTone: "muted",
       level: "P7",
-      source: "岗位链接",
       updatedAt: "3 天前",
       readiness: 1,
       readinessLabel: "未就绪",
@@ -178,12 +175,45 @@ window.EI_DATA = {
 
   reportGeneration: {
     id: "report-24",
+    targetJobId: "tj-1",
     status: "generating",
     errorCode: null,
   },
 
+  reportOverviewFixtures: {
+    ready: {
+      state: "ready",
+      targetJobId: "tj-1",
+      rounds: [
+        {
+          round: { roundId: "round-1-hr", roundSequence: 1 },
+          currentReport: null,
+          latestAttempt: null,
+        },
+        {
+          round: { roundId: "round-2-technical", roundSequence: 2 },
+          currentReport: { id: "report-21", generatedAt: "2026-07-13T14:20:00Z" },
+          latestAttempt: { id: "report-22", status: "failed", errorCode: "AI_PROVIDER_TIMEOUT", createdAt: "2026-07-14T09:12:00Z" },
+        },
+        {
+          round: { roundId: "round-3-technical", roundSequence: 3 },
+          currentReport: null,
+          latestAttempt: { id: "report-23", status: "generating", errorCode: null, createdAt: "2026-07-14T09:16:00Z" },
+        },
+        {
+          round: { roundId: "round-4-manager", roundSequence: 4 },
+          currentReport: { id: "report-24", generatedAt: "2026-07-14T09:20:00Z" },
+          latestAttempt: { id: "report-24", status: "ready", errorCode: null, createdAt: "2026-07-14T09:18:00Z" },
+        },
+      ],
+    },
+    loading: { state: "loading" },
+    error: { state: "error" },
+  },
+
   report: {
     id: "report-24",
+    targetJobId: "tj-1",
     sessionId: "session-24",
     status: "ready",
     language: "zh-CN",

@@ -34,7 +34,7 @@ tags:
 - name: Auth
   description: Session bootstrap (email code), session teardown, runtime user context, and public runtime config.
 - name: Uploads
-  description: Pre-signed object-storage URLs for resume / JD attachment uploads.
+  description: Pre-signed object-storage URLs for resume uploads and privacy-export artifacts.
 - name: Resumes
   description: Resume asset registration and retrieval.
 - name: TargetJobs
@@ -853,8 +853,9 @@ paths:
       tags:
       - TargetJobs
       operationId: importTargetJob
-      summary: Import a target job from URL / text / file / manual form
-      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Long-running parse → 202 + Job (`target_import`).
+      summary: Import a target job from pasted JD text
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. The exact paste-only body is queued for
+        long-running parse and returns 202 + Job (`target_import`).
       parameters:
       - $ref: '#/components/parameters/IdempotencyKey'
       - $ref: '#/components/parameters/XRequestID'
@@ -954,8 +955,6 @@ paths:
                       companyName: Acme
                       locationText: Shanghai · Hybrid
                       targetLanguage: zh-CN
-                      sourceType: url
-                      sourceUrl: https://acme.example/careers/senior-frontend
                       summary:
                         coreThemes:
                         - Design-system & component-library leadership
@@ -1016,7 +1015,6 @@ paths:
                           language: zh-CN
                           featureFlag: fit_summary_v2
                           dataSourceVersion: target_job.v17
-                      latestReportId: 01918fa0-0000-7000-8000-000000007000
                       openQuestionIssueCount: 2
                       createdAt: '2026-04-22T09:30:00Z'
                       updatedAt: '2026-04-28T12:00:00Z'
@@ -1037,12 +1035,9 @@ paths:
                       companyName: Acme
                       locationText: Remote (APAC)
                       targetLanguage: en
-                      sourceType: manual_text
-                      sourceUrl: null
                       summary: null
                       requirements: []
                       fitSummary: null
-                      latestReportId: null
                       openQuestionIssueCount: 0
                       createdAt: '2026-04-22T09:30:00Z'
                       updatedAt: '2026-04-28T12:00:00Z'
@@ -1092,8 +1087,6 @@ paths:
                     companyName: Acme
                     locationText: Shanghai · Hybrid
                     targetLanguage: zh-CN
-                    sourceType: url
-                    sourceUrl: https://acme.example/careers/senior-frontend
                     summary:
                       coreThemes:
                       - Design-system & component-library leadership
@@ -1154,7 +1147,6 @@ paths:
                         language: zh-CN
                         featureFlag: fit_summary_v2
                         dataSourceVersion: target_job.v17
-                    latestReportId: 01918fa0-0000-7000-8000-000000007000
                     openQuestionIssueCount: 2
                     createdAt: '2026-04-22T09:30:00Z'
                     updatedAt: '2026-04-28T12:00:00Z'
@@ -1215,8 +1207,6 @@ paths:
                     companyName: Acme
                     locationText: Shanghai · Hybrid
                     targetLanguage: zh-CN
-                    sourceType: url
-                    sourceUrl: https://acme.example/careers/senior-frontend
                     summary:
                       coreThemes:
                       - Design-system & component-library leadership
@@ -1277,7 +1267,6 @@ paths:
                         language: zh-CN
                         featureFlag: fit_summary_v2
                         dataSourceVersion: target_job.v17
-                    latestReportId: 01918fa0-0000-7000-8000-000000007000
                     openQuestionIssueCount: 2
                     createdAt: '2026-04-22T09:30:00Z'
                     updatedAt: '2026-04-28T12:00:00Z'
@@ -1326,8 +1315,6 @@ paths:
                     companyName: Acme
                     locationText: Shanghai · Hybrid
                     targetLanguage: zh-CN
-                    sourceType: url
-                    sourceUrl: https://acme.example/careers/senior-frontend
                     summary:
                       coreThemes:
                       - Design-system & component-library leadership
@@ -1380,7 +1367,6 @@ paths:
                         language: zh-CN
                         featureFlag: fit_summary_v2
                         dataSourceVersion: target_job.v17
-                    latestReportId: 01918fa0-0000-7000-8000-000000007000
                     openQuestionIssueCount: 2
                     createdAt: '2026-04-22T09:30:00Z'
                     updatedAt: '2026-07-09T13:45:12Z'
@@ -1645,6 +1631,8 @@ paths:
                       seqNo: 2
                       role: user
                       content: 我主导过一次跨团队设计系统迁移。
+                      clientMessageId: 01918fa0-0000-7000-8000-000000007001
+                      replyStatus: complete
                       createdAt: '2026-07-12T08:03:00Z'
                     - id: 01918fa0-0000-7000-8000-000000006002
                       seqNo: 3
@@ -1768,6 +1756,8 @@ paths:
                         seqNo: 2
                         role: user
                         content: 我主导过一次跨团队设计系统迁移。
+                        clientMessageId: 01918fa0-0000-7000-8000-000000007001
+                        replyStatus: complete
                         createdAt: '2026-07-12T08:03:00Z'
                       - id: 01918fa0-0000-7000-8000-000000006002
                         seqNo: 3
@@ -1781,6 +1771,8 @@ paths:
                       seqNo: 2
                       role: user
                       content: 我主导过一次跨团队设计系统迁移。
+                      clientMessageId: 01918fa0-0000-7000-8000-000000007001
+                      replyStatus: complete
                       createdAt: '2026-07-12T08:03:00Z'
                     assistantMessage:
                       id: 01918fa0-0000-7000-8000-000000006002
@@ -1948,7 +1940,7 @@ paths:
       tags:
       - Reports
       operationId: listTargetJobReports
-      summary: List feedback reports for a target job (cursor-paginated)
+      summary: Get the canonical-round report overview for a target job
       parameters:
       - name: targetJobId
         in: path
@@ -1956,92 +1948,41 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: cursor
-        in: query
-        required: false
-        schema:
-          type: string
-      - name: pageSize
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 1
-          maximum: 100
       - $ref: '#/components/parameters/XRequestID'
       - $ref: '#/components/parameters/Traceparent'
       - $ref: '#/components/parameters/AcceptLanguage'
       - $ref: '#/components/parameters/XClientVersion'
       responses:
         '200':
-          description: Paginated feedback reports.
+          description: Canonical-round report overview.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/XRequestID'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedFeedbackReport'
+                $ref: '#/components/schemas/TargetJobReportsOverview'
               examples:
                 default:
                   summary: Default fixture for listTargetJobReports
                   value:
-                    items:
-                    - id: 01918fa0-0000-7000-8000-000000007000
-                      sessionId: 01918fa0-0000-7000-8000-000000005000
-                      targetJobId: 01918fa0-0000-7000-8000-000000002000
-                      status: ready
-                      errorCode: null
-                      summary: 回答结构清楚，技术取舍仍需补充备选方案与量化验证。
-                      context:
-                        sourcePlanId: 01918fa0-0000-7000-8000-000000004000
-                        targetJobTitle: Senior Platform Engineer
-                        targetJobCompany: Acme
-                        resumeId: 01918fa0-0000-7000-8000-000000001000
-                        resumeDisplayName: Platform Engineering Resume
+                    targetJobId: 01918fa0-0000-7000-8000-000000002000
+                    rounds:
+                    - round:
                         roundId: round-1-technical
                         roundSequence: 1
-                        roundName: Technical Interview
-                        roundType: technical
-                        language: zh-CN
-                        hasNextRound: true
-                      preparednessLevel: needs_practice
-                      dimensionAssessments:
-                      - code: structured_communication
-                        label: 结构化表达
-                        status: meets_bar
-                        confidence: high
-                      - code: technical_tradeoffs
-                        label: 技术取舍
-                        status: needs_work
-                        confidence: medium
-                      highlights:
-                      - dimensionCode: structured_communication
-                        evidence: 回答按背景、行动和结果展开，并明确了个人职责。
-                        confidence: high
-                      issues:
-                      - dimensionCode: technical_tradeoffs
-                        evidence: 没有比较备选方案的成本、风险和验证标准。
-                        confidence: medium
-                      nextActions:
-                      - type: retry_current_round
-                        label: 复练当前技术轮，补齐技术取舍证据。
-                      retryFocusDimensionCodes:
-                      - technical_tradeoffs
-                      provenance:
-                        promptVersion: v0.2.0
-                        rubricVersion: v0.2.0
-                        modelId: model-profile:report.generate.default
-                        language: zh-CN
-                        featureFlag: none
-                        dataSourceVersion: report-context.v1
-                      createdAt: '2026-07-12T08:30:00Z'
-                      updatedAt: '2026-07-12T08:31:00Z'
-                    pageInfo:
-                      nextCursor: null
-                      pageSize: 20
-                      hasMore: false
+                      currentReport: null
+                      latestAttempt: null
+                    - round:
+                        roundId: round-2-manager
+                        roundSequence: 2
+                      currentReport: null
+                      latestAttempt: null
+                    - round:
+                        roundId: round-3-culture
+                        roundSequence: 3
+                      currentReport: null
+                      latestAttempt: null
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /resume/tailor:
@@ -2451,8 +2392,6 @@ components:
       - AUTH_UNAUTHORIZED
       - TARGET_IMPORT_FAILED
       - TARGET_JOB_NOT_FOUND
-      - TARGET_IMPORT_SOURCE_INVALID
-      - TARGET_IMPORT_SOURCE_UNAVAILABLE
       - TARGET_INVALID_STATE_TRANSITION
       - PRACTICE_SESSION_CONFLICT
       - PRACTICE_PLAN_NOT_FOUND
@@ -2851,7 +2790,6 @@ components:
           type: string
           enum:
           - resume
-          - target_job_attachment
           - privacy_export
         fileName:
           type: string
@@ -3069,83 +3007,18 @@ components:
                 additionalProperties: true
             provenance:
               $ref: '#/components/schemas/GenerationProvenance'
-    TargetJobImportSourceURL:
-      type: object
-      required:
-      - type
-      - url
-      properties:
-        type:
-          type: string
-          const: url
-        url:
-          type: string
-          format: uri
-    TargetJobImportSourceManualText:
-      type: object
-      required:
-      - type
-      - rawText
-      properties:
-        type:
-          type: string
-          const: manual_text
-        rawText:
-          type: string
-    TargetJobImportSourceFile:
-      type: object
-      required:
-      - type
-      - fileObjectId
-      properties:
-        type:
-          type: string
-          const: file
-        fileObjectId:
-          type: string
-          format: uuid
-    TargetJobImportSourceManualForm:
-      type: object
-      required:
-      - type
-      - title
-      - rawDescription
-      properties:
-        type:
-          type: string
-          const: manual_form
-        title:
-          type: string
-        companyName:
-          type: string
-        rawDescription:
-          type: string
-    TargetJobImportSource:
-      oneOf:
-      - $ref: '#/components/schemas/TargetJobImportSourceURL'
-      - $ref: '#/components/schemas/TargetJobImportSourceManualText'
-      - $ref: '#/components/schemas/TargetJobImportSourceFile'
-      - $ref: '#/components/schemas/TargetJobImportSourceManualForm'
-      discriminator:
-        propertyName: type
-        mapping:
-          url: '#/components/schemas/TargetJobImportSourceURL'
-          manual_text: '#/components/schemas/TargetJobImportSourceManualText'
-          file: '#/components/schemas/TargetJobImportSourceFile'
-          manual_form: '#/components/schemas/TargetJobImportSourceManualForm'
     ImportTargetJobRequest:
       type: object
+      additionalProperties: false
       required:
-      - source
+      - rawText
       - targetLanguage
       - resumeId
       properties:
-        source:
-          $ref: '#/components/schemas/TargetJobImportSource'
-        titleHint:
+        rawText:
           type: string
-        companyNameHint:
-          type: string
+          minLength: 1
+          pattern: \S
         targetLanguage:
           type: string
         resumeId:
@@ -3280,6 +3153,7 @@ components:
       required:
       - roundId
       - roundSequence
+      additionalProperties: false
       description: Stable logical identity for one structured TargetJob interview round. The identifier is deterministic and
         is not a UUID.
       properties:
@@ -3328,7 +3202,6 @@ components:
       - title
       - companyName
       - targetLanguage
-      - sourceType
       - requirements
       - openQuestionIssueCount
       - createdAt
@@ -3351,18 +3224,6 @@ components:
           - type: 'null'
         targetLanguage:
           type: string
-        sourceType:
-          type: string
-          enum:
-          - manual_text
-          - url
-          - file
-          - manual_form
-        sourceUrl:
-          oneOf:
-          - type: string
-            format: uri
-          - type: 'null'
         summary:
           oneOf:
           - $ref: '#/components/schemas/TargetJobSummary'
@@ -3374,11 +3235,6 @@ components:
         fitSummary:
           oneOf:
           - $ref: '#/components/schemas/TargetJobFitSummary'
-          - type: 'null'
-        latestReportId:
-          oneOf:
-          - type: string
-            format: uuid
           - type: 'null'
         currentPracticePlanId:
           oneOf:
@@ -3606,8 +3462,49 @@ components:
         planId:
           type: string
           format: uuid
-    PracticeMessage:
+    PracticeReplyStatus:
+      type: string
+      enum:
+      - pending
+      - retryable_failed
+      - terminal_failed
+      - complete
+    PracticeUserMessage:
       type: object
+      additionalProperties: false
+      required:
+      - id
+      - seqNo
+      - role
+      - content
+      - createdAt
+      - clientMessageId
+      - replyStatus
+      properties:
+        id:
+          type: string
+          format: uuid
+        seqNo:
+          type: integer
+          format: int32
+          minimum: 1
+        role:
+          type: string
+          enum:
+          - user
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        clientMessageId:
+          type: string
+          format: uuid
+        replyStatus:
+          $ref: '#/components/schemas/PracticeReplyStatus'
+    PracticeAssistantMessage:
+      type: object
+      additionalProperties: false
       required:
       - id
       - seqNo
@@ -3625,13 +3522,21 @@ components:
         role:
           type: string
           enum:
-          - user
           - assistant
         content:
           type: string
         createdAt:
           type: string
           format: date-time
+    PracticeMessage:
+      oneOf:
+      - $ref: '#/components/schemas/PracticeUserMessage'
+      - $ref: '#/components/schemas/PracticeAssistantMessage'
+      discriminator:
+        propertyName: role
+        mapping:
+          user: '#/components/schemas/PracticeUserMessage'
+          assistant: '#/components/schemas/PracticeAssistantMessage'
     PracticeSession:
       type: object
       required:
@@ -3886,9 +3791,9 @@ components:
         session:
           $ref: '#/components/schemas/PracticeSession'
         userMessage:
-          $ref: '#/components/schemas/PracticeMessage'
+          $ref: '#/components/schemas/PracticeUserMessage'
         assistantMessage:
-          $ref: '#/components/schemas/PracticeMessage'
+          $ref: '#/components/schemas/PracticeAssistantMessage'
     CompletePracticeSessionRequest:
       type: object
       required:
@@ -4187,15 +4092,89 @@ components:
         updatedAt:
           type: string
           format: date-time
-    PaginatedFeedbackReport:
-      allOf:
-      - $ref: '#/components/schemas/PaginatedEnvelope'
-      - type: object
-        properties:
+    TargetJobReportsOverview:
+      type: object
+      required:
+      - targetJobId
+      - rounds
+      additionalProperties: false
+      properties:
+        targetJobId:
+          type: string
+          format: uuid
+        rounds:
+          type: array
+          minItems: 2
+          maxItems: 5
           items:
-            type: array
-            items:
-              $ref: '#/components/schemas/FeedbackReport'
+            $ref: '#/components/schemas/TargetJobReportRoundOverview'
+    TargetJobReportRoundOverview:
+      type: object
+      required:
+      - round
+      - currentReport
+      - latestAttempt
+      additionalProperties: false
+      properties:
+        round:
+          $ref: '#/components/schemas/PracticeRoundRef'
+        currentReport:
+          oneOf:
+          - $ref: '#/components/schemas/TargetJobCurrentReportSummary'
+          - type: 'null'
+        latestAttempt:
+          oneOf:
+          - $ref: '#/components/schemas/TargetJobReportAttemptSummary'
+          - type: 'null'
+    TargetJobCurrentReportSummary:
+      type: object
+      required:
+      - id
+      - generatedAt
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        generatedAt:
+          type: string
+          format: date-time
+    TargetJobReportAttemptSummary:
+      type: object
+      required:
+      - id
+      - status
+      - errorCode
+      - createdAt
+      additionalProperties: false
+      allOf:
+      - if:
+          required:
+          - status
+          properties:
+            status:
+              const: failed
+        then:
+          properties:
+            errorCode:
+              $ref: '#/components/schemas/ApiErrorCode'
+        else:
+          properties:
+            errorCode:
+              type: 'null'
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ReportStatus'
+        errorCode:
+          oneOf:
+          - $ref: '#/components/schemas/ApiErrorCode'
+          - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
     RequestResumeTailorRequest:
       type: object
       required:

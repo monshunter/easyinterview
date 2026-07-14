@@ -44,6 +44,7 @@ describe("normalizeRouteName", () => {
   it("preserves valid current route names", () => {
     expect(normalizeRouteName("home")).toBe("home");
     expect(normalizeRouteName("workspace")).toBe("workspace");
+    expect(normalizeRouteName("reports")).toBe("reports");
     expect(normalizeRouteName("auth_login")).toBe("auth_login");
     expect(normalizeRouteName("settings")).toBe("settings");
   });

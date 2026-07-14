@@ -376,6 +376,27 @@ describe("WorkspaceEmptyState", () => {
     expect(nav).not.toHaveBeenCalledWith(expect.objectContaining({ name: "parse" }));
   });
 
+  it("does not expose a backend error when plan quick-start fails", async () => {
+    const user = userEvent.setup();
+    const client = clientWithScenarios();
+    vi.spyOn(client, "getPracticePlan").mockRejectedValue(
+      new Error("HTTP 503 PRACTICE_STORE_UNAVAILABLE"),
+    );
+    const { nav } = renderScreen({ name: "workspace", params: {} }, client);
+
+    const start = await screen.findByTestId(
+      "workspace-plan-list-start-01918fa0-0000-7000-8000-000000002000",
+    );
+    await user.click(start);
+
+    expect(await screen.findByTestId("workspace-plan-list-start-error")).toHaveTextContent(
+      "The interview cannot be started right now. Please try again.",
+    );
+    expect(screen.queryByText("HTTP 503 PRACTICE_STORE_UNAVAILABLE")).not.toBeInTheDocument();
+    expect(start).toBeEnabled();
+    expect(nav).not.toHaveBeenCalledWith(expect.objectContaining({ name: "practice" }));
+  });
+
   it("renders final rail as done and disables quick-start with zero plan/session calls", async () => {
     const client = clientWithScenarios();
     const finished = {
@@ -446,7 +467,7 @@ describe("WorkspaceEmptyState", () => {
     expect(screen.queryByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000")).toBeNull();
   });
 
-  it("keeps the card visible when archiveTargetJob fails", async () => {
+  it("keeps the card visible and hides backend details when archiveTargetJob fails", async () => {
     const user = userEvent.setup();
     const client = clientWithScenarios();
     vi.spyOn(client, "archiveTargetJob").mockRejectedValue(new Error("archive failed"));
@@ -459,8 +480,14 @@ describe("WorkspaceEmptyState", () => {
     await user.click(screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-plan-list-delete-error")).toHaveTextContent("archive failed");
+      expect(screen.getByTestId("workspace-plan-list-delete-error")).toHaveTextContent(
+        "The interview plan could not be deleted. Please try again.",
+      );
     });
+    expect(screen.queryByText("archive failed")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000"),
+    ).toBeEnabled();
     expect(screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
     expect(nav).not.toHaveBeenCalled();
   });

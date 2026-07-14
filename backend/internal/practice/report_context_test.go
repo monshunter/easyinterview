@@ -2,6 +2,7 @@ package practice
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -83,6 +84,64 @@ func TestBuildReportContextSnapshotFailsClosed(t *testing.T) {
 			tc.mutate(&input)
 			if _, err := BuildReportContextSnapshot(input); err == nil {
 				t.Fatal("expected fail-closed snapshot error")
+			}
+		})
+	}
+}
+
+func TestValidateReportContextSnapshotRequiresFrozenCanonicalCatalogConsistency(t *testing.T) {
+	validSummary := json.RawMessage(`{"interviewRounds":[{"sequence":1,"type":"technical","name":"Technical","durationMinutes":45,"focus":"system design"},{"sequence":2,"type":"manager","name":"Manager","durationMinutes":30,"focus":"ownership"}],"provenance":{"promptVersion":"v0.1.0","rubricVersion":"v0.1.0","modelId":"fixture-model","language":"en","dataSourceVersion":"target-job.v1"}}`)
+	build := func(t *testing.T) ReportContextSnapshot {
+		t.Helper()
+		snapshot, err := BuildReportContextSnapshot(ReportContextSnapshotInput{
+			TargetJob: ReportTargetJobSnapshot{ID: "target-1", Title: "Role", Language: "en", RawJD: "jd", Summary: validSummary},
+			Resume:    ReportResumeSnapshot{ID: "resume-1", DisplayName: "Resume", Language: "en", SourceSnapshot: "resume", StructuredProfile: json.RawMessage(`{}`)},
+			Plan: ReportPlanSnapshot{
+				ID: "plan-1", Goal: "baseline", InterviewerPersona: "hiring_manager", Difficulty: "standard", Language: "en",
+				TimeBudgetMinutes: 45, ResumeID: "resume-1", RoundID: "round-1-technical", RoundSequence: 1,
+			},
+			Conversation: ReportConversationCoordinate{SessionID: "session-1", Language: "en", MessageCount: 3, LastMessageSeqNo: 3},
+		})
+		if err != nil {
+			t.Fatalf("BuildReportContextSnapshot: %v", err)
+		}
+		return snapshot
+	}
+
+	tests := []struct {
+		name   string
+		mutate func(*ReportContextSnapshot)
+		want   string
+	}{
+		{
+			name: "summary and frozen catalog differ by name",
+			mutate: func(snapshot *ReportContextSnapshot) {
+				snapshot.CanonicalRounds[0].Name = "Changed"
+			},
+			want: "canonical round catalog",
+		},
+		{
+			name: "summary and frozen catalog differ by focus",
+			mutate: func(snapshot *ReportContextSnapshot) {
+				snapshot.CanonicalRounds[1].Focus = "changed"
+			},
+			want: "canonical round catalog",
+		},
+		{
+			name: "current round and frozen catalog differ by duration",
+			mutate: func(snapshot *ReportContextSnapshot) {
+				snapshot.Round.DurationMinutes++
+			},
+			want: "current round",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			snapshot := build(t)
+			tc.mutate(&snapshot)
+			err := ValidateReportContextSnapshot(snapshot)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("ValidateReportContextSnapshot error=%v, want containing %q", err, tc.want)
 			}
 		})
 	}

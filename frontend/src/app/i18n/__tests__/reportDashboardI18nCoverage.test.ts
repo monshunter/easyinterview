@@ -5,11 +5,8 @@
  *   - report.* keys exist in both locales and are byte-identical sets.
  *   - generating.* keys exist in both locales and are byte-identical sets.
  *   - combined report.* + generating.* key count is at least 60.
- *   - report.failureState.errorCode.* covers all B1 AI_* enum values
- *     (TestErrorCodeI18nCoversAllAIErrors).
- *   - REPORT_NOT_FOUND has dedicated failureState.notFound.* keys + an
- *     errorCode.REPORT_NOT_FOUND label that is distinct from AI_* mapping
- *     (TestReportFailureStateErrorCodeCoversReportNotFound).
+ *   - Internal error-code/provider copy is absent from the user-facing locale
+ *     catalog; REPORT_NOT_FOUND keeps dedicated user-safe state copy.
  */
 
 import { describe, expect, it } from "vitest";
@@ -72,6 +69,11 @@ describe("frontend-report-dashboard/001 i18n coverage", () => {
     }
   });
 
+  it("does not retain an orphan session-locator label", () => {
+    expect(zhKeys).not.toContain("report.context.session");
+    expect(enKeys).not.toContain("report.context.session");
+  });
+
   it("combined report.* + generating.* >= 60 keys (TestI18nKeyCountAtLeast60)", () => {
     const zhCombined = pick("report.", zhKeys).length + pick("generating.", zhKeys).length;
     const enCombined = pick("report.", enKeys).length + pick("generating.", enKeys).length;
@@ -79,35 +81,26 @@ describe("frontend-report-dashboard/001 i18n coverage", () => {
     expect(enCombined).toBeGreaterThanOrEqual(60);
   });
 
-  it("report.failureState.errorCode.* covers all AI_* enum values (TestErrorCodeI18nCoversAllAIErrors)", () => {
-    const aiCodes = [
-      "AI_PROVIDER_TIMEOUT",
-      "AI_PROVIDER_SECRET_MISSING",
-      "AI_PROVIDER_CONFIG_INVALID",
-      "AI_OUTPUT_INVALID",
-      "AI_FALLBACK_EXHAUSTED",
-      "AI_UNSUPPORTED_CAPABILITY",
-    ];
-    for (const code of aiCodes) {
-      const key = `report.failureState.errorCode.${code}`;
-      expect(zhKeys, `zh missing ${key}`).toContain(key);
-      expect(enKeys, `en missing ${key}`).toContain(key);
-    }
+  it("does not retain user-facing report error-code copy", () => {
+    expect(pick("report.failureState.errorCode.", zhKeys)).toEqual([]);
+    expect(pick("report.failureState.errorCode.", enKeys)).toEqual([]);
   });
 
-  it("REPORT_NOT_FOUND uses dedicated keys distinct from AI_* (TestReportFailureStateErrorCodeCoversReportNotFound)", () => {
-    expect(zhKeys).toContain("report.failureState.errorCode.REPORT_NOT_FOUND");
-    expect(enKeys).toContain("report.failureState.errorCode.REPORT_NOT_FOUND");
+  it("REPORT_NOT_FOUND uses dedicated user-safe state copy", () => {
     expect(zhKeys).toContain("report.failureState.notFound.title");
     expect(zhKeys).toContain("report.failureState.notFound.desc");
     expect(enKeys).toContain("report.failureState.notFound.title");
     expect(enKeys).toContain("report.failureState.notFound.desc");
-    // Distinct from AI_* mapping.
-    const zhCopy = (zh as Record<string, string>)["report.failureState.errorCode.REPORT_NOT_FOUND"];
-    const enCopy = (en as Record<string, string>)["report.failureState.errorCode.REPORT_NOT_FOUND"];
-    const aiCopy = (zh as Record<string, string>)["report.failureState.errorCode.AI_PROVIDER_TIMEOUT"];
-    expect(zhCopy).toBeDefined();
-    expect(enCopy).toBeDefined();
-    expect(zhCopy).not.toBe(aiCopy);
+  });
+
+  it("distinguishes trusted reports Back from the workspace fallback in both locales", () => {
+    expect(zh["generating.errors.backToReports"]).toBe("返回面试报告");
+    expect(zh["report.failureState.backToReports"]).toBe("返回面试报告");
+    expect(zh["generating.errors.backToWorkspace"]).toBe("返回面试");
+    expect(zh["report.failureState.backToWorkspace"]).toBe("返回面试");
+    expect(en["generating.errors.backToReports"]).toBe("Back to interview reports");
+    expect(en["report.failureState.backToReports"]).toBe("Back to interview reports");
+    expect(en["generating.errors.backToWorkspace"]).toBe("Back to workspace");
+    expect(en["report.failureState.backToWorkspace"]).toBe("Back to workspace");
   });
 });

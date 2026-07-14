@@ -56,6 +56,32 @@ describe("pendingAction encode/decode", () => {
     expect(decodePendingActionRoute({ planId: "plan-1" })).toBeNull();
   });
 
+  it("round-trips a Reports deep link with targetJobId only", () => {
+    const encoded = encodePendingAction({
+      type: "open_protected_route",
+      label: "reports",
+      route: "reports",
+      params: {
+        targetJobId: "tj-1",
+        section: "reports",
+        reportId: "rpt-1",
+        status: "ready",
+        roundId: "round-1",
+        rawText: "private JD body",
+      },
+    });
+    expect(encoded).toEqual({
+      pendingRoute: "reports",
+      pendingType: "open_protected_route",
+      pendingLabel: "reports",
+      targetJobId: "tj-1",
+    });
+    expect(decodePendingActionRoute(encoded)).toEqual({
+      name: "reports",
+      params: { targetJobId: "tj-1" },
+    });
+  });
+
   it("strips reserved keys (pendingRoute / pendingType / pendingLabel / returnTo) from restored params", () => {
     const decoded = decodePendingActionRoute({
       pendingRoute: "practice",

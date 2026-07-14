@@ -32,7 +32,6 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 		"resume_assets",
 		"target_jobs",
 		"target_job_requirements",
-		"target_job_sources",
 		"practice_plans",
 		"idempotency_records",
 		"practice_sessions",
@@ -60,6 +59,9 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 	if strings.Contains(up, "create table mistake_entries ") {
 		t.Fatalf("baseline migration must not create out-of-scope mistake_entries table")
 	}
+	if strings.Contains(up, "create table target_job_sources ") {
+		t.Fatalf("paste-only baseline must not create target_job_sources")
+	}
 	for _, required := range []string{
 		"open_question_issue_count integer not null default 0",
 		"dimension_assessments jsonb not null default '[]'::jsonb",
@@ -83,6 +85,79 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 	}
 }
 
+func TestTargetJobPasteOnlyMigrationNetState(t *testing.T) {
+	root := repoRoot(t)
+	allUp := strings.ToLower(readAllUpMigrations(t, filepath.Join(root, "migrations")))
+	baseline := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
+	enumSources := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "enum-sources.yaml")))
+
+	for _, removed := range []string{
+		"target_job_attachment",
+		"create table target_job_sources",
+		"source_file_object_id",
+		"source_refresh",
+	} {
+		if strings.Contains(allUp, removed) || strings.Contains(enumSources, removed) {
+			t.Fatalf("paste-only migration surface still contains %q", removed)
+		}
+	}
+	targetStart := strings.Index(baseline, "create table target_jobs")
+	targetEnd := strings.Index(baseline, "create table target_job_requirements")
+	if targetStart < 0 || targetEnd <= targetStart {
+		t.Fatal("could not isolate target_jobs baseline DDL")
+	}
+	targetDDL := baseline[targetStart:targetEnd]
+	for _, removed := range []string{"source_type", "source_url"} {
+		if strings.Contains(targetDDL, removed) {
+			t.Fatalf("target_jobs still contains %q", removed)
+		}
+	}
+	for _, preserved := range []string{
+		"raw_jd_text text",
+		"create table source_records",
+		"'resume'",
+		"'privacy_export'",
+	} {
+		if !strings.Contains(baseline, preserved) {
+			t.Fatalf("paste-only baseline must preserve %q", preserved)
+		}
+	}
+	for _, preserved := range []string{
+		"table: source_records",
+		"table: file_objects",
+		"resume",
+		"privacy_export",
+	} {
+		if !strings.Contains(enumSources, preserved) {
+			t.Fatalf("enum sources must preserve %q", preserved)
+		}
+	}
+}
+
+func TestTargetJobReportPointerRemovedMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	baseline := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
+	targetJobs := tableBlock(t, baseline, "target_jobs")
+	feedbackReports := tableBlock(t, baseline, "feedback_reports")
+	groundedReportContext := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000018_grounded_report_context.up.sql")))
+
+	if strings.Contains(targetJobs, "latest_report_id") {
+		t.Fatal("target_jobs must not retain the denormalized latest_report_id pointer")
+	}
+	for _, required := range []string{
+		"target_job_id uuid not null references target_jobs(id) on delete cascade",
+		"generated_at timestamptz",
+		"created_at timestamptz not null default now()",
+	} {
+		if !strings.Contains(feedbackReports, required) {
+			t.Fatalf("feedback_reports must preserve canonical report history field %q", required)
+		}
+	}
+	if !strings.Contains(groundedReportContext, "add column generation_context jsonb not null default '{}'::jsonb") {
+		t.Fatal("grounded report context migration must preserve feedback_reports.generation_context")
+	}
+}
+
 func TestPracticeIdempotencyMigrationContract(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readAllUpMigrations(t, filepath.Join(root, "migrations")))
@@ -101,6 +176,57 @@ func TestPracticeIdempotencyMigrationContract(t *testing.T) {
 	}
 	if strings.Contains(up, outOfScopePracticeMode) {
 		t.Fatalf("practice migrations must not accept out-of-scope mode %s", outOfScopePracticeMode)
+	}
+}
+
+func TestPracticeReplyStatusMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	baseline := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
+	enumSources := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "enum-sources.yaml")))
+	block := tableBlock(t, baseline, "practice_messages")
+
+	for _, required := range []string{
+		"reply_status text",
+		"reply_status in ('pending', 'retryable_failed', 'terminal_failed', 'complete')",
+		"role = 'user' and client_message_id is not null and reply_to_message_id is null and reply_status is not null",
+		"role = 'assistant' and client_message_id is null and reply_status is null",
+		"unique (session_id, client_message_id)",
+		"unique (reply_to_message_id)",
+	} {
+		if !strings.Contains(block, required) {
+			t.Fatalf("practice reply-status migration contract missing %q", required)
+		}
+	}
+	for _, required := range []string{
+		"table: practice_messages",
+		"column: reply_status",
+		"values: [pending, retryable_failed, terminal_failed, complete]",
+	} {
+		if !strings.Contains(enumSources, required) {
+			t.Fatalf("practice reply-status enum source missing %q", required)
+		}
+	}
+}
+
+func TestPracticeReplyLeaseGenerationMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	baseline := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
+	block := tableBlock(t, baseline, "practice_messages")
+
+	for _, required := range []string{
+		"reply_generation bigint",
+		"reply_lease_expires_at timestamptz",
+		"reply_generation is not null and reply_generation > 0",
+		"reply_status = 'pending' and reply_lease_expires_at is not null",
+		"reply_status in ('retryable_failed', 'terminal_failed', 'complete') and reply_lease_expires_at is null",
+		"role = 'assistant' and client_message_id is null and reply_status is null and reply_generation is null and reply_lease_expires_at is null",
+	} {
+		if !strings.Contains(block, required) {
+			t.Fatalf("practice reply lease/generation migration contract missing %q", required)
+		}
+	}
+	if strings.Contains(block, "now() + interval '90 seconds'") || strings.Contains(block, "current_timestamp + interval '90 seconds'") {
+		t.Fatal("practice reply lease must use the service clock, not a database clock")
 	}
 }
 

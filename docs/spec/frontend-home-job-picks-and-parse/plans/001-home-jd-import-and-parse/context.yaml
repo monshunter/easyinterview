@@ -8,7 +8,7 @@ metadata:
   branch: fix/interview-turn-ux-0713
   specVersion:
     from: 2.20
-    to: 2.21
+    to: 2.23
 spec:
   defaultTarget: frontend
   discovery:
@@ -35,6 +35,12 @@ spec:
       - listTargetJobs
       - listResumes
       - getTargetJob
+      - plan detail report entry
+      - reports targetJobId handoff
+      - Parse no embedded reports list
+      - Parse no listTargetJobReports request
+      - no section reports compatibility
+      - no global TopBar report entry
       - createPracticePlan
       - getPracticePlan
       - startPracticeSession
@@ -93,6 +99,8 @@ spec:
         - ../../../product-scope/spec.md
         - ../../../engineering-roadmap/spec.md
         - ../../../backend-targetjob/spec.md
+        - ../../../backend-review/spec.md
+        - ../../../frontend-report-dashboard/spec.md
       discovery:
         packages:
           - frontend/src/app/screens/home
@@ -120,6 +128,7 @@ spec:
         uiRoutes:
           - home
           - parse
+          - reports
           - workspace
           - auth_login
         apiNames:

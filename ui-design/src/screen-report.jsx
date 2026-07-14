@@ -72,8 +72,8 @@ const isValidDirectReport = (report) => {
 const ReportScreen = ({ T, lang, nav, params = {} }) => {
   const report = window.EI_DATA.report;
   if (!params.reportId || report.id !== params.reportId) return <ReportMissingState T={T} lang={lang} nav={nav} />;
-  if (report.status === "queued" || report.status === "generating") return <ReportPendingState T={T} lang={lang} nav={nav} reportId={report.id} />;
-  if (report.status === "failed") return <ReportFailureState T={T} lang={lang} nav={nav} errorCode={report.errorCode} />;
+  if (report.status === "queued" || report.status === "generating") return <ReportPendingState T={T} lang={lang} nav={nav} reportId={report.id} targetJobId={report.targetJobId} />;
+  if (report.status === "failed") return <ReportFailureState T={T} lang={lang} nav={nav} errorCode={report.errorCode} targetJobId={report.targetJobId} />;
   if (!isValidDirectReport(report)) return <ReportFailureState T={T} lang={lang} nav={nav} errorCode="INVALID_REPORT_CONTRACT" />;
   return <ReportDashboard T={T} lang={lang} nav={nav} report={report} />;
 };
@@ -88,17 +88,20 @@ const ReportMissingState = ({ T, lang, nav }) => (
   </div>
 );
 
-const ReportPendingState = ({ T, lang, nav, reportId }) => (
+const ReportPendingState = ({ T, lang, nav, reportId, targetJobId }) => (
   <div className="ei-fadein" style={{ maxWidth: 820, margin: "0 auto", padding: "72px clamp(16px, 5vw, 48px)" }}>
     <Card T={T}>
       <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "REPORT IN PROGRESS" : "报告仍在生成"}</div>
       <div className="ei-serif" style={{ fontSize: 28, color: T.ink, marginBottom: 16 }}>{lang === "en" ? "We are still checking the evidence for this conversation." : "系统仍在核对这场对话的证据。"}</div>
-      <Btn T={T} variant="accent" onClick={() => nav("generating", { reportId })}>{lang === "en" ? "View progress" : "查看生成状态"}</Btn>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <Btn T={T} variant="accent" onClick={() => nav("generating", { reportId })}>{lang === "en" ? "View progress" : "查看生成状态"}</Btn>
+        <Btn T={T} variant="secondary" onClick={() => targetJobId ? nav("reports", { targetJobId }) : nav("workspace")}>{targetJobId ? (lang === "en" ? "Back to interview reports" : "返回面试报告") : (lang === "en" ? "Back to interviews" : "返回面试")}</Btn>
+      </div>
     </Card>
   </div>
 );
 
-const ReportFailureState = ({ T, lang, nav, errorCode }) => {
+const ReportFailureState = ({ T, lang, nav, errorCode, targetJobId }) => {
   const isOversize = errorCode === "REPORT_CONTEXT_TOO_LARGE";
   return (
     <div className="ei-fadein" style={{ maxWidth: 820, margin: "0 auto", padding: "72px clamp(16px, 5vw, 48px)" }}>
@@ -110,7 +113,7 @@ const ReportFailureState = ({ T, lang, nav, errorCode }) => {
             ? (lang === "en" ? "The source material and conversation were too long. Shorten the input in your interview plan, then start a new session." : "本次材料与对话过长。请返回面试规划，缩短输入后开启一场新会话。")
             : (lang === "en" ? "Return to your interviews and open another completed session." : "请返回面试，打开另一场已完成的会话。")}
         </p>
-        <Btn T={T} variant="accent" onClick={() => nav("workspace")}>{lang === "en" ? "Back to interviews" : "返回面试"}</Btn>
+        <Btn T={T} variant="accent" onClick={() => targetJobId ? nav("reports", { targetJobId }) : nav("workspace")}>{targetJobId ? (lang === "en" ? "Back to interview reports" : "返回面试报告") : (lang === "en" ? "Back to interviews" : "返回面试")}</Btn>
       </Card>
     </div>
   );
@@ -131,7 +134,7 @@ const ReportDashboard = ({ T, lang, nav, report }) => {
 
   return (
     <main className="ei-fadein" data-testid="report-dashboard" style={{ maxWidth: 1120, margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}>
-      <button onClick={() => nav("workspace")} style={{ border: 0, background: "transparent", color: T.ink3, cursor: "pointer", marginBottom: 20 }}>← {lang === "en" ? "Interviews" : "面试"}</button>
+      <button data-testid="report-back-button" onClick={() => report.targetJobId ? nav("reports", { targetJobId: report.targetJobId }) : nav("workspace")} style={{ border: 0, background: "transparent", color: T.ink3, cursor: "pointer", marginBottom: 20 }}>← {report.targetJobId ? (lang === "en" ? "Interview reports" : "面试报告") : (lang === "en" ? "Interviews" : "面试")}</button>
 
       <header data-testid="report-header" style={{ display: "flex", justifyContent: "space-between", gap: 24, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 24 }}>
         <div style={{ minWidth: 0, flex: "1 1 440px" }}>
@@ -175,14 +178,13 @@ const ReportDashboard = ({ T, lang, nav, report }) => {
 const ReportContextStrip = ({ T, lang, report }) => {
   const context = report.context;
   const items = [
-    ["session", lang === "en" ? "SESSION" : "会话", report.sessionId],
     ["job", lang === "en" ? "TARGET" : "目标岗位", `${context.targetJobCompany} · ${context.targetJobTitle}`],
     ["round", lang === "en" ? "ROUND" : "轮次", context.roundName],
     ["resume", lang === "en" ? "RESUME" : "简历", context.resumeDisplayName],
   ];
   return (
     <section data-testid="report-context-strip" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 1, border: `1px solid ${T.rule}`, background: T.rule, marginBottom: 22 }}>
-      {items.map(([id, label, value]) => <div key={id} data-testid={`report-context-${id}`} style={{ minWidth: 0, padding: "12px 14px", background: T.bgCard }}><div className="ei-label" style={{ color: T.ink3, marginBottom: 5 }}>{label}</div><div title={value} style={{ color: T.ink2, fontSize: 12.5, lineHeight: 1.5, overflowWrap: id === "session" ? "normal" : "anywhere", whiteSpace: id === "session" ? "nowrap" : "normal", overflow: id === "session" ? "hidden" : "visible", textOverflow: id === "session" ? "ellipsis" : "clip" }}>{value}</div></div>)}
+      {items.map(([id, label, value]) => <div key={id} data-testid={`report-context-${id}`} style={{ minWidth: 0, padding: "12px 14px", background: T.bgCard }}><div className="ei-label" style={{ color: T.ink3, marginBottom: 5 }}>{label}</div><div title={value} style={{ color: T.ink2, fontSize: 12.5, lineHeight: 1.5, overflowWrap: "anywhere" }}>{value}</div></div>)}
     </section>
   );
 };

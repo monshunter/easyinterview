@@ -68,7 +68,10 @@
 
 ## Phase 10: TargetJob paste-only error vocabulary
 
-- [ ] 10.1 RED: conventions validator/generator/parity tests prove `TARGET_IMPORT_SOURCE_INVALID` and `TARGET_IMPORT_SOURCE_UNAVAILABLE` still exist before implementation, while locking retained-code expectations for `VALIDATION_FAILED`, `TARGET_IMPORT_FAILED`, `TARGET_JOB_NOT_FOUND` and `TARGET_INVALID_STATE_TRANSITION`.
-- [ ] 10.2 GREEN: delete only the two source-specific YAML entries, regenerate Go/TS errors, and synchronize the exact enum contraction through the B2 OpenAPI handoff without aliases.
-- [ ] 10.3 BDD-N/A-GATE: run conventions lint, focused generator/Go/TS tests, two-pass codegen idempotency, OpenAPI parity handoff and owner context validation as the internal-contract substitute gate.
+- [x] 10.1 RED: conventions validator/generator/parity tests prove `TARGET_IMPORT_SOURCE_INVALID` and `TARGET_IMPORT_SOURCE_UNAVAILABLE` still exist before implementation, while locking retained-code expectations for `VALIDATION_FAILED`, `TARGET_IMPORT_FAILED`, `TARGET_JOB_NOT_FOUND` and `TARGET_INVALID_STATE_TRANSITION`.
+  <!-- verified: 2026-07-13 method=focused-registry-red evidence="new exact Registry/AllCodes assertions failed only because both source-specific codes still existed; retained-code expectations were already locked" -->
+- [x] 10.2 GREEN: delete only the two source-specific YAML entries, regenerate Go/TS errors, and synchronize the exact enum contraction through the B2 OpenAPI handoff without aliases.
+  <!-- verified: 2026-07-13 method=b1+b2-codegen-green evidence="canonical YAML, Go/TS registries, parity fixture, OpenAPI ApiErrorCode and generated API artifacts contain 21 exact codes; only the two source-specific entries were removed and no alias was introduced" -->
+- [x] 10.3 BDD-N/A-GATE: run conventions lint, focused generator/Go/TS tests, two-pass codegen idempotency, OpenAPI parity handoff and owner context validation as the internal-contract substitute gate.
+  <!-- verified: 2026-07-13 commands="make lint-conventions; focused Go/TS parity; two-pass conventions codegen; isolated-index make codegen-check; validate_context shared-conventions/backend" result="PASS; generated hashes stable; OpenAPI B1 parity and 21-code inventory pass" -->
 - [ ] 10.4 ZERO-REF: exact searches find neither removed literal in current YAML/generated/OpenAPI/runtime consumers, while positive probes still find all four retained canonical codes.

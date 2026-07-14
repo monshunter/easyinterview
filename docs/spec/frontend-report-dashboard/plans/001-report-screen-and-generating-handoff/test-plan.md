@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.0
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 3.2
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 ## Phase 1-5: Historical baseline
 
@@ -39,3 +39,12 @@
 - Remove the orphan `report.context.session` locale keys and require active zero-reference. Update P0.059 README/INDEX mapping to C-12, then rerun deterministic 1440/390 DOM/computed-style/bbox/viewport/pixel parity under its normal PASS cleanup.
 - Final successful screenshots are captured separately through `/agent-browser` from the same formal real-backend ready report into `.test-output/acceptance/report-context-strip/<run-id>/`, so scenario cleanup does not erase user-facing evidence. Require exact `report-context-strip-desktop-1440x1200.png` and `report-context-strip-mobile-390x844.png`, exact viewports 1440x1200 / 390x844, `fullPage: true`, and no prototype/fixture-only/cropped/extra-state substitutes.
 - Validate the directory has only those two PNGs plus `manifest.json`. For each image recompute SHA-256 and compare the manifest relative path/hash/`state=ready`/viewport/`fullPage=true`; require the same redacted report locator/digest, visible target/round/resume, and `reportSentinelAbsent=true` / `sessionSentinelAbsent=true` backed by the linked text/title/tooltip/`aria-*`/accessible-name audit.
+
+## Phase 10: Independent current-plan reports list and Back recovery
+
+- ReportsScreen table tests combine `getTargetJob + listTargetJobReports` for populated/empty/loading/network/invalid-contract states; target/round count/order/ID/sequence mismatches、跨轮 locator 复用、same-ID non-ready、latest-ready without current 与 current without latest 全部 fail closed and render no stale links.
+- A/B target tests prove exact request binding, cross-target sentinel absence, target-switch first-commit clearing and stale-response fencing. The screen never calls `listTargetJobs`, so it cannot become a global report center.
+- Per-round tests cover current ready, queued/generating latest, failed typed/no-Retry, same-ID ready de-dup and different-ID latest-ready status while exposing no full history list.
+- Reports Back is exactly `parse?targetJobId=<trusted id>`；missing/invalid Reports target uses `replaceRoute(workspace)` with no push/back-loop。Report/Generating table tests cover ready、pending、queued/generating、failed、timeout/network with current/last trusted `targetJobId`; Back URL is exactly `/reports?targetJobId=<id>`. Missing reportId、404、first-load network and invalid payload with no trusted target fall back to workspace.
+- Route/security negatives reject route-provided target/status/round authority and title/reportId inference. Source spies prove only ReportsScreen calls `listTargetJobReports`; report/generating safe params remain reportId-only, reports safe params only targetJobId, Parse has no section compatibility, and TopBar has no report entry.
+- P0.058/P0.059 and desktop/mobile source parity rerun；P0.059 adds populated/empty/loading/error ReportsScreen at 1440/390, while existing polling、typed failure、Context Strip sentinel and screenshot manifest assertions remain required.

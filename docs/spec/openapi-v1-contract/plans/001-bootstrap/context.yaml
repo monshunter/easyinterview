@@ -7,8 +7,8 @@ metadata:
   baseBranch: main
   branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.53
-    to: 1.54
+    from: 1.56
+    to: 1.58
 spec:
   defaultTarget: contract
   discovery:
@@ -41,9 +41,15 @@ spec:
       - remove TargetJob sourceType sourceUrl
       - preserve createUploadPresign
       - TargetJob import zero reference gate
+      - OPENAPI-002 exact 17 findings
+      - remove TARGET_IMPORT_SOURCE_INVALID TARGET_IMPORT_SOURCE_UNAVAILABLE
       - Practice replyStatus durable recovery
+      - D-35 Practice machine oracle non ADR
       - ApiClientError status apiError
       - same clientMessageId retry
+      - OPENAPI-004 target job report overview
+      - canonical round current report latest attempt
+      - remove report pagination and latest report pointer
       - deterministic exact 24 words 64 code points parity
       - 10 tags
       - 37 operations
@@ -83,6 +89,7 @@ spec:
       references:
         - ../../decisions/OPENAPI-001-report-direct-semantics.md
         - ../../decisions/OPENAPI-002-targetjob-paste-only.md
+        - ../../decisions/OPENAPI-004-targetjob-report-overview.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
         - ../../../backend-review/spec.md
         - ../../../frontend-report-dashboard/spec.md
