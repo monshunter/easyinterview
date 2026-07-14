@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.7
+    to: 2.8
 spec:
   defaultTarget: backend
   discovery:
@@ -17,6 +17,8 @@ spec:
       - getResume
       - getResumeSource
       - listResumes
+      - ResumeSummary
+      - PaginatedResume items ResumeSummary
       - resume.parse
       - resume.parse.completed
       - sourceType
@@ -31,6 +33,11 @@ spec:
       - resume get handler
       - resume source PDF preview handler
       - resume list handler cursor pagination
+      - closed resume summary list projection
+      - list get responsibility separation
+      - summaryHeadline hasReadableContent
+      - list forbidden detail fields absent
+      - getResume full detail only
       - resume parse async job
       - resume parse completed event
       - cmd/api resume route wiring

@@ -29,9 +29,13 @@ fixture-only orchestration.
   incomplete round from persisted facts, independent of TargetJob/report
   lifecycle status. The current ready plan must match the exact current round
   and current resume.
-- Home, Workspace, Parse, Report, and quick-start consume that backend
-  projection. Equal-duration wrong-round and legacy-null plans are not reused;
-  final/invalid progress fails closed.
+- Home, Workspace list/detail, Report, and quick-start consume that backend
+  projection. A ready Home/Workspace card body opens the read-only
+  `/workspace?targetJobId=<id>` detail directly; `targetJobId` is the only URL
+  locator. Parse remains an import command/progress route for queued or
+  processing imports and is not used to read a ready plan. Equal-duration
+  wrong-round and legacy-null plans are not reused; final/invalid progress
+  fails closed.
 - report persistence writes PostgreSQL `text[]` values correctly and report
   retries may re-enter the `generating` state idempotently.
 - resume parsing uses the standard AI observability wrapper.
@@ -39,7 +43,14 @@ fixture-only orchestration.
   progress/plan/session/report state is never written to browser storage.
 - a real Playwright browser logs in through the host-run email-code API, sees
   round 1 as current, completes the persisted round-1 session through the real
-  API, reloads Workspace, and sees round 1 done plus round 2 current.
+  API, reloads Workspace, and sees round 1 done plus round 2 current. It then
+  clicks the ready Workspace-list card and ready Home card in turn; both land
+  directly on the target-scoped Workspace detail with no Parse animation,
+  import command, or polling.
+- the Workspace detail renders three distinct persisted round states after
+  completion: `done/current/pending`, Chinese labels
+  `已进行/即将进行/未进行`, and pairwise-distinct computed backgrounds and
+  borders. The URL, labels, state attributes, and treatments survive reload.
 - Workspace quick-start sends a real `POST /practice/plans` with the backend
   current `roundId`; the 201 response and a subsequent real GET both prove the
   normalized `roundSequence`. Only `POST /practice/sessions` is intercepted so
@@ -56,19 +67,26 @@ The shared host-run environment must already be current and healthy:
 
 `setup.sh` reads only `deploy/dev-stack/.env`, runs endpoint smoke checks, and
 inserts one fixed `.example.test` user plus its isolated resume, TargetJob,
-round-1 plan, and round-1 session. It does not bootstrap, restart, or reset the
-shared environment.
+round-1 plan, and round-1 session with one completed user/assistant turn. It
+does not bootstrap, restart, or reset the shared environment.
 
 ## Given / When / Then
 
 - **Given** canonical TargetJob rounds `1, 2, 4`, an exact ready round-1 plan,
-  and a waiting round-1 session for the fixed scenario user.
+  and a waiting reportable round-1 session with one completed turn for the
+  fixed scenario user.
 - **When** Playwright logs in via Mailpit, calls the real completion endpoint,
-  reloads Workspace, then clicks the Workspace start button.
+  reloads Workspace, clicks its ready card body, reloads the resulting detail,
+  then repeats the direct-detail navigation from the ready Home card before
+  returning to the Workspace list and clicking its start button.
 - **Then** the rail changes from `current,pending,pending` to
   `done,current,pending`; TargetJob returns completed round 1 and current round
-  2; the same state survives real Home and Parse reloads; real plan creation
-  uses `round-2-technical` and persists sequence 2.
+  2; the same state survives real Home and Workspace-detail reloads. The detail
+  URL is exactly `/workspace?targetJobId=<id>` from both card sources,
+  `getTargetJob` executes once per detail visit, and no Parse/import/poll
+  request occurs. Its three cards retain
+  `已进行/即将进行/未进行` plus distinct background/border treatments; real plan
+  creation uses `round-2-technical` and persists sequence 2.
 - **And** the browser proceeds to the practice route using an intercepted
   session-start response, proving no AI interviewer opening call is required by
   this gate.

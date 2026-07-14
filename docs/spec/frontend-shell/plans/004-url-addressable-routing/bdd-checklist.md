@@ -1,6 +1,6 @@
 # URL-Addressable Routing BDD Checklist
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -38,3 +38,11 @@
 - [x] 执行并通过场景验证，记录 routing and fallback evidence
 - [x] Revision 2026-07-14 covers `#route=reports` canonical bootstrap、known `/reports` SPA fallback、legacy `section=reports` stripping and zero Reports TopBar entry.
   <!-- verified: 2026-07-14 scenario=E2E.P0.090 evidence="Current wrapper passes 87 tests for hash canonicalization, host fallback, legacy section stripping and TopBar negative." -->
+
+## Phase 12 command/query route split
+
+- [x] `E2E.P0.088` proves query-free `/workspace` list, `/workspace?targetJobId` detail, direct/reload/back-forward stability, and queued/processing Parse ready replace without an animation Back loop.
+- [x] `E2E.P0.089` proves unauthenticated workspace/Parse/Reports restore only `targetJobId`; raw/secret、`planId`、`resumeId`、auto-start and incompatible params are zero-hit across URL/history/pendingAction/storage/logs.
+- [x] `E2E.P0.090` proves workspace/parse/reports hash inputs canonicalize to targetJobId-only URLs, known host fallback remains valid, and incompatible query fields are stripped.
+- [x] Execute and record fresh setup/trigger/verify/cleanup evidence for P0.088, P0.089 and P0.090 before marking Phase 12 complete.
+  <!-- verified: 2026-07-14 evidence="Fresh P0.088, P0.089 and P0.090 wrappers PASS end to end; browser history and canonical URL gates prove no Parse-animation replay and no unsafe query persistence." -->

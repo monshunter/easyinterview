@@ -330,10 +330,10 @@ describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
       );
     });
 
-    await waitFor(() => screen.getByTestId("workspace-plan-list"));
+    await waitFor(() => screen.getByTestId("workspace-detail-loading"));
     expect(
       window.location.pathname + window.location.search + window.location.hash,
-    ).toBe("/workspace");
+    ).toBe("/workspace?targetJobId=tj-popstate");
     expectNoRawMarkerLeak("after hostile popstate route restore");
   });
 });

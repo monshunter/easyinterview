@@ -2,7 +2,7 @@
 
 | 维度 | 期望 |
 |------|------|
-| Workspace direct-open | `workspace-plan-list` 渲染；URL 规范化为无 query 的 `/workspace`；TopBar `workspace` `aria-current="page"` |
+| Workspace direct-open | `workspace-detail-loading` / 只读详情渲染；URL 规范化为 `/workspace?targetJobId=tj-canonical`；TopBar `workspace` `aria-current="page"` |
 | Reports direct-open | `reports-screen` 渲染；URL 规范化为 `/reports?targetJobId=01918fa0-0000-7000-8000-000000002000`；`section=reports` / `reportId` / `status` / `roundId` 被过滤 |
 | Reports reload | App 卸载并重新挂载后仍恢复同一 target-scoped Reports URL，且 chrome 可见 |
 | Reports missing/invalid target | 当前 history entry 被替换为 `/workspace`；不 `pushState`，browser Back 不会反复回到坏 `/reports` 链接 |
@@ -12,8 +12,8 @@
 | Resume workshop direct-open | `resume-workshop-screen` 出现；URL 过滤 `tab=rewrites&tailorRunId=...` 并保持 `/resume-versions` |
 | Out-of-scope debrief/profile direct-open | `/debrief?...` 与 `/profile` 折回 `/`；不保留 `debriefId` / `debriefJobId` / `targetJobId`；不渲染 `debrief-screen` 或 `route-profile` |
 | App-driven navigation | workspace → practice → reports → report 后，back / forward 可恢复 Reports；Reports 始终只保留 `targetJobId` |
-| Malformed query | URL canonical 化为 `/workspace`；`targetJobId`、`bogusKey`、`another` 全部被过滤 |
-| Hash bootstrap | `#route=workspace` 启动后 URL 重写为 `/workspace`，`location.hash` 与 search 均为空 |
+| Malformed query | URL canonical 化为 `/workspace?targetJobId=tj-ok`；`bogusKey`、`another` 被过滤，唯一 locator `targetJobId` 保留 |
+| Hash bootstrap | `#route=workspace&targetJobId=...` 启动后 URL 重写为 `/workspace?targetJobId=...`，`location.hash` 为空 |
 
 | 反向断言 | 含义 |
 |----------|------|

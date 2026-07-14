@@ -262,7 +262,7 @@ describe("WorkspaceEmptyState", () => {
     expect(nav).toHaveBeenCalledWith({ name: "home", params: {} });
   });
 
-  it("plan card selection opens current-plan detail without fabricating resume or report ids", async () => {
+  it("plan card selection opens workspace detail with targetJobId only", async () => {
     const user = userEvent.setup();
     const { nav } = renderScreen({ name: "workspace", params: {} });
 
@@ -273,16 +273,14 @@ describe("WorkspaceEmptyState", () => {
     await user.click(screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000"));
 
     expect(nav).toHaveBeenCalledWith({
-      name: "parse",
+      name: "workspace",
       params: {
         targetJobId: "01918fa0-0000-7000-8000-000000002000",
-        planId: "01918fa0-0000-7000-8000-000000004000",
-        resumeId: "01918fa0-0000-7000-8000-000000001000",
       },
     });
   });
 
-  it("plan card selection carries target-job resume binding even before a practice plan exists", async () => {
+  it("plan card selection never copies list-item resume binding into the detail URL", async () => {
     const user = userEvent.setup();
     const client = clientWithScenarios();
     vi.spyOn(client, "listTargetJobs").mockResolvedValue({
@@ -308,10 +306,9 @@ describe("WorkspaceEmptyState", () => {
     await user.click(screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000"));
 
     expect(nav).toHaveBeenCalledWith({
-      name: "parse",
+      name: "workspace",
       params: {
         targetJobId: "01918fa0-0000-7000-8000-000000002000",
-        resumeId: "01918fa0-0000-7000-8000-000000001000",
       },
     });
   });

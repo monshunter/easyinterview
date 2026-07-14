@@ -34,7 +34,7 @@ grep -Fq 'current-plan reports ready state matches the UI truth' "$LOG_FILE"
 grep -Fq 'reports loading empty error latest-ready and mismatch states match the UI truth' "$LOG_FILE"
 grep -Fq 'currentPlanIsolation=true' "$LOG_FILE"
 grep -Fq 'currentLatestOnly=true' "$LOG_FILE"
-grep -Fq 'backTarget=parse' "$LOG_FILE"
+grep -Fq 'backTarget=workspace-detail' "$LOG_FILE"
 grep -Fq 'changedRatio=' "$LOG_FILE"
 grep -Fq 'E2E.P0.059: Playwright pixel parity complete' "$LOG_FILE"
 

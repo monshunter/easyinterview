@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 
 import {
   createFixtureBackedFetch,
@@ -20,7 +20,7 @@ import createPracticePlanFixture from "../../../../../openapi/fixtures/PracticeP
 import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
 import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 
-const LOADING_PREVIEW_DELAY = 3200;
+const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
 
 function makeReadyFixture() {
   const body = (
@@ -57,13 +57,16 @@ function createClient() {
   return new EasyInterviewClient({ fetch });
 }
 
-function renderParse(client: EasyInterviewClient) {
+function renderWorkspaceDetail(client: EasyInterviewClient) {
   return render(
     <DisplayPreferencesProvider>
       <AppRuntimeProvider client={client}>
         <NavigationProvider value={{ navigate: vi.fn() }}>
           <ParseScreen
-            route={{ name: "parse", params: { targetJobId: "tj-1" } }}
+            route={{
+              name: "workspace",
+              params: { targetJobId: TARGET_JOB_ID },
+            }}
           />
         </NavigationProvider>
       </AppRuntimeProvider>
@@ -72,22 +75,10 @@ function renderParse(client: EasyInterviewClient) {
 }
 
 async function renderReadyParse(client: EasyInterviewClient) {
-  vi.useFakeTimers();
-  const result = renderParse(client);
-
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
-  });
-  vi.useRealTimers();
-
-  return result;
+  return renderWorkspaceDetail(client);
 }
 
-afterEach(() => {
-  vi.useRealTimers();
-});
-
-describe("ParseEdit — readonly plan receipt", () => {
+describe("Workspace detail — readonly plan receipt", () => {
   it("renders basic fields as read-only text, not editable inputs", async () => {
     const client = createClient();
     await renderReadyParse(client);
@@ -145,6 +136,7 @@ describe("ParseEdit — readonly plan receipt", () => {
     const client = createClient();
     await renderReadyParse(client);
 
+    await screen.findByTestId("parse-launch");
     expect(screen.queryByTestId("parse-action-save-plan")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-cancel")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-reparse")).not.toBeInTheDocument();

@@ -36,7 +36,7 @@ class ParseReportsEntrySourceContractTest(unittest.TestCase):
             ["frontend/src/app/screens/reports/ReportsScreen.tsx"],
         )
 
-    def test_parse_has_one_page_entry_and_no_embedded_reports_contract(self) -> None:
+    def test_shared_workspace_detail_has_one_page_entry_and_no_embedded_reports_contract(self) -> None:
         formal = read(ROOT / "frontend/src/app/screens/parse/ParseScreen.tsx")
         prototype = read(ROOT / "ui-design/src/screens-p0-complete.jsx")
         for source in (formal, prototype):
@@ -48,15 +48,17 @@ class ParseReportsEntrySourceContractTest(unittest.TestCase):
         self.assertNotIn("listTargetJobReports", formal)
         self.assertNotIn("section=reports", formal)
 
-    def test_parse_route_drops_retired_section_and_topbar_has_no_reports_entry(self) -> None:
+    def test_parse_and_workspace_routes_drop_retired_section_and_topbar_has_no_reports_entry(self) -> None:
         route_url = read(APP_ROOT / "routeUrl.ts")
-        parse_safe = re.search(
-            r"const PARSE_SAFE = new Set\(\[(.*?)\]\);",
-            route_url,
-            flags=re.DOTALL,
-        )
-        self.assertIsNotNone(parse_safe)
-        self.assertNotIn("section", parse_safe.group(1))
+        for constant in ("PARSE_SAFE", "WORKSPACE_SAFE"):
+            safe = re.search(
+                rf"const {constant} = new Set\(\[(.*?)\]\);",
+                route_url,
+                flags=re.DOTALL,
+            )
+            self.assertIsNotNone(safe)
+            self.assertIn("targetJobId", safe.group(1))
+            self.assertNotIn("section", safe.group(1))
 
         topbar = read(APP_ROOT / "topbar/TopBar.tsx")
         self.assertNotIn("topbar-nav-reports", topbar)

@@ -399,65 +399,20 @@ paths:
                       title: Alice Example - Senior Frontend Engineer
                       displayName: Alice Example - Senior Frontend Engineer
                       language: zh-CN
-                      parseStatus: ready
-                      status: active
                       sourceType: upload
-                      fileObjectId: 01918fa0-0000-7000-8000-000000001100
-                      originalText: null
-                      parsedTextSnapshot: Senior frontend engineer with evidence across product delivery, interviews, and
-                        mentoring.
-                      parsedSummary:
-                        headline: Senior frontend engineer focused on growth-stage SaaS
-                        yearsOfExperience: 5
-                      structuredProfile:
-                        headline: Senior frontend engineer for platform-heavy product teams
-                        summary: Highlights reliability, release quality, and ownership evidence.
-                        skills:
-                        - React
-                        - TypeScript
-                        - Observability
-                        sections: []
-                        provenance:
-                          promptVersion: resume_profile.v1
-                          rubricVersion: not_applicable
-                          modelId: model-profile:resume_profile.v1
-                          language: zh-CN
-                          featureFlag: none
-                          dataSourceVersion: resume.v1
-                      createdAt: '2026-04-22T09:30:00Z'
+                      parseStatus: ready
+                      summaryHeadline: Senior frontend engineer focused on growth-stage SaaS
+                      hasReadableContent: true
                       updatedAt: '2026-05-12T08:00:00Z'
-                      deletedAt: null
                     - id: 0195f2d0-0000-7000-8000-000000001010
                       title: Alice Example - Product Platform Resume
                       displayName: Alice Example - Product Platform Resume
                       language: en-US
-                      parseStatus: ready
-                      status: active
                       sourceType: paste
-                      fileObjectId: null
-                      originalText: Led frontend platform work for checkout, experimentation, and developer tooling.
-                      parsedTextSnapshot: Led frontend platform work for checkout, experimentation, and developer tooling.
-                      parsedSummary:
-                        headline: Frontend platform engineer with product systems scope
-                        yearsOfExperience: 6
-                      structuredProfile:
-                        headline: Frontend platform engineer with product systems scope
-                        summary: Owns checkout reliability, experimentation, and developer tooling outcomes.
-                        skills:
-                        - React
-                        - Node.js
-                        - Experimentation
-                        sections: []
-                        provenance:
-                          promptVersion: resume_profile.v1
-                          rubricVersion: not_applicable
-                          modelId: model-profile:resume_profile.v1
-                          language: en-US
-                          featureFlag: none
-                          dataSourceVersion: resume.v1
-                      createdAt: '2026-05-01T10:10:00Z'
+                      parseStatus: ready
+                      summaryHeadline: Frontend platform engineer with product systems scope
+                      hasReadableContent: true
                       updatedAt: '2026-05-11T18:30:00Z'
-                      deletedAt: null
                     pageInfo:
                       nextCursor: null
                       pageSize: 20
@@ -2850,6 +2805,45 @@ components:
         rawText:
           type: string
           description: Required only when `sourceType` is `paste`.
+    ResumeSummary:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - title
+      - displayName
+      - language
+      - sourceType
+      - parseStatus
+      - summaryHeadline
+      - hasReadableContent
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        displayName:
+          type: string
+        language:
+          type: string
+        sourceType:
+          type: string
+          enum:
+          - upload
+          - paste
+        parseStatus:
+          $ref: '#/components/schemas/TargetJobParseStatus'
+        summaryHeadline:
+          oneOf:
+          - type: string
+          - type: 'null'
+        hasReadableContent:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
     Resume:
       type: object
       required:
@@ -2954,7 +2948,7 @@ components:
           items:
             type: array
             items:
-              $ref: '#/components/schemas/Resume'
+              $ref: '#/components/schemas/ResumeSummary'
     UpdateResumeRequest:
       type: object
       properties:

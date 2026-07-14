@@ -51,6 +51,7 @@ python3 "$REPO_ROOT/test/scenarios/_shared/scripts/capture-source-fingerprint.py
     src/app/screens/home/HomeLayout.test.tsx \
     src/app/screens/home/HomeResumeSelection.test.tsx \
     src/app/screens/home/HomeRecentMocks.test.tsx \
+    src/app/screens/home/useRecentTargetJobs.test.tsx \
     src/app/screens/home/MockInterviewCard.test.tsx
   pnpm --filter @easyinterview/frontend build
   pnpm --filter @easyinterview/frontend exec playwright test \

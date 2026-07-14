@@ -18,9 +18,9 @@
 | E2E.P0.010 | backend-targetjob C-1/C-2/C-3/C-6/C-7/C-9/C-12/C-16 | `p0-010-targetjob-text-import-parse-ready/` | Paste-only TargetJob 导入、异步解析、幂等重放、列表、详情与更新 | automated | Ready |
 | E2E.P0.012 | backend-targetjob C-4/C-5/C-9/C-10 | `p0-012-targetjob-parse-failure-retryable/` | Paste-only TargetJob parse 失败 retryable / non-retryable 语义、失败资产不可见与隐私红线 | automated | Ready |
 | E2E.P0.014 | frontend-home-job-picks-and-parse C-1, C-2, C-5, C-10 | `p0-014-home-default-render/` | Home paste-only 默认渲染：textarea / ready Resume / CTA、empty/non-empty/12+ 三态与 desktop/mobile parity | automated | Ready |
-| E2E.P0.015 | frontend-home-job-picks-and-parse C-2, C-3, C-4, C-6, C-7, C-10 | `p0-015-jd-import-and-parse/` | Paste JD → import → parse loading → preview，含鉴权接续、4xx / failed、隐私与 desktop/mobile parity | automated | Ready |
-| E2E.P0.016 | frontend-home-job-picks-and-parse C-6/C-8/C-9/C-10/C-12 | `p0-016-parse-confirm-to-workspace/` | 只读面试规划详情、页面级报告入口与 Start handoff；Parse 无嵌入报告列表 | automated | Ready |
-| E2E.P0.018 | frontend-workspace-and-practice C-2, C-7, C-8, C-9 | `p0-018-workspace-default-render/` | 面试入口规划列表 + Workspace 统一面试规划详情：plan list、统一详情母版、简历选择器、out-of-scope 独立详情负向锚点 | automated | Ready |
+| E2E.P0.015 | frontend-home-job-picks-and-parse C-2, C-3, C-4, C-6, C-7, C-10 | `p0-015-jd-import-and-parse/` | Paste JD → import → Parse queued/processing → ready replace Workspace detail，含鉴权接续、4xx / failed、隐私与 desktop/mobile parity | automated | Ready |
+| E2E.P0.016 | frontend-home-job-picks-and-parse C-6/C-8/C-9/C-10/C-12 | `p0-016-parse-confirm-to-workspace/` | Parse terminal handoff + Workspace 只读面试规划详情、报告入口、轮次三态与 Start handoff | automated | Ready |
+| E2E.P0.018 | frontend-workspace-and-practice C-2, C-7, C-8, C-9 | `p0-018-workspace-default-render/` | Workspace 规划列表 + target-scoped 只读详情；ready 卡片直达、无 Parse 动画/变更、详情单 GET 与轮次三态 | automated | Ready |
 | E2E.P0.021 | frontend-workspace-and-practice C-7, C-9, C-10, C-12 | `p0-021-workspace-handoff/` | Workspace handoff boundary + 隐私红线 + out-of-scope negative grep | automated | Ready |
 | E2E.P0.022 | backend-practice C-1, C-13 | `p0-022-practice-plan-baseline-create-and-read/` | createPracticePlan baseline、idempotency replay、getPracticePlan 与 cross-user 404 隔离 | automated | Ready |
 | E2E.P0.023 | backend-practice C-4 | `p0-023-practice-session-start-and-opening-message/` | startPracticeSession 生成开场消息、getPracticeSession ordered messages 与 practice.session.started outbox | automated | Ready |

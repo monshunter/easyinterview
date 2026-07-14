@@ -316,28 +316,6 @@
   gap: var(--ei-space-2);
 }
 
-.ei-topbar-custom-accent-preview {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.ei-topbar-custom-accent-preview-swatch {
-  width: 26px;
-  height: 26px;
-  border-radius: 13px;
-  border: 1px solid var(--ei-color-rule-strong);
-  flex-shrink: 0;
-}
-
-.ei-topbar-custom-accent-value {
-  flex: 1;
-  color: var(--ei-color-fg-tertiary);
-  font-family: var(--ei-font-mono);
-  font-size: 10.5px;
-  line-height: 1.4;
-}
-
 .ei-topbar-custom-accent-row {
   display: flex;
   flex-direction: column;
@@ -548,6 +526,11 @@
   .ei-topbar-controls,
   .ei-topbar-user {
     flex: 0 0 auto;
+  }
+
+  .ei-topbar-theme-menu {
+    left: 0;
+    right: auto;
   }
 
   .ei-topbar-user-menu {

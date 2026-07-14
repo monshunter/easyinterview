@@ -62,9 +62,10 @@ const PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = (() => {
   return map;
 })();
 
-// workspace is a collection/list route. Target context belongs to parse,
-// practice and reports; generating/report resolve frozen facts from reportId only.
-const WORKSPACE_SAFE = new Set<string>();
+// Workspace is a collection route without params and a read-only TargetJob
+// detail route when targetJobId is present. All other business authority is
+// resolved from that server-owned TargetJob.
+const WORKSPACE_SAFE = new Set(["targetJobId"]);
 
 const PRACTICE_SAFE = new Set([
   "sessionId",
@@ -97,14 +98,9 @@ const RESUME_VERSIONS_SAFE = new Set([
   "targetJobId",
 ]);
 
-const PARSE_SAFE = new Set([
-  "jdId",
-  "targetJobId",
-  "resumeId",
-  "importId",
-  // product-scope D-17 keeps the jd_match -> parse reverse handoff outside
-  // the current parse allowlist.
-]);
+// Parse is command/progress-only. targetJobId is the sole locator; ready
+// TargetJobs are read from the Workspace detail route.
+const PARSE_SAFE = new Set(["targetJobId"]);
 
 const HOME_SAFE = new Set(["opaquePendingImportId"]);
 

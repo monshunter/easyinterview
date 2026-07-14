@@ -25,7 +25,7 @@ const WorkspacePlanList = ({ T, lang, nav, jobs = [] }) => {
     start: "立即面试",
     delete: "删除",
   };
-  const openPlan = (job) => nav("parse", {
+  const openPlan = (job) => nav("workspace", {
     targetJobId: job.id,
   });
   const startInterview = (job) => {

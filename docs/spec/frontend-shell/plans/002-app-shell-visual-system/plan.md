@@ -1,8 +1,8 @@
 # App Shell Visual System
 
-> **版本**: 3.0
+> **版本**: 3.1
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -24,13 +24,13 @@
 | TopBar | `ui-design/src/app.jsx::TopBar` | `frontend/src/app/topbar/TopBar.tsx`、`topbar.css` |
 | Auth shell | `ui-design/src/screen-auth.jsx` 与 `docs/ui-design/auth-and-entry.md` | `frontend/src/app/auth/*`、`auth.css` |
 | Settings / screen shell | `docs/ui-design/module-map.md`、`ui-architecture.md` 和 current screen primitives | `frontend/src/app/screens/*`、`screens.css` |
-| UI contract | `docs/spec/frontend-shell/spec.md` v1.25、`frontend/README.md` | focused Vitest、E2E.P0.005、D2 handoff docs |
+| UI contract | `docs/spec/frontend-shell/spec.md` v1.29、`frontend/README.md` | focused Vitest、E2E.P0.005、E2E.P0.006、D2 handoff docs |
 
 ## 3 质量门禁
 
 - **Plan 类型**: `feature-behavior` + `frontend`
 - **TDD 策略**: 通过 `/implement frontend-shell/002-app-shell-visual-system frontend` 进入 `/tdd`。每个可见视觉 surface 必须先有 focused token、component、structural 或 visual-smoke 断言，再写实现。
-- **BDD 策略**: 需要 BDD。`E2E.P0.005` 是本 owner 的用户可见 visual-smoke gate，覆盖 DOM 锚点、className、根级 CSS variable、`customAccent` inline overlay、auth/settings/screen shell 和 route alias negative checks。
+- **BDD 策略**: 需要 BDD。`E2E.P0.005` 是本 owner 的用户可见 fast visual-smoke gate，覆盖 DOM 锚点、className、根级 CSS variable、`customAccent` inline overlay、auth/settings/screen shell 和 route alias negative checks；`E2E.P0.006` 承接 desktop/mobile 真实浏览器 DOM/style/bbox/viewport/screenshot parity。
 - **契约边界**: browser-level pixel parity 由 `frontend-shell/003-ui-design-pixel-parity-gate` 承接；本 owner 保持 jsdom fast smoke 与 source-to-target 映射，不用截图基线替代 source-level parity。
 
 ## 4 当前合同
@@ -49,7 +49,7 @@
 
 ### 4.4 TopBar
 
-TopBar 保持三入口 nav、主题菜单、custom accent row、暗色 icon toggle、语言 dropdown、登录入口和用户菜单。`data-testid`、`aria-current`、`aria-pressed`、i18n 文案与 route behavior 必须保持稳定；显示控件的 DOM 构图、间距、圆角、字号和状态来自 `ui-design/src/app.jsx`。
+TopBar 保持三入口 nav、主题菜单、最小 custom accent row、暗色 icon toggle、语言 dropdown、登录入口和用户菜单。`CustomAccentPicker` 只保留色相与饱和度控件；不渲染 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean / Plum 是退出 custom accent 的唯一清晰路径。`data-testid`、`aria-current`、`aria-pressed`、i18n 文案与 route behavior 必须保持稳定；显示控件的 DOM 构图、间距、圆角、字号和状态来自 `ui-design/src/app.jsx`。
 
 ### 4.5 Auth / Settings / Screen shell
 
@@ -107,10 +107,17 @@ P0.005 中只做同步 DOM/source negative 断言的 default shell、auth login 
 
 正式 TopBar stylesheet 中相邻的两段 `ei-topbar-auth-login` 同 selector 声明合并为一个最终计算值等价的规则，完整保留尺寸、间距、字体、交互、背景、边框、颜色及独立 hover state，不改变按钮 DOM。BDD 不适用，因为本批不改变用户可见行为；替代 gate 为 TopBar source RED/GREEN、declaration inventory、visual-system/full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
 
+### 4.19 Minimal custom accent picker
+
+`CustomAccentPicker` 只接收并消费当前色相、饱和度及其更新回调。删除 preview/value 展示区、“恢复主题默认色 / Reset to theme accent”按钮，以及只为这些已删 UI 服务的 `onClear` / `active` props 和调用方传参；不得保留空 wrapper、兼容 props 或隐藏 reset action。
+
+用户退出自定义色的唯一清晰路径是从同一主题菜单选择 Ocean 或 Plum。P0.005 必须覆盖色相/饱和度交互、custom accent 根级 overlay 和旧 DOM/i18n/prop 零引用；P0.006 必须覆盖 desktop/mobile 菜单 DOM、关键 computed style、bounding box、viewport containment 与 screenshot parity，证明精简后没有残留空白区域或溢出。
+
 ## 5 验收标准
 
 - Token/theme tests 证明 CSS variable 与 `ui-design` 源值可追溯，且源码不引入 Tailwind、CSS-in-JS 或私有字体。
 - Display wiring tests 证明 theme / dark / `customAccent` 切换即时更新根级属性和 computed variable。
+- Custom accent picker 只显示色相/饱和度；旧 preview/value/reset UI 与 `onClear` / `active` 冗余 props 零引用；选择 Ocean / Plum 能清晰退出 custom accent。
 - TopBar/Auth/Settings visual tests 证明 DOM 锚点、className、testid、i18n 和可访问性行为与当前 App shell 合同一致。
 - `E2E.P0.005` visual-smoke 场景通过，且 unsupported route aliases 不 materialize standalone screens。
 - `pnpm --filter @easyinterview/frontend build` 通过。
@@ -132,6 +139,7 @@ pnpm --filter @easyinterview/frontend build
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-14 | 3.1 | Reopen to reduce CustomAccentPicker to hue/saturation and make Ocean/Plum the only custom-accent exit. |
 | 2026-07-10 | 3.0 | Consolidate the TopBar login declarations into one equivalent rule. |
 | 2026-07-10 | 2.9 | Delete three zero-consumer formal CSS selectors and the stale screen-grid handoff entry. |
 | 2026-07-10 | 2.8 | Remove the zero-read canvas iframe mode binding while preserving no-chrome TopBar behavior. |

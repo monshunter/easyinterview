@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 2.4
+> **版本**: 2.5
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -27,3 +27,13 @@
 - [x] P0.037 或 focused substitute gate 覆盖 Markdown body card 不额外注入 `displayName` / header 名称 / summary / source metadata，并覆盖 PDF/Markdown 共用阅读背景板和 Markdown page surface。验证: `ResumePreviewTab.test.tsx`、`ResumeWorkshopCssParity.test.ts`、`frontend/tests/pixel-parity/resume-workshop.spec.ts`。<!-- verified: 2026-07-08 method=focused-substitute tests=ResumePreviewTab.test.tsx,ResumeWorkshopCssParity.test.ts,pixel-parity/resume-workshop.spec.ts desktop/mobile -->
 - [x] P0.037 trigger 记录 stderr，verify 拒绝未被 `act(...)` 接管的 React update warning；failed-with-snapshot 单次请求用例 warning-free。
   <!-- verified: 2026-07-10 method=p0-037-async-test-lifecycle evidence="Final setup/trigger/verify/cleanup passes 6/6 with combined stdout/stderr evidence and zero unwrapped-update marker; full frontend passes 138 files/839 tests with zero React update warning." -->
+
+## Phase 19 summary contract and request identity hardening
+
+- [x] P0.036 seed/fixture 外层保持 `PaginatedResume`，仅把 `items` 改为 `ResumeSummary[]`；exact-key gate 只允许 `id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt`，并断言所有锁定详情字段 absent。
+- [x] P0.036 StrictMode 用例通过底层 transport spy 断言相同已认证 list request 恰好 1 次实际 transport；第一次 reject 后 retry 发起第 2 个新 transport并成功。
+- [x] P0.037 ready detail 用例通过底层 transport spy 断言相同 `getResume(resumeId)` 初始 request 恰好 1 次；完整正文只能由 `getResume` fixture 提供，list summary 不含正文。
+- [x] P0.037 pending 用例断言后续轮询只在前一个 request settle 后发生，failed/ready/已有正文停止轮询；第一次 reject 后 retry 发起新的 transport并成功。
+- [x] 两个 verify 脚本检查 exact transport marker、retry marker、summary forbidden-field marker，并继续拒绝 no-op / skip / React unwrapped update warning。
+- [x] 执行 P0.036 与 P0.037 `setup → trigger → verify → cleanup` 全 PASS，并把真实日志、transport 次数与 fixture key diff 记录到 checklist 证据。
+  <!-- verified: 2026-07-14 evidence="Fresh P0.036/P0.037 wrappers PASS; list items expose exactly 9 summary fields, detail content comes only from getResume, transport/retry/poll markers are exact, and no no-op/skip/React warning is present." -->

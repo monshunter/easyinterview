@@ -5,7 +5,10 @@ import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferenc
 import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
-import { mapResumeToUiSource, type UiResumeSource } from "../adapters/resume";
+import {
+  mapResumeSummaryToUiSource,
+  type UiResumeListItem,
+} from "../adapters/resume";
 import { useResumes } from "../hooks/useResumes";
 import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
 
@@ -24,11 +27,11 @@ export const ResumeListView: FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const resumes = useMemo<UiResumeSource[]>(
+  const resumes = useMemo<UiResumeListItem[]>(
     () =>
       resumesQuery.data?.items
         .filter((resume) => !archivedIds.has(resume.id))
-        .map(mapResumeToUiSource) ?? [],
+        .map(mapResumeSummaryToUiSource) ?? [],
     [archivedIds, resumesQuery.data],
   );
 

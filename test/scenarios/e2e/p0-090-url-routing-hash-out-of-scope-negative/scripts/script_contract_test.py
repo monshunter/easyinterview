@@ -27,6 +27,9 @@ class ReportsHashFallbackScriptContractTest(unittest.TestCase):
         for marker in (
             "#route=reports&targetJobId=",
             "/reports?targetJobId=",
+            "#route=workspace&targetJobId=",
+            "/workspace?targetJobId=",
+            "autoStartPractice",
             "section=reports",
             "reportId",
             "status",
@@ -45,6 +48,7 @@ class ReportsHashFallbackScriptContractTest(unittest.TestCase):
         verify = read(SCRIPT_DIR / "verify.sh")
         for marker in (
             "source_contract_test.py",
+            "App.test.tsx",
             "p0-090-url-routing-hash-out-of-scope-negative.test.tsx",
             "bootstrapRoute.test.ts",
             "routeUrl.test.ts",
@@ -57,6 +61,8 @@ class ReportsHashFallbackScriptContractTest(unittest.TestCase):
         for marker in (
             "source_contract_test.py",
             "Reports hash bootstrap keeps targetJobId only",
+            "bootstrap rewrites to target-scoped detail",
+            "renders a target-scoped workspace as read-only detail with one getTargetJob",
             "legacy Parse report params are stripped",
             "SPA fallback explicitly serves the known /reports path",
             "canonicalizes a Reports hash to targetJobId-only /reports",

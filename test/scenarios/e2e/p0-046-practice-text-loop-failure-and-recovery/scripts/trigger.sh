@@ -134,6 +134,7 @@ echo 'PRACTICE_ISOLATED_POSTGRES_MIGRATIONS_PASS' \
   pnpm exec vitest run \
     src/app/screens/practice/PracticeScreen.test.tsx \
     src/app/screens/practice/PracticeI18n.test.ts \
+    src/app/screens/practice/components/Transcript.test.tsx \
     src/app/screens/practice/hooks/usePracticeMessages.test.tsx \
     src/app/screens/practice/hooks/usePracticeSessionLoader.test.tsx \
     src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx \
@@ -174,7 +175,7 @@ echo 'PRACTICE_CONCURRENT_RESERVATION_PASS new_ids=one_winner same_id=one_winner
 (
   cd "$ROOT/frontend"
   CI=1 pnpm exec playwright test tests/pixel-parity/practice.spec.ts \
-    --grep 'retryable failure exposes one row-local retry and preserves the next draft|terminal failure has no retry escape hatch and keeps the interview locked' \
+    --grep 'hostile Markdown stays inert without image requests and hardens safe external links|row-local retry posts the exact original raw Markdown and clientMessageId while preserving the next draft|retryable failure exposes one row-local retry and preserves the next draft|terminal failure has no retry escape hatch and keeps the interview locked' \
     --project=desktop \
     --project=mobile \
     --workers=1 \
@@ -187,13 +188,21 @@ for screenshot in \
   practice-retryable-failed-desktop.png \
   practice-retryable-failed-mobile.png \
   practice-terminal-failed-desktop.png \
-  practice-terminal-failed-mobile.png; do
+  practice-terminal-failed-mobile.png \
+  practice-hostile-markdown-desktop.png \
+  practice-hostile-markdown-mobile.png; do
   copy_screenshot "$screenshot"
 done
-echo 'PRACTICE_P0046_SCREENSHOT_CAPTURE_PASS viewports=1440x900,390x844 states=retryable-failed,terminal-failed' \
+echo 'PRACTICE_P0046_SCREENSHOT_CAPTURE_PASS viewports=1440x900,390x844 states=retryable-failed,terminal-failed,hostile-markdown' \
   | tee "$OUT/scenario-finish.log" \
   | tee -a "$OUT/trigger.log"
-echo 'PRACTICE_TERMINAL_PLAN_RECOVERY_PASS route=parse target_job_id_only=true workspace=false plan_id=false row_retry=false' \
+echo 'PRACTICE_MARKDOWN_SECURITY_PASS raw_html_inert=true remote_image_requests=0 unsafe_uri_rejected=true external_rel=noopener_noreferrer' \
+  | tee -a "$OUT/scenario-finish.log" \
+  | tee -a "$OUT/trigger.log"
+echo 'PRACTICE_RAW_RETRY_PASS exact_text=true same_client_message_id=true next_draft_preserved=true rendered_dom_payload=false' \
+  | tee -a "$OUT/scenario-finish.log" \
+  | tee -a "$OUT/trigger.log"
+echo 'PRACTICE_TERMINAL_PLAN_RECOVERY_PASS route=workspace target_job_id_only=true query_free=false parse=false plan_id=false row_retry=false' \
   | tee -a "$OUT/scenario-finish.log" \
   | tee -a "$OUT/trigger.log"
 

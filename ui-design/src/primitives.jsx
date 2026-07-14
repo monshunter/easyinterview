@@ -141,6 +141,7 @@ if (!document.getElementById("ei-global")) {
       .ei-topbar-brand-copy .ei-serif { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .ei-topbar-spacer { display: none; }
       .ei-topbar-controls, .ei-topbar-user { flex: 0 0 auto; }
+      .ei-topbar-theme-menu { left: 0 !important; right: auto !important; }
       .ei-topbar-dark { height: 26px; }
       .ei-topbar-lang { height: 29px; }
       .ei-topbar-nav {

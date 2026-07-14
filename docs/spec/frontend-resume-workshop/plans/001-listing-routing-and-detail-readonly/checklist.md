@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 3.6
+> **版本**: 3.7
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -128,3 +128,14 @@
   <!-- verified: 2026-07-10 method=frontend-resume-empty-pending-red evidence="The scoped absence gate failed first on the active spec's combined decisions/pending heading; source inventory confirmed the only 3.2 content was a no-pending status sentence and no active anchor referenced it." -->
 - [x] 18.2 Delete the empty section, synchronize spec/history/contexts/indexes, and run owner/product context plus docs/index/link/diff/pruning gates; then restore the owner to `completed`.
   <!-- verified: 2026-07-10 method=frontend-resume-empty-pending-section-removal evidence="Spec v2.14 keeps only the current decisions heading and has no empty pending section or no-pending status sentence. History, both owner contexts and the top-level spec index are synchronized; 001/002/product contexts, links and final docs/index/diff/pruning gates pass. No code, UI, BDD, Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 19: Resume summary consumption and idempotent initial reads
+
+- [x] 19.1 RED：generated client / fixture parity / list hook / `ResumeListView` / Home selector tests 证明当前列表仍可见完整详情字段；新增 exact-key 断言，只允许 `id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt`，并对 `originalText|parsedTextSnapshot|structuredProfile|fileObjectId|parsedSummary|createdAt|deletedAt` 建立编译期或运行时负向 gate。
+- [x] 19.2 GREEN：在 B2 generated `ResumeSummary` 与 `PaginatedResume.items: ResumeSummary[]` 就位后，列表与 Home selector 只消费 summary；不得新增 pagination wrapper；`hasReadableContent` / `summaryHeadline` 取代从正文详情推断；`ResumeDetailView` 继续仅由 `getResume` 消费 full `Resume`。验证：adapter/hook/component/fixture parity focused Vitest + typecheck。
+- [x] 19.3 RED/GREEN：StrictMode harness 同时覆盖 `listResumes` 与 ready `getResume`，以底层 `fetch`/transport spy 证明相同 no-signal request identity 当前产生重复 transport，再修复为恰好 1 次；不得删除 StrictMode 或只改测试 method mock。
+- [x] 19.4 reject/retry/abort/polling：第一次相同请求 reject 后 registry 清空，用户 retry 发起新的 transport 并成功；resolve 后新用户动作也可发起新 transport；带 `AbortSignal` 请求不共享；queued/processing 详情仅在前次 settle 后轮询，ready/failed/已有正文不轮询。验证：focused hook/client/component tests。
+- [x] 19.5 `BDD-Gate: E2E.P0.036` PASS：closed ResumeSummary list、forbidden detail fields absent、StrictMode 单次实际 transport、失败后 retry 新 transport。
+- [x] 19.6 `BDD-Gate: E2E.P0.037` PASS：full Resume 只由详情读取、ready 初始单次实际 transport、pending 轮询串行、失败后可重试。
+- [x] 19.7 收口：frontend focused/full tests、typecheck/build、owner contexts、`sync-doc-index --check`、`make docs-check`、`git diff --check` 与 pruning gate PASS；完成后同步 checklist 证据并恢复 completed。
+  <!-- verified: 2026-07-14 evidence="P0.036 and P0.037 fresh setup/trigger/verify/cleanup PASS with exact summary keys, forbidden-detail negatives, StrictMode list/detail transport=1, retry=2 and serial polling. Full frontend 125 files / 1004 tests plus typecheck/build PASS." -->

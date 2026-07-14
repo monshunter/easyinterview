@@ -12,9 +12,11 @@ FRONTEND_FILES = (
     "src/api/targetJob.realApiMode.test.ts",
     "src/app/screens/parse/ParseReports.test.tsx",
     "src/app/screens/parse/ParseScreen.test.tsx",
+    "src/app/screens/parse/ParseFlow.test.tsx",
     "src/app/screens/parse/ParseEdit.test.tsx",
     "src/app/screens/parse/ParseAuthGate.test.tsx",
     "src/app/screens/parse/ParseResumeBinding.test.tsx",
+    "src/app/screens/parse/ParseRoundStates.test.tsx",
     "src/app/screens/home/MockInterviewCard.test.tsx",
     "src/app/screens/home/HomeRecentMocks.test.tsx",
     "src/app/navigation/interviewContext.test.ts",
@@ -23,9 +25,10 @@ FRONTEND_FILES = (
 )
 
 PLAYWRIGHT_TITLES = (
-    "readonly plan detail exposes only direct start with bound resume context",
-    "plan-detail reports entry matches the UI truth and keeps Parse report-free",
-    "start interview hands off directly to practice with bound resume",
+    "workspace detail exposes only direct start with bound resume context",
+    "workspace detail round states match the UI truth at desktop and mobile",
+    "workspace plan-detail reports entry matches the UI truth and stays report-list-free",
+    "workspace start interview hands off directly to practice with bound resume",
 )
 
 
@@ -45,6 +48,7 @@ class ScenarioScriptContractTest(unittest.TestCase):
         )
         for marker in (
             "readonly",
+            "history-replaces",
             "Start",
             "parse-reports-entry",
             "/reports?targetJobId=",
@@ -92,12 +96,13 @@ class ScenarioScriptContractTest(unittest.TestCase):
         for title in PLAYWRIGHT_TITLES:
             self.assertIn(title, verify)
         for marker in (
-            "6 passed",
-            "parseListRequestsBeforeClick=0",
+            "8 passed",
+            "reportListRequestsBeforeClick=0",
             "topbarReportsEntry=0",
             "embeddedReports=0",
             "sectionReportsAccepted=false",
             "changedRatio=",
+            "distinctBackgrounds=3",
             "no tests to run",
             "--- FAIL:",
         ):

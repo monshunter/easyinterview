@@ -4,9 +4,11 @@ metadata:
   subspec: frontend-shell
   name: 004-url-addressable-routing
   sequence: 4
+  baseBranch: main
+  branch: fix/request-dedup-resume-summary-routing-0714
   specVersion:
-    from: 1.14
-    to: 1.28
+    from: 1.28
+    to: 1.29
 spec:
   defaultTarget: frontend
   discovery:
@@ -35,7 +37,11 @@ spec:
       - no reports TopBar entry
       - no section reports compatibility
       - report generating reportId only
-      - workspace query stripping
+      - workspace targetJobId detail
+      - workspace list query split
+      - parse targetJobId command progress
+      - ready replace workspace detail
+      - planId resumeId stripping
       - reportId
       - reportStatus
       - pendingImportId
@@ -67,6 +73,8 @@ spec:
           - frontend/src/app/App.tsx
           - frontend/src/app/navigation/NavigationProvider.tsx
           - frontend/src/main.tsx
+          - frontend/src/app/screens/parse
+          - frontend/src/app/screens/workspace
           - frontend/tests/pixel-parity
           - test/scenarios/e2e
         uiRoutes:

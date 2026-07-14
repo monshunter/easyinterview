@@ -15,8 +15,8 @@
  *     catalog.
  *   - Reload preserves resource context (verified by re-mount).
  *   - Back / forward updates state without double-push or lost params.
- *   - Route-specific handoff keys survive while workspace detail/start params
- *     are stripped from the list route.
+ *   - Route-specific handoff keys survive while workspace keeps only its
+ *     targetJobId detail locator.
  *   - Unknown / malformed query falls back without crashing.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -30,9 +30,8 @@ import { useNavigation } from "../navigation/NavigationProvider";
 const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
 const REPORT_ID = "01918fa0-0000-7000-8000-00000000a000";
 const REPORTS_TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
-// Non-UUID id intentionally: WorkspaceScreen falls through to
-// `workspace-plan-list` landing (no network fetch) without a runtime
-// client, keeping the scenario URL-only and contract-light.
+// Non-UUID id intentionally keeps the scenario URL-only and contract-light;
+// without a runtime client the detail surface remains in its neutral loading state.
 const TARGET_JOB_ID = "tj-canonical";
 const RESUME_VERSION_ID = "01918fa0-0000-7000-8000-000000001000";
 const PLAN_ID = "01918fa0-0000-7000-8000-000000004000";
@@ -126,9 +125,9 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       `/workspace?targetJobId=${TARGET_JOB_ID}&resumeId=${RESUME_VERSION_ID}&planId=${PLAN_ID}&autoStartPractice=1`,
     );
     render(<App />);
-    expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-detail-loading")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/workspace");
-    expect(window.location.search).toBe("");
+    expect(window.location.search).toBe(`?targetJobId=${TARGET_JOB_ID}`);
     expect(screen.getByTestId("topbar-nav-workspace")).toHaveAttribute(
       "aria-current",
       "page",
@@ -241,7 +240,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     );
     const user = userEvent.setup();
     await user.click(screen.getByTestId("go-workspace-hostile"));
-    await waitFor(() => screen.getByTestId("workspace-plan-list"));
+    await waitFor(() => screen.getByTestId("workspace-detail-loading"));
     await user.click(screen.getByTestId("go-practice-chat"));
     await waitFor(() => screen.getByTestId("practice-conversation"));
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
@@ -278,7 +277,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       window.history.back();
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
-    await waitFor(() => screen.getByTestId("workspace-plan-list"));
+    await waitFor(() => screen.getByTestId("workspace-detail-loading"));
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
 
     // FORWARD three times: workspace → practice → reports → report
@@ -309,11 +308,11 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       "/workspace?bogusKey=42&targetJobId=tj-ok&another=zz",
     );
     render(<App />);
-    expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
-    expect(window.location.search).toBe("");
+    expect(screen.getByTestId("workspace-detail-loading")).toBeInTheDocument();
+    expect(window.location.search).toBe("?targetJobId=tj-ok");
   });
 
-  it("hash `#route=workspace&targetJobId=...` boot rewrites URL to canonical /workspace", () => {
+  it("hash `#route=workspace&targetJobId=...` boot rewrites to target-scoped workspace", () => {
     window.history.replaceState(
       null,
       "",
@@ -322,7 +321,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     render(<App />);
     expect(window.location.pathname).toBe("/workspace");
     expect(window.location.hash).toBe("");
-    expect(window.location.search).toBe("");
-    expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
+    expect(window.location.search).toBe(`?targetJobId=${TARGET_JOB_ID}`);
+    expect(screen.getByTestId("workspace-detail-loading")).toBeInTheDocument();
   });
 });

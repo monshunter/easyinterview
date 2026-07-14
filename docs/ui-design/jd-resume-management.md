@@ -1,8 +1,8 @@
 # 多 JD 与多简历目标管理结构
 
-> **版本**: 3.5
+> **版本**: 3.6
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 文档目的
 
@@ -103,10 +103,10 @@ Resume / resume_versions
 └─ Resume Detail
    └─ 只读原始简历正文
 
-Mock Interview Plan / Parse
+Workspace Plan Detail(targetJobId)
 └─ 绑定简历
-   ├─ 当前绑定简历
-   └─ 更换 -> Resume Picker Modal
+   ├─ 只读展示创建规划时已保存的简历摘要
+   └─ 缺失或无效时阻断开始；不提供 picker / in-place rebind
 ```
 
 详情页不再提供原件预览弹层、导出、复制、改写建议或手动编辑；原始简历预览就是当前只读简历正文。
@@ -129,17 +129,17 @@ MockInterviewPlan
 
 | 场景 | 目标行为 |
 |------|----------|
-| 用户新增 JD | 首页先选择已有 ready 简历，再点击「立即面试」进入 `parse` 核对 JD；`parse` 继承首页显式选择的简历并只读确认 JD / 简历 / 轮次，解析成功即代表规划已保存，唯一成功 CTA 是立即面试 |
+| 用户新增 JD | 首页先选择已有 ready 简历，再点击「立即面试」POST import；只进入 `/parse?targetJobId` queued/processing 进度，ready 后 replace 到 `/workspace?targetJobId` 只读 JD / 简历 / 轮次详情，唯一成功 CTA 是立即面试 |
 | JD 正在解析 | `parse` 只展示四步进度与等待说明；不得向用户展示 model/provider、rubric/prompt/version/hash、provenance 或典型耗时等内部实现元数据 |
 | 用户有多份 JD | 首页最多显示最近 3 条模拟面试；卡片主体点击进入规划详情，`立即面试` 主按钮直接启动 practice，不展示删除按钮；更多内容通过“更多”进入一级 `面试` 列表页 |
 | 用户不想继续当前规划 | 在面试页点击切换规划或新建规划 |
-| 用户首次无简历 | 首页提示创建简历；首页不提供上传简历入口，只跳转到 `resume_versions(flow=create)`；解析详情若发现历史规划缺少绑定简历，只阻断开始，不在当前规划上补绑 |
+| 用户首次无简历 | 首页提示创建简历；首页不提供上传简历入口，只跳转到 `resume_versions(flow=create)`；Workspace 详情若发现历史规划缺少绑定简历，只阻断开始，不在当前规划上补绑 |
 | 用户上传新简历 | 创建新的 `Resume`，注册成功后直接打开详情 |
 | 用户粘贴简历 | 创建新的 `Resume`，保留粘贴文本，根据内容派生临时标题，并注册成功后直接打开详情 |
 | 用户查看简历资产 | 平铺列表查看全部简历，打开详情后只阅读原始简历正文 |
 | 用户查看原始简历 | 简历详情正文即原始简历预览；不打开独立原件弹层 |
 | 用户想更换面试绑定简历 | 回到首页用同一 JD 和新的 ready `Resume` 创建新面试规划；当前规划详情不做 in-place rebind |
-| 用户在首页新建面试规划 | 在首页唯一 JD 文本框粘贴 JD；通过适度宽度下拉框选择已有 ready `Resume`，创建简历入口在下拉框右侧同排；未选择简历或未提供 JD 前「立即面试」禁用，按钮位于简历选择下方；提交 `{ rawText, targetLanguage, resumeId }` 后，route 只携带 `targetJobId` 与真实 `resumeId` |
+| 用户在首页新建面试规划 | 在首页唯一 JD 文本框粘贴 JD；通过适度宽度下拉框选择已有 ready `Resume`，创建简历入口在下拉框右侧同排；未选择简历或未提供 JD 前「立即面试」禁用，按钮位于简历选择下方；提交 `{ rawText, targetLanguage, resumeId }` 后，route 只携带 `targetJobId`，真实 `resumeId` 由 TargetJob 后端事实恢复 |
 
 ## 8 不做的事
 
@@ -164,6 +164,7 @@ MockInterviewPlan
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 3.6 | 2026-07-14 | 新导入仅以 Parse 展示 queued/processing，ready replace 到 targetJobId-only Workspace 详情；绑定简历在详情只读，不携带 resumeId route 或提供 picker/rebind。 |
 | 3.5 | 2026-07-13 | Home JD intake 收敛为唯一粘贴文本框与 `{ rawText, targetLanguage, resumeId }` 请求合同；Resume 上传 / 粘贴保持不变。 |
 | 3.4 | 2026-07-13 | Parse loading 删除 model/rubric/provenance/latency 等内部调试信息，只保留用户可理解的进度与等待状态。 |
 | 3.2 | 2026-07-09 | 将 Home 最近模拟面试卡片同步为复用 Interview 列表卡片动作模型：保留立即面试主按钮和卡片点击进入规划，隐藏删除按钮。 |

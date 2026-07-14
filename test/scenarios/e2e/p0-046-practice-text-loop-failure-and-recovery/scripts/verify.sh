@@ -31,6 +31,7 @@ grep -Fqx 'residual=0' "$DATABASE_STATE"
 for frontend_test in \
   PracticeScreen.test.tsx \
   PracticeI18n.test.ts \
+  Transcript.test.tsx \
   usePracticeMessages.test.tsx \
   usePracticeSessionLoader.test.tsx \
   useCompletePracticeSession.test.tsx; do
@@ -43,6 +44,8 @@ for frontend_marker in \
   'lets a later-started loader refresh win when the older timeout reconcile resolves first' \
   'timeout reconciliation ends in missing-id' \
   'timeout reconciliation ends in read-failure' \
+  'keeps hostile HTML, images, and unsafe links inert while hardening safe external links' \
+  'sends and retries the exact raw Markdown bytes with one clientMessageId without replacing the next draft' \
   'terminal state with one safe exact current-plan CTA'; do
   grep -Fq -- "$frontend_marker" "$OUT/frontend-contract.log"
 done
@@ -76,20 +79,24 @@ grep -Fq 'PRACTICE_PENDING_LEASE_RECOVERY_PASS lease_seconds=90 exact_boundary=t
 grep -Fq 'PRACTICE_STALE_GENERATION_FENCED_PASS stale_generation=1 current_generation=2 stale_writes=0' "$LOG"
 grep -Fq 'PRACTICE_CONCURRENT_RESERVATION_PASS new_ids=one_winner same_id=one_winner expired_same_id=one_generation_advance' "$LOG"
 grep -Fq 'PRACTICE_POST_TIMEOUT_RECONCILIATION_PASS timeout_ms=95000 same_id=true stale_read_directions=2 missing_id_fail_locked=true read_failure_fail_locked=true' "$LOG"
-grep -Fq 'PRACTICE_TERMINAL_PLAN_RECOVERY_PASS route=parse target_job_id_only=true workspace=false plan_id=false row_retry=false' "$LOG"
+grep -Fq 'PRACTICE_MARKDOWN_SECURITY_PASS raw_html_inert=true remote_image_requests=0 unsafe_uri_rejected=true external_rel=noopener_noreferrer' "$LOG"
+grep -Fq 'PRACTICE_RAW_RETRY_PASS exact_text=true same_client_message_id=true next_draft_preserved=true rendered_dom_payload=false' "$LOG"
+grep -Fq 'PRACTICE_TERMINAL_PLAN_RECOVERY_PASS route=workspace target_job_id_only=true query_free=false parse=false plan_id=false row_retry=false' "$LOG"
 grep -Fq 'PRACTICE_ISOLATED_POSTGRES_MIGRATIONS_PASS' "$LOG"
 grep -Fq 'PRACTICE_ISOLATED_POSTGRES_CLEANUP_PASS residual=0' "$LOG"
 grep -Eq '^version=[0-9]+ dirty=false$' "$OUT/migrations.log"
-grep -Fq 'PRACTICE_P0046_SCREENSHOT_CAPTURE_PASS viewports=1440x900,390x844 states=retryable-failed,terminal-failed' "$LOG"
+grep -Fq 'PRACTICE_P0046_SCREENSHOT_CAPTURE_PASS viewports=1440x900,390x844 states=retryable-failed,terminal-failed,hostile-markdown' "$LOG"
 
 for browser_marker in \
   '[desktop]' \
   '[mobile]' \
+  'hostile Markdown stays inert without image requests and hardens safe external links' \
+  'row-local retry posts the exact original raw Markdown and clientMessageId while preserving the next draft' \
   'retryable failure exposes one row-local retry and preserves the next draft' \
   'terminal failure has no retry escape hatch and keeps the interview locked'; do
   grep -Fq -- "$browser_marker" "$OUT/playwright.log"
 done
-grep -Eq '(^|[[:space:]])4 passed([[:space:]]|$)' "$OUT/playwright.log"
+grep -Eq '(^|[[:space:]])8 passed([[:space:]]|$)' "$OUT/playwright.log"
 
 if grep -Eq -- '--- SKIP:|\[no tests to run\]|no tests to run|No tests found|--- FAIL:|^FAIL($|[[:space:]])|^[[:space:]]*[0-9]+ failed([[:space:]]|$)' "$LOG"; then
   echo "verify: skip, no-op, or failure marker found" >&2
@@ -142,6 +149,8 @@ expected = {
     "practice-retryable-failed-mobile.png": ("retryable-failed", [390, 844], 3, [1170, 2532]),
     "practice-terminal-failed-desktop.png": ("terminal-failed", [1440, 900], 1, [1440, 900]),
     "practice-terminal-failed-mobile.png": ("terminal-failed", [390, 844], 3, [1170, 2532]),
+    "practice-hostile-markdown-desktop.png": ("hostile-markdown", [1440, 900], 1, [1440, 900]),
+    "practice-hostile-markdown-mobile.png": ("hostile-markdown", [390, 844], 3, [1170, 2532]),
 }
 screenshots = []
 for name, (state, css_viewport, dpr, png_size) in expected.items():
@@ -191,6 +200,8 @@ payload = {
         "PRACTICE_STALE_GENERATION_FENCED_PASS",
         "PRACTICE_CONCURRENT_RESERVATION_PASS",
         "PRACTICE_POST_TIMEOUT_RECONCILIATION_PASS",
+        "PRACTICE_MARKDOWN_SECURITY_PASS",
+        "PRACTICE_RAW_RETRY_PASS",
         "PRACTICE_TERMINAL_PLAN_RECOVERY_PASS",
         "PRACTICE_EVIDENCE_FINGERPRINT_PASS",
     ],
@@ -210,12 +221,15 @@ payload = {
             "TestSendPracticeMessageCommitFailureReturnsFinalizationError",
         ],
         "isolation_test": "TestSendPracticeMessageMapsClientMismatchAndCrossUserAccess",
+        "markdown_security_test": "hostile Markdown stays inert without image requests and hardens safe external links",
+        "raw_retry_test": "row-local retry posts the exact original raw Markdown and clientMessageId while preserving the next draft",
+        "terminal_route": "/workspace?targetJobId",
         "screenshots": screenshots,
     },
 }
 result_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
 
-echo 'PRACTICE_EVIDENCE_FINGERPRINT_PASS scenario=E2E.P0.046 screenshots=4 source=current'
+echo 'PRACTICE_EVIDENCE_FINGERPRINT_PASS scenario=E2E.P0.046 screenshots=6 source=current'
 echo 'PRACTICE_P0046_VIEWPORT_EVIDENCE_PASS css=1440x900,390x844 png=1440x900,1170x2532'
 echo 'E2E.P0.046 PASS'

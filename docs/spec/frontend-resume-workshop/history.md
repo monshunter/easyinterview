@@ -1,13 +1,14 @@
 # Frontend Resume Workshop Change Log
 
-> **版本**: 2.14
+> **版本**: 2.15
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 2.15 | 将列表/详情合同拆分为 closed `ResumeSummary` 与完整 `Resume`，并锁定 StrictMode 同身份初始 GET 单次实际 transport、失败驱逐和显式重试语义。 | 001-listing-routing-and-detail-readonly Phase 19 |
 | 2026-07-10 | 2.14 | 删除 active spec 中没有决策内容的待确认段落，只保留当前锁定决策。 | tech-debt pruning |
 | 2026-07-10 | 2.13 | 删除只读详情中无消费者的 breadcrumb、structured preview 与 original modal CSS，并固化负向门禁。 | 001-listing-routing-and-detail-readonly |
 | 2026-07-10 | 2.12 | 将 frontend-resume-workshop 负向 gate 与 context discovery 统一为 out-of-scope 口径；行为不变。 | tech-debt pruning |

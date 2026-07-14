@@ -49,12 +49,7 @@ export function interviewContextFromTargetJob(
 export function targetJobDetailRouteParams(
   job: TargetJob,
 ): Record<string, string> {
-  const context = interviewContextFromTargetJob(job);
-  return omitEmpty({
-    targetJobId: context.targetJobId,
-    planId: context.planId,
-    resumeId: context.resumeId,
-  });
+  return omitEmpty({ targetJobId: job.id });
 }
 
 export function targetJobPracticeRouteParams(

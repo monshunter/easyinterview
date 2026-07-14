@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.2
+> **版本**: 3.4
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -35,5 +35,13 @@
 
 ## Phase 10: Independent current-plan reports list and Back recovery
 
-- [x] ReportsScreen current-target isolation、canonical join、current/latest-only、different-ready status、loading/empty/error、stale-response fence、Back-to-Parse and 1440/390 parity pass；Report/Generating trusted Back-to-Reports、workspace fallback、reportId-only route、single list-consumer and no-TopBar/no-section negatives remain green in P0.058/P0.059.
+- [x] ReportsScreen current-target isolation、canonical join、current/latest-only、different-ready status、loading/empty/error、stale-response fence、Phase 10 historical Back behavior and 1440/390 parity pass；Report/Generating trusted Back-to-Reports、workspace fallback、reportId-only route、single list-consumer and no-TopBar/no-section negatives remain green in P0.058/P0.059.
   <!-- verified: 2026-07-14 evidence="Validator 40/40, ReportsScreen 15/15, final P0.058 setup/trigger/verify/cleanup PASS and P0.059 16/16 Playwright PASS cover the complete matrix." -->
+
+## Phase 11: Reports Back direct read-only workspace detail
+
+- [x] ReportsScreen exact-route and safe-query tests require `/workspace?targetJobId=<id>` for trusted Back and `/workspace` replace fallback without trusted identity; Workspace receives no query key other than `targetJobId`.
+- [x] Component/source-spy tests prove the read path mounts Workspace detail only and performs no Parse animation, JD import, or parse polling; Report/Generating trusted `/reports` and untrusted Workspace-list recovery tests remain green.
+- [x] Route/history and current-scope negative tests prove no Parse detour and zero positive Reports-to-Parse contract outside explicit revision/history evidence.
+- [x] P0.059 desktop/mobile navigation and parity pass with direct Workspace detail; P0.058 unchanged recovery matrix, focused frontend tests, typecheck/build, owner context and docs/diff gates all pass.
+  <!-- verified: 2026-07-14 evidence="P0.058/P0.059 fresh wrappers PASS; exact route/query, no-Parse component spies, history negatives and desktop/mobile parity are covered, with frontend typecheck/build and owner context green." -->

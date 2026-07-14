@@ -1,5 +1,7 @@
 import { type FC } from "react";
 
+import { PracticeMessageBody } from "./PracticeMessageBody";
+
 export type TranscriptMessageStatus = "pending" | "retrying" | "retryable_failed" | "terminal_failed" | "complete";
 export interface TranscriptMessage {
   id: string;
@@ -32,7 +34,7 @@ export const Transcript: FC<TranscriptProps> = ({ messages, helperText, aiLabel,
               <span style={{ fontSize: 12, color: "var(--ei-color-fg-secondary)", fontWeight: 500 }}>{isAi ? aiLabel : userLabel}</span>
               <span style={{ fontSize: 11, color: "var(--ei-color-fg-muted)", fontFamily: "var(--ei-font-mono)" }}>{message.t}</span>
             </div>
-            <div style={{ fontSize: 14, color: "var(--ei-color-fg-primary)", lineHeight: 1.6 }}>{message.text}</div>
+            <PracticeMessageBody text={message.text} />
             {!isAi && message.status === "retryable_failed" ? (
               <button
                 type="button"

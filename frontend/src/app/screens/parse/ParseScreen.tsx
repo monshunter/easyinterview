@@ -14,12 +14,11 @@ import {
   buildTargetJobRoundAssumptions,
   resolveTargetJobPracticeProgress,
 } from "../../interview-context/roundAssumptions";
-import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { targetJobPracticeRouteParams } from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
-import type { Resume, TargetJob } from "../../../api/generated/types";
+import type { TargetJob } from "../../../api/generated/types";
 
 type Stage = "loading" | "preview" | "error" | "failed";
 
@@ -39,12 +38,6 @@ const loadingStepKeys = [
 ] as const;
 
 const loadingStepTicks = [600, 900, 800, 700] as const;
-const loadingPreviewDelay =
-  loadingStepTicks.reduce((total, tick) => total + tick, 0) + 200;
-
-function sortByMostRecentResume(a: Resume, b: Resume): number {
-  return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
-}
 
 function buildInterviewParams(
   job: TargetJob,
@@ -57,12 +50,6 @@ function hitStateFromEvidence(level: string | undefined): HitState {
   if (level === "explicit") return true;
   if (level === "implicit" || level === "inferred") return "partial";
   return false;
-}
-
-function resumeMeta(resume: Resume): string {
-  return [resume.language, resume.sourceType, resume.updatedAt.slice(0, 10)]
-    .filter(Boolean)
-    .join(" · ");
 }
 
 function safeScrollToTop(): void {
@@ -100,7 +87,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   _mockTargetJob,
 }) => {
   const { t, lang } = useI18n();
-  const { navigate } = useNavigation();
+  const { navigate, replaceRoute } = useNavigation();
   const runtime = useAppRuntimeOptional();
   const requestAuth = useRequestAuth();
   const [stage, setStage] = useState<Stage>(_mockStage ?? "loading");
@@ -110,15 +97,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<MessageKey | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [resumesLoading, setResumesLoading] = useState(false);
-  const [readyResumes, setReadyResumes] = useState<Resume[]>([]);
-  const [selectedResumeId, setSelectedResumeId] = useState("");
-  const [resumeError, setResumeError] = useState<MessageKey | null>(null);
   const [pollNonce, setPollNonce] = useState(0);
-  const [pendingReadyJob, setPendingReadyJob] = useState<TargetJob | null>(null);
-  const [loadingComplete, setLoadingComplete] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const resumeRequestSeqRef = useRef(0);
+  const loadedTargetJobRef = useRef<TargetJob | null>(null);
 
   const steps = loadingStepKeys;
   const targetJobId =
@@ -133,6 +114,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     [targetJob],
   );
   const hydrateReadyJob = useCallback((job: TargetJob) => {
+    loadedTargetJobRef.current = job;
     setLoadedTargetJob(job);
   }, []);
 
@@ -143,14 +125,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       clearTimeout(pollingRef.current);
       pollingRef.current = null;
     }
+    loadedTargetJobRef.current = null;
     setLoadedTargetJob(null);
     setErrorMessage(null);
     setConfirmError(null);
-    setReadyResumes([]);
-    setSelectedResumeId("");
-    setResumeError(null);
-    setPendingReadyJob(null);
-    setLoadingComplete(false);
     setStep(0);
     setStage("loading");
   }, [targetJobId, _mockStage, _mockTargetJob]);
@@ -159,8 +137,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     if (stage !== "loading" || _mockStage) return;
 
     setStep(0);
-    setLoadingComplete(false);
-
     const timers: Array<ReturnType<typeof setTimeout>> = [];
     let elapsed = 0;
     loadingStepTicks.forEach((tick, i) => {
@@ -171,33 +147,29 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         }, elapsed),
       );
     });
-    timers.push(
-      setTimeout(() => {
-        setLoadingComplete(true);
-      }, loadingPreviewDelay),
-    );
-
     return () => {
       timers.forEach((timer) => clearTimeout(timer));
     };
   }, [stage, _mockStage, pollNonce]);
 
-  useEffect(() => {
-    if (stage !== "loading" || !loadingComplete || !pendingReadyJob) return;
-
-    hydrateReadyJob(pendingReadyJob);
-    setPendingReadyJob(null);
-    setStage("preview");
-  }, [stage, loadingComplete, pendingReadyJob, hydrateReadyJob]);
-
   // Poll getTargetJob when in loading stage
   useEffect(() => {
     if (_mockStage || _mockTargetJob) return;
-    if (!runtime) return;
+    const client = runtime?.client;
+    if (!client) return;
 
     if (!targetJobId) {
       setStage("error");
       setErrorMessage(lang === "en" ? "Missing target job ID." : "缺少目标岗位 ID。");
+      return;
+    }
+
+    if (
+      isWorkspaceDetail &&
+      loadedTargetJobRef.current?.id === targetJobId &&
+      loadedTargetJobRef.current.analysisStatus === "ready"
+    ) {
+      setStage("preview");
       return;
     }
 
@@ -206,18 +178,38 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     const poll = async () => {
       if (cancelled) return;
       try {
-        const job = await runtime.client.getTargetJob(targetJobId);
+        const job = await client.getTargetJob(targetJobId);
         if (cancelled) return;
 
+        if (job.id !== targetJobId) {
+          setStage("error");
+          setErrorMessage(
+            lang === "en"
+              ? "The requested interview plan could not be verified."
+              : "无法确认请求的面试规划。",
+          );
+          return;
+        }
+
         if (job.analysisStatus === "ready") {
+          hydrateReadyJob(job);
           if (isWorkspaceDetail) {
-            hydrateReadyJob(job);
             setStage("preview");
           } else {
-            setPendingReadyJob(job);
+            replaceRoute({
+              name: "workspace",
+              params: { targetJobId: job.id },
+            });
           }
         } else if (job.analysisStatus === "failed") {
           setStage("failed");
+        } else if (isWorkspaceDetail) {
+          setStage("error");
+          setErrorMessage(
+            lang === "en"
+              ? "This interview plan is not ready yet."
+              : "这份面试规划尚未准备完成。",
+          );
         } else {
           // queued or processing — keep polling
           pollingRef.current = setTimeout(poll, 600);
@@ -242,17 +234,17 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         clearTimeout(pollingRef.current);
         pollingRef.current = null;
       }
-      setPendingReadyJob(null);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    runtime,
+    runtime?.client,
     targetJobId,
     _mockStage,
     _mockTargetJob,
     pollNonce,
     isWorkspaceDetail,
     hydrateReadyJob,
+    lang,
+    replaceRoute,
   ]);
 
   useEffect(() => {
@@ -261,63 +253,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     }
   }, [_mockTargetJob, hydrateReadyJob]);
 
-  useEffect(() => {
-    const client = runtime?.client;
-    const authenticated = runtime?.auth.status === "authenticated";
-    if (stage !== "preview" || !targetJob || !client || !authenticated) {
-      setResumesLoading(false);
-      setReadyResumes([]);
-      setSelectedResumeId("");
-      setResumeError(null);
-      return;
-    }
-
-    let active = true;
-    const requestSeq = resumeRequestSeqRef.current + 1;
-    resumeRequestSeqRef.current = requestSeq;
-
-    setResumesLoading(true);
-    setResumeError(null);
-
-    client
-      .listResumes({ headers: { "Accept-Language": lang } })
-      .then((page) => {
-        if (!active || resumeRequestSeqRef.current !== requestSeq) return;
-        const ready = page.items
-          .filter(isSelectableInterviewResume)
-          .sort(sortByMostRecentResume);
-        setReadyResumes(ready);
-        const inheritedResumeId = targetJob.resumeId?.trim() || "";
-        setSelectedResumeId(
-          inheritedResumeId &&
-            ready.some((resume) => resume.id === inheritedResumeId)
-            ? inheritedResumeId
-            : "",
-        );
-      })
-      .catch(() => {
-        if (!active || resumeRequestSeqRef.current !== requestSeq) return;
-        setReadyResumes([]);
-        setSelectedResumeId("");
-        setResumeError("parse.errors.resumeLoad");
-      })
-      .finally(() => {
-        if (active && resumeRequestSeqRef.current === requestSeq) {
-          setResumesLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [
-    lang,
-    runtime?.auth.status,
-    runtime?.client,
-    stage,
-    targetJob,
-  ]);
-
   const handleCancel = useCallback(() => {
     navigate(isWorkspaceDetail ? { name: "workspace", params: {} } : { name: "home", params: {} });
   }, [isWorkspaceDetail, navigate]);
@@ -325,7 +260,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const handleOpenReports = useCallback(() => {
     if (
       stage !== "preview" ||
-      route.name !== "parse" ||
+      route.name !== "workspace" ||
       !targetJobId ||
       !targetJob ||
       targetJob.id !== targetJobId
@@ -340,8 +275,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       clearTimeout(pollingRef.current);
       pollingRef.current = null;
     }
-    setPendingReadyJob(null);
-    setLoadingComplete(false);
     setErrorMessage(null);
     setStep(0);
     setStage("loading");
@@ -349,20 +282,17 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     safeScrollToTop();
   }, []);
 
-  const selectedResume = useMemo(
-    () => readyResumes.find((resume) => resume.id === selectedResumeId) ?? null,
-    [readyResumes, selectedResumeId],
-  );
+  const boundResumeId = targetJob?.resumeId?.trim() ?? "";
 
   const handleStartInterview = useCallback(async () => {
-    if (!targetJob || !selectedResume || confirming || !runtime) return;
-    const practiceParams = buildInterviewParams(targetJob, selectedResume.id);
+    if (!targetJob || !boundResumeId || confirming || !runtime) return;
+    const practiceParams = buildInterviewParams(targetJob, boundResumeId);
 
     if (runtime?.auth.status !== "authenticated") {
       requestAuth({
         type: "start_practice",
         label: t("parse.startInterview"),
-        route: "parse",
+        route: isWorkspaceDetail ? "workspace" : "parse",
         params: practiceParams,
       });
       return;
@@ -391,9 +321,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     navigate,
     requestAuth,
     runtime,
-    selectedResume,
+    boundResumeId,
     t,
     targetJob,
+    isWorkspaceDetail,
   ]);
 
   const HitDot: FC<{ hit: HitState }> = ({ hit }) => {
@@ -593,6 +524,29 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   }
 
   if (stage === "loading") {
+    if (isWorkspaceDetail) {
+      return (
+        <section
+          data-testid={routeTestId}
+          data-route-name={route.name}
+          data-route-params={JSON.stringify(route.params)}
+          className="ei-fadein"
+          style={{
+            maxWidth: 1200,
+            margin: "0 auto",
+            padding: compactLayout ? "24px 16px 72px" : "32px 48px 96px",
+          }}
+        >
+          <div
+            data-testid="workspace-detail-loading"
+            className="ei-screen-card"
+            style={{ color: "var(--ei-color-fg-tertiary)", fontSize: 13 }}
+          >
+            {t("workspace.detail.loading")}
+          </div>
+        </section>
+      );
+    }
     return (
       <section
         data-testid={routeTestId}
@@ -731,7 +685,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     .map((r) => r.label);
   const progress = resolveTargetJobPracticeProgress(targetJob);
   const launchDisabled =
-    resumesLoading || !selectedResume || confirming || !progress.currentRound;
+    !boundResumeId || confirming || !progress.currentRound;
 
   return (
     <section
@@ -792,7 +746,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             {t("parse.previewSub")}
           </div>
         </div>
-        {route.name === "parse" &&
+        {route.name === "workspace" &&
           targetJobId &&
           targetJob?.id === targetJobId && (
             <span data-testid="parse-reports-entry" style={{ flexShrink: 0 }}>
@@ -1203,6 +1157,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           </div>
         </div>
         <div
+          data-testid="parse-rounds"
           style={{
             display: "grid",
             gridTemplateColumns: compactLayout
@@ -1211,29 +1166,86 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             gap: 10,
           }}
         >
-          {rounds.map((r, i) => (
-            <div
-              key={i}
-              data-testid={`parse-round-${i}`}
-              style={{
-                padding: "12px 14px",
-                background: "var(--ei-color-bg-soft)",
-                border: "1px solid var(--ei-color-rule-strong)",
-                borderRadius: "var(--ei-radius-sm)",
-                position: "relative",
-              }}
-            >
+          {rounds.map((r, i) => {
+            const roundState = !progress.valid
+              ? null
+              : i < progress.completedCount
+                ? "done"
+                : i === progress.currentIndex
+                  ? "current"
+                  : "pending";
+            const roundStateLabel =
+              roundState === "done"
+                ? t("parse.roundState.done")
+                : roundState === "current"
+                  ? t("parse.roundState.current")
+                  : roundState === "pending"
+                    ? t("parse.roundState.pending")
+                    : null;
+            const roundBackground =
+              roundState === "done"
+                ? "var(--ei-color-ok-soft)"
+                : roundState === "current"
+                  ? "var(--ei-color-accent-soft)"
+                  : "var(--ei-color-bg-soft)";
+            const roundBorder =
+              roundState === "done"
+                ? "var(--ei-color-ok)"
+                : roundState === "current"
+                  ? "var(--ei-color-accent)"
+                  : "var(--ei-color-rule-strong)";
+            const roundLabelColor =
+              roundState === "done"
+                ? "var(--ei-color-ok)"
+                : roundState === "current"
+                  ? "var(--ei-color-accent)"
+                  : "var(--ei-color-fg-tertiary)";
+            return (
               <div
+                key={r.id}
+                data-testid={`parse-round-${i}`}
+                data-round-state={roundState ?? undefined}
                 style={{
-                  fontFamily: "var(--ei-font-mono)",
-                  fontSize: 10.5,
-                  color: "var(--ei-color-fg-muted)",
-                  marginBottom: 5,
-                  letterSpacing: "0.06em",
+                  padding: "12px 14px",
+                  background: roundBackground,
+                  border: `1px solid ${roundBorder}`,
+                  borderRadius: "var(--ei-radius-sm)",
+                  position: "relative",
                 }}
               >
-                R{i + 1}
-              </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 5,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "var(--ei-font-mono)",
+                      fontSize: 10.5,
+                      color: "var(--ei-color-fg-muted)",
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    R{i + 1}
+                  </span>
+                  {roundStateLabel && (
+                    <span
+                      data-testid={`parse-round-state-${i}`}
+                      style={{
+                        fontFamily: "var(--ei-font-mono)",
+                        fontSize: 10.5,
+                        color: roundLabelColor,
+                        letterSpacing: "0.04em",
+                      }}
+                    >
+                      {roundStateLabel}
+                    </span>
+                  )}
+                </div>
               <div
                 style={{
                   fontSize: 13,
@@ -1253,8 +1265,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               >
                 {r.focus}
               </div>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -1264,7 +1277,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         className="ei-screen-card"
         style={{
           marginBottom: 28,
-          borderColor: selectedResume
+          borderColor: boundResumeId
             ? "var(--ei-color-ok)"
             : "var(--ei-color-warn)",
         }}
@@ -1326,7 +1339,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             <div
               className="ei-label"
               style={{
-                color: selectedResume
+                color: boundResumeId
                   ? "var(--ei-color-ok)"
                   : "var(--ei-color-warn)",
                 marginBottom: 8,
@@ -1335,20 +1348,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               {t("parse.resumeBinding")}
             </div>
 
-            {resumesLoading ? (
-              <div
-                data-testid="parse-resume-loading"
-                style={{
-                  fontSize: 13,
-                  color: "var(--ei-color-fg-tertiary)",
-                  lineHeight: 1.5,
-                }}
-              >
-                {t("parse.resumeLoading")}
-              </div>
-            ) : selectedResume ? (
+            {boundResumeId ? (
               <>
                 <div
+                  data-testid="parse-resume-bound-title"
                   style={{
                     fontSize: 14,
                     fontWeight: 600,
@@ -1357,9 +1360,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                     marginBottom: 4,
                   }}
                 >
-                  {selectedResume.displayName || selectedResume.title}
+                  {t("parse.resumeBoundTitle")}
                 </div>
                 <div
+                  data-testid="parse-resume-bound-meta"
                   style={{
                     fontSize: 11.5,
                     color: "var(--ei-color-fg-tertiary)",
@@ -1367,32 +1371,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                     marginBottom: 12,
                   }}
                 >
-                  {resumeMeta(selectedResume)}
+                  {t("parse.resumeBoundMeta")}
                 </div>
               </>
-            ) : readyResumes.length > 0 ? (
-              <div data-testid="parse-resume-required">
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "var(--ei-color-fg-primary)",
-                    marginBottom: 4,
-                  }}
-                >
-                  {t("parse.resumeRequiredTitle")}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12.5,
-                    color: "var(--ei-color-fg-tertiary)",
-                    lineHeight: 1.5,
-                    marginBottom: 12,
-                  }}
-                >
-                  {t("parse.resumeRequiredBody")}
-                </div>
-              </div>
             ) : (
               <div data-testid="parse-resume-empty">
                 <div
@@ -1401,9 +1382,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                     fontWeight: 600,
                     color: "var(--ei-color-fg-primary)",
                     marginBottom: 4,
-                  }}
-                >
-                  {resumeError ? t("parse.errorTitle") : t("parse.resumeEmptyTitle")}
+                }}
+              >
+                  {t("parse.resumeEmptyTitle")}
                 </div>
                 <div
                   style={{
@@ -1411,9 +1392,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                     color: "var(--ei-color-fg-tertiary)",
                     lineHeight: 1.5,
                     marginBottom: 12,
-                  }}
-                >
-                  {resumeError ? t(resumeError) : t("parse.resumeEmptyBody")}
+                }}
+              >
+                  {t("parse.resumeEmptyBody")}
                 </div>
               </div>
             )}

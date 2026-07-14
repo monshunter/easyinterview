@@ -3,7 +3,6 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
   const D = window.EI_DATA;
   const [input, setInput] = React.useState("");
   const [selectedResumeId, setSelectedResumeId] = React.useState("");
-  const [parsing, setParsing] = React.useState(false);
   const recentJobs = D.targetJobs || [];
   const recentPreviewJobs = recentJobs.slice(0, 3);
   const hasMoreRecentJobs = recentJobs.length > recentPreviewJobs.length;
@@ -12,8 +11,7 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
 
   const handleImport = () => {
     if (!input.trim() || !selectedResume) return;
-    setParsing(true);
-    setTimeout(() => { setParsing(false); nav("parse", { resumeId: selectedResume.id }); }, 400);
+    nav("parse", { targetJobId: "tj-import-pending" });
   };
 
   const L = lang === "en" ? {
@@ -99,8 +97,8 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
             {selectedResume ? `${L.selectedResume} · ${selectedResume.name}` : L.resumeSelectHint}
           </div>
           <div data-testid="home-submit-row" style={{ marginTop: 14, display: "flex" }}>
-            <Btn variant="accent" onClick={handleImport} T={T} iconRight="arrow_right" disabled={!input.trim() || !selectedResume || parsing}>
-              {parsing ? (lang === "en" ? "Parsing JD…" : "正在解析 JD…") : L.importBtn}
+            <Btn variant="accent" onClick={handleImport} T={T} iconRight="arrow_right" disabled={!input.trim() || !selectedResume}>
+              {L.importBtn}
             </Btn>
           </div>
         </div>
@@ -125,7 +123,7 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
                   job={j}
                   rounds={D.jdSample.rounds}
                   T={T}
-                  onClick={() => nav("parse", { targetJobId: j.id })}
+                  onClick={() => nav("workspace", { targetJobId: j.id })}
                   onStart={(round) => nav("practice", { targetJobId: j.id, roundId: round.id, roundName: round.name, sessionId: `session-${j.id}-${round.id}-new` })}
                   lang={lang}
                 />

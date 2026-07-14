@@ -17,7 +17,7 @@ for marker in \
   "TestSQLRepositoryIntegration_CreatePlanProjectsCanonicalRoundLedger" \
   "TestService_GetTargetJob_HidesCompletedFactsAfterFirstCanonicalGap" \
   "TestSQLStoreIntegration_PracticeProgressProjectionPersistsAcrossGetAndList" \
-  "TestGenerateReportUsesOneConversationLevelAICall" \
+  "TestGenerateReportPersistsDirectModelSemanticsAndActualProvenance" \
   "TestPersistReportUsesPostgresTextArrayForRetryFocus" \
   "TestUpdateFeedbackReportStatusAllowsGeneratingRetry"; do
   grep -Fq -- "--- PASS: $marker" "$LOG"
@@ -28,10 +28,9 @@ for marker in \
   "canonical-round-type-case-sensitive=PASS" \
   "canonical-round-prompt-context=PASS" \
   "start-and-send-bound-resume-fail-closed=PASS" \
-  "equal-duration-next-round=PASS" \
-  "retry-source-round=PASS" \
+  "completed-ledger-successor=PASS" \
   "non-contiguous-successor=PASS" \
-  "stale-source-and-round-budget-mismatch=PASS" \
+  "round-budget-mismatch=PASS" \
   "all-rounds-complete-fail-closed=PASS" \
   "wrong-resume-completion-ignored=PASS" \
   "persisted-first-to-next=PASS" \
@@ -39,11 +38,16 @@ for marker in \
   "out-of-order-gap-hidden=PASS" \
   "non-contiguous-round-1-2-4=PASS" \
   "get-list-first-next-final-parity=PASS" \
+  "App.test.tsx" \
+  "routeUrl.test.ts" \
   "roundAssumptions.test.ts" \
   "startPractice.test.ts" \
   "scope.test.ts" \
   "MockInterviewCard.test.tsx" \
+  "HomeRecentMocks.test.tsx" \
   "WorkspaceEmptyState.test.tsx" \
+  "ParseFlow.test.tsx" \
+  "ParseRoundStates.test.tsx" \
   "ParseResumeBinding.test.tsx" \
   "ReplayCta.test.tsx" \
   "prototype round progress is backend-projected and never inferred from lifecycle text" \
@@ -54,7 +58,9 @@ for marker in \
   "practice-progress-refresh.spec.ts" \
   "E2E.P0.098 live completion API PASS completionStatus=202 persistedFact=session_completed" \
   "E2E.P0.098 workspace refresh PASS states=done,current,pending currentRound=round-2-technical currentRoundSequence=2" \
-  "E2E.P0.098 home and parse refresh PASS homeStates=done,current,pending parseCurrentRound=round-2-technical parseCurrentRoundSequence=2" \
+  "E2E.P0.098 home and workspace detail refresh PASS homeStates=done,current,pending detailCurrentRound=round-2-technical detailCurrentRoundSequence=2" \
+  "E2E.P0.098 ready cards direct detail PASS sources=workspace,home route=/workspace?targetJobId=019f6098-0000-7000-8000-000000000003 perVisitGetTargetJob=1 importTargetJob=0 parsePoll=0" \
+  "E2E.P0.098 workspace detail refresh PASS states=done,current,pending labels=已进行,即将进行,未进行 visualStyles=distinct" \
   "E2E.P0.098 next plan POST PASS requestRoundId=round-2-technical responseRoundId=round-2-technical responseRoundSequence=2 persistedRoundSequence=2" \
   "E2E.P0.098 session start interception PASS realPlanCreate=true aiSessionStart=intercepted" \
   "1 passed"; do
@@ -73,6 +79,8 @@ grep -Fq 'validate-fixtures: OK' "$LOG"
   "$ROOT/frontend/src" "$ROOT/ui-design/src"
 ! rg -n 'sequence[[:space:]]*!==[[:space:]]*index[[:space:]]*\+[[:space:]]*1' \
   "$ROOT/frontend/src/app/interview-context" "$ROOT/ui-design/src"
+! rg -n 'toHaveURL\(/\\/parse|home and parse refresh|parseCurrentRound' \
+  "$ROOT/frontend/tests/e2e/practice-progress-refresh.spec.ts"
 
 if grep -Eq -- '(mailCode|code|token)=[0-9]{6}|ei_session=|SESSION_COOKIE_SECRET|AUTH_CHALLENGE_TOKEN_PEPPER' "$LOG"; then
   echo "verify: credential or raw email code leaked into trigger.log" >&2

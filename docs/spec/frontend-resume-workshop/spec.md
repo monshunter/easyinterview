@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.14
-> **状态**: active
-> **更新日期**: 2026-07-10
+> **版本**: 2.15
+> **状态**: completed
+> **更新日期**: 2026-07-14
 
 ## 1 背景与目标
 
@@ -13,8 +13,9 @@
 1. **路由接管**：`resume_versions` route 渲染 `ResumeWorkshopScreen`，支持 list / create / detail 三类视图。
 2. **Flat Resume UI**：Resume 是平铺资产；详情页是只读简历正文，上传 PDF 使用同源 source endpoint 渲染为从上到下平铺的 PDF 页面栈，粘贴、Markdown 文件和 TXT 文件使用 Markdown 渲染引擎；Markdown body 区域只渲染简历正文，不额外注入 `displayName`、header 名称、summary 或来源元数据；PDF 与 Markdown 使用统一阅读背景板和 page surface 节奏；不提供 preview / rewrites / edit tab、导出、复制、原件弹层、结构化草稿确认、PDF viewer 工具栏或二次编辑入口；所有前端数据投影都以 `resumeId` 识别简历。
 3. **CreateFlow**：`flow=create` 只提供 upload / paste 输入；upload 仅支持 PDF / Markdown / TXT；注册成功后进入 `resume_versions?resumeId=<id>` 的解析等待态，直到 backend parse 成功后展示来源格式自适应详情，或失败后展示可恢复失败态；CreateFlow 本身不渲染预览确认页或确认保存页。
-4. **真实 client 与 fixture fallback**：frontend 使用 generated client；real backend mode 与 fixture-backed dev path 都必须有测试护栏。
+4. **真实 client 与 fixture fallback**：frontend 使用 generated client；列表只消费 closed `ResumeSummary`，详情才消费完整 `Resume`；real backend mode 与 fixture-backed dev path 都必须有测试护栏。
 5. **UI parity 可执行**：用户可见变更必须有 DOM anchor、computed style、bounding box、viewport screenshot smoke 或对应 owner gate。
+6. **幂等初始读取**：React StrictMode 下，相同已认证参数的并发 `listResumes` / `getResume` 初始读取只允许一次实际 transport；失败请求必须从 in-flight registry 驱逐，用户重试会发起新的 transport。
 
 本 subject 不实现 backend handler、OpenAPI schema、migration、object storage、AI parsing 或真实 PDF 生成。
 
@@ -23,7 +24,7 @@
 ### 2.1 In Scope
 
 - **Route shell**：`ResumeWorkshopScreen` 解析 `flow=create|list`、`resumeId` 和 `createMode=upload|paste`；out-of-scope `tab` / `tailorRunId` 参数被过滤或忽略，并与 app shell route / TopBar 状态一致。
-- **List view**：`ResumeListView` 渲染平铺列表、统计、唯一创建入口、详情入口和删除入口；列表底部不再重复“上传或粘贴另一份简历”CTA。
+- **List view**：`ResumeListView` 只消费 `ResumeSummary` closed DTO，渲染平铺列表、统计、唯一创建入口、详情入口和删除入口；不得通过列表响应携带或读取详情正文、结构化档案、文件对象或审计时间字段；列表底部不再重复“上传或粘贴另一份简历”CTA。
 - **Detail view**：`ResumeDetailView` 在 `queued/processing` 且正文快照为空时渲染解析等待态并轮询；`ready` 后根据来源格式展示 PDF 页面栈或 Markdown 正文；`failed` 且无可读正文时渲染失败态；`parsedTextSnapshot` / `originalText` 是 Markdown 渲染主要正文来源，结构化字段只能作为无原文时的降级兜底。
 - **Preview body**：`ResumePreviewTab` 作为只读正文投影，PDF 上传自动使用 source endpoint 的 PDF 页面栈 renderer，所有页面从上到下平铺展示，不使用浏览器内置 PDF viewer toolbar / sidebar / pagination controls；粘贴 / Markdown / TXT 自动使用 Markdown engine，body card 只包含 `parsedTextSnapshot` / `originalText` / fallback body 本身，不额外 prepend `displayName`、详情 header 名称、summary 或来源元数据；PDF 与 Markdown 共用阅读背景板，Markdown 正文也位于背景板内的白色 page surface；不渲染复制、导出、原件弹层、改写建议、结构化草稿确认或编辑控件。
 - **Create flow**：`ResumeCreateFlow` upload / paste 两路径；upload 只允许 `.pdf,.md,.markdown,.txt`；`createUploadPresign`、browser PUT、`registerResume` generated-client contract；upload 文件大小默认 2MiB 本地校验；注册成功后导航到详情等待/终态页，不在创建流内 `getResume` 轮询或 `updateResume` 保存；右侧“会保存什么 / 接下来”说明 rail 不再渲染。
@@ -49,7 +50,7 @@
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | UI 真理源 | `ui-design/src/screen-resume-workshop.jsx` + primitives + app shell + `docs/ui-design/` | 不从外部设计系统或 AI 审美生成正式前端视觉 |
-| D-2 | Data adapter | UI 消费单一 `Resume` / `resumeId` view model；adapter 只做 display projection 和 fallback | 组件不直接拼 API response shape |
+| D-2 | Data adapter | 列表、Home selector 等集合消费者只消费 closed `ResumeSummary`；详情 route 才消费完整 `Resume`；两者都以 `resumeId` 关联，adapter 只做 display projection 和 fallback | 组件不直接拼 API response shape，也不以完整详情对象充当列表项 |
 | D-3 | Route params | `flow=create|list`、`resumeId`、`createMode=upload|paste`；out-of-scope `tab` / `tailorRunId` 不属于当前 route state | Route state 只表达当前 list/create/detail 三态 |
 | D-4 | Client mode | generated client 是唯一 API client；fixture-backed dev path 与 real backend mode 都保留测试 | 避免 mock-only drift |
 | D-5 | UI parity | DOM anchor、computed style、bounding box、viewport screenshot smoke 为 user-visible gate | 不接受“风格接近”作为完成依据 |
@@ -60,6 +61,8 @@
 | D-10 | List actions | 列表只有 Header “新建简历”作为创建入口；每行支持删除（调用 `archiveResume` 软删除并从列表隐藏），删除失败给出可恢复错误；数量上限由 backend `resume.maxActive` 强制，前端只展示服务端错误提示 | 避免重复 CTA，保留用户清理资产和解除数量上限的路径 |
 | D-11 | Markdown body | `parsedTextSnapshot` 成功态是 backend LLM 生成的 Markdown 快照，详情页必须按 Markdown 结构渲染标题、段落和列表；body card 不得额外注入 `displayName`、header 名称、summary 或来源元数据；不得把 Markdown 当普通 txt 段落显示 | 统一后续 UI 渲染输入，同时保留简历行文结构，避免详情 header 信息污染简历正文 |
 | D-12 | Source-format renderer | 详情正文区域根据来源格式自动选择 renderer：upload PDF 使用 `/api/v1/resumes/{resumeId}/source` 通过 PDF 页面栈从上到下平铺所有页面；paste、Markdown 文件和 TXT 文件使用 Markdown engine；PDF 与 Markdown 使用统一阅读背景板和 page surface；DOCX 不属于当前 Resume 上传支持范围 | 兼顾用户查看原始 PDF 版式与 LLM 后续交互所需的可读文本，不增加新按钮、二级入口或浏览器 PDF viewer 工具栏 |
+| D-13 | List/detail responsibility | `ResumeSummary` 字段集固定为 `id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt`；`originalText`、`parsedTextSnapshot`、`structuredProfile`、`fileObjectId`、`parsedSummary` object、`createdAt`、`deletedAt` 只属于详情或服务端内部，不得进入列表 item | 缩小列表 payload 与隐私面，避免一次列表读取传输所有简历正文和结构化详情 |
+| D-14 | StrictMode request identity | 相同 method + normalized URL/query + auth scope 且不带 `AbortSignal` 的并发初始 GET 共享一个 in-flight Promise；settled 后立即驱逐，reject 也必须驱逐；带 `AbortSignal` 的 loader/polling 不进入通用共享，业务轮询只在上一次请求 settle 后继续 | 保留 StrictMode 与合法重试/轮询语义，同时消除同一用户动作导致的重复实际 transport；不引入 TTL cache 或跨时间结果缓存 |
 
 ## 4 设计约束
 
@@ -72,6 +75,8 @@
 
 - Runtime data 只来自 generated client、runtime provider、fixture/mock client 或 user action。
 - Adapter 位于 `frontend/src/app/screens/resume-workshop/adapters/` 或 create-flow 局部 adapter。
+- `ResumeListView`、Home resume selector 和其它集合投影只能接收 `ResumeSummary`；只有 `ResumeDetailView` 及其详情 renderer 可以接收完整 `Resume`。
+- `ResumeSummary` 必须保持 closed field set；类型测试、fixture parity 和 source negative gate 禁止列表 consumer 访问 `originalText`、`parsedTextSnapshot`、`structuredProfile`、`fileObjectId`、`parsedSummary` object、`createdAt` 或 `deletedAt`。
 - Route and pending action must never carry raw resume content.
 
 ### 4.3 Privacy 约束
@@ -83,6 +88,8 @@
 ### 4.4 Verification 约束
 
 - Component and hook behavior use Vitest.
+- 请求去重测试必须区分 hook/client method 调用次数与底层实际 transport 次数；StrictMode 双 effect 允许共享同一 in-flight Promise，但同一 request identity 的底层 transport 必须为 1。
+- reject / abort / settle 后 registry 必须清理；失败后的显式重试必须产生新的 transport，且 queued/processing 详情轮询不得被永久缓存或吞掉。
 - Route, auth, privacy and integration flows use focused scenario tests.
 - Visual parity follows frontend-shell pixel parity owner patterns.
 - Formal Resume Workshop CSS must not retain breadcrumb, structured-preview, modal or action selectors without a current DOM or prototype consumer.
@@ -105,8 +112,8 @@
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | Route shell | Authenticated user opens `resume_versions` | Route renders | Resume Workshop shell appears and TopBar highlights resume nav | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
-| C-2 | List view | `listResumes` returns items | List loads | Flat table, header create entrypoint, detail entrypoints and delete actions render; duplicate bottom upload/paste CTA is absent | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
-| C-3 | Detail read-only | User opens a resume | Detail renders | Pending parse with no readable body shows a waiting state and polls; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; PDF and Markdown share the same reading backdrop and page-surface rhythm; failed with no readable body shows a failure state; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
+| C-2 | List view | `listResumes` returns `ResumeSummary[]` | List loads | Flat table, header create entrypoint, detail entrypoints and delete actions render; each item exposes only the locked summary fields, and forbidden detail fields are absent; duplicate bottom upload/paste CTA is absent | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
+| C-3 | Detail read-only | User opens a resume | Detail renders | Full `Resume` is fetched only through `getResume`; pending parse with no readable body shows a waiting state and polls sequentially; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; PDF and Markdown share the same reading backdrop and page-surface rhythm; failed with no readable body shows a failure state; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-4 | Create upload | User selects valid file | Submit | Files over the configured/default 2MiB limit are rejected inline; `.docx` is rejected inline; valid PDF / Markdown / TXT presign, PUT and register complete; app navigates to `resume_versions?resumeId=<id>` waiting/detail route; preview confirm / `updateResume` save path are absent | [002](./plans/002-create-flow/plan.md) |
 | C-5 | Create paste | User enters text | Submit | Register completes and app navigates to the waiting/detail route; request title remains a neutral source title, and visible list/detail name comes from backend generated `displayName` after parse or extracted-text fallback, never from the raw first line or source filename/title fallback | [002](./plans/002-create-flow/plan.md) |
 | C-6 | Create recovery | Register or upload fails | User retries from input | Input is preserved locally and no raw content leaks | [002](./plans/002-create-flow/plan.md) |
@@ -114,6 +121,8 @@
 | C-8 | Delete resume | User deletes a row from Resume list | Archive succeeds or fails | Success hides the row and can free backend count limit; failure shows retryable feedback without removing data | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-10 | Privacy | User browses or creates resumes | App logs/routes/stores update | Raw resume content stays out of passive channels | 001 / 002 |
 | C-11 | UI parity | Desktop and mobile viewports | Run owner gates | DOM/style/layout/screenshot smoke remain aligned with UI truth source | 001 / 002 |
+| C-12 | StrictMode list read | Authenticated list mounts under React StrictMode | `listResumes` effects overlap | Identical concurrent reads produce exactly one underlying transport; a rejected read is evicted, and retry produces a new transport and can succeed | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
+| C-13 | StrictMode detail read | Authenticated ready detail mounts under React StrictMode | `getResume(resumeId)` effects overlap | Initial identical read produces exactly one underlying transport; rejected reads remain retryable; queued/processing polling may issue a later request only after the previous request settles | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 
 ## 7 关联计划
 

@@ -3,7 +3,7 @@
 > **ID**: OPENAPI-004
 > **状态**: accepted
 > **日期**: 2026-07-14
-> **版本**: 1.1
+> **版本**: 1.2
 
 ## 1 背景
 
@@ -32,13 +32,13 @@
 | Fixtures | `Reports/listTargetJobReports.json`、TargetJob fixtures、prototype projection、Prism | openapi-v1-contract 002 |
 | 数据库 | 删除 `target_jobs.latest_report_id` | db-migrations-baseline/001 |
 | 后端 | canonical catalog validation、report selection/read model、TargetJob store cleanup | backend-review/001 + backend-targetjob/001 |
-| 前端 | Parse 内容区右上报告入口、独立 target-scoped ReportsScreen、Report/Generating trusted-context Back；Parse 无列表请求或 `section=reports` | frontend-home/001 + frontend-report-dashboard/001 + frontend-shell/004 |
-| BDD | current ready/latest attempt/invalid context/back navigation | E2E.P0.016 + E2E.P0.059 |
+| 前端 | Workspace 只读规划详情右上报告入口、独立 target-scoped ReportsScreen、Reports Back 到 `/workspace?targetJobId=...`、Report/Generating trusted-context Back 到 Reports；Parse 只承接 import 后 queued/processing 进度，无报告入口、列表请求或 `section=reports` | frontend-workspace/001 + frontend-home/001 + frontend-report-dashboard/001 + frontend-shell/004 |
+| BDD | Workspace detail 入口、current ready/latest attempt、invalid context、Reports/workspace 与 Report/Generating/Reports 分层 Back | E2E.P0.016 + E2E.P0.018 + E2E.P0.058 + E2E.P0.059 + E2E.P0.088 |
 
 ## 4 迁移与回滚
 
 - **迁移路径**：先记录本 accepted decision，并在旧 baseline 未变时建立 exact finding oracle；再同步 OpenAPI、fixtures/codegen、baseline SQL、backend/frontend/scenario；所有 owner green 后保存 old-baseline audit 并 re-freeze。
-- **放行条件**：37 operations/10 tags 与 endpoint method/path/operationId/200 不变；exact finding 无缺失/额外；fixture/Prism/codegen、real PostgreSQL selection/isolation、Parse 入口/Reports/Report desktop+mobile BDD 全通过；旧 pagination/full-list/pointer 与 Parse 内嵌列表/`section=reports` zero-reference。
+- **放行条件**：37 operations/10 tags 与 endpoint method/path/operationId/200 不变；exact finding 无缺失/额外；fixture/Prism/codegen、real PostgreSQL selection/isolation、Workspace 详情入口/Reports/Report desktop+mobile BDD 全通过；旧 pagination/full-list/pointer、Parse 报告入口/内嵌列表/`section=reports` zero-reference。
 - **回滚**：任一 invalid-context fail-closed、user isolation、stable selection 或 frontend consumer 未同批完成时整体回滚本 correction；不得仅恢复 pointer 或兼容 response。
 - **SemVer**：v1.0.0 尚未发布，作为 accepted pre-release freeze correction 原地 re-freeze；发布后同类变更必须使用 major version。
 
@@ -48,6 +48,7 @@
 - [backend-review spec](../../backend-review/spec.md)
 - [backend-targetjob spec](../../backend-targetjob/spec.md)
 - [frontend-home-job-picks-and-parse spec](../../frontend-home-job-picks-and-parse/spec.md)
+- [frontend-workspace-and-practice spec](../../frontend-workspace-and-practice/spec.md)
 - [frontend-report-dashboard spec](../../frontend-report-dashboard/spec.md)
 
 ## 6 审计
@@ -57,6 +58,7 @@
 | 提议人 | interview UX owner |
 | Review | product owner confirmed R-A on 2026-07-14 |
 | 实施分支 | `fix/interview-turn-ux-0713` |
+| 路由纠偏分支 | `fix/request-dedup-resume-summary-routing-0714`（只调整 frontend route ownership，不改变本 ADR 的 API shape） |
 | `make openapi-diff` 证据 | 003 Phase 8 在 schema mutation 后、baseline re-freeze 前记录 exact five-key artifact |
 | baseline | `openapi/baseline/openapi-v1.0.0.yaml` pre-release correction |
 | history | `2026-07-14 | 1.57 | OPENAPI-004 TargetJob report overview` |
@@ -65,5 +67,6 @@
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-14 | 1.2 | 报告入口从 Parse 迁到 Workspace 只读规划详情；Reports Back 返回 Workspace，Parse 保持纯 import command/progress。API method/path/operationId/schema 决策不变。 | Product Scope D-14/D-23/D-27/D-28 |
 | 2026-07-14 | 1.1 | 将前端影响口径同步为 Parse 页面级入口、独立 ReportsScreen 与 trusted-context Back，删除已被修订方案取代的 Parse section 口径。 | 入口方案 A（修订版） |
 | 2026-07-14 | 1.0 | 接受 canonical-round overview、independent current/latest selection 与 no-pointer/no-pagination 边界。 | R-A |

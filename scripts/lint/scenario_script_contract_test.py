@@ -478,12 +478,15 @@ def test_practice_terminal_playwright_case_closes_parity_and_exact_route() -> No
         "document.documentElement.scrollWidth",
         "window.devicePixelRatio",
         ".metadata.json",
-        'url.pathname).toBe("/parse")',
+        'url.pathname).toBe("/workspace")',
         'url.searchParams.get("targetJobId")',
         'url.searchParams.has("planId")',
-        'url.pathname).not.toBe("/workspace")',
+        'url.pathname).not.toBe("/parse")',
+        'url.searchParams.keys()]).toEqual(["targetJobId"])',
     ):
         assert required in spec
+    assert 'url.pathname).toBe("/parse")' not in spec
+    assert 'url.pathname).not.toBe("/workspace")' not in spec
     assert spec.index('attachStateScreenshot(page, testInfo, "practice-terminal-failed")') < spec.index("await cta.click()")
 
 

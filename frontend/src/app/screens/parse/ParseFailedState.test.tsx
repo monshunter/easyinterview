@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 
 import {
   createFixtureBackedFetch,
@@ -14,7 +14,7 @@ import { ParseScreen } from "./ParseScreen";
 
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 
-const LOADING_PREVIEW_DELAY = 3200;
+const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
 
 function makeFixture(analysisStatus: "failed" | "ready") {
   const body = (
@@ -41,34 +41,25 @@ function renderParse(analysisStatus: "failed" | "ready") {
     { scenario: "default" },
   );
   const client = new EasyInterviewClient({ fetch });
-  return render(
+  const navigate = vi.fn();
+  return {
+    navigate,
+    ...render(
     <DisplayPreferencesProvider>
       <AppRuntimeProvider client={client}>
-        <NavigationProvider value={{ navigate: () => {} }}>
+        <NavigationProvider value={{ navigate }}>
           <ParseScreen
-            route={{ name: "parse", params: { targetJobId: "tj-1" } }}
+            route={{
+              name: "parse",
+              params: { targetJobId: TARGET_JOB_ID },
+            }}
           />
         </NavigationProvider>
       </AppRuntimeProvider>
     </DisplayPreferencesProvider>,
-  );
+    ),
+  };
 }
-
-async function renderReadyParse() {
-  vi.useFakeTimers();
-  const result = renderParse("ready");
-
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
-  });
-  vi.useRealTimers();
-
-  return result;
-}
-
-afterEach(() => {
-  vi.useRealTimers();
-});
 
 describe("ParseFailedState", () => {
   it("shows failed UI when analysisStatus is failed", async () => {
@@ -83,13 +74,17 @@ describe("ParseFailedState", () => {
     expect(screen.getByTestId("parse-failed-home")).toBeInTheDocument();
   });
 
-  it("shows preview (not failed UI) when analysisStatus is ready", async () => {
-    await renderReadyParse();
+  it("hands a ready parse command off to workspace without rendering detail in /parse", async () => {
+    const { navigate } = renderParse("ready");
 
     await waitFor(() => {
-      expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
+      expect(navigate).toHaveBeenCalledWith({
+        name: "workspace",
+        params: { targetJobId: TARGET_JOB_ID },
+      });
     });
 
     expect(screen.queryByTestId("parse-failed-title")).toBeNull();
+    expect(screen.queryByTestId("parse-basics-title")).toBeNull();
   });
 });

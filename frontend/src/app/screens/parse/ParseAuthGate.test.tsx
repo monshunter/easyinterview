@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 
 import {
   createFixtureBackedFetch,
@@ -16,7 +16,7 @@ import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRun
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 
-const LOADING_PREVIEW_DELAY = 3200;
+const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
 
 function createUnauthClient() {
   const body = (
@@ -30,7 +30,11 @@ function createUnauthClient() {
       default: {
         response: {
           status: 200,
-          body: { ...body, analysisStatus: "ready" as const },
+          body: {
+            ...body,
+            analysisStatus: "ready" as const,
+            resumeId: null,
+          },
         },
       },
     },
@@ -56,7 +60,10 @@ function renderUnauth(client: EasyInterviewClient) {
         >
           <NavigationProvider value={{ navigate }}>
             <ParseScreen
-              route={{ name: "parse", params: { targetJobId: "tj-1" } }}
+              route={{
+                name: "workspace",
+                params: { targetJobId: TARGET_JOB_ID },
+              }}
             />
           </NavigationProvider>
         </AppRuntimeProvider>
@@ -66,20 +73,8 @@ function renderUnauth(client: EasyInterviewClient) {
 }
 
 async function renderReadyUnauth(client: EasyInterviewClient) {
-  vi.useFakeTimers();
-  const result = renderUnauth(client);
-
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
-  });
-  vi.useRealTimers();
-
-  return result;
+  return renderUnauth(client);
 }
-
-afterEach(() => {
-  vi.useRealTimers();
-});
 
 describe("ParseAuthGate — resume-required launch", () => {
   it("keeps start disabled for unauthenticated users without a saved bound resume", async () => {

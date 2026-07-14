@@ -211,7 +211,7 @@ const PracticeSessionScreen: FC<PracticeScreenProps & { sessionId: string }> = (
   const backToCurrentPlan = useCallback(() => {
     const targetJobId = loader.data?.targetJobId;
     if (!targetJobId) return;
-    navigate({ name: "parse", params: { targetJobId } });
+    navigate({ name: "workspace", params: { targetJobId } });
   }, [loader.data?.targetJobId, navigate]);
 
   const runMessageRequest = useCallback(async (
@@ -314,8 +314,8 @@ const PracticeSessionScreen: FC<PracticeScreenProps & { sessionId: string }> = (
   }, [loader.adopt, loader.read, messages, sessionId, t]);
 
   const send = useCallback(() => {
-    const text = input.trim();
-    if (!text || sending || paused || hasUnresolvedReply) return;
+    const text = input;
+    if (!text.trim() || sending || paused || hasUnresolvedReply) return;
     const clientMessageId = newId();
     const createdAt = new Date().toISOString();
     setInput("");

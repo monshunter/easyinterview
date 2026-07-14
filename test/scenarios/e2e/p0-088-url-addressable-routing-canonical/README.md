@@ -21,7 +21,7 @@ allowlist 写入 `pushState` / `replaceState`。
 - 直接打开 `/reports?targetJobId=<uuid>&section=reports&reportId=...&status=ready&roundId=...`，
   再卸载并重新挂载 App 模拟 reload。
 - 直接打开缺失或携带 malformed `targetJobId` 的 `/reports`，验证自动安全回退不会制造 browser Back loop。
-- 直接打开携带 out-of-scope detail/start params 的 `/workspace?targetJobId=...&resumeId=...&planId=...&autoStartPractice=1`、
+- 直接打开携带 out-of-scope authority/start params 的 `/workspace?targetJobId=...&resumeId=...&planId=...&autoStartPractice=1`、
   `/practice?mode=phone&modality=phone&sessionId=...`、`/generating?sessionId=...&reportId=...`、
   `/report?sessionId=...&reportId=...&reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT`、
   `/resume-versions?tab=rewrites&tailorRunId=...`，其中旧报告状态字段只作为应被过滤的 hostile 输入。
@@ -37,12 +37,12 @@ allowlist 写入 `pushState` / `replaceState`。
 - Reports 缺失或非法 target identity 时以 `replaceState` 进入 `/workspace`；不调用 `pushState`，Back 不会重新进入坏链接。
 - 每个 canonical URL 解析到对应 `Route` + safe params；TopBar `aria-current`
   与 `app-shell-topbar` 隐藏行为符合 route catalog。
-- workspace 丢弃 `targetJobId` / `resumeId` / `planId` / `autoStartPractice` 并规范化为 query-free list route；generating/report 只保留 `reportId`，丢弃 `sessionId` / `reportStatus` / `errorCode`；简历工作台过滤 `tab` / `tailorRunId`。
+- workspace 保留 `targetJobId` 作为唯一只读详情 locator，丢弃 `resumeId` / `planId` / `autoStartPractice`；无 `targetJobId` 时才是 query-free list route。generating/report 只保留 `reportId`，丢弃 `sessionId` / `reportStatus` / `errorCode`；简历工作台过滤 `tab` / `tailorRunId`。
 - back / forward 在 workspace / practice / reports / report 之间正常切换且不丢失
   params；practice / generating 保持 chrome 隐藏。
-- workspace 未知与详情 query 全部被过滤；canonical URL 不保留 `bogusKey`、`another` 或 `targetJobId`。
-- `#route=workspace` hash 启动后 URL 被 `replaceState` 重写为
-  `/workspace`，`location.hash` 与 search 均为空。
+- workspace 未知 query 全部被过滤；canonical URL 不保留 `bogusKey` / `another`，但保留合法 `targetJobId`。
+- `#route=workspace&targetJobId=...` hash 启动后 URL 被 `replaceState` 重写为
+  `/workspace?targetJobId=...`，`location.hash` 为空。
 - `/debrief` 与 `/profile` 不再是 canonical path，范围外 deep-link 折回 `/`。
 
 ## 4 执行

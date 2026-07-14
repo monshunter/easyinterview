@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow BDD Checklist
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -23,7 +23,9 @@
 - [x] Scenario assets exist under `test/scenarios/e2e/p0-083-resume-create-flow-direct-create-handoff/`.
 - [x] Verify script covers Home CTA, direct detail navigation and auth pending action boundary without preview confirm.
 
-## E2E.P0.084 Home Existing Resume Picker Regression
+## E2E.P0.084 Historical Home Existing Resume Picker Regression
+
+These checked items are historical evidence. Active 001 Phase 19 replaces the full-Resume/Parse-shared predicate with Home-only `ResumeSummary.parseStatus/hasReadableContent` coverage.
 
 - [x] Focused Home regression test covers readable non-archived `listResumes` records remaining selectable even when `parseStatus` is not `ready`.<!-- verified: 2026-07-08 method=vitest test=HomeResumeSelection.test.tsx -->
 - [x] Focused Parse regression test covers the same selectable-resume rule after JD parse handoff.<!-- verified: 2026-07-08 method=vitest test=ParseResumeBinding.test.tsx -->

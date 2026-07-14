@@ -7,6 +7,7 @@ covered as they are added in Phase 1.2 / 1.3.
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import unittest
@@ -172,7 +173,6 @@ PROVENANCE_OPERATIONS = {
     "getFeedbackReport": ["provenance"],
     "getResumeTailorRun": ["provenance"],
     "getResume": ["structuredProfile.provenance"],
-    "listResumes": ["items[*].structuredProfile.provenance"],
     "updateResume": ["structuredProfile.provenance"],
     "duplicateResume": ["structuredProfile.provenance"],
 }
@@ -1133,16 +1133,85 @@ class FixtureContentTest(unittest.TestCase):
             self.assertIn(body["sourceType"], {"upload", "paste"})
             self.assertNotIn("guidedAnswers", body)
 
-    def test_list_resumes_represents_fileless_assets_without_file_object_id(self) -> None:
+    def test_list_resumes_uses_exact_summary_projection_without_detail_provenance(self) -> None:
+        validator = _load_validator()
+        self.assertNotIn("listResumes", validator.AI_PROVENANCE_PATHS)
+        self.assertIn("getResume", validator.AI_PROVENANCE_PATHS)
+
         scenarios = _load_fixture("listResumes", "Resumes")["scenarios"]
         items = []
         for scenario in scenarios.values():
             items.extend(scenario["response"]["body"]["items"])
-        by_source = {item["sourceType"]: item for item in items}
 
-        self.assertIsInstance(by_source["upload"]["fileObjectId"], str)
-        self.assertIsNone(by_source["paste"]["fileObjectId"])
-        self.assertEqual({"upload", "paste"}, set(by_source))
+        expected_keys = {
+            "id",
+            "title",
+            "displayName",
+            "language",
+            "sourceType",
+            "parseStatus",
+            "summaryHeadline",
+            "hasReadableContent",
+            "updatedAt",
+        }
+        self.assertGreaterEqual(len(items), 4)
+        for item in items:
+            self.assertEqual(expected_keys, set(item))
+            self.assertIn(item["sourceType"], {"upload", "paste"})
+            self.assertIn(
+                item["parseStatus"], {"queued", "processing", "ready", "failed"}
+            )
+            self.assertTrue(
+                item["summaryHeadline"] is None
+                or isinstance(item["summaryHeadline"], str)
+            )
+            self.assertIsInstance(item["hasReadableContent"], bool)
+
+        self.assertEqual({"upload", "paste"}, {item["sourceType"] for item in items})
+        self.assertEqual({True, False}, {item["hasReadableContent"] for item in items})
+        self.assertIn(None, {item["summaryHeadline"] for item in items})
+
+    def test_resume_summary_and_full_detail_shapes_cannot_be_substituted(self) -> None:
+        validator = _load_validator()
+        spec = _load_openapi()
+        schemas = spec["components"]["schemas"]
+        summary = _load_fixture("listResumes", "Resumes")["scenarios"]["default"][
+            "response"
+        ]["body"]["items"][0]
+        detail = _load_fixture("getResume", "Resumes")["scenarios"]["default"][
+            "response"
+        ]["body"]
+
+        invalid_summaries = []
+        missing = copy.deepcopy(summary)
+        missing.pop("summaryHeadline")
+        invalid_summaries.append(missing)
+        invalid_summaries.append({**summary, "fileObjectId": detail.get("fileObjectId")})
+        invalid_summaries.append({**summary, "summaryHeadline": 42})
+        invalid_summaries.append({**summary, "hasReadableContent": "true"})
+        invalid_summaries.append(detail)
+
+        for value in invalid_summaries:
+            with self.subTest(keys=sorted(value)):
+                errors: list[str] = []
+                validator.schema_validate(
+                    value,
+                    schemas["ResumeSummary"],
+                    root=spec,
+                    path="listResumes.items[0]",
+                    errors=errors,
+                )
+                self.assertTrue(errors)
+
+        errors = []
+        validator.schema_validate(
+            summary,
+            schemas["Resume"],
+            root=spec,
+            path="getResume",
+            errors=errors,
+        )
+        self.assertTrue(errors)
 
     def test_uuid_format_ids_are_uuidv7_no_tmp_prefix(self) -> None:
         validator = _load_validator()

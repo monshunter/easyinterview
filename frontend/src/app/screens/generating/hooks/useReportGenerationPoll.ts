@@ -92,7 +92,8 @@ const defaultScheduler: PollScheduler = {
  *   read per openapi.yaml.
  * - HTTP 404 maps to `failed` + errorCode `REPORT_NOT_FOUND` (cross-user
  *   isolation per backend-review D-15 / B1).
- * - Unmount cancels the inflight request and prevents further state updates.
+ * - Cleanup invalidates the current run and cancels scheduled follow-ups;
+ *   signal-free safe GETs may settle later but cannot update stale state.
  */
 export function useReportGenerationPoll(
   options: UseReportGenerationPollOptions,
@@ -172,7 +173,6 @@ export function useReportGenerationPoll(
     if (state !== "polling") return;
 
     const seq = runSeqRef.current;
-    const controller = new AbortController();
     let cancelTimer: (() => void) | null = null;
     let cancelled = false;
 
@@ -207,7 +207,7 @@ export function useReportGenerationPoll(
       };
       setAttemptCount(attempt);
       client
-        .getFeedbackReport(reportId, { signal: controller.signal })
+        .getFeedbackReport(reportId)
         .then((next) => {
           if (cancelled || runSeqRef.current !== seq) return;
           if (!isValidFeedbackReport(next, reportId)) {
@@ -235,7 +235,6 @@ export function useReportGenerationPoll(
         })
         .catch((err: unknown) => {
           if (cancelled || runSeqRef.current !== seq) return;
-          if (isAbortError(err)) return;
           const message = err instanceof Error ? err.message : String(err);
           if (message.startsWith(HTTP_NOT_FOUND_MARKER)) {
             const code = "REPORT_NOT_FOUND";
@@ -265,7 +264,6 @@ export function useReportGenerationPoll(
 
     return () => {
       cancelled = true;
-      controller.abort();
       if (cancelTimer) cancelTimer();
     };
   }, [
@@ -280,8 +278,8 @@ export function useReportGenerationPoll(
   ]);
 
   // Visibility / focus pause-resume. A scheduled wait keeps its planned
-  // attempt, while an aborted in-flight read remains a started attempt and
-  // resumes at n+1. Both paths preserve the monotonic max-attempt cap.
+  // attempt, while a stale in-flight read is fenced and resumes at n+1. Both
+  // paths preserve the monotonic max-attempt cap.
   useEffect(() => {
     if (!reportId || !client) return;
     if (typeof document === "undefined" || typeof window === "undefined") return;
@@ -329,12 +327,4 @@ export function useReportGenerationPoll(
     errorCode: stateOwnerMatches ? errorCode : null,
     retry,
   };
-}
-
-function isAbortError(err: unknown): boolean {
-  if (!err) return false;
-  if (typeof err === "object" && "name" in err) {
-    return (err as { name?: string }).name === "AbortError";
-  }
-  return false;
 }

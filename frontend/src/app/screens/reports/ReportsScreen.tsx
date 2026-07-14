@@ -260,7 +260,7 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
     );
   const goBack = () =>
     targetJobId
-      ? navigate({ name: "parse", params: { targetJobId } })
+      ? navigate({ name: "workspace", params: { targetJobId } })
       : navigate({ name: "workspace", params: {} });
 
   return (

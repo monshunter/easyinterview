@@ -1,6 +1,7 @@
 # Seed Input
 
 - Browser auth state: signed out.
+- StrictMode request-count state: authenticated runtime with deferred same-key fetch responses so concurrent mounts overlap deterministically.
 - Runtime `/me` scenarios:
   - unauthenticated for Home and protected route redirect assertions.
   - hanging `/me` for protected route loading gate assertions.
@@ -19,3 +20,7 @@
 - Backend API proof points:
   - session policy public/optional/protected classification.
   - target job, upload, resume, practice, report, jobs, and jd-match route mount behind session middleware.
+- Frontend request proof points:
+  - generated-client safe-read separation/bypass and mutation epoch matrix.
+  - runtime bootstrap, Home recent jobs and Workspace jobs stable-loader mounts.
+  - authenticated Resume Workshop list and list-to-detail Open navigation.

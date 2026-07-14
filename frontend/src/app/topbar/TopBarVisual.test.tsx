@@ -18,6 +18,7 @@ const HERE = resolve(__dirname);
 const FRONTEND_ROOT = resolve(HERE, "..", "..", "..");
 const REPO_ROOT = resolve(HERE, "..", "..", "..", "..");
 const TOPBAR_CSS = resolve(HERE, "topbar.css");
+const TOPBAR_TSX = resolve(HERE, "TopBar.tsx");
 const APP_JSX = resolve(REPO_ROOT, "ui-design", "src", "app.jsx");
 
 interface RenderOpts {
@@ -100,6 +101,13 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
     expect(app).toContain('padding: "0 32px"');
     expect(app).toContain("gap: 28");
     expect(app).toContain("zIndex: 30");
+  });
+
+  it("mobile theme menu opens inward from the theme button", () => {
+    const css = readFileSync(TOPBAR_CSS, "utf8");
+    expect(css).toMatch(
+      /@media \(max-width: 720px\)[\s\S]*\.ei-topbar-theme-menu\s*\{[\s\S]*left:\s*0;[\s\S]*right:\s*auto;/,
+    );
   });
 
   it("does not keep a custom-active swatch modifier without a DOM consumer", () => {
@@ -242,6 +250,42 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
     expect(
       screen.getByTestId("topbar-custom-accent-chroma"),
     ).toBeInTheDocument();
+  });
+
+  it("custom accent picker exposes only hue and saturation without preview or reset residue", async () => {
+    renderTopBar();
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("topbar-theme-button"));
+    await user.click(screen.getByTestId("topbar-theme-custom-option"));
+
+    const picker = screen.getByTestId("topbar-custom-accent-picker");
+    expect(screen.getByTestId("topbar-custom-accent-hue")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("topbar-custom-accent-chroma"),
+    ).toBeInTheDocument();
+    expect(
+      picker.querySelector(".ei-topbar-custom-accent-preview"),
+    ).not.toBeInTheDocument();
+    expect(
+      picker.querySelector(".ei-topbar-custom-accent-value"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("topbar-custom-accent-clear"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/恢复主题默认色|Reset to theme accent/)).toBeNull();
+
+    const source = readFileSync(TOPBAR_TSX, "utf8");
+    expect(source.match(/prefs\.setCustomAccent\(null\)/g) ?? []).toHaveLength(1);
+    const pickerSource = source.slice(
+      source.indexOf("interface CustomAccentPickerProps"),
+      source.indexOf("\ntype IconName"),
+    );
+    expect(pickerSource).not.toMatch(/\b(?:active|onClear|previewAccent)\b/);
+
+    const css = readFileSync(TOPBAR_CSS, "utf8");
+    expect(css).not.toContain(".ei-topbar-custom-accent-preview");
+    expect(css).not.toContain(".ei-topbar-custom-accent-preview-swatch");
+    expect(css).not.toContain(".ei-topbar-custom-accent-value");
   });
 
   it("active customAccent renders the TopBar swatch with oklch inline value", async () => {

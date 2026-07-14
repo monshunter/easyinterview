@@ -1,4 +1,138 @@
 // Screen 3: continuous text interview conversation
+const PRACTICE_MARKDOWN_ASSISTANT = [
+  "## 系统设计追问",
+  "",
+  "> 请先说明关键取舍。",
+  "",
+  "1. 约束是什么？",
+  "2. 如何回滚？",
+  "",
+  "`requestId` 必须可追踪。",
+].join("\n");
+const PRACTICE_MARKDOWN_USER = [
+  "## 我的回答",
+  "",
+  "- 先建立可回滚基线",
+  "- 再逐步放量",
+  "",
+  "| 阶段 | 成功指标 | 回滚条件 |",
+  "| --- | --- | --- |",
+  "| 灰度 | 核心链路成功率保持在 99.99% 且连续观察两个完整窗口 | 任一关键指标连续三个窗口低于基线立即回滚 |",
+  "",
+  "```ts",
+  `const rollout = "${"baseline-".repeat(32)}";`,
+  "```",
+].join("\n");
+
+const PRACTICE_MESSAGE_BODY_CSS = `
+  .ei-practice-message-body {
+    min-width: 0;
+    max-width: 100%;
+    color: var(--ei-practice-ink, var(--ei-color-fg-primary, #141821));
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .ei-practice-message-body > :first-child { margin-top: 0; }
+  .ei-practice-message-body > :last-child { margin-bottom: 0; }
+  .ei-practice-message-body h1,
+  .ei-practice-message-body h2,
+  .ei-practice-message-body h3,
+  .ei-practice-message-body h4,
+  .ei-practice-message-body h5,
+  .ei-practice-message-body h6 {
+    margin: 14px 0 6px;
+    color: var(--ei-practice-ink, var(--ei-color-fg-primary, #141821));
+    font-family: var(--ei-sans);
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  .ei-practice-message-body h1 { font-size: 20px; }
+  .ei-practice-message-body h2 { font-size: 17px; }
+  .ei-practice-message-body h3 { font-size: 15px; }
+  .ei-practice-message-body h4,
+  .ei-practice-message-body h5,
+  .ei-practice-message-body h6 { font-size: 14px; }
+  .ei-practice-message-body p { margin: 0 0 8px; }
+  .ei-practice-message-body ul,
+  .ei-practice-message-body ol { margin: 0 0 8px; padding-left: 20px; }
+  .ei-practice-message-body li + li { margin-top: 2px; }
+  .ei-practice-message-body blockquote {
+    margin: 0 0 8px;
+    padding: 0 0 0 12px;
+    border-left: 2px solid var(--ei-practice-accent, var(--ei-color-accent, #3a5fc4));
+    color: var(--ei-practice-ink2, var(--ei-color-fg-secondary, #363c4a));
+  }
+  .ei-practice-message-body blockquote > :last-child { margin-bottom: 0; }
+  .ei-practice-message-body a {
+    color: var(--ei-practice-accent, var(--ei-color-accent, #3a5fc4));
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .ei-practice-message-body :not(pre) > code {
+    padding: 1px 4px;
+    border-radius: 2px;
+    background: var(--ei-practice-bg-soft, var(--ei-color-bg-soft, #eef2f7));
+    font-family: var(--ei-mono);
+    font-size: 0.9em;
+  }
+  .ei-practice-message-body pre {
+    box-sizing: border-box;
+    max-width: 100%;
+    margin: 0 0 10px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    border: 1px solid var(--ei-practice-rule, var(--ei-color-rule-strong, #dde2ec));
+    border-radius: 2px;
+    background: var(--ei-practice-bg-soft, var(--ei-color-bg-soft, #eef2f7));
+    overscroll-behavior-x: contain;
+  }
+  .ei-practice-message-body pre code {
+    padding: 0;
+    background: transparent;
+    font-family: var(--ei-mono);
+    font-size: 12px;
+    line-height: 1.55;
+    white-space: pre;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+  .ei-practice-message-body table {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 10px;
+    overflow-x: auto;
+    border-collapse: collapse;
+    overscroll-behavior-x: contain;
+  }
+  .ei-practice-message-body th,
+  .ei-practice-message-body td {
+    min-width: 144px;
+    padding: 6px 8px;
+    border: 1px solid var(--ei-practice-rule, var(--ei-color-rule-strong, #dde2ec));
+    color: var(--ei-practice-ink2, var(--ei-color-fg-secondary, #363c4a));
+    font-size: 12.5px;
+    line-height: 1.45;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .ei-practice-message-body th {
+    color: var(--ei-practice-ink, var(--ei-color-fg-primary, #141821));
+    background: var(--ei-practice-bg-soft, var(--ei-color-bg-soft, #eef2f7));
+    font-weight: 500;
+  }
+`;
+
+if (!document.getElementById("ei-practice-message-body")) {
+  const style = document.createElement("style");
+  style.id = "ei-practice-message-body";
+  style.textContent = PRACTICE_MESSAGE_BODY_CSS;
+  document.head.appendChild(style);
+}
+
 const PRACTICE_REPLY_STATE_DEMOS = {
   "immediate-pending": [
     { id: "demo-opening", role: "assistant", text: "你好，我们直接开始。先聊聊你最近最有代表性的项目。", t: "08:02" },
@@ -17,6 +151,10 @@ const PRACTICE_REPLY_STATE_DEMOS = {
   "terminal-failed": [
     { id: "demo-risk-opening", role: "assistant", text: "请说明你如何处理一次高风险发布。", t: "08:02" },
     { id: "demo-terminal-failed", role: "user", text: "我先把风险拆成三类。", t: "08:03", status: "terminal_failed" },
+  ],
+  "markdown-gfm": [
+    { id: "demo-markdown-assistant", role: "assistant", text: PRACTICE_MARKDOWN_ASSISTANT, t: "08:02" },
+    { id: "demo-markdown-user", role: "user", text: PRACTICE_MARKDOWN_USER, t: "08:03", status: "complete" },
   ],
 };
 
@@ -162,7 +300,7 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId }) => {
                 <div style={{ color: T.ink, fontSize: 13.5, fontWeight: 500, marginBottom: 3 }}>{lang === "en" ? "This reply could not be completed." : "本次回复未能完成。"}</div>
                 <div style={{ color: T.ink3, fontSize: 12, lineHeight: 1.5 }}>{lang === "en" ? "Return to this interview plan, then start a new session when you are ready." : "请返回当前面试规划，准备好后重新开始一场面试。"}</div>
               </div>
-              <Btn variant="secondary" size="sm" T={T} icon="arrow_left" data-testid="practice-terminal-recovery-cta" onClick={() => nav("parse", { targetJobId: job.id })}>
+              <Btn variant="secondary" size="sm" T={T} icon="arrow_left" data-testid="practice-terminal-recovery-cta" onClick={() => nav("workspace", { targetJobId: job.id })}>
                 {lang === "en" ? "Return to this interview plan" : "返回当前面试规划"}
               </Btn>
             </div>
@@ -189,7 +327,7 @@ const TranscriptMsg = ({ index, msg, T, lang, retryFailedMessage }) => {
           <span style={{ fontSize: 12, color: T.ink2, fontWeight: 500 }}>{isAI ? (lang === "en" ? "Interviewer" : "面试官") : (lang === "en" ? "You" : "我")}</span>
           <span style={{ fontSize: 11, color: T.ink4, fontFamily: "var(--ei-mono)" }}>{msg.t}</span>
         </div>
-        <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.6 }}>{msg.text}</div>
+        <PracticeMessageBody text={msg.text} T={T} />
         {!isAI && msg.status === "retryable_failed" && (
           <button type="button" data-testid="practice-message-retry" aria-label={lang === "en" ? "Retry message" : "重试这条消息"} title={lang === "en" ? "Retry message" : "重试这条消息"} onClick={() => retryFailedMessage(msg)} style={{ marginTop: 7, width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center", border: `1px solid ${T.rule}`, borderRadius: 2, background: T.bgCard, color: T.accent, padding: 0 }}>
             <svg aria-hidden="true" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 11a8 8 0 1 0 2 5" /><path d="M20 4v7h-7" /></svg>
@@ -198,6 +336,141 @@ const TranscriptMsg = ({ index, msg, T, lang, retryFailedMessage }) => {
       </div>
     </div>
   );
+};
+
+const PRACTICE_MARKDOWN_SAFE_SCHEMES = new Set(["http", "https", "mailto"]);
+
+const practiceMarkdownHref = (rawHref) => {
+  const href = String(rawHref || "").trim();
+  if (!href || href.startsWith("//")) return "";
+  const scheme = href.match(/^([a-z][a-z\d+.-]*):/i)?.[1]?.toLowerCase();
+  return !scheme || PRACTICE_MARKDOWN_SAFE_SCHEMES.has(scheme) ? href : "";
+};
+
+const renderPracticeInlineMarkdown = (text, keyPrefix) =>
+  String(text || "")
+    .split(/(`[^`\n]+`|!?\[[^\]\n]+\]\([^)\n]+\))/g)
+    .filter(Boolean)
+    .map((token, index) => {
+      const key = `${keyPrefix}-inline-${index}`;
+      if (token.startsWith("`") && token.endsWith("`")) {
+        return <code key={key}>{token.slice(1, -1)}</code>;
+      }
+      const link = token.match(/^(!?)\[([^\]]+)\]\(([^)]+)\)$/);
+      if (link) {
+        if (link[1] === "!") return null;
+        const href = practiceMarkdownHref(link[3]);
+        if (!href) return <span key={key}>{link[2]}</span>;
+        const external = /^https?:\/\//i.test(href);
+        return <a key={key} href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>{link[2]}</a>;
+      }
+      return token;
+    });
+
+const practiceMarkdownCells = (line) =>
+  line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+
+const isPracticeTableDivider = (line) => {
+  const cells = practiceMarkdownCells(line);
+  return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+};
+
+const isPracticeBlockStart = (lines, index) => {
+  const line = lines[index] || "";
+  return /^```/.test(line) || /^#{1,6}\s+/.test(line) || /^>\s?/.test(line) || /^[-*+]\s+/.test(line) || /^\d+\.\s+/.test(line) || (line.includes("|") && isPracticeTableDivider(lines[index + 1] || ""));
+};
+
+const renderPracticeMarkdownBlocks = (text) => {
+  const lines = String(text || "").replace(/\r\n?/g, "\n").split("\n");
+  const blocks = [];
+  let index = 0;
+  while (index < lines.length) {
+    const line = lines[index];
+    if (!line.trim()) {
+      index += 1;
+      continue;
+    }
+    const fence = line.match(/^```([^\s`]*)\s*$/);
+    if (fence) {
+      const body = [];
+      index += 1;
+      while (index < lines.length && !/^```\s*$/.test(lines[index])) {
+        body.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length) index += 1;
+      blocks.push(<pre key={`code-${blocks.length}`}><code className={fence[1] ? `language-${fence[1]}` : undefined}>{body.join("\n")}</code></pre>);
+      continue;
+    }
+    const heading = line.match(/^(#{1,6})\s+(.+)$/);
+    if (heading) {
+      const level = heading[1].length;
+      const Tag = `h${level}`;
+      blocks.push(<Tag key={`heading-${blocks.length}`}>{renderPracticeInlineMarkdown(heading[2], `heading-${blocks.length}`)}</Tag>);
+      index += 1;
+      continue;
+    }
+    if (/^>\s?/.test(line)) {
+      const quote = [];
+      while (index < lines.length && /^>\s?/.test(lines[index])) {
+        quote.push(lines[index].replace(/^>\s?/, ""));
+        index += 1;
+      }
+      blocks.push(<blockquote key={`quote-${blocks.length}`}><p>{renderPracticeInlineMarkdown(quote.join(" "), `quote-${blocks.length}`)}</p></blockquote>);
+      continue;
+    }
+    if (line.includes("|") && isPracticeTableDivider(lines[index + 1] || "")) {
+      const headers = practiceMarkdownCells(line);
+      index += 2;
+      const rows = [];
+      while (index < lines.length && lines[index].trim() && lines[index].includes("|")) {
+        rows.push(practiceMarkdownCells(lines[index]));
+        index += 1;
+      }
+      blocks.push(
+        <table key={`table-${blocks.length}`}>
+          <thead><tr>{headers.map((cell, cellIndex) => <th key={`head-${cellIndex}`}>{renderPracticeInlineMarkdown(cell, `head-${cellIndex}`)}</th>)}</tr></thead>
+          <tbody>{rows.map((row, rowIndex) => <tr key={`row-${rowIndex}`}>{row.map((cell, cellIndex) => <td key={`cell-${rowIndex}-${cellIndex}`}>{renderPracticeInlineMarkdown(cell, `cell-${rowIndex}-${cellIndex}`)}</td>)}</tr>)}</tbody>
+        </table>,
+      );
+      continue;
+    }
+    const unordered = line.match(/^[-*+]\s+(.+)$/);
+    const ordered = line.match(/^\d+\.\s+(.+)$/);
+    if (unordered || ordered) {
+      const orderedList = Boolean(ordered);
+      const items = [];
+      const pattern = orderedList ? /^\d+\.\s+(.+)$/ : /^[-*+]\s+(.+)$/;
+      while (index < lines.length) {
+        const item = lines[index].match(pattern);
+        if (!item) break;
+        items.push(item[1]);
+        index += 1;
+      }
+      const List = orderedList ? "ol" : "ul";
+      blocks.push(<List key={`list-${blocks.length}`}>{items.map((item, itemIndex) => <li key={`item-${itemIndex}`}>{renderPracticeInlineMarkdown(item, `item-${itemIndex}`)}</li>)}</List>);
+      continue;
+    }
+    const paragraph = [line.trim()];
+    index += 1;
+    while (index < lines.length && lines[index].trim() && !isPracticeBlockStart(lines, index)) {
+      paragraph.push(lines[index].trim());
+      index += 1;
+    }
+    blocks.push(<p key={`paragraph-${blocks.length}`}>{renderPracticeInlineMarkdown(paragraph.join(" "), `paragraph-${blocks.length}`)}</p>);
+  }
+  return blocks;
+};
+
+const PracticeMessageBody = ({ text, T }) => {
+  const tokenStyle = {
+    "--ei-practice-ink": T.ink,
+    "--ei-practice-ink2": T.ink2,
+    "--ei-practice-rule": T.rule,
+    "--ei-practice-bg-soft": T.bgSoft,
+    "--ei-practice-accent": T.accent,
+  };
+  return <div data-testid="practice-message-body" className="ei-practice-message-body" style={tokenStyle}>{renderPracticeMarkdownBlocks(text)}</div>;
 };
 
 window.PracticeScreen = PracticeScreen;

@@ -6,7 +6,7 @@ metadata:
   sequence: 2
   specVersion:
     from: 1.0
-    to: 2.14
+    to: 2.15
 spec:
   defaultTarget: frontend
   discovery:
@@ -30,6 +30,7 @@ spec:
       - preview confirm absent
       - generic pasted resume title absent
       - home create CTA
+      - historical full Resume selection superseded by ResumeSummary
       - resume create auth pending action
       - resume create privacy red line
       - resume create i18n en zh

@@ -20,6 +20,9 @@ class ReportsHashFallbackSourceContractTest(unittest.TestCase):
             "p0-090-url-routing-hash-out-of-scope-negative.test.tsx"
         )
         for marker in (
+            "`#route=workspace&targetJobId=...` bootstrap rewrites to target-scoped detail",
+            'expect(window.location.search).toBe("?targetJobId=tj-1")',
+            'screen.getByTestId("workspace-detail-loading")',
             "#route=reports&targetJobId=",
             "/reports?targetJobId=",
             "section=reports",
@@ -36,6 +39,7 @@ class ReportsHashFallbackSourceContractTest(unittest.TestCase):
         route_url = read("frontend/src/app/routeUrl.test.ts")
         fallback = read("frontend/src/app/spaFallback.test.ts")
         topbar = read("frontend/src/app/topbar/TopBar.test.tsx")
+        app = read("frontend/src/app/App.test.tsx")
         self.assertIn(
             "canonicalizes a Reports hash to targetJobId-only /reports", bootstrap
         )
@@ -43,6 +47,24 @@ class ReportsHashFallbackSourceContractTest(unittest.TestCase):
             "drops the retired Parse reports section and all report business authority",
             route_url,
         )
+        for marker in (
+            "retains targetJobId as the sole workspace detail locator",
+            "parses targetJobId as the sole canonical workspace detail locator",
+            "autoStartPractice",
+            "unknownKey",
+            "rawText",
+            "token",
+        ):
+            self.assertIn(marker, route_url)
+        self.assertIn(
+            "hash adapter and canonical codec retain only the workspace target locator",
+            bootstrap,
+        )
+        for marker in (
+            "renders a target-scoped workspace as read-only detail with one getTargetJob",
+            'queryByTestId("parse-loading-step-0")',
+        ):
+            self.assertIn(marker, app)
         self.assertIn('/reports?targetJobId=tj-1", "/tmp/dist"', fallback)
         self.assertIn('queryByTestId("topbar-nav-reports")', topbar)
 

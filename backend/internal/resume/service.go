@@ -228,9 +228,13 @@ func (s *Service) ListResumes(ctx context.Context, in ListRequest) (api.Paginate
 	if err != nil {
 		return api.PaginatedResume{}, err
 	}
-	out := api.PaginatedResume{Items: make([]api.Resume, 0, len(res.Items))}
+	out := api.PaginatedResume{Items: make([]api.ResumeSummary, 0, len(res.Items))}
 	for _, item := range res.Items {
-		out.Items = append(out.Items, resumeRecordToAPI(item))
+		summary, err := resumeSummaryRecordToAPI(item)
+		if err != nil {
+			return api.PaginatedResume{}, err
+		}
+		out.Items = append(out.Items, summary)
 	}
 	out.PageInfo = api.PageInfo{
 		NextCursor: optionalString(res.NextCursor),
@@ -587,6 +591,31 @@ func resumeRecordToAPI(rec resumestore.ResumeRecord) api.Resume {
 		out.ParsedTextSnapshot = cloneStringPtr(rec.ParsedTextSnapshot)
 	}
 	return out
+}
+
+func resumeSummaryRecordToAPI(rec resumestore.ResumeSummaryRecord) (api.ResumeSummary, error) {
+	sourceType := rec.SourceType
+	if sourceType != "upload" && sourceType != "paste" {
+		return api.ResumeSummary{}, fmt.Errorf("%w: %q", resumestore.ErrInvalidSourceType, rec.SourceType)
+	}
+	var summaryHeadline *string
+	if rec.SummaryHeadline != nil {
+		headline := strings.TrimSpace(*rec.SummaryHeadline)
+		if headline != "" {
+			summaryHeadline = &headline
+		}
+	}
+	return api.ResumeSummary{
+		Id:                 rec.ID,
+		Title:              rec.Title,
+		DisplayName:        rec.DisplayName,
+		Language:           rec.Language,
+		SourceType:         sourceType,
+		ParseStatus:        rec.ParseStatus,
+		SummaryHeadline:    summaryHeadline,
+		HasReadableContent: rec.HasReadableContent,
+		UpdatedAt:          rec.UpdatedAt.UTC().Format(time.RFC3339),
+	}, nil
 }
 
 func tailorRunRecordToAPI(rec resumestore.TailorRunRecord) api.ResumeTailorRun {

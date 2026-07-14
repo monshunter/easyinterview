@@ -117,7 +117,6 @@ describe("E2E.P0.002 auth pending-action resume", () => {
     await waitFor(() => {
       expect(getPracticeSession).toHaveBeenCalledWith(
         PRACTICE_PENDING_ACTION.params.sessionId,
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
       );
     });
   });

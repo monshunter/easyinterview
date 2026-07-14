@@ -4,11 +4,11 @@ metadata:
   subspec: product-scope
   name: 001-core-loop-module-pruning
   sequence: 1
-  branch: core-loop-module-pruning
+  branch: fix/request-dedup-resume-summary-routing-0714
   baseBranch: main
   specVersion:
-    from: 2.1
-    to: 2.13
+    from: 2.21
+    to: 2.22
 spec:
   defaultTarget: cross-layer
   discovery:
@@ -24,6 +24,13 @@ spec:
       - zero-reference gate
       - current contract
       - technical debt pruning
+      - parse command progress
+      - workspace targetJobId readonly detail
+      - ready replace workspace
+      - reports back workspace
+      - practice terminal recovery
+      - ocean plum custom accent
+      - hue saturation only
   targets:
     cross-layer:
       plan: ./plan.md

@@ -31,9 +31,12 @@ session。
 - 用指向 reports 且携带 route-incompatible params / raw markers 的 hostile
   `/auth/login?...` 直接打开输入，验证 parseUrlToRoute /
   decodePendingActionRoute 的 allowlist 拦截。
-- 将 hostile `/workspace?...rawText=...#prompt` entry 写入浏览器 history 并触发
-  `popstate`，验证 restore 会立即改写为 canonical URL 并清空 raw
-  `history.state`。
+- 将 hostile
+  `/workspace?targetJobId=...&resumeId=...&planId=...&autoStartPractice=1&unknownKey=...&rawText=...&token=...#prompt`
+  entry 写入浏览器 history 并触发 `popstate`，验证 restore 只保留
+  Workspace 只读规划详情定位符 `targetJobId`，并清空 raw
+  `history.state`。Workspace 详情不得转换为 Parse 导入/解析动画，也不得从
+  route side effect 发起导入或轮询。
 
 ## 3 Then
 
@@ -45,8 +48,12 @@ session。
 - hostile `/auth/login` direct-open 只保留 Reports 的 `targetJobId` 与 pendingAction reserved metadata。
 - 任意 hostile 输入下，URL、`window.history.state`、`localStorage`、
   `sessionStorage`、console capture 都 ZERO 命中 raw 标记。
-- hostile popstate 后地址栏规范化为 query-free `/workspace`，hash 与 raw
-  `history.state` 均被 scrub。
+- hostile popstate 后地址栏规范化为
+  `/workspace?targetJobId=tj-popstate`；`resumeId` / `planId` /
+  `autoStartPractice` / unknown / raw / sensitive params 与 hash 被过滤，raw
+  `history.state` 被 scrub；页面进入 Workspace 只读规划详情而不是 Parse。
+- Workspace 详情只执行一次 `getTargetJob` read，不触发 `importTargetJob`、
+  Parse loading animation 或 route-side polling。
 - `token` / `password` / `prompt` / `response` 等敏感字段在所有 surface
   都缺失。
 

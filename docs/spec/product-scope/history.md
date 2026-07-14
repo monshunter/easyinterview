@@ -1,6 +1,6 @@
 # Product Scope History
 
-> **版本**: 2.21
+> **版本**: 2.22
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 2.22 | Parse 收敛为 import 后 queued/processing 命令进度，ready replace 到 targetJobId-only Workspace 只读详情；ready 卡片、Reports Back、Practice terminal recovery 统一回 Workspace，报告入口迁至 Workspace；主题收敛为 Ocean/Plum 与 hue/saturation-only custom accent，无 preview/value/reset。 | product-scope/001 + frontend owner plans |
 | 2026-07-14 | 2.21 | D-27：面试规划详情内容区右上进入 target-scoped ReportsScreen；只展示当前规划 current/latest，Parse 无嵌入列表，TopBar 无报告入口，trusted Back 返回 Reports。 | frontend-home 001 + frontend-report 001 + frontend-shell 004 |
 | 2026-07-13 | 2.20 | 用户确认方案 A：Practice 发送采用即时 user row、pending thinking/输入锁、failed-row retry，并由服务端持久化原 message identity/reply state 保障刷新恢复。 | backend-practice/002 + frontend-workspace-and-practice/002 + openapi-v1-contract/001 |
 | 2026-07-13 | 2.19 | Home JD intake 只保留粘贴文本框和 `{ rawText, targetLanguage, resumeId }` 请求合同；删除其他 JD 导入形态，保留 Resume 上传能力。 | frontend-home-job-picks-and-parse/001 + contract/backend owners |

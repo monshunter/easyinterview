@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.2
+> **版本**: 3.4
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -62,6 +62,8 @@
 - [x] Revision 2026-07-14 independent ReportsScreen covers populated/empty/loading/error × 1440/390，only current TargetJob canonical rounds/current/latest，A/B isolation、mismatch/stale fail-close、different-ready status and no full history.
 - [x] Revision 2026-07-14 ready report Back uses the same response's trusted `targetJobId` and reaches `/reports?targetJobId=...`; current report URL remains reportId-only and existing report parity is unchanged.
   <!-- verified: 2026-07-14 scenario=E2E.P0.059 evidence="Full wrapper PASS with 137/137 Vitest and 16/16 Playwright; max changedRatio 0.000060. Formal real acceptance manifests prove current-plan-only rows and UUID-free Context Strip at both viewports." -->
+- [x] Revision 2026-07-14 Phase 11 proves Reports Back reaches `/workspace?targetJobId=...` read-only detail directly at 1440/390, emits no Workspace query key except `targetJobId`, exposes no Parse detour in browser history, and triggers no Parse animation/import/poll while preserving the existing list isolation/parity assertions.
+  <!-- verified: 2026-07-14 evidence="Fresh P0.059 desktop/mobile PASS proves direct Workspace detail, targetJobId-only URL, no Parse history/import/poll/animation and preserved report-list isolation/parity; P0.058 recovery matrix remains PASS." -->
 
 ## E2E.P0.099 Real full-stack screenshots
 

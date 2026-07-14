@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { FC } from "react";
+import { describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { StrictMode, type FC } from "react";
 
 import getMeFixture from "../../../../openapi/fixtures/Auth/getMe.json";
 import getRuntimeConfigFixture from "../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
@@ -64,6 +64,65 @@ const CommitProbe: FC<{ user: UserContext }> = ({ user }) => {
 };
 
 describe("AppRuntimeProvider", () => {
+	it("issues one underlying runtime/auth GET per key under StrictMode", async () => {
+		const calls: string[] = [];
+		const fixtureFetch = createFixtureBackedFetch(
+			createFixtureRegistry([getRuntimeConfigFixture, getMeFixture]),
+		);
+		const client = new EasyInterviewClient({
+			fetch: async (input, init) => {
+				calls.push(String(input));
+				return fixtureFetch(input, init);
+			},
+		});
+
+		render(
+			<StrictMode>
+				<AppRuntimeProvider client={client}>
+					<Probe />
+				</AppRuntimeProvider>
+			</StrictMode>,
+		);
+
+		await waitFor(() =>
+			expect(screen.getByTestId("runtime-status")).toHaveTextContent("ready"),
+		);
+		expect(calls.filter((url) => url.endsWith("/runtime-config"))).toHaveLength(1);
+		expect(calls.filter((url) => url.endsWith("/me"))).toHaveLength(1);
+	});
+
+	it("does not refetch when a parent recreates semantically identical option wrappers", async () => {
+		const client = buildFixtureClient();
+		const runtimeSpy = vi.spyOn(client, "getRuntimeConfig");
+		const meSpy = vi.spyOn(client, "getMe");
+		const view = () => (
+			<AppRuntimeProvider
+				client={client}
+				requestOptions={{
+					runtimeConfig: { headers: { Prefer: "example=default" } },
+					getMe: { headers: { Prefer: "example=authenticated" } },
+				}}
+			>
+				<Probe />
+			</AppRuntimeProvider>
+		);
+		const { rerender } = render(view());
+
+		await waitFor(() =>
+			expect(screen.getByTestId("auth-status")).toHaveTextContent("authenticated"),
+		);
+		expect(runtimeSpy).toHaveBeenCalledTimes(1);
+		expect(meSpy).toHaveBeenCalledTimes(1);
+
+		rerender(view());
+		await act(async () => {
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+		expect(runtimeSpy).toHaveBeenCalledTimes(1);
+		expect(meSpy).toHaveBeenCalledTimes(1);
+	});
+
   it("loads runtime config via the generated client + fixture-backed transport", async () => {
     const client = buildFixtureClient();
     render(

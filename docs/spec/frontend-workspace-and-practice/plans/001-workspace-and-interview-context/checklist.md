@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.40
+> **版本**: 1.42
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -206,3 +206,22 @@
 - [x] 25.4 RED-GREEN: Home/Workspace/Parse quick-start and Report next-round consume backend current progress and the next existing canonical successor; final/invalid buttons disabled with zero plan/session calls; retry-current remains server-validated.<!-- verified: 2026-07-12 method=vitest+P0.098-supporting -->
 - [x] 25.5 BDD-Gate: after real backend completion, a live real-API browser reloads Home/Workspace/Parse, renders persisted completed/current rail state, clicks quick-start and proves exact next-existing round plan/session selection; equal-duration/legacy wrong plans and final completion remain fail closed.<!-- verified: 2026-07-12 method=P0.098-live-playwright run=e2e-p0-098-20260712111826-75013 evidence="completion 202; Home/Workspace done,current,pending; Parse current round-2-technical/2; real plan POST/GET sequence=2; session start only intercepted to avoid AI" -->
 - [x] 25.6 Run focused/full frontend, typecheck/build, UI parity, generated contract, contexts/docs/index/diff and negative search proving no business progress in browser storage/URL/fixture fallback.<!-- verified: 2026-07-12 evidence="112 files/764 Vitest; typecheck/build; desktop+mobile workspace parity 17+17; UI contract 48; P0.098 live; only ei-lang display preference persists" -->
+
+## Phase 26: Workspace list/detail route split
+
+- [x] 26.1 RED-GREEN: supersede Phase 14 pure-list assertions; query-free `/workspace` loads ready cards, while valid `/workspace?targetJobId` mounts the unified read-only detail.
+- [x] 26.2 RED-GREEN: card body carries only targetJobId and directly enters workspace detail; non-safe plan/resume/auto-start params are ignored/stripped by shell routing.
+- [x] 26.3 RED-GREEN: bottom transport spies under StrictMode prove list `listTargetJobs` count=1 and detail `getTargetJob` count=1 for same-key initial loads via shell/001 Phase 13.
+- [x] 26.4 NEGATIVE: detail makes zero `importTargetJob`, zero Parse scheduler/poll after ready load, zero Parse animation DOM, and zero route-side practice start; mismatch/not-found fails closed.
+- [x] 26.5 BDD-Gate: revise existing `E2E.P0.018` for list/card/detail/count/negative/parity; retain P0.021 privacy boundary and P0.098 persisted-progress/quick-start regression. No sibling scenario.
+  <!-- verified: 2026-07-14 evidence="P0.018 list/card/detail/count/negative/parity PASS; P0.021 privacy wrapper PASS with 4+36 tests; P0.098 real persisted-progress/quick-start lifecycle PASS. Browser ResourceTiming proves one list GET and one detail GET." -->
+
+## Phase 27: Workspace detail round-state affordance
+
+- [x] 27.1 RED: focused component and UI source-contract tests fail while round cards have no persisted state attributes, labels or distinct visual treatments.<!-- verified: 2026-07-14 method=ParseRoundStates+ui-contract red result="3/4 component tests failed; new source contract failed" -->
+- [x] 27.2 GREEN: prototype and formal detail derive `done/current/pending` only from strict persisted progress, render localized labels/attributes with ok/accent/neutral tokens, and keep invalid projection neutral/non-startable.<!-- verified: 2026-07-14 method=focused-vitest+ui-contract result="29/29 Vitest; 65/65 UI contract" -->
+- [x] 27.3 PARITY-Gate: desktop/mobile DOM, computed background/border, bbox, viewport overflow and screenshots prove source parity across valid states; dark/custom themes retain semantic distinction.<!-- verified: 2026-07-14 method=parse-pixel-parity result="desktop+mobile 2/2; source styles equal; distinct backgrounds/borders; bbox/no-overflow; screenshots" -->
+- [x] 27.4 BDD-Gate: existing `E2E.P0.018` proves detail three-state labels/styles and list rail consistency; `E2E.P0.098` remains green for persisted refresh/all-completed behavior.
+- [x] 27.5 POST-PASS: focused/full frontend, typecheck/build, docs/context/index/diff and negative lifecycle/URL/storage searches pass before restoring completed lifecycle.
+- [x] 26.6 POST-PASS: focused Workspace/detail/route/transport tests, P0.018/P0.021/P0.098, frontend typecheck/build, owner contexts, docs/diff and old positive card-to-Parse/pure-list-detail-negative searches pass before restoring `completed`.
+  <!-- verified: 2026-07-14 evidence="P0.018/P0.021/P0.098, UI contract 65/65, full frontend 125 files / 1004 tests and typecheck/build PASS; acceptance screenshot 03 and evidence.json prove three persisted states with no Parse detour or browser-state fallback." -->

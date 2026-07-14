@@ -134,8 +134,7 @@ export function usePracticeSessionLoader(
       return;
     }
 
-    let active = true;
-    const controller = new AbortController();
+    let cancelled = false;
     setSnapshot((previous) => ({
       sessionId,
       state: "loading",
@@ -143,10 +142,10 @@ export function usePracticeSessionLoader(
       error: null,
     }));
 
-    const pendingRead = read({ signal: controller.signal });
+    const pendingRead = read();
     pendingRead.result
       .then((session) => {
-        if (!active) return;
+        if (cancelled) return;
         if (!isReadCurrent(pendingRead.token)) return;
         if (adopt(session, { readToken: pendingRead.token })) return;
         setSnapshot({
@@ -157,7 +156,7 @@ export function usePracticeSessionLoader(
         });
       })
       .catch((err: unknown) => {
-        if (!active) return;
+        if (cancelled) return;
         if (!isReadCurrent(pendingRead.token)) return;
         const wrapped = err instanceof Error ? err : new Error(String(err));
         const sessionLost = isHttpStatus(wrapped, 404);
@@ -174,8 +173,7 @@ export function usePracticeSessionLoader(
       });
 
     return () => {
-      active = false;
-      controller.abort();
+      cancelled = true;
     };
   }, [adopt, client, isReadCurrent, read, sessionId, reloadSeq]);
 
@@ -225,30 +223,40 @@ function readPracticeSessionBounded(
   sessionId: string,
   externalSignal?: AbortSignal,
 ): Promise<PracticeSession> {
-  const controller = new AbortController();
-  const abortFromCaller = () => controller.abort();
-  if (externalSignal?.aborted) {
-    controller.abort();
-  } else {
-    externalSignal?.addEventListener("abort", abortFromCaller, { once: true });
-  }
-  const timeout = window.setTimeout(
-    () => controller.abort(),
-    PRACTICE_SESSION_READ_TIMEOUT_MS,
-  );
-  const aborted = new Promise<never>((_resolve, reject) => {
-    const rejectAbort = () => reject(new ApiClientError("abort", null, null));
-    if (controller.signal.aborted) {
-      rejectAbort();
-      return;
+  const controller = externalSignal ? new AbortController() : null;
+  const abortFromCaller = () => controller?.abort();
+  if (controller && externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener("abort", abortFromCaller, { once: true });
     }
-    controller.signal.addEventListener("abort", rejectAbort, { once: true });
-  });
+  }
 
-  return Promise.race([
-    client.getPracticeSession(sessionId, { signal: controller.signal }),
-    aborted,
-  ]).finally(() => {
+  let timeout = 0;
+  const timedOut = new Promise<never>((_resolve, reject) => {
+    timeout = window.setTimeout(() => {
+      controller?.abort();
+      reject(new ApiClientError("abort", null, null));
+    }, PRACTICE_SESSION_READ_TIMEOUT_MS);
+  });
+  const request = controller
+    ? client.getPracticeSession(sessionId, { signal: controller.signal })
+    : client.getPracticeSession(sessionId);
+  const candidates: Promise<PracticeSession>[] = [request, timedOut];
+
+  if (controller) {
+    candidates.push(new Promise<never>((_resolve, reject) => {
+      const rejectAbort = () => reject(new ApiClientError("abort", null, null));
+      if (controller.signal.aborted) {
+        rejectAbort();
+        return;
+      }
+      controller.signal.addEventListener("abort", rejectAbort, { once: true });
+    }));
+  }
+
+  return Promise.race(candidates).finally(() => {
     window.clearTimeout(timeout);
     externalSignal?.removeEventListener("abort", abortFromCaller);
   });

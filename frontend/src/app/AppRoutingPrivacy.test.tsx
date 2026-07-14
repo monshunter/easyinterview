@@ -142,10 +142,10 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
     );
     const user = userEvent.setup();
     await user.click(screen.getByTestId("go-workspace-raw"));
-    await waitFor(() => screen.getByTestId("workspace-plan-list"));
+    await waitFor(() => screen.getByTestId("workspace-detail-loading"));
     expectNoRawMarkerLeak();
-    // workspace is a pure list route; out-of-scope context keys are stripped.
-    expect(window.location.search).toBe("");
+    // targetJobId is the sole detail locator; all other context keys are stripped.
+    expect(window.location.search).toBe("?targetJobId=tj-redline");
   });
 
   it("navigate(report) keeps only reportId and drops route-selected state plus raw markers", async () => {
@@ -302,10 +302,10 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
       );
     });
 
-    await waitFor(() => screen.getByTestId("workspace-plan-list"));
+    await waitFor(() => screen.getByTestId("workspace-detail-loading"));
     expect(
       window.location.pathname + window.location.search + window.location.hash,
-    ).toBe("/workspace");
+    ).toBe("/workspace?targetJobId=tj-popstate");
     expectNoRawMarkerLeak();
   });
 });

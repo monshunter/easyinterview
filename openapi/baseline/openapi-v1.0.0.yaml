@@ -24,7 +24,7 @@ tags:
   - name: Auth
     description: Session bootstrap (email code), session teardown, runtime user context, and public runtime config.
   - name: Uploads
-    description: Pre-signed object-storage URLs for resume / JD attachment uploads.
+    description: Pre-signed object-storage URLs for resume uploads and privacy-export artifacts.
   - name: Resumes
     description: Resume asset registration and retrieval.
   - name: TargetJobs
@@ -526,8 +526,8 @@ paths:
     post:
       tags: [TargetJobs]
       operationId: importTargetJob
-      summary: Import a target job from URL / text / file / manual form
-      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Long-running parse → 202 + Job (`target_import`).
+      summary: Import a target job from pasted JD text
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. The exact paste-only body is queued for long-running parse and returns 202 + Job (`target_import`).
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/XRequestID'
@@ -1034,7 +1034,7 @@ paths:
     get:
       tags: [Reports]
       operationId: listTargetJobReports
-      summary: List feedback reports for a target job (cursor-paginated)
+      summary: Get the canonical-round report overview for a target job
       parameters:
         - name: targetJobId
           in: path
@@ -1042,33 +1042,20 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            type: string
-        - name: pageSize
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int32
-            minimum: 1
-            maximum: 100
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
         - $ref: '#/components/parameters/AcceptLanguage'
         - $ref: '#/components/parameters/XClientVersion'
       responses:
         '200':
-          description: Paginated feedback reports.
+          description: Canonical-round report overview.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/XRequestID'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedFeedbackReport'
+                $ref: '#/components/schemas/TargetJobReportsOverview'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
@@ -1366,8 +1353,6 @@ components:
         - AUTH_UNAUTHORIZED
         - TARGET_IMPORT_FAILED
         - TARGET_JOB_NOT_FOUND
-        - TARGET_IMPORT_SOURCE_INVALID
-        - TARGET_IMPORT_SOURCE_UNAVAILABLE
         - TARGET_INVALID_STATE_TRANSITION
         - PRACTICE_SESSION_CONFLICT
         - PRACTICE_PLAN_NOT_FOUND
@@ -1684,7 +1669,7 @@ components:
       properties:
         purpose:
           type: string
-          enum: [resume, target_job_attachment, privacy_export]
+          enum: [resume, privacy_export]
         fileName:
           type: string
         contentType:
@@ -1736,6 +1721,35 @@ components:
         rawText:
           type: string
           description: Required only when `sourceType` is `paste`.
+
+    ResumeSummary:
+      type: object
+      additionalProperties: false
+      required: [id, title, displayName, language, sourceType, parseStatus, summaryHeadline, hasReadableContent, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        displayName:
+          type: string
+        language:
+          type: string
+        sourceType:
+          type: string
+          enum: [upload, paste]
+        parseStatus:
+          $ref: '#/components/schemas/TargetJobParseStatus'
+        summaryHeadline:
+          oneOf:
+            - type: string
+            - type: 'null'
+        hasReadableContent:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
 
     Resume:
       type: object
@@ -1829,7 +1843,7 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Resume'
+                $ref: '#/components/schemas/ResumeSummary'
 
     UpdateResumeRequest:
       type: object
@@ -1884,76 +1898,15 @@ components:
               $ref: '#/components/schemas/GenerationProvenance'
 
     # ----- TargetJobs -----
-    TargetJobImportSourceURL:
-      type: object
-      required: [type, url]
-      properties:
-        type:
-          type: string
-          const: url
-        url:
-          type: string
-          format: uri
-
-    TargetJobImportSourceManualText:
-      type: object
-      required: [type, rawText]
-      properties:
-        type:
-          type: string
-          const: manual_text
-        rawText:
-          type: string
-
-    TargetJobImportSourceFile:
-      type: object
-      required: [type, fileObjectId]
-      properties:
-        type:
-          type: string
-          const: file
-        fileObjectId:
-          type: string
-          format: uuid
-
-    TargetJobImportSourceManualForm:
-      type: object
-      required: [type, title, rawDescription]
-      properties:
-        type:
-          type: string
-          const: manual_form
-        title:
-          type: string
-        companyName:
-          type: string
-        rawDescription:
-          type: string
-
-    TargetJobImportSource:
-      oneOf:
-        - $ref: '#/components/schemas/TargetJobImportSourceURL'
-        - $ref: '#/components/schemas/TargetJobImportSourceManualText'
-        - $ref: '#/components/schemas/TargetJobImportSourceFile'
-        - $ref: '#/components/schemas/TargetJobImportSourceManualForm'
-      discriminator:
-        propertyName: type
-        mapping:
-          url: '#/components/schemas/TargetJobImportSourceURL'
-          manual_text: '#/components/schemas/TargetJobImportSourceManualText'
-          file: '#/components/schemas/TargetJobImportSourceFile'
-          manual_form: '#/components/schemas/TargetJobImportSourceManualForm'
-
     ImportTargetJobRequest:
       type: object
-      required: [source, targetLanguage, resumeId]
+      additionalProperties: false
+      required: [rawText, targetLanguage, resumeId]
       properties:
-        source:
-          $ref: '#/components/schemas/TargetJobImportSource'
-        titleHint:
+        rawText:
           type: string
-        companyNameHint:
-          type: string
+          minLength: 1
+          pattern: '\S'
         targetLanguage:
           type: string
         resumeId:
@@ -2059,6 +2012,7 @@ components:
     PracticeRoundRef:
       type: object
       required: [roundId, roundSequence]
+      additionalProperties: false
       description: Stable logical identity for one structured TargetJob interview round. The identifier is deterministic and is not a UUID.
       properties:
         roundId:
@@ -2094,7 +2048,7 @@ components:
 
     TargetJob:
       type: object
-      required: [id, status, analysisStatus, title, companyName, targetLanguage, sourceType, requirements, openQuestionIssueCount, createdAt, updatedAt]
+      required: [id, status, analysisStatus, title, companyName, targetLanguage, requirements, openQuestionIssueCount, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -2113,14 +2067,6 @@ components:
             - type: 'null'
         targetLanguage:
           type: string
-        sourceType:
-          type: string
-          enum: [manual_text, url, file, manual_form]
-        sourceUrl:
-          oneOf:
-            - type: string
-              format: uri
-            - type: 'null'
         summary:
           oneOf:
             - $ref: '#/components/schemas/TargetJobSummary'
@@ -2132,11 +2078,6 @@ components:
         fitSummary:
           oneOf:
             - $ref: '#/components/schemas/TargetJobFitSummary'
-            - type: 'null'
-        latestReportId:
-          oneOf:
-            - type: string
-              format: uuid
             - type: 'null'
         currentPracticePlanId:
           oneOf:
@@ -2325,8 +2266,39 @@ components:
         planId:
           type: string
           format: uuid
-    PracticeMessage:
+    PracticeReplyStatus:
+      type: string
+      enum: [pending, retryable_failed, terminal_failed, complete]
+
+    PracticeUserMessage:
       type: object
+      additionalProperties: false
+      required: [id, seqNo, role, content, createdAt, clientMessageId, replyStatus]
+      properties:
+        id:
+          type: string
+          format: uuid
+        seqNo:
+          type: integer
+          format: int32
+          minimum: 1
+        role:
+          type: string
+          enum: [user]
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        clientMessageId:
+          type: string
+          format: uuid
+        replyStatus:
+          $ref: '#/components/schemas/PracticeReplyStatus'
+
+    PracticeAssistantMessage:
+      type: object
+      additionalProperties: false
       required: [id, seqNo, role, content, createdAt]
       properties:
         id:
@@ -2338,12 +2310,22 @@ components:
           minimum: 1
         role:
           type: string
-          enum: [user, assistant]
+          enum: [assistant]
         content:
           type: string
         createdAt:
           type: string
           format: date-time
+
+    PracticeMessage:
+      oneOf:
+        - $ref: '#/components/schemas/PracticeUserMessage'
+        - $ref: '#/components/schemas/PracticeAssistantMessage'
+      discriminator:
+        propertyName: role
+        mapping:
+          user: '#/components/schemas/PracticeUserMessage'
+          assistant: '#/components/schemas/PracticeAssistantMessage'
 
     PracticeSession:
       type: object
@@ -2546,9 +2528,9 @@ components:
         session:
           $ref: '#/components/schemas/PracticeSession'
         userMessage:
-          $ref: '#/components/schemas/PracticeMessage'
+          $ref: '#/components/schemas/PracticeUserMessage'
         assistantMessage:
-          $ref: '#/components/schemas/PracticeMessage'
+          $ref: '#/components/schemas/PracticeAssistantMessage'
 
     CompletePracticeSessionRequest:
       type: object
@@ -2798,15 +2780,80 @@ components:
           type: string
           format: date-time
 
-    PaginatedFeedbackReport:
+    TargetJobReportsOverview:
+      type: object
+      required: [targetJobId, rounds]
+      additionalProperties: false
+      properties:
+        targetJobId:
+          type: string
+          format: uuid
+        rounds:
+          type: array
+          minItems: 2
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/TargetJobReportRoundOverview'
+
+    TargetJobReportRoundOverview:
+      type: object
+      required: [round, currentReport, latestAttempt]
+      additionalProperties: false
+      properties:
+        round:
+          $ref: '#/components/schemas/PracticeRoundRef'
+        currentReport:
+          oneOf:
+            - $ref: '#/components/schemas/TargetJobCurrentReportSummary'
+            - type: 'null'
+        latestAttempt:
+          oneOf:
+            - $ref: '#/components/schemas/TargetJobReportAttemptSummary'
+            - type: 'null'
+
+    TargetJobCurrentReportSummary:
+      type: object
+      required: [id, generatedAt]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        generatedAt:
+          type: string
+          format: date-time
+
+    TargetJobReportAttemptSummary:
+      type: object
+      required: [id, status, errorCode, createdAt]
+      additionalProperties: false
       allOf:
-        - $ref: '#/components/schemas/PaginatedEnvelope'
-        - type: object
-          properties:
-            items:
-              type: array
-              items:
-                $ref: '#/components/schemas/FeedbackReport'
+        - if:
+            required: [status]
+            properties:
+              status:
+                const: failed
+          then:
+            properties:
+              errorCode:
+                $ref: '#/components/schemas/ApiErrorCode'
+          else:
+            properties:
+              errorCode:
+                type: 'null'
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ReportStatus'
+        errorCode:
+          oneOf:
+            - $ref: '#/components/schemas/ApiErrorCode'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
 
     # ----- Resume tailor -----
     RequestResumeTailorRequest:

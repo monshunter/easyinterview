@@ -26,13 +26,16 @@ func TestHandlerImplementsListResumesSurface(t *testing.T) {
 
 func TestListResumesPassesPaginationAndUserScope(t *testing.T) {
 	svc := &fakeListService{out: api.PaginatedResume{
-		Items: []api.Resume{{
-			Id:          "resume-1",
-			Title:       "Resume",
-			Language:    "en",
-			ParseStatus: sharedtypes.TargetJobParseStatusReady,
-			CreatedAt:   "2026-06-13T01:00:00Z",
-			UpdatedAt:   "2026-06-13T01:00:00Z",
+		Items: []api.ResumeSummary{{
+			Id:                 "resume-1",
+			Title:              "Resume",
+			DisplayName:        "Alice CV",
+			Language:           "en",
+			SourceType:         "paste",
+			ParseStatus:        sharedtypes.TargetJobParseStatusReady,
+			SummaryHeadline:    strPtr("Senior engineer"),
+			HasReadableContent: true,
+			UpdatedAt:          "2026-06-13T01:00:00Z",
 		}},
 		PageInfo: api.PageInfo{PageSize: 5, HasMore: true, NextCursor: strPtr("cursor-2")},
 	}}
@@ -55,7 +58,7 @@ func TestListResumesPassesPaginationAndUserScope(t *testing.T) {
 
 func TestListResumesFixtureParity(t *testing.T) {
 	fixture := loadListFixture(t)
-	for _, scenario := range []string{"default", "empty", "paginated"} {
+	for _, scenario := range []string{"default", "empty", "paginated", "projection-boundaries"} {
 		t.Run(scenario, func(t *testing.T) {
 			want := fixture.Scenarios[scenario].Response.Body
 			svc := &fakeListService{out: want}
@@ -78,6 +81,7 @@ func TestListResumesFixtureParity(t *testing.T) {
 			if !reflect.DeepEqual(got, want) {
 				t.Fatalf("fixture parity mismatch\ngot:  %+v\nwant: %+v", got, want)
 			}
+			assertClosedResumeSummaryKeys(t, rec.Body.Bytes())
 		})
 	}
 }
@@ -109,6 +113,43 @@ func (s *fakeListService) ListResumes(_ context.Context, in resume.ListRequest) 
 }
 
 func strPtr(v string) *string { return &v }
+
+func assertClosedResumeSummaryKeys(t *testing.T, body []byte) {
+	t.Helper()
+	var envelope struct {
+		Items []map[string]json.RawMessage `json:"items"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		t.Fatalf("decode summary keys: %v", err)
+	}
+	allowed := map[string]struct{}{
+		"id": {}, "title": {}, "displayName": {}, "language": {}, "sourceType": {},
+		"parseStatus": {}, "summaryHeadline": {}, "hasReadableContent": {}, "updatedAt": {},
+	}
+	for index, item := range envelope.Items {
+		if len(item) != len(allowed) {
+			t.Fatalf("item[%d] keys = %v, want exact closed summary keys", index, mapKeys(item))
+		}
+		for key := range item {
+			if _, ok := allowed[key]; !ok {
+				t.Fatalf("item[%d] contains forbidden detail field %q", index, key)
+			}
+		}
+		for key := range allowed {
+			if _, ok := item[key]; !ok {
+				t.Fatalf("item[%d] missing required summary field %q", index, key)
+			}
+		}
+	}
+}
+
+func mapKeys(in map[string]json.RawMessage) []string {
+	out := make([]string, 0, len(in))
+	for key := range in {
+		out = append(out, key)
+	}
+	return out
+}
 
 type listFixture struct {
 	Scenarios map[string]struct {

@@ -14,9 +14,11 @@ for frontend_file in \
   targetJob.realApiMode.test.ts \
   ParseReports.test.tsx \
   ParseScreen.test.tsx \
+  ParseFlow.test.tsx \
   ParseEdit.test.tsx \
   ParseAuthGate.test.tsx \
   ParseResumeBinding.test.tsx \
+  ParseRoundStates.test.tsx \
   MockInterviewCard.test.tsx \
   HomeRecentMocks.test.tsx \
   interviewContext.test.ts \
@@ -26,18 +28,20 @@ for frontend_file in \
 done
 
 for title in \
-  'readonly plan detail exposes only direct start with bound resume context' \
-  'plan-detail reports entry matches the UI truth and keeps Parse report-free' \
-  'start interview hands off directly to practice with bound resume'; do
+  'workspace detail exposes only direct start with bound resume context' \
+  'workspace detail round states match the UI truth at desktop and mobile' \
+  'workspace plan-detail reports entry matches the UI truth and stays report-list-free' \
+  'workspace start interview hands off directly to practice with bound resume'; do
   grep -Fq "$title" "$LOG_FILE" || { echo "E2E.P0.016: Playwright title missing: $title" >&2; exit 1; }
 done
 
-grep -Fq '6 passed' "$LOG_FILE"
-grep -Fq 'parseListRequestsBeforeClick=0' "$LOG_FILE"
+grep -Fq '8 passed' "$LOG_FILE"
+grep -Fq 'reportListRequestsBeforeClick=0' "$LOG_FILE"
 grep -Fq 'topbarReportsEntry=0' "$LOG_FILE"
 grep -Fq 'embeddedReports=0' "$LOG_FILE"
 grep -Fq 'sectionReportsAccepted=false' "$LOG_FILE"
 grep -Fq 'changedRatio=' "$LOG_FILE"
+grep -Fq 'sequence=done,current,pending distinctBackgrounds=3 distinctBorders=3' "$LOG_FILE"
 grep -Fq 'route=practice noUpdateTargetJob=true' "$LOG_FILE"
 
 if grep -Eq -- '--- FAIL:|^FAIL($|[[:space:]])|no tests to run|\[no tests to run\]|[[:space:]][1-9][0-9]* failed' "$LOG_FILE"; then

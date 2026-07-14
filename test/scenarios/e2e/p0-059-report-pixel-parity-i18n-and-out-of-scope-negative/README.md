@@ -8,7 +8,7 @@
 
 - **Given** `/reports?targetJobId=<uuid>` resolves one trusted TargetJob and its canonical report overview, while Report/Generating retain their reportId-only contracts.
 - **When** `ReportsScreen` renders ready, loading, empty, error, latest-ready, or mismatched-target data at 1440x900 and 390x844.
-- **Then** it shows only the current plan's canonical rounds, each round's `currentReport` and `latestAttempt`, with current/latest-only actions and no full history or global Report Center. Back returns to the same Parse plan; Report/Generating trusted Back remains covered as a regression.
+- **Then** it shows only the current plan's canonical rounds, each round's `currentReport` and `latestAttempt`, with current/latest-only actions and no full history or global Report Center. Back returns to the same target-scoped Workspace detail; Report/Generating trusted Back remains covered as a regression.
 
 ## ReportsScreen contract
 
@@ -16,7 +16,7 @@
 - Renders current report, queued/generating link, typed failed status, and a latest-ready status without adding a second ready/history action.
 - Clears rows for loading, empty, network/contract error and cross-target mismatch; other-plan identifiers and stale report IDs never enter visible or accessible DOM.
 - `ReportsScreen.tsx` is the only production screen consumer of `listTargetJobReports`; Parse, Report and Generating remain zero consumers.
-- Back returns to `/parse?targetJobId=<trusted uuid>`; the route contains only `targetJobId` and the TopBar contains no Reports item.
+- Back returns to `/workspace?targetJobId=<trusted uuid>`; the route contains only `targetJobId`, shows no Parse animation, and the TopBar contains no Reports item.
 
 ## Parity evidence
 

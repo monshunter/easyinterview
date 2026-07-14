@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.17
-> **状态**: active
+> **版本**: 1.19
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -26,7 +26,7 @@
 
 - **Plan 类型**: `contract + tooling + mock-source`
 - **TDD 策略**: fixture coverage、schema validation、provenance、privacy allowlist、UUIDv7 / `tmp_` id scan、prototype sync idempotency、example projection 和 Prism byte-equal smoke 是可执行断言。重进本 plan 时必须先运行对应 gate 暴露 drift，再最小修复 fixture 或工具。
-- **BDD 策略**: 本 plan 不创建本地 BDD 文件，只交付内部 mock data truth source；TargetJob 由 P0.010/P0.015 验收，Practice recovery 必须把 exact fixture markers 交给 frontend-workspace-and-practice/002 与 P0.046。对应 checklist 的 `BDD-Gate` 未通过时不得收口。
+- **BDD 策略**: 本 plan 不创建本地 BDD 文件，只交付内部 mock data truth source；TargetJob 由 P0.010/P0.015 验收，Practice recovery 把 exact fixture markers 交给 P0.046，Resume summary/detail split 把 list/get markers 交给 P0.034/P0.036/P0.037。对应 checklist 的 `BDD-Gate` 未通过时不得收口。
 - **替代验证 gate**: `make validate-fixtures`、`make sync-fixtures-from-prototype`、`make render-openapi-fixture-examples`、`python3 scripts/codegen/prism_fixture_smoke.py`、fixture render/unit tests、`make lint-openapi`、`make codegen-check`、`sync-doc-index --check`。
 
 ## 4 交付范围
@@ -103,6 +103,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-14 | 1.19 | Add Phase 11 for OPENAPI-005 summary-only list fixture, full detail fixture and Prism/mock consumer handoff. | OPENAPI-005 + P0.034/P0.036/P0.037 |
 | 2026-07-14 | 1.16 | Reopen for OPENAPI-004 canonical-round report overview fixtures, prototype projection, Prism parity and latest-report-pointer removal. | OPENAPI-004 + P0.016/P0.059 |
 | 2026-07-13 | 1.15 | Add canonical blank-rawText 422 validation fixture and Practice reload/same-ID recovery plus planned typed failure fixture matrix. | openapi-v1-contract 1.54 + P0.046 |
 | 2026-07-13 | 1.14 | Reopen fixture owner for OPENAPI-002 paste-only TargetJob requests/responses, upload purpose cleanup and runtime projection gates. | OPENAPI-002 + 001/003 + mock-contract-suite/001 |
@@ -191,3 +192,17 @@ Remove `latestReportId` from all TargetJob fixtures and prototype sync logic. Ma
 ### 12.3 Parity and handoff
 
 Validate fixtures, render examples and run live Prism byte parity for `listTargetJobReports` plus affected list/get TargetJob defaults. Pass exact markers to backend-review/frontend-report/mock owners and P0.059；P0.016 only receives the unchanged Parse-entry negative contract. Positive/runtime fixtures must have zero cursor/pageInfo/full report/latestReportId compatibility fields.
+
+## 13 Phase 11: OPENAPI-005 Resume list summary fixtures
+
+### 11.1 Summary-only list fixture
+
+Replace every `Resumes/listResumes.json` item with the exact closed nine-field projection `id/title/displayName/language/sourceType/parseStatus/summaryHeadline/hasReadableContent/updatedAt`. Cover upload/paste, queued/processing/ready/failed, nullable headline and both readable-content boolean values without copying raw/source/profile/provenance detail. Cases must make the projection semantics observable: whitespace-only headline/body and empty `structured_profile` map to null/false, while a trim-nonempty snapshot/original or nonempty-object profile maps to true; `fileObjectId`、`sourceType`、`parseStatus` alone never map to true. Focused fixture tests must RED on any omitted required field, extra property or old full `Resume` item.
+
+### 11.2 Full detail fixture and validator split
+
+Keep `Resumes/getResume.json` on the complete `Resume` contract, including source/body/structured profile/provenance cases required by detail consumers. Update validator provenance routing so full `Resume` remains checked while `listResumes.items[*].structuredProfile.provenance` is no longer expected. Fixture/schema tests must prove list and detail cannot be substituted for each other.
+
+### 11.3 Example, Prism, mock and BDD handoff
+
+Render examples and run byte-equal Prism/mock parity for both `listResumes` and `getResume`; inventory remains 37 fixtures / 37 operations. Hand the summary/full markers to backend-resume, all generated frontend consumers and mock-contract-suite in the same batch. P0.034 consumes backend register/list projection, P0.036 consumes summary-only flat list/auth/navigation, and P0.037 consumes full read-only detail. No fixture compatibility scenario or frontend detail-fetch fallback is allowed.

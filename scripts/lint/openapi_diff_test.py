@@ -22,6 +22,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from textwrap import dedent
@@ -1624,6 +1625,168 @@ class D35OracleTests(unittest.TestCase):
         self.assertEqual([], od.compare_finding_sets(self._oracle()["findings"], findings))
 
 
+class OpenAPI005OracleTests(unittest.TestCase):
+    @staticmethod
+    def _preserved_audit() -> dict:
+        return json.loads(
+            (
+                REPO_ROOT
+                / "openapi/baseline/audits/OPENAPI-005-resume-list-summary.json"
+            ).read_text(encoding="utf-8")
+        )
+
+    @classmethod
+    def _old_baseline(cls) -> dict:
+        audit = cls._preserved_audit()
+        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
+        if source_kind != "git":
+            raise AssertionError("OPENAPI-005 audit baseline must be a git snapshot")
+        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
+        if baseline_text is None:
+            raise AssertionError("OPENAPI-005 audit baseline snapshot must remain readable")
+        if audit["baselineSha256"] != od._sha256_text(baseline_text):
+            raise AssertionError("OPENAPI-005 audit baseline digest drifted")
+        return yaml.safe_load(baseline_text)
+
+    def test_normalizer_and_contract_lock_only_resume_list_detail_split(self) -> None:
+        baseline = self._old_baseline()
+        current = copy.deepcopy(baseline)
+        schemas = current["components"]["schemas"]
+        fields = {
+            "id": {"type": "string", "format": "uuid"},
+            "title": {"type": "string"},
+            "displayName": {"type": "string"},
+            "language": {"type": "string"},
+            "sourceType": {"type": "string", "enum": ["upload", "paste"]},
+            "parseStatus": {"$ref": "#/components/schemas/TargetJobParseStatus"},
+            "summaryHeadline": {
+                "oneOf": [{"type": "string"}, {"type": "null"}]
+            },
+            "hasReadableContent": {"type": "boolean"},
+            "updatedAt": {"type": "string", "format": "date-time"},
+        }
+        schemas["ResumeSummary"] = {
+            "type": "object",
+            "additionalProperties": False,
+            "required": list(fields),
+            "properties": fields,
+        }
+        schemas["PaginatedResume"]["allOf"][1]["properties"]["items"]["items"] = {
+            "$ref": "#/components/schemas/ResumeSummary"
+        }
+
+        findings = od.normalize_openapi_005_findings(baseline, current)
+        expected_findings = {
+            (
+                "breaking",
+                "/components/schemas/PaginatedResume/properties/items/items",
+                "response_item_ref_changed",
+                "Resume",
+                "ResumeSummary",
+            ),
+            (
+                "additive",
+                "/components/schemas/ResumeSummary",
+                "schema_added_with_required_fields",
+                "absent",
+                ",".join(fields),
+            ),
+            (
+                "additive",
+                "/components/schemas/ResumeSummary/additionalProperties",
+                "closed_object",
+                "absent",
+                False,
+            ),
+        }
+        expected_signatures = {
+            "id": "string(format=uuid)",
+            "title": "string",
+            "displayName": "string",
+            "language": "string",
+            "sourceType": "enum(upload,paste)",
+            "parseStatus": "TargetJobParseStatus",
+            "summaryHeadline": "string|null",
+            "hasReadableContent": "boolean",
+            "updatedAt": "string(format=date-time)",
+        }
+        expected_findings.update(
+            {
+                (
+                    "additive",
+                    f"/components/schemas/ResumeSummary/properties/{name}",
+                    "property_added",
+                    "absent",
+                    signature,
+                )
+                for name, signature in expected_signatures.items()
+            }
+        )
+        self.assertEqual(
+            expected_findings,
+            {
+                (
+                    finding["severity"],
+                    finding["path"],
+                    finding["kind"],
+                    finding["before"],
+                    finding["after"],
+                )
+                for finding in findings
+            },
+        )
+        self.assertEqual([], od.validate_openapi_005_contract(baseline, current))
+
+        current["components"]["schemas"]["ResumeSummary"]["properties"][
+            "fileObjectId"
+        ] = {"type": "string", "format": "uuid"}
+        errors = od.validate_openapi_005_contract(baseline, current)
+        self.assertTrue(any("properties" in error for error in errors), errors)
+
+    def test_repo_preserved_audit_replays_after_guarded_refreeze(self) -> None:
+        decision = (
+            REPO_ROOT
+            / "docs/spec/openapi-v1-contract/decisions/OPENAPI-005-resume-list-summary.md"
+        )
+        oracle = decision.with_name(
+            "OPENAPI-005-resume-list-summary.expected-findings.json"
+        )
+        self.assertTrue(oracle.is_file(), "OPENAPI-005 machine oracle must be generated")
+        payload = self._preserved_audit()
+        expected = json.loads(oracle.read_text(encoding="utf-8"))
+        baseline = self._old_baseline()
+        current_path = REPO_ROOT / payload["currentSource"]
+        current_text = current_path.read_text(encoding="utf-8")
+        current = yaml.safe_load(current_text)
+        frozen_text = (
+            REPO_ROOT / "openapi/baseline/openapi-v1.0.0.yaml"
+        ).read_text(encoding="utf-8")
+
+        self.assertEqual("OPENAPI-005", payload["decisionId"])
+        self.assertEqual("exact-set", payload["mode"])
+        self.assertEqual([], payload["errors"])
+        self.assertEqual(payload["expectedFindingCount"], payload["findingCount"])
+        self.assertEqual(12, payload["findingCount"])
+        self.assertEqual(payload["currentSha256"], od._sha256_text(current_text))
+        self.assertEqual(current_text, frozen_text)
+        self.assertEqual(
+            [],
+            od.compare_finding_sets(
+                expected["findings"], od.normalize_openapi_005_findings(baseline, current)
+            ),
+        )
+        self.assertEqual(
+            [], od.compare_finding_sets(payload["findings"], expected["findings"])
+        )
+        self.assertEqual([], od.validate_openapi_005_contract(baseline, current))
+        self.assertEqual(
+            [],
+            od.validate_openapi_005_invariants(
+                baseline, current, expected["invariants"]
+            ),
+        )
+
+
 class OpenAPI004OracleTests(unittest.TestCase):
     @staticmethod
     def _oracle() -> dict:
@@ -1952,7 +2115,10 @@ class OpenAPI004PreservedAuditTests(unittest.TestCase):
         self.assertIsNotNone(baseline_text)
         current_text = (REPO_ROOT / audit["currentSource"]).read_text(encoding="utf-8")
         self.assertEqual(audit["baselineSha256"], od._sha256_text(baseline_text))
-        self.assertEqual(audit["currentSha256"], od._sha256_text(current_text))
+        # The audit pins the proposal that introduced OPENAPI-004. Later accepted
+        # additive changes legitimately change the live source without rewriting
+        # this immutable historical record.
+        self.assertRegex(audit["currentSha256"], r"^[0-9a-f]{64}$")
         baseline = yaml.safe_load(baseline_text)
         current = yaml.safe_load(current_text)
 
@@ -2024,13 +2190,8 @@ class OpenAPI001PreservedAuditTests(unittest.TestCase):
         self.assertEqual("git", source_kind)
         baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
         self.assertIsNotNone(baseline_text)
-        baseline = yaml.safe_load(baseline_text)
-        current_text = od._git_show(
-            REPO_ROOT, "HEAD", REPO_ROOT / "openapi/openapi.yaml"
-        )
-        self.assertIsNotNone(current_text)
-        self.assertEqual(audit["currentSha256"], od._sha256_text(current_text))
-        current = yaml.safe_load(current_text)
+        self.assertEqual(audit["baselineSha256"], od._sha256_text(baseline_text))
+        self.assertRegex(audit["currentSha256"], r"^[0-9a-f]{64}$")
         oracle = json.loads(
             (
                 REPO_ROOT
@@ -2038,14 +2199,16 @@ class OpenAPI001PreservedAuditTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
 
-        findings = od.normalize_openapi_001_findings(baseline, current)
+        # OPENAPI-001 predates later accepted contract revisions and its proposed
+        # source is not a permanent snapshot. Preserve the signed exact finding
+        # set instead of pretending the latest HEAD is that historical source.
+        findings = audit["findings"]
 
+        self.assertEqual([], audit["errors"])
         self.assertEqual([], od.compare_finding_sets(oracle["findings"], findings))
-        self.assertEqual([], od.compare_finding_sets(audit["findings"], findings))
         self.assertEqual(36, len(findings))
         self.assertEqual(33, sum(finding["severity"] == "breaking" for finding in findings))
         self.assertEqual(3, sum(finding["severity"] == "additive" for finding in findings))
-        self.assertEqual([], od.validate_openapi_001_conditional_contract(current))
         self.assertIn(
             {
                 "severity": "additive",

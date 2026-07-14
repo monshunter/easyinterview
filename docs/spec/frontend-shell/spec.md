@@ -1,7 +1,7 @@
 # Frontend Shell Spec
 
-> **版本**: 1.28
-> **状态**: active
+> **版本**: 1.30
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 ## 1 背景与目标
@@ -23,9 +23,10 @@
 - `requestAuth(pendingAction)`：未登录用户触发受保护动作时进入登录页，登录和资料补全完成后恢复 safe route params。
 - Email-code auth：`auth_verify` 承接 6 位验证码输入，通过 generated `verifyAuthEmailChallenge` 完成验证。
 - Runtime bootstrap：`getRuntimeConfig`、`getMe`、generated client、fixture-backed mock transport and dev mock session state。
+- GET request orchestration：React StrictMode 保持开启；同一逻辑 GET 的同时在途调用共享一个底层 request，并在 settle 后立即驱逐，不成为数据缓存。
 - URL-addressable routing：Browser History canonical path + query，支持直开、刷新、复制链接和 back/forward。
 - Protected route guard：业务 route 只在 runtime auth 明确 authenticated 后挂载 screen 和调用受保护 API。
-- Display preferences：主题、暗色、语言下拉、字体预设；默认主题和无效值 fallback 为 `ocean`；当前 TopBar 只提供 `ocean` / `plum` 两个预定义主题和 custom accent。
+- Display preferences：主题、暗色、语言下拉、字体预设；默认主题和无效值 fallback 为 `ocean`；当前 TopBar 只提供 `ocean` / `plum` 两个预定义主题和只含色相、饱和度控件的 custom accent。
 
 ### 2.2 Out of Scope
 
@@ -49,6 +50,9 @@
 | D-8 | UI truth source | `docs/ui-design/` + `ui-design/` | 可见 UI 变更先更新静态原型，再迁移正式前端 |
 | D-9 | 主题色范围 | 预定义主题只保留 `ocean` / `plum`，另保留 custom accent | 移除 `warm` / `forest` active palette、TopBar option 和 locale 文案 |
 | D-10 | 规划范围报告路由 | `/reports?targetJobId=<uuid>` 是受保护的上下文 route，chrome visible，但不属于 TopBar 一级导航 | safe params 只允许 `targetJobId`；全局一级导航仍严格保持三入口 |
+| D-11 | Safe-read single-flight | 保留 React StrictMode；只合并同一 client、method/path/query、规范化相关 header、normalized `okStatuses`、read/auth epoch 与 auth scope 下、且没有 caller `AbortSignal` 的语义只读在途 GET | resolve/reject 后驱逐；不同 client/query/header/okStatuses/epoch/auth 不合并；带 signal、非 GET 与语义写入 GET（含 `/auth/email/verify`）永不合并；所有语义写请求在 dispatch 前与 settle 后都推进 read epoch |
+| D-12 | 规划 route 分工 | `/parse?targetJobId` 只承载刚导入规划的 queued/processing 命令进度；`/workspace` 展示列表，`/workspace?targetJobId` 展示只读详情 | ready 初读或轮询转 ready 必须 replace 到 workspace 详情；已解析卡片不再经过 Parse 动画 |
+| D-13 | Custom accent 最小控件 | `CustomAccentPicker` 只保留色相与饱和度；选择 Ocean / Plum 是退出自定义色的唯一清晰路径 | 删除 preview/value 区、恢复默认色按钮与 `onClear` / `active` 冗余 props，不增加第二套 reset 语义 |
 
 ## 4 设计约束
 
@@ -56,12 +60,15 @@
 - `practice` 和 `generating` 可以隐藏 TopBar；其他 route 默认保留 App chrome。
 - `reports` 保留 App chrome 但不得加入 `PRIMARY_NAV_ROUTES` / TopBar；直开、刷新、back/forward 和 auth continuation 只保留合法 `targetJobId`。
 - `parse` 不接受 `section=reports`；`report` / `generating` 的资源 locator 只接受 `reportId`。报告状态、target/round/resume 等业务事实必须由受保护 API response 提供，不能由 query/pendingAction 注入。
+- `/workspace` 只允许可选 `targetJobId`；`planId`、`resumeId`、auto-start 和其他业务状态必须剔除。`/parse` 只允许 `targetJobId` 并作为 command/progress route；ready 后使用 replace 导航到 `/workspace?targetJobId`。
 - `pendingAction` 只包含 route name、canonical URL 和 safe params，例如 `targetJobId`、`resumeId`、`planId`、`sessionId`、`reportId`、`roundId`、`flow`、`tab`、`mode`、`modality`、`next`。
 - 登录成功恢复 route 前必须检查最新 `/me.profileCompletionRequired`；仍为 true 时进入 `auth_profile_setup` 并保留 safe pendingAction。
 - `auth_verify` 只从受控 input 读取 6 位验证码；验证码不得进入 URL、pendingAction、storage 或 browser navigation chain。
 - `auth_verify` 的错误语义必须区分 code verification 与 post-verify profile context refresh；verify 成功后的 `/me` failure 由 route gate 表达，不渲染为验证码错误。
 - 公共 auth route 可以跳过首次 `/me` probe，但 skip 在 provider lifecycle 内只能消费一次；`refreshAuth(user)` 后的 request options 变化必须执行真实 `/me` refresh。
 - Home 可未登录访问；账号记录数据只在 authenticated 状态请求和渲染。
+- Safe-read single-flight key 必须包含 client identity、HTTP method、path、canonical query、规范化的相关 request headers、normalized `okStatuses`、read/auth epoch 和 auth/session scope。只在 Promise 未 settle 时复用；resolve/reject 都删除 registry entry。caller `AbortSignal`、非 GET 与语义写入 GET 绕过合并，避免共享取消所有权或改变写请求语义。每个语义写请求必须在 dispatch 前推进一次 read epoch，并在 resolve/reject settle 后再次推进，确保 mutation 期间与 mutation 后的读请求都不能复用 mutation 前的 in-flight。`/auth/email/verify` 虽使用 GET wire method，但会消费 challenge/更新 session，必须按语义写请求 bypass；成功后还要推进 auth/session epoch，使后续 `/me` 与业务读取不复用认证前 scope。
+- `AppRuntimeProvider`、Home / `useRecentTargetJobs`、Parse、`useWorkspaceTargetJobs`、Reports 和 Practice 等 screen loader effect 只依赖稳定 client/auth/request-option/route identity 输入，不依赖每次 render 都变化的整体 runtime object；locale、auth scope 或 epoch 变化仍必须产生新的 request key 和真实 refresh。
 - `#route=...` adapter 仅服务 static preview / pixel parity / scenario harness 输入，解析后仍进入同一 route normalization and canonical URL layer。
 - TopBar language dropdown 从 locale catalog 渲染；locale priority 为用户显式选择 > browser locale > `en` fallback，并通过 `Accept-Language` 作为 display hint。
 - UI implementation 必须源级追溯到 `docs/ui-design/` 与 `ui-design/`：DOM 构图、布局、间距、字号、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏都以原型为准。
@@ -91,6 +98,9 @@
 | C-9 | Canonical URL | 用户打开、刷新或复制 frontend URL | Browser History parse / back / forward | Route、safe params、chrome behavior 和 auth gate 保持一致 | 004-url-addressable-routing |
 | C-10 | UI parity | Shell / TopBar / Auth / Settings 可见 UI 变更 | 运行 visual smoke / pixel parity owner gates | 正式前端与 `ui-design/` 源码结构和关键 computed style 对齐 | 002-app-shell-visual-system / 003-ui-design-pixel-parity-gate |
 | C-11 | Reports deep link | 用户直开/刷新 `/reports?targetJobId=<uuid>`，或未登录后完成鉴权 | route normalize / history / pendingAction restore | 仅合法 targetJobId 被保留并进入受保护 ReportsScreen；缺失/非法 target 以 replace-only 回 workspace 且不形成 Back 循环；chrome visible、TopBar 无报告入口；旧 `section` 与 report/status/round 等 query 被剔除 | 004-url-addressable-routing |
+| C-12 | StrictMode safe-read 去重 | AppRuntimeProvider 或 Home/Parse/Workspace/Reports/Practice loader 在 StrictMode mount cycle 内发出同 key safe-read GET | 两个 caller 同时等待、settle 后重试、使用不同 `okStatuses`，或在任一语义写请求前/期间/settle 后读取 | 同时在途只产生一次底层 GET；settle 后重试产生新 GET；不同 client/query/header/okStatuses/epoch/auth、带 signal、非 GET 与 verify GET 均不合并；所有语义写请求 dispatch 前和 settle 后推进 read epoch，verify 成功另推进 auth/session epoch并真实刷新 | 001-app-shell-auth-settings |
+| C-13 | Parse/workspace route 分工 | TargetJob 为 queued/processing 或 ready | 打开 `/parse?targetJobId`、轮询转 ready、或打开 ready 卡片 | Parse 只在处理中展示进度；ready 使用 replace 进入 `/workspace?targetJobId`；无 target 的 workspace 仍为列表，详情不显示 Parse 动画 | 004-url-addressable-routing |
+| C-14 | Custom accent 最小选择器 | TopBar 主题菜单打开 | 用户调整自定义色或选择 Ocean / Plum | 只显示色相、饱和度；不显示 preview/value、恢复主题默认色按钮；选择预定义主题清晰退出 custom accent | 002-app-shell-visual-system |
 
 ## 7 关联计划
 
@@ -103,6 +113,8 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.30 | 2026-07-14 | Add normalized `okStatuses` to safe-read identity and require every semantic mutation to advance read epoch before dispatch and after settle. |
+| 1.29 | 2026-07-14 | Add StrictMode-safe GET single-flight, command-only Parse versus query-addressed Workspace detail, and the minimal hue/saturation custom-accent picker. |
 | 1.28 | 2026-07-14 | Add protected target-scoped `/reports` with targetJobId-only routing, no TopBar entry, no Parse section compatibility, and reportId-only detail/generating locators. |
 | 1.27 | 2026-07-09 | 收敛 TopBar 主题色范围为 deep ocean / plum / custom accent，移除 warm / forest active UI 合同。 |
 | 1.26 | 2026-07-07 | 压缩 active spec 为当前 App shell、email-code auth、settings、display、URL 和 route-guard 合同。 |

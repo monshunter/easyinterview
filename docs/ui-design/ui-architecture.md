@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.30
+> **版本**: 2.32
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -23,6 +23,9 @@
 9. 当前只开放连续文本面试；电话入口置灰，不产生 `phone` / `voice` route state，通用 speech 基础设施留待后续重新评审。
 10. 顶栏主题色、暗色模式、语言下拉和设置页字体预设是全局显示控制，不属于业务模块。
 11. Desktop TopBar 保持 58px 单行节奏；`<=720px` 使用内容驱动的响应式换行，primary nav 独占下一行，`<=460px` 收起品牌文字并限制语言标签宽度。移动端页面内容必须从 TopBar 实际底部开始，所有控件与导航都留在 viewport 内，不允许用固定 58px 或横向页面溢出来伪造对齐。
+12. Custom accent picker 只保留色相与饱和度两个调整维度；不展示额外 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean 或 Plum 是退出自定义色的唯一清晰路径。
+13. `/workspace` 是无参规划列表，`/workspace?targetJobId=...` 是统一只读规划详情；ready 卡片直接进入详情。`/parse?targetJobId=...` 只承接新导入 queued/processing 命令进度，ready 后 replace 到 Workspace 详情。
+14. Practice 的 persisted user/assistant text 通过 `react-markdown + remark-gfm` 安全投影；`skipHtml`、no `rehypeRaw`、no remote image、safe link，send/retry 仍使用原始 text/clientMessageId。
 
 ## 3 目标产品骨架
 
@@ -31,7 +34,8 @@
 ├─ TopBar
 │  ├─ Brand: E mark + EasyInterview
 │  ├─ Primary nav: 首页 / 面试 / 简历
-│  ├─ Theme / dark / language
+│  ├─ Theme: Ocean / Plum / Custom hue + saturation
+│  ├─ Dark / language
 │  └─ User menu: 设置与隐私 / 退出登录
 ├─ Home / 首页
 │  ├─ 粘贴 JD 输入框（唯一 JD intake）
@@ -41,7 +45,8 @@
 │  └─ 最近模拟面试（最多 3 条 + 更多）
 ├─ Interview / 面试
 │  ├─ 面试规划列表（一级入口默认 landing）
-│  ├─ 面试规划详情 / 面试上下文确认（Parse 母版统一承接首次核对与回访；右上角进入当前规划报告）
+│  ├─ 面试规划详情 / 面试上下文确认（Workspace targetJobId 只读母版；右上角进入当前规划报告）
+│  ├─ Parse 命令进度（只承接新导入 queued/processing，ready 后 replace 到 Workspace 详情）
 │  ├─ JD / 简历 / InterviewRound
 │  └─ 立即面试
 ├─ Interview Session
@@ -49,6 +54,7 @@
 │  ├─ 电话入口置灰
 │  ├─ 即时 user row + pending interviewer thinking
 │  ├─ server-owned reply state + failed-row same-ID retry
+│  ├─ user/assistant safe Markdown/GFM projection
 │  └─ 结束并生成报告
 ├─ Reports / 当前规划报告
 │  ├─ 当前 TargetJob canonical rounds
@@ -79,6 +85,9 @@
 ├─ 面试
 ├─ 简历
 ├─ 主题色菜单
+│  ├─ Ocean
+│  ├─ Plum
+│  └─ Custom accent: 色相 + 饱和度
 ├─ 暗色模式
 ├─ 语言下拉
 └─ 用户区
@@ -116,8 +125,9 @@ Home
 │     └─ Resume Intake
 │
 ├─ 立即面试（选择简历下方）
-│  └─ Interview Plan Detail / Context Confirm(resumeId 已绑定)
-│     └─ Interview Session 或保存后回到面试规划列表
+│  └─ Parse queued/processing(targetJobId)
+│     └─ ready replace -> Workspace Interview Plan Detail(targetJobId, resume 已绑定)
+│        └─ Interview Session
 ├─ 最近模拟面试
 │  ├─ 最多 3 条快捷卡片
 │  └─ 更多 -> 面试规划列表
@@ -125,7 +135,7 @@ Home
 Interview / 面试
 ├─ 面试规划列表
 │  ├─ 已有 TargetJob / JD 候选规划
-│  ├─ 打开统一面试规划详情
+│  ├─ 卡片直达 Workspace 统一只读面试规划详情
 │  └─ 从新 JD 创建规划 -> Home
 
 Mock Interview Plan
@@ -142,7 +152,7 @@ ReportDashboard
 └─ 进入下一轮 -> Interview Session(next round)
 
 ReportsScreen(targetJobId)
-├─ Back -> InterviewPlanDetail(targetJobId)
+├─ Back -> Workspace InterviewPlanDetail(targetJobId)
 ├─ current report -> ReportDashboard(reportId)
 └─ latest generating -> ReportGenerating(reportId)
 ```
@@ -210,12 +220,18 @@ ROUTE_ALIASES
 5. Pixel parity 和 route tests 必须覆盖范围外入口负向断言。
 6. Home 必须只保留 JD textarea、ready Resume 下拉框和主 CTA；正式前端与静态原型都不得保留其他 JD intake 控件或弹窗，desktop 1440px 与 mobile 390px 截图必须证明该单一路径。
 7. Practice transient optimistic row 不得成为跨刷新事实源；`getPracticeSession` 必须恢复 user `clientMessageId/replyStatus`，pending/retryable/terminal/complete UI 由该服务端投影收敛。
-8. `ReportsScreen(targetJobId)` 是受保护、chrome-visible 的上下文页面，入口仅在规划详情内容区右上角；TopBar 仍严格为三入口。Parse 不嵌入列表或保留 `section=reports`，Report/Generating trusted Back 返回 ReportsScreen。
+8. `ReportsScreen(targetJobId)` 是受保护、chrome-visible 的上下文页面，入口仅在 Workspace 规划详情内容区右上角；TopBar 仍严格为三入口。Parse 不渲染 ready 详情、不嵌入列表或保留 `section=reports`，Reports Back 返回 Workspace detail，Report/Generating trusted Back 返回 ReportsScreen。
+9. `CustomAccentPicker` 只允许 hue/saturation DOM 与更新回调。prototype/formal/source gate 必须证明 preview/value/reset 区、“恢复主题默认色 / Reset to theme accent”双语文案及仅为旧 UI 服务的 `onClear` / `active` props 零引用；选择 Ocean / Plum 恢复预定义主题。
+10. Theme menu 的 1440 desktop 与 390 mobile parity 必须覆盖 DOM、computed style、bounding box、viewport containment 与 screenshot；删除旧区域后不得留下空白占位或横向溢出。
+11. Route/parity gate 必须证明 query-free Workspace 列表、targetJobId Workspace 详情和 Parse command-progress 三态互斥；ready 卡片详情执行一次同 key `getTargetJob`，不得 import、poll、播放 Parse animation 或在 route side 启动 session。
+12. Practice message renderer 必须同时覆盖 user/assistant GFM、raw HTML/remote image/unsafe URI 负向、安全 link、exact raw same-ID retry，以及 390px pre/code/table 局部滚动且 document 无横向溢出。
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.32 | 将 Workspace 拆为无参列表与 targetJobId 只读详情，Parse 收窄为新导入命令进度；Reports/terminal 返回详情，并加入 Practice 安全 Markdown/GFM 投影边界。 |
+| 2026-07-14 | 2.31 | 将 CustomAccentPicker 收敛为色相与饱和度，并以 Ocean / Plum 作为退出自定义色的唯一清晰路径。 |
 | 2026-07-14 | 2.30 | 增加 target-scoped ReportsScreen 上下文层级；Parse 仅保留内容区入口，TopBar 仍三入口，报告详情仍是唯一内容形态。 |
 | 2026-07-13 | 2.29 | Practice conversation 增加服务端可恢复 reply state、即时消息/思考态与 failed-row same-ID retry 架构。 |
 | 2026-07-13 | 2.28 | Home JD intake 收敛为唯一粘贴文本框，保留 ready 简历选择与主 CTA，并要求 desktop/mobile 截图验收。 |

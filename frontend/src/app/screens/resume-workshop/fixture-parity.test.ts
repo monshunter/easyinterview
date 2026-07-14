@@ -5,7 +5,7 @@ import {
   createFixtureBackedFetch,
   createFixtureRegistry,
 } from "../../../api/mockTransport";
-import { mapResumeToUiSource } from "./adapters/resume";
+import { mapResumeSummaryToUiSource } from "./adapters/resume";
 
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
@@ -47,15 +47,23 @@ describe("Resumes fixture parity (flat D-20 model, counts derived from fixture b
     expect(result.pageInfo.nextCursor).toBeTruthy();
   });
 
-  it("listResumes default scenario items are all flat resumes without tree fields", async () => {
+  it("listResumes items contain exactly the summary projection", async () => {
     const client = buildClient("default");
     const result = await client.listResumes();
-    expect(result.items.every((r) => typeof r.id === "string")).toBe(true);
-    expect(
-      result.items.every(
-        (r) => !("resumeAssetId" in r) && !("versionType" in r),
-      ),
-    ).toBe(true);
+    const expectedKeys = [
+      "displayName",
+      "hasReadableContent",
+      "id",
+      "language",
+      "parseStatus",
+      "sourceType",
+      "summaryHeadline",
+      "title",
+      "updatedAt",
+    ];
+    for (const item of result.items) {
+      expect(Object.keys(item).sort()).toEqual(expectedKeys);
+    }
   });
 
   it("getResume default scenario returns the flat resume body verbatim", async () => {
@@ -78,7 +86,7 @@ describe("Resumes fixture parity (flat D-20 model, counts derived from fixture b
   it("listResumes adapter mapping preserves count derived from fixture body", async () => {
     const client = buildClient("default");
     const result = await client.listResumes();
-    const ui = result.items.map(mapResumeToUiSource);
+    const ui = result.items.map(mapResumeSummaryToUiSource);
     expect(ui.length).toBe(
       listResumesFixture.scenarios.default.response.body.items.length,
     );

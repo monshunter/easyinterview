@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -16,6 +16,15 @@
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.034 行（关联需求 `backend-resume C-1, C-2, C-5, C-6, C-7, C-8`，状态 Ready，automated）
 - [x] L2 remediation：trigger/verify 检查 `TestRegisterResumeValidationErrorsReturnUnprocessableEntity`、`TestListResumesInvalidCursorReturnsUnprocessableEntity`，证明 upload validation / invalid cursor 不会被 500 掩盖 <!-- verified: 2026-05-13 method=scenario log=.test-output/e2e/p0-034-resume-register-and-list/trigger.log -->
 - [x] D-16 remediation：trigger/verify 或 focused substitute gate 检查 `resume.maxActive` 达到默认 10 时新 register 返回 422、不创建 resume/job，且同 IK replay 不误拒。<!-- verified: 2026-07-07 method=focused-substitute tests=TestRegisterResumePassesConfiguredActiveLimitToStore,TestCreateWithParseJobRejectsNewResumeWhenActiveLimitReached,TestCreateWithParseJobAllowsIdempotentReplayAtActiveLimit -->
+
+## Phase 15 closed summary and cross-owner consumers
+
+- [x] P0.034 seed 为 list rows 填充正文、snapshot、structured profile、file object、parsed summary 与审计时间，确保 forbidden-field absence 不是因为源数据为空。 <!-- verified: 2026-07-14 method=scenario-seed result=PASS -->
+- [x] P0.034 trigger 执行 store summary projection、service mapper、handler JSON exact-key、full get detail 与真实 cmd/api register/get/list tests；verify 检查所有 exact PASS marker 并拒绝 skip/no-op。 <!-- verified: 2026-07-14 method=scenario result=PASS evidence="method=cmd-api-http; projection/service/handler/full-get markers present" -->
+- [x] P0.034 verify 断言每个 summary exact keys 为 `id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt`，逐项 forbidden detail fields absent，分页与 cross-user 仍通过。 <!-- verified: 2026-07-14 method=scenario-verify result=PASS evidence="exact keys=9; scalar SQL only; pagination and cross-user PASS" -->
+- [x] P0.036 fixture/client 保持 `PaginatedResume` 外层，仅将 `items` 改为 `ResumeSummary[]`；list/Home selector 不读取正文/structured profile；`summaryHeadline` / `hasReadableContent` 覆盖可见列表需求。 <!-- verified: 2026-07-14 method=scenario result=PASS evidence="5/5; summaryFields=9; list transport=1" -->
+- [x] P0.037 证明 list payload 不预取或透传 full detail，点击 row 后才由 `getResume` 提供正文与结构化详情。 <!-- verified: 2026-07-14 method=scenario+browser result=PASS evidence="8/8; get before open=0, after open=1; ready detail initial=1 maxInFlight=1" -->
+- [x] 执行 P0.034、P0.036、P0.037 `setup → trigger → verify → cleanup` 全 PASS，并记录 fixture key diff、store projection SQL evidence、full get parity 与真实 scenario logs。 <!-- verified: 2026-07-14 method=scenario-lifecycle result=PASS evidence="all three fresh on current source; P0.034 full lifecycle and P0.036/P0.037 wrappers PASS" -->
 
 ## E2E.P0.035 resume.parse async job lifecycle
 

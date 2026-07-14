@@ -1,6 +1,6 @@
 # 002 — Practice Continuous Text Conversation
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -11,14 +11,14 @@
 
 ## 1 目标
 
-把 Practice UI 从“左侧题目地图 + 当前题卡 + 对话”改为“Top Bar + 全宽连续聊天”，删除专用 hint/mode/phone surface；电话图标保留为 disabled affordance。正式实现必须先修改 `ui-design/src/screen-practice.jsx`，再源级迁移。Phase 10 按已确认 T-B/P-A 把 backend 90 秒 pending lease 与 frontend 95 秒 POST timeout + 同 ID reconciliation 配对，并为 terminal failure 提供唯一、精确返回当前 `parse(targetJobId)` 面试规划的通用 CTA。
+把 Practice UI 维持为 Top Bar + 全宽连续聊天。Phase 11 为 user/assistant persisted text 增加安全 Markdown/GFM view projection：`react-markdown + remark-gfm`，启用 `skipHtml` 且不使用 `rehypeRaw`，禁止 remote image/unsafe URI；发送和 same-ID retry 始终使用原始 `message.text/clientMessageId`。
 
 ## 2 Operation Matrix
 
 | operationId | fixture current / planned | frontend consumer | backend handler / service / store | persistence | AI | scenario |
 |-------------|---------------------------|-------------------|-----------------------------------|-------------|----|----------|
-| `getPracticeSession` | current `getPracticeSession.json::{default,missing-session,prototype-baseline,reply-pending,reply-retryable-failed,reply-terminal-failed,reply-complete}` | `usePracticeSessionLoader.ts` + `PracticeScreen` rehydration/timeout reconciliation | `Handler.GetPracticeSession` → `Service.GetPracticeSession` → `SQLRepository.GetSession`；backend Phase 11 lazily converges expired lease | public `client_message_id/reply_status`；backend-only generation/lease | none | `E2E.P0.044`, `E2E.P0.046` |
-| `sendPracticeMessage` | current `sendPracticeMessage.json::{default,ai-timeout-retryable,validation-empty-text,auth-unauthorized,session-not-found,reply-pending-conflict,client-message-mismatch,retry-success-same-client-message}`；transport timeout is a fetch/Abort test | `usePracticeMessages.ts` + `PracticeScreen` row-local retry/95-second timeout | `Handler.SendPracticeMessage` → `Service.SendPracticeMessage` → SQL reserve/fail/commit with backend-only generation fence | public reply status；backend-only 90-second lease/generation；task-runs | `practice.session.chat` | `E2E.P0.044`, `E2E.P0.046` |
+| `getPracticeSession` | current fixtures unchanged | loader/rehydration + safe Markdown/GFM projection of raw user/assistant text | existing handler/service/repository | raw text/reply facts unchanged | none | `E2E.P0.044`, `E2E.P0.046` |
+| `sendPracticeMessage` | current fixtures unchanged | send/retry exact raw text + Markdown/GFM view projection | existing handler/service/store | raw text/clientMessageId unchanged | `practice.session.chat` | `E2E.P0.044`, `E2E.P0.046` |
 | `completePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json`: current `default`, `replay`, `mismatch`, `cross-user-not-found`, `session-already-completed`; **planned** `zero-answer-rejected`, `one-answer-ready` | `useCompletePracticeSession` + Finish CTA | `Handler.CompletePracticeSession` → `Service.CompletePracticeSession` → completion store transaction | zero-answer none；success session/report/job/outbox/idempotency | report async after valid completion | `E2E.P0.047` |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json`: current `default`, `not-started-progress`, `all-completed-progress`, `prototype-baseline` | `usePracticeTargetDisplay` | `targetjob.Handler.GetTargetJob` → `Service.GetTargetJob` → `SQLStore.GetTargetJobByUser` | target requirements/progress projection | none | `E2E.P0.045`, `E2E.P0.098` |
 | `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json`: current `default` disabled response | none | `practice.Handler.CreatePracticeVoiceTurn` fail-closed | none | none | `E2E.P0.007`, `E2E.P0.045` |
@@ -48,8 +48,9 @@
 | zero-answer finish | boundary/a11y | 7 | PracticeScreen+i18n tests + P0.047 backend marker | Finish CTA + described reason | opening/draft/route counted as answer; UI treated as authority |
 | bounded POST reconciliation | recovery/timeout | 10 | fake-timer hook/screen tests + P0.046 | optimistic row/thinking/reconcile | wait forever; blind resend; new ID; stale response overwrites truth |
 | lease-bounded reload | recovery/persistence | 10 | server fixture states + P0.044/P0.046 | pending → retryable/complete | client clock mutates server status; loader error unlocks submit |
-| terminal plan recovery | failure/navigation/a11y | 10 | prototype/formal route+i18n tests + P0.046 | generic terminal state + CTA | row retry; workspace fallback; planId parse param; technical copy |
+| terminal plan recovery | failure/navigation/a11y | 10/11 | prototype/formal route+i18n tests + P0.046 | generic terminal state + `/workspace?targetJobId` detail CTA | row retry; query-free workspace fallback; `parse(targetJobId)`; planId; technical copy |
 | evidence freshness | BDD/visual | 10 | shared source fingerprint + screenshot hashes/parity | P0.044/P0.046 artifacts | historical screenshots accepted after source change |
+| Markdown/GFM projection | content/security/visual | 11 | renderer/unit/component + P0.044/P0.046 | user/assistant message body | raw HTML/remote image/unsafe URI; retry from DOM text; mobile code overflow |
 
 ## 5 实施步骤
 
@@ -112,9 +113,18 @@
 - **10.2 Request plumbing**: add RED hook tests that require `usePracticeMessages.sendMessage(submission, { signal })` to forward `AbortSignal` through the generated client request options；add cancellable/bounded session reads and cleanup aborts. Do not hand-edit generated client output.
 - **10.3 95-second timeout and reconcile**: with fake timers, prove the POST is still pending before 95,000 ms, aborts exactly at 95,000 ms, and immediately starts an independently bounded `getPracticeSession` reconciliation for the same `clientMessageId`. Adopt authoritative complete/pending/retryable/terminal rows；if the ID is absent or read fails, keep the original row/ID unresolved and lock new-ID submit/Finish. A request sequence/generation guard must ignore any late response from the aborted POST or an older reconcile.
 - **10.4 Reload and loader safety**: reloaded pending remains thinking/locked and only re-reads；backend 90-second lease/GET lazy convergence ends immortal pending. A refresh/read failure must preserve the last same-session unresolved facts when available, or fail-locked when unavailable；it may never clear the pending identity and enable a new ID.
-- **10.5 Terminal recovery**: authoritative `terminal_failed` has no row-local retry. Render localized generic copy with one CTA that calls exactly `navigate({ name: "parse", params: { targetJobId: loader.data.targetJobId } })`；`workspace`, `planId`, composer submit and technical error text are negative gates. Auth/session-lost keep their existing global recovery owners.
+- **10.5 Terminal recovery (historical Phase 10 contract)**: authoritative `terminal_failed` has no row-local retry. Phase 10 originally routed the single localized CTA to `parse(targetJobId)`；Phase 11 supersedes that navigation target while retaining the established no-retry, no-composer-submit and no-technical-copy behavior. Auth/session-lost keep their existing global recovery owners.
 - **10.6 Parity and fresh evidence**: formal/prototype DOM, computed style, key bounding boxes, viewport overflow and screenshot diff must cover immediate pending, persisted pending, retryable failure and terminal CTA at desktop 1440 and mobile 390. P0.044/P0.046 share a tracked `test/scenarios/e2e/practice-source-fingerprint-paths.json` manifest spanning UI docs/source, formal Practice/i18n/route/client, OpenAPI + fixtures, backend practice/store/migration and both scenario directories. Trigger records SHA-256；verify recomputes it and records each PNG SHA-256/dimensions/viewport. Source drift invalidates every historical artifact.
 - Required markers: P0.044 emits `PRACTICE_IMMEDIATE_PENDING_PASS`, `PRACTICE_PERSISTED_PENDING_PASS`, `PRACTICE_EVIDENCE_FINGERPRINT_PASS`；P0.046 emits `PRACTICE_PENDING_LEASE_RECOVERY_PASS`, `PRACTICE_STALE_GENERATION_FENCED_PASS`, `PRACTICE_CONCURRENT_RESERVATION_PASS`, `PRACTICE_POST_TIMEOUT_RECONCILIATION_PASS`, `PRACTICE_TERMINAL_PLAN_RECOVERY_PASS`, `PRACTICE_EVIDENCE_FINGERPRINT_PASS`.
+
+### Phase 11: Safe Markdown/GFM conversation projection
+
+- Add a shared message-body renderer using `react-markdown` with `remark-gfm`. Use `skipHtml`; do not add `rehypeRaw`. Both persisted user and assistant messages use it; optimistic raw user text must converge to the same projection after server adoption.
+- Disable remote images entirely: image Markdown must not create a network-fetching `<img>`. Raw HTML is not rendered. Links allow only safe protocols, open with hardened `rel="noopener noreferrer"` when external/new-tab behavior applies, and reject `javascript:`/unsafe URI. No script/event-handler execution is possible.
+- Preserve exact raw `message.text` and `clientMessageId` as business payload. Renderer output/DOM text/normalized Markdown must never feed send or retry. Same-ID retry sends the exact server/original raw text byte-for-byte while preserving the next draft.
+- Render GFM headings, emphasis, links, lists, blockquotes, inline/fenced code and tables within existing prototype-derived message typography. On 390px mobile, pre/code/table content stays inside the message viewport using local horizontal scrolling/wrapping rules; document overflow is zero.
+- Extend P0.044 for user+assistant GFM and desktop/mobile parity; extend P0.046 for malicious raw HTML/remote image/unsafe link negatives and exact raw same-ID retry. Existing scenario IDs remain; no sibling.
+- Supersede the Phase 10 terminal CTA target: authoritative `terminal_failed` must call exactly `navigate({ name: "workspace", params: { targetJobId: loader.data.targetJobId } })` and resolve to `/workspace?targetJobId=...` read-only detail. Query-free workspace, `parse(targetJobId)`, `planId`, row retry, composer submit and technical error text are negative gates; active spec/plan/tests/source must have zero positive current-scope `parse(targetJobId)` recovery references.
 
 ## 6 验收标准
 
@@ -126,13 +136,15 @@
 - Zero-answer Finish is natively disabled with a localized accessible reason; one committed candidate message enables it only when all existing lifecycle guards also pass, while backend independently rejects direct zero-answer completion.
 - Completion handoff exposes only reportId; no mutable business identity or report status is copied through navigation state.
 - User messages appear immediately；reload restores server `clientMessageId + replyStatus` without browser persistence；pending/retryable-failed/retrying/terminal-recovery all block Finish；thinking only appears while awaiting a response；retry exists only beneath an explicitly retryable failed user row, reuses server original text and identity, and AI failure → reload → retry converges to one server user/reply pair。
-- A send never waits beyond 95 seconds without reconciliation；timeout uses the same ID, preserves fail-locked state on uncertain reads and ignores stale responses. Terminal failure offers one generic CTA to the exact current `parse(targetJobId)` plan and never a row retry or context-free workspace fallback.
+- A send never waits beyond 95 seconds without reconciliation；timeout uses the same ID, preserves fail-locked state on uncertain reads and ignores stale responses. Terminal failure offers one generic CTA to the exact current `/workspace?targetJobId` read-only detail and never a row retry, query-free workspace fallback or `parse(targetJobId)` recovery.
 - P0.044/P0.046 evidence is current only when the tracked source fingerprint and every screenshot SHA-256/geometry match at verify time.
+- Persisted user and assistant text renders through safe Markdown/GFM; raw HTML, remote images and unsafe URIs cannot execute/request; safe links are hardened; retry preserves exact raw text/clientMessageId; mobile code/table content does not overflow the document.
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.7 | Add Phase 11 safe react-markdown/remark-gfm projection, security negatives, exact raw retry, mobile code-overflow gates, and supersede terminal recovery to Workspace detail. |
 | 2026-07-14 | 2.6 | Add Phase 10 for a 95-second abort-and-reconcile timeout aligned to the backend lease, stale-response guards, generic terminal recovery to `parse(targetJobId)`, parity and fingerprint-bound P0.044/P0.046 evidence. |
 | 2026-07-13 | 2.5 | Add immediate optimistic user rows, interviewer-thinking, row-local same-ID retry, draft-safe failure handling and P0.044/P0.046 desktop/mobile screenshot closure. |
 | 2026-07-12 | 2.4 | Reopen Phase 8 to enforce reportId-only completion navigation and remove six copied business identifiers from PracticeScreen handoff. |

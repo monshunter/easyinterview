@@ -27,6 +27,9 @@ class ReportsAuthPrivacyScriptContractTest(unittest.TestCase):
         for marker in (
             "/reports?targetJobId=",
             "pendingRoute=reports",
+            "/workspace?targetJobId=",
+            "autoStartPractice",
+            "unknown",
             "section",
             "reportId",
             "status",
@@ -48,6 +51,8 @@ class ReportsAuthPrivacyScriptContractTest(unittest.TestCase):
             "p0-089-url-routing-auth-privacy.test.tsx",
             "auth/AppPendingAction.test.tsx",
             "AppRoutingPrivacy.test.tsx",
+            "routeUrl.test.ts",
+            "App.test.tsx",
             "--reporter=verbose",
             "2>&1",
         ):
@@ -56,6 +61,8 @@ class ReportsAuthPrivacyScriptContractTest(unittest.TestCase):
             "source_contract_test.py",
             "restores an unauthenticated Reports deep link with targetJobId only",
             "navigate(reports) keeps only targetJobId",
+            "navigate(workspace) with raw markers drops every marker",
+            "renders a target-scoped workspace as read-only detail with one getTargetJob",
             "Test Files",
             "Tests",
         ):

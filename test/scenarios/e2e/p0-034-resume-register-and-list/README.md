@@ -18,12 +18,12 @@ regressions.
 
 When user A registers resumes, replays the same idempotency key, fetches one resume, lists the collection with cursor pagination, and user B attempts to fetch user A's resume.
 
-Then the API returns payloads matching the checked-in fixtures, creates `resumes` and `async_jobs` atomically, rejects invalid source/input combinations, hides cross-user resumes as 404, and keeps raw resume body values out of logs and scenario evidence.
+Then detail and list APIs return their distinct checked-in fixtures: `getResume` owns the full asset, while every `listResumes.items[]` contains exactly the nine scalar summary fields `id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt`. The list SQL performs one closed scalar projection with no detail JSON/blob scan or per-item detail fetch. Registration remains atomic, invalid input is rejected, cross-user resumes are hidden as 404, and raw resume body values stay out of logs and evidence.
 
 ## 4. Scripts
 
 - `scripts/setup.sh`: prepares output directories and copies expected evidence notes.
-- `scripts/trigger.sh`: runs the focused `cmd/api` HTTP scenario, handler fixture parity tests, upload register validation, store state-machine tests, and the live DB integration gate.
+- `scripts/trigger.sh`: runs the focused `cmd/api` HTTP scenario, exact ResumeSummary projection/mapper/fixture gates, upload register validation, store state-machine tests, and the live DB integration gate.
 - `scripts/verify.sh`: rejects skips/no-op focused gates, checks required test evidence, reruns fixture parity, and performs privacy / current-scope negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 

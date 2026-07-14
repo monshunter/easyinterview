@@ -14,5 +14,19 @@ mkdir -p "$OUTPUT_DIR"
     src/app/App.test.tsx \
     src/app/screens/workspace/WorkspaceScreen.test.tsx \
     src/app/screens/workspace/WorkspaceEmptyState.test.tsx \
-    src/app/screens/parse/ParseResumeBinding.test.tsx
+    src/app/screens/workspace/hooks/useWorkspaceTargetJobs.test.tsx \
+    src/app/screens/parse/ParseFlow.test.tsx \
+    src/app/screens/parse/ParseResumeBinding.test.tsx \
+    src/app/screens/parse/ParseRoundStates.test.tsx
+  cd "$REPO_ROOT/frontend"
+  CI=1 COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm exec playwright test \
+    tests/pixel-parity/workspace.spec.ts \
+    tests/pixel-parity/parse.spec.ts \
+    --grep 'ready plan card opens workspace detail without Parse animation or route-side mutation|workspace detail round states match the UI truth at desktop and mobile' \
+    --project=desktop \
+    --project=mobile \
+    --workers=1 \
+    --retries=0 \
+    --reporter=list \
+    --output="$OUTPUT_DIR/playwright"
 ) | tee "$OUTPUT_DIR/trigger.log"

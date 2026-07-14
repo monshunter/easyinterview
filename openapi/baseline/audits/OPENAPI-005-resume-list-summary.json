@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-005",
+  "mode": "exact-set",
+  "keyFields": [
+    "severity",
+    "path",
+    "kind",
+    "before",
+    "after"
+  ],
+  "authority": {
+    "decision": "OPENAPI-005",
+    "specDecision": "D-37",
+    "historyVersion": "1.59",
+    "productDecision": "list-summary"
+  },
+  "baselineSource": "git:6dd4d0a928b5bcb358b26b1a5938728817e019a7:openapi/baseline/openapi-v1.0.0.yaml",
+  "currentSource": "openapi/openapi.yaml",
+  "baselineSha256": "e92eea4ca25618c9e6300b104ad6aea85b2b9e6094de8571349898bdecf29527",
+  "currentSha256": "6e81b65667fdb9f1a48b4a018dd3327ef3e52066d3bab1a8a43726d2bc7d9bc6",
+  "summary": {
+    "breaking": 1,
+    "additive": 11,
+    "informational": 0
+  },
+  "expectedFindingCount": 12,
+  "findingCount": 12,
+  "findings": [
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary/properties/displayName",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary/properties/hasReadableContent",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "boolean"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary/properties/id",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string(format=uuid)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary/properties/language",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary/properties/parseStatus",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "TargetJobParseStatus"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary/properties/sourceType",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "enum(upload,paste)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary/properties/summaryHeadline",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string|null"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary/properties/title",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ResumeSummary/properties/updatedAt",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string(format=date-time)"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PaginatedResume/properties/items/items",
+      "kind": "response_item_ref_changed",
+      "before": "Resume",
+      "after": "ResumeSummary"
+    }
+  ],
+  "errors": []
+}

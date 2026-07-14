@@ -10,7 +10,7 @@ import { resolve } from "node:path";
  * context/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (workspace plan-list landing and parse unified plan-detail
+ * - DOM anchors (workspace plan-list landing and target-scoped unified plan-detail
  *   mother page)
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
@@ -18,9 +18,8 @@ import { resolve } from "node:path";
  * - Negative: out-of-scope prototype testids absent
  *
  * Full data-driven rendering is reached through an explicit initial route
- * bootstrap with server-bound IDs on the parse route. TopBar navigation covers
- * the no-context interview plan-list landing, and Home recent cards keep their
- * product `resume-unbound` behavior outside this pixel harness.
+ * bootstrap with the server-owned TargetJob locator on the workspace route.
+ * TopBar navigation covers the no-context interview plan-list landing.
  */
 
 interface Rect {
@@ -43,7 +42,6 @@ interface OperationFixture {
 
 const WORKSPACE_TARGET_ID = "01918fa0-0000-7000-8000-000000002000";
 const WORKSPACE_RESUME_ID = "01918fa0-0000-7000-8000-000000001000";
-const WORKSPACE_PLAN_ID = "01918fa0-0000-7000-8000-000000004000";
 
 function fixtureResponse(relativePath: string, scenario = "default") {
   const absolutePath = resolve(process.cwd(), "..", relativePath);
@@ -158,8 +156,8 @@ async function goToWorkspace(page: import("@playwright/test").Page) {
   });
 }
 
-/** Navigate to parse detail through server-bound initial route params. */
-async function goToParseDetail(page: import("@playwright/test").Page) {
+/** Navigate to read-only Workspace detail through its sole server locator. */
+async function goToWorkspaceDetail(page: import("@playwright/test").Page) {
   await mockWorkspaceApis(page);
   await page.addInitScript((route) => {
     (
@@ -171,15 +169,9 @@ async function goToParseDetail(page: import("@playwright/test").Page) {
       }
     ).__EASYINTERVIEW_INITIAL_ROUTE__ = route;
   }, {
-    name: "parse",
+    name: "workspace",
     params: {
       targetJobId: WORKSPACE_TARGET_ID,
-      jobId: WORKSPACE_TARGET_ID,
-      jdId: `jd-${WORKSPACE_TARGET_ID}`,
-      planId: WORKSPACE_PLAN_ID,
-      resumeId: WORKSPACE_RESUME_ID,
-      roundId: "round-technical-1",
-      roundName: "Technical Round 1",
     },
   });
   await page.goto("/");
@@ -207,6 +199,37 @@ test.describe("workspace DOM anchor parity", () => {
     await expect(page.locator("[data-testid='workspace-plan-list-title']")).toHaveCount(1);
     await expect(page.locator("[data-testid='workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000']")).toHaveCount(1);
     await expect(page.locator("[data-testid='workspace-plan-list-create']")).toHaveCount(1);
+  });
+
+  test("ready plan card opens workspace detail without Parse animation or route-side mutation", async ({ page }) => {
+    await goToWorkspace(page);
+    const requests: Array<{ method: string; path: string }> = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.pathname.startsWith("/api/v1/")) {
+        requests.push({ method: request.method(), path: url.pathname });
+      }
+    });
+
+    await page.locator(
+      `[data-testid='workspace-plan-list-card-${WORKSPACE_TARGET_ID}']`,
+    ).click();
+    await page.waitForURL(`/workspace?targetJobId=${WORKSPACE_TARGET_ID}`);
+    await expect(page.locator("[data-testid='unified-plan-detail']")).toBeVisible();
+    await expect(page.locator("[data-testid='parse-loading-step-0']")).toHaveCount(0);
+
+    expect(
+      requests.filter(
+        ({ method, path }) =>
+          method === "GET" && path === `/api/v1/targets/${WORKSPACE_TARGET_ID}`,
+      ),
+    ).toHaveLength(1);
+    expect(
+      requests.filter(
+        ({ method, path }) =>
+          method !== "GET" || path === "/api/v1/targets/import",
+      ),
+    ).toHaveLength(0);
   });
 
   test("workspace rail renders backend progress with unchanged node geometry", async ({ page }) => {
@@ -237,10 +260,10 @@ test.describe("workspace DOM anchor parity", () => {
     expect(ariaCurrent).toBe("page");
   });
 
-  test("parse detail renders the unified plan-detail anchor set", async ({ page }) => {
-    await goToParseDetail(page);
+  test("workspace detail renders the unified plan-detail anchor set", async ({ page }) => {
+    await goToWorkspaceDetail(page);
     const anchorIds = [
-      "route-parse",
+      "route-workspace",
       "unified-plan-detail",
       "unified-plan-detail-title",
       "parse-basics-title",
@@ -256,21 +279,50 @@ test.describe("workspace DOM anchor parity", () => {
     for (const id of anchorIds) {
       await expect(page.locator(`[data-testid='${id}']`), id).toHaveCount(1);
     }
+    await expect(page.locator("[data-testid='route-parse']")).toHaveCount(0);
   });
 
-  test("parse detail keeps resume binding readonly and hides deleted workspace modals", async ({ page }) => {
-    await goToParseDetail(page);
+  test("workspace detail keeps resume binding readonly and hides deleted workspace modals", async ({ page }) => {
+    const requests: Array<{ method: string; path: string }> = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.pathname.startsWith("/api/v1/")) {
+        requests.push({ method: request.method(), path: url.pathname });
+      }
+    });
+    await goToWorkspaceDetail(page);
 
     await expect(page.locator("[data-testid='workspace-plan-modal-card']")).toHaveCount(0);
     await expect(page.locator("[data-testid='workspace-resume-modal-card']")).toHaveCount(0);
-    await expect(page.locator("[data-testid='parse-resume-binding']")).toContainText(
-      "Alice Example - Senior Frontend Engineer",
+    await expect(page.locator("[data-testid='parse-resume-bound-title']")).toContainText(
+      "Resume saved with this interview plan",
+    );
+    await expect(page.locator("[data-testid='parse-resume-bound-meta']")).toContainText(
+      "The saved binding is read-only",
     );
     await expect(page.locator("[data-testid='parse-resume-picker-toggle']")).toHaveCount(0);
     await expect(page.locator("[data-testid='parse-resume-picker']")).toHaveCount(0);
     await expect(
       page.locator(`[data-testid='parse-resume-option-${WORKSPACE_RESUME_ID}']`),
     ).toHaveCount(0);
+
+    expect(
+      requests.filter(
+        ({ method, path }) =>
+          method === "GET" && path === `/api/v1/targets/${WORKSPACE_TARGET_ID}`,
+      ),
+    ).toHaveLength(1);
+    expect(
+      requests.filter(
+        ({ method, path }) => method === "GET" && path === "/api/v1/resumes",
+      ),
+    ).toHaveLength(0);
+    expect(
+      requests.filter(
+        ({ method, path }) =>
+          method === "GET" && path === `/api/v1/resumes/${WORKSPACE_RESUME_ID}`,
+      ),
+    ).toHaveLength(0);
   });
 });
 
@@ -397,8 +449,8 @@ test.describe("workspace bounding box parity", () => {
     expect(Number.parseFloat(styles.deleteButtonTop)).toBeGreaterThanOrEqual(10);
   });
 
-  test("parse detail primary anchors stay in viewport", async ({ page }) => {
-    await goToParseDetail(page);
+  test("workspace detail primary anchors stay in viewport", async ({ page }) => {
+    await goToWorkspaceDetail(page);
     const viewport = page.viewportSize();
     expect(viewport).toBeTruthy();
 
@@ -469,8 +521,8 @@ test.describe("workspace screenshot regression", () => {
     expect(screenshot.length).toBeGreaterThan(10_000);
   });
 
-  test("parse detail renders a non-empty screenshot", async ({ page }) => {
-    await goToParseDetail(page);
+  test("workspace detail renders a non-empty screenshot", async ({ page }) => {
+    await goToWorkspaceDetail(page);
     await freezeAnimations(page);
     await expect(page.locator("[data-testid='unified-plan-detail']")).toBeVisible();
     const screenshot = await page.screenshot({ fullPage: false });
@@ -479,8 +531,8 @@ test.describe("workspace screenshot regression", () => {
 });
 
 test.describe("deleted workspace detail negative gate", () => {
-  test("parse detail does not render the old independent workspace anchors", async ({ page }) => {
-    await goToParseDetail(page);
+  test("workspace detail does not render the old independent workspace anchors", async ({ page }) => {
+    await goToWorkspaceDetail(page);
     for (const oldAnchorId of [
       "workspace-header",
       "workspace-launcher",

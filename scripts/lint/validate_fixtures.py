@@ -83,7 +83,6 @@ AI_PROVENANCE_PATHS: dict[str, Tuple[str, ...]] = {
     "getFeedbackReport": ("provenance",),
     "getResumeTailorRun": ("provenance",),
     "getResume": ("structuredProfile.provenance",),
-    "listResumes": ("items[*].structuredProfile.provenance",),
     "updateResume": ("structuredProfile.provenance",),
     "duplicateResume": ("structuredProfile.provenance",),
 }

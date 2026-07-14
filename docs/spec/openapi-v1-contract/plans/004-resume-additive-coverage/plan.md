@@ -1,11 +1,13 @@
 # OpenAPI v1 Contract Flat Resume Coverage
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
+**关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
+**关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
 
 ## 1 目标
 
@@ -16,20 +18,27 @@
 | Area | Current truth |
 |------|---------------|
 | OpenAPI inventory | `scripts/lint/openapi_inventory.py` enforces 10 tags and 37 operations |
-| Resume schemas | `Resume`, `PaginatedResume`, `ResumeWithJob`, `RegisterResumeRequest`, `UpdateResumeRequest`, `DuplicateResumeRequest`, `ResumeTailorRun`, `ResumeTailorRunWithJob` |
+| Resume schemas | `ResumeSummary` list projection；full `Resume` detail/mutation；`PaginatedResume`, `ResumeWithJob`, `RegisterResumeRequest`, `UpdateResumeRequest`, `DuplicateResumeRequest`, `ResumeTailorRun`, `ResumeTailorRunWithJob` |
 | Resume fixtures | `openapi/fixtures/Resumes/{listResumes,registerResume,getResume,getResumeSource,updateResume,duplicateResume,archiveResume,exportResume}.json` |
 | ResumeTailor fixtures | `openapi/fixtures/ResumeTailor/{requestResumeTailor,getResumeTailorRun}.json` |
 | Generated clients | `frontend/src/api/generated/client.ts` and `backend/internal/api/generated/*` expose the same operationIds |
 | Export behavior | `exportResume` is the current P0 501 typed response path with `RESUME_EXPORT_NOT_AVAILABLE` |
 | Provenance | AI-generated resume/tailor fields remain reachable from `GenerationProvenance`; inventory and fixture gates enforce reachability |
 
-## 3 Operation Matrix
+## 3 质量门禁分类
+
+- **Plan 类型**: `contract + feature-behavior + cross-layer handoff`
+- **TDD 策略**: Phase 7 先以 OpenAPI inventory/generator、fixture validator、backend store/service/handler 与 frontend consumer focused tests 建立 RED，再最小修改 source/codegen/projection/consumer；每个 checklist item 必须保留实际断言来源。
+- **BDD 策略**: 复用 [bdd-plan](./bdd-plan.md) / [bdd-checklist](./bdd-checklist.md) 的 E2E.P0.034/P0.036/P0.037；主 checklist 以 `BDD-Gate:` 汇总，不复制场景资产。
+- **替代验证 gate**: contract/internal 层补充 `make lint-openapi`、`make validate-fixtures`、generator tests、`make codegen-check`、backend/frontend focused tests、`make openapi-diff` 与 scoped negative search。
+
+### 3.1 Operation Matrix
 
 | operationId | Fixture | Frontend consumer | Backend handler | Persistence | AI dependency | Gate |
 |-------------|---------|-------------------|-----------------|-------------|---------------|------|
-| `listResumes` | `Resumes/listResumes.json` | Resume picker / Resume Workshop list | backend-resume real handler | `resumes` | none | fixture + generated client + inventory |
+| `listResumes` | `Resumes/listResumes.json` summary-only items | Home picker / Resume Workshop list / every list consumer | backend-resume dedicated summary projection | `resumes` list-safe columns only | none | fixture + generated `ResumeSummary` + inventory + P0.034/P0.036 |
 | `registerResume` | `Resumes/registerResume.json` | upload / paste create flow | backend-resume real handler | `resumes`, upload object link | parse job backend-only | fixture + generated client + B4 contract |
-| `getResume` | `Resumes/getResume.json` | resume detail, report context, workspace bound summary | backend-resume real handler | `resumes` | none | fixture + generated client |
+| `getResume` | `Resumes/getResume.json` full detail | Resume Workshop read-only detail and explicit detail consumers | backend-resume owned full-detail handler | `resumes` detail columns | none | fixture + generated full `Resume` + P0.037 |
 | `getResumeSource` | `Resumes/getResumeSource.json` | PDF resume detail preview object | backend-resume real handler | `resumes.file_object_id` + `file_objects` + object bytes | none | fixture + generated client + inventory |
 | `updateResume` | `Resumes/updateResume.json` | Resume Workshop edit overwrite | backend-resume real handler | `resumes` | none | idempotency + fixture |
 | `duplicateResume` | `Resumes/duplicateResume.json` | Resume Workshop save-as-new | backend-resume real handler | `resumes` | none | idempotency + fixture |
@@ -42,6 +51,8 @@
 
 Current B2 gates must reject version-tree operationIds, version-scoped path params and version-only schemas in executable OpenAPI, fixtures, generated clients and lint truth. The executable boundary is enforced by:
 
+Phase 7 additionally rejects full `Resume` fields/provenance in `listResumes`, any non-nine-field `ResumeSummary`, compatibility aliases and frontend list-time N+1 `getResume` fallback；full detail fields remain valid only on explicit detail/mutation operations.
+
 - `scripts/lint/openapi_inventory.py`
 - `scripts/lint/validate_fixtures.py`
 - `make lint-openapi`
@@ -51,7 +62,7 @@ Current B2 gates must reject version-tree operationIds, version-scoped path para
 
 ## 5 Verification
 
-Current closeout evidence:
+Prior Phase 1-6 closeout evidence remains historical；Phase 7 requires fresh current evidence:
 
 - `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/openapi-v1-contract/plans/004-resume-additive-coverage/context.yaml --target contract`
 - `python3 scripts/lint/openapi_inventory.py openapi/openapi.yaml` → 10 tags / 37 operations
@@ -68,6 +79,25 @@ Current closeout evidence:
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.7 | Reopen Phase 7 for OPENAPI-005 closed ResumeSummary list projection, full detail separation and all-consumer BDD handoff. |
 | 2026-07-10 | 1.6 | Align current flat Resume coverage docs with the 37-operation B2 contract. |
 | 2026-07-07 | 1.5 | Add `getResumeSource` PDF source preview to the current flat Resume OpenAPI contract, fixture set, generated clients and inventory gate. |
 | 2026-07-07 | 1.4 | Compress owner docs to the then-current flat Resume / ResumeTailor OpenAPI contract, fixtures, generated clients and 501 export gate. |
+
+## 7 Phase 7: OPENAPI-005 Resume list summary / detail split
+
+### 7.1 Contract and fixture RED
+
+Consume accepted OPENAPI-005. OpenAPI inventory/generator and fixture tests must fail while `PaginatedResume.items` references full `Resume`, while `ResumeSummary` is not closed/required/exact, while list fixtures expose detail/provenance, or while `getResume` ceases to return full `Resume`. Lock list/get method/path/operationId/200, pagination and 37/10 inventory.
+
+### 7.2 Backend projection GREEN
+
+Backend-resume must introduce a dedicated list record/query/service mapper/handler projection for the exact nine summary fields. SQL and row scans may not fetch `file_object_id`, raw/parsed body, parsed summary, structured profile/provenance, created/deleted/status detail solely to serve the list. SQL may inspect JSON/text columns only inside scalar expressions: `summaryHeadline` is the first trim-nonempty string in `parsed_summary.headline`、`parsed_summary.basics.headline`、`structured_profile.headline`、`structured_profile.basics.headline` or null；`hasReadableContent=true` exactly when trim-nonempty `parsed_text_snapshot` / `original_text` exists or `structured_profile` is a nonempty object. `file_object_id`、`source_type`、`parse_status` never imply readability. Only the derived scalar/string enters the summary row；owned/cursor/isolation behavior remains. `getResume` keeps its full detail lookup and mapper.
+
+### 7.3 Generated and frontend consumer GREEN
+
+Go/TS generated results type list items as `ResumeSummary`; full detail operations retain `Resume`. Home, Resume Workshop and every `listResumes` consumer use only summary fields, including backend `hasReadableContent`, and do not recover removed data via N+1 detail calls or frontend storage. Row navigation then issues the explicit `getResume` detail query. Compile/type tests and focused UI tests must inventory all consumers rather than patching only the visible list.
+
+### 7.4 Fixture, mock, audit and BDD closure
+
+002 Phase 11 owns list/get fixtures, examples and Prism/mock parity；003 Phase 9 generates and exact-matches the declared OPENAPI-005 oracle before guarded re-freeze；001 Phase 16 owns source/codegen. P0.034 proves backend register/list, P0.036 proves authenticated summary-only flat list and navigation, and P0.037 proves full read-only detail after navigation. All layers migrate in one batch with no alias, optional detail compatibility field, second list endpoint or frontend fallback.

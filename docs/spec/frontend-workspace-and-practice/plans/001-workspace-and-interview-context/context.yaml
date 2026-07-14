@@ -4,9 +4,11 @@ metadata:
   subspec: frontend-workspace-and-practice
   name: 001-workspace-and-interview-context
   sequence: 1
+  baseBranch: main
+  branch: fix/request-dedup-resume-summary-routing-0714
   specVersion:
-    from: null
-    to: 1.38
+    from: 1.43
+    to: 1.44
 spec:
   defaultTarget: frontend
   discovery:
@@ -49,10 +51,17 @@ spec:
       - unified plan detail
       - interview plan detail
       - context confirm
-      - parse detail reuse
-      - workspace route purity
-      - workspace pure list
-      - parse detail handoff
+      - shared read-only plan detail component
+      - workspace list query split
+      - workspace targetJobId detail
+      - getTargetJob detail projection
+      - direct ready card detail
+      - parse command handoff
+      - no parse animation on detail revisit
+      - exact GET request count
+      - workspace detail round states
+      - done current pending cards
+      - 已进行 即将进行 未进行
       - topbar Interview nav
       - 面试规划列表
       - 面试规划详情

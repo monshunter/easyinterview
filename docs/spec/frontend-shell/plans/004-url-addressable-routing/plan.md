@@ -1,6 +1,6 @@
 # URL-Addressable Routing
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -27,9 +27,9 @@
 | Route | Canonical URL | Safe Params | Chrome |
 |-------|---------------|-------------|--------|
 | `home` | `/` | `pendingImportId`, `source`, `resumeId` | visible |
-| `workspace` | `/workspace` | none | visible |
+| `workspace` | `/workspace` | `targetJobId` | visible |
 | `resume_versions` | `/resume-versions` | `resumeId`, `flow`, `createMode`, `targetJobId` | visible |
-| `parse` | `/parse` | `targetJobId`, `resumeId` | visible |
+| `parse` | `/parse` | `targetJobId` | visible |
 | `practice` | `/practice` | `sessionId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `sourceReportId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `language` | hidden |
 | `reports` | `/reports` | `targetJobId` | visible |
 | `generating` | `/generating` | `reportId` | hidden |
@@ -105,12 +105,20 @@ Blocked payload categories:
 - Cover direct open, reload, App navigation, replace/back/forward, hash adapter and SPA host fallback in P0.088/P0.090. Cover unauthenticated direct-open and exact targetJobId-only pendingAction restoration in P0.089.
 - Gate with route codec/store/App/auth/privacy/host fallback tests, TopBar negative, owner contexts, docs/diff and pruning checks. Existing route history remains regression evidence; this Phase reopens the completed owner in place.
 
+### 6.5 Phase 12 command/query route split
+
+- Supersede Phase 8/9 的 workspace-zero-query 结论：`/workspace` 无 `targetJobId` 时展示规划列表；`/workspace?targetJobId=<uuid>` 是受保护、可直开/刷新/历史恢复的只读详情 route。它只保留合法 `targetJobId`，并剔除 `planId`、`resumeId`、`autoStartPractice` 与其他业务状态。
+- `/parse?targetJobId=<uuid>` 只承载刚导入 TargetJob 的 queued/processing 命令进度；`resumeId` 不再是 safe param。TargetJob 首读已 ready 或轮询转 ready 时，screen 必须 `replaceRoute({ name: "workspace", params: { targetJobId } })`，避免 Back 回到冗余动画。
+- ready Home/Workspace card 直接 push 到 workspace detail；不得先进入 Parse。Workspace detail 复用统一只读详情组件，但不播放 Parse loading animation，也不触发 import/poll/start side effects。
+- P0.088 覆盖 list/detail direct/reload/back-forward、Parse ready replace 与合法 targetJobId preservation；P0.089 覆盖 workspace/parse targetJobId-only pendingAction restore 和 raw/extra zero-hit；P0.090 覆盖 hash adapter、host fallback 与 planId/resumeId/auto-start stripping。
+
 ## 7 验收标准
 
 - Every current route serializes to and parses from its canonical URL with sorted safe query params.
 - Direct open, reload, App navigation, replace, back and forward preserve route state without double-push behavior.
 - `practice` and `generating` stay chrome-hidden when opened by canonical URL.
 - `reports` is protected and chrome-visible, accepts only `targetJobId`, survives direct/reload/history/auth restore, and never appears in TopBar.
+- `/workspace` without target is the list and `/workspace?targetJobId` is read-only detail; only `targetJobId` survives normalization. `/parse?targetJobId` is command/progress only and ready state replace-navigates to workspace detail.
 - Parse strips legacy `section=reports`; report/generating preserve only reportId and cannot use query state as trusted report context.
 - Hash adapter inputs continue to work for static preview and pixel parity harness.
 - Auth pendingAction restore returns to the original canonical route using safe params only.
@@ -132,6 +140,7 @@ Blocked payload categories:
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.12 | Supersede workspace-zero-query with `/workspace?targetJobId` read-only detail and make `/parse?targetJobId` command-only with ready replace. |
 | 2026-07-14 | 1.11 | Use replace-only workspace recovery for invalid Reports deep links and prevent stale bootstrap canonicalization from recreating the bad URL. |
 | 2026-07-14 | 1.10 | Reopen in place for protected `/reports`, targetJobId-only deep links/auth restore, no TopBar entry, no Parse section compatibility, and reportId-only report/generating routes. |
 | 2026-07-10 | 1.9 | Remove the unconsumed routeUrlsEqual wrapper and false consumer comment. |

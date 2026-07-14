@@ -47,7 +47,7 @@ describe("parseInitialRouteHash", () => {
     expect(parseInitialRouteHash("#reportId=report-1")).toBeUndefined();
   });
 
-  it("hash adapter and canonical codec drop out-of-scope workspace context params", () => {
+  it("hash adapter and canonical codec retain only the workspace target locator", () => {
     const loose = parseInitialRouteHash(
       "#route=workspace&targetJobId=tj-1&resumeId=rv-1&planId=plan-1",
     );
@@ -61,7 +61,7 @@ describe("parseInitialRouteHash", () => {
         planId: "plan-1",
       },
     });
-    expect(formatRouteUrl(normalized)).toBe("/workspace");
+    expect(formatRouteUrl(normalized)).toBe("/workspace?targetJobId=tj-1");
   });
 
   it("out-of-scope aliases via hash normalize to retained routes without materializing standalone screens", () => {

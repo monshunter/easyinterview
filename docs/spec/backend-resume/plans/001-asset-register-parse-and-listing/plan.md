@@ -1,8 +1,8 @@
 # Backend Resume Register Parse and Listing
 
-> **版本**: 3.1
+> **版本**: 3.2
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -13,7 +13,7 @@
 
 - 实现 `POST /api/v1/resumes` (registerResume) handler，含 sourceType 双路分支（`upload` / `paste`）+ unsupported input validation + IK + cross-user 隔离 + 调用 [backend-upload `RegisterFileObject`](../../../backend-upload/spec.md) internal API 校验 `purpose=resume`、object exists 与实际 size；
 - 实现 `GET /api/v1/resumes/{resumeId}` (getResume) handler，cross-user 返回 404；
-- 实现 `GET /api/v1/resumes` (listResumes) handler，cursor pagination + `updated_at DESC, id DESC` 唯一稳定序；**直接解除 [frontend-workspace-and-practice/001](../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md) Phase 3.3 `listResumes` disabled-list 阻塞**；
+- 实现 `GET /api/v1/resumes` (listResumes) handler，cursor pagination + `updated_at DESC, id DESC` 唯一稳定序；列表只查询并返回 closed `ResumeSummary`，完整 `Resume` 只由 `getResume` 返回；**直接解除 [frontend-workspace-and-practice/001](../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md) Phase 3.3 `listResumes` disabled-list 阻塞**；
 - 实现 `resumes` store layer：`CreateWithParseJob(pending + async_jobs resume_parse)` / `MarkParsing` / `MarkReady(parsedSummary, parsedTextSnapshot)` / `MarkFailed(errorCode)` / `Get` / `List(cursor, pageSize)` / `DeleteForUser`；
 - 实现 `resume.parse` async job handler（按 backend-targetjob 同款 `cmd/api` backend-internal runner 注册，不引入独立后台执行进程）：通过 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 调 [F3 `resume.parse` feature_key](../../../prompt-rubric-registry/spec.md) → 解析 JSON parse draft → 写 `resumes` + outbox `resume.parse.completed`；
 - D-20 flat Resume 完成态下，`resume.parse` 成功还必须从 LLM `displayName` / structured output 派生可识别 `display_name`，不得把“上传的简历 / 粘贴的简历”等通用标题、上传文件名或 raw resume 第一行作为 ready 简历最终名称；若 LLM 输出失败但已抽取可读正文，失败路径也要写入非通用 fallback `display_name`，避免详情长期停留在“名称生成中”；
@@ -54,7 +54,7 @@
   2. store integration test：CRUD + parse_status 状态机 + cross-user 隔离 + cursor pagination 边界；
   3. resume.parse job unit test（stub AIClient provider）：成功路径 / 解析 JSON 失败 / AI provider timeout retryable / output_invalid;
   4. outbox event unit test：envelope 字段集 + PII 红线（不含 raw text）；
-  5. listResumes integration test：≥ 25 行 + cursor 第二页 + `hasMore=false` + cross-user 不可见；
+  5. listResumes store/service/handler tests：≥ 25 行 + cursor 第二页 + `hasMore=false` + cross-user 不可见 + exact `ResumeSummary` keys + forbidden detail fields absent；
   6. `cmd/api` route/runtime test：session middleware、IK middleware、route path params、resume_parse backend-internal runner wiring 与 shutdown。
   7. profile catalog regression：从 `config/ai-profiles.yaml` 读取 `resume.parse.default`，Red 断言输出预算不低于 8192 且 profile version 随预算变更；
   8. long-resume integrity regression：构造长输入及末尾唯一 marker，Red 断言完整 prompt 与 deterministic snapshot 都保留 marker，模型响应无需 `markdownText`；
@@ -77,9 +77,9 @@
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `registerResume` | `openapi/fixtures/Resumes/registerResume.json` `default` / `paste-text`; validation / IK mismatch cases are handler tests unless B2 adds explicit error fixtures | `frontend-resume-workshop/002-create-flow`, backend scenario harness in E2E.P0.034 | `backend/internal/resume/handler/register.go` real handler + `cmd/api` `POST /api/v1/resumes` route with session + IK middleware | `resumes` + `file_objects` reference for upload + `async_jobs` resume_parse in the same transaction | `resume.parse.default` through A3/F3 stub in tests | E2E.P0.034 + E2E.P0.035 |
-| `getResume` | `openapi/fixtures/Resumes/getResume.json` `default` / `not-found` | `frontend-resume-workshop` adapter/detail flows | `backend/internal/resume/handler/get.go` real handler + `cmd/api` `GET /api/v1/resumes/{resumeId}` route | `resumes` | none | E2E.P0.034 |
+| `getResume` | `openapi/fixtures/Resumes/getResume.json` `default` / `not-found` | `frontend-resume-workshop` full-detail adapter/detail flows only | `backend/internal/resume/handler/get.go` real handler + `cmd/api` `GET /api/v1/resumes/{resumeId}` route | `resumes` full-detail projection | none | E2E.P0.034 + E2E.P0.037 |
 | `getResumeSource` | `openapi/fixtures/Resumes/getResumeSource.json` `default` / `not-found` | `frontend-resume-workshop/001` PDF detail preview object | `backend/internal/resume/handler/get.go` `GetResumeSource` + `cmd/api` `GET /api/v1/resumes/{resumeId}/source` route | `resumes.file_object_id` + `file_objects.object_key` + object storage bytes | none | E2E.P0.037 focused substitute |
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` `default` / `empty` / `paginated` | `frontend-resume-workshop/001` list view and `frontend-workspace-and-practice` ResumePicker unblock | `backend/internal/resume/handler/list.go` real handler + `cmd/api` `GET /api/v1/resumes` route | `resumes` cursor pagination | none | E2E.P0.034 |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` `default` / `empty` / `paginated`；外层保持 `PaginatedResume`，Phase 15 由 B2 owner 仅把 `items` 改为 `ResumeSummary[]` exact keys | `frontend-resume-workshop/001` summary-only list view / Home selector and `frontend-workspace-and-practice` ResumePicker unblock | `backend/internal/resume/handler/list.go` summary handler + `cmd/api` `GET /api/v1/resumes` route | `resumes` explicit summary projection; no full-detail row load | none | E2E.P0.034 + E2E.P0.036 |
 
 ## 4 实施步骤
 
@@ -420,6 +420,38 @@ E2E.P0.035 trigger/verify 必须执行并核验 long-input tail marker、structu
 
 `BDD-Gate: E2E.P0.035` 证明完整简历正文进入 prompt 并由程序持久化、模型不回显正文、输出被截断时不产生 ready 假成功。
 
+### Phase 15: Closed ResumeSummary list projection
+
+> 本 Phase 依赖 B2 OpenAPI owner 原地新增 `ResumeSummary`，保持现有 `PaginatedResume` wrapper 与 `pageInfo` 不变，仅将 `items` 改为 `ResumeSummary[]`，并同步 `listResumes` fixtures 和 generated server/client artifacts；不得新增平行 pagination wrapper，当前 backend owner 也不以手写响应 struct 绕过 generated contract。依赖落地后通过 `/implement backend-resume/001-asset-register-parse-and-listing backend` → `/tdd` 顺序执行。
+
+#### 15.1 RED: store projection rejects full-detail loading
+
+新增 store SQL/mock/integration tests，要求 list query 使用显式列清单并扫描到独立 `ResumeSummary` row；测试必须在当前完整 `Resume` scan / `SELECT *` 实现下失败，并对 `original_text`、`parsed_text_snapshot`、`structured_profile`、`file_object_id`、完整 `parsed_summary`、`created_at`、`deleted_at` 建立禁止选择/禁止映射断言。保留 `updated_at DESC, id DESC` cursor 稳定序、active-only 与 user scope。
+
+#### 15.2 GREEN: summary store and derived scalars
+
+实现 list-only projection：`id,title,display_name,language,source_type,parse_status` 直接读取；`summaryHeadline` 按 `parsed_summary.headline` → `parsed_summary.basics.headline` → `structured_profile.headline` → `structured_profile.basics.headline` 取首个 trim 后非空 string scalar；`hasReadableContent` 的 SQL boolean expression 精确为“trim 后 `parsed_text_snapshot` 非空 OR trim 后 `original_text` 非空 OR `structured_profile` 为非空 JSON object”，不得按 `fileObjectId`、`sourceType` 或 `parseStatus` 推断；`updated_at` 继续服务排序和展示。不得把正文或 JSON payload 装入 list row。`Get` 的 full-detail store path 保持独立且行为不变。
+
+`ResumeSummaryRecord.SourceType` 使用非空 string 直接扫描并在 service 校验 `upload | paste`；NULL 或非法 legacy value 必须使 list fail closed。不得用 `file_object_id` 或默认值修补，也不得过滤掉坏行伪装成功。当前 create path 的非空写入回归测试作为替代 gate；本 Phase 不增加兼容 migration。
+
+#### 15.3 Service/domain separation
+
+新增 `ResumeSummary` domain/mapper，service `List` 只接收 summary rows，并继续使用现有 `PaginatedResume` 外层返回 `ResumeSummary[]` items；禁止新增 wrapper，也禁止先构造完整 `Resume` 再丢字段。单元测试覆盖 exact mapping、null/blank headline，以及 `hasReadableContent` 的 trim snapshot、trim original text、非空 structured object、空白文本/空对象反例，不允许 file/source/status 推断；同时覆盖 cursor encode/decode、第二页和 cross-user；`Get` 测试继续覆盖 full `Resume` 详情。
+
+#### 15.4 Handler, generated contract and fixture parity
+
+在 B2 schema/fixture/codegen 前置完成后，handler 与 `cmd/api` 使用 generated `PaginatedResume`（`items: ResumeSummary[]`）。JSON exact-key tests 逐项断言允许字段，并逐项禁止 `originalText`、`parsedTextSnapshot`、`structuredProfile`、`fileObjectId`、`parsedSummary`、`createdAt`、`deletedAt`；覆盖 default/empty/paginated fixture、invalid cursor 422、cross-user 隔离和既有 `pageInfo`。`getResume` fixture parity 必须证明完整详情未被误删。
+
+#### 15.5 Operation and negative matrix gates
+
+生成物、fixture、backend handler、frontend consumer 必须与 §3.1 matrix 同步；负向搜索拒绝 list handler/service/store 复用 full-detail mapper、`SELECT *` 或把 forbidden fields 写入 list response。OpenAPI inventory/codegen drift、Go compile、frontend typecheck 与 fixture parity 均为必过 gate。
+
+#### 15.6 BDD gates
+
+- `BDD-Gate: E2E.P0.034`：真实 `cmd/api` register/get/list 链路证明 summary pagination exact keys、forbidden details absent、get full detail 和 cross-user 隔离。
+- `BDD-Gate: E2E.P0.036`：frontend list/Home consumer 只依赖 summary fields，不从正文/structured profile 推断列表状态。
+- `BDD-Gate: E2E.P0.037`：打开 row 后才通过 `getResume` 获取完整详情，list payload 不承担详情预取。
+
 ## 5 验收标准
 
 - 本计划列出的 §4 所有 Phase task 全部完成
@@ -433,6 +465,8 @@ E2E.P0.035 trigger/verify 必须执行并核验 long-input tail marker、structu
 - D-16/D-17 limits and deterministic snapshot gates PASS：`resume.maxActive` 默认 10 且新建上限可测，`upload.maxBytes.resume` 默认 2MiB，成功/失败态 `parsed_text_snapshot` 均由完整提取正文确定性构建，模型输出不再包含 `markdownText`
 - D-19 output budget gate PASS：`resume.parse.default.max_tokens >= 8192`，profile version 已递增，E2E.P0.035 verify 检查 focused regression runner 证据
 - D-21 context/truncation gates PASS：长输入末尾 marker 同时存在于 AI prompt 与 snapshot；`finish_reason=length` 映射 `AI_OUTPUT_INVALID`、保留完整快照且不发 completed outbox
+- D-22 summary gates PASS：`listResumes` store/service/handler/generated fixture 只承接 closed `ResumeSummary` exact fields，所有 forbidden detail fields absent；`getResume` 仍返回完整详情
+- BDD E2E.P0.034 + E2E.P0.036 + E2E.P0.037 的 Phase 15 gate PASS
 - `frontend-workspace-and-practice/001` owner 已收到 `listResumes` 解锁信号
 - engineering-roadmap §5.2 `backend-resume` 状态已升级到 active
 
@@ -454,11 +488,15 @@ E2E.P0.035 trigger/verify 必须执行并核验 long-input tail marker、structu
 | R12: DOCX 继续进入 prompt 或 UI 白名单 | Phase 12 在 upload handler/service 与 parse fallback 双层拒绝 DOCX，并用 focused tests 锁定前置拒绝和解析拒绝 |
 | R13: PDF 预览泄漏对象存储 key 或跨用户原件 | Phase 12 的 source endpoint 只返回 user-scoped inline PDF bytes，store/service/handler tests 覆盖 missing、paste 和 cross-user 404 |
 | R14: 结构化输出仍触达 token cap | Phase 13 固化 8192-token 下限，Phase 14 在 `finish_reason=length` 时 decode 前 fail closed；不通过放宽 JSON 校验伪装成功 |
+| R15: handler 丢字段但数据库仍装载完整详情 | Phase 15 store query/row scanner gate 强制显式 summary projection，禁止 `SELECT *` 和 full-detail mapper |
+| R16: summary 过窄迫使 frontend 重新请求或读取正文推断 | `summaryHeadline` / `hasReadableContent` 作为服务端标量投影，P0.036 验证列表所需信息闭环 |
+| R17: list 合同修订误删 get 详情字段 | `ResumeSummary` 与 `Resume` 使用独立 generated/domain 类型，P0.034/P0.037 和 get fixture parity 锁定 full detail |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 3.2 | Reopen Phase 15 to return a closed ResumeSummary projection from listResumes while preserving full getResume detail, with store/service/handler and P0.034/P0.036/P0.037 gates. |
 | 2026-07-12 | 3.1 | Replace full-resume model echo with deterministic source snapshots; add long-input tail-marker and finish-reason truncation gates. |
 | 2026-07-12 | 3.0 | Reopen the owner after a real 3170-character resume hit the 2048-token output cap; add the 8192-token profile regression and P0.035 gate. |
 | 2026-07-10 | 2.9 | Run resume parse scenarios through runner.Runtime and update canonical handler/runtime ownership wording. |

@@ -74,7 +74,7 @@ python3 "$REPO_ROOT/test/scenarios/_shared/scripts/capture-source-fingerprint.py
     --output="$OUTPUT_DIR/playwright-home"
   pnpm --filter @easyinterview/frontend exec playwright test \
     tests/pixel-parity/parse.spec.ts \
-    --grep "ready target job response keeps the loading demo free of internal metadata|parse loading matches the UI truth at desktop and mobile" \
+    --grep "processing target job response keeps the loading demo free of internal metadata|parse loading matches the UI truth at desktop and mobile" \
     --project=desktop \
     --project=mobile \
     --workers=1 \

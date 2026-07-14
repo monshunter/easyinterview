@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-14](./2026-07-14-request-dedup-and-read-flow-separation-assessment.md) | Request Dedup and Read Flow Separation 交付复盘 | #assessment #BUG-0170 |
 | [2026-07-14](./2026-07-14-interview-turn-ux-and-report-navigation-assessment.md) | Interview Turn UX and Report Navigation 交付复盘 | #assessment #BUG-0167 #BUG-0168 #BUG-0169 |
 | [2026-07-13](./2026-07-13-report-semantics-and-reliability-assessment.md) | Report Semantics and Reliability 交付复盘 | #assessment #BUG-0164 #BUG-0165 #BUG-0166 |
 | [2026-07-12](./2026-07-12-interview-resume-grounding-and-round-progress-assessment.md) | Interview Resume Grounding and Round Progress 交付复盘 | #assessment #BUG-0162 #BUG-0163 |

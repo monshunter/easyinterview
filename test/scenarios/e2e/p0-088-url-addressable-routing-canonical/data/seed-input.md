@@ -2,7 +2,7 @@
 
 | Route | Canonical URL (fixture) |
 |-------|--------------------------|
-| workspace hostile params | `/workspace?targetJobId=tj-canonical&resumeId=01918fa0-0000-7000-8000-000000001000&planId=01918fa0-0000-7000-8000-000000004000&autoStartPractice=1`（期望过滤为 `/workspace`） |
+| workspace hostile params | `/workspace?targetJobId=tj-canonical&resumeId=01918fa0-0000-7000-8000-000000001000&planId=01918fa0-0000-7000-8000-000000004000&autoStartPractice=1`（期望仅保留 `/workspace?targetJobId=tj-canonical`） |
 | reports hostile legacy params | `/reports?targetJobId=01918fa0-0000-7000-8000-000000002000&section=reports&reportId=01918fa0-0000-7000-8000-00000000a000&status=ready&roundId=round-hostile`（期望只保留 `targetJobId`） |
 | practice (phone) | `/practice?sessionId=01918fa0-0000-7000-8000-000000005000&mode=phone&modality=phone&planId=01918fa0-0000-7000-8000-000000004000` |
 | generating | `/generating?sessionId=01918fa0-0000-7000-8000-000000005000&reportId=01918fa0-0000-7000-8000-00000000a000` |

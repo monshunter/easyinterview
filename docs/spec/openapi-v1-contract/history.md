@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.58
+> **版本**: 1.59
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -30,6 +30,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 1.59 | 接受 OPENAPI-005：`listResumes` 外层 method/path/operationId/200/pagination 不变，`PaginatedResume.items` 改为九字段 closed `ResumeSummary`；`getResume` 保持 full `Resume`，全部 consumer 同批迁移且无兼容层。 | OPENAPI-005 + openapi-v1-contract/001/002/003/004 + backend/frontend Resume owners |
 | 2026-07-14 | 1.58 | OPENAPI-004 wire/fixture/generated contracts remain unchanged；consumer handoff moves from Parse/P0.016 to target-scoped ReportsScreen/P0.059，with Parse/Report/Generating list-consumer negatives. | B2 001/002/003 + frontend-report/001 |
 | 2026-07-14 | 1.57 | 接受 OPENAPI-004：`listTargetJobReports` 原地改为无分页 canonical-round overview，删除 `TargetJob.latestReportId`；current ready 与 latest attempt 独立投影并对非法冻结 context 整体 fail closed。 | B2 001/002/003 + backend-review/001 + frontend-home/001 |
 | 2026-07-14 | 1.56 | 用户批准 O-A / G-A：OPENAPI-002 old-baseline exact boundary 从 15 修正为 17，纳入 `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` 两个 source-only `ApiErrorCode` 删除；Practice 独立 machine oracle 仅投影 D-35 + history 1.54 + 方案 A，不创建冗余 ADR。baseline 仍须等待 preserved audits 与 downstream gates 后再 re-freeze。 | OPENAPI-002 v1.2 + D-34/D-35 + openapi-v1-contract/001/003 |

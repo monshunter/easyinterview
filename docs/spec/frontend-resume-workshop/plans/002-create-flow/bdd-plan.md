@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow BDD Plan
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -13,7 +13,7 @@
 | E2E.P0.081 | primary | CreateFlow upload / paste happy path, PDF / Markdown / TXT whitelist, DOCX rejection, 2MiB file limit, presign, register, waiting/detail navigation, privacy and UI parity | 5.1 / 6.1 / 6.3 / 7.1 |
 | E2E.P0.082 | absence gate | Parser animation / parse failure UI are absent from create flow | 5.2 |
 | E2E.P0.083 | primary + handoff | Home CTA and auth pending action direct-create handoff | 5.3 |
-| E2E.P0.084 | regression | Home existing resume picker consumes `listResumes` selectable records and does not show an empty/disabled picker while readable resumes exist | 8.1 / 8.2 / 8.3 |
+| E2E.P0.084 | historical regression | 2026-07-08 full-Resume picker evidence；current summary-only behavior is owned by active 001 Phase 19 | historical 8.1 / 8.2 / 8.3 |
 
 ## 2 场景说明
 
@@ -37,9 +37,7 @@ Then direct detail navigation is used and auth pending action keeps only safe ro
 
 ### E2E.P0.084
 
-Given an authenticated user already has non-archived resumes returned by `listResumes`.
-When those resumes are ready or already carry readable resume evidence.
-Then the Home `选择已有简历` native select is enabled, shows those options, hides the empty state, and the selected `resumeId` is preserved into the JD import / parse handoff.
+This completed-plan scenario records the 2026-07-08 full-Resume contract only. Active 001 Phase 19 supersedes it: Home receives closed `ResumeSummary`, treats `parseStatus === ready || hasReadableContent` as selectable, and preserves `resumeId` in the import body；Parse/Workspace detail does not call `listResumes`.
 
 ## 3 Internal cleanup substitute gate
 

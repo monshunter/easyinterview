@@ -4,9 +4,11 @@ metadata:
   subspec: frontend-shell
   name: 001-app-shell-auth-settings
   sequence: 1
+  baseBranch: main
+  branch: fix/request-dedup-resume-summary-routing-0714
   specVersion:
-    from: null
-    to: 1.26
+    from: 1.28
+    to: 1.30
 spec:
   defaultTarget: frontend
   discovery:
@@ -46,6 +48,18 @@ spec:
       - auth verify recovery
       - post-verify me refresh failure
       - skipInitialAuthProbe
+      - StrictMode GET single-flight
+      - in-flight request registry
+      - settle eviction
+      - read auth epoch
+      - normalized okStatuses request identity
+      - mutation pre-dispatch and post-settle read epoch
+      - stable runtime dependencies
+      - screen loader stable dependencies
+      - client query header auth separation
+      - signal bypass
+      - non-GET bypass
+      - auth email verify bypass
   targets:
     frontend:
       plan: ./plan.md
@@ -64,6 +78,8 @@ spec:
           - frontend/src
           - frontend/src/api
           - frontend/src/app/runtime
+          - frontend/src/api/generated
+          - frontend/src/api/runtime
         uiRoutes:
           - home
           - parse

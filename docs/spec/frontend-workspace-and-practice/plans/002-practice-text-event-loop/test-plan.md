@@ -1,6 +1,6 @@
 # 002 Practice Continuous Conversation Test Plan
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -45,7 +45,16 @@
 - UI source contract RED/GREEN covers injected initial `replyStatus`, immediate/persisted pending, retryable icon and terminal generic CTA. Promise success-only mocks are insufficient；terminal and retry branches must be reachable.
 - `usePracticeMessages` tests assert the exact request body plus forwarded `AbortSignal`. Loader/reconcile tests assert cleanup abort, bounded reads and preservation/fail-locking of unresolved same-session data after refresh failure.
 - PracticeScreen fake-timer tests assert no timeout at 94,999 ms, POST abort + same-ID GET at 95,000 ms, adoption of each authoritative status, missing-ID/read-failure unresolved fallback, no new-ID send, and stale late POST/reconcile responses ignored after a newer request sequence.
-- Terminal tests assert no retry/thinking, safe localized copy, exactly one current-plan action and exact route `{name:"parse", params:{targetJobId}}`; they reject workspace, planId, composer send and raw error text.
+- Historical Phase 10 terminal tests asserted no retry/thinking, safe localized copy and the then-current `parse(targetJobId)` route. Phase 11 supersedes only the destination; no-retry, no-composer-send and no-raw-error behavior remains regression coverage.
 - Pixel-parity Playwright compares formal and prototype surfaces for four states at 1440x900 and 390x844 using DOM snapshot, computed styles, key bounding boxes, overflow and screenshot ratio；scenario screenshots record exact pixel dimensions and SHA-256.
 - Scenario contract tests require the shared tracked source manifest to include UI docs/source, prototype contract, formal Practice hooks/screen/i18n/route/generated client, OpenAPI/templates/Practice fixtures, backend practice/store/migration, fingerprint helper and P0.044/P0.046 directories. Both scripts reject missing/changed paths, mismatched trigger/current SHA-256, missing PNG hashes, FAIL and no-tests output.
 - TDD order: source RED/GREEN → hook/screen RED → cancellation/timeout/reconcile/route GREEN → focused/full frontend → parity → scenario contract → serial P0.044/P0.046 → docs/diff closeout.
+
+## Phase 11: Safe Markdown/GFM projection and Workspace-detail recovery
+
+- Renderer unit/component tests require one `react-markdown + remark-gfm` projection for persisted user and assistant messages, with `skipHtml` enabled and no `rehypeRaw` dependency or configuration.
+- Security cases inject raw HTML, event handlers, Markdown images, `javascript:`/unsafe links and safe links；they prove HTML is inert, remote images do not create a network-fetching `<img>`, unsafe URIs are rejected and safe external links are hardened.
+- Payload tests distinguish source from projection: initial send and same-ID retry must receive the byte-identical raw `message.text` and original `clientMessageId`, never rendered DOM text or normalized Markdown, while preserving the next draft.
+- Responsive parity covers headings, lists, blockquotes, inline/fenced code and GFM tables at 1440 and 390；pre/code/table may scroll locally but cannot create document horizontal overflow.
+- Terminal route tests require exactly `{name:"workspace", params:{targetJobId}}` / `/workspace?targetJobId=...` read-only detail and reject query-free workspace, `planId`, current-scope `parse(targetJobId)`, row retry, composer send and technical error text.
+- Reuse P0.044 for user+assistant GFM/parity and P0.046 for malicious-content negatives, exact raw retry and terminal Workspace detail；refresh source fingerprints and screenshots without creating sibling scenarios.

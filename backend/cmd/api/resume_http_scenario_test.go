@@ -215,14 +215,16 @@ func (s *resumeValidationScenarioService) ListResumes(context.Context, resume.Li
 
 type resumeScenarioService struct {
 	resumes     map[string]api.Resume
+	summaries   map[string]api.ResumeSummary
 	byKey       map[string]api.ResumeWithJob
 	createCount int
 }
 
 func newResumeScenarioService() *resumeScenarioService {
 	return &resumeScenarioService{
-		resumes: map[string]api.Resume{},
-		byKey:   map[string]api.ResumeWithJob{},
+		resumes:   map[string]api.Resume{},
+		summaries: map[string]api.ResumeSummary{},
+		byKey:     map[string]api.ResumeWithJob{},
 	}
 }
 
@@ -246,6 +248,17 @@ func (s *resumeScenarioService) RegisterResume(_ context.Context, in resume.Regi
 		OriginalText: &rawText,
 		CreatedAt:    now,
 		UpdatedAt:    now,
+	}
+	s.summaries[resumeID] = api.ResumeSummary{
+		Id:                 resumeID,
+		Title:              in.Title,
+		DisplayName:        "",
+		Language:           in.Language,
+		SourceType:         sourceType,
+		ParseStatus:        sharedtypes.TargetJobParseStatusQueued,
+		SummaryHeadline:    nil,
+		HasReadableContent: sourceType == "paste" && rawText != "",
+		UpdatedAt:          now,
 	}
 	out := api.ResumeWithJob{
 		ResumeId: resumeID,
@@ -272,8 +285,8 @@ func (s *resumeScenarioService) GetResume(_ context.Context, _ string, resumeID 
 }
 
 func (s *resumeScenarioService) ListResumes(_ context.Context, in resume.ListRequest) (api.PaginatedResume, error) {
-	items := make([]api.Resume, 0, len(s.resumes))
-	for _, rec := range s.resumes {
+	items := make([]api.ResumeSummary, 0, len(s.summaries))
+	for _, rec := range s.summaries {
 		items = append(items, rec)
 	}
 	pageSize := in.PageSize

@@ -1958,6 +1958,229 @@ def validate_openapi_004_invariants(
     return errors
 
 
+OPENAPI_005_LIST_PATH = "/api/v1/resumes"
+OPENAPI_005_DETAIL_PATH = "/api/v1/resumes/{resumeId}"
+OPENAPI_005_SUMMARY_FIELDS = (
+    "id",
+    "title",
+    "displayName",
+    "language",
+    "sourceType",
+    "parseStatus",
+    "summaryHeadline",
+    "hasReadableContent",
+    "updatedAt",
+)
+
+
+def _openapi_005_paginated_item_ref(schemas: Dict[str, Any]) -> str:
+    paginated = schemas.get("PaginatedResume") or {}
+    all_of = paginated.get("allOf") or []
+    if len(all_of) != 2 or not isinstance(all_of[1], dict):
+        return ""
+    items = ((all_of[1].get("properties") or {}).get("items") or {}).get("items") or {}
+    return _type_signature(items)
+
+
+def _openapi_005_property_signature(schema: Any) -> str:
+    if not isinstance(schema, dict):
+        return "unknown"
+    enum = schema.get("enum")
+    if isinstance(enum, list):
+        return f"enum({','.join(str(value) for value in enum)})"
+    signature = _type_signature(schema)
+    schema_format = schema.get("format")
+    if schema_format:
+        return f"{signature}(format={schema_format})"
+    return signature
+
+
+def normalize_openapi_005_findings(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """Normalize only OPENAPI-005's Resume list-summary correction."""
+    findings: List[Dict[str, Any]] = []
+    baseline_schemas = ((baseline.get("components") or {}).get("schemas") or {})
+    current_schemas = ((current.get("components") or {}).get("schemas") or {})
+
+    baseline_item_ref = _openapi_005_paginated_item_ref(baseline_schemas)
+    current_item_ref = _openapi_005_paginated_item_ref(current_schemas)
+    if baseline_item_ref != current_item_ref:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer(
+                    "components", "schemas", "PaginatedResume", "properties", "items", "items"
+                ),
+                "response_item_ref_changed",
+                baseline_item_ref or "absent",
+                current_item_ref or "absent",
+            )
+        )
+
+    if "ResumeSummary" not in baseline_schemas and "ResumeSummary" in current_schemas:
+        summary = current_schemas["ResumeSummary"]
+        required = list(summary.get("required") or []) if isinstance(summary, dict) else []
+        findings.append(
+            _normalized_finding(
+                "additive",
+                _json_pointer("components", "schemas", "ResumeSummary"),
+                "schema_added_with_required_fields" if required else "schema_added",
+                "absent",
+                ",".join(required) if required else "present",
+            )
+        )
+        if isinstance(summary, dict) and summary.get("additionalProperties") is False:
+            findings.append(
+                _normalized_finding(
+                    "additive",
+                    _json_pointer(
+                        "components", "schemas", "ResumeSummary", "additionalProperties"
+                    ),
+                    "closed_object",
+                    "absent",
+                    False,
+                )
+            )
+        for name, schema in (summary.get("properties") or {}).items():
+            findings.append(
+                _normalized_finding(
+                    "additive",
+                    _json_pointer(
+                        "components", "schemas", "ResumeSummary", "properties", name
+                    ),
+                    "property_added",
+                    "absent",
+                    _openapi_005_property_signature(schema),
+                )
+            )
+    return findings
+
+
+def validate_openapi_005_contract(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    baseline_schemas = ((baseline.get("components") or {}).get("schemas") or {})
+    schemas = ((current.get("components") or {}).get("schemas") or {})
+
+    if "ResumeSummary" in baseline_schemas:
+        errors.append("old baseline must not contain ResumeSummary")
+    if _openapi_005_paginated_item_ref(baseline_schemas) != "Resume":
+        errors.append("old baseline PaginatedResume.items must reference full Resume")
+    if _openapi_005_paginated_item_ref(schemas) != "ResumeSummary":
+        errors.append("PaginatedResume.items must reference ResumeSummary")
+
+    expected_properties = {
+        "id": {"type": "string", "format": "uuid"},
+        "title": {"type": "string"},
+        "displayName": {"type": "string"},
+        "language": {"type": "string"},
+        "sourceType": {"type": "string", "enum": ["upload", "paste"]},
+        "parseStatus": {"$ref": "#/components/schemas/TargetJobParseStatus"},
+        "summaryHeadline": {
+            "oneOf": [{"type": "string"}, {"type": "null"}]
+        },
+        "hasReadableContent": {"type": "boolean"},
+        "updatedAt": {"type": "string", "format": "date-time"},
+    }
+    expected_summary = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": list(OPENAPI_005_SUMMARY_FIELDS),
+        "properties": expected_properties,
+    }
+    if schemas.get("ResumeSummary") != expected_summary:
+        errors.append("ResumeSummary properties/required/types/closure must match OPENAPI-005")
+
+    if schemas.get("Resume") != baseline_schemas.get("Resume"):
+        errors.append("full Resume schema must remain byte-equivalent to the old baseline")
+    normalized_paginated = copy.deepcopy(schemas.get("PaginatedResume") or {})
+    all_of = normalized_paginated.get("allOf") or []
+    if len(all_of) == 2 and isinstance(all_of[1], dict):
+        items = (all_of[1].get("properties") or {}).get("items") or {}
+        items["items"] = {"$ref": "#/components/schemas/Resume"}
+    if normalized_paginated != baseline_schemas.get("PaginatedResume"):
+        errors.append("PaginatedResume may change only its item ref to ResumeSummary")
+
+    resume_names_added = {
+        name
+        for name in set(schemas) - set(baseline_schemas)
+        if name.startswith("Resume")
+    }
+    if resume_names_added != {"ResumeSummary"}:
+        errors.append(
+            f"unexpected new Resume compatibility schemas: {sorted(resume_names_added)}"
+        )
+
+    paths = current.get("paths") or {}
+    for path, method, status, operation_id in (
+        ("/resumes/{resumeId}", "get", "200", "getResume"),
+        ("/resumes/{resumeId}", "patch", "200", "updateResume"),
+        ("/resumes/{resumeId}/duplicate", "post", "201", "duplicateResume"),
+        ("/resumes/{resumeId}/archive", "post", "202", "archiveResume"),
+    ):
+        operation = ((paths.get(path) or {}).get(method) or {})
+        if operation.get("operationId") != operation_id:
+            errors.append(f"{operation_id} operation must remain present")
+            continue
+        response_ref = _success_response_schema(operation, status)
+        if response_ref != "Resume":
+            errors.append(f"{operation_id} {status} response must remain full Resume")
+    return errors
+
+
+def validate_openapi_005_invariants(
+    baseline: Dict[str, Any], current: Dict[str, Any], invariants: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    inventory = invariants.get("inventory") or {}
+    operation_count = _operation_count(current)
+    tag_names = [
+        str(tag.get("name"))
+        for tag in current.get("tags") or []
+        if isinstance(tag, dict) and tag.get("name")
+    ]
+    if operation_count != inventory.get("operations"):
+        errors.append(
+            f"OPENAPI-005 operations must equal {inventory.get('operations')}, got {operation_count}"
+        )
+    if len(tag_names) != inventory.get("tags") or len(set(tag_names)) != inventory.get(
+        "tags"
+    ):
+        errors.append(
+            f"OPENAPI-005 tags must equal {inventory.get('tags')} unique entries, got {len(tag_names)}"
+        )
+
+    for invariant_name in ("listResumes", "getResume"):
+        expected = invariants.get(invariant_name) or {}
+        baseline_operation = _operation_at_contract_path(
+            baseline, str(expected.get("path") or ""), str(expected.get("method") or "")
+        )
+        current_operation = _operation_at_contract_path(
+            current, str(expected.get("path") or ""), str(expected.get("method") or "")
+        )
+        if baseline_operation is None or current_operation is None:
+            errors.append(f"{invariant_name} method/path must remain unchanged")
+            continue
+        if baseline_operation.get("operationId") != expected.get(
+            "operationId"
+        ) or current_operation.get("operationId") != expected.get("operationId"):
+            errors.append(f"{invariant_name} operationId must remain unchanged")
+        status = expected.get("successStatus")
+        if _success_response_schema(baseline_operation, status) != expected.get(
+            "response"
+        ) or _success_response_schema(current_operation, status) != expected.get("response"):
+            errors.append(f"{invariant_name} success response envelope must remain unchanged")
+        if set(str(code) for code in baseline_operation.get("responses") or {}) != set(
+            str(code) for code in current_operation.get("responses") or {}
+        ):
+            errors.append(f"{invariant_name} response statuses must remain unchanged")
+        if baseline_operation.get("parameters") != current_operation.get("parameters"):
+            errors.append(f"{invariant_name} parameters must remain unchanged")
+    return errors
+
+
 def validate_d_35_contract(
     current: Dict[str, Any], baseline: Optional[Dict[str, Any]] = None
 ) -> List[str]:
@@ -2723,6 +2946,145 @@ def run_openapi_004_audit(
     return 0 if not errors else 1
 
 
+def validate_openapi_005_authority(
+    repo_root: Path, oracle: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    if oracle.get("authority") != {
+        "decision": "OPENAPI-005",
+        "specDecision": "D-37",
+        "historyVersion": "1.59",
+        "productDecision": "list-summary",
+    }:
+        errors.append(
+            "OPENAPI-005 authority must bind accepted decision, spec D-37, history 1.59 and list-summary"
+        )
+
+    contract_dir = repo_root / "docs" / "spec" / "openapi-v1-contract"
+    spec_path = contract_dir / "spec.md"
+    history_path = contract_dir / "history.md"
+    decision_path = contract_dir / "decisions" / "OPENAPI-005-resume-list-summary.md"
+    spec_text = spec_path.read_text(encoding="utf-8") if spec_path.is_file() else ""
+    history_text = (
+        history_path.read_text(encoding="utf-8") if history_path.is_file() else ""
+    )
+    decision_text = (
+        decision_path.read_text(encoding="utf-8") if decision_path.is_file() else ""
+    )
+    spec_rows = [
+        line for line in spec_text.splitlines() if re.search(r"\|\s*D-37\s*\|", line)
+    ]
+    if not any("OPENAPI-005" in line and "Resume" in line for line in spec_rows):
+        errors.append("OPENAPI-005 requires current spec D-37 authority")
+    history_rows = [
+        line for line in history_text.splitlines() if re.search(r"\|\s*1\.59\s*\|", line)
+    ]
+    if not any("OPENAPI-005" in line and "Resume" in line for line in history_rows):
+        errors.append("OPENAPI-005 requires history 1.59 authority")
+    if "Resume list summary projection" not in decision_text:
+        errors.append("OPENAPI-005 decision record must preserve list-summary authority")
+    return errors
+
+
+def run_openapi_005_audit(
+    args: argparse.Namespace,
+    repo_root: Path,
+    baseline_path: Path,
+    current_path: Path,
+) -> int:
+    decision_path = Path(args.decision_record).resolve() if args.decision_record else None
+    oracle_path = Path(args.oracle).resolve() if args.oracle else None
+    errors: List[str] = []
+    if decision_path is None or not decision_path.is_file():
+        errors.append("OPENAPI-005 audit requires --decision-record")
+    if oracle_path is None or not oracle_path.is_file():
+        errors.append("OPENAPI-005 audit requires --oracle")
+
+    base_ref = args.base_ref or "main"
+    base_commit = _git_merge_base(repo_root, "HEAD", base_ref)
+    if base_commit is None:
+        base_commit = _git_rev_parse(repo_root, base_ref)
+    baseline_text: Optional[str] = None
+    if base_commit is None:
+        errors.append(f"cannot resolve base ref {base_ref!r}")
+    else:
+        baseline_text = _git_show(repo_root, base_commit, baseline_path)
+        if baseline_text is None:
+            errors.append(
+                f"cannot load {baseline_path.relative_to(repo_root)} from {base_commit}"
+            )
+
+    current_text = current_path.read_text(encoding="utf-8")
+    worktree_baseline_text = baseline_path.read_text(encoding="utf-8")
+    if baseline_text is not None and worktree_baseline_text != baseline_text:
+        errors.append("OPENAPI-005 worktree baseline differs from base-ref snapshot")
+    baseline_doc = yaml.safe_load(baseline_text) if baseline_text is not None else {}
+    current_doc = yaml.safe_load(current_text) or {}
+
+    oracle: Dict[str, Any] = {}
+    expected_findings: List[Dict[str, Any]] = []
+    if decision_path is not None and decision_path.is_file():
+        errors.extend(
+            validate_decision_record(
+                decision_path.read_text(encoding="utf-8"), args.decision_id
+            )
+        )
+    if oracle_path is not None and oracle_path.is_file():
+        try:
+            loaded_oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            errors.append(f"cannot parse OPENAPI-005 oracle: {exc}")
+        else:
+            if isinstance(loaded_oracle, dict):
+                oracle = loaded_oracle
+                errors.extend(validate_exact_set_oracle(oracle, args.decision_id))
+                raw_findings = oracle.get("findings")
+                if isinstance(raw_findings, list):
+                    expected_findings = [
+                        finding for finding in raw_findings if isinstance(finding, dict)
+                    ]
+            else:
+                errors.append("OPENAPI-005 oracle must be a JSON object")
+
+    errors.extend(validate_openapi_005_authority(repo_root, oracle))
+    actual_findings = normalize_openapi_005_findings(baseline_doc or {}, current_doc)
+    if len(expected_findings) != len(actual_findings):
+        errors.append(
+            f"OPENAPI-005 exact-set expected {len(expected_findings)} findings but actual {len(actual_findings)}"
+        )
+    errors.extend(compare_finding_sets(expected_findings, actual_findings))
+    errors.extend(validate_openapi_005_contract(baseline_doc or {}, current_doc))
+    errors.extend(
+        validate_openapi_005_invariants(
+            baseline_doc or {}, current_doc, oracle.get("invariants") or {}
+        )
+    )
+
+    sorted_findings = sorted(actual_findings, key=_finding_key)
+    payload: Dict[str, Any] = OrderedDict(
+        schemaVersion=1,
+        decisionId=args.decision_id,
+        mode="exact-set",
+        keyFields=list(OPENAPI_001_FINDING_KEYS),
+        authority=oracle.get("authority"),
+        baselineSource=(
+            f"git:{base_commit}:{baseline_path.relative_to(repo_root)}"
+            if base_commit is not None
+            else None
+        ),
+        currentSource=str(current_path.relative_to(repo_root)),
+        baselineSha256=_sha256_text(baseline_text or ""),
+        currentSha256=_sha256_text(current_text),
+        summary=_format_summary(sorted_findings),
+        expectedFindingCount=len(expected_findings),
+        findingCount=len(sorted_findings),
+        findings=sorted_findings,
+        errors=errors,
+    )
+    _write_json_payload(payload, args.output)
+    return 0 if not errors else 1
+
+
 def validate_d_35_authority(
     repo_root: Path, oracle: Dict[str, Any]
 ) -> List[str]:
@@ -2875,12 +3237,20 @@ def run(args: argparse.Namespace) -> int:
             "OPENAPI-001",
             "OPENAPI-002",
             "OPENAPI-004",
+            "OPENAPI-005",
             "D-35",
         }:
             sys.stderr.write(f"ERROR: unsupported decision audit: {args.decision_id}\n")
             return 1
         if args.decision_id == "OPENAPI-004":
             return run_openapi_004_audit(
+                args,
+                repo_root,
+                baseline_path,
+                current_path,
+            )
+        if args.decision_id == "OPENAPI-005":
+            return run_openapi_005_audit(
                 args,
                 repo_root,
                 baseline_path,

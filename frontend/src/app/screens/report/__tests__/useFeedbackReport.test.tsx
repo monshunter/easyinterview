@@ -3,12 +3,12 @@
  *
  * Phase 2.8 — useFeedbackReport: idle / loading / data / error / notFound;
  * cross-user 404 maps to notFound + REPORT_NOT_FOUND; read path never carries
- * Idempotency-Key; unmount cancels inflight.
+ * Idempotency-Key; cleanup ignores stale inflight results.
  */
 
 import { describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { StrictMode, type ReactNode } from "react";
 
 import type { FeedbackReport } from "../../../../api/generated/types";
 import { EasyInterviewClient } from "../../../../api/generated/client";
@@ -99,6 +99,39 @@ function Wrapper({
 }
 
 describe("useFeedbackReport", () => {
+  it("shares the mount read transport under StrictMode", async () => {
+    let resolveFetch!: (response: Response) => void;
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      () => new Promise<Response>((resolve) => { resolveFetch = resolve; }),
+    );
+    const client = new EasyInterviewClient({ fetch });
+    const value = {
+      client,
+      runtime: { status: "ready" as const, config: {} as never },
+      auth: { status: "unauthenticated" as const },
+      refreshAuth: () => undefined,
+    };
+    const { result } = renderHook(() => useFeedbackReport(REPORT_ID), {
+      wrapper: ({ children }) => (
+        <StrictMode>
+          <AppRuntimeContext.Provider value={value}>
+            {children}
+          </AppRuntimeContext.Provider>
+        </StrictMode>
+      ),
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveFetch(new Response(JSON.stringify(makeReport()), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    });
+    await waitFor(() => expect(result.current.state).toBe("data"));
+    expect(result.current.data?.id).toBe(REPORT_ID);
+  });
+
   it("transitions loading → data on ready (TestUseFeedbackReport4States happy path)", async () => {
     const client = buildClient([makeReport()]);
     const { result } = renderHook(() => useFeedbackReport(REPORT_ID), {
@@ -184,9 +217,6 @@ describe("useFeedbackReport", () => {
     expect(dataDuringRender[switchRenderStart]).toBeNull();
     expect(statesDuringRender[switchRenderStart]).toBe("loading");
     expect(result.current.data).toBeNull();
-    expect(secondClient.getFeedbackReport).toHaveBeenCalledWith(
-      REPORT_ID,
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    expect(secondClient.getFeedbackReport).toHaveBeenCalledWith(REPORT_ID);
   });
 });

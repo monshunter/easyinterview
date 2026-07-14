@@ -33,7 +33,8 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
 
 - `tests/pixel-parity/topbar.spec.ts` — TopBar DOM 锚点 + computed style
   parity（三入口、显示控制、语言 dropdown、authenticated 头像菜单 dropdown /
-  logout flow、ui-design 对照与 mode/aria contract）。
+  logout flow、只含 hue / saturation 的 custom accent picker、ui-design 对照与
+  mode/aria contract）。
 - `tests/pixel-parity/screens.spec.ts` — auth_login 卡片 shell DOM 锚点 +
   ui-design hash route `#route=auth_login` 对照 + out-of-scope-module 负向断言。
 - `tests/pixel-parity/layout.spec.ts` — TopBar 与 auth shell 在两个 viewport
@@ -80,6 +81,9 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
   15, 23)`。
 - 激活 customAccent 后 `<html data-custom-accent="active"`、内联
   `--ei-color-accent` 为 `oklch(58% ...)`、base palette token 不被覆盖。
+- custom accent picker 在 desktop/mobile 均只含 hue / saturation 两行；正式前端
+  与静态原型的 padding / border / bounding box 对齐，菜单与 document 无横向溢出，
+  chroma 行后只有既定底部 padding，且两侧均生成非空控件截图证据。
 - screenshot smoke 生成非空 browser screenshot buffer；仓库不维护 snapshot
   baseline 或对应更新流程。
 

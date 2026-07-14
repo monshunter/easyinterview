@@ -20,11 +20,46 @@ const PLAN_ID = "01918fa0-0000-7000-8000-000000004000";
 const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
 const RESUME_ID = "01918fa0-0000-7000-8000-000000001000";
 const PRACTICE_ROOT = "[data-testid='practice-screen']";
-type ReplyStateDemo = "immediate-pending" | "persisted-pending" | "retryable-failed" | "terminal-failed";
+const ASSISTANT_GFM = [
+  "## 系统设计追问",
+  "",
+  "> 请先说明关键取舍。",
+  "",
+  "1. 约束是什么？",
+  "2. 如何回滚？",
+  "",
+  "`requestId` 必须可追踪。",
+].join("\n");
+const USER_GFM = [
+  "## 我的回答",
+  "",
+  "- 先建立可回滚基线",
+  "- 再逐步放量",
+  "",
+  "| 阶段 | 成功指标 | 回滚条件 |",
+  "| --- | --- | --- |",
+  "| 灰度 | 核心链路成功率保持在 99.99% 且连续观察两个完整窗口 | 任一关键指标连续三个窗口低于基线立即回滚 |",
+  "",
+  "```ts",
+  `const rollout = "${"baseline-".repeat(32)}";`,
+  "```",
+].join("\n");
+const HOSTILE_MARKDOWN = [
+  '<img src="https://tracker.invalid/raw.png" onerror="window.__practiceMarkdownExecuted=true">',
+  '<script>window.__practiceMarkdownExecuted=true</script>',
+  '<span onclick="window.__practiceMarkdownExecuted=true">raw event handler</span>',
+  "![tracking pixel](https://tracker.invalid/markdown.png)",
+  "[unsafe javascript](javascript:window.__practiceMarkdownExecuted=true)",
+  "[unsafe data](data:text/html;base64,PHNjcmlwdD4=)",
+  "[safe external](https://example.com/reference)",
+].join("\n\n");
+const RAW_RETRY_MARKDOWN = "\n\n## 原始重试回答\n\n- 保留空白\n\n<div onclick=\"unsafe()\">保留的原始 HTML</div>\n\n  ";
+type ReplyStateDemo = "immediate-pending" | "persisted-pending" | "retryable-failed" | "terminal-failed" | "markdown-gfm";
 
 interface PracticeMockOptions {
   sessionScenario?: string;
   sendScenario?: string;
+  sessionBodyTransform?: (body: unknown) => unknown;
   beforeSend?: (request: import("@playwright/test").Request) => Promise<void> | void;
   onMessagePost?: (request: import("@playwright/test").Request) => Promise<void> | void;
 }
@@ -53,7 +88,15 @@ async function mockPracticeApis(
     const path = new URL(route.request().url()).pathname.replace(/^\/api\/v1/, "");
     if (path === "/runtime-config") return fulfillFixture(route, "openapi/fixtures/Auth/getRuntimeConfig.json");
     if (path === "/me") return fulfillFixture(route, "openapi/fixtures/Auth/getMe.json", "authenticated");
-    if (/^\/practice\/sessions\/[^/]+$/.test(path)) return fulfillFixture(route, "openapi/fixtures/PracticeSessions/getPracticeSession.json", options.sessionScenario);
+    if (/^\/practice\/sessions\/[^/]+$/.test(path)) {
+      const response = fixtureResponse("openapi/fixtures/PracticeSessions/getPracticeSession.json", options.sessionScenario);
+      const body = options.sessionBodyTransform?.(response.body) ?? response.body;
+      return route.fulfill({
+        status: response.status,
+        headers: { "content-type": "application/json; charset=utf-8", ...(response.headers ?? {}) },
+        body: JSON.stringify(body),
+      });
+    }
     if (/^\/practice\/plans\/[^/]+$/.test(path)) return fulfillFixture(route, "openapi/fixtures/PracticePlans/getPracticePlan.json");
     if (/^\/targets\/[^/]+$/.test(path)) return fulfillFixture(route, "openapi/fixtures/TargetJobs/getTargetJob.json");
     if (/^\/practice\/sessions\/[^/]+\/messages$/.test(path)) {
@@ -327,6 +370,15 @@ async function expectPracticeCoreSurfaceParity(
   }
 }
 
+function markdownSemanticSnapshot(bodies: Element[]) {
+  const normalize = (value: string | null) => (value ?? "").replace(/\s+/gu, "").trim();
+  return bodies.map((body) => ({
+    text: normalize(body.textContent),
+    tags: Array.from(body.querySelectorAll("*")).map((element) => element.tagName.toLowerCase()),
+    classes: Array.from(body.querySelectorAll("*")).map((element) => normalize(element.getAttribute("class"))),
+  }));
+}
+
 test.use({ locale: "zh-CN", timezoneId: "UTC" });
 
 async function attachStateScreenshot(
@@ -409,6 +461,170 @@ test.describe("practice continuous conversation parity", () => {
     await goToPractice(page);
     const image = await page.screenshot({ fullPage: false });
     expect(image.length).toBeGreaterThan(10_000);
+  });
+
+  test("user and assistant GFM keep prototype typography with only local pre/table overflow", async ({ page, context }, testInfo) => {
+    const prototype = await context.newPage();
+    await goToPractice(page, {
+      sessionBodyTransform: (body) => {
+        const session = body as { messages: Array<Record<string, unknown>> };
+        return {
+          ...session,
+          messages: [
+            { ...session.messages[0], content: ASSISTANT_GFM },
+            { ...session.messages[1], content: USER_GFM },
+          ],
+        };
+      },
+    });
+    await goToPrototypePractice(prototype, "markdown-gfm");
+    await Promise.all([settleVisualSurface(page), settleVisualSurface(prototype)]);
+
+    const formalBodies = page.getByTestId("practice-message-body");
+    const prototypeBodies = prototype.getByTestId("practice-message-body");
+    await expect(formalBodies).toHaveCount(2);
+    await expect(prototypeBodies).toHaveCount(2);
+
+    const [formalSemanticDom, prototypeSemanticDom] = await Promise.all([
+      formalBodies.evaluateAll(markdownSemanticSnapshot),
+      prototypeBodies.evaluateAll(markdownSemanticSnapshot),
+    ]);
+    expect(formalSemanticDom).toEqual(prototypeSemanticDom);
+    expect(formalSemanticDom[0]?.tags).toEqual(["h2", "blockquote", "p", "ol", "li", "li", "p", "code"]);
+    expect(formalSemanticDom[1]?.tags).toEqual([
+      "h2", "ul", "li", "li", "table", "thead", "tr", "th", "th", "th",
+      "tbody", "tr", "td", "td", "td", "pre", "code",
+    ]);
+
+    for (let index = 0; index < 2; index += 1) {
+      const selector = `[data-testid='practice-transcript-message-${index}'] [data-testid='practice-message-body']`;
+      const properties = ["max-width", "font-size", "line-height", "color", "overflow-wrap", "word-break"];
+      const [formalBody, prototypeBody] = await Promise.all([
+        surfaceSnapshot(page, selector, properties),
+        surfaceSnapshot(prototype, selector, properties),
+      ]);
+      expectSurfaceParity(formalBody, prototypeBody, `practice markdown body ${index}`);
+      expect((await normalizedText(page, selector)).replace(/\s+/gu, "")).toBe(
+        (await normalizedText(prototype, selector)).replace(/\s+/gu, ""),
+      );
+      await expectPixelParity(page, prototype, selector, testInfo, `practice-markdown-message-${index}-${testInfo.project.name}`);
+    }
+
+    for (const surface of [page, prototype]) {
+      const overflow = await surface.getByTestId("practice-message-body").nth(1).evaluate((body) => {
+        const bodyBox = body.getBoundingClientRect();
+        const pre = body.querySelector("pre");
+        const table = body.querySelector("table");
+        if (!pre || !table) throw new Error("expected Markdown pre and table");
+        const preBox = pre.getBoundingClientRect();
+        const tableBox = table.getBoundingClientRect();
+        return {
+          bodyWidth: bodyBox.width,
+          preWidth: preBox.width,
+          preClientWidth: pre.clientWidth,
+          preScrollWidth: pre.scrollWidth,
+          tableWidth: tableBox.width,
+          tableClientWidth: table.clientWidth,
+          tableScrollWidth: table.scrollWidth,
+          documentScrollWidth: document.documentElement.scrollWidth,
+          viewportWidth: window.innerWidth,
+        };
+      });
+      expect(overflow.preWidth).toBeLessThanOrEqual(overflow.bodyWidth + 1);
+      expect(overflow.tableWidth).toBeLessThanOrEqual(overflow.bodyWidth + 1);
+      expect(overflow.preScrollWidth).toBeGreaterThan(overflow.preClientWidth);
+      if (overflow.viewportWidth === 390) {
+        expect(overflow.tableScrollWidth).toBeGreaterThan(overflow.tableClientWidth);
+      } else {
+        expect(overflow.tableScrollWidth).toBeGreaterThanOrEqual(overflow.tableClientWidth);
+      }
+      expect(overflow.documentScrollWidth).toBeLessThanOrEqual(overflow.viewportWidth);
+      expect([[1440], [390]]).toContainEqual([overflow.viewportWidth]);
+    }
+
+    await attachStateScreenshot(page, testInfo, "practice-markdown-gfm");
+    await prototype.close();
+  });
+
+  test("hostile Markdown stays inert without image requests and hardens safe external links", async ({ page }, testInfo) => {
+    let trackingRequests = 0;
+    page.on("request", (request) => {
+      if (request.url().startsWith("https://tracker.invalid/")) trackingRequests += 1;
+    });
+    await page.addInitScript(() => {
+      (window as Window & { __practiceMarkdownExecuted?: boolean }).__practiceMarkdownExecuted = false;
+    });
+    await goToPractice(page, {
+      sessionBodyTransform: (body) => {
+        const session = body as { messages: Array<Record<string, unknown>> };
+        return {
+          ...session,
+          messages: [{ ...session.messages[0], content: HOSTILE_MARKDOWN }],
+        };
+      },
+    });
+
+    const body = page.getByTestId("practice-message-body");
+    await expect(body).toHaveCount(1);
+    await expect(body.locator("img, script")).toHaveCount(0);
+    expect(await body.innerHTML()).not.toMatch(/onerror|onclick|__practiceMarkdownExecuted/u);
+    for (const label of ["unsafe javascript", "unsafe data"]) {
+      expect(await body.getByText(label, { exact: true }).evaluate((node) => node.closest("a") === null)).toBe(true);
+    }
+    const safeLink = body.getByRole("link", { name: "safe external" });
+    await expect(safeLink).toHaveAttribute("href", "https://example.com/reference");
+    await expect(safeLink).toHaveAttribute("target", "_blank");
+    await expect(safeLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(await page.evaluate(() => (window as Window & { __practiceMarkdownExecuted?: boolean }).__practiceMarkdownExecuted)).toBe(false);
+    expect(trackingRequests).toBe(0);
+    const viewport = await body.evaluate(() => ({
+      documentScrollWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+    }));
+    expect(viewport.documentScrollWidth).toBeLessThanOrEqual(viewport.viewportWidth);
+    await attachStateScreenshot(page, testInfo, "practice-hostile-markdown");
+  });
+
+  test("row-local retry posts the exact original raw Markdown and clientMessageId while preserving the next draft", async ({ page }) => {
+    const requests: Array<{ clientMessageId: string; text: string }> = [];
+    let releaseRetry: (() => void) | undefined;
+    const retryGate = new Promise<void>((resolveRetry) => {
+      releaseRetry = resolveRetry;
+    });
+    await goToPractice(page, {
+      sessionScenario: "reply-retryable-failed",
+      sendScenario: "retry-success-same-client-message",
+      sessionBodyTransform: (body) => {
+        const session = body as { messages: Array<Record<string, unknown>> };
+        return {
+          ...session,
+          messages: session.messages.map((message) => (
+            message.role === "user" ? { ...message, content: RAW_RETRY_MARKDOWN } : message
+          )),
+        };
+      },
+      beforeSend: async (request) => {
+        requests.push(request.postDataJSON() as { clientMessageId: string; text: string });
+        await retryGate;
+      },
+    });
+
+    try {
+      await expect(page.getByRole("heading", { level: 2, name: "原始重试回答" })).toBeVisible();
+      await expect(page.getByText("保留的原始 HTML", { exact: true })).toHaveCount(0);
+      const nextDraft = "下一条草稿保持原样";
+      await page.getByTestId("practice-input-textarea").fill(nextDraft);
+      await page.getByTestId("practice-message-retry").click();
+
+      await expect.poll(() => requests.length).toBe(1);
+      expect(requests[0]).toEqual({
+        clientMessageId: "01918fa0-0000-7000-8000-000000007010",
+        text: RAW_RETRY_MARKDOWN,
+      });
+      await expect(page.getByTestId("practice-input-textarea")).toHaveValue(nextDraft);
+    } finally {
+      releaseRetry?.();
+    }
   });
 
   test("new user input is visible before the reply and locks the composer", async ({ page, context }, testInfo) => {
@@ -740,13 +956,14 @@ test.describe("practice continuous conversation parity", () => {
     await attachStateScreenshot(page, testInfo, "practice-terminal-failed");
 
     await cta.click();
-    await expect.poll(() => new URL(page.url()).pathname).toBe("/parse");
+    await expect.poll(() => new URL(page.url()).pathname).toBe("/workspace");
     const url = new URL(page.url());
-    expect(url.pathname).toBe("/parse");
-    expect(url.pathname).not.toBe("/workspace");
+    expect(url.pathname).toBe("/workspace");
+    expect(url.pathname).not.toBe("/parse");
     expect(url.searchParams.get("targetJobId")).toBe(TARGET_JOB_ID);
     expect(url.searchParams.has("planId")).toBe(false);
     expect([...url.searchParams.keys()]).toEqual(["targetJobId"]);
+    expect(url.search).not.toBe("");
     expect(url.hash).toBe("");
     await prototype.close();
   });

@@ -1,7 +1,7 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.25
-> **状态**: active
+> **版本**: 1.27
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -18,7 +18,7 @@
 - B1 shared conventions are referenced through generated/shared types and error envelope rules.
 - Fixtures and breaking-change gates consume this bootstrap output through sibling B2 plans.
 
-This owner plan remains the executable contract/codegen evidence index and is reopened for the accepted OPENAPI-002 paste-only correction.
+This owner plan remains the executable contract/codegen evidence index; the reopened corrections through Phase 16 are now completed with current handoff and regression evidence.
 
 ## 2 Current Contract
 
@@ -31,7 +31,14 @@ This owner plan remains the executable contract/codegen evidence index and is re
 | Local docs | Redocly CLI renders `openapi/dist/index.html` without committing generated docs | `make docs-openapi` |
 | Downstream handoff | 002 owns fixtures/mock source; 003 owns breaking-change baseline/gate; 004 owns resume additive coverage | plans INDEX and context validation |
 
-## 3 Current Operation Inventory
+## 3 质量门禁分类
+
+- **Plan 类型**: `contract + tooling + feature-behavior handoff`
+- **TDD 策略**: schema inventory、semantic lint、Go/TS generator structure、codegen idempotency 与 negative surface tests 必须按 Red-Green-Refactor 执行；每个 correction Phase 的 checklist 明确对应断言与命令入口。
+- **BDD 策略**: 本 plan 不复制场景资产；用户可见 contract correction 必须引用下游 owner BDD。Phase 16 复用 P0.034/P0.036/P0.037，并在主 checklist 保留 `BDD-Gate:`。
+- **替代验证 gate**: `make lint-openapi`、generator tests、`make codegen-check`、`make openapi-diff`、scoped zero-reference 与 downstream compile/consumer gates。
+
+### 3.1 Current Operation Inventory
 
 | Tag | Operations |
 |-----|------------|
@@ -80,12 +87,13 @@ git diff --check
 
 ## 6 BDD Applicability
 
-本 plan 不新建本地 BDD 文件，因为它只拥有 API schema、codegen 与 contract gate；但 Practice recovery 是用户可见行为，不能只用内部 contract test 收口。Phase 14 必须以 frontend-workspace-and-practice/002 的 BDD 与 P0.046 failure/recovery scenario 作为 mandatory `BDD-Gate`，证明 optimistic user message、pending lock、reload projection、typed failure branching 与 same-ID retry。未取得该 handoff evidence 时，本 plan 不得恢复 completed。
+本 plan 不新建本地 BDD 文件，因为它只拥有 API schema、codegen 与 contract gate；用户可见行为不能只用内部 contract test 收口。Phase 14 必须以 frontend-workspace-and-practice/002 的 BDD 与 P0.046 failure/recovery scenario 作为 mandatory `BDD-Gate`；Phase 16 必须复用 P0.034/P0.036/P0.037，分别证明 backend register/list projection、frontend flat list/auth boundary 与 full detail read-only contract。未取得对应 handoff evidence 时，本 plan 不得恢复 completed。
 
 ## 7 Revision Log
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-07-14 | 1.27 | Reopen Phase 16 for OPENAPI-005 closed ResumeSummary list projection, full getResume detail and all-consumer handoff. |
 | 2026-07-14 | 1.23 | Correct OPENAPI-002 to an exact 17-finding boundary including both source-only ApiErrorCode removals; keep the separate D-35 Practice machine oracle non-ADR. |
 | 2026-07-13 | 1.22 | Add Practice durable reply-state, same-ID recovery and typed TypeScript ApiClientError phase; tighten OPENAPI-002 rawText/oracle/invariant gates. |
 | 2026-07-13 | 1.21 | Reopen Phase 13 for OPENAPI-002 TargetJob paste-only schema, generated artifacts and consumer handoff. |
@@ -247,3 +255,22 @@ Replace the response with closed `TargetJobReportsOverview{targetJobId,rounds}`.
 | `listTargetJobReports` | `Reports/listTargetJobReports.json` canonical rounds/current/latest/empty/fail-closed cases | target-scoped ReportsScreen via generated client | backend-review list overview service/store | owned TargetJob canonical summary + `feedback_reports.generation_context/status/generated_at/created_at`；no TargetJob pointer | none | P0.059 |
 
 003 must exact-audit OPENAPI-004 from old baseline before re-freeze. 002 fixtures/Prism, db/targetjob cleanup, backend-review selection and frontend consumers must all pass before baseline mutation.
+
+## 16 OPENAPI-005 Resume list summary projection
+
+### 16.1 RED contract boundary
+
+Consume accepted OPENAPI-005 before schema mutation. Focused schema/inventory/generator tests must fail until `ResumeSummary` is closed, its required property set is exactly `id/title/displayName/language/sourceType/parseStatus/summaryHeadline/hasReadableContent/updatedAt`, and `PaginatedResume.items` references it. Negative assertions reject full-detail/provenance fields and arbitrary extras while locking unchanged 37/10 inventory, `GET /api/v1/resumes` / `listResumes` / 200 / pagination and `GET /api/v1/resumes/{resumeId}` / `getResume` / 200 + full `Resume`.
+
+### 16.2 GREEN source and generated types
+
+Add the closed source schema, switch only `PaginatedResume.items`, and regenerate typed Go/TS artifacts. `summaryHeadline` is required nullable；`hasReadableContent` is required boolean and backend-owned. The handoff contract pins `summaryHeadline` to the first trim-nonempty string in `parsed_summary.headline`、`parsed_summary.basics.headline`、`structured_profile.headline`、`structured_profile.basics.headline`, and `hasReadableContent=true` exactly to trim-nonempty `parsed_text_snapshot` / `original_text` or a nonempty-object `structured_profile`; `fileObjectId`、`sourceType`、`parseStatus` never imply readability. Generated list results must use `ResumeSummary[]` / `[]ResumeSummary`, while `getResume`, update/duplicate/archive responses keep `Resume`. No `ResumeListItem` alias, union, optional detail compatibility fields, second endpoint or `any` is allowed.
+
+### 16.3 Operation matrix and all-consumer handoff
+
+| operationId | response contract | fixture | backend projection | frontend consumer | BDD |
+|-------------|-------------------|---------|--------------------|-------------------|-----|
+| `listResumes` | `PaginatedResume.items: ResumeSummary[]` | `Resumes/listResumes.json` summary-only scenarios | dedicated list columns/record/mapper; no detail payload fetch | Home picker, Resume Workshop list and every generated-client list consumer | P0.034 + P0.036 |
+| `getResume` | full `Resume` unchanged | `Resumes/getResume.json` full-detail scenarios | existing owned detail lookup/mapper | Resume Workshop read-only detail | P0.037 |
+
+002 Phase 11 must migrate fixture/example/Prism/mock bytes；003 Phase 9 must generate the declared OPENAPI-005 exact oracle from merge-base old baseline before any re-freeze；004 Phase 7 coordinates backend store/service/handler, generated consumers and frontend list/detail migration. All consumers compile and pass focused tests in the same batch；frontend may not issue N+1 `getResume` requests to restore removed list fields.

@@ -72,6 +72,17 @@ function isUnauthenticatedError(error: Error): boolean {
   return /^HTTP 401\b/.test(error.message);
 }
 
+function requestOptionsKey(options: RequestOptions | undefined): string {
+  if (!options) return "";
+  const headers = Array.from(new Headers(options.headers ?? {}).entries()).sort(
+    ([left], [right]) => left.localeCompare(right),
+  );
+  const query = Object.entries(options.query ?? {})
+    .filter(([, value]) => value !== undefined)
+    .sort(([left], [right]) => left.localeCompare(right));
+  return JSON.stringify([options.idempotencyKey ?? "", headers, query]);
+}
+
 export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
   client,
   skipInitialAuthProbe = false,
@@ -88,12 +99,20 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
   );
   const [authNonce, setAuthNonce] = useState(0);
   const skippedInitialAuthProbeRef = useRef(false);
+  const runtimeConfigOptionsRef = useRef(requestOptions?.runtimeConfig);
+  const getMeOptionsRef = useRef(requestOptions?.getMe);
+  runtimeConfigOptionsRef.current = requestOptions?.runtimeConfig;
+  getMeOptionsRef.current = requestOptions?.getMe;
+  const runtimeConfigOptionsKey = requestOptionsKey(requestOptions?.runtimeConfig);
+  const getMeOptionsKey = requestOptionsKey(requestOptions?.getMe);
+  const runtimeConfigSignal = requestOptions?.runtimeConfig?.signal;
+  const getMeSignal = requestOptions?.getMe?.signal;
 
   useEffect(() => {
     let cancelled = false;
 
     client
-      .getRuntimeConfig(requestOptions?.runtimeConfig)
+      .getRuntimeConfig(runtimeConfigOptionsRef.current)
       .then((config) => {
         if (!cancelled) setRuntime({ status: "ready", config });
       })
@@ -105,7 +124,7 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [client, requestOptions]);
+  }, [client, runtimeConfigOptionsKey, runtimeConfigSignal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,7 +144,7 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
     setAuth({ status: "loading" });
 
     client
-      .getMe(requestOptions?.getMe)
+      .getMe(getMeOptionsRef.current)
       .then((user) => {
         if (!cancelled) setAuth({ status: "authenticated", user });
       })
@@ -144,7 +163,13 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [client, requestOptions, authNonce, skipInitialAuthProbe]);
+  }, [
+    authNonce,
+    client,
+    getMeOptionsKey,
+    getMeSignal,
+    skipInitialAuthProbe,
+  ]);
 
   const value = useMemo<AppRuntimeValue>(
     () => ({

@@ -336,7 +336,7 @@ describe("ReportsScreen", () => {
 
     fireEvent.click(screen.getByTestId("reports-back-button"));
     expect(navigate).toHaveBeenLastCalledWith({
-      name: "parse",
+      name: "workspace",
       params: { targetJobId: TARGET_A_ID },
     });
   });
@@ -383,7 +383,7 @@ describe("ReportsScreen", () => {
     );
     fireEvent.click(screen.getByTestId("reports-back-button"));
     expect(navigate).toHaveBeenCalledWith({
-      name: "parse",
+      name: "workspace",
       params: { targetJobId: TARGET_A_ID },
     });
   });

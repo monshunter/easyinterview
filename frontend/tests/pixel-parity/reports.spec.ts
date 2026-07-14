@@ -377,12 +377,12 @@ test.describe("current-plan reports source, geometry, and screenshot parity", ()
     ]);
 
     await page.locator("[data-testid='reports-back-button']").click();
-    await page.waitForURL(/\/parse\?targetJobId=/);
+    await page.waitForURL(/\/workspace\?targetJobId=/);
     expect(new URL(page.url()).pathname + new URL(page.url()).search).toBe(
-      `/parse?targetJobId=${TARGET_JOB_ID}`,
+      `/workspace?targetJobId=${TARGET_JOB_ID}`,
     );
     console.log(
-      `E2E.P0.059 current-plan reports ready state matches the UI truth project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} rounds=4 current=2 generating=1 failed=1 currentPlanIsolation=true currentLatestOnly=true topbarReportsEntry=0 backTarget=parse changedRatio=${changedRatio.toFixed(6)}`,
+      `E2E.P0.059 current-plan reports ready state matches the UI truth project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} rounds=4 current=2 generating=1 failed=1 currentPlanIsolation=true currentLatestOnly=true topbarReportsEntry=0 backTarget=workspace-detail changedRatio=${changedRatio.toFixed(6)}`,
     );
     await prototype.close();
   });

@@ -227,7 +227,7 @@ describe("PracticeScreen continuous conversation", () => {
       expect(window.location.pathname).toBe("/generating");
       expect(window.location.search).toBe(`?reportId=${reportId}`);
     });
-    await waitFor(() => expect(getReport).toHaveBeenCalledWith(reportId, expect.any(Object)));
+    await waitFor(() => expect(getReport).toHaveBeenCalledWith(reportId));
     expect(window.history.state).toBeNull();
     const searchParams = new URL(window.location.href).searchParams;
     for (const forbidden of [
@@ -371,7 +371,7 @@ describe("PracticeScreen continuous conversation", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
 
     expect(signalA?.aborted).toBe(true);
-    expect(getSession).toHaveBeenCalledWith(SESSION_B_ID, expect.anything());
+    expect(getSession).toHaveBeenCalledWith(SESSION_B_ID);
     expect(screen.getByText("session B opening")).toBeInTheDocument();
     expect(screen.queryByText("session A pending answer")).not.toBeInTheDocument();
     expect(screen.queryByTestId("practice-interviewer-thinking")).not.toBeInTheDocument();
@@ -1019,6 +1019,10 @@ describe("PracticeScreen continuous conversation", () => {
     ["zh", "本次回复未能完成。", "请返回当前面试规划，准备好后重新开始一场面试。", "返回当前面试规划"],
     ["en", "This reply could not be completed.", "Return to this interview plan, then start a new session when you are ready.", "Return to this interview plan"],
   ] as const)("renders the %s terminal state with one safe exact current-plan CTA", async (lang, title, description, ctaLabel) => {
+    const practiceSource = readFileSync(resolve(__dirname, "PracticeScreen.tsx"), "utf8");
+    expect(practiceSource).toContain('navigate({ name: "workspace", params: { targetJobId } })');
+    expect(practiceSource).not.toContain('navigate({ name: "parse", params: { targetJobId } })');
+
     localStorage.setItem("ei-lang", lang);
     const client = createDevMockClient();
     const base = openingOnly(await client.getPracticeSession(SESSION_ID));
@@ -1062,9 +1066,11 @@ describe("PracticeScreen continuous conversation", () => {
     expect(send).not.toHaveBeenCalled();
 
     fireEvent.click(cta);
-    await waitFor(() => expect(window.location.pathname).toBe("/parse"));
+    await waitFor(() => expect(window.location.pathname).toBe("/workspace"));
     expect(window.location.search).toBe(`?targetJobId=${TARGET_JOB_ID}`);
-    expect(window.location.href).not.toContain("workspace");
+    expect([...new URL(window.location.href).searchParams.keys()]).toEqual(["targetJobId"]);
+    expect(window.location.pathname).not.toBe("/parse");
+    expect(window.location.search).not.toBe("");
     expect(window.location.href).not.toContain("planId");
   });
 
@@ -1365,6 +1371,42 @@ describe("PracticeScreen continuous conversation", () => {
     expect(screen.getByTestId("practice-input-textarea")).toHaveValue("必须保留的下一条草稿");
     expect(screen.getByTestId("practice-input-textarea")).toBeEnabled();
     expect(screen.getByTestId("practice-input-send")).toBeDisabled();
+  });
+
+  it("sends and retries the exact raw Markdown bytes with one clientMessageId without replacing the next draft", async () => {
+    const client = createDevMockClient();
+    const base = openingOnly(await client.getPracticeSession(SESSION_ID));
+    const transport = new ApiClientError("transport", null, null, new TypeError("offline"));
+    vi.spyOn(client, "getPracticeSession")
+      .mockResolvedValueOnce(base)
+      .mockRejectedValue(transport);
+    const send = vi.spyOn(client, "sendPracticeMessage").mockRejectedValue(transport);
+
+    renderPractice(client);
+    await screen.findByText(base.messages[0]!.content);
+    const rawText = "\n\n## 原始回答\n\n- 第一项\n\n<div onclick=\"unsafe()\">保留的原始 HTML</div>\n\n  ";
+    fireEvent.change(screen.getByTestId("practice-input-textarea"), { target: { value: rawText } });
+    fireEvent.click(screen.getByTestId("practice-input-send"));
+
+    const retry = await screen.findByTestId("practice-message-retry");
+    const firstBody = send.mock.calls[0]![1];
+    expect(Array.from(new TextEncoder().encode(firstBody.text))).toEqual(
+      Array.from(new TextEncoder().encode(rawText)),
+    );
+    expect(screen.getByRole("heading", { level: 2, name: "原始回答" })).toBeInTheDocument();
+    expect(screen.queryByText("保留的原始 HTML")).not.toBeInTheDocument();
+
+    const nextDraft = "下一条草稿不能被重试覆盖";
+    fireEvent.change(screen.getByTestId("practice-input-textarea"), { target: { value: nextDraft } });
+    fireEvent.click(retry);
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+    const retriedBody = send.mock.calls[1]![1];
+    expect(retriedBody.clientMessageId).toBe(firstBody.clientMessageId);
+    expect(Array.from(new TextEncoder().encode(retriedBody.text))).toEqual(
+      Array.from(new TextEncoder().encode(rawText)),
+    );
+    expect(screen.getByTestId("practice-input-textarea")).toHaveValue(nextDraft);
   });
 
   it("uses typed ApiClientError for loader 404 instead of parsing an Error.message prefix", async () => {

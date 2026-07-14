@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { Resume } from "../../../../api/generated/types";
+import type { Resume, ResumeSummary } from "../../../../api/generated/types";
 
 import {
   buildResumeBodyLines,
   getResumeDetailRenderer,
   getResumeSourceUrl,
+  mapResumeSummaryToUiSource,
   mapResumeToUiSource,
 } from "./resume";
 
@@ -149,6 +150,31 @@ describe("mapResumeToUiSource", () => {
       "Bullet b.",
       "React · TypeScript",
     ]);
+  });
+});
+
+describe("mapResumeSummaryToUiSource", () => {
+  it("maps the list row exclusively from ResumeSummary fields", () => {
+    const summary: ResumeSummary = {
+      id: baseResume.id,
+      title: baseResume.title,
+      displayName: baseResume.displayName,
+      language: baseResume.language,
+      sourceType: "upload",
+      parseStatus: "ready",
+      summaryHeadline: "Senior frontend engineer focused on platform delivery",
+      hasReadableContent: true,
+      updatedAt: baseResume.updatedAt,
+    };
+
+    expect(mapResumeSummaryToUiSource(summary)).toEqual({
+      id: summary.id,
+      name: summary.displayName,
+      langTag: "中",
+      sourceName: summary.title,
+      updatedAt: "2026-05-12",
+      summary: summary.summaryHeadline,
+    });
   });
 });
 

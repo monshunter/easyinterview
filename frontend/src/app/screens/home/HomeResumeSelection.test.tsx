@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { StrictMode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -14,6 +15,7 @@ import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRun
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import importTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/importTargetJob.json";
+import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 
 type ListResumesResponse = Awaited<ReturnType<EasyInterviewClient["listResumes"]>>;
 
@@ -31,11 +33,9 @@ const readableNonReadyListResumesResponse = {
       displayName: "Readable Failed Resume",
       parseStatus: "failed",
       sourceType: "upload",
-      originalText: null,
-      parsedTextSnapshot: "# Readable Failed Resume\n\nRecovered PDF text.",
+      summaryHeadline: "Recovered PDF text",
+      hasReadableContent: true,
       updatedAt: "2026-05-15T08:00:00Z",
-      deletedAt: null,
-      status: "active",
     },
     {
       ...defaultListResumesResponse.items[0]!,
@@ -44,11 +44,9 @@ const readableNonReadyListResumesResponse = {
       displayName: "Queued Paste Source",
       parseStatus: "queued",
       sourceType: "paste",
-      originalText: "Queued paste resume body",
-      parsedTextSnapshot: null,
+      summaryHeadline: "Queued paste resume",
+      hasReadableContent: true,
       updatedAt: "2026-05-14T08:00:00Z",
-      deletedAt: null,
-      status: "active",
     },
     {
       ...defaultListResumesResponse.items[0]!,
@@ -57,11 +55,9 @@ const readableNonReadyListResumesResponse = {
       displayName: "Processing Markdown Source",
       parseStatus: "processing",
       sourceType: "upload",
-      originalText: null,
-      parsedTextSnapshot: "Processing markdown resume body",
+      summaryHeadline: "Processing markdown resume",
+      hasReadableContent: true,
       updatedAt: "2026-05-13T08:00:00Z",
-      deletedAt: null,
-      status: "active",
     },
   ],
 } satisfies ListResumesResponse;
@@ -83,28 +79,61 @@ function createClient(scenario?: string) {
   return client;
 }
 
-function renderHome(client: EasyInterviewClient) {
+function renderHome(client: EasyInterviewClient, options?: { strict?: boolean }) {
   const navigate = vi.fn();
+  const home = (
+    <DisplayPreferencesProvider initial={{ lang: "zh" }}>
+      <AppRuntimeProvider
+        client={client}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=authenticated" } },
+        }}
+      >
+        <NavigationProvider value={{ navigate }}>
+          <HomeScreen route={{ name: "home", params: {} }} />
+        </NavigationProvider>
+      </AppRuntimeProvider>
+    </DisplayPreferencesProvider>
+  );
   return {
     navigate,
-    ...render(
-      <DisplayPreferencesProvider initial={{ lang: "zh" }}>
-        <AppRuntimeProvider
-          client={client}
-          requestOptions={{
-            getMe: { headers: { Prefer: "example=authenticated" } },
-          }}
-        >
-          <NavigationProvider value={{ navigate }}>
-            <HomeScreen route={{ name: "home", params: {} }} />
-          </NavigationProvider>
-        </AppRuntimeProvider>
-      </DisplayPreferencesProvider>,
-    ),
+    ...render(options?.strict ? <StrictMode>{home}</StrictMode> : home),
   };
 }
 
 describe("Home resume selection", () => {
+  it("issues one jobs GET and one resumes GET on an authenticated StrictMode mount", async () => {
+    const fixtureFetch = createFixtureBackedFetch(
+      createFixtureRegistry([
+        getRuntimeConfigFixture,
+        getMeFixture,
+        listResumesFixture,
+        listTargetJobsFixture,
+      ]),
+    );
+    const requestCounts = new Map<string, number>();
+    const fetch: typeof globalThis.fetch = async (input, init) => {
+      const method = (init?.method ?? "GET").toUpperCase();
+      const path = new URL(String(input), "http://easyinterview.local").pathname;
+      const key = `${method} ${path}`;
+      requestCounts.set(key, (requestCounts.get(key) ?? 0) + 1);
+      return fixtureFetch(input, init);
+    };
+    const client = new EasyInterviewClient({ fetch });
+
+    renderHome(client, { strict: true });
+
+    await screen.findByTestId("home-resume-select");
+    await screen.findByTestId(
+      "home-recent-mock-card-01918fa0-0000-7000-8000-000000002000",
+    );
+    expect(requestCounts.get("GET /api/v1/resumes")).toBe(1);
+    expect(requestCounts.get("GET /api/v1/targets")).toBe(1);
+    console.info(
+      "E2E.P0.014 Home StrictMode transport PASS listTargetJobs=1 listResumes=1",
+    );
+  });
+
   it("renders the home quick-start copy without the out-of-scope hero sub or CTA", async () => {
     const client = createClient("default");
     renderHome(client);
@@ -164,10 +193,9 @@ describe("Home resume selection", () => {
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "parse",
-          params: expect.objectContaining({
+          params: {
             targetJobId: "01918fa0-0000-7000-8000-000000002001",
-            resumeId: "01918fa0-0000-7000-8000-000000001000",
-          }),
+          },
         }),
       );
     });

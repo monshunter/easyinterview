@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { StrictMode } from "react";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 
@@ -16,7 +17,6 @@ import { ParseScreen } from "./ParseScreen";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 
 const POLL_INTERVAL = 610;
-const LOADING_PREVIEW_DELAY = 3200;
 
 function fixtureBody() {
   return (
@@ -35,7 +35,7 @@ function makeFixture(
       default: {
         response: {
           status: 200,
-          body: { ...fixtureBody(), analysisStatus },
+          body: { ...fixtureBody(), id: "tj-1", analysisStatus },
         },
       },
     },
@@ -48,6 +48,25 @@ function createClientFromFixtures(fixtures: OperationFixture[]) {
     { scenario: "default" },
   );
   return new EasyInterviewClient({ fetch });
+}
+
+function createCountingClientFromFixtures(fixtures: OperationFixture[]) {
+  const fixtureFetch = createFixtureBackedFetch(
+    createFixtureRegistry(fixtures),
+    { scenario: "default" },
+  );
+  const fetch = vi.fn<typeof globalThis.fetch>((input, init) =>
+    fixtureFetch(input, init),
+  );
+  return { client: new EasyInterviewClient({ fetch }), fetch };
+}
+
+function targetJobTransportCount(fetch: ReturnType<typeof vi.fn>): number {
+  return fetch.mock.calls.filter(([input, init]) => {
+    const method = (init?.method ?? "GET").toUpperCase();
+    const path = new URL(String(input), "http://fixture.local").pathname;
+    return method === "GET" && path === "/api/v1/targets/tj-1";
+  }).length;
 }
 
 function createClientForTargetSwitch() {
@@ -89,32 +108,33 @@ function createClientForTargetSwitch() {
   return new EasyInterviewClient({ fetch });
 }
 
-function renderParse(client: EasyInterviewClient) {
+function renderParse(client: EasyInterviewClient, options?: { strict?: boolean }) {
   const navigate = vi.fn();
+  const replaceRoute = vi.fn();
+  const parse = (
+    <DisplayPreferencesProvider>
+      <AppRuntimeProvider client={client}>
+        <NavigationProvider value={{ navigate, replaceRoute }}>
+          <ParseScreen
+            route={{ name: "parse", params: { targetJobId: "tj-1" } }}
+          />
+        </NavigationProvider>
+      </AppRuntimeProvider>
+    </DisplayPreferencesProvider>
+  );
   return {
     navigate,
-    ...render(
-      <DisplayPreferencesProvider>
-        <AppRuntimeProvider client={client}>
-          <NavigationProvider value={{ navigate }}>
-            <ParseScreen
-              route={{ name: "parse", params: { targetJobId: "tj-1" } }}
-            />
-          </NavigationProvider>
-        </AppRuntimeProvider>
-      </DisplayPreferencesProvider>,
-    ),
+    replaceRoute,
+    ...render(options?.strict ? <StrictMode>{parse}</StrictMode> : parse),
   };
 }
 
-function renderParseWithTarget(client: EasyInterviewClient, targetJobId: string) {
+function renderWorkspaceDetail(client: EasyInterviewClient, targetJobId: string) {
   return (
     <DisplayPreferencesProvider>
       <AppRuntimeProvider client={client}>
         <NavigationProvider value={{ navigate: vi.fn() }}>
-          <ParseScreen
-            route={{ name: "parse", params: { targetJobId } }}
-          />
+          <ParseScreen route={{ name: "workspace", params: { targetJobId } }} />
         </NavigationProvider>
       </AppRuntimeProvider>
     </DisplayPreferencesProvider>
@@ -137,33 +157,20 @@ describe("ParseFlow — analysisStatus polling", () => {
     });
   });
 
-  it("keeps the ui-design loading demo before preview when analysisStatus is ready", async () => {
-    vi.useFakeTimers();
-    const client = createClientFromFixtures([makeFixture("ready")]);
+  it("immediately replaces ready Parse state with workspace detail", async () => {
+    const { client, fetch } = createCountingClientFromFixtures([
+      makeFixture("ready"),
+    ]);
+    const { replaceRoute } = renderParse(client, { strict: true });
 
-    act(() => {
-      renderParse(client);
+    await waitFor(() => {
+      expect(replaceRoute).toHaveBeenCalledWith({
+        name: "workspace",
+        params: { targetJobId: "tj-1" },
+      });
     });
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-
-    expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
+    expect(targetJobTransportCount(fetch)).toBe(1);
     expect(screen.queryByTestId("parse-basics-title")).not.toBeInTheDocument();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
-    });
-    expect(screen.getByTestId("parse-loading-step-0")).toHaveTextContent(
-      "Extracting title, level, location",
-    );
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY - 600);
-    });
-
-    expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
   });
 
   it("shows failed state when analysisStatus is failed", async () => {
@@ -176,15 +183,14 @@ describe("ParseFlow — analysisStatus polling", () => {
     });
   });
 
-  it("polls getTargetJob when status is queued", async () => {
+  it("issues one queued transport on StrictMode mount and one per scheduler tick", async () => {
     vi.useFakeTimers();
 
     const queuedFixture = makeFixture("queued");
-    const client = createClientFromFixtures([queuedFixture]);
-    const spy = vi.spyOn(client, "getTargetJob");
+    const { client, fetch } = createCountingClientFromFixtures([queuedFixture]);
 
     act(() => {
-      renderParse(client);
+      renderParse(client, { strict: true });
     });
 
     // Let initial render + effect run
@@ -192,69 +198,93 @@ describe("ParseFlow — analysisStatus polling", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    const initialCalls = spy.mock.calls.length;
-    expect(initialCalls).toBeGreaterThanOrEqual(1);
+    expect(targetJobTransportCount(fetch)).toBe(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL - 11);
+    });
+    expect(targetJobTransportCount(fetch)).toBe(1);
 
     // Advance poll interval — should trigger another call
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(POLL_INTERVAL);
+      await vi.advanceTimersByTimeAsync(1);
     });
 
-    expect(spy.mock.calls.length).toBeGreaterThanOrEqual(initialCalls + 1);
+    expect(targetJobTransportCount(fetch)).toBe(2);
 
     // Advance again
     await act(async () => {
       await vi.advanceTimersByTimeAsync(POLL_INTERVAL);
     });
 
-    expect(spy.mock.calls.length).toBeGreaterThanOrEqual(initialCalls + 2);
+    expect(targetJobTransportCount(fetch)).toBe(3);
 
     // Still in loading state since fixture returns queued
     expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
+    console.info(
+      "E2E.P0.015 Parse StrictMode transport PASS initial=1 tick1=2 tick2=3",
+    );
   });
 
-  it("transitions from queued to preview when status returns ready", async () => {
+  it("polls only after the scheduler interval and replaces when status becomes ready", async () => {
     vi.useFakeTimers();
-    const client = createClientFromFixtures([makeFixture("ready")]);
+    const client = createClientFromFixtures([makeFixture("queued")]);
+    const ready = {
+      ...fixtureBody(),
+      id: "tj-1",
+      analysisStatus: "ready" as const,
+    } as Awaited<ReturnType<EasyInterviewClient["getTargetJob"]>>;
+    const queued = { ...ready, analysisStatus: "queued" as const };
+    const getTargetJob = vi
+      .spyOn(client, "getTargetJob")
+      .mockResolvedValueOnce(queued)
+      .mockResolvedValueOnce(ready);
+    let replaceRoute: ReturnType<typeof vi.fn>;
 
     act(() => {
-      renderParse(client);
+      ({ replaceRoute } = renderParse(client));
     });
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
-    });
-
-    expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
-  });
-
-  it("reloads loading and hydrates the new ready job when targetJobId changes on the same route", async () => {
-    vi.useFakeTimers();
-    const client = createClientForTargetSwitch();
-    const { rerender } = render(renderParseWithTarget(client, "target-a"));
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
-    });
-    expect(screen.getByTestId("parse-basics-title")).toHaveTextContent(
-      "Senior Frontend Engineer",
-    );
-
-    rerender(renderParseWithTarget(client, "target-b"));
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
-    expect(screen.queryByText("Senior Frontend Engineer")).not.toBeInTheDocument();
+    expect(getTargetJob).toHaveBeenCalledTimes(1);
+    expect(replaceRoute!).not.toHaveBeenCalled();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL);
     });
+    expect(getTargetJob).toHaveBeenCalledTimes(2);
+    expect(replaceRoute!).toHaveBeenCalledWith({
+      name: "workspace",
+      params: { targetJobId: "tj-1" },
+    });
+  });
 
-    expect(screen.getByTestId("parse-basics-title")).toHaveTextContent(
-      "Backend Platform Engineer",
-    );
+  it("loads direct workspace detail without Parse progress and reloads on target switch", async () => {
+    const client = createClientForTargetSwitch();
+    const getTargetJob = vi.spyOn(client, "getTargetJob");
+    const { rerender } = render(renderWorkspaceDetail(client, "target-a"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("parse-basics-title")).toHaveTextContent(
+        "Senior Frontend Engineer",
+      );
+    });
+    expect(getTargetJob).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("parse-loading-step-0")).not.toBeInTheDocument();
+
+    rerender(renderWorkspaceDetail(client, "target-b"));
+
+    expect(screen.getByTestId("workspace-detail-loading")).toBeInTheDocument();
+    expect(screen.queryByText("Senior Frontend Engineer")).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("parse-basics-title")).toHaveTextContent(
+        "Backend Platform Engineer",
+      );
+    });
+    expect(getTargetJob).toHaveBeenCalledTimes(2);
   });
 
   it("cleans up polling on unmount", async () => {

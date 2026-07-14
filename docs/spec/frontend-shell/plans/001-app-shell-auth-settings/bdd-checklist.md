@@ -1,8 +1,8 @@
 # Frontend Shell BDD Checklist
 
-> **版本**: 1.13
+> **版本**: 1.15
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -54,3 +54,11 @@
 - [x] 实现 setup / trigger / verify / cleanup；verify 断言 Home 不展示账号记录、不调用 `listTargetJobs`、不显示 raw `AUTH_UNAUTHORIZED`；业务 route 未登录时进入 `auth_login(pendingAction)`；backend focused tests 证明业务 API 保持 session middleware 保护
 - [x] 执行并通过场景验证
 - [x] 记录验证证据
+
+## E2E.P0.102 Phase 13 StrictMode GET single-flight
+
+- [x] 在不关闭 React StrictMode 的前提下，以 authenticated protected route 捕获 generated-client request log。
+- [x] 断言同一 client/path/query/header/normalized `okStatuses`/auth scope 的 mount-time GET 恰好一次，不出现紧邻的同 key 重复请求。
+- [x] 切换 `Accept-Language`、`okStatuses`、read/auth epoch 或 auth scope 后断言产生新的独立 GET；原 scope/epoch 的 in-flight result 不被误复用。
+- [x] 记录 focused separation/bypass matrix 证据，证明 signal/non-GET/semantic-write GET 不参与合并；每个语义写请求 dispatch 前与 resolve/reject settle 后都推进 read epoch，`/auth/email/verify` 成功另推进 auth/session epoch；并运行更新后的 P0.102 setup/trigger/verify/cleanup。
+  <!-- verified: 2026-07-14 evidence="P0.102 PASS; generatedClient 15/15 covers request-key separation, signal/write bypass, reject cleanup, read fences and auth-verify epoch semantics; protected StrictMode transport marker is exact." -->

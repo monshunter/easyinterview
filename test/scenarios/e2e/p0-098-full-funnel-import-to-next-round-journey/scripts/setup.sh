@@ -65,12 +65,14 @@ fi
     -f "$SCENARIO_DIR/data/live-round-refresh-seed.sql"
   test "$(psql "$PG_DSN" -tAc "select count(*) from users where id='$USER_ID'")" = "1"
   test "$(psql "$PG_DSN" -tAc "select count(*) from practice_sessions where id='$ROUND_ONE_SESSION_ID' and status='waiting_user_input'")" = "1"
+  test "$(psql "$PG_DSN" -tAc "select count(*) from practice_messages u join practice_messages a on a.reply_to_message_id=u.id and a.role='assistant' where u.session_id='$ROUND_ONE_SESSION_ID' and u.role='user' and u.reply_status='complete'")" = "1"
   curl -fsS --max-time 5 "$FRONTEND_ORIGIN/" >/dev/null
   curl -fsS --max-time 5 "$API_BASE_URL/runtime-config" >/dev/null
   curl -fsS --max-time 5 "$MAILPIT_BASE_URL/readyz" >/dev/null
   echo "live_seed_user=$USER_ID"
   echo "live_seed_target=$TARGET_JOB_ID"
   echo "live_seed_session=$ROUND_ONE_SESSION_ID"
+  echo "live_seed_answered_turns=1"
   echo "setup: ok"
 } 2>&1 | tee "$OUT/setup.log"
 

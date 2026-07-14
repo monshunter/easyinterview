@@ -246,6 +246,18 @@ type RegisterResumeRequest struct {
 	Title        string  `json:"title"`
 }
 
+type ResumeSummary struct {
+	DisplayName        string               `json:"displayName"`
+	HasReadableContent bool                 `json:"hasReadableContent"`
+	Id                 string               `json:"id"`
+	Language           string               `json:"language"`
+	ParseStatus        TargetJobParseStatus `json:"parseStatus"`
+	SourceType         string               `json:"sourceType"`
+	SummaryHeadline    *string              `json:"summaryHeadline"`
+	Title              string               `json:"title"`
+	UpdatedAt          string               `json:"updatedAt"`
+}
+
 type Resume struct {
 	CreatedAt          string               `json:"createdAt"`
 	DeletedAt          *string              `json:"deletedAt,omitempty"`
@@ -270,8 +282,8 @@ type ResumeWithJob struct {
 }
 
 type PaginatedResume struct {
-	Items    []Resume `json:"items"`
-	PageInfo PageInfo `json:"pageInfo"`
+	Items    []ResumeSummary `json:"items"`
+	PageInfo PageInfo        `json:"pageInfo"`
 }
 
 type UpdateResumeRequest struct {

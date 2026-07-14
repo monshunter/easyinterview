@@ -16,8 +16,8 @@ const PlanBindingPill = ({ T, icon, label, title, meta }) => (
   </div>
 );
 
-const ParseScreen = ({ T, lang, nav, requestAuth, params = {} }) => {
-  const [stage, setStage] = React.useState("loading"); // loading -> preview
+const ParseScreen = ({ T, lang, nav, requestAuth, params = {}, readyDetail = false }) => {
+  const [stage] = React.useState(readyDetail ? "preview" : "loading");
   const [step, setStep] = React.useState(0);
   const [compactLayout, setCompactLayout] = React.useState(() => window.matchMedia?.("(max-width: 720px)").matches || false);
 
@@ -51,9 +51,11 @@ const ParseScreen = ({ T, lang, nav, requestAuth, params = {} }) => {
       acc += t;
       setTimeout(() => { if (!cancel) setStep(i + 1); }, acc);
     });
-    setTimeout(() => { if (!cancel) setStage("preview"); }, acc + 200);
+    setTimeout(() => {
+      if (!cancel) nav("workspace", { targetJobId: params.targetJobId });
+    }, acc + 200);
     return () => { cancel = true; };
-  }, [stage]);
+  }, [nav, params.targetJobId, stage]);
 
   // Mock parsed data — exposed as a readonly saved interview-plan receipt.
   const parsed = {
@@ -252,16 +254,40 @@ const ParseScreen = ({ T, lang, nav, requestAuth, params = {} }) => {
             {lang === "en" ? "saved with this plan" : "创建后只读"}
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(parsed.rounds.length || 1, 4)}, 1fr)`, gap: 10 }}>
-          {parsed.rounds.map((r, i) => (
-              <div key={i} style={{ textAlign: "left", fontFamily: "var(--ei-sans)", padding: "12px 14px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2, position: "relative" }}>
+        <div data-testid="parse-rounds" style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(parsed.rounds.length || 1, 4)}, 1fr)`, gap: 10 }}>
+          {parsed.rounds.map((r, i) => {
+            const roundState = !progress.valid
+              ? null
+              : i < progress.completedCount
+                ? "done"
+                : i === progress.currentIndex
+                  ? "current"
+                  : "pending";
+            const roundStateLabel = roundState === "done"
+              ? (lang === "en" ? "Completed" : "已进行")
+              : roundState === "current"
+                ? (lang === "en" ? "Up next" : "即将进行")
+                : roundState === "pending"
+                  ? (lang === "en" ? "Not started" : "未进行")
+                  : null;
+            const roundBackground = roundState === "done" ? T.okSoft : roundState === "current" ? T.accentSoft : T.bgSoft;
+            const roundBorder = roundState === "done" ? T.ok : roundState === "current" ? T.accent : T.rule;
+            const roundLabelColor = roundState === "done" ? T.ok : roundState === "current" ? T.accent : T.ink3;
+            return (
+              <div key={i} data-testid={`parse-round-${i}`} data-round-state={roundState || undefined} style={{ textAlign: "left", fontFamily: "var(--ei-sans)", padding: "12px 14px", background: roundBackground, border: `1px solid ${roundBorder}`, borderRadius: 2, position: "relative" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
                   <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: T.ink4, letterSpacing: "0.06em" }}>R{i + 1}</span>
+                  {roundStateLabel && (
+                    <span data-testid={`parse-round-state-${i}`} style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: roundLabelColor, letterSpacing: "0.04em" }}>
+                      {roundStateLabel}
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: 13, color: T.ink, fontWeight: 500, marginBottom: 4 }}>{roundLabel(r)}</div>
                 <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.45 }}>{r.focus}</div>
               </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 
@@ -365,7 +391,7 @@ const ReportsScreen = ({ T, lang, nav, params = {}, demoState }) => {
   const hasError = !targetJob || overview.state === "error" || hasIdentityError;
   const isEmpty = !hasError && overview.state === "ready" && overview.rounds.every((item) => !item.currentReport && !item.latestAttempt);
   const formatDate = (value) => new Intl.DateTimeFormat(lang === "en" ? "en-US" : "zh-CN", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(value));
-  const back = () => targetJob ? nav("parse", { targetJobId: targetJob.id }) : nav("workspace");
+  const back = () => targetJob ? nav("workspace", { targetJobId: targetJob.id }) : nav("workspace");
 
   return (
     <main className="ei-fadein" data-testid="reports-screen" style={{ maxWidth: 1120, margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}>

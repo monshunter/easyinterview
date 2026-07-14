@@ -43,7 +43,7 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
 
   const openPlan = (job: TargetJob) => {
     navigate({
-      name: "parse",
+      name: "workspace",
       params: targetJobDetailRouteParams(job),
     });
   };

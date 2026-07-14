@@ -144,8 +144,11 @@ describe("App shell", () => {
     expect(screen.queryByText("route shell")).not.toBeInTheDocument();
   });
 
-  it("renders WorkspaceScreen on workspace route instead of the route shell", async () => {
+  it("renders a target-scoped workspace as read-only detail with one getTargetJob", async () => {
     const client = buildWorkspaceClient();
+    const getTargetJobSpy = vi.spyOn(client, "getTargetJob");
+    const listTargetJobsSpy = vi.spyOn(client, "listTargetJobs");
+    const listResumesSpy = vi.spyOn(client, "listResumes");
     render(
       <App
         client={client}
@@ -157,13 +160,17 @@ describe("App shell", () => {
       />,
     );
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
+      expect(screen.getByTestId("unified-plan-detail")).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("unified-plan-detail")).not.toBeInTheDocument();
+    expect(getTargetJobSpy).toHaveBeenCalledTimes(1);
+    expect(listTargetJobsSpy).not.toHaveBeenCalled();
+    expect(listResumesSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("parse-loading-step-0")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("workspace-plan-list")).not.toBeInTheDocument();
     expect(screen.queryByText("route shell")).not.toBeInTheDocument();
   });
 
-  it("does not hydrate workspace route params into a detail context", async () => {
+  it("uses only targetJobId as workspace detail authority", async () => {
     const client = buildWorkspaceClient();
     const getTargetJobSpy = vi.spyOn(client, "getTargetJob");
     render(
@@ -184,10 +191,12 @@ describe("App shell", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
+      expect(screen.getByTestId("unified-plan-detail")).toBeInTheDocument();
     });
-    expect(getTargetJobSpy).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("unified-plan-detail")).not.toBeInTheDocument();
+    expect(getTargetJobSpy).toHaveBeenCalledTimes(1);
+    expect(getTargetJobSpy).toHaveBeenCalledWith(
+      "01918fa0-0000-7000-8000-000000002000",
+    );
     expect(screen.queryByTestId("workspace-empty")).not.toBeInTheDocument();
   });
 
@@ -298,7 +307,7 @@ describe("App shell", () => {
     );
     expect(await screen.findByTestId("report-pending-state")).toBeInTheDocument();
     expect(screen.queryByTestId("report-failure-state")).not.toBeInTheDocument();
-    expect(getFeedbackReport).toHaveBeenCalledWith(reportId, expect.anything());
+    expect(getFeedbackReport).toHaveBeenCalledWith(reportId);
     expect(screen.queryByTestId("route-report")).not.toBeInTheDocument();
   });
 });

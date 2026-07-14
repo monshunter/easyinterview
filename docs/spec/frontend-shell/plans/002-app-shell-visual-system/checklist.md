@@ -1,8 +1,8 @@
 # App Shell Visual System Checklist
 
-> **版本**: 3.0
+> **版本**: 3.1
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -125,3 +125,15 @@
   <!-- verified: 2026-07-10 method=topbar-login-css-cascade-green evidence="TopBarVisual passes 15/15; exactly one base rule contains all 10 prior declarations, the independent hover rule remains, and TopBar keeps its existing login button consumer." -->
 - [x] 18.3 Run focused TopBar, visual-system/full frontend, typecheck/build, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
   <!-- verified: 2026-07-10 method=topbar-login-css-cascade-consolidation evidence="Focused TopBarVisual passes 15/15; visual-system owner passes 10 files/109 tests including the 8 P0.005 smoke assertions; full frontend passes 136 files/845 tests; typecheck/build and both contexts pass. Inventory reports one base rule, one hover rule and one DOM consumer; final docs/index/diff/pruning gates pass during closeout. No Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 19: minimal CustomAccentPicker
+
+- [x] 19.1 Add source/DOM RED tests that pin the current preview/value/reset UI and `onClear` / `active` prop surface as removable targets while preserving hue/saturation consumers.
+  <!-- verified: 2026-07-14 method=custom-accent-minimal-red evidence="UI source contract ran 63 tests with only the new minimal AccentPicker contract failing on active/onClear/preview/reset. Focused TopBarVisual ran 16 tests with only the new DOM/source residue assertion failing on the existing preview block." -->
+- [x] 19.2 Delete preview/value output, “恢复主题默认色 / Reset to theme accent” button, `onClear` / `active` props and matching caller/i18n/style residue; do not add aliases, hidden controls or compatibility props.
+  <!-- verified: 2026-07-14 method=custom-accent-minimal-green evidence="Removed the prototype and formal preview/value/reset UI, active/onClear props and caller arguments, conditional track opacity, and three preview CSS selectors. UI source contract passes 63/63 and TopBarVisual passes 16/16 without aliases or hidden controls." -->
+- [x] 19.3 Prove hue and saturation still update the root custom-accent overlay, and selecting Ocean or Plum is the only explicit exit from custom accent.
+  <!-- verified: 2026-07-14 method=custom-accent-interaction-proof evidence="P0.005 changes hue to 120 and chroma to 0.205, observes the exact root oklch overlay, then proves both Ocean and Plum remove data-custom-accent and both inline accent tokens. TopBarVisual confirms the single setCustomAccent(null) source branch belongs to predefined theme options; scenario passes 8/8 and TopBarVisual passes 16/16." -->
+- [x] 19.4 BDD-Gate: `E2E.P0.005` covers interaction and old-anchor zero reference; `E2E.P0.006` covers desktop/mobile DOM/style/bbox/viewport/screenshot parity without empty picker space or overflow.
+- [x] 19.5 Run UI contract, focused TopBar/display/P0.005, P0.006 browser parity, full frontend typecheck/build, owner contexts, docs/diff and old reset/prop negative searches before restoring `completed`.
+  <!-- verified: 2026-07-14 evidence="P0.005 interaction/negative gate and P0.006 170/170 desktop/mobile parity PASS; UI contract 65/65, full frontend 125 files / 1004 tests, typecheck/build and reset-preview-value negative searches PASS." -->

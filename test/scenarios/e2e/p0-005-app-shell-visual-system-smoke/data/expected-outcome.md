@@ -11,7 +11,9 @@
   `--ei-color-bg-canvas: #15101a`（按 EI_THEMES 转写）；Warm / Forest 主题选项不存在。
 - 激活 `customAccent` 后 `<html>` 的 inline style 仅包含
   `--ei-color-accent` 与 `--ei-color-accent-soft` 两个 oklch 值，base palette
-  token 没有被覆盖；`topbar-custom-accent-hue` / `-chroma` slider 渲染。
+  token 没有被覆盖；`topbar-custom-accent-hue` / `-chroma` slider 渲染并能
+  更新根级 overlay。picker 不包含 preview / value / reset DOM，选择 Ocean 或
+  Plum 后 `data-custom-accent` 与两条 inline override 均被清除。
 - `route-auth_login` 渲染 `ei-auth-shell` 双列布局，`auth-login-email-form` /
   `auth-login-submit-email` 存在，范围外 password / OAuth stub 不渲染；
   `route-settings` 渲染 `ei-screen-shell` + `ei-screen-card`；

@@ -810,3 +810,122 @@
   color: var(--ei-color-fg-primary);
   font-weight: 500;
 }
+
+/* Practice safe Markdown projection. Source: ui-design/src/screen-practice.jsx
+   PRACTICE_MESSAGE_BODY_CSS. Keep this block source-level identical so
+   user and assistant transcript typography has one traceable UI owner. */
+.ei-practice-message-body {
+  min-width: 0;
+  max-width: 100%;
+  color: var(--ei-practice-ink, var(--ei-color-fg-primary, #141821));
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ei-practice-message-body > :first-child { margin-top: 0; }
+.ei-practice-message-body > :last-child { margin-bottom: 0; }
+
+.ei-practice-message-body h1,
+.ei-practice-message-body h2,
+.ei-practice-message-body h3,
+.ei-practice-message-body h4,
+.ei-practice-message-body h5,
+.ei-practice-message-body h6 {
+  margin: 14px 0 6px;
+  color: var(--ei-practice-ink, var(--ei-color-fg-primary, #141821));
+  font-family: var(--ei-sans);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ei-practice-message-body h1 { font-size: 20px; }
+.ei-practice-message-body h2 { font-size: 17px; }
+.ei-practice-message-body h3 { font-size: 15px; }
+
+.ei-practice-message-body h4,
+.ei-practice-message-body h5,
+.ei-practice-message-body h6 { font-size: 14px; }
+
+.ei-practice-message-body p { margin: 0 0 8px; }
+
+.ei-practice-message-body ul,
+.ei-practice-message-body ol { margin: 0 0 8px; padding-left: 20px; }
+
+.ei-practice-message-body li + li { margin-top: 2px; }
+
+.ei-practice-message-body blockquote {
+  margin: 0 0 8px;
+  padding: 0 0 0 12px;
+  border-left: 2px solid var(--ei-practice-accent, var(--ei-color-accent, #3a5fc4));
+  color: var(--ei-practice-ink2, var(--ei-color-fg-secondary, #363c4a));
+}
+
+.ei-practice-message-body blockquote > :last-child { margin-bottom: 0; }
+
+.ei-practice-message-body a {
+  color: var(--ei-practice-accent, var(--ei-color-accent, #3a5fc4));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ei-practice-message-body :not(pre) > code {
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: var(--ei-practice-bg-soft, var(--ei-color-bg-soft, #eef2f7));
+  font-family: var(--ei-mono);
+  font-size: 0.9em;
+}
+
+.ei-practice-message-body pre {
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--ei-practice-rule, var(--ei-color-rule-strong, #dde2ec));
+  border-radius: 2px;
+  background: var(--ei-practice-bg-soft, var(--ei-color-bg-soft, #eef2f7));
+  overscroll-behavior-x: contain;
+}
+
+.ei-practice-message-body pre code {
+  padding: 0;
+  background: transparent;
+  font-family: var(--ei-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.ei-practice-message-body table {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 10px;
+  overflow-x: auto;
+  border-collapse: collapse;
+  overscroll-behavior-x: contain;
+}
+
+.ei-practice-message-body th,
+.ei-practice-message-body td {
+  min-width: 144px;
+  padding: 6px 8px;
+  border: 1px solid var(--ei-practice-rule, var(--ei-color-rule-strong, #dde2ec));
+  color: var(--ei-practice-ink2, var(--ei-color-fg-secondary, #363c4a));
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.ei-practice-message-body th {
+  color: var(--ei-practice-ink, var(--ei-color-fg-primary, #141821));
+  background: var(--ei-practice-bg-soft, var(--ei-color-bg-soft, #eef2f7));
+  font-weight: 500;
+}

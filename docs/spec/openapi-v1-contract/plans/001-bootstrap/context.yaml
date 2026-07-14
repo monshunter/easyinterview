@@ -5,10 +5,10 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   baseBranch: main
-  branch: fix/interview-turn-ux-0713
+  branch: fix/request-dedup-resume-summary-routing-0714
   specVersion:
-    from: 1.56
-    to: 1.58
+    from: 1.58
+    to: 1.59
 spec:
   defaultTarget: contract
   discovery:
@@ -50,6 +50,12 @@ spec:
       - OPENAPI-004 target job report overview
       - canonical round current report latest attempt
       - remove report pagination and latest report pointer
+      - OPENAPI-005 resume list summary
+      - closed ResumeSummary exact nine fields
+      - PaginatedResume items summary only
+      - getResume full detail unchanged
+      - hasReadableContent backend projection
+      - no list detail compatibility or N plus one
       - deterministic exact 24 words 64 code points parity
       - 10 tags
       - 37 operations
@@ -90,6 +96,7 @@ spec:
         - ../../decisions/OPENAPI-001-report-direct-semantics.md
         - ../../decisions/OPENAPI-002-targetjob-paste-only.md
         - ../../decisions/OPENAPI-004-targetjob-report-overview.md
+        - ../../decisions/OPENAPI-005-resume-list-summary.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
         - ../../../backend-review/spec.md
         - ../../../frontend-report-dashboard/spec.md
@@ -113,3 +120,5 @@ spec:
           - createPracticePlan
           - getPracticeSession
           - sendPracticeMessage
+          - listResumes
+          - getResume

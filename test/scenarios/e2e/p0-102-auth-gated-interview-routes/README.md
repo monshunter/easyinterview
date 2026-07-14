@@ -15,6 +15,12 @@
 - 直接访问 `parse`、`workspace`、`resume_versions`、`practice`、`generating`、`report`、`settings` 时，App 在 `/me` 判定前不得挂载业务 screen；判定未登录后跳转 `auth_login`。Out-of-scope `jd_match`、`debrief`、`debrief_full`、`profile` 输入先归一到当前 route，不作为独立保护 route。
 - 后端除 auth start/verify、runtime-config、logout optional 之外的业务 API 均保持 session middleware 保护。
 
+用户已登录并在 React StrictMode 下进入受保护页面时：
+
+- 同一 client、URL、canonical query/header、`okStatuses`、read/auth epoch 与 auth scope 的同时在途 safe GET 只允许一次底层 transport。
+- 不同 client/query/header/`okStatuses`/epoch/auth scope 必须保持隔离；caller `AbortSignal`、非 GET 与语义写 GET 必须绕过合并。
+- runtime bootstrap、Home、Workspace 与简历列表→详情代表性受保护路由必须直接统计底层 GET，而不是只统计 hook mock。
+
 ## 2 When
 
 从仓库根目录执行：
@@ -33,7 +39,13 @@ node --test ui-design/ui-design-contract.test.mjs
 pnpm --filter @easyinterview/frontend test \
   src/app/screens/home/HomeRecentMocks.test.tsx \
   src/app/screens/home/HomeAuthGate.test.tsx \
-  src/app/AppAuthDispatch.test.tsx
+  src/app/AppAuthDispatch.test.tsx \
+  src/api/generatedClient.test.ts \
+  src/app/runtime/AppRuntimeProvider.test.tsx \
+  src/app/screens/home/useRecentTargetJobs.test.tsx \
+  src/app/screens/workspace/hooks/useWorkspaceTargetJobs.test.tsx \
+  src/app/screens/parse/ParseFlow.test.tsx \
+  src/app/scenarios/p0-036-resume-flat-list-auth-boundary.test.tsx
 cd backend && go test ./internal/auth -run TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations -count=1
 cd backend && go test ./cmd/api -run 'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestBuildAPIHandlerDoesNotMountOutOfScopeDebriefOrProfileRoutes|TestJDMatchRoutesRemainUnmountedPerD17' -count=1
 ```
@@ -46,6 +58,10 @@ cd backend && go test ./cmd/api -run 'TestBuildAPIHandlerMounts(TargetJobRoutes|
 - 未登录点击 Home 业务入口会导航到 `auth_login`，并保留 `pendingType=open_protected_route` 或 `pendingType=import_jd`。
 - 未登录或鉴权 loading 直接进入保护路由时，业务 screen 不挂载，前端只允许 runtime-config 与 `/me` 调用。
 - 后端 session policy 与 cmd/api route mount 测试证明业务 API 缺 session 返回 `AUTH_UNAUTHORIZED` envelope。
+- generated client 的 separation/bypass matrix 全绿，且每次语义写请求 dispatch 前与 resolve/reject settle 后推进 read epoch；verify 成功另推进 auth/session epoch。
+- React StrictMode 下 runtime、Home、Workspace 代表性 loader 同 key 初读各只有一次底层 GET。
+- Parse queued/ready 初读和每个 scheduler tick 通过底层 transport 精确计数，初读不因 StrictMode 重复。
+- 已鉴权简历列表初读只有一次 `listResumes`；点击 Open 前 `getResume=0`，点击后精确为 `getResume=1`。
 
 ## 4 Cleanup
 

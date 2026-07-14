@@ -1,4 +1,4 @@
-# E2E.P0.015 — Paste JD Import and Parse
+# E2E.P0.015 — Paste JD Import and Parse Command
 
 > **Scenario ID**: E2E.P0.015
 > **Owner**: frontend-home-job-picks-and-parse/001-home-jd-import-and-parse
@@ -11,7 +11,7 @@
 
 Verifies the single paste-only JD import flow:
 - Home exposes one JD textarea, selects an existing ready resume, and rejects empty / whitespace-only input before dispatch
-- Paste JD → exact `importTargetJob({rawText,targetLanguage,resumeId})` → parse loading → preview with route `targetJobId + resumeId`
+- Paste JD → exact `importTargetJob({rawText,targetLanguage,resumeId})` → `/parse?targetJobId=...` queued/processing progress → ready uses history replace to `/workspace?targetJobId=...`
 - Signed-out submission stores only `opaquePendingImportId`; normal login atomically consumes the process-memory intent once, while missing / expired / duplicate consume dispatches no import
 - Failed import (422 / 4xx) → inline error
 - Failed parse (analysisStatus=failed) → failed UI
@@ -28,14 +28,12 @@ Verifies the single paste-only JD import flow:
 - Home contains only the paste textarea, keeps the resume dropdown compact with create CTA on the same row, places `立即面试` below resume selection, and exposes no source controls, upload / URL trigger, or assist modal
 - Home requires non-blank JD text and explicit ready resume selection before importTargetJob or pending import
 - `importTargetJob` request is exactly `{rawText,targetLanguage,resumeId}` with no source discriminator or title/company hint
-- Successful Home import navigates to parse with the selected real `resumeId`
+- Successful Home import navigates to Parse with `targetJobId` as its sole command locator; the selected resume remains server-owned TargetJob data and never becomes Parse URL authority
 - Idempotency-Key header on all side-effect calls
 - Real backend mode generated-client gate for paste import, parse read, and update; any `createUploadPresign(purpose=resume)` assertion remains an independent Resume capability guard, not a JD intake path
-- polling节奏 ≥600ms, progress step advances
-- Browser gates run at desktop 1440×900 and mobile 390×844. Home formal/prototype parity captures the paste-only surface; Parse opens `/parse?targetJobId=...` with
-  a fixture-backed ready `getTargetJob` response, captures the loading DOM
-  screenshot, and proves preview is absent for the required loading window
-- Preview渲染: title/company/location/requirements/hidden signals/rounds
+- React StrictMode 初读只有一次底层 `getTargetJob` transport；polling 节奏 ≥600ms，且每个 scheduler tick 只增加一次 transport
+- Browser gates run at desktop 1440×900 and mobile 390×844. Home formal/prototype parity captures the paste-only surface; Parse opens `/parse?targetJobId=...` with a fixture-backed processing response and captures only the command-progress DOM.
+- A ready initial read or polling result immediately replaces the route with Workspace detail; Parse never renders the saved-plan receipt or a redundant preview animation
 - JD raw text not in console/URL/localStorage/telemetry
 - No AI provider/prompt registry/LLM endpoint calls
 
@@ -43,7 +41,7 @@ Verifies the single paste-only JD import flow:
 
 - `scripts/setup.sh` — initialize isolated scenario output
 - `scripts/trigger.sh` — execute generated-client, Home paste/auth, Parse state, build, and desktop/mobile browser gates
-- `scripts/verify.sh` — assert exact paste-only request, one-shot auth intent, polling, desktop/mobile browser markers, old-intake negatives, and privacy redline
+- `scripts/verify.sh` — assert exact paste-only request, one-shot auth intent, exact StrictMode/poll transport marker, desktop/mobile browser markers, old-intake negatives, and privacy redline
 - `scripts/cleanup.sh` — reset mock state
 
 ## Offline Limitations

@@ -177,6 +177,18 @@ APIERROR_REF = "#/components/responses/ApiErrorResponse"
 IDEMPOTENCY_REF = "#/components/parameters/IdempotencyKey"
 HTTP_METHODS = ("get", "post", "put", "patch", "delete")
 
+RESUME_SUMMARY_FIELDS = [
+    "id",
+    "title",
+    "displayName",
+    "language",
+    "sourceType",
+    "parseStatus",
+    "summaryHeadline",
+    "hasReadableContent",
+    "updatedAt",
+]
+
 
 def fail(errors: list[str]) -> None:
     """Print errors to stderr and exit 1."""
@@ -220,6 +232,109 @@ def _schema_properties(schemas: dict[str, Any], schema_name: str) -> dict[str, A
     schema = schemas.get(schema_name) or {}
     props = schema.get("properties") or {}
     return props if isinstance(props, dict) else {}
+
+
+def validate_resume_summary_contract(data: dict[str, Any], errors: list[str]) -> None:
+    """Lock OPENAPI-005's summary-only list and full-detail read boundary."""
+    schemas = ((data.get("components") or {}).get("schemas") or {})
+    summary = schemas.get("ResumeSummary")
+    if not isinstance(summary, dict):
+        errors.append("missing components.schemas.ResumeSummary")
+        return
+
+    if set(summary) != {"type", "additionalProperties", "required", "properties"}:
+        errors.append(
+            "ResumeSummary must contain only type/additionalProperties/required/properties"
+        )
+    if summary.get("type") != "object":
+        errors.append("ResumeSummary.type must be object")
+    if summary.get("additionalProperties") is not False:
+        errors.append("ResumeSummary.additionalProperties must be false")
+    if summary.get("required") != RESUME_SUMMARY_FIELDS:
+        errors.append(
+            "ResumeSummary.required must exactly equal "
+            f"{RESUME_SUMMARY_FIELDS}; got {summary.get('required')!r}"
+        )
+
+    properties = summary.get("properties") or {}
+    if list(properties) != RESUME_SUMMARY_FIELDS:
+        errors.append(
+            "ResumeSummary.properties must exactly equal "
+            f"{RESUME_SUMMARY_FIELDS}; got {list(properties)!r}"
+        )
+    expected_properties = {
+        "id": {"type": "string", "format": "uuid"},
+        "title": {"type": "string"},
+        "displayName": {"type": "string"},
+        "language": {"type": "string"},
+        "sourceType": {"type": "string", "enum": ["upload", "paste"]},
+        "parseStatus": {"$ref": "#/components/schemas/TargetJobParseStatus"},
+        "summaryHeadline": {
+            "oneOf": [{"type": "string"}, {"type": "null"}]
+        },
+        "hasReadableContent": {"type": "boolean"},
+        "updatedAt": {"type": "string", "format": "date-time"},
+    }
+    if properties != expected_properties:
+        errors.append("ResumeSummary property schemas must match OPENAPI-005 exactly")
+
+    paginated = schemas.get("PaginatedResume") or {}
+    all_of = paginated.get("allOf") or []
+    expected_envelope = {"$ref": "#/components/schemas/PaginatedEnvelope"}
+    if len(all_of) != 2 or all_of[0] != expected_envelope:
+        errors.append("PaginatedResume must preserve the PaginatedEnvelope allOf")
+    item_ref = None
+    if len(all_of) == 2 and isinstance(all_of[1], dict):
+        item_ref = (
+            ((((all_of[1].get("properties") or {}).get("items") or {}).get("items")) or {}).get("$ref")
+        )
+    if item_ref != "#/components/schemas/ResumeSummary":
+        errors.append("PaginatedResume.items must reference ResumeSummary")
+
+    paths = data.get("paths") or {}
+    list_operation = ((paths.get("/resumes") or {}).get("get") or {})
+    if list_operation.get("operationId") != "listResumes":
+        errors.append("GET /resumes operationId must remain listResumes")
+    list_response_ref = (
+        (((((list_operation.get("responses") or {}).get("200") or {}).get("content") or {}).get("application/json") or {}).get("schema") or {}).get("$ref")
+    )
+    if list_response_ref != "#/components/schemas/PaginatedResume":
+        errors.append("listResumes 200 response must remain PaginatedResume")
+
+    full_detail_operations = {
+        ("/resumes/{resumeId}", "get", "200", "getResume"),
+        ("/resumes/{resumeId}", "patch", "200", "updateResume"),
+        ("/resumes/{resumeId}/duplicate", "post", "201", "duplicateResume"),
+        ("/resumes/{resumeId}/archive", "post", "202", "archiveResume"),
+    }
+    for path, method, status, operation_id in full_detail_operations:
+        operation = ((paths.get(path) or {}).get(method) or {})
+        if operation.get("operationId") != operation_id:
+            errors.append(f"{method.upper()} {path} must remain {operation_id}")
+            continue
+        response_ref = (
+            (((((operation.get("responses") or {}).get(status) or {}).get("content") or {}).get("application/json") or {}).get("schema") or {}).get("$ref")
+        )
+        if response_ref != "#/components/schemas/Resume":
+            errors.append(f"{operation_id} {status} response must remain full Resume")
+
+    resume_properties = _schema_properties(schemas, "Resume")
+    for field in (
+        "fileObjectId",
+        "originalText",
+        "parsedTextSnapshot",
+        "parsedSummary",
+        "structuredProfile",
+        "createdAt",
+        "deletedAt",
+    ):
+        if field not in resume_properties:
+            errors.append(f"full Resume detail must retain {field}")
+    provenance_ref = (
+        (((resume_properties.get("structuredProfile") or {}).get("properties") or {}).get("provenance") or {}).get("$ref")
+    )
+    if provenance_ref != "#/components/schemas/GenerationProvenance":
+        errors.append("full Resume structuredProfile must retain GenerationProvenance")
 
 
 def validate_targetjob_paste_only_contract(data: dict[str, Any], errors: list[str]) -> None:
@@ -751,6 +866,7 @@ def main(argv: list[str]) -> int:
     validate_product_scope_contract(data, errors)
     validate_targetjob_paste_only_contract(data, errors)
     validate_targetjob_report_overview_contract(data, errors)
+    validate_resume_summary_contract(data, errors)
 
     # Sync against B1 truth source (spec C-8 partial).
     conventions_path = Path("shared/conventions.yaml")

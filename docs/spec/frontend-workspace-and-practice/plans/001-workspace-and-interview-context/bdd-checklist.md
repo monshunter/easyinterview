@@ -1,12 +1,14 @@
 # 001 BDD Checklist
 
-> **版本**: 1.22
+> **版本**: 1.24
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
-## E2E.P0.018 面试入口规划列表 + parse 统一面试规划详情
+## E2E.P0.018 历史基线（Phase 26 supersedes card-to-Parse detail）
+
+以下已勾选项只记录 Phase 25 及以前的执行证据；其中 card-to-Parse / Parse ready-detail 断言已被文末 Phase 26 未完成项取代，不得作为当前实现或完成证据。
 
 - [x] Scenario assets exist under `test/scenarios/e2e/p0-018-workspace-default-render/`
 - [x] Given fixtures cover `listTargetJobs` candidates plus parse detail resume/start fixtures
@@ -56,6 +58,23 @@
 - [x] Report old-next mismatch is disabled while retry-current remains available and server validated.<!-- verified: 2026-07-12 method=ReplayCta-tests -->
 - [x] Verify source/runtime has no business progress persistence in browser storage/URL/fixture fallback; UI rail parity remains unchanged.<!-- verified: 2026-07-12 method=scope-test+ui-contract+pixel-parity -->
 - [x] Scenario `setup -> trigger -> verify -> cleanup` passes with the live browser reload/quick-start gate enabled.<!-- verified: 2026-07-12 run=e2e-p0-098-20260712111826-75013 result=PASS cleanup_live_seed_remaining=0 -->
+
+## Phase 26 Workspace list/detail revision
+
+- [x] P0.018 opens query-free `/workspace` and proves `listTargetJobs` same-key initial underlying count=1 under StrictMode.
+- [x] P0.018 clicks card body and proves targetJobId-only `/workspace?targetJobId` plus exactly one initial underlying `getTargetJob`.
+- [x] P0.018 proves read-only detail parity and zero `importTargetJob`、Parse scheduler/poll、Parse animation DOM and route-side practice start; not-found/mismatch fails closed.
+- [x] P0.018 preserves archive/quick-start/theme/i18n/desktop-mobile behavior; hostile plan/resume/auto-start query is stripped.
+- [x] P0.021 privacy boundary and P0.098 persisted-progress/quick-start remain green; shell/004 evidence proves ready replace and Back do not replay Parse animation.
+  <!-- verified: 2026-07-14 evidence="Fresh P0.018, P0.021 and P0.098 wrappers PASS; StrictMode transport and browser ResourceTiming markers are exact, unsafe params are absent, and ready/back never mounts Parse." -->
+
+## Phase 27 Workspace detail round-state revision
+
+- [x] P0.018 reads the list mini rail and detail `data-round-state` sequence from the same persisted progress and proves `done/current/pending` consistency.
+- [x] P0.018 asserts visible “已进行 / 即将进行 / 未进行” (or English equivalents) plus three distinct computed background/border treatments in desktop and mobile screenshots.
+- [x] Focused invalid-projection and all-completed gates prove neutral fail-closed / all-done behavior without lifecycle-status, URL or browser-storage fallback.
+- [x] P0.098 persisted browser refresh remains green and no new scenario or API/schema field is introduced.
+  <!-- verified: 2026-07-14 evidence="P0.018 desktop/mobile and P0.098 persisted refresh PASS; focused invalid/all-completed tests, UI contract 65/65 and acceptance screenshot 03 prove consistent done/current/pending projection and distinct styles." -->
 
 ## Closeout
 

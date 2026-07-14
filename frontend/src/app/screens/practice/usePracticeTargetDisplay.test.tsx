@@ -3,13 +3,10 @@
  */
 
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { StrictMode, type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import type {
-  EasyInterviewClient,
-  RequestOptions,
-} from "../../../api/generated/client";
+import { EasyInterviewClient } from "../../../api/generated/client";
 import type { TargetJob } from "../../../api/generated/types";
 import {
   AppRuntimeContext,
@@ -63,10 +60,7 @@ function runtimeWrapper(client: EasyInterviewClient) {
 }
 
 function clientWith(
-  getTargetJob: (
-    targetJobId: string,
-    options?: RequestOptions,
-  ) => Promise<TargetJob>,
+  getTargetJob: (targetJobId: string) => Promise<TargetJob>,
 ): EasyInterviewClient {
   return { getTargetJob: vi.fn(getTargetJob) } as unknown as EasyInterviewClient;
 }
@@ -111,10 +105,7 @@ describe("usePracticeTargetDisplay", () => {
     expect(result.current.targetJobId).toBe(ROUTE_TARGET_ID);
     expect(result.current.loading).toBe(true);
     expect(result.current.companyName).toBeNull();
-    expect(getTargetJob).toHaveBeenCalledWith(
-      ROUTE_TARGET_ID,
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    expect(getTargetJob).toHaveBeenCalledWith(ROUTE_TARGET_ID);
 
     await act(async () => {
       routeResult.resolve(targetJob(ROUTE_TARGET_ID, "Route Co", "Route Role"));
@@ -130,10 +121,7 @@ describe("usePracticeTargetDisplay", () => {
     });
     expect(result.current.targetJobId).toBe(SESSION_TARGET_ID);
     expect(result.current.companyName).toBeNull();
-    expect(getTargetJob).toHaveBeenLastCalledWith(
-      SESSION_TARGET_ID,
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    expect(getTargetJob).toHaveBeenLastCalledWith(SESSION_TARGET_ID);
 
     await act(async () => {
       sessionResult.resolve(
@@ -176,17 +164,47 @@ describe("usePracticeTargetDisplay", () => {
     expect(getTargetJob).toHaveBeenCalledTimes(1);
   });
 
-  it("aborts the fallback request and ignores its stale response after the session target arrives", async () => {
+  it("shares the mount read transport under StrictMode", async () => {
+    const response = deferred<Response>();
+    const fetch = vi.fn<typeof globalThis.fetch>(() => response.promise);
+    const client = new EasyInterviewClient({ fetch });
+    const RuntimeWrapper = runtimeWrapper(client);
+
+    const { result } = renderHook(
+      () =>
+        usePracticeTargetDisplay({
+          session: null,
+          routeTargetJobId: ROUTE_TARGET_ID,
+        }),
+      {
+        wrapper: ({ children }) => (
+          <StrictMode><RuntimeWrapper>{children}</RuntimeWrapper></StrictMode>
+        ),
+      },
+    );
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      response.resolve(
+        new Response(
+          JSON.stringify(targetJob(ROUTE_TARGET_ID, "Route Co", "Route Role")),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+      await response.promise;
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.companyName).toBe("Route Co");
+  });
+
+  it("ignores the stale fallback response after the session target arrives", async () => {
     const routeResult = deferred<TargetJob>();
     const sessionResult = deferred<TargetJob>();
-    const requestSignals = new Map<string, AbortSignal>();
     const getTargetJob = vi.fn(
-      (targetJobId: string, options?: RequestOptions): Promise<TargetJob> => {
-        if (options?.signal) requestSignals.set(targetJobId, options.signal);
-        return targetJobId === SESSION_TARGET_ID
+      (targetJobId: string): Promise<TargetJob> =>
+        targetJobId === SESSION_TARGET_ID
           ? sessionResult.promise
-          : routeResult.promise;
-      },
+          : routeResult.promise,
     );
     const client = clientWith(getTargetJob);
 
@@ -205,7 +223,6 @@ describe("usePracticeTargetDisplay", () => {
     );
 
     rerender({ session: { targetJobId: SESSION_TARGET_ID } });
-    expect(requestSignals.get(ROUTE_TARGET_ID)?.aborted).toBe(true);
 
     await act(async () => {
       sessionResult.resolve(

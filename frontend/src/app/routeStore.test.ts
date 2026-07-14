@@ -45,13 +45,13 @@ describe("resolveInitialRoute priority", () => {
     });
   });
 
-  it("falls back to canonical workspace path and strips out-of-scope context params", () => {
+  it("retains the workspace target locator and strips out-of-scope context params", () => {
     setLocation(
       "/workspace?targetJobId=tj-1&resumeId=rv-1&planId=plan-1",
     );
     expect(resolveInitialRoute()).toEqual({
       name: "workspace",
-      params: {},
+      params: { targetJobId: "tj-1" },
     });
   });
 
@@ -69,7 +69,7 @@ describe("resolveInitialRoute priority", () => {
     setLocation("/workspace?targetJobId=tj-1&rawText=raw");
     expect(resolveInitialRoute()).toEqual({
       name: "workspace",
-      params: {},
+      params: { targetJobId: "tj-1" },
     });
   });
 

@@ -42,7 +42,8 @@ const HTTP_NOT_FOUND_MARKER = "HTTP 404";
  * - Cross-user 404 (REPORT_NOT_FOUND) is surfaced as `notFound`, never as a
  *   generic error. Higher layers map this to the dashboard not-found UI.
  * - Read-only: requests never carry an Idempotency-Key header.
- * - `refresh()` retries with the same reportId; unmount cancels inflight.
+ * - `refresh()` retries with the same reportId; cleanup ignores stale inflight
+ *   results without opting the safe GET out of generated-client single-flight.
  */
 export function useFeedbackReport(reportId: string): UseFeedbackReportResult {
   const runtime = useAppRuntimeOptional();
@@ -87,19 +88,18 @@ export function useFeedbackReport(reportId: string): UseFeedbackReportResult {
 
     const seq = runSeqRef.current + 1;
     runSeqRef.current = seq;
-    const controller = new AbortController();
+    let cancelled = false;
 
     client
-      .getFeedbackReport(reportId, { signal: controller.signal })
+      .getFeedbackReport(reportId)
       .then((next) => {
-        if (runSeqRef.current !== seq) return;
+        if (cancelled || runSeqRef.current !== seq) return;
         setOwnedData({ client, reportId, value: next });
         setState("data");
         if (next.status === "failed") setErrorCode(next.errorCode ?? null);
       })
       .catch((err: unknown) => {
-        if (runSeqRef.current !== seq) return;
-        if (isAbortError(err)) return;
+        if (cancelled || runSeqRef.current !== seq) return;
         const wrapped = err instanceof Error ? err : new Error(String(err));
         setError(wrapped);
         if (wrapped.message.startsWith(HTTP_NOT_FOUND_MARKER)) {
@@ -111,7 +111,7 @@ export function useFeedbackReport(reportId: string): UseFeedbackReportResult {
       });
 
     return () => {
-      controller.abort();
+      cancelled = true;
     };
   }, [client, reportId, refreshSeq]);
 
@@ -129,12 +129,4 @@ export function useFeedbackReport(reportId: string): UseFeedbackReportResult {
     errorCode: stateOwnerMatches ? errorCode : null,
     refresh,
   };
-}
-
-function isAbortError(err: unknown): boolean {
-  if (!err) return false;
-  if (typeof err === "object" && "name" in err) {
-    return (err as { name?: string }).name === "AbortError";
-  }
-  return false;
 }

@@ -16,4 +16,8 @@ mkdir -p "$OUTPUT_DIR"
     src/app/topbar/TopBar.test.tsx \
     src/app/scenarios/p0-090-url-routing-hash-out-of-scope-negative.test.tsx \
     --reporter=verbose
+  pnpm --filter @easyinterview/frontend test \
+    src/app/App.test.tsx \
+    --reporter=verbose \
+    -t 'renders a target-scoped workspace|uses only targetJobId as workspace detail authority'
 ) 2>&1 | tee "$OUTPUT_DIR/trigger.log"

@@ -1,6 +1,6 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -45,6 +45,8 @@ PracticeScreen(sessionId)
 
 - opening assistant message 与后续 assistant reply 都是普通 message，不标记为问题。
 - 用户输入是普通 message，不标记为回答。
+- persisted user/assistant `message.text` 统一通过 `react-markdown + remark-gfm` 渲染；启用 `skipHtml` 且不使用 `rehypeRaw`。Raw HTML/event handler 不执行，remote image 不创建网络请求，`javascript:`/unsafe URI 被拒绝，安全外链使用 hardened `rel`。
+- Markdown 仅是 view projection；send 与 same-ID retry 必须逐字节复用原始 `message.text/clientMessageId`，不得从渲染 DOM、纯文本或 normalized Markdown 反推 payload。
 - UI 不显示“第 N 题”“追问”“回答”“下一题”等类别标签。
 - transcript 来自 server `PracticeSession.messages`；user message 同时返回原 `clientMessageId/replyStatus`。刷新必须恢复完整有序会话及 pending/retryable/terminal/complete 回复状态，不使用本地 fixture、URL 或 browser storage 恢复业务状态。
 - 用户请求提示时直接输入普通聊天内容，不存在专用 hint 行为。
@@ -52,7 +54,7 @@ PracticeScreen(sessionId)
 - pending/retrying 期间禁用 composer，并显示可访问的面试官思考动画；此时不显示 retry。
 - backend pending lease 固定为 90 秒；frontend POST 最多等待 95 秒。95 秒到达时 abort 本次请求并用同一 `clientMessageId` 调用 `getPracticeSession` 对账；不得盲目重发或改用新 ID，迟到旧 response 不得覆盖新事实。
 - 失败时移除思考动画，保留原 user message，只在该消息底部显示 retry icon；retry 复用原文与同一 `clientMessageId`，不得重复追加。
-- retry icon 仅用于无 HTTP response 的网络错误、API 明确 `retryable=true`，或刷新后 server message 为 `replyStatus=retryable_failed`；`pending` 继续 thinking，`terminal_failed` 以及 validation/auth/not-found/conflict/mismatch 不渲染 retry。`terminal_failed` 显示通用安全说明和唯一“返回当前面试规划”CTA，精确进入 `parse(targetJobId)`；auth/session-lost 仍走各自全局恢复。
+- retry icon 仅用于无 HTTP response 的网络错误、API 明确 `retryable=true`，或刷新后 server message 为 `replyStatus=retryable_failed`；`pending` 继续 thinking，`terminal_failed` 以及 validation/auth/not-found/conflict/mismatch 不渲染 retry。`terminal_failed` 显示通用安全说明和唯一“返回当前面试规划”CTA，精确进入 `/workspace?targetJobId=...` 只读详情；不得进入 Parse 命令进度，auth/session-lost 仍走各自全局恢复。
 - 失败后 textarea 可保存下一条草稿，但 submit 保持 disabled 并说明需先重试失败消息；retry 不得消费或覆盖该草稿。成功后以 server messages 收敛，optimistic row 不作为持久事实或 Finish 资格。
 - timeout 对账读到 pending/retryable/terminal/complete 时采用 server truth；读失败或尚无该 ID 时保留原 optimistic row/ID 为 unresolved，继续锁定新 ID submit 与 Finish，不能因为 loader error 解锁 composer。
 - 任一 optimistic pending/retryable-failed/retrying/terminal-recovery 状态都必须禁用 Finish，直到 server messages 完成收敛。
@@ -70,7 +72,7 @@ PracticeScreen(sessionId)
 ## 5 Layout
 
 - Desktop：Conversation 占满 TopBar 下方可用宽度；内容列使用可读 max-width 居中，transcript 自适应增长，composer 固定在会话区底部。
-- Mobile：单列；TopBar 控件可换行但结束 CTA 可达；transcript 与 composer 不横向溢出。
+- Mobile：单列；TopBar 控件可换行但结束 CTA 可达；transcript 与 composer 不横向溢出。Markdown pre/code/table 只能在消息容器内局部滚动或安全换行，document `scrollWidth` 不得超过 viewport。
 - 不保留空白 sidebar grid column。
 
 ## 6 报告边界
@@ -113,12 +115,14 @@ Ready 报告只展示：
 | U-8 | 已提交至少一条 user message | 点击结束并生成报告 | 进入 generating，随后会话级报告 |
 | U-9 | AI 失败后刷新或组件重挂载 | `getPracticeSession` 返回 user `clientMessageId/replyStatus` | pending 恢复 thinking；retryable failure 在原 row 恢复同 ID retry；terminal failure 无 retry；成功后只有一个 assistant reply |
 | U-10 | send POST 持续无响应 | 等待 95 秒 | abort 后按同一 ID 对账；pending/failed/complete 采用 server truth；对账失败时原 row/ID 保留且不能提交新消息；迟到 response 被忽略 |
-| U-11 | server message 为 `terminal_failed` | 查看并点击恢复动作 | 无 row retry；显示通用安全说明；唯一 CTA 返回 `parse(targetJobId)` 当前面试规划 |
+| U-11 | server message 为 `terminal_failed` | 查看并点击恢复动作 | 无 row retry；显示通用安全说明；唯一 CTA 返回 `/workspace?targetJobId` 当前面试规划只读详情；无 current-scope `parse(targetJobId)` 恢复路径 |
+| U-12 | persisted user/assistant text 含 GFM 与恶意 HTML/image/link/code/table | 渲染、retry 并在 390px 查看 | 两种角色安全渲染 GFM；HTML/remote image/unsafe URI 不执行；safe link hardened；retry exact raw text/ID；code/table 不撑破 document |
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.30 | Practice user/assistant 增加安全 Markdown/GFM view projection 与 mobile overflow 边界；terminal CTA 改为 Workspace targetJobId 只读详情。 |
 | 2026-07-14 | 1.29 | T-B/P-A：90 秒服务端 lease 对应 95 秒前端 timeout + 同 ID 对账；terminal failure 增加精确返回当前 `parse(targetJobId)` 规划的通用 CTA。 |
 | 2026-07-13 | 1.28 | 用户确认方案 A：Practice reply state 与原 clientMessageId 由后端读模型恢复，刷新后仍可在原消息下同 ID 重试。 |
 | 2026-07-13 | 1.27 | Practice 增加即时 user row、pending 思考/锁定与失败消息底部同 ID retry；Report Context Strip 删除 session UUID 等内部 locator。 |

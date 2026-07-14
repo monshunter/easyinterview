@@ -91,7 +91,7 @@ class ScenarioScriptContractTest(unittest.TestCase):
             "reports loading empty error latest-ready and mismatch states match the UI truth",
             "currentPlanIsolation=true",
             "currentLatestOnly=true",
-            "backTarget=parse",
+            "backTarget=workspace-detail",
             "changedRatio=",
             "only consumer=frontend/src/app/screens/reports/ReportsScreen.tsx",
             "no tests to run",

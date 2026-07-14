@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow Checklist
 
-> **版本**: 1.17
+> **版本**: 1.18
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -48,7 +48,9 @@
 
 - [x] 7.1 `UploadTab` 仅接受 PDF / Markdown / TXT，`.docx` 在本地校验中被拒绝且不会触发 presign/register；文案、`accept` 和静态原型同步；验证: `UploadTab.test.tsx` + UI source grep。<!-- verified: 2026-07-07 method=vitest+source-grep tests=UploadTab.test.tsx ui=ui-design/src/screen-resume-workshop.jsx -->
 
-## Phase 8: Home existing resume selection regression
+## Historical Phase 8: Home existing resume selection regression
+
+The checked assertions below record the 2026-07-08 full-Resume list contract. Active 001 Phase 19 supersedes them with `ResumeSummary.parseStatus/hasReadableContent`; Parse/Workspace detail no longer shares this list predicate.
 
 - [x] 8.1 BDD-Gate: E2E.P0.084 用 focused Home/Parse regression tests 覆盖 `listResumes` 返回非归档且已有可读正文的简历时，首页下拉不得为空或禁用。<!-- verified: 2026-07-08 method=vitest tests=HomeResumeSelection.test.tsx,ParseResumeBinding.test.tsx -->
 - [x] 8.2 Home 和 Parse 复用同一可选简历判断：`ready` 或已有 `parsedTextSnapshot` / `originalText` / structured profile 的非归档简历可选；无可读证据的 queued/processing 简历仍不可选。<!-- verified: 2026-07-08 method=vitest tests=selectableResume.test.ts -->

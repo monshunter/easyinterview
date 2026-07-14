@@ -4,9 +4,11 @@ metadata:
   subspec: openapi-v1-contract
   name: 004-resume-additive-coverage
   sequence: 4
+  baseBranch: main
+  branch: fix/request-dedup-resume-summary-routing-0714
   specVersion:
-    from: 1.16
-    to: 1.39
+    from: 1.58
+    to: 1.59
 spec:
   defaultTarget: contract
   discovery:
@@ -24,6 +26,12 @@ spec:
       - exportResume
       - getResumeSource
       - RESUME_EXPORT_NOT_AVAILABLE
+      - OPENAPI-005
+      - ResumeSummary
+      - resume list summary detail split
+      - P0.034
+      - P0.036
+      - P0.037
     keywords:
       - flat resume contract
       - current resume operations
@@ -42,12 +50,22 @@ spec:
       - resume archive endpoint
       - resume export typed 501
       - current operation matrix
+      - closed nine field resume summary
+      - listResumes summary only
+      - getResume full detail
+      - summaryHeadline nullable
+      - hasReadableContent backend projection
+      - no list detail compatibility
+      - no N plus one getResume fallback
   targets:
     contract:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
       references:
+        - ../../decisions/OPENAPI-005-resume-list-summary.md
         - ../../../shared-conventions-codified/spec.md
         - ../../../mock-contract-suite/spec.md
         - ../../../engineering-roadmap/spec.md

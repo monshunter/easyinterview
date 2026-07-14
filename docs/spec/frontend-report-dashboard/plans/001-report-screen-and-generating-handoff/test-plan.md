@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.2
+> **版本**: 3.4
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -45,6 +45,13 @@
 - ReportsScreen table tests combine `getTargetJob + listTargetJobReports` for populated/empty/loading/network/invalid-contract states; target/round count/order/ID/sequence mismatches、跨轮 locator 复用、same-ID non-ready、latest-ready without current 与 current without latest 全部 fail closed and render no stale links.
 - A/B target tests prove exact request binding, cross-target sentinel absence, target-switch first-commit clearing and stale-response fencing. The screen never calls `listTargetJobs`, so it cannot become a global report center.
 - Per-round tests cover current ready, queued/generating latest, failed typed/no-Retry, same-ID ready de-dup and different-ID latest-ready status while exposing no full history list.
-- Reports Back is exactly `parse?targetJobId=<trusted id>`；missing/invalid Reports target uses `replaceRoute(workspace)` with no push/back-loop。Report/Generating table tests cover ready、pending、queued/generating、failed、timeout/network with current/last trusted `targetJobId`; Back URL is exactly `/reports?targetJobId=<id>`. Missing reportId、404、first-load network and invalid payload with no trusted target fall back to workspace.
+- Phase 10 的 Reports Back destination 断言仅保留为已被 Phase 11 取代的历史测试事实；missing/invalid Reports target uses `replaceRoute(workspace)` with no push/back-loop。Report/Generating table tests cover ready、pending、queued/generating、failed、timeout/network with current/last trusted `targetJobId`; Back URL is exactly `/reports?targetJobId=<id>`. Missing reportId、404、first-load network and invalid payload with no trusted target fall back to workspace.
 - Route/security negatives reject route-provided target/status/round authority and title/reportId inference. Source spies prove only ReportsScreen calls `listTargetJobReports`; report/generating safe params remain reportId-only, reports safe params only targetJobId, Parse has no section compatibility, and TopBar has no report entry.
 - P0.058/P0.059 and desktop/mobile source parity rerun；P0.059 adds populated/empty/loading/error ReportsScreen at 1440/390, while existing polling、typed failure、Context Strip sentinel and screenshot manifest assertions remain required.
+
+## Phase 11: Reports Back direct read-only workspace detail
+
+- ReportsScreen route tests first fail on the legacy Back destination, then require the exact trusted URL `/workspace?targetJobId=<id>` and `/workspace` replace fallback when identity is unavailable. Assert that no `resumeId`、`planId`、`reportId`、`section` or other query key is emitted.
+- Component/source spies prove the Back read path renders the Workspace read-only detail and does not mount Parse, render parsing animation, call JD import, or start parse-status polling. Existing Report/Generating matrices continue to require trusted `/reports?targetJobId=...` and untrusted `/workspace` list fallback.
+- Route/history tests prove one click reaches Workspace detail directly and browser Back exposes no Parse detour. Current-scope source/docs negative scanning excludes explicit revision/history records and rejects any positive Reports-to-Parse contract.
+- P0.059 reruns current-target isolation and desktop/mobile parity, then clicks Reports Back and verifies the targetJobId-only Workspace detail plus no Parse animation/import/poll evidence. P0.058 reruns unchanged Report/Generating trusted/untrusted recovery.

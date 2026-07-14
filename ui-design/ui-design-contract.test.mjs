@@ -69,6 +69,11 @@ test("TopBar mobile truth source wraps without horizontal viewport overflow", ()
   assert.match(primitives, /\.ei-shell-topbar\s*\{[\s\S]*overflow-x:\s*clip/);
   assert.match(primitives, /\.ei-topbar-nav\s*\{[\s\S]*order:\s*10[\s\S]*width:\s*100%[\s\S]*overflow-x:\s*auto/);
   assert.match(primitives, /@media \(max-width: 460px\)[\s\S]*\.ei-topbar-brand-copy\s*\{[\s\S]*display:\s*none/);
+  assert.match(app, /className="ei-topbar-theme-menu"/);
+  assert.match(
+    primitives,
+    /@media \(max-width: 720px\)[\s\S]*\.ei-topbar-theme-menu\s*\{[\s\S]*left:\s*0\s*!important;[\s\S]*right:\s*auto\s*!important;/,
+  );
   assert.match(app, /params\.get\("signedIn"\) === "1"/);
 });
 
@@ -171,7 +176,7 @@ test("resume workshop create flow keeps upload/paste only and opens detail direc
   assert.match(resume, /setCreatedResumes\(\(prev\) => \[\.\.\.prev, resume\]\);\s+setFlow\("list"\);\s+nav\("resume_versions", \{ resumeId: resume\.id \}\);/);
   assert.match(resume, /nav\("resume_versions", \{ resumeId: resume\.id \}\);/);
   assert.match(resume, /setFlow\(params\.flow === "create" \? "create" : "list"\);/);
-  assert.match(app, /<div key=\{route\.name \+ \(route\.params\.jobId \|\| ""\)\}>/);
+  assert.match(app, /<div key=\{route\.name \+ \(route\.params\.targetJobId \|\| route\.params\.jobId \|\| ""\)\}>/);
   assert.match(resume, /onCreateResume\(sourceLabel, createMode === "paste" \? resumeText : ""\)/);
   assert.match(resume, /onCreateResume\(f\.name, ""\)/);
   assert.match(resume, /\{ k: "upload", icon: "upload"/);
@@ -196,7 +201,7 @@ test("P0 context routes use InterviewContext instead of fixed tj-1 nav payloads"
     );
   }
 
-  assert.match(workspace, /const openPlan = \(job\) => nav\("parse", \{/);
+  assert.match(workspace, /const openPlan = \(job\) => nav\("workspace", \{/);
   assert.match(workspace, /targetJobId: job\.id/);
   for (const [name, source] of readUiSources()) {
     assert.doesNotMatch(source, /resumeVersionId/, `${name} still uses the out-of-scope resumeVersionId context key`);
@@ -448,7 +453,7 @@ test("independent ReportsScreen renders only the current plan canonical current/
   assert.match(reports, /latestAttempt\.id !== item\.currentReport\?\.id/);
   assert.match(reports, /nav\("report", \{ reportId: item\.currentReport\.id \}\)/);
   assert.match(reports, /nav\("generating", \{ reportId: item\.latestAttempt\.id \}\)/);
-  assert.match(reports, /nav\("parse", \{ targetJobId: targetJob\.id \}\)/);
+  assert.match(reports, /nav\("workspace", \{ targetJobId: targetJob\.id \}\)/);
   assert.match(reports, /nav\("workspace"\)/);
   assert.doesNotMatch(reports, /Retry report|重试报告|reports-retry|timeline|时间线|fullHistory|reportHistory/);
   assert.doesNotMatch(reports, /section:\s*"reports"|provenance|modelId|rubricVersion/);
@@ -490,6 +495,24 @@ test("prototype round progress is backend-projected and never inferred from life
     assert.doesNotMatch(source, /job\?\.nextRound|job\.nextRound/, `${name} still reads free-text nextRound`);
     assert.doesNotMatch(source, /job\?\.status ===|job\.status ===/, `${name} still derives a round from lifecycle status`);
   }
+});
+
+test("prototype Workspace detail exposes persisted round states with three semantic treatments", () => {
+  const app = readUiFile("./src/app.jsx");
+  const parse = readUiFile("./src/screens-p0-complete.jsx");
+
+  assert.match(app, /TARGET_JOB_LOCATOR_ROUTES = new Set\(\["parse", "reports", "workspace"\]\)/);
+  assert.match(app, /workspace: route\.params\.targetJobId\s*\?\s*<ParseScreen/);
+  assert.match(parse, /const roundState = !progress\.valid/);
+  assert.match(parse, /data-round-state=\{roundState \|\| undefined\}/);
+  assert.match(parse, /roundState === "done" \? T\.okSoft/);
+  assert.match(parse, /roundState === "current" \? T\.accentSoft/);
+  assert.match(parse, /roundState === "done" \? T\.ok/);
+  assert.match(parse, /roundState === "current" \? T\.accent/);
+  assert.match(parse, /"已进行"/);
+  assert.match(parse, /"即将进行"/);
+  assert.match(parse, /"未进行"/);
+  assert.doesNotMatch(parse, /targetJob\?*\.status[^\n]*(?:roundState|completedCount|currentIndex)/);
 });
 
 test("prototype does not persist interview business progress in browser state", () => {
@@ -543,6 +566,31 @@ test("theme defaults to ocean and keeps the custom accent picker (D-21 v2.1)", (
   assert.match(app, /\? tweaks\.theme : "ocean"/);
   assert.match(canvas, /Ocean · 深海（默认）/);
   assert.match(canvas, /customAccent/);
+});
+
+test("custom accent picker keeps only hue and saturation controls", () => {
+  const app = readUiFile("./src/app.jsx");
+  const call = app.match(/<AccentPicker[\s\S]*?\/>/)?.[0] ?? "";
+  const pickerStart = app.indexOf("const AccentPicker = ");
+  const pickerEnd = app.indexOf("\nwindow.App", pickerStart);
+  const picker = app.slice(pickerStart, pickerEnd);
+
+  assert.ok(pickerStart >= 0 && pickerEnd > pickerStart, "AccentPicker source must be present");
+  assert.match(
+    picker,
+    /const AccentPicker = \(\{ T, lang, dark, value, onChange \}\) =>/,
+  );
+  assert.match(picker, /lang === "en" \? "Hue" : "色相"/);
+  assert.match(picker, /lang === "en" \? "Chroma" : "饱和度"/);
+  assert.match(picker, /type="range" min=\{0\} max=\{360\}/);
+  assert.match(picker, /type="range" min=\{0\} max=\{0\.25\}/);
+
+  assert.doesNotMatch(call, /\b(?:active|onClear)=/);
+  assert.doesNotMatch(picker, /\b(?:active|onClear|previewAccent)\b/);
+  assert.doesNotMatch(
+    picker,
+    /Reset to theme accent|恢复主题默认色|Drag to apply|拖动应用/,
+  );
 });
 
 test("home keeps the debrief auxiliary entry outside current scope (D-22)", () => {
@@ -607,7 +655,10 @@ test("Home and workspace share action card behavior", () => {
   const home = readUiFile("./src/screen-home.jsx");
   const workspace = readUiFile("./src/screen-workspace.jsx");
 
-  assert.match(home, /onClick=\{\(\) => nav\("parse", \{ targetJobId: j\.id \}\)\}/);
+  assert.match(home, /onClick=\{\(\) => nav\("workspace", \{ targetJobId: j\.id \}\)\}/);
+  assert.match(home, /nav\("parse", \{ targetJobId: "tj-import-pending" \}\)/);
+  assert.equal((home.match(/nav\("parse"/g) || []).length, 1);
+  assert.doesNotMatch(workspace, /nav\("parse"/);
   assert.match(home, /onStart=\{\(round\) => nav\("practice", \{ targetJobId: j\.id, roundId: round\.id/);
   assert.match(home, /Start interview now/);
   assert.doesNotMatch(home, /showDelete=\{true\}/);
@@ -661,7 +712,8 @@ test("practice shows immediate user rows, interviewer thinking, and failed-row r
   assert.match(practice, /disabled=\{paused \|\| isThinking \|\| hasTerminalFailedMessage\}/);
   assert.match(practice, /disabled=\{paused \|\| isThinking \|\| hasFailedCandidateMessage \|\| !input\.trim\(\)\}/);
   assert.match(practice, /data-testid="practice-terminal-recovery" role="alert"/);
-  assert.match(practice, /nav\("parse", \{ targetJobId: job\.id \}\)/);
+  assert.match(practice, /nav\("workspace", \{ targetJobId: job\.id \}\)/);
+  assert.doesNotMatch(practice, /nav\("parse", \{ targetJobId: job\.id \}\)/);
   assert.match(practice, /返回当前面试规划|Return to this interview plan/);
   assert.doesNotMatch(practice, /msg\.status === "terminal_failed"[\s\S]{0,200}data-testid="practice-message-retry"/);
   assert.match(primitives, /refresh:\s*</);
@@ -727,7 +779,7 @@ test("prototype report routes retain only their stable resource locators", () =>
   const canvas = readUiFile("./canvas.html");
 
   assert.match(app, /const REPORT_LOCATOR_ROUTES = new Set\(\["generating", "report"\]\)/);
-  assert.match(app, /const TARGET_JOB_LOCATOR_ROUTES = new Set\(\["parse", "reports"\]\)/);
+  assert.match(app, /const TARGET_JOB_LOCATOR_ROUTES = new Set\(\["parse", "reports", "workspace"\]\)/);
   assert.match(app, /return stripUndefined\(\{ reportId: params\.reportId \}\)/);
   assert.match(app, /return stripUndefined\(\{ targetJobId: params\.targetJobId \}\)/);
   assert.match(app, /const prototypeReportDemoState = activeRouteName === "reports"/);
@@ -743,14 +795,16 @@ test("P0 report has no voice or modality-specific report branch", () => {
   assert.doesNotMatch(report, /Phone|电话模式|Voice|语音/);
 });
 
-test("parse confirm page is a readonly saved-plan receipt with direct launch", () => {
+test("Parse is command progress and Workspace owns the readonly saved-plan receipt", () => {
   const p0 = readUiFile("./src/screens-p0-complete.jsx");
   const app = readUiFile("./src/app.jsx");
 
   assert.match(p0, /const PlanBindingPill = /);
   assert.match(p0, /<PlanBindingPill T=\{T\}/);
   assert.doesNotMatch(p0, /window\.BindingPill/);
-  assert.match(p0, /const ParseScreen = \(\{ T, lang, nav, requestAuth, params = \{\} \}\) =>/);
+  assert.match(p0, /const ParseScreen = \(\{ T, lang, nav, requestAuth, params = \{\}, readyDetail = false \}\) =>/);
+  assert.match(p0, /React\.useState\(readyDetail \? "preview" : "loading"\)/);
+  assert.match(p0, /nav\("workspace", \{ targetJobId: params\.targetJobId \}\)/);
   assert.match(p0, /window\.getWorkspaceResumeOptions/);
   assert.match(p0, /立即面试/);
   assert.match(p0, /type: "create_session"/);
@@ -760,6 +814,7 @@ test("parse confirm page is a readonly saved-plan receipt with direct launch", (
   assert.doesNotMatch(p0, /nav\("workspace", buildParseInterviewContext\(\)\)/);
   assert.doesNotMatch(p0, /确认并进入面试前确认|Confirm & open interview setup/);
   assert.match(app, /parse:\s*<ParseScreen[^>]*requestAuth=\{requestAuth\}/);
+  assert.match(app, /workspace: route\.params\.targetJobId\s*\?\s*<ParseScreen[^>]*readyDetail/);
 });
 
 test("D-22 does not leave debrief source or navigation hooks", () => {
@@ -788,6 +843,30 @@ test("auth has no standalone reset page and aliases auth_reset back to login", (
       assert.doesNotMatch(source, /auth_reset/, `${name} still references the out-of-scope reset route`);
     }
   }
+});
+
+test("practice owns one deterministic semantic GFM message-body and mobile overflow contract", () => {
+  const practice = readUiFile("./src/screen-practice.jsx");
+
+  assert.match(practice, /"markdown-gfm"/);
+  assert.match(practice, /const PracticeMessageBody = /);
+  assert.match(practice, /renderPracticeMarkdownBlocks\(text\)/);
+  assert.match(practice, /PRACTICE_MARKDOWN_SAFE_SCHEMES/);
+  assert.match(practice, /noopener noreferrer/);
+  assert.match(practice, /data-testid="practice-message-body"/);
+  assert.match(practice, /className="ei-practice-message-body"/);
+  assert.match(practice, /PRACTICE_MESSAGE_BODY_CSS/);
+  assert.match(practice, /<blockquote key=/);
+  assert.match(practice, /<table key=/);
+  assert.match(practice, /<pre key=/);
+  assert.match(practice, /\.ei-practice-message-body pre \{/);
+  assert.match(practice, /\.ei-practice-message-body table \{/);
+  assert.match(practice, /max-width: 100%/);
+  assert.match(practice, /overflow-x: auto/);
+  assert.match(practice, /overscroll-behavior-x: contain/);
+  assert.doesNotMatch(practice, /markdownDemo/);
+  assert.doesNotMatch(practice, /dangerouslySetInnerHTML/);
+  assert.doesNotMatch(practice, /<img\b/);
 });
 
 test("debrief thank-you letter draft stays absent", () => {

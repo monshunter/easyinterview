@@ -20,7 +20,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import getMeFixture from "../../../../openapi/fixtures/Auth/getMe.json";
@@ -136,6 +136,13 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       expect(navBtn.className).toMatch(/\bei-topbar-nav-button\b/);
       expect(navBtn.className).toMatch(/\bei-text-body\b/);
     }
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("topbar-lang-toggle"));
+    await user.click(screen.getByTestId("topbar-lang-option-zh"));
+    expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("首页");
+    await user.click(screen.getByTestId("topbar-lang-toggle"));
+    await user.click(screen.getByTestId("topbar-lang-option-en"));
+    expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("Home");
     unmount();
   });
 
@@ -176,7 +183,7 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     ).toBe("#15101a");
   });
 
-  it("activates customAccent overlay → only --ei-color-accent / -soft are inline-overridden", async () => {
+  it("updates customAccent from hue/chroma and exits only through Ocean or Plum", async () => {
     const client = buildClient();
     render(
       <App
@@ -205,6 +212,36 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     expect(
       screen.getByTestId("topbar-custom-accent-chroma"),
     ).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-custom-accent-clear")).toBeNull();
+    expect(screen.queryByText(/恢复主题默认色|Reset to theme accent/)).toBeNull();
+
+    fireEvent.change(screen.getByTestId("topbar-custom-accent-hue"), {
+      target: { value: "120" },
+    });
+    expect(root.style.getPropertyValue("--ei-color-accent")).toBe(
+      "oklch(58% 0.160 120.0)",
+    );
+    fireEvent.change(screen.getByTestId("topbar-custom-accent-chroma"), {
+      target: { value: "0.205" },
+    });
+    expect(root.style.getPropertyValue("--ei-color-accent")).toBe(
+      "oklch(58% 0.205 120.0)",
+    );
+
+    await user.click(screen.getByTestId("topbar-theme-option-ocean"));
+    expect(root.getAttribute("data-theme")).toBe("ocean");
+    expect(root.hasAttribute("data-custom-accent")).toBe(false);
+    expect(root.style.getPropertyValue("--ei-color-accent")).toBe("");
+    expect(root.style.getPropertyValue("--ei-color-accent-soft")).toBe("");
+
+    await user.click(screen.getByTestId("topbar-theme-button"));
+    await user.click(screen.getByTestId("topbar-theme-custom-option"));
+    expect(root.getAttribute("data-custom-accent")).toBe("active");
+    await user.click(screen.getByTestId("topbar-theme-option-plum"));
+    expect(root.getAttribute("data-theme")).toBe("plum");
+    expect(root.hasAttribute("data-custom-accent")).toBe(false);
+    expect(root.style.getPropertyValue("--ei-color-accent")).toBe("");
+    expect(root.style.getPropertyValue("--ei-color-accent-soft")).toBe("");
   });
 
   it("auth_login renders the ei-auth-shell card scaffold + D1 form testids when navigated", async () => {

@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.25
+> **版本**: 1.27
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -94,3 +94,13 @@
   <!-- verified: 2026-07-10 method=auth-css-source-green evidence="AuthVisual passes 17/17; ei-auth-link-row is absent outside its negative assertion, while secondary-link, help/help-line and auth-row retain current component consumers." -->
 - [x] 12.3 Run focused Auth/P0.005, full frontend, typecheck/build, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
   <!-- verified: 2026-07-10 method=auth-zero-consumer-css-pruning evidence="AuthVisual passes 17, Auth owner passes 6 files/49 tests, P0.005 passes 8, full frontend passes 136 files/841 tests, typecheck/build and both contexts pass. Target runtime inventory is zero and current secondary-link/help/row consumers remain; final docs/index/diff/pruning gates run during closeout. No Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 13: StrictMode-safe GET single-flight
+
+- [x] 13.1 Add RED focused tests that mount representative runtime/screen consumers under React StrictMode and prove the current same-key GET path issues a duplicate underlying request.
+- [x] 13.2 Implement one shared in-flight registry for semantic safe-read GET only; key by client identity + method/path/canonical query + normalized relevant headers + normalized `okStatuses` + read/auth epoch + auth/session scope, and evict on both resolve and reject.
+- [x] 13.3 Prove the separation/bypass matrix: different client/query/header/okStatuses/epoch/auth never merge；caller `AbortSignal`、every non-GET and semantic-write GET bypass coalescing；every semantic mutation advances read epoch before dispatch and after resolve/reject settle；`/auth/email/verify` also advances auth/session epoch on success；settle then retry creates a new underlying request.
+- [x] 13.4 Narrow `AppRuntimeProvider`、Home/`useRecentTargetJobs`、Parse、`useWorkspaceTargetJobs`、Reports and Practice loader dependencies to stable client/auth/request-option/route identity inputs without suppressing real locale/auth/epoch refreshes; keep React StrictMode enabled.
+- [x] 13.5 BDD-Gate: extend `E2E.P0.102` to assert an authenticated protected-route StrictMode mount produces exactly one immediate same-key GET and no adjacent duplicate pair.
+- [x] 13.6 Run focused single-flight/runtime/each-loader tests, auth verify epoch tests, full frontend typecheck/build, owner contexts, `make docs-check`, `git diff --check` and broad-runtime-object dependency negative searches before restoring `completed`.
+  <!-- verified: 2026-07-14 evidence="P0.102 setup/trigger/verify/cleanup PASS with 9 frontend files / 70 tests, including generatedClient 15, StrictMode transport, Parse scheduler, Resume retry and backend route guards; full frontend 125 files / 1004 tests plus typecheck/build PASS." -->

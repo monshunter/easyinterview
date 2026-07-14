@@ -1,4 +1,4 @@
-import type { Resume } from "../../../../api/generated/types";
+import type { Resume, ResumeSummary } from "../../../../api/generated/types";
 
 export type ResumeStatus = "active" | "archived";
 export type ResumeDetailRenderer = "markdown" | "pdf";
@@ -14,6 +14,15 @@ export interface UiResumeSource {
   status: ResumeStatus;
   summary: string;
   text: string[];
+}
+
+export interface UiResumeListItem {
+  id: string;
+  name: string;
+  langTag: string;
+  sourceName: string;
+  updatedAt: string;
+  summary: string;
 }
 
 const LANG_TAG_MAP: Record<string, string> = {
@@ -158,9 +167,25 @@ const deriveSourceName = (resume: Resume): string => {
   );
 };
 
+const deriveSummaryDisplayName = (resume: ResumeSummary): string =>
+  firstNonGeneric(
+    [safeString(resume.displayName), safeString(resume.summaryHeadline)],
+    [safeString(resume.title)].filter(
+      (value) => isGenericResumeName(value) || looksLikeUploadFileName(value),
+    ),
+  ) || PENDING_DISPLAY_NAME;
+
+const deriveSummarySourceName = (resume: ResumeSummary): string => {
+  if (resume.sourceType === "paste") return deriveSourceTypeLabel("paste");
+  return (
+    firstNonGeneric([safeString(resume.title), safeString(resume.displayName)]) ||
+    deriveSourceTypeLabel(resume.sourceType)
+  );
+};
+
 /**
- * Maps the flat OpenAPI `Resume` to the UI source shape consumed by the list
- * row and detail header. `displayName` is the LLM-derived label after parse;
+ * Maps the full OpenAPI `Resume` to the detail-only UI source shape.
+ * `displayName` is the LLM-derived label after parse;
  * `title` is the original-source title fallback.
  */
 export const mapResumeToUiSource = (resume: Resume): UiResumeSource => ({
@@ -174,6 +199,18 @@ export const mapResumeToUiSource = (resume: Resume): UiResumeSource => ({
   status: normalizeStatus(resume.status),
   summary: deriveSummary(resume.parsedSummary),
   text: buildResumeBodyLines(resume),
+});
+
+/** Maps the summary-only list contract without reading detail-only fields. */
+export const mapResumeSummaryToUiSource = (
+  resume: ResumeSummary,
+): UiResumeListItem => ({
+  id: resume.id,
+  name: deriveSummaryDisplayName(resume),
+  langTag: deriveLangTag(resume.language),
+  sourceName: deriveSummarySourceName(resume),
+  updatedAt: formatDateOnly(resume.updatedAt),
+  summary: safeString(resume.summaryHeadline),
 });
 
 export const buildResumeBodyLines = (resume: Resume): string[] => {

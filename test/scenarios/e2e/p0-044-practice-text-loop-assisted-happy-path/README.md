@@ -8,7 +8,7 @@ Parallel-safe: no. The Playwright parity runner uses the shared local preview po
 
 ## Contract
 
-Given an authenticated running Practice session, when the candidate submits a text answer, then the answer is rendered immediately with `replyStatus=pending`, the composer and Finish action remain locked until the reply settles, a reload preserves the pending projection before the exact 90-second lease boundary, and a successful commit converges to exactly one user/assistant pair.
+Given an authenticated running Practice session, when persisted candidate and interviewer messages contain GFM, then both roles use the same safe semantic projection without changing the raw message contract. When the candidate submits a text answer, the answer is rendered immediately with `replyStatus=pending`, the composer and Finish action remain locked until the reply settles, a reload preserves the pending projection before the exact 90-second lease boundary, and a successful commit converges to exactly one user/assistant pair.
 
 The wrapper executes the current frontend state-machine tests, focused API/service/repository owner tests, and the existing Practice Playwright parity tests. The real PostgreSQL recovery matrix belongs to `E2E.P0.046`, so this happy-path wrapper remains environment-independent.
 
@@ -31,9 +31,10 @@ The verifier requires:
 
 - API projection and repository PASS markers for user-only `clientMessageId` / `replyStatus`, pending readback, same-ID retry, and atomic reply completion;
 - loader and screen verbose evidence plus `TestSQLRepositoryGetSessionKeepsPendingBeforeLeaseBoundary`, with exact `PRACTICE_IMMEDIATE_PENDING_PASS` / `PRACTICE_PERSISTED_PENDING_PASS` markers;
-- Practice Playwright PASS markers for immediate pending and persisted pending states in both configured projects;
+- shared `react-markdown + remark-gfm` user/assistant semantic projection evidence with `skipHtml`, prototype-owned typography, and exact `PRACTICE_SAFE_GFM_PROJECTION_PASS`;
+- Practice Playwright PASS markers for immediate pending, persisted pending, and `markdown-gfm` states in both configured projects, including 390px local pre/table overflow and zero document horizontal overflow;
 - one shared [`practice-source-fingerprint-paths.json`](../practice-source-fingerprint-paths.json) hash captured by the trigger and byte-recomputed by the verifier; source drift fails closed;
-- four stable PNGs under `.test-output/e2e/p0-044-practice-text-loop-assisted-happy-path/screenshots/`:
+- six stable PNGs under `.test-output/e2e/p0-044-practice-text-loop-assisted-happy-path/screenshots/` for immediate-pending, persisted-pending, and markdown-gfm:
   - desktop CSS viewport `1440x900`, PNG `1440x900`;
   - mobile CSS viewport `390x844`, DPR 3, PNG `1170x2532`.
 

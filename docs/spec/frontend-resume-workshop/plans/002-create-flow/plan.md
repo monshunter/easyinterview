@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow
 
-> **版本**: 1.17
+> **版本**: 1.18
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -80,9 +80,9 @@ Home CTA paths enter `resume_versions?flow=create`. CreateFlow keeps current i18
 
 Resume upload keeps the existing name generation and route handoff behavior. It only narrows the upload whitelist to PDF / Markdown / TXT, rejects DOCX before presign/register, and leaves renderer selection to the detail route based on the registered source format.
 
-### Phase 8: Home existing resume selection regression
+### Historical Phase 8: Home existing resume selection regression
 
-Home `选择已有简历` consumes the current `listResumes` result and keeps non-archived resumes selectable when they already carry readable resume evidence (`ready` parse status, `parsedTextSnapshot`, `originalText`, or structured profile). It must not show `还没有可用简历` while `listResumes` returns selectable records, and it must preserve the explicit-selection rule before importing a JD.
+Phase 8 originally inferred selectability from the then-full `listResumes` item (`parsedTextSnapshot` / `originalText` / structured profile). That list shape is superseded by active [001 Phase 19](../001-listing-routing-and-detail-readonly/plan.md): Home consumes closed `ResumeSummary` and uses only `parseStatus === ready || hasReadableContent`; Parse/Workspace detail does not call `listResumes`. The checked Phase 8 evidence below remains historical and is not a current contract gate.
 
 ### Phase 9: Zero-reference stage type removal
 
@@ -111,7 +111,7 @@ ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基
 | C-5 | Out-of-scope surfaces absent | Register succeeds | Route updates | Sidebar, preview confirm and create-flow `updateResume` save path do not render or run; waiting state and source-format renderer belong to detail route | negative tests |
 | C-6 | CTA handoff | Home create CTA | Click | Route lands on current CreateFlow without raw data in pending action | integration tests |
 | C-7 | BDD gates | P0.081 / P0.083 assets plus P0.082 parser/preview absence | Scenario verify | Direct-to-detail main path, out-of-scope parser/confirm absence and CTA handoff are covered | BDD docs + scenario scripts |
-| C-8 | Home existing resume picker | `listResumes` returns non-archived resumes with readable evidence | Home renders JD quick-start | Native select is enabled, options are selectable, empty state is absent, and selected `resumeId` is carried to import / parse handoff | HomeResumeSelection Vitest + browser screenshot |
+| C-8 | Home existing resume picker | `listResumes` returns closed `ResumeSummary` items with `parseStatus` / `hasReadableContent` | Home renders JD quick-start | Native select is enabled for `ready || hasReadableContent`, empty state is absent, and selected `resumeId` is carried only in the import body；full detail fields are not required | Active 001 Phase 19 + HomeResumeSelection Vitest |
 | C-9 | Zero-reference type cleanup | `CreateStage` has no consumer | Source gate and create-flow regressions run | The alias is absent while `data-stage="input"` and create behavior remain unchanged | source negative + focused Vitest + typecheck |
 | C-10 | Prototype call surface | Static create flow receives its owner callbacks | User switches mode, returns or creates a Resume | Only `onBack` / `onCreateResume` own child transitions; no unread `nav` prop remains, and the parent preserves the created asset through waiting/ready detail | UI contract + AST inventory + browser smoke |
 
@@ -127,6 +127,7 @@ ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.18 | Mark the old full-Resume Home selection inference as historical; current selection consumes ResumeSummary parseStatus/hasReadableContent under active plan 001 Phase 19. |
 | 2026-07-10 | 1.17 | Consolidate the accent CTA declarations into one equivalent rule. |
 | 2026-07-10 | 1.16 | Delete the zero-consumer CreateFlow ghost CTA CSS branches. |
 | 2026-07-10 | 1.15 | Remove the unread ResumeCreateFlow navigation prop and caller argument; preserve the created detail handoff documented by BUG-0154. |

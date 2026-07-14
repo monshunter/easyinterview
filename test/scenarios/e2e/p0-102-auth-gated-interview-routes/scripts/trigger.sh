@@ -19,11 +19,17 @@ run_step() {
   echo "SCENARIO_RUNNER=E2E.P0.102"
   run_step ui-design-contract \
     node --test ui-design/ui-design-contract.test.mjs
-  run_step frontend-auth-gate \
+  run_step frontend-auth-and-single-flight \
     pnpm --filter @easyinterview/frontend test \
       src/app/screens/home/HomeRecentMocks.test.tsx \
       src/app/screens/home/HomeAuthGate.test.tsx \
-      src/app/AppAuthDispatch.test.tsx
+      src/app/AppAuthDispatch.test.tsx \
+      src/api/generatedClient.test.ts \
+      src/app/runtime/AppRuntimeProvider.test.tsx \
+      src/app/screens/home/useRecentTargetJobs.test.tsx \
+      src/app/screens/workspace/hooks/useWorkspaceTargetJobs.test.tsx \
+      src/app/screens/parse/ParseFlow.test.tsx \
+      src/app/scenarios/p0-036-resume-flat-list-auth-boundary.test.tsx
   run_step backend-session-policy \
     bash -c 'cd backend && go test -v ./internal/auth -run TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations -count=1'
   run_step backend-route-middleware \

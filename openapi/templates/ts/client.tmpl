@@ -60,7 +60,8 @@ const DEFAULT_BASE_URL = "/api/v1";
 function buildQuery(params?: Record<string, string | number | boolean | undefined>): string {
 	if (!params) return "";
 	const search = new URLSearchParams();
-	for (const [key, value] of Object.entries(params)) {
+	for (const key of Object.keys(params).sort()) {
+		const value = params[key];
 		if (value === undefined) continue;
 		search.append(key, String(value));
 	}
@@ -125,10 +126,25 @@ function requestFailure(cause: unknown): ApiClientError {
 	);
 }
 
+function canonicalHeaders(headers: Record<string, string>): readonly (readonly [string, string])[] {
+	return Array.from(new Headers(headers).entries())
+		.map(([key, value]) => [key.toLowerCase(), value] as const)
+		.sort(([left], [right]) => left.localeCompare(right));
+}
+
+function canonicalStatuses(statuses: readonly number[]): readonly number[] {
+	return Array.from(new Set(statuses)).sort((left, right) => left - right);
+}
+
+const VERIFY_AUTH_PATH = "/auth/email/verify";
+
 export class EasyInterviewClient {
 	readonly baseUrl: string;
 	readonly fetchFn: typeof fetch;
 	readonly defaultHeaders: Record<string, string>;
+	private readonly inFlightReads = new Map<string, Promise<unknown>>();
+	private readEpoch = 0;
+	private authEpoch = 0;
 
 	constructor(options: ClientOptions = {}) {
 		this.baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
@@ -136,7 +152,8 @@ export class EasyInterviewClient {
 		this.defaultHeaders = { ...(options.headers ?? {}) };
 	}
 
-	private async request<T>(method: string, path: string, body: unknown, opts?: RequestOptions, okStatuses: readonly number[] = []): Promise<T> {
+	private request<T>(method: string, path: string, body: unknown, opts?: RequestOptions, okStatuses: readonly number[] = []): Promise<T> {
+		const normalizedMethod = method.toUpperCase();
 		const headers: Record<string, string> = {
 			"Accept": "application/json",
 			...this.defaultHeaders,
@@ -145,6 +162,50 @@ export class EasyInterviewClient {
 		if (body !== undefined) headers["Content-Type"] = "application/json";
 		if (opts?.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
 		const url = `${this.baseUrl}${path}${buildQuery(opts?.query)}`;
+		const isVerifyMutation = normalizedMethod === "GET" && path === VERIFY_AUTH_PATH;
+		const isMutation = normalizedMethod !== "GET" || isVerifyMutation;
+
+		if (isMutation) {
+			this.readEpoch += 1;
+			const mutation = this.performRequest<T>(normalizedMethod, url, body, headers, opts, okStatuses);
+			return mutation.then(
+				(value) => {
+					this.readEpoch += 1;
+					if (isVerifyMutation) this.authEpoch += 1;
+					return value;
+				},
+				(error: unknown) => {
+					this.readEpoch += 1;
+					throw error;
+				},
+			);
+		}
+
+		if (opts?.signal) {
+			return this.performRequest<T>(normalizedMethod, url, body, headers, opts, okStatuses);
+		}
+
+		const key = JSON.stringify([
+			normalizedMethod,
+			url,
+			canonicalHeaders(headers),
+			canonicalStatuses(okStatuses),
+			this.readEpoch,
+			this.authEpoch,
+		]);
+		const existing = this.inFlightReads.get(key);
+		if (existing) return existing as Promise<T>;
+
+		const request = this.performRequest<T>(normalizedMethod, url, body, headers, opts, okStatuses);
+		this.inFlightReads.set(key, request);
+		const cleanup = () => {
+			if (this.inFlightReads.get(key) === request) this.inFlightReads.delete(key);
+		};
+		void request.then(cleanup, cleanup);
+		return request;
+	}
+
+	private async performRequest<T>(method: string, url: string, body: unknown, headers: Record<string, string>, opts?: RequestOptions, okStatuses: readonly number[] = []): Promise<T> {
 		let response: Response;
 		try {
 			response = await this.fetchFn(url, {

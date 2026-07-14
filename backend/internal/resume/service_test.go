@@ -112,6 +112,7 @@ func TestRegisterUploadPathRejectsMissingObjectBeforeCreate(t *testing.T) {
 func TestGetAndListResumesMapStoreRecordsWithUserScope(t *testing.T) {
 	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
 	displayName := "Alice CV"
+	headline := "Senior engineer"
 	rec := resumestore.ResumeRecord{
 		ID:                "resume-1",
 		UserID:            "user-1",
@@ -126,8 +127,18 @@ func TestGetAndListResumesMapStoreRecordsWithUserScope(t *testing.T) {
 		UpdatedAt:         now,
 	}
 	store := &fakeStore{
-		getOut:  rec,
-		listOut: resumestore.ListResult{Items: []resumestore.ResumeRecord{rec}, NextCursor: "cursor-2", HasMore: true, PageSize: 20},
+		getOut: rec,
+		listOut: resumestore.ListResult{Items: []resumestore.ResumeSummaryRecord{{
+			ID:                 "resume-1",
+			Title:              "Resume",
+			DisplayName:        displayName,
+			Language:           "en",
+			SourceType:         "paste",
+			ParseStatus:        sharedtypes.TargetJobParseStatusReady,
+			SummaryHeadline:    &headline,
+			HasReadableContent: true,
+			UpdatedAt:          now,
+		}}, NextCursor: "cursor-2", HasMore: true, PageSize: 20},
 	}
 	svc := resume.NewService(resume.ServiceOptions{Store: store})
 
@@ -146,11 +157,72 @@ func TestGetAndListResumesMapStoreRecordsWithUserScope(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListResumes: %v", err)
 	}
-	if len(list.Items) != 1 || list.Items[0].Id != "resume-1" || list.PageInfo.NextCursor == nil || *list.PageInfo.NextCursor != "cursor-2" || !list.PageInfo.HasMore {
+	if len(list.Items) != 1 || list.Items[0].Id != "resume-1" || list.Items[0].DisplayName != displayName || list.Items[0].SourceType != "paste" || list.Items[0].SummaryHeadline == nil || *list.Items[0].SummaryHeadline != headline || !list.Items[0].HasReadableContent || list.PageInfo.NextCursor == nil || *list.PageInfo.NextCursor != "cursor-2" || !list.PageInfo.HasMore {
 		t.Fatalf("ListResumes mapped = %+v", list)
 	}
 	if store.listUserID != "user-1" || store.listFilter.Cursor != "cursor-1" || store.listFilter.PageSize != 20 {
 		t.Fatalf("store list scope = %q filter=%+v", store.listUserID, store.listFilter)
+	}
+}
+
+func TestListResumesMapsNullHeadlineAndUnreadableContent(t *testing.T) {
+	now := time.Date(2026, 7, 14, 9, 0, 0, 0, time.UTC)
+	blankHeadline := " \n\t "
+	store := &fakeStore{listOut: resumestore.ListResult{
+		Items: []resumestore.ResumeSummaryRecord{
+			{
+				ID:                 "resume-1",
+				Title:              "Pending Resume",
+				DisplayName:        "",
+				Language:           "zh-CN",
+				SourceType:         "upload",
+				ParseStatus:        sharedtypes.TargetJobParseStatusProcessing,
+				SummaryHeadline:    nil,
+				HasReadableContent: false,
+				UpdatedAt:          now,
+			},
+			{
+				ID:                 "resume-2",
+				Title:              "Blank Headline Resume",
+				Language:           "en",
+				SourceType:         "paste",
+				ParseStatus:        sharedtypes.TargetJobParseStatusFailed,
+				SummaryHeadline:    &blankHeadline,
+				HasReadableContent: false,
+				UpdatedAt:          now,
+			},
+		},
+		PageSize: 20,
+	}}
+	svc := resume.NewService(resume.ServiceOptions{Store: store})
+
+	got, err := svc.ListResumes(context.Background(), resume.ListRequest{UserID: "user-1", PageSize: 20})
+	if err != nil {
+		t.Fatalf("ListResumes: %v", err)
+	}
+	if len(got.Items) != 2 || got.Items[0].SummaryHeadline != nil || got.Items[1].SummaryHeadline != nil || got.Items[0].HasReadableContent || got.Items[1].HasReadableContent || got.Items[0].SourceType != "upload" || got.Items[0].UpdatedAt != now.Format(time.RFC3339) {
+		t.Fatalf("summary = %+v", got.Items)
+	}
+}
+
+func TestListResumesRejectsInvalidSourceType(t *testing.T) {
+	for _, sourceType := range []string{"legacy", " paste "} {
+		t.Run(sourceType, func(t *testing.T) {
+			store := &fakeStore{listOut: resumestore.ListResult{
+				Items: []resumestore.ResumeSummaryRecord{{
+					ID:         "resume-1",
+					SourceType: sourceType,
+					UpdatedAt:  time.Date(2026, 7, 14, 9, 0, 0, 0, time.UTC),
+				}},
+				PageSize: 20,
+			}}
+			svc := resume.NewService(resume.ServiceOptions{Store: store})
+
+			_, err := svc.ListResumes(context.Background(), resume.ListRequest{UserID: "user-1", PageSize: 20})
+			if !errors.Is(err, resumestore.ErrInvalidSourceType) {
+				t.Fatalf("err = %v, want ErrInvalidSourceType", err)
+			}
+		})
 	}
 }
 

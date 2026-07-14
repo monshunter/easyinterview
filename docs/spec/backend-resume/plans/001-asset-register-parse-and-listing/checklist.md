@@ -1,8 +1,8 @@
 # Backend Resume Register Parse and Listing Checklist
 
-> **版本**: 3.0
+> **版本**: 3.2
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -121,3 +121,16 @@
 - [x] 14.4 同步 prompt body/schema/hash、baseline seed migration、eval cases 与 `resolved-prompts.json`；`make lint-prompts` / `make eval-offline-resolve` PASS，当前合同负向 grep 不再要求 `markdownText`<!-- verified: 2026-07-12 method=prompt-lint+eval-offline result=24/24-pass seed-body=matched -->
 - [x] 14.5 E2E.P0.035 trigger/verify 执行并检查 tail-marker、structured-only、finish-reason tests 的 runner marker 与 PASS，继续拒绝 no-op / skip<!-- verified: 2026-07-12 method=script-contract-red-green+scenario trigger=PASS verify=PASS cleanup=PASS verifier=exact-pass+reject-fail test=TestParseHandlerPreservesInlineHeadingWordsInSourceSnapshot -->
 - [x] 14.6 BDD-Gate: E2E.P0.035 PASS（完整正文进入 prompt + deterministic snapshot + output truncation fail-closed）<!-- verified: 2026-07-12 method=scenario bddChecklist=complete -->
+
+## Phase 15: Closed ResumeSummary list projection
+
+- [x] 15.1 前置 gate：B2 owner 已原地新增 `ResumeSummary`，保持现有 `PaginatedResume` 与 `pageInfo` 不变并仅将 `items` 改为 `ResumeSummary[]`；default/empty/paginated fixtures 与 generated Go/TS artifacts 同步；没有新增 pagination wrapper，OpenAPI inventory/codegen/fixture drift 为零。 <!-- verified: 2026-07-14 method=generated-contract+fixture-validation tests=backend/cmd/codegen/openapi,validate-fixtures -->
+- [x] 15.2 RED store tests：当前 list SQL/row scanner 在 exact projection gate 下失败；断言显式 summary 列、stable cursor、user scope、active-only，并禁止选择/扫描 `original_text|parsed_text_snapshot|structured_profile|file_object_id|parsed_summary object|created_at|deleted_at` 或 `SELECT *`；NULL `source_type` scan 与非法 enum service mapping 必须 fail closed，create path 继续写合法非空 source。 <!-- verified: 2026-07-14 method=go-test-red tests=TestListUsesClosedResumeSummaryProjection,TestListRejectsNullSourceType,TestCreateWithParseJobRejectsInvalidSourceType,TestDuplicateResumeRejectsInvalidSourceType observed=full-detail-record-build-failure -->
+- [x] 15.3 GREEN store：实现独立 summary row/query；`summaryHeadline` 只投影 trim 后非空 headline；`hasReadableContent` 仅在 trim 后 snapshot 非空、trim 后 original text 非空或 structured profile 为非空 object 时为 true，空白文本/空对象为 false，且不按 file/source/status 推断；原始正文/JSON/file object 不装入 list result；`Get` full-detail scanner 保持独立。 <!-- verified: 2026-07-14 method=go-test tests=internal/resume/store summary-projection+null-source+create-duplicate-source-integrity -->
+- [x] 15.4 Service/domain：`List` 只映射 closed `ResumeSummary`，覆盖 exact fields、null headline、readable true/false、25+ rows、第二页、invalid cursor、cross-user；`Get` 仍返回 full `Resume` 详情。验证：service tests。 <!-- verified: 2026-07-14 method=go-test tests=TestGetAndListResumesMapStoreRecordsWithUserScope,TestListResumesMapsNullHeadlineAndUnreadableContent,TestListResumesRejectsInvalidSourceType,TestListCursorPagination -->
+- [x] 15.5 Handler/fixture：generated `PaginatedResume` 外层与 `pageInfo` 保持不变，`items: ResumeSummary[]` exact JSON keys 与 default/empty/paginated fixture 字节一致；逐项断言详情字段 absent；get fixture parity 保持完整详情。验证：handler + cmd/api tests。 <!-- verified: 2026-07-14 method=go-test tests=TestListResumesFixtureParity,TestGetResumeFixtureParity,TestResumeRegisterListHTTPScenario note=generic-handler-writer-required-no-production-change -->
+- [x] 15.6 负向 gate：list store/service/handler 不复用 full-detail mapper，不出现 `SELECT *`，不把 forbidden fields 写入 response；Go tests、OpenAPI codegen/inventory、frontend typecheck 与 fixture parity PASS。 <!-- verified: 2026-07-14 method=full-go+contract-gates evidence="backend go test ./... PASS; exact nine-field scalar projection; no detail mapper, SELECT *, forbidden response field, or list N+1; OpenAPI/codegen/fixture/type gates PASS" -->
+- [x] 15.7 `BDD-Gate: E2E.P0.034` PASS：register/get/list 真实 route 覆盖 summary exact keys、forbidden fields absent、full get detail、pagination 与 cross-user。 <!-- verified: 2026-07-14 method=scenario result=PASS evidence="fresh setup/trigger/verify/cleanup; method=cmd-api-http; exact nine-field summary, full get, pagination, cross-user and no-skip markers" -->
+- [x] 15.8 `BDD-Gate: E2E.P0.036` PASS：frontend list/Home 只消费 summary，列表无需正文/structured profile。 <!-- verified: 2026-07-14 method=scenario result=PASS evidence="5/5; summaryFields=9 listResumes=1 getResumeBeforeOpen=0 getResumeAfterOpen=1" -->
+- [x] 15.9 `BDD-Gate: E2E.P0.037` PASS：用户打开详情后才调用 `getResume` 获取完整详情，list payload 不预取详情。 <!-- verified: 2026-07-14 method=scenario+browser result=PASS evidence="8/8; ready detail initial=1 maxInFlight=1; browser list GET=1 and detail click GET=1" -->
+- [x] 15.10 收口：backend focused/full tests、P0.034/036/037、context validation、`sync-doc-index --check`、`make docs-check`、`git diff --check` PASS；同步证据后恢复 completed。 <!-- verified: 2026-07-14 method=post-pass-reconcile evidence="backend full/focused and fresh P0.034/P0.036/P0.037 PASS; owner context valid; aggregate INDEX finalization delegated to root integration" -->

@@ -46,7 +46,7 @@ describe("E2E.P0.090 hash routing + out-of-scope route negative regression", () 
     expect(window.location.hash).toBe("");
   });
 
-  it("`#route=workspace&targetJobId=...` bootstrap rewrites URL to canonical pure /workspace list", () => {
+  it("`#route=workspace&targetJobId=...` bootstrap rewrites to target-scoped detail", () => {
     window.history.replaceState(
       null,
       "",
@@ -54,9 +54,9 @@ describe("E2E.P0.090 hash routing + out-of-scope route negative regression", () 
     );
     render(<App />);
     expect(window.location.pathname).toBe("/workspace");
-    expect(window.location.search).toBe("");
+    expect(window.location.search).toBe("?targetJobId=tj-1");
     expect(window.location.hash).toBe("");
-    expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-detail-loading")).toBeInTheDocument();
   });
 
   it("Reports hash bootstrap keeps targetJobId only and never adds a TopBar entry", async () => {

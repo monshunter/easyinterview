@@ -139,6 +139,18 @@ export interface RegisterResumeRequest {
 	title: string;
 }
 
+export interface ResumeSummary {
+	displayName: string;
+	hasReadableContent: boolean;
+	id: string;
+	language: string;
+	parseStatus: TargetJobParseStatus;
+	sourceType: "upload" | "paste";
+	summaryHeadline: string | null;
+	title: string;
+	updatedAt: string;
+}
+
 export interface Resume {
 	createdAt: string;
 	deletedAt?: string | null;
@@ -163,7 +175,7 @@ export interface ResumeWithJob {
 }
 
 export interface PaginatedResume {
-	items: Resume[];
+	items: ResumeSummary[];
 	pageInfo: PageInfo;
 }
 

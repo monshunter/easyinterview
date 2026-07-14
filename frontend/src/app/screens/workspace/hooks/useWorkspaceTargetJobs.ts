@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { TargetJob } from "../../../../api/generated/types";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
@@ -14,24 +14,25 @@ export interface UseWorkspaceTargetJobsResult {
  */
 export function useWorkspaceTargetJobs(): UseWorkspaceTargetJobsResult {
   const runtime = useAppRuntimeOptional();
+  const client = runtime?.client;
+  const isAuthenticated = runtime?.auth.status === "authenticated";
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState<TargetJob[]>([]);
   const [error, setError] = useState<Error | null>(null);
-  const inFlightRef = useRef(false);
 
   const fetch = useCallback(() => {
-    if (!runtime) {
+    if (!client || !isAuthenticated) {
+      setJobs([]);
       setLoading(false);
+      setError(null);
       return;
     }
-    if (inFlightRef.current) return;
 
     let cancelled = false;
-    inFlightRef.current = true;
     setLoading(true);
     setError(null);
 
-    runtime.client
+    client
       .listTargetJobs({ query: { analysisStatus: "ready", pageSize: "12" } })
       .then((page) => {
         if (cancelled) return;
@@ -45,13 +46,17 @@ export function useWorkspaceTargetJobs(): UseWorkspaceTargetJobsResult {
       .finally(() => {
         if (!cancelled) {
           setLoading(false);
-          inFlightRef.current = false;
         }
       });
-  }, [runtime]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [client, isAuthenticated]);
 
   useEffect(() => {
-    fetch();
+    const cancel = fetch();
+    return cancel;
   }, [fetch]);
 
   return { loading, jobs, error };

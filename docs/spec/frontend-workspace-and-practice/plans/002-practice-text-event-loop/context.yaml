@@ -5,15 +5,15 @@ metadata:
   name: 002-practice-text-event-loop
   sequence: 2
   baseBranch: main
-  branch: fix/interview-turn-ux-0713
+  branch: fix/request-dedup-resume-summary-routing-0714
   specVersion:
-    from: 1.41
-    to: 1.42
+    from: 1.42
+    to: 1.43
 spec:
   defaultTarget: frontend
   discovery:
     aliases: [practice continuous chat, full width conversation]
-    keywords: [PracticeScreen, PracticeMessage, sendPracticeMessage, optimisticUserMessage, interviewerThinking, pendingComposerLock, 95 second timeout, abort reconcile, stale response guard, failedMessageRetryIcon, sameClientMessageIdRetry, clientMessageIdReplyStatus, getPracticeSessionRetryProjection, terminal plan recovery, parse targetJobId, ApiClientError, reloadSameIdRetry, noBrowserRetryPersistence, draftPreservedDuringRetry, zeroAnswerFinish, finishDisabledReason, backendAuthoritativeCompletion, reportIdOnlyHandoff, noCopiedRouteIdentity, disabled phone, no SessionMap, no QuestionCard]
+    keywords: [PracticeScreen, PracticeMessage, sendPracticeMessage, optimisticUserMessage, interviewerThinking, pendingComposerLock, 95 second timeout, abort reconcile, stale response guard, failedMessageRetryIcon, sameClientMessageIdRetry, clientMessageIdReplyStatus, getPracticeSessionRetryProjection, terminal plan recovery, workspace targetJobId, ApiClientError, reloadSameIdRetry, noBrowserRetryPersistence, draftPreservedDuringRetry, react-markdown, remark-gfm, skipHtml, no rehypeRaw, no remote image, safe link, exact raw retry payload, mobile code overflow, zeroAnswerFinish, finishDisabledReason, backendAuthoritativeCompletion, reportIdOnlyHandoff, noCopiedRouteIdentity, disabled phone, no SessionMap, no QuestionCard]
   targets:
     frontend:
       plan: ./plan.md
@@ -31,6 +31,7 @@ spec:
         packages:
           - ui-design/src/screen-practice.jsx
           - frontend/src/app/screens/practice
+          - frontend/src/app/components
           - frontend/src/api/generated
           - openapi/templates/ts/client.tmpl
           - openapi/fixtures/PracticeSessions/getPracticeSession.json

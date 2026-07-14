@@ -224,7 +224,7 @@ describe("HomeRecentMocks", () => {
     });
   });
 
-  it("opens parse detail on card click and shows quick-start without delete", async () => {
+  it("opens workspace detail on card click and shows quick-start without delete", async () => {
     const client = createClient("default");
     const { navigate } = renderHome(client);
 
@@ -245,12 +245,10 @@ describe("HomeRecentMocks", () => {
 
     expect(navigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: "parse",
-        params: expect.objectContaining({
+        name: "workspace",
+        params: {
           targetJobId: "01918fa0-0000-7000-8000-000000002000",
-          planId: "01918fa0-0000-7000-8000-000000004000",
-          resumeId: "01918fa0-0000-7000-8000-000000001000",
-        }),
+        },
       }),
     );
   });

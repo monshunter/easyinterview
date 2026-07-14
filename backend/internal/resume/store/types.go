@@ -63,6 +63,21 @@ type ResumeRecord struct {
 	DeletedAt          *time.Time
 }
 
+// ResumeSummaryRecord is the closed list projection. Raw source text, JSON
+// documents, file identifiers, and audit-only timestamps stay in the database
+// and are never scanned into this record.
+type ResumeSummaryRecord struct {
+	ID                 string
+	Title              string
+	DisplayName        string
+	Language           string
+	SourceType         string
+	ParseStatus        sharedtypes.TargetJobParseStatus
+	SummaryHeadline    *string
+	HasReadableContent bool
+	UpdatedAt          time.Time
+}
+
 type UpdateResumeInput struct {
 	UserID               string
 	ResumeID             string
@@ -180,7 +195,7 @@ type ListFilter struct {
 }
 
 type ListResult struct {
-	Items      []ResumeRecord
+	Items      []ResumeSummaryRecord
 	NextCursor string
 	HasMore    bool
 	PageSize   int

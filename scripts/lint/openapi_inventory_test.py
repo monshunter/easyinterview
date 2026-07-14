@@ -427,6 +427,67 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
             inventory.P0_501_ENDPOINTS,
         )
 
+    def test_resume_list_summary_contract_is_exact_and_detail_stays_full(self) -> None:
+        decision = Path(
+            "docs/spec/openapi-v1-contract/decisions/OPENAPI-005-resume-list-summary.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("> **状态**: accepted", decision)
+
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        errors: list[str] = []
+        inventory.validate_resume_summary_contract(data, errors)
+        self.assertEqual([], errors)
+
+        schemas = data["components"]["schemas"]
+        summary = schemas["ResumeSummary"]
+        expected_fields = [
+            "id",
+            "title",
+            "displayName",
+            "language",
+            "sourceType",
+            "parseStatus",
+            "summaryHeadline",
+            "hasReadableContent",
+            "updatedAt",
+        ]
+        self.assertEqual(expected_fields, summary["required"])
+        self.assertEqual(expected_fields, list(summary["properties"]))
+        self.assertIs(False, summary["additionalProperties"])
+        self.assertEqual(
+            [{"type": "string"}, {"type": "null"}],
+            summary["properties"]["summaryHeadline"]["oneOf"],
+        )
+        self.assertEqual(
+            {"type": "boolean"}, summary["properties"]["hasReadableContent"]
+        )
+
+        paginated_items = schemas["PaginatedResume"]["allOf"][1]["properties"][
+            "items"
+        ]["items"]
+        self.assertEqual(
+            "#/components/schemas/ResumeSummary", paginated_items["$ref"]
+        )
+        get_operation = data["paths"]["/resumes/{resumeId}"]["get"]
+        self.assertEqual("getResume", get_operation["operationId"])
+        self.assertEqual(
+            "#/components/schemas/Resume",
+            get_operation["responses"]["200"]["content"]["application/json"][
+                "schema"
+            ]["$ref"],
+        )
+
+        invalid = copy.deepcopy(data)
+        invalid["components"]["schemas"]["ResumeSummary"]["properties"][
+            "fileObjectId"
+        ] = {"type": "string", "format": "uuid"}
+        invalid_errors: list[str] = []
+        inventory.validate_resume_summary_contract(invalid, invalid_errors)
+        self.assertTrue(
+            any("ResumeSummary.properties" in error for error in invalid_errors),
+            invalid_errors,
+        )
+
     def test_resume_workshop_side_effects_require_idempotency_key(self) -> None:
         for row in {
             ("post", "/resumes"),

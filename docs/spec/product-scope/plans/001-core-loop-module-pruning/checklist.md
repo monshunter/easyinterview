@@ -1,8 +1,8 @@
 # Core Loop Module Pruning Checklist
 
-> **版本**: 1.274
+> **版本**: 1.275
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -653,3 +653,16 @@
   <!-- verified: 2026-07-10 method=shared-prompt-rubric-config-roots evidence="One tested ConfigRoots(testing.TB) serves 26 test and benchmark calls; four local walkers and symbols are removed, F3 context owns testsupport, and backend dupl drops from nine to eight groups. Completed-state registry/TargetJob/cmd-api, full backend, integration compile, vet/staticcheck, four F3 lints, contexts and docs/diff/pruning gates pass with real_residuals=0. No runtime or environment behavior changed." -->
 - [x] 6.273 Technical-debt stop audit；验证: batch-cap decision、root lint/test、deadcode/dupl classification、docs/index/diff/pruning closeout。
   <!-- verified: 2026-07-10 method=bounded-technical-debt-stop-audit evidence="The owner has already exceeded the newly introduced 20-batch ceiling. make lint PASS; make test PASS with UI prototype 45, Python 464 tests/4269 subtests, all backend packages and frontend 136 files/845 tests. Eight remaining dupl groups are protocol/package/resource boundaries; deadcode leaves interface stubs plus the B4 RegisterBackfill architecture seam. Further edits would be premature abstraction. Final contexts/docs/index/diff/pruning gates pass with real_residuals=0." -->
+
+## Phase 7: Parse command / Workspace read 分路与主题控制收敛
+
+- [x] 7.1 原地同步 product-scope、OPENAPI-004 frontend impact、UI truth source 与 child owner plans：Parse=import 后 queued/processing progress，Workspace=list/targetJobId-only readonly detail；验证: affected context validators、current-positive route grep、`make docs-check`、`git diff --check`。 <!-- verified: 2026-07-14 method=owner-reconcile evidence="product/OpenAPI/UI/child owners aligned; affected contexts valid; current-positive route and docs gates PASS" -->
+- [x] 7.2 TDD-Gate: 先写 route/state RED，证明 ready 初读与 queued→ready 使用 replace 进入 Workspace，ready cards/Reports Back/Practice terminal recovery 直达 Workspace，Parse 不显示 ready detail/report entry/animation；再实现并运行 focused/full frontend Green。 <!-- verified: 2026-07-14 method=tdd+frontend-gates evidence="route/state RED-GREEN and focused/full frontend PASS; ready Parse detail/report/animation absent" -->
+- [x] 7.3 TDD-Gate: 断言 Parse 与 Workspace safe params 都只保留 `targetJobId`，Workspace 丢弃 `planId`/`resumeId`，direct/reload/back-forward/auth recovery 不恢复旧参数或 Parse 回环。 <!-- verified: 2026-07-14 method=route-tests+scenarios evidence="P0.088/P0.089/P0.090/P0.102 fresh PASS" -->
+- [x] 7.4 TDD-Gate: 断言新 import 调用 `importTargetJob` 后进入 Parse；Parse queued/processing 只轮询 `getTargetJob`；ready card/direct Workspace detail 只读 `getTargetJob` 且不调用 import；queued→ready 不产生 handoff N+1，请求次数以真实 transport 计数。 <!-- verified: 2026-07-14 method=transport-count-tests evidence="P0.015 initial=1 then one GET per tick; P0.018/P0.021 fresh PASS; ready direct read has no import or Parse animation" -->
+- [x] 7.5 TDD/Parity-Gate: 原型和正式 TopBar 只保留 Ocean/Plum；custom accent 只保留 hue/saturation，删除 preview/value/reset，preset 选择退出 custom；运行 source contract、unit、1440/390 DOM/style/bounding-box/pixel parity。 <!-- verified: 2026-07-14 method=source+unit+browser-parity evidence="UI contract 65/65; P0.005/P0.006 fresh PASS; parity 170/170 on 1440/390" -->
+- [x] 7.6 BDD-Gate: 执行并通过 E2E.P0.015、E2E.P0.016、E2E.P0.018，覆盖 import→Parse progress→Workspace detail、ready card direct detail 与报告入口归属。 <!-- verified: 2026-07-14 method=scenario result=PASS evidence="P0.015/P0.016/P0.018 fresh on current source" -->
+- [x] 7.7 BDD-Gate: 执行并通过 E2E.P0.046、E2E.P0.058、E2E.P0.059、E2E.P0.088、E2E.P0.090，覆盖 terminal/Back recovery、targetJobId-only canonical route、bad identity replace 与旧参数负向。 <!-- verified: 2026-07-14 method=scenario result=PASS evidence="P0.046/P0.058/P0.059/P0.088/P0.090 fresh on current source" -->
+- [x] 7.8 BDD-Gate: 执行并通过 E2E.P0.005、E2E.P0.006，覆盖 Ocean/Plum、custom hue/saturation-only、preset exit-custom 与 desktop/mobile parity。 <!-- verified: 2026-07-14 method=scenario+browser result=PASS evidence="P0.005/P0.006 fresh; parity 170/170; UI contract 65/65" -->
+- [x] 7.9 No-API-shape Gate: `importTargetJob` / `getTargetJob` / `listTargetJobReports` method/path/operationId/schema 保持不变；运行 OpenAPI inventory/codegen/fixture gates并确认本 Phase 只有 frontend route ownership 变化。 <!-- verified: 2026-07-14 method=openapi-final-gates result=PASS evidence="method/path/operationId/schema unchanged; inventory/codegen/fixture gates green" -->
+- [x] 7.10 Post-pass reconcile: 验证 product/child specs、plan/checklist/BDD/context/INDEX 当前状态一致，当前正向文档中 ready→Parse、Parse report entry、Workspace `planId/resumeId`、custom preview/value/reset 为零；完成后恢复本 plan/checklist/BDD 为 completed。 <!-- verified: 2026-07-14 method=post-pass-reconcile evidence="current-source owner/BDD/context/negative gates PASS; aggregate INDEX finalization delegated to root integration" -->

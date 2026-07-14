@@ -12,6 +12,8 @@
   status, and select only an exact current-round/current-resume ready plan.
 - Frontend mapping, cards, quick-start, and Report next-round consume the same
   projection and perform zero create/start calls for invalid or final progress.
+  Ready Home/Workspace card bodies navigate directly to target-scoped Workspace
+  detail rather than Parse.
 - Browser persistence is limited to frontend display preferences; interview
   business state has no localStorage/sessionStorage/IndexedDB fallback.
 - One conversation-level AI call produces dimensions, evidence, risks, and
@@ -24,9 +26,15 @@
   `current,pending,pending`, completes the persisted round-1 session through
   `POST /practice/sessions/{sessionId}/complete`, reloads, and sees
   `done,current,pending` with backend current round `round-2-technical`.
-- Real Home and Parse reloads consume the same persisted TargetJob projection:
-  Home keeps `done,current,pending`, while Parse remains launchable with
-  `round-2-technical / 2` as the backend current round.
+- Real Home, Workspace-list, and Workspace-detail reloads consume the same
+  persisted TargetJob projection. Clicking either ready card body yields exactly
+  `/workspace?targetJobId=019f6098-0000-7000-8000-000000000003`; the detail
+  performs one `getTargetJob` read per visit and zero `importTargetJob` / Parse
+  poll calls.
+- Before and after detail reload, the three detail cards expose
+  `done,current,pending`, labels `已进行/即将进行/未进行`, and pairwise-distinct
+  computed background colors and border colors. No Parse loading animation is
+  mounted.
 - Clicking the real Workspace start CTA sends a real
   `POST /practice/plans` whose request contains `round-2-technical`; the 201
   response and a follow-up real plan GET both contain

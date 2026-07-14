@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 3.2
+> **版本**: 3.4
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -68,7 +68,16 @@
   <!-- verified: 2026-07-14 method=focused-vitest evidence="TargetJob reports validator 40/40 + ReportsScreen 15/15 pass; negative cases cover cross-round locator reuse, same-ID non-ready, latest-ready without current, current without latest, canonical identity, A/B isolation, switch clearing and stale fences." -->
 - [x] 10.3 RED-GREEN: 每轮只展示 current report 与 latest attempt；ready/current links、queued/generating link、failed typed no-Retry、same-ID de-dup、different-ID latest-ready status 均正确，且没有完整历史列表或其他规划 sentinel。
   <!-- verified: 2026-07-14 method=focused-vitest evidence="ReportsScreen 15-test matrix proves current/latest-only rendering, queued/generating links, typed failed no-Retry, same-ID de-dup, different ready status without a history action, and no foreign-plan sentinel." -->
-- [x] 10.4 RED-GREEN + BDD-Gate: Reports Back 精确回当前 `parse?targetJobId=...`；Report/Generating ready/pending/failed/recoverable/normal-generating 有 trusted target 时回 `/reports?targetJobId=...`，无可信 identity 回 workspace。P0.058/P0.059 覆盖该矩阵；report/generating route 保持 reportId-only。
+- [x] 10.4 HISTORICAL RED-GREEN + BDD-Gate: Phase 10 当时交付的 Reports Back destination 已由 Phase 11 取代。Report/Generating ready/pending/failed/recoverable/normal-generating 有 trusted target 时回 `/reports?targetJobId=...`，无可信 identity 回 workspace。P0.058/P0.059 覆盖该矩阵；report/generating route 保持 reportId-only。
   <!-- verified: 2026-07-14 method=focused+P0.058+P0.059 evidence="Trusted target returns to Reports, missing/invalid/404/network-first-load falls back by replace to workspace without loops; report/generating URLs remain reportId-only." -->
 - [x] 10.5 POST-PASS: focused Reports/Report/Generating/route/i18n tests、UI source contract、typecheck/build、P0.058/P0.059、owner contexts、docs/diff，以及“Parse/Report/Generating 零 list consumer、ReportsScreen 唯一 consumer、TopBar 无入口、无 `section=reports`”负向 gate 全部通过后完成 Phase 10。
   <!-- reverified: 2026-07-14 method=current-aggregate evidence="Root make test passed UI 62/62, Python 590 tests/5181 subtests, all Go packages and frontend 121 files/977 tests. Current P0.059 passed 10 focused Vitest files/137 tests, production build and 16 desktop/mobile Playwright parity tests; verify/cleanup, context, docs/diff and all scoped consumer/route/TopBar negatives pass." -->
+
+## Phase 11: Reports Back direct read-only workspace detail
+
+- [x] 11.1 RED: add ReportsScreen navigation tests proving trusted Back is exactly `/workspace?targetJobId=<id>`, Workspace receives only `targetJobId`, and invalid/untrusted Reports identity replaces to `/workspace` list.
+- [x] 11.2 GREEN: route Reports Back directly to the read-only Workspace detail without mounting Parse, showing parse animation, calling JD import, or starting parse polling; keep Report/Generating trusted Back at `/reports?targetJobId=...` and untrusted fallback at `/workspace`.
+- [x] 11.3 REGRESSION-GATE: focused Reports/route/history tests and current-scope source/docs negative scan prove zero positive Reports-to-Parse contract outside explicit revision/history evidence, zero extra Workspace query params, and no Parse animation/import/poll on the read path.
+- [x] 11.4 BDD-Gate: `E2E.P0.059` proves Reports Back reaches `/workspace?targetJobId=...` read-only detail directly at desktop/mobile, browser history does not expose a Parse detour, and existing current-target isolation/parity remains green.
+- [x] 11.5 POST-PASS: focused frontend tests、UI source contract、typecheck/build、P0.058/P0.059、owner context、docs/index/diff gates pass before restoring this plan and all linked test/BDD documents to `completed`.
+  <!-- verified: 2026-07-14 evidence="P0.058 PASS with 84 frontend assertions plus backend recovery evidence; P0.059 desktop/mobile PASS. Focused route/history negatives, UI contract 65/65, full frontend 125 files / 1004 tests and typecheck/build prove direct targetJobId-only Workspace Back with no Parse detour." -->

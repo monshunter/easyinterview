@@ -9,8 +9,9 @@ import {
 
 /**
  * InterviewContext shared store — truth source for practice / generating /
- * report route context. The workspace route is a pure plan list and clears
- * stale context before opening Parse detail.
+ * report route context. Query-free Workspace clears stale context; a
+ * target-scoped Workspace detail resets and hydrates its sole TargetJob
+ * locator before any later practice handoff.
  *
  * Fields that are route-param or fetched-data-derived; CLEAR resets to
  * DEFAULT_INTERVIEW_CONTEXT.

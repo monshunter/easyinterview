@@ -1,14 +1,14 @@
 /** @vitest-environment jsdom */
 
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { type ReactNode } from "react";
+import { StrictMode, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ApiClientError, EasyInterviewClient } from "../../../../api/generated/client";
 import type { PracticeSession, PracticeUserMessage } from "../../../../api/generated/types";
 import { createDevMockClient } from "../../../../api/devMockClient";
 import { InterviewContextProvider } from "../../../interview-context/InterviewContext";
-import { AppRuntimeProvider } from "../../../runtime/AppRuntimeProvider";
+import { AppRuntimeContext } from "../../../runtime/AppRuntimeProvider";
 import { usePracticeSessionLoader } from "./usePracticeSessionLoader";
 
 const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
@@ -18,40 +18,71 @@ const READ_TIMEOUT_MS = 10_000;
 afterEach(() => vi.useRealTimers());
 
 describe("usePracticeSessionLoader bounded reads", () => {
-  it("passes a signal, stays active before the bound, and aborts exactly at the read bound", async () => {
+  it("keeps the mount read signal-free and reports a logical timeout at the read bound", async () => {
     vi.useFakeTimers();
     const client = new EasyInterviewClient({ fetch: vi.fn<typeof fetch>() });
     const getSession = vi.spyOn(client, "getPracticeSession").mockImplementation(
       () => new Promise(() => undefined),
     );
-    renderHook(() => usePracticeSessionLoader(SESSION_ID), {
+    const { result } = renderHook(() => usePracticeSessionLoader(SESSION_ID), {
       wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
     });
 
-    const signal = getSession.mock.calls[0]?.[1]?.signal;
-    expect(signal).toBeInstanceOf(AbortSignal);
-    expect(signal?.aborted).toBe(false);
+    expect(getSession.mock.calls[0]?.[1]).toBeUndefined();
 
     await act(async () => { await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS - 1); });
-    expect(signal?.aborted).toBe(false);
+    expect(result.current.state).toBe("loading");
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-    expect(signal?.aborted).toBe(true);
+    expect(result.current.state).toBe("error");
+    expect(result.current.error).toMatchObject({ kind: "abort" });
   });
 
-  it("aborts an in-flight read on cleanup", () => {
+  it("keeps explicit caller cancellation for active reads", async () => {
     const client = new EasyInterviewClient({ fetch: vi.fn<typeof fetch>() });
     const getSession = vi.spyOn(client, "getPracticeSession").mockImplementation(
       () => new Promise(() => undefined),
     );
-    const { unmount } = renderHook(() => usePracticeSessionLoader(SESSION_ID), {
+    const { result } = renderHook(() => usePracticeSessionLoader(SESSION_ID), {
       wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
     });
-    const signal = getSession.mock.calls[0]?.[1]?.signal;
+    const controller = new AbortController();
+    const pending = result.current.read({ signal: controller.signal });
+    const signal = getSession.mock.calls.at(-1)?.[1]?.signal;
 
     expect(signal).toBeInstanceOf(AbortSignal);
     expect(signal?.aborted).toBe(false);
-    unmount();
+    const rejected = expect(pending.result).rejects.toMatchObject({ kind: "abort" });
+    controller.abort();
+    await rejected;
     expect(signal?.aborted).toBe(true);
+  });
+
+  it("shares the mount read transport under StrictMode", async () => {
+    const session = openingOnly(
+      await createDevMockClient().getPracticeSession(SESSION_ID),
+    );
+    let resolveFetch!: (response: Response) => void;
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      () => new Promise<Response>((resolve) => { resolveFetch = resolve; }),
+    );
+    const client = new EasyInterviewClient({ fetch });
+    const { result } = renderHook(() => usePracticeSessionLoader(SESSION_ID), {
+      wrapper: ({ children }) => (
+        <StrictMode>
+          <DirectWrapper client={client}>{children}</DirectWrapper>
+        </StrictMode>
+      ),
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveFetch(new Response(JSON.stringify(session), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    });
+    await waitFor(() => expect(result.current.state).toBe("data"));
+    expect(result.current.data?.id).toBe(SESSION_ID);
   });
 
   it("preserves last same-session unresolved facts when a refresh read fails", async () => {
@@ -106,9 +137,22 @@ describe("usePracticeSessionLoader bounded reads", () => {
 });
 
 function Wrapper({ children, client }: { children: ReactNode; client: EasyInterviewClient }) {
+  return <DirectWrapper client={client}>{children}</DirectWrapper>;
+}
+
+function DirectWrapper({ children, client }: { children: ReactNode; client: EasyInterviewClient }) {
   return (
     <InterviewContextProvider>
-      <AppRuntimeProvider client={client}>{children}</AppRuntimeProvider>
+      <AppRuntimeContext.Provider
+        value={{
+          client,
+          runtime: { status: "ready", config: {} as never },
+          auth: { status: "authenticated", user: {} as never },
+          refreshAuth: () => undefined,
+        }}
+      >
+        {children}
+      </AppRuntimeContext.Provider>
     </InterviewContextProvider>
   );
 }

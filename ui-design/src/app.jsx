@@ -78,7 +78,7 @@ const DEFAULT_INTERVIEW_CONTEXT = {
 
 const INTERVIEW_CONTEXT_ROUTES = new Set(["practice"]);
 const REPORT_LOCATOR_ROUTES = new Set(["generating", "report"]);
-const TARGET_JOB_LOCATOR_ROUTES = new Set(["parse", "reports"]);
+const TARGET_JOB_LOCATOR_ROUTES = new Set(["parse", "reports", "workspace"]);
 const normalizeRouteName = (name) => ROUTE_ALIASES[name] || name;
 const shouldCarryInterviewContext = (name) => INTERVIEW_CONTEXT_ROUTES.has(normalizeRouteName(name));
 const paramsFromSearch = (params) => {
@@ -328,7 +328,9 @@ const App = () => {
 
   const screens = {
     home: <HomeScreen T={T} lang={lang} nav={nav} signedIn={signedIn} />,
-    workspace: <WorkspaceScreen T={T} lang={lang} nav={nav} />,
+    workspace: route.params.targetJobId
+      ? <ParseScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} params={route.params || {}} readyDetail />
+      : <WorkspaceScreen T={T} lang={lang} nav={nav} />,
     practice: <PracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} jobId={currentContext.targetJobId} mode={route.params.mode} />,
     report: <ReportScreen T={T} lang={lang} nav={nav} params={route.params || {}} requestAuth={requestAuth} />,
     parse: <ParseScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} params={route.params || {}} />,
@@ -349,7 +351,7 @@ const App = () => {
   return (
     <div style={{ minHeight: "100vh", background: T.bg, color: T.ink, fontFamily: "var(--ei-sans)" }} data-screen-label={route.name}>
       {!hideTopBar && <TopBar T={T} route={{ ...route, name: activeRouteName }} nav={nav} lang={lang} setLang={setLang} dark={tweaks.dark} setDark={(v) => updateTweak("dark", v)} theme={tweaks.theme} setTheme={(v) => updateTweak("theme", v)} customAccent={tweaks.customAccent} setCustomAccent={(v) => updateTweak("customAccent", v)} signedIn={signedIn} signOut={() => nav("auth_logout")} />}
-      <div key={route.name + (route.params.jobId || "")}>
+      <div key={route.name + (route.params.targetJobId || route.params.jobId || "")}>
         {effectiveScreen}
       </div>
     </div>
@@ -424,7 +426,7 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
         {themeMenuOpen && (
           <>
             <div onClick={() => setThemeMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 39 }} />
-            <div style={{
+            <div className="ei-topbar-theme-menu" style={{
               position: "absolute", top: "calc(100% + 6px)", right: 0, width: 240,
               background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3,
               boxShadow: "0 12px 36px rgba(20,15,10,0.16)", padding: 6, zIndex: 40,
@@ -492,9 +494,7 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
                   lang={lang}
                   dark={dark}
                   value={customAccent || CUSTOM_ACCENT_SEEDS[theme] || CUSTOM_ACCENT_SEEDS.ocean}
-                  active={customActive}
                   onChange={(v) => setCustomAccent && setCustomAccent(v)}
-                  onClear={() => { setCustomAccent && setCustomAccent(null); setPickerOpen(false); }}
                 />
               )}
             </div>
@@ -613,10 +613,9 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
   );
 };
 
-const AccentPicker = ({ T, lang, dark, value, active, onChange, onClear }) => {
+const AccentPicker = ({ T, lang, dark, value, onChange }) => {
   const accentL = dark ? 68 : 58;
   const v = value || { h: 255, c: 0.16 };
-  const previewAccent = `oklch(${accentL}% ${v.c} ${v.h})`;
 
   // Hue track: rainbow at constant L, mid chroma
   const hueStops = [];
@@ -631,7 +630,6 @@ const AccentPicker = ({ T, lang, dark, value, active, onChange, onClear }) => {
   const trackWrap = (gradient) => ({
     position: "relative", height: 16, borderRadius: 8,
     background: gradient, border: `1px solid ${T.rule}`,
-    opacity: active ? 1 : 0.55,
   });
   const inputStyle = {
     position: "absolute", inset: 0, width: "100%", height: "100%",
@@ -644,18 +642,6 @@ const AccentPicker = ({ T, lang, dark, value, active, onChange, onClear }) => {
       borderTop: `1px dotted ${T.rule}`,
       animation: "ei-fadein .18s ease-out",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <span style={{
-          width: 26, height: 26, borderRadius: 13, background: previewAccent,
-          border: `1px solid ${T.rule}`, flexShrink: 0,
-          opacity: active ? 1 : 0.55,
-        }} />
-        <div style={{ flex: 1, fontSize: 10.5, color: T.ink3, fontFamily: "var(--ei-mono)", letterSpacing: "0.02em", lineHeight: 1.4 }}>
-          oklch({accentL}% {Number(v.c).toFixed(3)} {Math.round(v.h)})
-          {!active && <div style={{ color: T.ink3, marginTop: 2 }}>{lang === "en" ? "Drag to apply" : "拖动应用"}</div>}
-        </div>
-      </div>
-
       <div style={{ marginBottom: 8 }}>
         <div className="ei-label" style={{ color: T.ink3, marginBottom: 4 }}>{lang === "en" ? "Hue" : "色相"}</div>
         <div style={trackWrap(hueGradient)}>
@@ -665,7 +651,7 @@ const AccentPicker = ({ T, lang, dark, value, active, onChange, onClear }) => {
         </div>
       </div>
 
-      <div style={{ marginBottom: 10 }}>
+      <div>
         <div className="ei-label" style={{ color: T.ink3, marginBottom: 4 }}>{lang === "en" ? "Chroma" : "饱和度"}</div>
         <div style={trackWrap(chromaGradient)}>
           <input className="ei-slider-overlay" type="range" min={0} max={0.25} step={0.005} value={v.c}
@@ -674,12 +660,6 @@ const AccentPicker = ({ T, lang, dark, value, active, onChange, onClear }) => {
         </div>
       </div>
 
-      {active && (
-        <button onClick={onClear} className="ei-link" style={{
-          background: "transparent", border: "none", padding: 0,
-          fontSize: 11.5, color: T.ink3,
-        }}>{lang === "en" ? "Reset to theme accent" : "恢复主题默认色"}</button>
-      )}
     </div>
   );
 };

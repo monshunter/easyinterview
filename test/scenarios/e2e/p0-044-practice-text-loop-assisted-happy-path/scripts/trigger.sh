@@ -55,6 +55,7 @@ printf 'SCENARIO_RUNNER=E2E.P0.044\nRUN_ID=%s\n' "$run_id" \
   pnpm exec vitest run \
     src/app/screens/practice/PracticeScreen.test.tsx \
     src/app/screens/practice/PracticeI18n.test.ts \
+    src/app/screens/practice/components/Transcript.test.tsx \
     src/app/screens/practice/hooks/usePracticeMessages.test.tsx \
     src/app/screens/practice/hooks/usePracticeSessionLoader.test.tsx \
     --reporter=verbose
@@ -75,7 +76,7 @@ printf 'SCENARIO_RUNNER=E2E.P0.044\nRUN_ID=%s\n' "$run_id" \
 (
   cd "$ROOT/frontend"
   CI=1 pnpm exec playwright test tests/pixel-parity/practice.spec.ts \
-    --grep 'renders one full-width chat with no structured-question surfaces|new user input is visible before the reply and locks the composer|reloads a persisted pending reply, keeps all actions locked, and sends zero POSTs' \
+    --grep 'renders one full-width chat with no structured-question surfaces|user and assistant GFM keep prototype typography with only local pre/table overflow|new user input is visible before the reply and locks the composer|reloads a persisted pending reply, keeps all actions locked, and sends zero POSTs' \
     --project=desktop \
     --project=mobile \
     --workers=1 \
@@ -88,15 +89,20 @@ for screenshot in \
   practice-immediate-pending-desktop.png \
   practice-immediate-pending-mobile.png \
   practice-persisted-pending-desktop.png \
-  practice-persisted-pending-mobile.png; do
+  practice-persisted-pending-mobile.png \
+  practice-markdown-gfm-desktop.png \
+  practice-markdown-gfm-mobile.png; do
   copy_screenshot "$screenshot"
 done
-echo 'PRACTICE_P0044_SCREENSHOT_CAPTURE_PASS viewports=1440x900,390x844 states=immediate-pending,persisted-pending' \
+echo 'PRACTICE_P0044_SCREENSHOT_CAPTURE_PASS viewports=1440x900,390x844 states=immediate-pending,persisted-pending,markdown-gfm' \
   | tee "$OUT/scenario-finish.log" \
   | tee -a "$OUT/trigger.log"
 echo 'PRACTICE_IMMEDIATE_PENDING_PASS user_row=immediate composer_locked=true thinking=true' \
   | tee -a "$OUT/scenario-finish.log" \
   | tee -a "$OUT/trigger.log"
 echo 'PRACTICE_PERSISTED_PENDING_PASS reload=true message_posts=0 lease_before_expiry=true lease_seconds=90' \
+  | tee -a "$OUT/scenario-finish.log" \
+  | tee -a "$OUT/trigger.log"
+echo 'PRACTICE_SAFE_GFM_PROJECTION_PASS roles=user,assistant semantic=true prototype_parity=true mobile_local_overflow=true document_overflow=0' \
   | tee -a "$OUT/scenario-finish.log" \
   | tee -a "$OUT/trigger.log"

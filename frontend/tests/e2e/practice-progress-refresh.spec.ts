@@ -48,6 +48,13 @@ const ROUND_ONE_SESSION_ID =
   process.env.EI_P0_098_ROUND_ONE_SESSION_ID ??
   "019f6098-0000-7000-8000-000000000020";
 const INTERCEPTED_SESSION_ID = "019f6098-0000-7000-8000-000000000090";
+const WORKSPACE_DETAIL_PATH = `/workspace?targetJobId=${TARGET_JOB_ID}`;
+
+interface ReadyDetailRequestCounts {
+  getTargetJob: number;
+  importTargetJob: number;
+  parsePoll: number;
+}
 
 test.setTimeout(120_000);
 
@@ -56,6 +63,8 @@ test("E2E.P0.098 completion refreshes Workspace and quick-start posts the backen
 }) => {
   const seenMessageIds = new Set(await listMessageIdsForEmail(AUTH_EMAIL));
   await loginExistingUser(page, AUTH_EMAIL, seenMessageIds);
+  await page.evaluate(() => window.localStorage.setItem("ei-lang", "zh"));
+  const readyDetailRequests = trackReadyDetailRequests(page);
 
   await page.goto(`${FRONTEND_ORIGIN}/workspace`, {
     waitUntil: "domcontentloaded",
@@ -115,6 +124,20 @@ test("E2E.P0.098 completion refreshes Workspace and quick-start posts the backen
     "E2E.P0.098 workspace refresh PASS states=done,current,pending currentRound=round-2-technical currentRoundSequence=2",
   );
 
+  const workspaceCardVisit = readyDetailRequests.beginVisit();
+  await page
+    .getByTestId(`workspace-plan-list-card-body-${TARGET_JOB_ID}`)
+    .click();
+  await expectReadyWorkspaceDetail(page, workspaceCardVisit);
+  await expectWorkspaceDetailRoundPresentation(page);
+  readyDetailRequests.endVisit();
+
+  const workspaceRefreshVisit = readyDetailRequests.beginVisit();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expectReadyWorkspaceDetail(page, workspaceRefreshVisit);
+  await expectWorkspaceDetailRoundPresentation(page);
+  readyDetailRequests.endVisit();
+
   await page.goto(`${FRONTEND_ORIGIN}/`, { waitUntil: "domcontentloaded" });
   const homeRail = page.getByTestId(`home-recent-mock-rail-${TARGET_JOB_ID}`);
   await expect(homeRail).toBeVisible();
@@ -123,20 +146,25 @@ test("E2E.P0.098 completion refreshes Workspace and quick-start posts the backen
   await expect(homeRail).toBeVisible();
   await expectRoundStates(homeRail, ["done", "current", "pending"]);
 
+  const homeCardVisit = readyDetailRequests.beginVisit();
   await page.getByTestId(`home-recent-mock-card-${TARGET_JOB_ID}`).click();
-  await expect(page).toHaveURL(/\/parse\?/);
-  await expect(page.getByTestId("unified-plan-detail")).toBeVisible();
-  await expect(page.getByTestId("parse-action-start-interview")).toBeEnabled();
-  const parseTarget = await getTargetJob(page);
-  expect(parseTarget.practiceProgress?.currentRound).toEqual({
+  await expectReadyWorkspaceDetail(page, homeCardVisit);
+  await expectWorkspaceDetailRoundPresentation(page);
+  readyDetailRequests.endVisit();
+
+  const detailTarget = await getTargetJob(page);
+  expect(detailTarget.practiceProgress?.currentRound).toEqual({
     roundId: "round-2-technical",
     roundSequence: 2,
   });
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await expect(page.getByTestId("unified-plan-detail")).toBeVisible();
-  await expect(page.getByTestId("parse-action-start-interview")).toBeEnabled();
   console.log(
-    "E2E.P0.098 home and parse refresh PASS homeStates=done,current,pending parseCurrentRound=round-2-technical parseCurrentRoundSequence=2",
+    "E2E.P0.098 home and workspace detail refresh PASS homeStates=done,current,pending detailCurrentRound=round-2-technical detailCurrentRoundSequence=2",
+  );
+  console.log(
+    `E2E.P0.098 ready cards direct detail PASS sources=workspace,home route=${WORKSPACE_DETAIL_PATH} perVisitGetTargetJob=1 importTargetJob=0 parsePoll=0`,
+  );
+  console.log(
+    "E2E.P0.098 workspace detail refresh PASS states=done,current,pending labels=已进行,即将进行,未进行 visualStyles=distinct",
   );
 
   await page.goto(`${FRONTEND_ORIGIN}/workspace`, {
@@ -341,6 +369,95 @@ async function expectRoundStates(
         ),
     )
     .toEqual(expected);
+}
+
+function trackReadyDetailRequests(page: Page): {
+  beginVisit: () => ReadyDetailRequestCounts;
+  endVisit: () => void;
+} {
+  let activeVisit: ReadyDetailRequestCounts | null = null;
+  const targetPath = new URL(`${API_BASE_URL}/targets/${TARGET_JOB_ID}`)
+    .pathname;
+  const importPath = new URL(`${API_BASE_URL}/targets/import`).pathname;
+
+  page.on("request", (request) => {
+    if (!activeVisit) return;
+    const path = new URL(request.url()).pathname;
+    if (request.method() === "POST" && path === importPath) {
+      activeVisit.importTargetJob += 1;
+      return;
+    }
+    if (request.method() !== "GET" || path !== targetPath) return;
+    activeVisit.getTargetJob += 1;
+    activeVisit.parsePoll = Math.max(0, activeVisit.getTargetJob - 1);
+  });
+
+  return {
+    beginVisit: () => {
+      if (activeVisit) {
+        throw new Error("ready detail request visit is already active");
+      }
+      activeVisit = {
+        getTargetJob: 0,
+        importTargetJob: 0,
+        parsePoll: 0,
+      };
+      return activeVisit;
+    },
+    endVisit: () => {
+      activeVisit = null;
+    },
+  };
+}
+
+async function expectReadyWorkspaceDetail(
+  page: Page,
+  requests: ReadyDetailRequestCounts,
+): Promise<void> {
+  await expect(page).toHaveURL(`${FRONTEND_ORIGIN}${WORKSPACE_DETAIL_PATH}`);
+  await expect(page.getByTestId("route-workspace")).toBeVisible();
+  await expect(page.getByTestId("unified-plan-detail")).toBeVisible();
+  await expect(page.getByTestId("parse-action-start-interview")).toBeEnabled();
+  await expect(page.getByTestId("route-parse")).toHaveCount(0);
+  await expect(page.locator('[data-testid^="parse-loading-step-"]')).toHaveCount(
+    0,
+  );
+  await expect.poll(() => requests.getTargetJob).toBe(1);
+  await page.waitForTimeout(250);
+  expect(requests).toEqual({
+    getTargetJob: 1,
+    importTargetJob: 0,
+    parsePoll: 0,
+  });
+}
+
+async function expectWorkspaceDetailRoundPresentation(
+  page: Page,
+): Promise<void> {
+  const cards = page
+    .getByTestId("parse-rounds")
+    .locator("[data-round-state]");
+  await expectRoundStates(page.getByTestId("parse-rounds"), [
+    "done",
+    "current",
+    "pending",
+  ]);
+  await expect(page.getByTestId("parse-round-state-0")).toHaveText("已进行");
+  await expect(page.getByTestId("parse-round-state-1")).toHaveText("即将进行");
+  await expect(page.getByTestId("parse-round-state-2")).toHaveText("未进行");
+
+  const styles = await cards.evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const style = window.getComputedStyle(node);
+      return {
+        backgroundColor: style.backgroundColor,
+        borderTopColor: style.borderTopColor,
+      };
+    }),
+  );
+  expect(styles).toHaveLength(3);
+  expect(new Set(styles.map((style) => style.backgroundColor)).size).toBe(3);
+  expect(new Set(styles.map((style) => style.borderTopColor)).size).toBe(3);
 }
 
 async function listMessageIdsForEmail(email: string): Promise<string[]> {

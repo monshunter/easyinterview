@@ -155,7 +155,6 @@ describe("HomeAuthGate — paste import", () => {
         name: "parse",
         params: {
           targetJobId: "01918fa0-0000-7000-8000-000000002001",
-          resumeId,
         },
       });
     });

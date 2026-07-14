@@ -8,9 +8,9 @@ Parallel-safe: no. The PostgreSQL integration gate uses fixed, scenario-owned UU
 
 ## Contract
 
-Given a running Practice session with a candidate message identified by `clientMessageId`, when the provider, reply commit, reply-state finalization, 90-second lease, or 95-second frontend timeout is crossed, then the current service classifies and persists the existing retryable or terminal state without fabricating an assistant reply. A retryable row exposes one row-local retry that reuses the original ID and text; concurrent reservation, stale generation, missing-ID reconciliation, same-ID mismatch, cross-user access, and privacy deletion remain fail-closed.
+Given a running Practice session with a candidate message identified by `clientMessageId`, when the provider, reply commit, reply-state finalization, 90-second lease, or 95-second frontend timeout is crossed, then the current service classifies and persists the existing retryable or terminal state without fabricating an assistant reply. A retryable row exposes one row-local retry that reuses the original ID and byte-exact raw Markdown text without replacing the next draft; concurrent reservation, stale generation, missing-ID reconciliation, same-ID mismatch, cross-user access, and privacy deletion remain fail-closed. Raw HTML/event handlers, remote images, and unsafe URIs stay inert while safe external links are hardened.
 
-An authoritative `terminal_failed` row has no retry or duplicate error banner. It keeps the composer locked and offers one source-matched secondary/small CTA whose only route is the current `parse(targetJobId)` plan.
+An authoritative `terminal_failed` row has no retry or duplicate error banner. It keeps the composer locked and offers one source-matched secondary/small CTA whose only route is the read-only current Workspace detail, exactly `/workspace?targetJobId=...`.
 
 ## Prerequisites
 
@@ -36,9 +36,10 @@ The verifier requires:
 - exact `PRACTICE_PENDING_LEASE_RECOVERY_PASS`, `PRACTICE_STALE_GENERATION_FENCED_PASS`, `PRACTICE_CONCURRENT_RESERVATION_PASS`, `PRACTICE_POST_TIMEOUT_RECONCILIATION_PASS`, and `PRACTICE_TERMINAL_PLAN_RECOVERY_PASS` markers;
 - current API, service, and repository PASS markers for retryable persistence, detached bounded finalization, commit-error finalization precedence, exact replay, mismatch, and atomic failure transitions;
 - frontend verbose evidence for exact 95,000 ms abort/reconcile, both stale-read completion orders, missing-ID/read-failure fail lock, and terminal exact route;
-- Practice Playwright PASS markers for retryable and terminal failed states in both configured projects, including terminal CTA DOM/style/bbox/viewport and click-through assertions;
+- exact `PRACTICE_MARKDOWN_SECURITY_PASS` and `PRACTICE_RAW_RETRY_PASS` markers backed by unit plus browser assertions for zero remote-image requests, inert raw HTML/events, unsafe-URI rejection, hardened links, byte-exact raw retry, same ID, and preserved next draft;
+- Practice Playwright PASS markers for hostile Markdown, exact raw row retry, retryable, and terminal failed states in both configured projects, including terminal CTA DOM/style/bbox/viewport and Workspace click-through assertions;
 - one shared [`practice-source-fingerprint-paths.json`](../practice-source-fingerprint-paths.json) hash captured by the trigger and byte-recomputed by the verifier; source drift fails closed;
-- four stable PNGs under `.test-output/e2e/p0-046-practice-text-loop-failure-and-recovery/screenshots/`:
+- six stable PNGs under `.test-output/e2e/p0-046-practice-text-loop-failure-and-recovery/screenshots/` for retryable-failed, terminal-failed, and hostile-markdown:
   - desktop CSS viewport `1440x900`, PNG `1440x900`;
   - mobile CSS viewport `390x844`, DPR 3, PNG `1170x2532`.
 

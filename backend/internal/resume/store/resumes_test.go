@@ -520,6 +520,35 @@ func TestDuplicateResumeSourceNotFoundRollsBack(t *testing.T) {
 	}
 }
 
+func TestDuplicateResumeRejectsInvalidSourceType(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 7, 14, 10, 0, 0, 0, time.UTC)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
+		WithArgs("source-1", "user-1").
+		WillReturnRows(resumeRows().AddRow(
+			"source-1", "user-1", nil, "Resume", "Source CV", "en", string(sharedtypes.TargetJobParseStatusReady),
+			[]byte(`{"headline":"old"}`), "raw text", []byte(`{"headline":"old"}`), "snapshot",
+			"legacy", nil, "job-1", now, now, nil,
+		))
+	mock.ExpectRollback()
+
+	_, err := repo.DuplicateResume(context.Background(), resumestore.DuplicateResumeInput{
+		NewResumeID:    "resume-new",
+		UserID:         "user-1",
+		SourceResumeID: "source-1",
+		Now:            now,
+	})
+	if !errors.Is(err, resumestore.ErrInvalidSourceType) {
+		t.Fatalf("err = %v, want ErrInvalidSourceType", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
 func TestParseStatusTransition(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()
@@ -668,14 +697,14 @@ func TestListCursorPagination(t *testing.T) {
 	defer cleanup()
 	base := time.Date(2026, 5, 13, 5, 0, 0, 0, time.UTC)
 
-	firstRows := resumeRows()
+	firstRows := resumeSummaryRows()
 	for i := 0; i < 21; i++ {
 		firstRows.AddRow(
-			assetID(i), "user-1", nil, "Resume", nil, "en", string(sharedtypes.TargetJobParseStatusQueued),
-			[]byte(`{}`), nil, []byte(`{}`), nil, "paste", nil, "job-1", base.Add(-time.Duration(i)*time.Minute), base.Add(-time.Duration(i)*time.Minute), nil,
+			assetID(i), "Resume", "", "en", "paste", string(sharedtypes.TargetJobParseStatusQueued),
+			nil, true, base.Add(-time.Duration(i)*time.Minute),
 		)
 	}
-	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
+	mock.ExpectQuery(summaryListQueryPattern("2")).
 		WithArgs("user-1", 21).
 		WillReturnRows(firstRows)
 
@@ -690,14 +719,14 @@ func TestListCursorPagination(t *testing.T) {
 		t.Fatalf("unexpected first page order first=%s last=%s", first.Items[0].ID, first.Items[19].ID)
 	}
 
-	secondRows := resumeRows()
+	secondRows := resumeSummaryRows()
 	for i := 20; i < 25; i++ {
 		secondRows.AddRow(
-			assetID(i), "user-1", nil, "Resume", nil, "en", string(sharedtypes.TargetJobParseStatusQueued),
-			[]byte(`{}`), nil, []byte(`{}`), nil, "paste", nil, "job-1", base.Add(-time.Duration(i)*time.Minute), base.Add(-time.Duration(i)*time.Minute), nil,
+			assetID(i), "Resume", "", "en", "paste", string(sharedtypes.TargetJobParseStatusQueued),
+			nil, true, base.Add(-time.Duration(i)*time.Minute),
 		)
 	}
-	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
+	mock.ExpectQuery(summaryListQueryPattern("4")).
 		WithArgs("user-1", sqlmock.AnyArg(), sqlmock.AnyArg(), 21).
 		WillReturnRows(secondRows)
 
@@ -712,6 +741,77 @@ func TestListCursorPagination(t *testing.T) {
 	_, err = repo.List(context.Background(), "user-1", resumestore.ListFilter{Cursor: "not-a-valid-cursor"})
 	if !errors.Is(err, resumestore.ErrInvalidCursor) {
 		t.Fatalf("invalid cursor err = %v, want ErrInvalidCursor", err)
+	}
+}
+
+func TestListUsesClosedResumeSummaryProjection(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 7, 14, 11, 0, 0, 0, time.UTC)
+	headline := "Staff platform engineer"
+
+	mock.ExpectQuery(summaryListQueryPattern("2")).
+		WithArgs("user-1", 21).
+		WillReturnRows(resumeSummaryRows().AddRow(
+			"resume-1", "Resume", "Alice CV", "en", "paste", string(sharedtypes.TargetJobParseStatusReady),
+			headline, true, now,
+		))
+
+	got, err := repo.List(context.Background(), "user-1", resumestore.ListFilter{PageSize: 20})
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(got.Items) != 1 {
+		t.Fatalf("items len = %d, want 1", len(got.Items))
+	}
+	item := got.Items[0]
+	if item.ID != "resume-1" || item.DisplayName != "Alice CV" || item.SourceType != "paste" || item.SummaryHeadline == nil || *item.SummaryHeadline != headline || !item.HasReadableContent || !item.UpdatedAt.Equal(now) {
+		t.Fatalf("summary item = %+v", item)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestListRejectsNullSourceType(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 7, 14, 11, 0, 0, 0, time.UTC)
+
+	mock.ExpectQuery(summaryListQueryPattern("2")).
+		WithArgs("user-1", 21).
+		WillReturnRows(resumeSummaryRows().AddRow(
+			"resume-1", "Resume", "Alice CV", "en", nil, string(sharedtypes.TargetJobParseStatusReady),
+			nil, false, now,
+		))
+
+	if _, err := repo.List(context.Background(), "user-1", resumestore.ListFilter{PageSize: 20}); err == nil {
+		t.Fatal("List error = nil, want NULL source_type scan failure")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestCreateWithParseJobRejectsInvalidSourceType(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+
+	_, err := repo.CreateWithParseJob(context.Background(), resumestore.CreateAssetInput{
+		AssetID:     "resume-1",
+		UserID:      "user-1",
+		JobID:       "job-1",
+		SourceType:  "legacy",
+		Title:       "Resume",
+		Language:    "en",
+		ParseStatus: sharedtypes.TargetJobParseStatusQueued,
+		JobStatus:   sharedtypes.JobStatusQueued,
+	})
+	if !errors.Is(err, resumestore.ErrInvalidSourceType) {
+		t.Fatalf("err = %v, want ErrInvalidSourceType", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
 	}
 }
 
@@ -782,6 +882,24 @@ func resumeRows() *sqlmock.Rows {
 		"updated_at",
 		"deleted_at",
 	})
+}
+
+func resumeSummaryRows() *sqlmock.Rows {
+	return sqlmock.NewRows([]string{
+		"id",
+		"title",
+		"display_name",
+		"language",
+		"source_type",
+		"parse_status",
+		"summary_headline",
+		"has_readable_content",
+		"updated_at",
+	})
+}
+
+func summaryListQueryPattern(limitArg string) string {
+	return `(?s)select id, title, coalesce\(display_name, ''\), language, source_type, parse_status,.*jsonb_typeof\(parsed_summary->'headline'\).*jsonb_typeof\(parsed_summary->'basics'->'headline'\).*jsonb_typeof\(structured_profile->'headline'\).*jsonb_typeof\(structured_profile->'basics'->'headline'\).*parsed_text_snapshot.*original_text.*jsonb_typeof\(structured_profile\).*updated_at.*from resumes.*where user_id = \$1 and deleted_at is null.*order by updated_at desc, id desc limit \$` + limitArg
 }
 
 func assetID(i int) string {

@@ -230,6 +230,48 @@ func TestRun_PracticeRoundIdentityAndProgressTypes(t *testing.T) {
 	mustContain(t, tsTypes, "\troundSequence?: number | null;")
 }
 
+func TestRun_ResumeSummaryProjectionTypes(t *testing.T) {
+	repoRoot := mustFindRepoRoot(t)
+	tmp := t.TempDir()
+	openapiDst := filepath.Join(tmp, "openapi", "openapi.yaml")
+	if err := os.MkdirAll(filepath.Dir(openapiDst), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	mustCopy(t, filepath.Join(repoRoot, "openapi", "openapi.yaml"), openapiDst)
+
+	templates := filepath.Join(tmp, "openapi", "templates")
+	if err := mirrorDir(filepath.Join(repoRoot, "openapi", "templates"), templates); err != nil {
+		t.Fatalf("mirror templates: %v", err)
+	}
+	if err := Run(
+		openapiDst,
+		filepath.Join(repoRoot, "shared", "conventions.yaml"),
+		templates,
+		tmp,
+		false,
+	); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	openapiText := readFile(t, openapiDst)
+	mustMatch(t, openapiText, `(?s)ResumeSummary:\n\s+type: object\n\s+additionalProperties: false\n\s+required: \[id, title, displayName, language, sourceType, parseStatus, summaryHeadline, hasReadableContent, updatedAt\]`)
+	mustMatch(t, openapiText, `(?s)PaginatedResume:.*?items:\n\s+\$ref: '#/components/schemas/ResumeSummary'`)
+
+	goTypes := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/types.gen.go"))
+	mustContain(t, goTypes, "type ResumeSummary struct {")
+	mustMatch(t, goTypes, `(?m)^\s*SummaryHeadline\s+\*string\s+`+"`json:\"summaryHeadline\"`"+`$`)
+	mustMatch(t, goTypes, `(?m)^\s*HasReadableContent\s+bool\s+`+"`json:\"hasReadableContent\"`"+`$`)
+	mustMatch(t, goTypes, `(?m)^\s*Items\s+\[\]ResumeSummary\s+`+"`json:\"items\"`"+`$`)
+	mustNotContain(t, goTypes, "type ResumeSummary = any")
+
+	tsTypes := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/types.ts"))
+	mustContain(t, tsTypes, "export interface ResumeSummary {")
+	mustContain(t, tsTypes, "\tsummaryHeadline: string | null;")
+	mustContain(t, tsTypes, "\thasReadableContent: boolean;")
+	mustContain(t, tsTypes, "\titems: ResumeSummary[];")
+	mustNotContain(t, tsTypes, "export type ResumeSummary = unknown")
+}
+
 func TestRun_GroundedReportAndTypedDerivedPlanTypes(t *testing.T) {
 	repoRoot := mustFindRepoRoot(t)
 	tmp := t.TempDir()
@@ -393,6 +435,12 @@ func TestRun_TypeScriptClientEmitsStructuredApiClientError(t *testing.T) {
 	mustContain(t, tsClient, "readonly apiError: Types.ApiErrorResponse | null;")
 	mustContain(t, tsClient, "parseApiErrorResponse(text)")
 	mustContain(t, tsClient, `new ApiClientError("http", response.status, apiError)`)
+	mustContain(t, tsClient, "private readonly inFlightReads = new Map<string, Promise<unknown>>()")
+	mustContain(t, tsClient, `const isVerifyMutation = normalizedMethod === "GET" && path === VERIFY_AUTH_PATH`)
+	mustContain(t, tsClient, "canonicalHeaders(headers)")
+	mustContain(t, tsClient, "canonicalStatuses(okStatuses)")
+	mustContain(t, tsClient, "void request.then(cleanup, cleanup)")
+	mustNotContain(t, tsClient, ".finally(cleanup)")
 	mustNotContain(t, tsClient, "${text}")
 	mustNotContain(t, tsClient, "throw new Error(`HTTP")
 }

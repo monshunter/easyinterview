@@ -1722,6 +1722,35 @@ components:
           type: string
           description: Required only when `sourceType` is `paste`.
 
+    ResumeSummary:
+      type: object
+      additionalProperties: false
+      required: [id, title, displayName, language, sourceType, parseStatus, summaryHeadline, hasReadableContent, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        displayName:
+          type: string
+        language:
+          type: string
+        sourceType:
+          type: string
+          enum: [upload, paste]
+        parseStatus:
+          $ref: '#/components/schemas/TargetJobParseStatus'
+        summaryHeadline:
+          oneOf:
+            - type: string
+            - type: 'null'
+        hasReadableContent:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+
     Resume:
       type: object
       required: [id, title, displayName, language, parseStatus, createdAt, updatedAt]
@@ -1814,7 +1843,7 @@ components:
             items:
               type: array
               items:
-                $ref: '#/components/schemas/Resume'
+                $ref: '#/components/schemas/ResumeSummary'
 
     UpdateResumeRequest:
       type: object

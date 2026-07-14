@@ -135,7 +135,7 @@ describe("HomeImport — paste-only", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it("navigates to parse with target and resume identifiers only", async () => {
+  it("navigates to parse with targetJobId as the sole command locator", async () => {
     const client = createClient("paste-primary");
     const { navigate } = renderHome(client);
     await selectDefaultResume();
@@ -151,7 +151,6 @@ describe("HomeImport — paste-only", () => {
         name: "parse",
         params: {
           targetJobId: "01918fa0-0000-7000-8000-000000002001",
-          resumeId: RESUME_ID,
         },
       });
     });

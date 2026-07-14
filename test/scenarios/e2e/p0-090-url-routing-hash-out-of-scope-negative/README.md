@@ -23,7 +23,8 @@ swallow。
 
 - 启动 App 时浏览器 URL 为 `/#route=reports&targetJobId=<uuid>&section=reports&reportId=...&status=ready&roundId=...`、
   `/#route=parse&targetJobId=...&section=reports&reportId=...&status=ready&roundId=...`、
-  `/#route=home` / `/#route=workspace&...` /
+  `/#route=home` /
+  `/#route=workspace&targetJobId=...&resumeId=...&planId=...&autoStartPractice=1&unknownKey=...&rawText=...&token=...` /
   `/#route=practice&mode=phone&...` / `/#route=practice&mode=voice&...` /
   `/#route=voice` /
   `/#route=welcome` 等范围外入口。
@@ -38,8 +39,14 @@ swallow。
 
 - Reports hash 规范化为只含 `targetJobId` 的 `/reports?targetJobId=<uuid>`，
   chrome 可见但 Reports 不进入 TopBar。
+- Workspace hash 规范化为
+  `/workspace?targetJobId=<uuid>`；`targetJobId` 是只读规划详情的唯一定位符，
+  `resumeId` / `planId` / `autoStartPractice` / unknown / raw / sensitive
+  params 全部被过滤。详情只执行一次 `getTargetJob`，不渲染 Parse 动画，
+  不触发导入或 route-side polling。
 - Parse hash 中旧 `section=reports` / `reportId` / `status` / `roundId` 全部被过滤，
-  不恢复嵌入式报告区。
+  不恢复嵌入式报告区；该 route 仍只表示既有导入命令/解析进度，不承担
+  ready 规划的只读详情。
 - 每个 hash 启动后 URL 立即被 `replaceState` 重写为 canonical path，
   `location.hash` 为空。
 - Legacy `mode/modality` 参数（包括 `phone` 与 `voice`）全部被过滤，不形成任何电话模式入口。

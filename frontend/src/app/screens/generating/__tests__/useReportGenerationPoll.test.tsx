@@ -4,13 +4,13 @@
  * Phase 1.7 — useReportGenerationPoll: 8-state machine, exponential backoff
  * (1.5s × 1.5 capped at 8s, max attempts 49), visibility/focus pause-resume,
  * onReady / onFailed callbacks, invalid payload terminal, owner-identity
- * isolation, unmount-cancel, no Idempotency-Key, and cross-user 404 →
+ * isolation, cleanup guards, no Idempotency-Key, and cross-user 404 →
  * REPORT_NOT_FOUND failure path.
  */
 
 import { describe, expect, it, vi } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { StrictMode, type ReactNode } from "react";
 
 import type {
   ApiErrorCode,
@@ -120,37 +120,6 @@ function buildClientStuck(): EasyInterviewClient {
   } as unknown as EasyInterviewClient;
 }
 
-function buildAbortAwareStuckClient() {
-  let activeRequests = 0;
-  let maxActiveRequests = 0;
-
-  const client = {
-    getFeedbackReport(
-      _reportId: string,
-      options?: { signal?: AbortSignal },
-    ): Promise<FeedbackReport> {
-      activeRequests += 1;
-      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
-
-      return new Promise((_resolve, reject) => {
-        const onAbort = () => {
-          activeRequests -= 1;
-          const error = new Error("aborted");
-          error.name = "AbortError";
-          reject(error);
-        };
-        options?.signal?.addEventListener("abort", onAbort, { once: true });
-      });
-    },
-  } as unknown as EasyInterviewClient;
-
-  return {
-    client,
-    getActiveRequests: () => activeRequests,
-    getMaxActiveRequests: () => maxActiveRequests,
-  };
-}
-
 interface ManualScheduler extends PollScheduler {
   pending: Array<{ ms: number; cb: () => void; cancelled: boolean }>;
   flushNext: () => void;
@@ -209,6 +178,35 @@ function Wrapper({
 }
 
 describe("useReportGenerationPoll", () => {
+  it("shares the initial status-read transport under StrictMode", async () => {
+    let resolveFetch!: (response: Response) => void;
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      () => new Promise<Response>((resolve) => { resolveFetch = resolve; }),
+    );
+    const client = new EasyInterviewClient({ fetch });
+    const sched = manualScheduler();
+    const { result } = renderHook(
+      () => useReportGenerationPoll({ reportId: REPORT_ID, scheduler: sched }),
+      {
+        wrapper: ({ children }) => (
+          <StrictMode><Wrapper client={client}>{children}</Wrapper></StrictMode>
+        ),
+      },
+    );
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveFetch(new Response(JSON.stringify(makeReport({})), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    });
+    await waitFor(() => expect(result.current.attemptCount).toBe(1));
+    expect(
+      sched.pending.filter((entry) => !entry.cancelled),
+    ).toHaveLength(1);
+  });
+
   it("keeps the default status-check window open across three provider retry backoffs", () => {
     expect(REPORT_GENERATION_POLL_MAX_ATTEMPTS).toBe(49);
 
@@ -546,10 +544,7 @@ describe("useReportGenerationPoll", () => {
 
     expect(reportsDuringRender[switchRenderStart]).toBeNull();
     expect(result.current.report).toBeNull();
-    expect(secondClient.getFeedbackReport).toHaveBeenCalledWith(
-      REPORT_ID,
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    expect(secondClient.getFeedbackReport).toHaveBeenCalledWith(REPORT_ID);
   });
 
   it("surfaces an exhausted network check separately from a resource timeout and allows checking again", async () => {
@@ -705,9 +700,15 @@ describe("useReportGenerationPoll", () => {
     expect(result.current.attemptCount).toBe(2);
   });
 
-  it("pausing an in-flight request resumes at n+1 after the preserved delay", async () => {
-    const tracked = buildAbortAwareStuckClient();
-    const spy = vi.spyOn(tracked.client, "getFeedbackReport");
+  it("pausing an in-flight request guards its stale result and resumes at n+1 after the preserved delay", async () => {
+    const resolvers: Array<(report: FeedbackReport) => void> = [];
+    const client = {
+      getFeedbackReport: vi.fn(
+        () => new Promise<FeedbackReport>((resolve) => { resolvers.push(resolve); }),
+      ),
+    } as unknown as EasyInterviewClient;
+    const spy = vi.mocked(client.getFeedbackReport);
+    const onReady = vi.fn();
     const sched = manualScheduler();
     const { result, unmount } = renderHook(
       () =>
@@ -715,17 +716,17 @@ describe("useReportGenerationPoll", () => {
           reportId: REPORT_ID,
           scheduler: sched,
           initialDelayMs: 1500,
+          onReady,
         }),
       {
         wrapper: ({ children }) => (
-          <Wrapper client={tracked.client}>{children}</Wrapper>
+          <Wrapper client={client}>{children}</Wrapper>
         ),
       },
     );
 
     await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
     expect(result.current.attemptCount).toBe(1);
-    expect(tracked.getActiveRequests()).toBe(1);
 
     await act(async () => {
       Object.defineProperty(document, "visibilityState", {
@@ -737,7 +738,6 @@ describe("useReportGenerationPoll", () => {
       window.dispatchEvent(new Event("blur"));
     });
     await waitFor(() => expect(result.current.state).toBe("paused"));
-    await waitFor(() => expect(tracked.getActiveRequests()).toBe(0));
 
     await act(async () => {
       Object.defineProperty(document, "visibilityState", {
@@ -760,10 +760,14 @@ describe("useReportGenerationPoll", () => {
     });
     await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
     expect(result.current.attemptCount).toBe(2);
-    expect(tracked.getMaxActiveRequests()).toBe(1);
+
+    await act(async () => {
+      resolvers[0]?.(makeReadyReport());
+    });
+    expect(result.current.state).toBe("polling");
+    expect(onReady).not.toHaveBeenCalled();
 
     unmount();
-    await waitFor(() => expect(tracked.getActiveRequests()).toBe(0));
   });
 
   it("repeated pause-resume during a saved wait is idempotent and does not restart attempt one", async () => {
@@ -894,9 +898,8 @@ describe("useReportGenerationPoll", () => {
   });
 
   it("getFeedbackReport requests do not carry Idempotency-Key (TestUseReportGenerationPollNoIdempotencyHeader)", async () => {
-    // The hook calls the generated client method without RequestOptions
-    // carrying mutation headers. This is enforced by signature: getFeedbackReport
-    // only accepts {signal, headers, query}. Assert via spy:
+    // The mount poll is a semantic safe read and therefore calls the generated
+    // client without RequestOptions carrying mutation headers or a signal.
     const client = buildClientWithSequence([
       makeReadyReport(),
     ]);
@@ -922,26 +925,34 @@ describe("useReportGenerationPoll", () => {
     }
   });
 
-  it("unmount cancels inflight (TestUseReportGenerationPollUnmountCancels)", async () => {
-    const client = buildClientStuck();
+  it("unmount ignores the inflight result and cancels scheduled follow-ups", async () => {
+    let resolveRead!: (report: FeedbackReport) => void;
+    const client = {
+      getFeedbackReport: vi.fn(
+        () => new Promise<FeedbackReport>((resolve) => { resolveRead = resolve; }),
+      ),
+    } as unknown as EasyInterviewClient;
+    const onReady = vi.fn();
     const sched = manualScheduler();
-    const { result, unmount } = renderHook(
+    const { unmount } = renderHook(
       () =>
         useReportGenerationPoll({
           reportId: REPORT_ID,
           scheduler: sched,
+          onReady,
         }),
       {
         wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
       },
     );
-    await waitFor(() => expect(result.current.state).toBe("polling"));
+    await waitFor(() => expect(client.getFeedbackReport).toHaveBeenCalledTimes(1));
     unmount();
-    // After unmount the scheduler MUST not keep firing. Manually flush to make
-    // sure no act-on-unmounted occurs.
     await act(async () => {
+      resolveRead(makeReadyReport());
       sched.flushAll();
     });
+    expect(onReady).not.toHaveBeenCalled();
+    expect(client.getFeedbackReport).toHaveBeenCalledTimes(1);
   });
 
   it("does not invoke onReady more than once even if downstream re-renders (TestReadyCallbackDebouncesNavReport)", async () => {

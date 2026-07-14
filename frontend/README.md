@@ -107,7 +107,7 @@ requestAuth({
 [`src/app/display/DisplayPreferencesProvider.tsx`](./src/app/display/DisplayPreferencesProvider.tsx) 在 `theme` / `dark` / `customAccent` 任一切换时立即把 `<html>` 的 `data-theme` / `data-mode` / `data-custom-accent` 翻转，并把 customAccent overlay 写入根元素 inline style。**所有主题相关样式必须走 `:root[data-theme][data-mode]` selector + var() token，不在组件内 hardcode hex / rgb。**
 
 - TopBar 主题 menu、暗色 toggle、custom accent 控件、语言 dropdown 的 testid / aria 契约见 §2.5 与 [`src/app/topbar/TopBar.tsx`](./src/app/topbar/TopBar.tsx)。
-- D2 testid 新增：`topbar-theme-button` / `topbar-theme-menu` / `topbar-theme-option-{ocean,plum}` / `topbar-theme-custom-option` / `topbar-custom-accent-{swatch,picker,hue,chroma,clear}`。
+- D2 testid 新增：`topbar-theme-button` / `topbar-theme-menu` / `topbar-theme-option-{ocean,plum}` / `topbar-theme-custom-option` / `topbar-custom-accent-{swatch,picker,hue,chroma}`。Custom accent picker 只保留 hue / saturation，不保留 preview / value / reset anchor 或隐藏清除入口。
 
 #### 字体加载
 

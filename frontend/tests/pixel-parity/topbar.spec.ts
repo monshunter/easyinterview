@@ -188,9 +188,17 @@ test.describe("TopBar DOM + computed style parity", () => {
     await expect(page.locator("[data-testid='topbar-nav-home']")).toHaveText(/首页/);
   });
 
-  test("frontend theme menu exposes the ui-design theme list and custom accent picker", async ({
+  test("frontend theme menu exposes the minimal ui-design custom accent picker", async ({
     page,
-  }) => {
+  }, testInfo) => {
+    const prototypeSource = readFileSync(resolve(REPO_ROOT, "ui-design/src/app.jsx"), "utf8");
+    expect(prototypeSource).toContain(
+      "const AccentPicker = ({ T, lang, dark, value, onChange }) =>",
+    );
+    expect(prototypeSource).not.toMatch(
+      /Reset to theme accent|恢复主题默认色|Drag to apply|拖动应用/,
+    );
+
     await page.goto(FRONTEND_PATH);
     await page.waitForSelector("[data-testid='topbar-theme-button']");
     await page.click("[data-testid='topbar-theme-button']");
@@ -209,7 +217,147 @@ test.describe("TopBar DOM + computed style parity", () => {
     await expect(page.locator("[data-testid='topbar-custom-accent-picker']")).toHaveCount(1);
     await expect(page.locator("[data-testid='topbar-custom-accent-hue']")).toHaveCount(1);
     await expect(page.locator("[data-testid='topbar-custom-accent-chroma']")).toHaveCount(1);
-    await expect(page.locator("[data-testid='topbar-custom-accent-clear']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='topbar-custom-accent-clear']")).toHaveCount(0);
+    await expect(page.locator(".ei-topbar-custom-accent-preview")).toHaveCount(0);
+    await expect(page.locator(".ei-topbar-custom-accent-value")).toHaveCount(0);
+    await expect(page.getByText(/Reset to theme accent|恢复主题默认色/)).toHaveCount(0);
+
+    const picker = page.locator("[data-testid='topbar-custom-accent-picker']");
+    const frontendPicker = await picker.evaluate((element) => {
+      const node = element as HTMLElement;
+      const style = getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      const menu = node.closest("[data-testid='topbar-theme-menu']") as HTMLElement | null;
+      const chroma = node.querySelector(
+        "[data-testid='topbar-custom-accent-chroma']",
+      )?.parentElement?.parentElement as HTMLElement | null;
+      if (!menu || !chroma) throw new Error("minimal frontend picker geometry anchors missing");
+      const menuRect = menu.getBoundingClientRect();
+      const chromaRect = chroma.getBoundingClientRect();
+      return {
+        childCount: node.children.length,
+        rangeCount: node.querySelectorAll("input[type='range']").length,
+        text: node.textContent?.replace(/\s+/g, " ").trim(),
+        style: {
+          padding: style.padding,
+          marginTop: style.marginTop,
+          borderTopWidth: style.borderTopWidth,
+          borderTopStyle: style.borderTopStyle,
+        },
+        rect: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        },
+        menu: {
+          left: menuRect.left,
+          right: menuRect.right,
+          bottom: menuRect.bottom,
+        },
+        trailingSpace: rect.bottom - chromaRect.bottom,
+        pickerOverflow: node.scrollWidth - node.clientWidth,
+        documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+      };
+    });
+    expect(frontendPicker.childCount).toBe(2);
+    expect(frontendPicker.rangeCount).toBe(2);
+    expect(frontendPicker.text).toMatch(/Hue.*Chroma/);
+    expect(frontendPicker.style).toEqual({
+      padding: "10px 10px 12px",
+      marginTop: "4px",
+      borderTopWidth: "1px",
+      borderTopStyle: "dotted",
+    });
+    expect(frontendPicker.trailingSpace).toBeGreaterThanOrEqual(11);
+    expect(frontendPicker.trailingSpace).toBeLessThanOrEqual(13);
+    expect(frontendPicker.pickerOverflow).toBeLessThanOrEqual(0);
+    expect(frontendPicker.documentOverflow).toBeLessThanOrEqual(1);
+    expect(frontendPicker.rect.left).toBeGreaterThanOrEqual(frontendPicker.menu.left - 1);
+    expect(frontendPicker.rect.right).toBeLessThanOrEqual(frontendPicker.menu.right + 1);
+    expect(frontendPicker.rect.bottom).toBeLessThanOrEqual(frontendPicker.menu.bottom + 1);
+    expect(frontendPicker.menu.left).toBeGreaterThanOrEqual(-1);
+    expect(frontendPicker.menu.right).toBeLessThanOrEqual(frontendPicker.viewport.width + 1);
+    expect(frontendPicker.menu.bottom).toBeLessThanOrEqual(frontendPicker.viewport.height + 1);
+
+    const frontendPng = await picker.screenshot();
+    expect(frontendPng.length).toBeGreaterThan(500);
+    await testInfo.attach(`minimal-accent-picker-frontend-${testInfo.project.name}`, {
+      body: frontendPng,
+      contentType: "image/png",
+    });
+
+    test.setTimeout(45_000);
+    await gotoUiDesign(page);
+    await page.locator("button[title='Theme']").click();
+    await page.locator("button").filter({ hasText: /^Custom/ }).click();
+    const prototypeHueLabel = page.locator(".ei-label").filter({ hasText: /^Hue$/ }).last();
+    await expect(prototypeHueLabel).toBeVisible();
+    const prototypePicker = prototypeHueLabel.locator("..").locator("..");
+    const uiDesignPicker = await prototypePicker.evaluate((element) => {
+      const node = element as HTMLElement;
+      const style = getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      const menu = node.parentElement as HTMLElement | null;
+      const chroma = Array.from(node.children).at(-1) as HTMLElement | undefined;
+      if (!menu || !chroma) throw new Error("minimal ui-design picker geometry anchors missing");
+      const menuRect = menu.getBoundingClientRect();
+      const chromaRect = chroma.getBoundingClientRect();
+      return {
+        childCount: node.children.length,
+        rangeCount: node.querySelectorAll("input[type='range']").length,
+        text: node.textContent?.replace(/\s+/g, " ").trim(),
+        style: {
+          padding: style.padding,
+          marginTop: style.marginTop,
+          borderTopWidth: style.borderTopWidth,
+          borderTopStyle: style.borderTopStyle,
+        },
+        rect: {
+          left: rect.left,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        },
+        menu: {
+          left: menuRect.left,
+          right: menuRect.right,
+          bottom: menuRect.bottom,
+        },
+        trailingSpace: rect.bottom - chromaRect.bottom,
+        pickerOverflow: node.scrollWidth - node.clientWidth,
+        documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+      };
+    });
+    expect(uiDesignPicker.childCount).toBe(2);
+    expect(uiDesignPicker.rangeCount).toBe(2);
+    expect(uiDesignPicker.text).toMatch(/Hue.*Chroma/);
+    expect(uiDesignPicker.text).not.toMatch(/oklch|Reset to theme accent/);
+    expect(uiDesignPicker.style).toEqual(frontendPicker.style);
+    expect(Math.abs(uiDesignPicker.rect.width - frontendPicker.rect.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(uiDesignPicker.rect.height - frontendPicker.rect.height)).toBeLessThanOrEqual(8);
+    expect(uiDesignPicker.trailingSpace).toBeGreaterThanOrEqual(11);
+    expect(uiDesignPicker.trailingSpace).toBeLessThanOrEqual(13);
+    expect(uiDesignPicker.pickerOverflow).toBeLessThanOrEqual(0);
+    expect(uiDesignPicker.documentOverflow).toBeLessThanOrEqual(1);
+    expect(uiDesignPicker.rect.left).toBeGreaterThanOrEqual(uiDesignPicker.menu.left - 1);
+    expect(uiDesignPicker.rect.right).toBeLessThanOrEqual(uiDesignPicker.menu.right + 1);
+    expect(uiDesignPicker.rect.bottom).toBeLessThanOrEqual(uiDesignPicker.menu.bottom + 1);
+    expect(uiDesignPicker.menu.left).toBeGreaterThanOrEqual(-1);
+    expect(uiDesignPicker.menu.right).toBeLessThanOrEqual(uiDesignPicker.viewport.width + 1);
+    expect(uiDesignPicker.menu.bottom).toBeLessThanOrEqual(uiDesignPicker.viewport.height + 1);
+
+    const prototypePng = await prototypePicker.screenshot();
+    expect(prototypePng.length).toBeGreaterThan(500);
+    await testInfo.attach(`minimal-accent-picker-ui-design-${testInfo.project.name}`, {
+      body: prototypePng,
+      contentType: "image/png",
+    });
   });
 
   test("frontend authenticated user menu matches ui-design dropdown geometry and logout flow", async ({

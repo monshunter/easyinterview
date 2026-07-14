@@ -150,17 +150,19 @@ hard gate, but it returns `401 Unauthorized` with the documented error
 envelope when a cookie is missing — the smoke calls below therefore include
 `Cookie: ei_session=fake` to exercise the success branch.
 
-### Live smoke matrix (11 fixed operations)
+### Live smoke matrix (13 fixed operations)
 
 The repeatable smoke matches all selected defaults byte-for-byte. It retains
-the original five read/handoff checks and also covers the report overview plus
-every TargetJob default affected by removal of `latestReportId`. Status codes
+the original read/handoff checks and also covers the Resume summary-list/full-detail
+split, report overview, and every TargetJob default affected by removal of `latestReportId`. Status codes
 other than `200` use `Prefer: code=<status>, example=default` so Prism selects
 the declared response.
 
 | operationId | Method/path | Expected |
 |-------------|-------------|----------|
 | `getMe` | `GET /me` | 200 |
+| `listResumes` | `GET /resumes` | 200 |
+| `getResume` | `GET /resumes/{resumeId}` | 200 |
 | `listTargetJobs` | `GET /targets` | 200 |
 | `getTargetJob` | `GET /targets/{targetJobId}` | 200 |
 | `importTargetJob` | `POST /targets/import` | 202 |

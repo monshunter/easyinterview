@@ -1,13 +1,14 @@
 # Backend Resume History
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 2.8 | 将 `listResumes` 收敛为 closed `ResumeSummary` 数据库投影，禁止列表装载或返回详情正文、结构化档案、文件对象与审计字段；`getResume` 保持完整详情。 | 001-asset-register-parse-and-listing Phase 15 |
 | 2026-07-12 | 2.7 | 删除模型回显整份简历的输出合同；完整提取正文由后端确定性写入快照，并以长输入尾部 marker 与 `finish_reason=length` fail-closed 门禁保证 1M 输入上下文不被业务代码截断。 | 001-asset-register-parse-and-listing Phase 14 |
 | 2026-07-12 | 2.6 | 将 `resume.parse.default` 结构化输出预算提升到至少 8192 tokens，防止真实长简历在 2048-token cap 处产生截断 JSON。 | 001-asset-register-parse-and-listing Phase 13 |
 | 2026-07-10 | 2.5 | Resume parse/tailor handlers 与 cmd/api 场景直接使用 canonical runner contract/runtime，移除测试专用执行模型。 | backend-async-runner/001 |

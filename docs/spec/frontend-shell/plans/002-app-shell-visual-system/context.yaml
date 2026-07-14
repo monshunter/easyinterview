@@ -4,9 +4,11 @@ metadata:
   subspec: frontend-shell
   name: 002-app-shell-visual-system
   sequence: 2
+  baseBranch: main
+  branch: fix/request-dedup-resume-summary-routing-0714
   specVersion:
-    from: 1.4
-    to: 1.26
+    from: 1.28
+    to: 1.29
 spec:
   defaultTarget: frontend
   discovery:
@@ -19,6 +21,12 @@ spec:
       - theme wiring
       - dark mode
       - custom accent
+      - CustomAccentPicker
+      - hue saturation only
+      - no accent preview value
+      - no reset to theme accent
+      - no onClear active props
+      - Ocean Plum custom exit
       - typography scale
       - fontsource
       - CSS variables
@@ -32,6 +40,7 @@ spec:
       - Settings visual contract
       - visual smoke
       - E2E.P0.005
+      - E2E.P0.006
       - no external design system
       - no private fonts
   targets:

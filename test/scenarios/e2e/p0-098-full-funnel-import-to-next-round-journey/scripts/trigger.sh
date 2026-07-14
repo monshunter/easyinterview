@@ -41,16 +41,25 @@ rm -f "$OUT/trigger.log" "$OUT/trigger.env" "$RESULT_FILE"
   go test -v ./backend/internal/targetjob -run 'TestService_ListTargetJobs_ProjectsCanonicalPracticeProgressIndependentOfLifecycleStatus|TestService_GetTargetJob_HidesCompletedFactsAfterFirstCanonicalGap|TestService_GetTargetJob_ProjectsFirstRoundAndAllCompleted|TestHandler_GetAndListTargetJobs_ReturnPracticeProgressWithWireParity|TestSQLStore_ListTargetJobsForUser_LoadsPageScopedPracticeLedgerFactsInOneQuery' -count=1
   DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" \
     go test -v -tags=integration ./backend/internal/targetjob -run '^TestSQLStoreIntegration_PracticeProgressProjectionPersistsAcrossGetAndList$' -count=1
-  go test -v ./backend/internal/review ./backend/internal/store/review -run 'TestGenerateReportUsesOneConversationLevelAICall|TestPersistReportUsesPostgresTextArrayForRetryFocus|TestUpdateFeedbackReportStatusAllowsGeneratingRetry' -count=1
+  go test -v ./backend/internal/review ./backend/internal/store/review -run 'TestGenerateReportPersistsDirectModelSemanticsAndActualProvenance|TestPersistReportUsesPostgresTextArrayForRetryFocus|TestUpdateFeedbackReportStatusAllowsGeneratingRetry' -count=1
   pnpm --filter @easyinterview/frontend test \
+    src/app/routeUrl.test.ts \
     src/app/interview-context/roundAssumptions.test.ts \
     src/app/interview-context/startPractice.test.ts \
     src/app/navigation/interviewContext.test.ts \
     src/app/scope.test.ts \
     src/app/screens/home/MockInterviewCard.test.tsx \
+    src/app/screens/home/HomeRecentMocks.test.tsx \
     src/app/screens/workspace/WorkspaceEmptyState.test.tsx \
+    src/app/screens/parse/ParseFlow.test.tsx \
+    src/app/screens/parse/ParseRoundStates.test.tsx \
     src/app/screens/parse/ParseResumeBinding.test.tsx \
-    src/app/screens/report/__tests__/ReplayCta.test.tsx
+    src/app/screens/report/__tests__/ReplayCta.test.tsx \
+    --reporter=verbose
+  pnpm --filter @easyinterview/frontend test \
+    src/app/App.test.tsx \
+    --reporter=verbose \
+    -t 'renders a target-scoped workspace|uses only targetJobId as workspace detail authority'
   node --test ui-design/ui-design-contract.test.mjs
   pnpm --filter @easyinterview/frontend exec playwright test \
     --config=playwright.auth-email-code.config.ts \

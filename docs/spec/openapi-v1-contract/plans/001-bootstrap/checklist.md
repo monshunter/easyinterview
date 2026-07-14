@@ -1,7 +1,7 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.26
-> **状态**: active
+> **版本**: 1.27
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -107,5 +107,22 @@ git diff --check
   <!-- verified: 2026-07-14 method=openapi+codegen-green evidence="Focused overview source/semantic tests PASS, full inventory 27 tests and Go generator tests PASS, lint-openapi preserves 37/10, generated Go/TS are typed with no old aliases, and a second codegen run is byte-idempotent at sha 1262419c6ebe18e3f27c168b52fbf2764a369dfe. Nested PracticeRoundRef was RED-proven open then closed in place; overview rounds preserve the canonical 2..5 bound." -->
 - [x] 15.3 AUDIT-GATE: 003 Phase 8 exact-matches old baseline → proposed OPENAPI-004 findings before baseline edit and preserves the deterministic artifact.
   <!-- verified: 2026-07-14 method=old-baseline-exact-audit evidence="Focused RED failed on the absent OPENAPI-004 normalizer/CLI; GREEN emits a deterministic zero-error 15-finding artifact (6 breaking, 9 additive). Full openapi_diff 48 tests PASS and live isolation keeps OPENAPI-002=17, D-35=11 and OPENAPI-004=15." -->
-- [ ] 15.4 HANDOFF-GATE: 002 canonical fixtures/Prism, db/targetjob zero-ref, backend-review real PostgreSQL selection, target-scoped ReportsScreen/P0.059 and Parse/Report/Generating zero-list-consumer gates pass before re-freeze.
-- [ ] 15.5 REGRESSION-GATE: `make lint-openapi validate-fixtures codegen-check openapi-diff` and scoped old-shape zero-reference pass after guarded re-freeze.
+- [x] 15.4 HANDOFF-GATE: 002 canonical fixtures/Prism, db/targetjob zero-ref, backend-review real PostgreSQL selection, target-scoped ReportsScreen/P0.059 and Parse/Report/Generating zero-list-consumer gates pass before re-freeze.
+  <!-- verified: 2026-07-14 evidence="37 fixtures and Prism live 13/13 byte-equal; backend report handoff plus P0.016/P0.059 current gates PASS before re-freeze" -->
+- [x] 15.5 REGRESSION-GATE: `make lint-openapi validate-fixtures codegen-check openapi-diff` and scoped old-shape zero-reference pass after guarded re-freeze.
+  <!-- verified: 2026-07-14 evidence="baseline/current sha256=6e81b656...9bc6; openapi-diff findings=0; lint=37 operations; fixtures=37; OpenAPI unit=122 PASS; codegen 69 files changed=0" -->
+
+## Phase 16: OPENAPI-005 Resume list summary projection
+
+- [x] 16.1 OWNER/RED: accepted OPENAPI-005 + spec/history 1.59 exist；schema/inventory/generator tests reject the old full-Resume list item, any non-nine-field summary, detail/provenance fields and extras while preserving list/get method/path/operationId/200 plus 37/10.
+  <!-- verified: 2026-07-14 method=tdd-red evidence="Focused inventory, fixture, generator and diff-oracle tests first failed on the legacy full Resume list item, missing ResumeSummary, list provenance expectation and absent OPENAPI-005 oracle/normalizer; mutation tests cover missing/extra/wrong-type fields plus list/detail substitution." -->
+- [x] 16.2 GREEN: add closed required `ResumeSummary` with nullable `summaryHeadline` and boolean `hasReadableContent`, switch only `PaginatedResume.items`, regenerate typed Go/TS `ResumeSummary[]` / `[]ResumeSummary`, and keep every `getResume`/mutation response on full `Resume` without alias or `any`.
+  <!-- verified: 2026-07-14 method=openapi+codegen-green evidence="Closed exact nine-field ResumeSummary is generated as Go []ResumeSummary and TS ResumeSummary[] with typed nullable headline/boolean readability; only PaginatedResume.items changed while get/update/duplicate/archive remain full Resume. Full inventory 28 tests, generator package and lint-openapi PASS." -->
+- [x] 16.3 AUDIT-GATE: 003 Phase 9 generates and exact-matches `decisions/OPENAPI-005-resume-list-summary.expected-findings.json` from merge-base old baseline before baseline mutation；the declared path is not treated as evidence until the JSON exists and passes the five-key audit.
+  <!-- verified: 2026-07-14 method=old-baseline-exact-audit evidence="OPENAPI-005 exact-set oracle and preserved audit PASS with 12 findings (1 breaking, 11 additive), 37/10 plus list/get invariants, and zero errors; frozen baseline sha256 remains e92eea4ca25618c9e6300b104ad6aea85b2b9e6094de8571349898bdecf29527." -->
+- [x] 16.4 HANDOFF-GATE: 002 Phase 11 fixture/example/Prism/mock, 004 Phase 7, backend dedicated list projection/service/handler and every frontend `listResumes` consumer pass without compatibility fields or N+1 `getResume` fallback.
+  <!-- verified: 2026-07-14 evidence="Resume list fixture/Prism parity, scalar backend projection and generated ResumeSummary consumers PASS; no compatibility field or list-row getResume fallback remains" -->
+- [x] 16.5 BDD-Gate: E2E.P0.034 proves register/list summary projection, E2E.P0.036 proves flat list/auth and row navigation using summary fields, and E2E.P0.037 proves detail still fetches/renders full `Resume` only after navigation.
+  <!-- verified: 2026-07-14 evidence="P0.034/P0.036/P0.037 fresh setup-trigger-verify-cleanup PASS" -->
+- [x] 16.6 REGRESSION-GATE: after guarded re-freeze, `make lint-openapi validate-fixtures codegen-check openapi-diff`, downstream focused tests and scoped list-detail zero-reference gates all pass with current evidence.
+  <!-- verified: 2026-07-14 evidence="guarded re-freeze is byte-equal; independent diff/lint/fixture/unit/Prism/codegen and downstream consumer gates PASS" -->

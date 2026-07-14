@@ -29,6 +29,11 @@ REPO_ROOT_DEFAULT = Path(__file__).resolve().parents[2]
 SMOKE_MATRIX: tuple[tuple[str, str, str, int, str], ...] = (
     ("getMe", "GET", "/me", 200,
      "openapi/fixtures/Auth/getMe.json"),
+    ("listResumes", "GET", "/resumes", 200,
+     "openapi/fixtures/Resumes/listResumes.json"),
+    ("getResume", "GET",
+     "/resumes/01918fa0-0000-7000-8000-000000001000", 200,
+     "openapi/fixtures/Resumes/getResume.json"),
     ("listTargetJobs", "GET", "/targets", 200,
      "openapi/fixtures/TargetJobs/listTargetJobs.json"),
     ("getTargetJob", "GET",

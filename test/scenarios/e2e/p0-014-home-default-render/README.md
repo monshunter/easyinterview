@@ -16,6 +16,7 @@ Verifies the current Home Vitest contract:
 - One/default variants render shared `MockInterviewCard` content
 - Twelve-plus variant is sorted by `updatedAt desc`, capped at 3, and exposes More navigation
 - Recent cards open plan detail or use the structured-round quick-start action
+- Authenticated React StrictMode mount issues exactly one underlying `listTargetJobs` and one `listResumes` GET; ready card body opens Workspace detail directly.
 
 ## Fixture Variants
 
@@ -40,7 +41,7 @@ Verifies the current Home Vitest contract:
 ## Scripts
 
 - `scripts/setup.sh` — initialize the scenario output marker
-- `scripts/trigger.sh` — run the generated-client routing test, five Home Vitest files, build, and Home Playwright parity gate
+- `scripts/trigger.sh` — run the generated-client routing test, six Home Vitest files including bottom-transport StrictMode counting, build, and Home Playwright parity gate
 - `scripts/verify.sh` — verify runner markers, desktop/mobile screenshot markers, and old-intake/out-of-scope negatives
 - `scripts/cleanup.sh` — remove the setup marker while retaining the trigger log
 

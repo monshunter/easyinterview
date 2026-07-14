@@ -1,8 +1,8 @@
 # Frontend Shell BDD Plan
 
-> **版本**: 1.13
+> **版本**: 1.15
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-14
 
 ## Phase 1: App shell and display behavior
 
@@ -24,3 +24,9 @@
 |---------|------|-------|------|------|----------|
 | E2E.P0.101 | Mailpit email-code single-entry login + profile setup | 本地 frontend real mode、backend 和 Mailpit 可用；邮箱是唯一账号标识；新邮箱尚未补全资料 | 用户从 `auth_login` 提交新邮箱，从 Mailpit 读取 6 位验证码，在 `auth_verify` 输入 code；随后提交 displayName + 条款确认；退出后同邮箱再次登录 | 新邮箱首次登录签发 session 但 `/me.profileCompletionRequired=true`，资料补全前不恢复 pendingAction；补全后 `/me.profileCompletionRequired=false` 且 TopBar 显示 displayName；同邮箱再次登录不再进入资料补全 | `E2E.P0.101` scenario assets |
 | E2E.P0.102 | 未登录首页与面试业务路由登录前置 | 用户未登录，Home 可公开访问，业务 route 与业务 API 均需要账号 session | 用户打开 Home、直开业务 route，或触发 Home 业务 CTA | Home 不展示账号记录、不请求 `listTargetJobs`、不显示 raw `AUTH_UNAUTHORIZED`；业务 route 在 auth loading 期间不挂载业务 screen，确认未登录后进入 `auth_login(pendingAction)`；backend gate 证明业务 API 由 session middleware 返回 B1 auth envelope | `test/scenarios/e2e/p0-102-auth-gated-interview-routes/` |
+
+## Phase 4: StrictMode request-count regression
+
+| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+|---------|------|-------|------|------|----------|
+| E2E.P0.102 | Auth epoch + StrictMode safe-read single-flight | 用户已通过 auth gate，正式 App 保持 React StrictMode，受保护页面会在 mount 时读取同一资源 | 进入代表性受保护 route 并采集 generated-client request log；随后改变 locale/auth scope/`okStatuses`，或在语义写请求 dispatch 前、settle 后重新读取 | 同一 client/query/header/okStatuses/read-auth-epoch/auth scope 的同时在途 safe read 只有一次底层请求；不会出现紧邻重复 pair；locale/auth/okStatuses/epoch 变化触发独立 GET；所有语义写请求前后切断 read epoch；verify GET 不被合并且成功推进 auth/session epoch | `test/scenarios/e2e/p0-102-auth-gated-interview-routes/` |

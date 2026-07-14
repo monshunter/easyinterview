@@ -1,8 +1,8 @@
 # Core Loop Module Pruning Plan
 
-> **版本**: 1.274
+> **版本**: 1.275
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -21,17 +21,19 @@
 
 完成后，`debrief` / `profile` / `CandidateProfile` / `ExperienceCard` 不再作为用户可见入口、OpenAPI tag、后端领域、DB 表、AI feature key、shared event/job 或场景验收对象存在。账号设置、邮箱认证、首次资料补全与隐私删除保留，但不得继续承担“用户画像”产品语义。
 
+本次 Phase 7 原地重开同一产品范围 owner：把 JD 解析命令进度与 ready 规划只读读取彻底分路，并把 D-21 主题控制收敛到 Ocean / Plum 与 hue / saturation-only custom accent。该修订不改变 OpenAPI method/path/operationId/schema，也不创建平行产品入口。
+
 ## 2 背景
 
 当前产品 scope、engineering roadmap、UI 文档、静态原型、正式前端、OpenAPI、backend、migrations、shared、config 和 E2E 场景都仍包含复盘和候选人画像。用户已明确选择硬删除方案，而不是隐藏或保留兼容层。
 
-由于本项目尚未上线，不要求保留历史 route / API / schema 兼容。删除必须以当前 active spec、`docs/ui-design/`、`ui-design/` 和编码 truth source 为准，避免文档仍把范围外模块作为后续 workstream 自动纳入。
+由于本项目尚未上线，不要求保留历史 route / API / schema 兼容。删除或 route 语义纠偏必须以当前 active spec、`docs/ui-design/`、`ui-design/` 和编码 truth source 为准，避免文档仍把范围外模块或混合 command/read 页面作为后续 workstream 自动纳入。
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `contract` + `migration` + `code-internal` + `tooling`
 - **TDD 策略**: 通过 `/implement product-scope/001-core-loop-module-pruning cross-layer` 进入 `/tdd`。每个 checklist item 在改实现前先补或改对应 red test：route/topbar/i18n/pixel parity、OpenAPI inventory/codegen/fixture validation、Go handler/store/service tests、migration/schema lint、scenario wrapper negative gate。
-- **BDD 策略**: 用户可见入口和端到端流程会变化，必须维护 [bdd-plan](./bdd-plan.md) 与 [bdd-checklist](./bdd-checklist.md)。主 checklist 以 `E2E.P0.001`、`E2E.P0.088`、`E2E.P0.090`、`E2E.P0.098`、`E2E.P0.099`、`E2E.P0.102` 作为更新后的行为 gate，删除 `E2E.P0.060`-`E2E.P0.069`、`E2E.P0.071`、`E2E.P0.073`、`E2E.P0.091`-`E2E.P0.093` 的复盘 / 画像正向场景。
+- **BDD 策略**: 用户可见入口和端到端流程会变化，必须维护 [bdd-plan](./bdd-plan.md) 与 [bdd-checklist](./bdd-checklist.md)。既有 D-22 gate 保持；Phase 7 追加 `E2E.P0.005`、`E2E.P0.006`、`E2E.P0.015`、`E2E.P0.016`、`E2E.P0.018`、`E2E.P0.046`、`E2E.P0.058`、`E2E.P0.059`、`E2E.P0.088`、`E2E.P0.090`，覆盖 theme、parse/workspace、ready 卡片、Reports Back、Practice terminal recovery 与 canonical safe params。
 - **替代验证 gate**: API、DB、shared、config、prompt/rubric、generated artifacts 通过 `make codegen-check`、`make validate-fixtures`、migration lint / focused Go tests、repo-wide out-of-scope-negative grep 和 `git diff --check` 验证；不以历史 PASS 或 checklist 状态作为当前完成证据。
 
 ## 4 实施步骤
@@ -952,6 +954,28 @@ ghost CTA 删除后，将正式 CreateFlow 中两段同 selector 的 accent CTA 
 
 按新增的最多 20 批与每批结束后停止评估规则结束本轮。当前 owner 累计批次已经超过上限；根级 lint/test、docs/index/diff 与 pruning gate 全绿。剩余 backend clone 属于 provider 协议隔离、跨 package 测试断言或资源专属 handler；deadcode 只剩 interface contract stubs 与需要独立架构决策的 B4 backfill extension seam。继续抽取会增加耦合或造成过早优化，因此不再开启下一批。
 
+### Phase 7: Parse command / Workspace read 分路与主题控制收敛
+
+#### 7.1 产品、UI 与路由 owner 真理源同步
+
+原地同步 product-scope、OpenAPI decision、`docs/ui-design/`、`ui-design/` 与 frontend owner plans：`importTargetJob` 是解析命令入口；`/parse?targetJobId=...` 只承接 queued / processing；ready 初读或轮询转 ready 立即 history replace `/workspace?targetJobId=...`。`/workspace` 是列表，`/workspace?targetJobId=...` 是只读详情，Workspace query 只允许 `targetJobId`。
+
+#### 7.2 ready 回访、报告与失败恢复导航收敛
+
+Home / Workspace ready 卡片、Reports Back 与 Practice terminal recovery 统一直达 Workspace detail；报告入口只位于 Workspace detail。Report/Generating 的可信 Back 仍回到 ReportsScreen；ReportsScreen 再回 Workspace detail。负向 gate 阻止 ready 路径进入 Parse、重放动画、再次 import，或把 `planId` / `resumeId` 带入 Workspace query。
+
+#### 7.3 command/read transport 与状态边界验证
+
+按 child owner plan 通过 `/implement` -> `/tdd`：import 后 Parse 只轮询既有 `getTargetJob` read model；ready card / direct Workspace detail 只执行只读 `getTargetJob`，不调用 `importTargetJob`。queued/processing、ready、failed、missing/invalid target、reload、back-forward 与 StrictMode 请求次数均有 RED/GREEN 断言；本 Phase 不新增或修改 API shape。
+
+#### 7.4 Ocean / Plum 与最小 Custom Accent
+
+原型与正式 TopBar 只保留 Ocean / Plum 两个预设；Custom Accent 只保留 hue / saturation 两个滑杆，删除 preview、数值文本和 reset 控件。选择 Ocean / Plum 必须退出 custom；暗色、语言、字体与其他视觉结构不在本次范围。
+
+#### 7.5 BDD、parity 与文档收口
+
+更新并运行 Phase 7 对应场景、route unit tests、source contract、desktop/mobile parity 和 current-negative grep；校验 Parse 无 ready detail/report entry，Workspace targetJobId-only，旧 `planId` / `resumeId` query 被丢弃，custom accent 无 preview/value/reset。最后运行 product context、Header/INDEX、docs link/diff gate。
+
 ## 5 Operation Matrix
 
 | operationId / contract | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
@@ -965,6 +989,10 @@ ghost CTA 删除后，将正式 CreateFlow 中两段同 selector 的 accent CTA 
 | `suggestDebriefQuestions` | delete `openapi/fixtures/Debriefs/suggestDebriefQuestions.json` | delete DebriefScreen suggestions hook | delete debrief handler | none after cleanup | delete `debrief.suggest_questions` | delete `E2E.P0.063`, `E2E.P0.066` |
 | `getDebrief` | delete `openapi/fixtures/Debriefs/getDebrief.json` | delete DebriefScreen polling hook | delete debrief handler | delete `debriefs` | none after cleanup | delete `E2E.P0.061`, `E2E.P0.067` |
 | `createPracticePlan goal=debrief` | update existing fixture scenarios only if present | remove debrief replay launcher | update practice handler/store to reject/omit debrief source goal | delete `practice_plans.source_debrief_id`, `goal='debrief'` | none | update `E2E.P0.070`, delete `E2E.P0.071`, `E2E.P0.073` |
+| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | Home import -> Parse command/progress | existing TargetJob import handler | `target_jobs.resume_id + raw_jd_text` + `async_jobs(target_import)` + outbox `target.import.requested` | existing `target.import.default` parse profile | E2E.P0.010/P0.015 |
+| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse polls queued/processing; Workspace detail reads ready | existing TargetJob read handler | read `target_jobs.resume_id` + persisted requirements/summary/round facts | none after parse completion; provenance is persisted output | E2E.P0.015/P0.016/P0.018/P0.088 |
+| `listTargetJobReports` | `openapi/fixtures/Reports/listTargetJobReports.json` | ReportsScreen only; entry from Workspace detail | existing Reports overview handler | `target_jobs`, `feedback_reports` | none | E2E.P0.016/P0.058/P0.059 |
+| `N/A` theme display preference | N/A | TopBar Ocean/Plum + hue/saturation custom accent | N/A | frontend display preference only | none | E2E.P0.005/P0.006 |
 
 ## 6 Coverage Matrix
 
@@ -980,6 +1008,9 @@ ghost CTA 删除后，将正式 CreateFlow 中两段同 selector 的 accent CTA 
 | AI config contract boundary | Cross-layer contract | Phase 4 | prompt/rubric/profile lint/eval inventory | `debrief.*`, `profile.update` feature keys |
 | Privacy boundary | Privacy / security | Phase 4-5 | backend privacy delete tests, out-of-scope grep for out-of-scope profile cleanup hooks | account delete must still clean retained core data without candidate-profile runtime hooks |
 | Scenario scope | Regression / out-of-scope-negative | Phase 5 | scenario INDEX and script verification | out-of-scope P0 debrief/profile scenarios must not remain Ready |
+| Parse command / Workspace read split | Primary + state transition | Phase 7.1-7.3 | E2E.P0.015/P0.016/P0.018, route/component RED-GREEN, request-count assertions | ready card/direct read must not enter Parse, replay animation, or call import |
+| Canonical navigation and recovery | Failure/recovery + routing privacy | Phase 7.2-7.3 | E2E.P0.046/P0.058/P0.059/P0.088/P0.090 | Workspace query drops `planId`/`resumeId`; Reports Back and terminal recovery never return Parse |
+| Custom Accent minimal control | Alternate preference + UI parity | Phase 7.4 | E2E.P0.005/P0.006, TopBar source/DOM/style/bounding-box/pixel gates | only Ocean/Plum; custom has no preview/value/reset and preset selection exits custom |
 | Out-of-scope input package cleanup | Docs / governance | Phase 6.17 | `make docs-check`, `sync-doc-index --check`, target zero-reference grep | root out-of-scope product input, out-of-scope UI docs, out-of-scope executable subject |
 | UI boundary doc cleanup | Docs / UI truth source | Phase 6.18 | `make docs-check`, `sync-doc-index --check`, target zero-reference grep, affected context validation | UI boundary document package references must not remain |
 | Root product summary cleanup | Docs / governance | Phase 6.19 | `make docs-check`, `git diff --check`, targeted grep | root README and UI index summaries must not describe cleaned modules as current loop |
@@ -1103,6 +1134,10 @@ ghost CTA 删除后，将正式 CreateFlow 中两段同 selector 的 accent CTA 
 - Backend、migrations、shared、config 不再包含运行时复盘或候选人画像领域。
 - 核心 BDD 场景仍能证明 JD / 简历 -> 模拟面试 -> 报告 -> 复练 / 下一轮闭环。
 - 复盘 / 画像范围外 route、testid、table、event、job、feature key、prompt/rubric、scenario 通过负向搜索归零；历史 work-journal、bug、report 记录可保留为历史上下文，但不得作为 active truth source。
+- `/parse?targetJobId=...` 只承接 import 后 queued / processing 命令进度；ready 初读或轮询转 ready 使用 replace 进入 `/workspace?targetJobId=...`，ready 卡片不进入 Parse。
+- `/workspace` 只展示列表，`/workspace?targetJobId=...` 只读展示规划详情；Workspace query 只保留 `targetJobId`，报告入口位于详情而不是 Parse。
+- Reports Back 与 Practice terminal recovery 直达 Workspace detail；Report/Generating trusted Back 仍返回 ReportsScreen，返回层级不形成 Parse 回环。
+- 主题只保留 Ocean / Plum；Custom Accent 只保留 hue / saturation，无 preview、数值文本或 reset，选择预设后退出 custom。
 
 ## 8 风险与应对
 
@@ -1113,11 +1148,16 @@ ghost CTA 删除后，将正式 CreateFlow 中两段同 selector 的 accent CTA 
 | OpenAPI 删除导致 generated consumer 大面积编译失败 | 先写 contract red tests / inventory gate，再代码删除并运行 codegen，最后修 frontend/backend consumers |
 | 历史场景索引保留 Ready 状态 | Phase 5 删除正向场景目录和 INDEX 行，保留核心闭环场景的替代覆盖 |
 | 文档把范围外能力写为 P1/P2 自动纳入对象 | Phase 1 和 zero-reference gate 覆盖 product-scope、engineering-roadmap、docs/ui-design、docs/spec/INDEX |
+| ready 状态先完成 GET 后又在 Workspace 发起第二次顺序 GET | child owner 使用显式 ready handoff 或等价单次读取边界，并用 queued→ready transport count 证明没有 N+1；in-flight 并发合并不能替代此 gate |
+| `/parse` 与 `/workspace` 继续共享同一 ready 页面状态机 | 拆分 command/progress controller 与只读详情 surface；route tests 同时断言 DOM、动画、轮询和报告入口归属 |
+| 旧 route 参数继续被 history/pendingAction 带回 | safe-param tests 对 Parse/Workspace 分别只允许 `targetJobId`，并覆盖 direct/reload/back-forward/auth recovery |
+| 删除 Custom Accent 冗余控件造成主题无法退出 custom | 预设选择必须清除 custom 状态；TopBar unit、source parity 与 1440/390 browser parity 联合验证 |
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.275 | Reopen the product owner for Parse command/Workspace read routing, ready recovery navigation, and minimal Ocean/Plum custom-accent controls. |
 | 2026-07-10 | 1.274 | Complete the technical-debt run after the bounded stop audit. |
 | 2026-07-10 | 1.273 | Centralize prompt/rubric config-root discovery across backend tests. |
 | 2026-07-10 | 1.272 | Consolidate duplicate Practice plan/session GET fixture test harnesses. |

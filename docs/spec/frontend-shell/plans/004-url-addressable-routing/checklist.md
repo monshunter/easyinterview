@@ -1,6 +1,6 @@
 # URL-Addressable Routing Checklist
 
-> **版本**: 1.10
+> **版本**: 1.12
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -84,3 +84,12 @@
   <!-- verified: 2026-07-14 evidence="P0.088 86 tests, P0.089 15 tests and P0.090 87 tests pass; invalid/missing reports target uses replaceState, auth restores targetJobId only, hash/host fallback strips unsupported params and TopBar remains three items." -->
 - [x] 11.4 POST-PASS: focused route/store/App/auth/privacy/fallback tests、P0.088/P0.089/P0.090、frontend typecheck/build、owner contexts、docs/diff/pruning pass before restoring plan/checklist/BDD to `completed`.
   <!-- verified: 2026-07-14 method=current-aggregate evidence="Focused routing/auth/privacy, full frontend 121 files/977 tests, typecheck/build, all three scenarios, owner context, docs, diff and pruning gates pass." -->
+
+## Phase 12: `/workspace` list/detail and command-only Parse
+
+- [x] 12.1 RED-GREEN route codec: allow only optional `targetJobId` on workspace; keep query-free `/workspace` as list and `/workspace?targetJobId=<uuid>` as detail; strip `planId`、`resumeId`、`autoStartPractice` and unknown/raw inputs.<!-- verified: 2026-07-14 method=vitest-red-green evidence="RED failed 12 route assertions against the former param-free Workspace and multi-param Parse allowlists; GREEN passed routeUrl plus HomeImport 2 files / 51 tests after narrowing both codecs and import handoff." -->
+- [x] 12.2 RED-GREEN Parse route: keep only `targetJobId`; define it as queued/processing command progress, and prove ready initial read or poll transition calls replace—not push—to workspace detail.<!-- verified: 2026-07-14 method=vitest-red-green evidence="ParseFlow RED exposed stale preview-delay semantics and cache-driven duplicate GETs; GREEN passed 7 polling/handoff tests plus 2 App detail tests with immediate replace and ref-backed no-N+1 handoff." -->
+- [x] 12.3 Update pendingAction/hash/history/host-fallback matrices so workspace and Parse restore targetJobId only; Back after ready replace must not return to Parse animation.
+- [x] 12.4 BDD-Gate: update `E2E.P0.088` for workspace list/detail direct/reload/history and Parse ready replace; update `E2E.P0.089` for targetJobId-only auth restore/privacy; update `E2E.P0.090` for hash/fallback and incompatible-param stripping.
+- [x] 12.5 Run focused route/store/App/auth/privacy/fallback tests, all three scenario wrappers, frontend typecheck/build, owner contexts, docs/diff and old workspace-zero-query positive-claim searches before restoring `completed`.
+  <!-- verified: 2026-07-14 evidence="P0.088/P0.089/P0.090 setup/trigger/verify/cleanup PASS; targetJobId-only workspace/Parse/Reports restore, ready replace history and incompatible-param stripping remain green with full frontend/typecheck/build." -->

@@ -308,12 +308,25 @@ test.describe("Resume Workshop list DOM anchors", () => {
     });
   });
 
-  test("flat rows expose real Open buttons and no out-of-scope tree/view-switcher anchors", async ({ page }) => {
+  test("flat rows expose one-request Open buttons and no out-of-scope tree/view-switcher anchors", async ({ page }) => {
+    const detailRequests: string[] = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (
+        request.method() === "GET" &&
+        url.pathname === `/api/v1/resumes/${RESUME_DETAIL_ID}`
+      ) {
+        detailRequests.push(request.url());
+      }
+    });
     await goToList(page);
     await freezeAnimations(page);
-    const open = page.locator("[data-testid^='resume-list-open-']").first();
+    const open = page.locator(
+      `[data-testid='resume-list-open-${RESUME_DETAIL_ID}']`,
+    );
     await expect(open).toBeVisible();
     expect((await open.evaluate((node) => node.tagName)).toLowerCase()).toBe("button");
+    expect(detailRequests).toHaveLength(0);
     for (const outOfScope of [
       "resume-workshop-view-switcher-tree",
       "resume-workshop-view-switcher-flat",
@@ -324,6 +337,13 @@ test.describe("Resume Workshop list DOM anchors", () => {
     }
     await expect(page.locator("[data-testid^='resume-tree-row-']")).toHaveCount(0);
     await expect(page.locator("[data-testid^='resume-flat-row-']")).toHaveCount(0);
+
+    await open.click();
+    await expect(page.locator("[data-testid='resume-detail-crumb']")).toBeVisible();
+    expect(detailRequests).toHaveLength(1);
+    console.log(
+      "Resume Workshop browser transport PASS getResumeBeforeOpen=0 getResumeAfterOpen=1",
+    );
   });
 });
 

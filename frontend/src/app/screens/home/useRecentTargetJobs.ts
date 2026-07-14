@@ -12,12 +12,14 @@ export interface UseRecentTargetJobsResult {
 
 export function useRecentTargetJobs(): UseRecentTargetJobsResult {
   const runtime = useAppRuntimeOptional();
+  const client = runtime?.client;
+  const isAuthenticated = runtime?.auth.status === "authenticated";
   const [jobs, setJobs] = useState<TargetJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const fetch = useCallback(() => {
-    if (!runtime || runtime.auth.status !== "authenticated") {
+    if (!client || !isAuthenticated) {
       setJobs([]);
       setLoading(false);
       setError(null);
@@ -27,7 +29,7 @@ export function useRecentTargetJobs(): UseRecentTargetJobsResult {
     let cancelled = false;
     setLoading(true);
 
-    runtime.client
+    client
       .listTargetJobs({ query: { analysisStatus: "ready", pageSize: "12" } })
       .then((page) => {
         if (!cancelled) {
@@ -51,7 +53,7 @@ export function useRecentTargetJobs(): UseRecentTargetJobsResult {
     return () => {
       cancelled = true;
     };
-  }, [runtime]);
+  }, [client, isAuthenticated]);
 
   useEffect(() => {
     const cancel = fetch();

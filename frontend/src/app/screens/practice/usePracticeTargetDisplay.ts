@@ -36,8 +36,9 @@ interface TargetDisplaySnapshot {
  *
  * A loaded server session is authoritative. Route/context IDs are only a
  * bootstrap source while that session is absent. Every lookup goes through
- * the generated `getTargetJob` operation; request replacement aborts the old
- * transport and a sequence guard rejects clients that still resolve late.
+ * the generated `getTargetJob` operation. Mount reads stay signal-free so the
+ * generated client can share StrictMode's duplicate setup; cleanup and the
+ * sequence guard reject responses that are no longer current.
  */
 export function usePracticeTargetDisplay(
   options: UsePracticeTargetDisplayOptions,
@@ -60,11 +61,10 @@ export function usePracticeTargetDisplay(
     }
 
     let active = true;
-    const controller = new AbortController();
     setSnapshot(emptySnapshot(client, targetJobId, true));
 
     client
-      .getTargetJob(targetJobId, { signal: controller.signal })
+      .getTargetJob(targetJobId)
       .then((job: TargetJob) => {
         if (!active || requestSeqRef.current !== seq) return;
         setSnapshot({
@@ -78,7 +78,6 @@ export function usePracticeTargetDisplay(
       })
       .catch((error: unknown) => {
         if (!active || requestSeqRef.current !== seq) return;
-        if (isAbortError(error)) return;
         setSnapshot({
           ...emptySnapshot(client, targetJobId, false),
           error: wrapError(error),
@@ -87,7 +86,6 @@ export function usePracticeTargetDisplay(
 
     return () => {
       active = false;
-      controller.abort();
     };
   }, [client, targetJobId]);
 
@@ -141,13 +139,4 @@ function emptySnapshot(
 
 function wrapError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
-}
-
-function isAbortError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "name" in error &&
-    (error as { name?: string }).name === "AbortError"
-  );
 }

@@ -62,6 +62,33 @@ const resumeSelectColumns = `id, user_id, file_object_id, title, display_name, l
        parsed_summary, original_text, structured_profile, parsed_text_snapshot,
        source_type, error_code, latest_parse_job_id, created_at, updated_at, deleted_at`
 
+const resumeSummarySelectColumns = `id, title, coalesce(display_name, ''), language, source_type, parse_status,
+       case
+         when jsonb_typeof(parsed_summary->'headline') = 'string'
+              and btrim(parsed_summary->>'headline', E' \t\n\r\f\013') <> ''
+           then btrim(parsed_summary->>'headline', E' \t\n\r\f\013')
+         when jsonb_typeof(parsed_summary->'basics'->'headline') = 'string'
+              and btrim(parsed_summary->'basics'->>'headline', E' \t\n\r\f\013') <> ''
+           then btrim(parsed_summary->'basics'->>'headline', E' \t\n\r\f\013')
+         when jsonb_typeof(structured_profile->'headline') = 'string'
+              and btrim(structured_profile->>'headline', E' \t\n\r\f\013') <> ''
+           then btrim(structured_profile->>'headline', E' \t\n\r\f\013')
+         when jsonb_typeof(structured_profile->'basics'->'headline') = 'string'
+              and btrim(structured_profile->'basics'->>'headline', E' \t\n\r\f\013') <> ''
+           then btrim(structured_profile->'basics'->>'headline', E' \t\n\r\f\013')
+         else null
+       end as summary_headline,
+       (
+         nullif(btrim(parsed_text_snapshot, E' \t\n\r\f\013'), '') is not null
+         or nullif(btrim(original_text, E' \t\n\r\f\013'), '') is not null
+         or coalesce(
+           jsonb_typeof(structured_profile) = 'object'
+           and structured_profile <> '{}'::jsonb,
+           false
+         )
+       ) as has_readable_content,
+       updated_at`
+
 func (r *Repository) Get(ctx context.Context, userID string, resumeID string) (ResumeRecord, error) {
 	if r == nil || r.db == nil {
 		return ResumeRecord{}, fmt.Errorf("resume store db is nil")
@@ -97,7 +124,7 @@ func (r *Repository) List(ctx context.Context, userID string, filter ListFilter)
 	limit := pageSize + 1
 	args := []any{userID, limit}
 	query := `
-select ` + resumeSelectColumns + `
+select ` + resumeSummarySelectColumns + `
 from resumes
 where user_id = $1 and deleted_at is null`
 	if strings.TrimSpace(filter.Cursor) != "" {
@@ -114,9 +141,9 @@ where user_id = $1 and deleted_at is null`
 		return ListResult{}, err
 	}
 	defer rows.Close()
-	items := make([]ResumeRecord, 0, pageSize)
+	items := make([]ResumeSummaryRecord, 0, pageSize)
 	for rows.Next() {
-		rec, err := scanResume(rows)
+		rec, err := scanResumeSummary(rows)
 		if err != nil {
 			return ListResult{}, err
 		}
@@ -224,6 +251,9 @@ where id = $1 and user_id = $2 and deleted_at is null`,
 	}
 	if err != nil {
 		return ResumeRecord{}, err
+	}
+	if source.SourceType == nil || !validResumeSourceType(*source.SourceType) {
+		return ResumeRecord{}, fmt.Errorf("%w: %q", ErrInvalidSourceType, nullableSourceType(source.SourceType))
 	}
 
 	structuredProfile := in.StructuredProfile
@@ -525,6 +555,9 @@ func (r *Repository) CreateWithParseJob(ctx context.Context, in CreateAssetInput
 	if r == nil || r.db == nil {
 		return CreateAssetResult{}, fmt.Errorf("resume store db is nil")
 	}
+	if !validResumeSourceType(in.SourceType) {
+		return CreateAssetResult{}, fmt.Errorf("%w: %q", ErrInvalidSourceType, in.SourceType)
+	}
 	now := in.Now
 	if now.IsZero() {
 		now = time.Now().UTC()
@@ -735,6 +768,41 @@ func scanResume(row rowScanner) (ResumeRecord, error) {
 	return rec, nil
 }
 
+func scanResumeSummary(row rowScanner) (ResumeSummaryRecord, error) {
+	var rec ResumeSummaryRecord
+	var summaryHeadline sql.NullString
+	var parseStatus string
+	if err := row.Scan(
+		&rec.ID,
+		&rec.Title,
+		&rec.DisplayName,
+		&rec.Language,
+		&rec.SourceType,
+		&parseStatus,
+		&summaryHeadline,
+		&rec.HasReadableContent,
+		&rec.UpdatedAt,
+	); err != nil {
+		return ResumeSummaryRecord{}, err
+	}
+	rec.ParseStatus = sharedtypes.TargetJobParseStatus(parseStatus)
+	if summaryHeadline.Valid {
+		rec.SummaryHeadline = &summaryHeadline.String
+	}
+	return rec, nil
+}
+
+func validResumeSourceType(sourceType string) bool {
+	return sourceType == "upload" || sourceType == "paste"
+}
+
+func nullableSourceType(sourceType *string) string {
+	if sourceType == nil {
+		return ""
+	}
+	return *sourceType
+}
+
 func stringPtrFromNull(in sql.NullString) *string {
 	if !in.Valid {
 		return nil
@@ -749,6 +817,7 @@ var (
 	ErrInvalidStateTransition = errors.New("invalid resume parse status transition")
 	ErrInvalidCursor          = errors.New("invalid resume list cursor")
 	ErrResumeLimitExceeded    = errors.New("resume active limit exceeded")
+	ErrInvalidSourceType      = errors.New("invalid resume source type")
 )
 
 func encodeCursor(updatedAt time.Time, id string) string {

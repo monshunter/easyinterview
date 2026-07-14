@@ -13,4 +13,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| Core Loop Module Pruning | [plan](./001-core-loop-module-pruning/plan.md) / [checklist](./001-core-loop-module-pruning/checklist.md) / [context](./001-core-loop-module-pruning/context.yaml) / [bdd-plan](./001-core-loop-module-pruning/bdd-plan.md) / [bdd-checklist](./001-core-loop-module-pruning/bdd-checklist.md) | 1.274 | completed | 2026-07-10 |
+| Core Loop Module Pruning | [plan](./001-core-loop-module-pruning/plan.md) / [checklist](./001-core-loop-module-pruning/checklist.md) / [context](./001-core-loop-module-pruning/context.yaml) / [bdd-plan](./001-core-loop-module-pruning/bdd-plan.md) / [bdd-checklist](./001-core-loop-module-pruning/bdd-checklist.md) | 1.275 | completed | 2026-07-14 |

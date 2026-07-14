@@ -5,10 +5,10 @@ metadata:
   name: 001-home-jd-import-and-parse
   sequence: 1
   baseBranch: main
-  branch: fix/interview-turn-ux-0713
+  branch: fix/request-dedup-resume-summary-routing-0714
   specVersion:
-    from: 2.20
-    to: 2.23
+    from: 2.23
+    to: 2.24
 spec:
   defaultTarget: frontend
   discovery:
@@ -62,11 +62,17 @@ spec:
       - parse loading gate
       - parse loading internal metadata
       - no model rubric prompt provenance latency footer
-      - parse route resumeId
+      - parse route targetJobId only
       - parse targetJobId switch
+      - parse command route
+      - queued processing only
+      - ready replaceRoute workspace detail
+      - direct ready card workspace detail
+      - exact GET request count
+      - no duplicate immediate request
       - ready resume selection
       - readonly plan receipt
-      - start interview from parse
+      - start interview from workspace detail
       - unified plan detail
       - interview plan detail
       - context confirm

@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.15
-> **状态**: active
+> **版本**: 1.20
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -65,11 +65,11 @@ to: "202"
 
 The wrapper must verify the exact path, method and statuses. Any other status transition is breaking unless accepted through ADR and spec revision.
 
-## 3 质量门禁
+## 3 质量门禁分类
 
 - **Plan 类型**: `contract + tooling + governance`。
 - **TDD 策略**: 适用。Wrapper unit tests cover breaking/additive reclassification, composition schema diff, privacy export whitelist and contract-record requirements.
-- **BDD 策略**: 不适用。本 plan is internal contract evolution tooling and has no user behavior flow.
+- **BDD 策略**: 不创建本地 BDD；本 plan 是内部 contract evolution tooling。涉及用户可见 correction 时，guarded re-freeze 必须等待业务 owner 的 BDD evidence；Phase 9 复用 P0.034/P0.036/P0.037。
 - **替代验证 gate**:
   - `make openapi-diff`
   - `python3 -m unittest scripts.lint.openapi_diff_test`
@@ -120,6 +120,7 @@ The wrapper must verify the exact path, method and statuses. Any other status tr
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.20 | Add Phase 9 for OPENAPI-005 exact Resume list-summary audit and all-consumer guarded re-freeze. |
 | 2026-07-14 | 1.14 | Add OPENAPI-004 exact old-baseline audit and guarded report-overview re-freeze phase. |
 | 2026-07-14 | 1.13 | Correct OPENAPI-002 from 15 to 17 exact findings and define the separate Practice machine oracle as a non-ADR projection of D-35/history 1.54/方案 A. |
 | 2026-07-13 | 1.12 | Fix OPENAPI-002 proposed/audit order and exact invariants; add a separate Practice message recovery correction audit phase. |
@@ -182,3 +183,15 @@ Require accepted OPENAPI-004 and spec/history 1.57 before proposed schema mutati
 ### 8.2 Invariants and guarded re-freeze
 
 Audit must prove 37 operations/10 tags and unchanged `GET /api/v1/targets/{targetJobId}/reports`, operationId `listTargetJobReports`, 200 response. Preserve the old-baseline artifact before mutation. Do not re-freeze until 001/002, migration/TargetJob, backend-review, target-scoped ReportsScreen/P0.059, Parse/Report/Generating zero-list-consumer and mock gates pass. Final proof requires preserved audit + clean current diff + independent lint/fixture/codegen/consumer gates; a clean diff alone is insufficient.
+
+## 11 Phase 9: OPENAPI-005 Resume list summary correction
+
+### 9.1 Accepted authority and RED oracle generation
+
+Require accepted [OPENAPI-005](../../decisions/OPENAPI-005-resume-list-summary.md) and spec/history 1.59 before proposed schema mutation. Snapshot the merge-base old baseline and keep the worktree baseline unchanged. Phase 9 must generate `decisions/OPENAPI-005-resume-list-summary.expected-findings.json` from old baseline → proposed OpenAPI only after focused RED proves the old full-Resume list shape; the path declaration in the decision is not evidence and this document revision intentionally does not create the JSON.
+
+The generated oracle must exact-match the response item ref change, new closed/required `ResumeSummary` schema and nullable/typed property constraints by `severity + path + kind + before + after`. Missing/extra finding, severity/path/kind/before/after drift, wildcard authorization, hand-authored placeholder, edited old baseline or simultaneous current/baseline replacement fails.
+
+### 9.2 Invariants and guarded re-freeze
+
+Audit separately locks 37 operations/10 tags；`GET /api/v1/resumes`, operationId `listResumes`, 200 `PaginatedResume` pagination envelope；and `GET /api/v1/resumes/{resumeId}`, operationId `getResume`, 200 full `Resume`. Preserve the deterministic old-baseline artifact before mutation. Do not re-freeze until 001 Phase 16, 002 Phase 11, 004 Phase 7, backend list projection, mock parity, every frontend consumer and P0.034/P0.036/P0.037 all pass without compatibility fields or N+1 detail fetch. Final proof requires preserved audit + clean current diff + independent lint/fixture/codegen/consumer gates.

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from "vitest";
+import { StrictMode } from "react";
+import { describe, expect, it } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../api/generated/client";
 import type { Resume } from "../../api/generated/types";
@@ -31,14 +33,58 @@ function buildClient(scenario: string): EasyInterviewClient {
   });
 }
 
-function renderDetail(
-  scenario: string,
+interface DetailTransportStats {
+  count: number;
+  inFlight: number;
+  maxInFlight: number;
+}
+
+function buildSequenceClient(
+  sequence: Array<Resume | Error>,
+  stats: DetailTransportStats,
+): EasyInterviewClient {
+  const fixtureFetch = createFixtureBackedFetch(
+    createFixtureRegistry(FIXTURES),
+    { scenario: "default" },
+  );
+  return new EasyInterviewClient({
+    fetch: async (input, init) => {
+      const url = new URL(String(input), "http://fixture.local");
+      if (
+        (init?.method ?? "GET").toUpperCase() !== "GET" ||
+        url.pathname !== `/api/v1/resumes/${RESUME_ID}`
+      ) {
+        return fixtureFetch(input, init);
+      }
+
+      const index = stats.count;
+      stats.count += 1;
+      stats.inFlight += 1;
+      stats.maxInFlight = Math.max(stats.maxInFlight, stats.inFlight);
+      try {
+        await Promise.resolve();
+        const value = sequence[Math.min(index, sequence.length - 1)];
+        if (value instanceof Error) throw value;
+        return new Response(JSON.stringify(value), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      } finally {
+        stats.inFlight -= 1;
+      }
+    },
+  });
+}
+
+function renderDetailWithClient(
+  client: EasyInterviewClient,
   resumeId: string,
   params: Record<string, string> = {},
+  options?: { strict?: boolean },
 ) {
-  return render(
+  const app = (
     <App
-      client={buildClient(scenario)}
+      client={client}
       requestOptions={{
         getMe: { headers: { Prefer: "example=authenticated" } },
       }}
@@ -46,11 +92,58 @@ function renderDetail(
         name: "resume_versions",
         params: { resumeId, ...params },
       }}
-    />,
+    />
   );
+  return render(options?.strict ? <StrictMode>{app}</StrictMode> : app);
+}
+
+function renderDetail(
+  scenario: string,
+  resumeId: string,
+  params: Record<string, string> = {},
+) {
+  return renderDetailWithClient(buildClient(scenario), resumeId, params);
 }
 
 describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
+  it("issues one ready detail transport on a StrictMode mount", async () => {
+    const stats = { count: 0, inFlight: 0, maxInFlight: 0 };
+    const client = buildSequenceClient(
+      [getResumeFixture.scenarios.default.response.body as Resume],
+      stats,
+    );
+
+    renderDetailWithClient(client, RESUME_ID, {}, { strict: true });
+
+    await screen.findByTestId("resume-detail-crumb");
+    expect(stats).toMatchObject({ count: 1, maxInFlight: 1 });
+    console.info(
+      "E2E.P0.037 ready detail transport PASS initial=1 maxInFlight=1",
+    );
+  });
+
+  it("evicts a rejected ready-detail request and retries with one new transport", async () => {
+    const stats = { count: 0, inFlight: 0, maxInFlight: 0 };
+    const client = buildSequenceClient(
+      [
+        new TypeError("temporary detail transport failure"),
+        getResumeFixture.scenarios.default.response.body as Resume,
+      ],
+      stats,
+    );
+
+    renderDetailWithClient(client, RESUME_ID, {}, { strict: true });
+
+    const retry = await screen.findByTestId("resume-detail-retry");
+    expect(stats).toMatchObject({ count: 1, maxInFlight: 1 });
+    await userEvent.click(retry);
+    await screen.findByTestId("resume-detail-crumb");
+    expect(stats).toMatchObject({ count: 2, maxInFlight: 1 });
+    console.info(
+      "E2E.P0.037 detail rejection retry transport PASS initialRejected=1 retrySucceeded=2 maxInFlight=1",
+    );
+  });
+
   it("renders the resume itself and exposes no tab, export, copy, edit, rewrite, or original-preview controls", async () => {
     renderDetail("default", RESUME_ID);
 
@@ -115,7 +208,6 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
   });
 
   it("polls pending PDF upload detail until the source page stack and LLM displayName are shown", async () => {
-    const client = buildClient("default");
     const queued: Resume = {
       ...(getResumeFixture.scenarios.default.response.body as Resume),
       id: RESUME_ID,
@@ -136,23 +228,10 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
       parsedTextSnapshot:
         "谭章毓\n后端工程师 AI\nservice-registry-operator / korder / ohmykube",
     };
-    const getResumeSpy = vi
-      .spyOn(client, "getResume")
-      .mockResolvedValueOnce(queued)
-      .mockResolvedValueOnce(ready);
+    const stats = { count: 0, inFlight: 0, maxInFlight: 0 };
+    const client = buildSequenceClient([queued, ready], stats);
 
-    render(
-      <App
-        client={client}
-        requestOptions={{
-          getMe: { headers: { Prefer: "example=authenticated" } },
-        }}
-        initialRoute={{
-          name: "resume_versions",
-          params: { resumeId: RESUME_ID },
-        }}
-      />,
-    );
+    renderDetailWithClient(client, RESUME_ID, {}, { strict: true });
 
     await waitFor(
       () => {
@@ -163,7 +242,7 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
       },
       { timeout: 2000 },
     );
-    expect(getResumeSpy).toHaveBeenCalledTimes(2);
+    expect(stats).toMatchObject({ count: 2, maxInFlight: 1 });
     const stack = screen.getByTestId("resume-detail-pdf-preview-stack");
     expect(stack).toHaveAttribute(
       "data-source-url",
@@ -176,10 +255,12 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
     expect(
       screen.queryByRole("heading", { name: "谭章毓简历-后端工程师AI.pdf" }),
     ).not.toBeInTheDocument();
+    console.info(
+      "E2E.P0.037 pending serial poll transport PASS initial=1 poll=2 maxInFlight=1",
+    );
   });
 
   it("does not poll again when a PDF upload has failed but the source page stack and displayName are available", async () => {
-    const client = buildClient("default");
     const failed: Resume = {
       ...(getResumeFixture.scenarios.default.response.body as Resume),
       id: RESUME_ID,
@@ -193,20 +274,10 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
       parsedSummary: null,
       structuredProfile: {},
     };
-    const getResumeSpy = vi.spyOn(client, "getResume").mockResolvedValue(failed);
+    const stats = { count: 0, inFlight: 0, maxInFlight: 0 };
+    const client = buildSequenceClient([failed], stats);
 
-    render(
-      <App
-        client={client}
-        requestOptions={{
-          getMe: { headers: { Prefer: "example=authenticated" } },
-        }}
-        initialRoute={{
-          name: "resume_versions",
-          params: { resumeId: RESUME_ID },
-        }}
-      />,
-    );
+    renderDetailWithClient(client, RESUME_ID, {}, { strict: true });
 
     await waitFor(() => {
       expect(screen.getByTestId("resume-detail-pdf-preview-stack")).toBeInTheDocument();
@@ -215,7 +286,7 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
       await new Promise((resolve) => setTimeout(resolve, 350));
     });
 
-    expect(getResumeSpy).toHaveBeenCalledTimes(1);
+    expect(stats).toMatchObject({ count: 1, maxInFlight: 1 });
     expect(screen.getByTestId("resume-detail-preview-content")).not.toHaveTextContent(
       "AI Workflow",
     );

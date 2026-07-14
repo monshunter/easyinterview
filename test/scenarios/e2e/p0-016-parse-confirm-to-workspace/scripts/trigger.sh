@@ -29,9 +29,11 @@ fi
   COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend exec vitest run \
     src/app/screens/parse/ParseReports.test.tsx \
     src/app/screens/parse/ParseScreen.test.tsx \
+    src/app/screens/parse/ParseFlow.test.tsx \
     src/app/screens/parse/ParseEdit.test.tsx \
     src/app/screens/parse/ParseAuthGate.test.tsx \
     src/app/screens/parse/ParseResumeBinding.test.tsx \
+    src/app/screens/parse/ParseRoundStates.test.tsx \
     src/app/screens/home/MockInterviewCard.test.tsx \
     src/app/screens/home/HomeRecentMocks.test.tsx \
     src/app/navigation/interviewContext.test.ts \
@@ -45,7 +47,7 @@ fi
   cd "$REPO_ROOT/frontend"
   CI=1 COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm exec playwright test \
     tests/pixel-parity/parse.spec.ts \
-    --grep 'readonly plan detail exposes only direct start with bound resume context|plan-detail reports entry matches the UI truth and keeps Parse report-free|start interview hands off directly to practice with bound resume' \
+    --grep 'workspace detail exposes only direct start with bound resume context|workspace detail round states match the UI truth at desktop and mobile|workspace plan-detail reports entry matches the UI truth and stays report-list-free|workspace start interview hands off directly to practice with bound resume' \
     --project=desktop \
     --project=mobile \
     --workers=1 \

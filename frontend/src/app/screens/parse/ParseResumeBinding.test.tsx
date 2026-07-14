@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import {
   createFixtureBackedFetch,
@@ -21,7 +21,7 @@ import createPracticePlanFixture from "../../../../../openapi/fixtures/PracticeP
 import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
 import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 
-const LOADING_PREVIEW_DELAY = 3200;
+const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
 
 function makeReadyFixture(overrides: Record<string, unknown> = {}) {
   const body = (
@@ -74,8 +74,8 @@ function renderParse(
           <NavigationProvider value={{ navigate }}>
             <ParseScreen
               route={{
-                name: "parse",
-                params: { targetJobId: "tj-1", ...routeParams },
+                name: "workspace",
+                params: { targetJobId: TARGET_JOB_ID, ...routeParams },
               }}
             />
           </NavigationProvider>
@@ -89,38 +89,27 @@ async function renderReadyParse(
   client: EasyInterviewClient,
   routeParams?: Record<string, string>,
 ) {
-  vi.useFakeTimers();
-  const result = renderParse(client, routeParams);
-
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
-  });
-  vi.useRealTimers();
-
-  return result;
+  return renderParse(client, routeParams);
 }
-
-afterEach(() => {
-  vi.useRealTimers();
-});
 
 describe("ParseResumeBinding", () => {
   it("shows the saved bound resume as readonly context", async () => {
     const client = createClient();
+    const listSpy = vi.spyOn(client, "listResumes");
 
     await renderReadyParse(client);
 
     expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
-        "Alice Example - Senior Frontend Engineer",
+        "Resume saved with this interview plan",
       );
     });
-    expect(screen.queryByTestId("parse-resume-required")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker-toggle")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-create")).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
+    expect(listSpy).not.toHaveBeenCalled();
   });
 
   it("does not inherit route resumeId when the saved TargetJob lacks one", async () => {
@@ -134,7 +123,7 @@ describe("ParseResumeBinding", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("parse-resume-required")).toBeInTheDocument();
+      expect(screen.getByTestId("parse-resume-empty")).toBeInTheDocument();
     });
     expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
     expect(screen.queryByTestId("parse-resume-option-01918fa0-0000-7000-8000-000000001000")).not.toBeInTheDocument();
@@ -149,13 +138,9 @@ describe("ParseResumeBinding", () => {
 
     await renderReadyParse(client);
 
-    await waitFor(() => {
-      expect(listSpy).toHaveBeenCalledTimes(1);
-    });
-
     expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
     expect(screen.getByTestId("parse-resume-binding")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-resume-required")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-resume-empty")).toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker-toggle")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-create")).not.toBeInTheDocument();
@@ -165,9 +150,10 @@ describe("ParseResumeBinding", () => {
       ),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
+    expect(listSpy).not.toHaveBeenCalled();
   });
 
-  it("starts interview directly from parse with the saved resumeId and no target patch", async () => {
+  it("starts interview directly from workspace detail with the saved resumeId and no target patch", async () => {
     const client = createClient();
     const updateSpy = vi.spyOn(client, "updateTargetJob");
     const createSpy = vi.spyOn(client, "createPracticePlan");
@@ -210,19 +196,18 @@ describe("ParseResumeBinding", () => {
     expect(JSON.stringify(params)).not.toContain("resume-unbound");
   });
 
-  it("does not expose service details when resume loading fails", async () => {
+  it("does not request resume list or expose its failure from readonly detail", async () => {
     const client = createClient();
-    vi.spyOn(client, "listResumes").mockRejectedValue(
+    const listSpy = vi.spyOn(client, "listResumes").mockRejectedValue(
       new Error("HTTP 503 RESUME_STORE_UNAVAILABLE"),
     );
 
     await renderReadyParse(client);
 
-    expect(await screen.findByText("Resumes cannot be loaded right now. Please try again later.")).toBeInTheDocument();
+    expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
+    expect(listSpy).not.toHaveBeenCalled();
     expect(screen.queryByText("HTTP 503 RESUME_STORE_UNAVAILABLE")).not.toBeInTheDocument();
-    expect(screen.queryByText("Missing bound resume")).not.toBeInTheDocument();
-    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
   });
 
   it("does not expose a backend error when starting the interview fails", async () => {

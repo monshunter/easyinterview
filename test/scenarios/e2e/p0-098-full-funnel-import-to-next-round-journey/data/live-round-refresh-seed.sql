@@ -135,4 +135,42 @@ insert into practice_session_events (
   now()
 );
 
+insert into practice_messages (
+  id, session_id, seq_no, role, content, created_at
+) values (
+  '019f6098-0000-7000-8000-000000000022',
+  '019f6098-0000-7000-8000-000000000020',
+  1,
+  'assistant',
+  '请介绍一次你主导的平台工程改进。',
+  now()
+);
+
+insert into practice_messages (
+  id, session_id, seq_no, role, content, client_message_id,
+  reply_status, reply_generation, created_at
+) values (
+  '019f6098-0000-7000-8000-000000000023',
+  '019f6098-0000-7000-8000-000000000020',
+  2,
+  'user',
+  '我主导了 Kubernetes 发布链路的 GitOps 改造。',
+  '019f6098-0000-7000-8000-000000000029',
+  'complete',
+  1,
+  now()
+);
+
+insert into practice_messages (
+  id, session_id, seq_no, role, content, reply_to_message_id, created_at
+) values (
+  '019f6098-0000-7000-8000-000000000024',
+  '019f6098-0000-7000-8000-000000000020',
+  3,
+  'assistant',
+  '你如何衡量这次改造的效果？',
+  '019f6098-0000-7000-8000-000000000023',
+  now()
+);
+
 commit;

@@ -47,6 +47,31 @@ class ReportsAuthPrivacySourceContractTest(unittest.TestCase):
             self.assertIn(marker, pending)
             self.assertIn(marker, privacy)
 
+    def test_workspace_detail_keeps_only_target_locator_and_stays_read_only(self) -> None:
+        privacy = read("frontend/src/app/AppRoutingPrivacy.test.tsx")
+        route_url = read("frontend/src/app/routeUrl.test.ts")
+        app = read("frontend/src/app/App.test.tsx")
+        for marker in (
+            "navigate(workspace) with raw markers drops every marker",
+            'expect(window.location.search).toBe("?targetJobId=tj-redline")',
+            'toBe("/workspace?targetJobId=tj-popstate")',
+        ):
+            self.assertIn(marker, privacy)
+        for marker in (
+            "retains targetJobId as the sole workspace detail locator",
+            "parses targetJobId as the sole canonical workspace detail locator",
+            "autoStartPractice",
+            "unknownKey",
+            "rawText",
+            "token",
+        ):
+            self.assertIn(marker, route_url)
+        for marker in (
+            "renders a target-scoped workspace as read-only detail with one getTargetJob",
+            'queryByTestId("parse-loading-step-0")',
+        ):
+            self.assertIn(marker, app)
+
 
 if __name__ == "__main__":
     unittest.main()

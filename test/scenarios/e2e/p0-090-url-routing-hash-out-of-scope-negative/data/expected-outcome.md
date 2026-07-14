@@ -6,7 +6,8 @@
 | Reports TopBar negative | `app-shell-topbar` 可见，但 `topbar-nav-reports` 不存在 |
 | legacy Parse report params | URL 重写为 `/parse?targetJobId=tj-1`；旧报告参数全部被过滤且不恢复嵌入式报告区 |
 | `#route=home` 启动 | `home-hero-label` 渲染；URL 重写为 `/`；`location.hash` 为空 |
-| `#route=workspace&targetJobId=tj-1` | URL 重写为 query-free `/workspace`；`targetJobId` 被过滤；`workspace-plan-list` 渲染 |
+| `#route=workspace&targetJobId=tj-1&...` | URL 重写为 `/workspace?targetJobId=tj-1`；`resumeId` / `planId` / `autoStartPractice` / unknown / raw / sensitive params 被过滤；Workspace 只读规划详情渲染 |
+| Workspace detail runtime | 只调用一次 `getTargetJob`；不出现 Parse loading animation；不触发 `importTargetJob` 或 route-side polling |
 | `#route=practice&mode=phone&modality=phone&sessionId=...` | URL 重写为仅保留 `sessionId` 的 `/practice?...`；显示连续聊天且电话按钮 disabled |
 | `#route=practice&mode=voice&modality=voice&sessionId=...` | URL 重写为仅保留 `sessionId` 的 `/practice?...`；voice 参数被过滤，不渲染电话 surface |
 | `#route=voice` | URL 重写为 `/`；`home-hero-label` 渲染（独立 voice route 不 materialize） |
@@ -21,7 +22,9 @@
 |----------|------|
 | `routeUrl.ROUTE_TO_PATH` 文件中不出现 `"/voice"` / `"/welcome"` / `"/debrief"` / `"/profile"` 等 out-of-scope path 字面值 | 禁止 alias 通过 typed table 复活 |
 | `frontend/src/app/screens/` 下不存在 welcome / growth / mistakes / drill / followup / experiences / star / onboarding / debrief / profile 目录 | out-of-scope 模块零 materialize |
+| Workspace hash / direct URL 只保留 `targetJobId` | ready 规划详情不会被 `resumeId` / `planId` / `autoStartPractice` 或 raw/secret 参数驱动，也不会混入 Parse command flow |
 
 证据：`.test-output/e2e/p0-090-url-routing-hash-out-of-scope-negative/trigger.log`
-必须出现 source contract `Ran 2 tests` / `OK`、Reports hash、Parse legacy strip、
+必须出现 source contract `Ran 2 tests` / `OK`、Reports hash、Workspace
+target-scoped read-only detail、Parse legacy strip、
 known `/reports` fallback 测试标题、`Tests ... passed` 与 `Test Files ... passed` marker。

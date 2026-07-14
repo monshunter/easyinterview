@@ -257,12 +257,7 @@ export const TopBar: FC<TopBarProps> = ({
                 {pickerOpen && (
                   <CustomAccentPicker
                     accent={accentValue}
-                    active={customActive}
                     onChange={handleAccentChange}
-                    onClear={() => {
-                      prefs.setCustomAccent(null);
-                      setPickerOpen(false);
-                    }}
                     lang={prefs.lang}
                     dark={prefs.dark}
                   />
@@ -454,18 +449,14 @@ export const TopBar: FC<TopBarProps> = ({
 
 interface CustomAccentPickerProps {
   accent: CustomAccent;
-  active: boolean;
   onChange: (next: Partial<CustomAccent>) => void;
-  onClear: () => void;
   lang: Lang;
   dark: boolean;
 }
 
 const CustomAccentPicker: FC<CustomAccentPickerProps> = ({
   accent,
-  active,
   onChange,
-  onClear,
   lang,
   dark,
 }) => {
@@ -477,7 +468,6 @@ const CustomAccentPicker: FC<CustomAccentPickerProps> = ({
   }).join(", ");
   const hueGradient = `linear-gradient(to right, ${hueStops})`;
   const chromaGradient = `linear-gradient(to right, oklch(${accentL}% 0 ${normalizedHue}), oklch(${accentL}% 0.25 ${normalizedHue}))`;
-  const previewAccent = `oklch(${accentL}% ${accent.c.toFixed(3)} ${normalizedHue.toFixed(1)})`;
 
   return (
     <div
@@ -486,23 +476,13 @@ const CustomAccentPicker: FC<CustomAccentPickerProps> = ({
       role="group"
       aria-label={lang === "en" ? "Custom accent picker" : "自定义主题色"}
     >
-      <div className="ei-topbar-custom-accent-preview">
-        <span
-          className="ei-topbar-custom-accent-preview-swatch"
-          style={{ background: previewAccent, opacity: active ? 1 : 0.55 }}
-          aria-hidden="true"
-        />
-        <span className="ei-topbar-custom-accent-value">
-          oklch({accentL}% {accent.c.toFixed(3)} {Math.round(normalizedHue)})
-        </span>
-      </div>
       <div className="ei-topbar-custom-accent-row">
         <span className="ei-text-label">
           {lang === "en" ? "Hue" : "色相"}
         </span>
         <div
           className="ei-topbar-custom-accent-track"
-          style={{ background: hueGradient, opacity: active ? 1 : 0.55 }}
+          style={{ background: hueGradient }}
         >
           <input
             data-testid="topbar-custom-accent-hue"
@@ -523,7 +503,7 @@ const CustomAccentPicker: FC<CustomAccentPickerProps> = ({
         </span>
         <div
           className="ei-topbar-custom-accent-track"
-          style={{ background: chromaGradient, opacity: active ? 1 : 0.55 }}
+          style={{ background: chromaGradient }}
         >
           <input
             data-testid="topbar-custom-accent-chroma"
@@ -540,14 +520,6 @@ const CustomAccentPicker: FC<CustomAccentPickerProps> = ({
           />
         </div>
       </div>
-      <button
-        type="button"
-        data-testid="topbar-custom-accent-clear"
-        className="ei-link"
-        onClick={onClear}
-      >
-        {lang === "en" ? "Reset to theme accent" : "恢复主题默认色"}
-      </button>
     </div>
   );
 };

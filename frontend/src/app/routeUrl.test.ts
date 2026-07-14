@@ -44,7 +44,7 @@ describe("serializeRouteToUrl", () => {
     });
   });
 
-  it("drops all context params for workspace because it is a pure list route", () => {
+  it("retains targetJobId as the sole workspace detail locator", () => {
     expect(
       formatRouteUrl({
         name: "workspace",
@@ -55,7 +55,7 @@ describe("serializeRouteToUrl", () => {
           autoStartPractice: "1",
         },
       }),
-    ).toBe("/workspace");
+    ).toBe("/workspace?targetJobId=tj-1");
   });
 
   it("drops empty and unknown params", () => {
@@ -69,7 +69,7 @@ describe("serializeRouteToUrl", () => {
           planId: "",
         },
       }),
-    ).toBe("/workspace");
+    ).toBe("/workspace?targetJobId=tj-1");
   });
 
   it("serializes the out-of-scope jd_match route name to the home canonical path (D-17)", () => {
@@ -170,17 +170,19 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/?opaquePendingImportId=imp-1");
   });
 
-  it("drops the retired intake source from Parse URLs", () => {
+  it("retains only targetJobId on the Parse command/progress URL", () => {
     expect(
       formatRouteUrl({
         name: "parse",
         params: {
           targetJobId: "tj-1",
           resumeId: "rv-1",
+          jdId: "jd-1",
+          importId: "imp-1",
           source: "paste",
         },
       }),
-    ).toBe("/parse?resumeId=rv-1&targetJobId=tj-1");
+    ).toBe("/parse?targetJobId=tj-1");
   });
 
   it("drops the retired Parse reports section and all report business authority", () => {
@@ -292,7 +294,7 @@ describe("serializeRouteToUrl", () => {
         },
       }),
     ).toBe(
-      "/auth/login?email=alice%40example.com&next=%2Fworkspace&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice",
+      "/auth/login?email=alice%40example.com&next=%2Fworkspace&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&targetJobId=tj-1",
     );
   });
 
@@ -323,7 +325,7 @@ describe("serializeRouteToUrl", () => {
         },
       }),
     ).toBe(
-      "/auth/verify?email=alice%40example.com&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice",
+      "/auth/verify?email=alice%40example.com&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&targetJobId=tj-1",
     );
     expect(
       formatRouteUrl({
@@ -367,7 +369,7 @@ describe("serializeRouteToUrl", () => {
           nextRoundId: "round-2",
         },
       }),
-    ).toBe("/workspace");
+    ).toBe("/workspace?targetJobId=tj-1");
   });
 
   it("drops raw payload, AI prompt, auth secret keys from URL even when present", () => {
@@ -397,7 +399,9 @@ describe("serializeRouteToUrl", () => {
         name: "workspace",
         params: { targetJobId: "tj-1", [key]: "leaked-value" },
       });
-      expect(url, `workspace must drop ${key}`).toBe("/workspace");
+      expect(url, `workspace must drop ${key}`).toBe(
+        "/workspace?targetJobId=tj-1",
+      );
     }
     for (const key of PRIVATE_KEYS) {
       const url = formatRouteUrl({
@@ -429,14 +433,14 @@ describe("parseUrlToRoute", () => {
     });
   });
 
-  it("parses canonical workspace URL but strips out-of-scope context params", () => {
+  it("parses targetJobId as the sole canonical workspace detail locator", () => {
     expect(
       parseUrlToRoute(
         "/workspace?targetJobId=tj-1&resumeId=rv-1&planId=plan-1&autoStartPractice=1",
       ),
     ).toEqual({
       name: "workspace",
-      params: {},
+      params: { targetJobId: "tj-1" },
     });
   });
 
@@ -488,7 +492,7 @@ describe("parseUrlToRoute", () => {
       parseUrlToRoute("/workspace?targetJobId=tj-1&rawText=raw+jd&query=secret"),
     ).toEqual({
       name: "workspace",
-      params: {},
+      params: { targetJobId: "tj-1" },
     });
   });
 
@@ -517,6 +521,7 @@ describe("parseUrlToRoute", () => {
         pendingRoute: "workspace",
         pendingType: "start_practice",
         pendingLabel: "立即面试",
+        targetJobId: "tj-1",
       },
     });
   });
@@ -554,14 +559,14 @@ describe("parseUrlToRoute", () => {
   it("supports plain URL input without leading slash", () => {
     expect(parseUrlToRoute("workspace?targetJobId=tj-1")).toEqual({
       name: "workspace",
-      params: {},
+      params: { targetJobId: "tj-1" },
     });
   });
 
   it("strips fragment during canonical parse (hash adapter remains separate)", () => {
     expect(
       parseUrlToRoute("/workspace?targetJobId=tj-1#anything"),
-    ).toEqual({ name: "workspace", params: {} });
+    ).toEqual({ name: "workspace", params: { targetJobId: "tj-1" } });
   });
 
   it("normalizes the opaque home query-only deep link", () => {
@@ -585,12 +590,12 @@ describe("parseUrlToRoute", () => {
 });
 
 describe("isSafeRouteParam", () => {
-  it("approves cross-owner safe params but keeps workspace param-free", () => {
+  it("approves only the minimal cross-owner safe params", () => {
     expect(isSafeRouteParam("home", "opaquePendingImportId", {})).toBe(true);
     expect(isSafeRouteParam("home", "pendingImportId", {})).toBe(false);
     expect(isSafeRouteParam("home", "source", {})).toBe(false);
     expect(isSafeRouteParam("home", "resumeId", {})).toBe(false);
-    expect(isSafeRouteParam("workspace", "targetJobId", {})).toBe(false);
+    expect(isSafeRouteParam("workspace", "targetJobId", {})).toBe(true);
     expect(isSafeRouteParam("workspace", "autoStartPractice", {})).toBe(false);
     expect(isSafeRouteParam("workspace", "sourceSessionId", {})).toBe(false);
     expect(isSafeRouteParam("workspace", "sourceReportId", {})).toBe(false);
@@ -602,7 +607,10 @@ describe("isSafeRouteParam", () => {
     expect(isSafeRouteParam("report", "errorCode", {})).toBe(false);
     expect(isSafeRouteParam("generating", "sessionId", {})).toBe(false);
     expect(isSafeRouteParam("resume_versions", "tailorRunId", {})).toBe(false);
-    expect(isSafeRouteParam("parse", "resumeId", {})).toBe(true);
+    expect(isSafeRouteParam("parse", "targetJobId", {})).toBe(true);
+    expect(isSafeRouteParam("parse", "resumeId", {})).toBe(false);
+    expect(isSafeRouteParam("parse", "jdId", {})).toBe(false);
+    expect(isSafeRouteParam("parse", "importId", {})).toBe(false);
     expect(isSafeRouteParam("parse", "source", {})).toBe(false);
   });
 

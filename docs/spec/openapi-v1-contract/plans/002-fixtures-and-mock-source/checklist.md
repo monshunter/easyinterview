@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.18
-> **状态**: active
+> **版本**: 1.19
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -100,4 +100,18 @@
   <!-- verified: 2026-07-14 method=prototype-sync-idempotency evidence="Four TargetJob fixtures and the sync renderer contain no latestReportId; 63 fixture/sync/CLI tests PASS, two consecutive sync runs produce identical fixture-tree sha256=d312ca1cb5151bf9b1685317faf43cde8caf2d7a0bf5ed82db17c25991c78192, and current positive surfaces have no replacement pointer." -->
 - [x] 10.4 PARITY-GATE: validate/render/live Prism byte parity passes for list reports and affected TargetJob defaults; mock runtime consumes the same bytes.
   <!-- verified: 2026-07-14 method=render+live-prism+mock-contract evidence="All 37 fixtures validate; derived OpenAPI sha256=189bc6376f263db1742984e491ae86866dafd47f2469c6c7b394ff777a483e0c; Prism 5.14.2 returned byte-equal defaults for 11 operations including listTargetJobReports plus list/get/import/update/archive TargetJob; smoke contract 4/4 and lint-mock-contract PASS." -->
-- [ ] 10.5 HANDOFF/ZERO-REF: backend-review/frontend-report/P0.059 consume current overview markers；P0.016 proves Parse has no list consumer；positive/runtime fixture/example/prototype surfaces contain no cursor/pageInfo/full report/latest-report-pointer compatibility fields.
+- [x] 10.5 HANDOFF/ZERO-REF: backend-review/frontend-report/P0.059 consume current overview markers；P0.016 proves Parse has no list consumer；positive/runtime fixture/example/prototype surfaces contain no cursor/pageInfo/full report/latest-report-pointer compatibility fields.
+  <!-- verified: 2026-07-14 evidence="backend/frontend report handoff and P0.016/P0.059 current gates PASS; scoped old overview/pointer positive-runtime search is clean" -->
+
+## Phase 11: OPENAPI-005 Resume list summary fixtures
+
+- [x] 11.1 RED: focused fixture/schema tests fail on old full `Resume` list items, missing any of the nine required summary fields, any detail/provenance key, unknown extra, wrong nullable headline or non-boolean readable-content marker.
+  <!-- verified: 2026-07-14 method=fixture-red evidence="Focused mutations reject the legacy full item, each missing/extra/wrong-type boundary and both list-as-detail/detail-as-list substitutions before fixture GREEN." -->
+- [x] 11.2 GREEN: every `listResumes` scenario uses exact closed `ResumeSummary` items for upload/paste and parse/readability states；`getResume` scenarios remain full `Resume` detail with required provenance.
+  <!-- verified: 2026-07-14 method=fixture-green evidence="Default/empty/paginated/projection-boundaries cover upload and paste plus queued/processing/failed/ready readability states using exact summary items; all 37 fixtures validate and five example-render tests PASS while getResume remains full detail." -->
+- [x] 11.3 VALIDATOR-GATE: provenance validation no longer expects `listResumes.items[*].structuredProfile.provenance`, still enforces full `getResume` provenance, and explicitly rejects list/detail shape substitution.
+  <!-- verified: 2026-07-14 method=validator-green evidence="listResumes was removed from provenance paths only; getResume/update/duplicate provenance gates remain. Full fixture validator suite 44 tests PASS, including explicit non-substitutability mutations." -->
+- [x] 11.4 PARITY-GATE: fixture validation, example rendering and live Prism/mock byte parity pass for `listResumes` and `getResume` with 37/37 inventory unchanged.
+  <!-- verified: 2026-07-14 evidence="validate-fixtures=37; rendered examples current; Prism unit=5 PASS and live matrix=13/13 byte-equal including listResumes/getResume" -->
+- [x] 11.5 BDD-Gate: exact markers are consumed by P0.034/P0.036/P0.037 and downstream backend/frontend focused tests；no compatibility fixture or N+1 detail-fetch fallback remains.
+  <!-- verified: 2026-07-14 evidence="P0.034/P0.036/P0.037 fresh PASS with backend projection, summary-only list and navigation-only detail fetch markers" -->

@@ -10,6 +10,30 @@ from scripts.codegen import prism_fixture_smoke as smoke
 
 
 class PrismFixtureSmokeTest(unittest.TestCase):
+    def test_resume_matrix_covers_summary_list_and_full_detail_defaults(self) -> None:
+        rows = {row[0]: row for row in smoke.SMOKE_MATRIX}
+
+        self.assertEqual(
+            (
+                "listResumes",
+                "GET",
+                "/resumes",
+                200,
+                "openapi/fixtures/Resumes/listResumes.json",
+            ),
+            rows["listResumes"],
+        )
+        self.assertEqual(
+            (
+                "getResume",
+                "GET",
+                "/resumes/01918fa0-0000-7000-8000-000000001000",
+                200,
+                "openapi/fixtures/Resumes/getResume.json",
+            ),
+            rows["getResume"],
+        )
+
     def test_report_handoff_matrix_includes_both_reports_and_create_plan(self) -> None:
         operation_ids = {row[0] for row in smoke.SMOKE_MATRIX}
 

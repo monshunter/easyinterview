@@ -5,10 +5,10 @@ metadata:
   name: 003-breaking-change-gate
   sequence: 3
   baseBranch: main
-  branch: fix/interview-turn-ux-0713
+  branch: fix/request-dedup-resume-summary-routing-0714
   specVersion:
-    from: 1.56
-    to: 1.58
+    from: 1.58
+    to: 1.59
 spec:
   defaultTarget: contract
   discovery:
@@ -39,6 +39,11 @@ spec:
       - OPENAPI-004 report overview exact oracle
       - listTargetJobReports invariant
       - no latest report pointer
+      - OPENAPI-005 resume summary exact oracle
+      - PaginatedResume item ref correction
+      - ResumeSummary closed required fields
+      - listResumes and getResume invariants
+      - no placeholder expected findings JSON
     keywords:
       - openapi-diff
       - additive only
@@ -61,6 +66,7 @@ spec:
         - ../../decisions/OPENAPI-001-report-direct-semantics.md
         - ../../decisions/OPENAPI-002-targetjob-paste-only.md
         - ../../decisions/OPENAPI-004-targetjob-report-overview.md
+        - ../../decisions/OPENAPI-005-resume-list-summary.md
         - ../001-bootstrap/plan.md
         - ../002-fixtures-and-mock-source/plan.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
@@ -81,3 +87,5 @@ spec:
           - createPracticePlan
           - getPracticeSession
           - sendPracticeMessage
+          - listResumes
+          - getResume

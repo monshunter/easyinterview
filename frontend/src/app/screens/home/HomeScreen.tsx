@@ -26,17 +26,17 @@ import {
   type PendingImportIntent,
 } from "./pendingImportState";
 import { useRecentTargetJobs } from "./useRecentTargetJobs";
-import type { Resume, TargetJob } from "../../../api/generated/types";
+import type { ResumeSummary, TargetJob } from "../../../api/generated/types";
 
 function idempotencyKey(): string {
   return `ik-${crypto.randomUUID()}`;
 }
 
-function sortByMostRecentResume(a: Resume, b: Resume): number {
+function sortByMostRecentResume(a: ResumeSummary, b: ResumeSummary): number {
   return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
 }
 
-function resumeMeta(resume: Resume): string {
+function resumeMeta(resume: ResumeSummary): string {
   return [resume.language, resume.sourceType, resume.updatedAt.slice(0, 10)]
     .filter(Boolean)
     .join(" · ");
@@ -45,12 +45,14 @@ function resumeMeta(resume: Resume): string {
 export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const { lang, t } = useI18n();
   const runtime = useAppRuntimeOptional();
+  const client = runtime?.client;
+  const isAuthenticated = runtime?.auth.status === "authenticated";
   const requestAuth = useRequestAuth();
   const { navigate } = useNavigation();
   const [input, setInput] = useState("");
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<MessageKey | null>(null);
-  const [readyResumes, setReadyResumes] = useState<Resume[]>([]);
+  const [readyResumes, setReadyResumes] = useState<ResumeSummary[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState("");
   const [resumesLoading, setResumesLoading] = useState(false);
   const [resumeError, setResumeError] = useState<MessageKey | null>(null);
@@ -59,7 +61,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const handledPendingImportId = useRef<string | null>(null);
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
   const targetLanguage = lang === "zh" ? "zh-CN" : "en";
-  const showRecentMocks = runtime?.auth.status === "authenticated";
+  const showRecentMocks = isAuthenticated;
   const selectedResume = useMemo(
     () => readyResumes.find((resume) => resume.id === selectedResumeId) ?? null,
     [readyResumes, selectedResumeId],
@@ -92,7 +94,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   );
 
   useEffect(() => {
-    if (!runtime || runtime.auth.status !== "authenticated") {
+    if (!client || !isAuthenticated) {
       setReadyResumes([]);
       setSelectedResumeId("");
       setResumesLoading(false);
@@ -104,7 +106,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     setResumesLoading(true);
     setResumeError(null);
 
-    runtime.client
+    client
       .listResumes({ headers: { "Accept-Language": lang } })
       .then((page) => {
         if (!active) return;
@@ -132,7 +134,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     return () => {
       active = false;
     };
-  }, [lang, runtime]);
+  }, [client, isAuthenticated, lang]);
 
   const submitImport = useCallback(async (intent: PendingImportIntent) => {
     if (!runtime) return;
@@ -151,7 +153,6 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         name: "parse",
         params: {
           targetJobId: result.targetJobId,
-          resumeId: intent.resumeId,
         },
       });
     } catch {
@@ -211,7 +212,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     (job: TargetJob) => {
       openProtectedRoute(
         {
-          name: "parse",
+          name: "workspace",
           params: targetJobDetailRouteParams(job),
         },
         job.title,

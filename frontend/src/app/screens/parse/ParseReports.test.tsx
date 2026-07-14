@@ -89,7 +89,7 @@ function renderPreview(
         <NavigationProvider value={{ navigate }}>
           <ParseScreen
             route={{
-              name: "parse",
+              name: "workspace",
               params: { targetJobId: job.id, ...params },
             }}
             _mockStage={stage}
@@ -149,7 +149,7 @@ describe("Parse report handoff", () => {
     render(renderPreview(client, vi.fn(), { section: "reports" }));
 
     await screen.findByTestId("parse-reports-entry");
-    await waitFor(() => expect(client.listResumes).toHaveBeenCalled());
+    await waitFor(() => expect(client.listResumes).not.toHaveBeenCalled());
     expect(scrollIntoView).not.toHaveBeenCalled();
     expect(listTargetJobReports).not.toHaveBeenCalled();
     expect(screen.queryByTestId("parse-reports")).not.toBeInTheDocument();

@@ -94,7 +94,11 @@ function renderRouteScreen(
     return <ParseScreen route={route} />;
   }
   if (route.name === "workspace") {
-    return <WorkspaceScreen route={route} />;
+    return route.params.targetJobId ? (
+      <ParseScreen route={route} />
+    ) : (
+      <WorkspaceScreen route={route} />
+    );
   }
   if (route.name === "resume_versions") {
     return <ResumeWorkshopScreen route={route} />;
@@ -402,12 +406,15 @@ const AuthRouteGate: FC<{ status: "loading" | "error"; route: Route }> = ({
   </section>
 );
 
-const InterviewContextRouteSync: FC<{ route: Route }> = ({ route }) => {
+export const InterviewContextRouteSync: FC<{ route: Route }> = ({ route }) => {
   const { dispatch } = useInterviewContext();
 
   useEffect(() => {
     if (route.name === "workspace") {
       dispatch({ type: "CLEAR" });
+      if (route.params.targetJobId) {
+        dispatch({ type: "HYDRATE_FROM_ROUTE", params: route.params });
+      }
       return;
     }
     if (shouldCarryInterviewContext(route.name)) {
