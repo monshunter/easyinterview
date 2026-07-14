@@ -5,10 +5,10 @@ metadata:
   name: 001-fixture-backed-mock-runtime
   sequence: 1
   baseBranch: main
-  branch: fix/runtime-size-limits-0714
+  branch: design/report-conversation-record
   specVersion:
-    from: 1.18
-    to: 1.19
+    from: 1.19
+    to: 1.20
 spec:
   defaultTarget: tooling
   discovery:
@@ -38,6 +38,10 @@ spec:
       - retryable failure reload same ID retry
       - code level mock parity
       - BDD not applicable
+      - report conversation mock parity
+      - remove listPracticeSessions registry
+      - getReportConversation exact fixture status body
+      - deleted operation fail loudly
   targets:
     tooling:
       plan: ./plan.md
@@ -49,6 +53,7 @@ spec:
         - ../../../openapi-v1-contract/spec.md
         - ../../../openapi-v1-contract/history.md
         - ../../../openapi-v1-contract/decisions/OPENAPI-002-targetjob-paste-only.md
+        - ../../../openapi-v1-contract/decisions/OPENAPI-001-report-direct-semantics.md
         - ../../../shared-conventions-codified/spec.md
       discovery:
         packages:
@@ -82,13 +87,13 @@ spec:
           - archiveTargetJob
           - createPracticePlan
           - getPracticePlan
-          - listPracticeSessions
           - startPracticeSession
           - getPracticeSession
           - createPracticeVoiceTurn
           - sendPracticeMessage
           - completePracticeSession
           - getFeedbackReport
+          - getReportConversation
           - listTargetJobReports
           - requestResumeTailor
           - getResumeTailorRun

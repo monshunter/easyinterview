@@ -1,8 +1,8 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.30
+> **版本**: 1.31
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 目标
 
@@ -88,10 +88,13 @@ Ready 报告只展示：
 
 报告不得展示题目回顾、逐题评分、题数、raw enum/code、turn-based retry 或 session UUID 等内部 locator。`reportId` 是唯一路由 locator，但不得作为用户界面字段；Context Strip/status/CTA identity 来自 frozen report context，Context Strip 只显示目标岗位、轮次和简历。复练/下一轮只提交 goal + sourceReportId，由后端从 source report/plan 派生 settings/round；复练有可靠 issue-backed dimension 时投影 focus，否则使用空 focus 开始通用同轮复练。
 
+每份已创建报告附属一份只读会话记录。`/report-conversation?reportId=...` 复用本页 user/assistant Markdown/GFM message body 和 role visual language，但只消费 report-owned projection，不调用 `getPracticeSession`，也不呈现 Composer、thinking、retry、结束、暂停、计时、电话或任何实时状态控件。报告 queued / generating / ready / failed 都共享该访问边界；没有 reportId 的未完成会话不产生用户可见记录。产品不提供 `listPracticeSessions`、会话历史列表或 `sessionId` 用户路由。
+
 ## 7 UI 真理源
 
 - Practice：`ui-design/src/screen-practice.jsx::PracticeScreen`
 - Report：`ui-design/src/screen-report.jsx::ReportScreen`
+- Report Conversation：实施前先在 `ui-design/src/screen-report.jsx::ReportConversationScreen` 落地，并复用 `ui-design/src/screen-practice.jsx` 的 Markdown message body 源级锚点；正式 frontend 不得先于原型自行设计
 - Generating：`ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen`
 - Shared primitives：`ui-design/src/primitives.jsx`
 
@@ -117,11 +120,13 @@ Ready 报告只展示：
 | U-10 | send POST 持续无响应 | 等待 95 秒 | abort 后按同一 ID 对账；pending/failed/complete 采用 server truth；对账失败时原 row/ID 保留且不能提交新消息；迟到 response 被忽略 |
 | U-11 | server message 为 `terminal_failed` | 查看并点击恢复动作 | 无 row retry；显示通用安全说明；唯一 CTA 返回 `/workspace?targetJobId` 当前面试规划只读详情；无 current-scope `parse(targetJobId)` 恢复路径 |
 | U-12 | persisted user/assistant text 含 GFM 与恶意 HTML/image/link/code/table | 渲染、retry 并在 390px 查看 | 两种角色安全渲染 GFM；HTML/remote image/unsafe URI 不执行；safe link hardened；retry exact raw text/ID；code/table 不撑破 document |
+| U-13 | 报告资源已创建且 Practice 已结束 | 从报告打开会话记录 | 只读页按 sequence 显示同一安全 Markdown transcript；无 live controls、无 sessionId、无会话列表，并返回同一报告状态页 |
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.31 | 将完成会话 transcript 定义为 report-owned 只读投影，复用安全 Markdown 消息视觉但删除全部实时交互；明确无报告即无记录、无 listPracticeSessions/sessionId 用户入口。 |
 | 2026-07-14 | 1.30 | Practice user/assistant 增加安全 Markdown/GFM view projection 与 mobile overflow 边界；terminal CTA 改为 Workspace targetJobId 只读详情。 |
 | 2026-07-14 | 1.29 | T-B/P-A：90 秒服务端 lease 对应 95 秒前端 timeout + 同 ID 对账；terminal failure 增加精确返回当前 `parse(targetJobId)` 规划的通用 CTA。 |
 | 2026-07-13 | 1.28 | 用户确认方案 A：Practice reply state 与原 clientMessageId 由后端读模型恢复，刷新后仍可在原消息下同 ID 重试。 |

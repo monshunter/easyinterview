@@ -5,11 +5,11 @@ metadata:
   name: 001-plan-and-session-orchestration
   sequence: 1
   specVersion:
-    from: 1.23
-    to: 1.27
+    from: 1.34
+    to: 1.35
 spec:
   baseBranch: main
-  branch: practice-conversation-simplification
+  branch: design/report-conversation-record
   defaultTarget: backend
   discovery:
     aliases:
@@ -36,6 +36,13 @@ spec:
       - int32 non-contiguous sequence
       - system policy untrusted JSON context
       - assistant history is not candidate evidence
+      - remove listPracticeSessions
+      - no public session history list
+      - preserve startPracticeSession
+      - preserve getPracticeSession live recovery
+      - report owned getReportConversation handoff
+      - no session list compatibility
+      - no relation table migration
   targets:
     backend:
       plan: ./plan.md

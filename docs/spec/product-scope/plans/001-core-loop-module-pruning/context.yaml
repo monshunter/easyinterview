@@ -4,11 +4,11 @@ metadata:
   subspec: product-scope
   name: 001-core-loop-module-pruning
   sequence: 1
-  branch: fix/runtime-size-limits-0714
+  branch: design/report-conversation-record
   baseBranch: main
   specVersion:
-    from: 2.21
-    to: 2.22
+    from: 2.22
+    to: 2.23
 spec:
   defaultTarget: cross-layer
   discovery:
@@ -29,6 +29,8 @@ spec:
       - ready replace workspace
       - reports back workspace
       - practice terminal recovery
+      - report owned conversation record
+      - no public practice session list
       - ocean plum custom accent
       - hue saturation only
   targets:
@@ -68,6 +70,7 @@ spec:
           - practice
           - generating
           - report
+          - report-conversation
           - settings
           - auth_login
           - auth_verify
@@ -96,13 +99,13 @@ spec:
           - archiveTargetJob
           - createPracticePlan
           - getPracticePlan
-          - listPracticeSessions
           - startPracticeSession
           - getPracticeSession
           - createPracticeVoiceTurn
           - appendSessionEvent
           - completePracticeSession
           - getFeedbackReport
+          - getReportConversation
           - listTargetJobReports
           - requestResumeTailor
           - getResumeTailorRun

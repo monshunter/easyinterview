@@ -5,10 +5,10 @@ metadata:
   name: 003-breaking-change-gate
   sequence: 3
   baseBranch: main
-  branch: fix/runtime-size-limits-0714
+  branch: design/report-conversation-record
   specVersion:
-    from: 1.59
-    to: 1.60
+    from: 1.60
+    to: 1.61
 spec:
   defaultTarget: contract
   discovery:
@@ -46,6 +46,10 @@ spec:
       - no placeholder expected findings JSON
       - OPENAPI-006 runtime content limits exact oracle
       - RuntimeConfig contentLimits required correction
+      - OPENAPI-001 v1.7 report conversation exact oracle
+      - delete listPracticeSessions breaking finding
+      - add getReportConversation additive findings
+      - preserve 37 operations 10 tags
     keywords:
       - openapi-diff
       - additive only
@@ -86,6 +90,7 @@ spec:
           - importTargetJob
           - createUploadPresign
           - getFeedbackReport
+          - getReportConversation
           - listTargetJobReports
           - createPracticePlan
           - getPracticeSession

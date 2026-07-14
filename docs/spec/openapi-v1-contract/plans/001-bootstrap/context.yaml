@@ -5,10 +5,10 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   baseBranch: main
-  branch: runtime-size-limits
+  branch: design/report-conversation-record
   specVersion:
-    from: 1.59
-    to: 1.60
+    from: 1.60
+    to: 1.61
 spec:
   defaultTarget: contract
   discovery:
@@ -57,6 +57,10 @@ spec:
       - hasReadableContent backend projection
       - RuntimeConfig contentLimits
       - ContentLimits five public byte fields
+      - report owned conversation
+      - replace listPracticeSessions with getReportConversation
+      - reportId only transcript locator
+      - preserve 37 operations 10 tags
       - no list detail compatibility or N plus one
       - deterministic exact 24 words 64 code points parity
       - 10 tags
@@ -101,6 +105,7 @@ spec:
         - ../../decisions/OPENAPI-005-resume-list-summary.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
         - ../../../backend-review/spec.md
+        - ../../../backend-practice/spec.md
         - ../../../frontend-report-dashboard/spec.md
       discovery:
         packages:
@@ -118,6 +123,7 @@ spec:
           - listTargetJobs
           - getTargetJob
           - getFeedbackReport
+          - getReportConversation
           - listTargetJobReports
           - createPracticePlan
           - getPracticeSession

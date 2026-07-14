@@ -1,13 +1,14 @@
 # Frontend Report Dashboard History
 
-> **版本**: 1.25
+> **版本**: 1.26
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 1.26 | 新增 reportId-only ReportConversation 只读 Markdown transcript，Report 主入口与 ReportsScreen 同轮快捷入口；queued/generating/ready/failed 均可复盘，且无 session list/listPracticeSessions/Header 第三 CTA。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-14 | 1.25 | 用户确认读写职责分离：Reports Back 直接进入 targetJobId-only `/workspace` 只读规划详情，不再经过 Parse 动画/import/poll；Report/Generating trusted Back 仍回当前 `/reports`，无可信 identity 回 Workspace 列表。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-14 | 1.24 | 闭合 Reports overview locator 单轮唯一归属、same-ID-only-ready 与 current/latest cross-field fail-closed；缺失或非法 target 使用 replace-only workspace recovery，避免浏览器 Back 循环。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-14 | 1.23 | 用户修正确认：本 owner 原地承接独立 `/reports?targetJobId=...`，仅展示当前规划 canonical rounds 的 current/latest；Report/Generating trusted Back 返回该列表，无可信上下文回 workspace。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |

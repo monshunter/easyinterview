@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration
 
-> **版本**: 2.5
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 2.6
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -18,6 +18,7 @@
 - OpenAPI 删除 PracticeTurn/AssistantAction/event-answer schema，新增 message schemas 与 `sendPracticeMessage` operation。
 - `startPracticeSession` 通过 `practice.session.chat` 生成 opening assistant message。
 - `getPracticeSession` 返回 ordered messages。
+- 删除没有产品入口的 `listPracticeSessions` 公共列表；保留 scoped live-session recovery，并把完成 transcript 交给 report-owned read-side。
 - 保持 user isolation、idempotency、AI failure recovery、privacy 和 codegen drift gates。
 
 ## 2 Operation Matrix
@@ -28,6 +29,8 @@
 | `getPracticePlan` | current plan fixtures | start/read helpers | practice plan read owner | plan read | none | 当前无真实 E2E owner；root `make test` |
 | `startPracticeSession` | current session fixtures | start helpers | practice session owner | session + opening message | `practice.session.chat` | 当前无真实 E2E owner；root `make test` |
 | `getPracticeSession` | current session fixtures | Practice loader | practice read owner | session + messages | none | 当前无真实 E2E owner；root `make test` |
+
+`listPracticeSessions` 不属于当前 Operation Matrix。OpenAPI/fixture/generated/router/handler/current docs 中删除该 operation；历史决策与精确 negative declarations 可保留引用，但不得存在兼容入口。新增 `getReportConversation` 由 backend-review/001 所有，本 plan 不复制其 handler/store。
 
 ## 3 质量门禁分类
 
@@ -42,6 +45,7 @@
 |--------|----------|------------|--------------|----------------|
 | D-24 conversation | cross-layer contract | 1 | codegen/fixture/migration/prompt gates | questionBudget/PracticeTurn/QuestionAssessment |
 | session read | boundary | 4 | ordered/empty/cross-user tests | local fixture transcript |
+| C-17 | regression/contract pruning | 8 | OpenAPI inventory/codegen/router/handler/fixture/mock/source negatives | listPracticeSessions compatibility route or completion transcript via live session API |
 
 ## 5 实施步骤
 
@@ -92,6 +96,13 @@
 - Reject mismatched requested round, mismatched duration, duplicate/invalid canonical IDs, completed ladders, missing source identity and legacy null reuse. Adjacent equal-duration rounds must remain distinct.
 - Preserve idempotency replay: the same key returns the original round pair; a changed round intent with the same key conflicts instead of silently returning another round.
 
+### Phase 8: Remove public session listing
+
+- RED inventory/router/handler/generated/fixture/mock tests expose `GET /practice/sessions` / `listPracticeSessions` as an unsupported current positive surface, while preserving `POST /practice/sessions` start and `GET /practice/sessions/{sessionId}` live recovery.
+- GREEN remove the OpenAPI operation handoff, generated server/client method, API mux route, `ListPracticeSessions` handler/service/store path, fixture and dev/mock registry entry. Do not add redirect、deprecated alias、empty response compatibility or a replacement session list.
+- Consumer negative proves Workspace、Report、ReportsScreen、Practice and frontend API imports have no list dependency. Completed transcript is read only by backend-review `getReportConversation(reportId)` over the existing report-session relation; this plan adds no table/migration.
+- BDD-N/A：当前没有用户可见 session-list flow；删除不可达公共 contract 由 OpenAPI inventory/diff/oracle、fixture/codegen/mock parity、focused handler/source negatives 与根 `make test` 证明。
+
 ## 6 验收标准
 
 - Contract truth sources contain message/conversation shapes and zero current question/hint/mode shapes.
@@ -103,6 +114,7 @@
 - A plan cannot be created from another same-user resume or a wrong-resume source/completion fact; non-contiguous `1,2,4` ladders select `4` after `2`, not a fabricated `3`.
 - Prompt policy remains in the system role; JSON-encoded JD/resume/history/persona content cannot promote embedded instructions into policy, and persona cannot supply resume facts or round identity.
 - Start/send fail closed after TargetJob resume rebinding, and repeated `finish_reason=length` output persists no assistant reply.
+- Current product/API surface contains no `listPracticeSessions`; live recovery and report-owned review remain independently reachable through their scoped locators.
 
 ## 7 风险与应对
 
@@ -122,11 +134,13 @@
 | provider returns parseable but length-truncated JSON | treat `finish_reason=length` as `AI_OUTPUT_INVALID`; repair once, then fail without committing an assistant message |
 | summary sequence/type/provenance drifts across AI and OpenAPI layers | reject missing provenance, non-int32/non-increasing sequence and non-lowercase/unknown type instead of normalizing silently |
 | resume/JD/history contains prompt-like instructions | encode the entire business context as untrusted JSON in the user message and keep immutable policy in the system message |
+| 删除 GET collection 误伤 POST start 或 scoped GET recovery | method/path inventory tests分别锁定 `startPracticeSession` 与 `getPracticeSession` 不变，并对 list route 做零命中 |
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 2.6 | Reopen Phase 8 to remove listPracticeSessions end to end, preserve start/get live-session operations, and hand completed transcript reads to backend-review getReportConversation without compatibility or migration. |
 | 2026-07-12 | 2.5 | Prevent assistant-authored history from becoming candidate evidence and add the invented-project amplification regression gate. |
 | 2026-07-12 | 2.4 | Require TargetJob-bound resume provenance across plan/source/completion facts, admit strict non-contiguous int32 round directories, and separate system policy from JSON-encoded untrusted interview context. |
 | 2026-07-12 | 2.3 | Reopen Phase 7 for canonical round identity persistence and ledger-validated plan selection. |

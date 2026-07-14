@@ -1,8 +1,8 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 3.5
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 3.6
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -44,6 +44,16 @@
 
 - [x] Reports Back reaches targetJobId-only Workspace detail directly with no Parse detour、animation、import or polling.
 - [x] Focused component/route/source tests and deterministic parity pass.
+
+## Phase 12: Report-owned readonly conversation
+
+- [ ] 12.1 RED: prototype/source tests require `ReportConversationScreen`, Report Context Strip link and ReportsScreen current-report shortcut; reject Header third CTA, Workspace/session-list entry and live Practice controls.
+- [ ] 12.2 GREEN: update `ui-design/` first, then implement `/report-conversation?reportId=...` against generated `getReportConversation`; no handwritten DTO, `getPracticeSession`, `listPracticeSessions` or browser-persisted transcript.
+- [ ] 12.3 STATE-GATE: queued/generating/ready/failed all render the same ordered read-only transcript; Back returns the exact parent report state, reportId switch clears stale rows, missing/cross-user/invalid order/role/extra fields fail closed.
+- [ ] 12.4 MARKDOWN/PRIVACY-GATE: reuse safe `react-markdown + remark-gfm` behavior; raw HTML/remote image/unsafe URI do not execute, safe links harden, and session/message/client IDs are absent from visible/a11y/URL/storage/log surfaces.
+- [ ] 12.5 PARITY-GATE: source structure and visual geometry are separately verified at desktop/390; code/table stay inside the message container and no screenshot-only gate substitutes for DOM/control parity.
+- [ ] 12.6 BDD-Gate: `BDD.REPORT.CONVERSATION.001` passes owner tests; `E2E.P0.099` adds real click/load/back + API/DB binding without changing the exact-six screenshot contract.
+- [ ] 12.7 COMPLETION-GATE: run root `make test`, frontend build/typecheck, OpenAPI/fixture/codegen/mock gates, docs/context/index checks and `git diff --check` before restoring completed status.
 
 ## Closeout
 

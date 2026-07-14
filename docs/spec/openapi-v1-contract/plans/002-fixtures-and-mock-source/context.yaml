@@ -5,10 +5,10 @@ metadata:
   name: 002-fixtures-and-mock-source
   sequence: 2
   baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
+  branch: design/report-conversation-record
   specVersion:
-    from: 1.58
-    to: 1.59
+    from: 1.60
+    to: 1.61
 spec:
   defaultTarget: contract
   discovery:
@@ -60,6 +60,10 @@ spec:
       - getResume full detail fixture
       - no list provenance or detail fields
       - resume summary detail consumer handoff
+      - report conversation fixture
+      - delete listPracticeSessions fixture
+      - getReportConversation Prism parity
+      - 37 fixture one for one replacement
   targets:
     contract:
       plan: ./plan.md
@@ -87,6 +91,7 @@ spec:
           - listTargetJobs
           - getTargetJob
           - getFeedbackReport
+          - getReportConversation
           - listTargetJobReports
           - createPracticePlan
           - getPracticeSession

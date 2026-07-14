@@ -1,8 +1,8 @@
 # Grounded Conversation Report BDD Checklist
 
-> **版本**: 2.21
+> **版本**: 2.22
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -17,6 +17,13 @@
 - [x] The browser contract requires exactly six canonical `fullPage: true` desktop/mobile images without request interception, fixture transport or mock backend.
 - [x] The evidence contract binds authenticated live report API、read-only PostgreSQL state、canonical report/session/context digests and current screenshot SHA-256, with bounded redacted cleanup.
 - [x] The manual contract requires a no-OCR review of ready/generating state、complete action region、clipping/ellipsis/hiding/overflow and false-ready claims.
+
+## `BDD.REPORT.CONVERSATION.API.001` Report-owned transcript API
+
+- [ ] Owner tests cover four report statuses, existing unique relation, strict ordered projection, hidden 404, corruption fail-closed, zero internal IDs and zero AI/write/new-table behavior.
+- [ ] Scoped removal gate proves `listPracticeSessions` is absent from current positive OpenAPI/generated/router/handler/fixture/mock/frontend surfaces.
+- [ ] 根 `make test` 执行对应 Go tests；该结果是代码层行为证据，不是 E2E PASS。
+- [ ] P0.099 contract adds real conversation API/DB binding and browser click/load/back while preserving exact-six screenshots and bounded redaction.
 
 ## E2E.P0.099 真实环境证据
 

@@ -1,8 +1,8 @@
 # Fixture-backed Mock Runtime
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 维护 `mock-contract-suite` 的当前可执行 mock runtime：前端 dev preview、generated-client mock transport、后端 mockruntime 和 lint gate 都从 B2 `openapi/fixtures/` 读取同一批 37-operation fixture，不复制第二套 mock 数据，也不直接使用 `ui-design/src/data.jsx` 作为运行时数据源。
 
-本 plan 不拥有 OpenAPI schema、fixture 内容、业务 handler、真实 backend store、AI 调用或用户可见 BDD 场景；这些由各自 owner 维护。这里负责让 mock runtime 按当前 fixture truth source 工作，并用 gate 阻止范围外 route / tag / schema / config token 回流。当前原地重开以承接 OPENAPI-002 paste-only fixture/generated handoff。
+本 plan 不拥有 OpenAPI schema、fixture 内容、业务 handler、真实 backend store、AI 调用或用户可见 BDD 场景；这些由各自 owner 维护。这里负责让 mock runtime 按当前 fixture truth source 工作，并用 gate 阻止范围外 route / tag / schema / config token 回流。当前新增 Phase 10 承接 OPENAPI-001 v1.7 的 report-conversation 一对一替换。
 
 ## 2 当前合同
 
@@ -86,6 +86,7 @@ Delete the unreferenced `assertJSONField` / `lookupJSONPath` helper pair from `m
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-15 | 1.15 | Add Phase 10 report-owned conversation registry/runtime parity and deleted public session-list fail-loud contract. | OPENAPI-001 v1.7 + openapi-v1-contract 002 |
 | 2026-07-14 | 1.14 | 删除已失效的 E2E/BDD 关联，把 fixture/mock parity 收敛为代码层 gate，并以根 `make test` 作为完成回归。 | test-boundary cleanup |
 | 2026-07-13 | 1.13 | Add Phase 9 Practice recovery fixture/runtime parity; narrow TargetJob zero-reference semantics. | openapi-v1-contract 1.54 |
 | 2026-07-13 | 1.12 | Reopen Phase 8 for OPENAPI-002 TargetJob paste-only mock parity and scoped zero-reference gates. | OPENAPI-002 + openapi-v1-contract 002 |
@@ -120,3 +121,7 @@ Current positive fixture/generated/runtime mock/seed surfaces must contain zero 
 ## 9 Practice durable recovery mock parity
 
 Add focused registry/frontend/backend RED/GREEN tests that consume—not copy—the B2 get-session `pending|retryable_failed|terminal_failed|complete` projections and send `validation-empty-text|auth-unauthorized|session-not-found|reply-pending-conflict|client-message-mismatch|ai-timeout-retryable` scenarios. Exact fixture status/body, role-specific fields and unknown-scenario failure must match in both runtimes. A paired retry proof must load the retryable-failed user, submit the same ID/text, and yield one completed user plus one assistant with no duplicates. This remains a code-level fixture/mock contract: it creates no BDD/E2E handoff, and phase completion requires root `make test` plus the contract gates in §3.
+
+## 10 Report-owned conversation mock parity
+
+After openapi-v1-contract 001/002 publish the replacement operation/generated types/fixture, focused registry/frontend/backend tests must RED on the removed `listPracticeSessions` key/path/scenario and GREEN on exact `getReportConversation` status/body parity for ready, non-ready, empty, Markdown, hidden 404 and fail-closed scenarios. Both runtimes consume the Reports fixture directly; no local DTO, sorting, partial recovery or locator stripping logic is allowed. The old operation must fail loudly rather than fall back to default. This is a code-level mock contract, so BDD is not applicable；completion uses root `make test`, mock/OpenAPI/fixture/codegen gates and a scoped positive/runtime zero-reference search.

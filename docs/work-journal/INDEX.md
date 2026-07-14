@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-15](2026-07-15.md) | `docs(report): define report conversation record` | #docs #api #ui #test #bdd |
 | [2026-07-15](2026-07-15.md) | `fix(e2e): enforce real API and UI evidence` | #fix #test #docs #bdd |
 | [2026-07-14](2026-07-14.md) | `docs(runtime): close content limit delivery` | #docs #test #bdd |
 | [2026-07-14](2026-07-14.md) | `fix(runtime): centralize content size limits (BUG-0171)` | #fix #api #ui #test #docs #bdd |

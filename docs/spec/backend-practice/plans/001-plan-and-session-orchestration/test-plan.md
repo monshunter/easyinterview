@@ -1,8 +1,8 @@
 # 001 Plan and Session Orchestration Test Plan
 
-> **版本**: 2.4
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 2.5
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 ## Phase 1: Contract tests
 
@@ -43,3 +43,10 @@
 - Start reservation/template tests require exact round name/type/focus and reject the current persona-as-round substitution plus legacy/mismatched plan identity.
 - Real Postgres tests rebind the TargetJob to a different same-user resume after plan/session creation and require both start and send reservations to fail closed.
 - Negative matrix requires non-empty summary provenance, lowercase allowlisted type and positive int32 strictly increasing/unique sequences; it accepts `1,2,4` and chooses `4` after `2`, while rejecting overflow, case drift, same-duration ambiguity, requested round/budget mismatch, wrong-resume facts, legacy null source/ready plan and cross-user source.
+
+## Phase 8: Session-list removal
+
+- OpenAPI inventory/diff/codegen/fixture tests remove only `listPracticeSessions` while preserving start/get/send/complete paths and the 37-operation replacement with `getReportConversation`.
+- Backend routing/handler/source tests prove `GET /practice/sessions` has no current route or compatibility behavior and `POST /practice/sessions` plus scoped `GET /practice/sessions/{sessionId}` remain unchanged.
+- Fixture/mock/generated/frontend import negatives reject the retired operation; accepted history and explicit negative assertions are classified rather than blanket-excluded.
+- No-migration audit proves existing practice/report tables and unique relation are sufficient. Phase 8 is BDD-N/A and closes through focused tests plus root `make test`.

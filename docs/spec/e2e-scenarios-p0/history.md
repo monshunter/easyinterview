@@ -1,13 +1,14 @@
 # E2E Scenarios P0 History
 
-> **版本**: 2.13
+> **版本**: 2.14
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 2.14 | Extend `E2E.P0.099` to prove real Report → report-owned Conversation → Back plus authenticated API/DB binding and zero public session-list requests；keep its screenshot manifest exactly six by recording conversation as bounded non-image evidence. | 001-real-api-ui-journeys + frontend-report-dashboard/001 + backend-review/001 |
 | 2026-07-14 | 2.13 | 删除把代码测试、fixture、lint、build 或 provider eval 包装成 E2E 的旧资产；当前 suite 只登记真实 API/UI 的 P0.098、P0.099、P0.101，并将现行计划收敛为 `001-real-api-ui-journeys`。历史计划名称与运行证据仅保留为历史事实。 | 001-real-api-ui-journeys |
 | 2026-07-13 | 2.12 | 区分报告产品验收与严格稳定性诊断：机械合同必须100%；固定五类代表场景至少4/5表达约80%语义置信度；P0.100的11/11、关键3/3与blind review继续严格fail-closed。最终run59381为机械9/9、语义8/9、场景4/5，产品验收满足但严格P0.100保持FAIL。 | historical plan 002 + F3/004 |
 | 2026-07-13 | 2.11 | Supersede 2.9/2.10中的product durable/report-job max4：每次`GenerateReport` invocation独立initial+3、等待10s/20s/40s、返回销毁且新动作清零；async attempts只作基础设施，lease side-effect fencing继续有效。 | historical plan 002 + backend-review/001 |

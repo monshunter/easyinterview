@@ -1,8 +1,8 @@
 # 001 — Grounded Conversation Report Generation Checklist
 
-> **版本**: 2.23
+> **版本**: 2.24
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -48,6 +48,15 @@
 - [x] Review uses one small injected admitted/overflow provider call/no-call test；the historical 62,397-byte symptom is not reconstructed and no default-size material is created.
 - [x] A3 loader/coverage gates require all six active profiles `max_tokens >= 16384` and keep report context at 1,000,000; no byte/token capacity formula is used.
 - [x] BDD-N/A: configuration wiring does not create a user workflow; no scenario or real large material is used.
+
+## Phase 12: Report-owned conversation read
+
+- [ ] 12.1 RED: store/handler tests require owned report lookup, existing unique session relation, strict `seq_no ASC`, four report statuses and closed message projection.
+- [ ] 12.2 FAILURE/PRIVACY-GATE: missing/cross-user hidden 404；report/session/user/target mismatch、empty/duplicate/non-increasing sequence、unknown role/additional locator fail closed with no partial transcript or raw log/audit/metric body.
+- [ ] 12.3 GREEN: implement generated `getReportConversation` handler/store with zero AI/write/pagination/new table; do not call `getPracticeSession` or reorder corruption into apparent success.
+- [ ] 12.4 REMOVAL-GATE: current OpenAPI/generated/router/handler/fixture/mock/frontend positive surface has zero `listPracticeSessions`; accepted history/decision and exact negative declarations are classified, not blanket-excluded.
+- [ ] 12.5 BDD-Gate: `BDD.REPORT.CONVERSATION.API.001` passes owner tests; E2E.P0.099 receives real API/DB binding handoff without changing exact-six screenshots.
+- [ ] 12.6 COMPLETION-GATE: focused Go tests, root `make test`, OpenAPI/fixture/codegen/mock, docs/context/index/diff and migration-zero-change audit pass.
 
 ## Closeout
 

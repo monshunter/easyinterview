@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.19
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.20
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -103,6 +103,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-15 | 1.20 | Add Phase 12 for report-owned conversation fixtures and removal of the public PracticeSessions list fixture while keeping 37/37 parity. | OPENAPI-001 v1.7 |
 | 2026-07-14 | 1.19 | Add Phase 11 for OPENAPI-005 summary-only list fixture, full detail fixture and Prism/mock consumer handoff. | OPENAPI-005 |
 | 2026-07-14 | 1.16 | Reopen for OPENAPI-004 canonical-round report overview fixtures, prototype projection, Prism parity and latest-report-pointer removal. | OPENAPI-004 |
 | 2026-07-13 | 1.15 | Add canonical blank-rawText 422 validation fixture and Practice reload/same-ID recovery plus typed failure fixture matrix. | openapi-v1-contract 1.54 |
@@ -206,3 +207,17 @@ Keep `Resumes/getResume.json` on the complete `Resume` contract, including sourc
 ### 11.3 Example, Prism, mock and BDD handoff
 
 Render examples and run byte-equal Prism/mock parity for both `listResumes` and `getResume`; inventory remains 37 fixtures / 37 operations. Hand the summary/full markers to backend-resume, all generated frontend consumers and mock-contract-suite in the same batch. No fixture compatibility scenario or frontend detail-fetch fallback is allowed；阶段收口执行根 `make test`。
+
+## 14 Phase 12: Report-owned conversation fixtures
+
+### 12.1 One-for-one fixture replacement
+
+Delete `openapi/fixtures/PracticeSessions/listPracticeSessions.json` and add `openapi/fixtures/Reports/getReportConversation.json`, preserving exactly 37 default fixtures for 37 operations. No archived, disabled or compatibility session-list scenario remains. Focused fixture tests RED on the old path/operation/schema or any missing new fixture.
+
+### 12.2 Closed conversation scenario matrix
+
+Cover ready, queued/generating/failed with an existing owned report row, empty messages, Markdown/GFM content, hidden cross-user/not-found 404, and fail-closed identity/role/sequence/binding cases. Successful bodies contain only `reportId/reportStatus/context/messages`; messages contain only `sequence/role/content/createdAt` and are strictly increasing. No session/message/replay/anchor locator is allowed.
+
+### 12.3 Example, Prism, mock and downstream handoff
+
+Render examples and run live byte-equal Prism/mock parity for `getReportConversation`; prove the deleted list operation cannot be selected by path or scenario. Hand exact markers to backend-review, frontend-report-dashboard, mock-contract-suite and extended `E2E.P0.099`. BDD behavior remains downstream-owned; this fixture phase closes with validation, rendering, Prism parity, zero-reference and root `make test`.

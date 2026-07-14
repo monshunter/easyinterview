@@ -5,15 +5,15 @@ metadata:
   name: 001-report-screen-and-generating-handoff
   sequence: 1
   baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
+  branch: design/report-conversation-record
   specVersion:
-    from: 1.24
-    to: 1.25
+    from: 1.25
+    to: 1.26
 spec:
   defaultTarget: frontend
   discovery:
-    aliases: [conversation report dashboard, session evidence report, honest grounded report]
-    keywords: [ReportsScreen, currentTargetReports, reportsTargetJobIdOnly, getTargetJobCanonicalDisplay, listTargetJobReports, currentReportLatestAttemptOnly, differentLatestReadyStatus, noFullReportHistory, targetIsolation, staleResponseFence, reportsBackToWorkspaceDetail, workspaceTargetJobIdOnly, noParseReadDetour, noParseAnimationImportPolling, trustedTargetJobIdBackToReports, workspaceBackFallbackWithoutTrustedTarget, invalidReportsTargetReplaceWorkspace, noReportsBackLoop, reportIdOnlyRoute, noReportRouteTargetJobId, noReportGeneratingListTargetJobReportsConsumer, noGlobalTopBarReportEntry, noSectionReportsCompatibility, reportSummary, immutableReportContext, noVisibleSessionUuid, noVisibleReportUuid, contextStripTargetRoundResumeOnly, reportContextStripAcceptance, formalRealReadyScreenshots, exact1440x1200And390x844, fullPageTrue, fixedScreenshotManifest, screenshotPathSha256StateViewport, reportSessionSentinelAbsent, dimensionCode, dimensionLabel, emptyFocusReplay, issueBackedFocus, honestGenerating, actionScopedReportRetry10s20s40s, actionRetryDestroyedOnReturn, newActionRetryReset, asyncJobAttemptsInfrastructureOnly, infraDeliveryBackoffSeparate, noFailedReportRegenerateAPI, maxAttempts49, pollInitial1.5Multiplier1.5Cap8, pollWindow6m04s, preserveAttemptAcrossInflightHiddenBlur, resumeNextAttemptNotOne, noDuplicateConcurrentPoll, singleRunCallsAtMost49, reportWorstCase5m10s, noAttemptRetryProgressSurface, pollTimeoutDoesNotFabricateFailed, routeTamper, languageSplit, actionPriority, action200MalformedFuse, backendFrontendFailClose24WhitespaceWords64UnicodeCodePoints, targetedRepairInternalMargin18Words52CodePoints, typedInvalidNoRawLabel, desktopAnd390CompleteWrapping, noClientTruncateRewrite, p0099CurrentRunCanonicalAudit, canonicalReportContentDigest, actionLengthAudit, contentAudit, screenshotSha256, providerEvalIndependentFromE2E, deterministicExact24Words64CodePointsParity, mobile390ActionRegion, noClipEllipsisOverflow, serverOwnedFocus, fullPageParity, no QuestionsTab]
+    aliases: [conversation report dashboard, session evidence report, honest grounded report, report owned conversation, readonly interview record]
+    keywords: [ReportsScreen, currentTargetReports, reportsTargetJobIdOnly, getTargetJobCanonicalDisplay, listTargetJobReports, currentReportLatestAttemptOnly, differentLatestReadyStatus, noFullReportHistory, targetIsolation, staleResponseFence, reportsBackToWorkspaceDetail, workspaceTargetJobIdOnly, noParseReadDetour, noParseAnimationImportPolling, trustedTargetJobIdBackToReports, workspaceBackFallbackWithoutTrustedTarget, invalidReportsTargetReplaceWorkspace, noReportsBackLoop, reportIdOnlyRoute, noReportRouteTargetJobId, noReportGeneratingListTargetJobReportsConsumer, noGlobalTopBarReportEntry, noSectionReportsCompatibility, ReportConversationScreen, getReportConversation, reportConversationReportIdOnly, reportOwnedTranscript, reportFourStatusesReadable, reportParentBack, safeMarkdownReadonly, noLiveControls, noSessionHistoryList, noListPracticeSessionsConsumer, noSessionIdRoute, noThirdHeaderCTA, strictMessageSequenceRole, reportSwitchFence, noMessageLocatorLeak, reportSummary, immutableReportContext, noVisibleSessionUuid, noVisibleReportUuid, contextStripTargetRoundResumeOnly, reportContextStripAcceptance, formalRealReadyScreenshots, exact1440x1200And390x844, fullPageTrue, fixedScreenshotManifest, screenshotPathSha256StateViewport, reportSessionSentinelAbsent, dimensionCode, dimensionLabel, emptyFocusReplay, issueBackedFocus, honestGenerating, actionScopedReportRetry10s20s40s, actionRetryDestroyedOnReturn, newActionRetryReset, asyncJobAttemptsInfrastructureOnly, infraDeliveryBackoffSeparate, noFailedReportRegenerateAPI, maxAttempts49, pollInitial1.5Multiplier1.5Cap8, pollWindow6m04s, preserveAttemptAcrossInflightHiddenBlur, resumeNextAttemptNotOne, noDuplicateConcurrentPoll, singleRunCallsAtMost49, reportWorstCase5m10s, noAttemptRetryProgressSurface, pollTimeoutDoesNotFabricateFailed, routeTamper, languageSplit, actionPriority, action200MalformedFuse, backendFrontendFailClose24WhitespaceWords64UnicodeCodePoints, targetedRepairInternalMargin18Words52CodePoints, typedInvalidNoRawLabel, desktopAnd390CompleteWrapping, noClientTruncateRewrite, p0099CurrentRunCanonicalAudit, canonicalReportContentDigest, actionLengthAudit, contentAudit, screenshotSha256, providerEvalIndependentFromE2E, deterministicExact24Words64CodePointsParity, mobile390ActionRegion, noClipEllipsisOverflow, serverOwnedFocus, fullPageParity, no QuestionsTab]
   targets:
     frontend:
       plan: ./plan.md
@@ -28,6 +28,7 @@ spec:
         - ../../../../ui-design/module-practice-review.md
         - ../../../backend-review/spec.md
         - ../../../backend-review/plans/001-report-generation-baseline/plan.md
+        - ../../../openapi-v1-contract/decisions/OPENAPI-001-report-direct-semantics.md
         - ../../../backend-practice/spec.md
         - ../../../backend-practice/plans/004-report-derived-practice-plans/plan.md
         - ../../../backend-practice/plans/004-report-derived-practice-plans/bdd-plan.md
@@ -45,5 +46,5 @@ spec:
           - frontend/src/app/i18n/locales
           - frontend/tests/pixel-parity
           - test/scenarios/e2e
-        uiRoutes: [reports, generating, report, parse, workspace]
-        apiNames: [getTargetJob, listTargetJobReports, getFeedbackReport, createPracticePlan, startPracticeSession]
+        uiRoutes: [reports, generating, report, report-conversation, parse, workspace]
+        apiNames: [getTargetJob, listTargetJobReports, getFeedbackReport, getReportConversation, createPracticePlan, startPracticeSession]

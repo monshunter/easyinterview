@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.19
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.20
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -112,3 +112,11 @@
   <!-- verified: 2026-07-14 evidence="validate-fixtures=37; rendered examples current; Prism unit=5 PASS and live matrix=13/13 byte-equal including listResumes/getResume" -->
 - [x] 11.5 BDD-N/A/HANDOFF: exact markers are consumed by downstream backend/frontend focused tests；no compatibility fixture or N+1 detail-fetch fallback remains。
 - [x] 11.6 REGRESSION-GATE: 阶段收口从仓库根执行 `make test`。
+
+## Phase 12: Report-owned conversation fixtures
+
+- [ ] 12.1 RED: fixture/inventory tests fail until the old `PracticeSessions/listPracticeSessions.json` is absent and `Reports/getReportConversation.json` exists one-for-one with 37/37 unchanged.
+- [ ] 12.2 GREEN: add ready/non-ready/empty/Markdown/hidden/fail-closed scenarios using exact closed response/message fields and strictly increasing sequence；reject all internal locators and partial/reordered success.
+- [ ] 12.3 PARITY-GATE: validate fixtures, render examples and run live Prism/mock byte parity for `getReportConversation`; the deleted path/operation/scenario fails closed.
+- [ ] 12.4 HANDOFF-GATE: backend-review, frontend-report-dashboard, mock-contract-suite and `E2E.P0.099` consume exact markers without a public session-list consumer or compatibility fixture.
+- [ ] 12.5 REGRESSION-GATE: 37 fixtures / 37 operations, prototype sync idempotency, root `make test`, contexts/docs/diff all pass.

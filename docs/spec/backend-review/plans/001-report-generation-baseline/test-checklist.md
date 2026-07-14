@@ -1,8 +1,8 @@
 # Grounded Conversation Report Test Checklist
 
-> **版本**: 2.22
+> **版本**: 2.23
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -36,6 +36,14 @@
 - [x] A3 loader/coverage gates require six active profiles at 16K or above and report context at 1M without a byte/token capacity formula.
 - [x] Configuration guard is not represented as BDD/E2E.
 
+## Report conversation read
+
+- [ ] Four-status owned report, strict ordered closed projection and zero AI/write/new-table tests pass.
+- [ ] Missing/cross-user/identity/empty/order/role/additional-field failures are hidden or fail closed without partial response.
+- [ ] Session/message/client IDs and transcript body are absent from non-content response/error/log/audit/metric/task surfaces.
+- [ ] Current positive surface contains no `listPracticeSessions`; generated/fixture/mock/frontend handoff and no-migration audit pass.
+
 ## Full regression
 
 - [x] Development uses focused tests for feedback; phase completion runs root `make test` for the complete backend/frontend unit regression.
+- [ ] After Phase 12, root `make test` and contract/docs/context gates pass again before completion.

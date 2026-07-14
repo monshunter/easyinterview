@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.4
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 3.5
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -29,3 +29,10 @@
 - [x] P0.099 independently binds current real report/generating API/DB/screenshot evidence; mock/component outputs cannot satisfy it.
 - [x] Provider/eval and deterministic parity remain independent code gates, not E2E steps.
 - [x] Root `make test` runs the complete frontend/backend unit regression for phase completion.
+
+## ReportConversation
+
+- [ ] Ready/queued/generating/failed, parent Back, route switch fence and missing/cross-user/invalid-contract tests pass.
+- [ ] Markdown security, no-ID/no-live-control/no-browser-persistence and listPracticeSessions/session-history negative tests pass.
+- [ ] Prototype/formal source structure and visual geometry parity pass independently at desktop/390.
+- [ ] P0.099 real click/load/back evidence is bound without changing its exact-six screenshots; root `make test` and build/typecheck pass separately.

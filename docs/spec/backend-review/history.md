@@ -1,8 +1,8 @@
 # Backend Review History
 
-> **版本**: 1.25
+> **版本**: 1.29
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 修订记录
 
@@ -10,6 +10,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 1.29 | 新增 report-owned `getReportConversation`：复用既有 report-session 唯一外键读取 ordered messages，对四种报告状态可用，closed projection 不暴露内部 IDs；无列表、无 AI、无 migration。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
 | 2026-07-14 | 1.25 | `listTargetJobReports` wire/selection 保持不变，唯一 UI consumer 从 Parse 迁移到 target-scoped ReportsScreen；当前规划隔离与状态/截图由 P0.059 承接。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
 | 2026-07-14 | 1.24 | 用户确认 R-A：保留 `listTargetJobReports` route/operationId，但删除分页完整列表，改为按当前 TargetJob canonical rounds 返回最小 `currentReport/latestAttempt` 概览；锁定独立排序、identity/context fail-closed 与 Parse-only consumer。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
 | 2026-07-13 | 1.23 | 最终report prompt保留paired complete example；产品验收要求机械100%与固定五类至少4/5语义通过，严格P0.100继续11/11+blind review。run59381机械9/9、语义8/9、场景4/5，产品通过但strict FAIL。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) + F3/004 + P0.100 |

@@ -1,13 +1,14 @@
 # Mock Contract Suite History
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 1.20 | Replace public `listPracticeSessions` mock coverage one-for-one with report-owned `getReportConversation`; require shared Reports fixture parity and deleted-operation fail-loud behavior while preserving 37/37. | OPENAPI-001 v1.7 + 001 Phase 10 |
 | 2026-07-14 | 1.19 | 按最小充分原则移除 fixture/mock parity 对已删除 E2E 场景的依赖；明确 BDD-N/A、focused feedback 与根 `make test` 全量回归边界。 | 001-fixture-backed-mock-runtime |
 | 2026-07-13 | 1.18 | Add Practice durable reply-status and typed failure fixture parity, same-ID recovery handoff, and narrow TargetJob zero-reference to positive/runtime surfaces. | openapi-v1-contract 1.54 + 001 Phase 9 + P0.046 |
 | 2026-07-13 | 1.17 | OPENAPI-002 paste-only handoff：mock runtime/fixtures/generated surface 移除 TargetJob URL/file/manual_form/sourceType/sourceUrl/`target_job_attachment` 正向能力，保留 `createUploadPresign` resume/privacy，并重开 001 Phase 8 承接 P0.015 与 zero-reference gate。 | OPENAPI-002 + 001-fixture-backed-mock-runtime Phase 8 |

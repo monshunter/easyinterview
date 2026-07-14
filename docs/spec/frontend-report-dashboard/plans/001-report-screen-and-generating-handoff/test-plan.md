@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.4
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 3.5
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 ## 1 Unit-test ownership
 
@@ -37,3 +37,10 @@
 
 - P0.099 alone captures current real report/generating desktop/mobile UI and binds authenticated API/read-only DB evidence.
 - Code-level exact boundary/parity and provider/eval results are independent; neither is copied into E2E PASS markers.
+
+## 7 ReportConversation tests
+
+- Generated-client/component tests cover ready/queued/generating/failed success, strict sequence/role/closed-object validation, reportId switch fencing, parent-state Back and missing/cross-user/network errors.
+- Markdown security tests reuse the Practice renderer contract and prove no HTML execution, remote image request, unsafe URI, ID leak, live control or browser persistence.
+- Source tests bind `ui-design/src/screen-report.jsx::ReportConversationScreen` and Practice message-body anchors to formal DOM/control/a11y; geometry tests independently cover computed style, bbox, desktop/390 and code/table overflow.
+- Source negatives require zero current consumer/route/import for `listPracticeSessions`, session history, sessionId locator, Workspace conversation data or third report Header CTA.

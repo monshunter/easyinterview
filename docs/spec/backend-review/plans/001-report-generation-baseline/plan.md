@@ -1,8 +1,8 @@
 # 001 — Grounded Conversation Report Generation
 
-> **版本**: 2.25
+> **版本**: 2.26
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -19,6 +19,7 @@
 |-------------------|---------|----------|---------|-------------|----|--------------|
 | `report_generate` job | N/A | generating poll | runner/review service/store | feedback_reports/async_jobs/outbox_events/audit_events/ai_task_runs | report.generate | focused service/store/integration + independent eval + P0.099 visible result |
 | `getFeedbackReport` | `Reports/getFeedbackReport.json`: queued/generating/ready-needs-practice/ready-well-prepared/failed/invalid-contract/long-content | generating + report dashboard | reports handler/review read | feedback_reports + frozen context projection | none | focused handler/consumer contract + P0.099 real API/UI |
+| `getReportConversation` | `Reports/getReportConversation.json`: ready/queued/generating/failed/missing/invalid-order | report-conversation readonly page | reports handler/review read | feedback_reports.session_id -> practice_messages ordered read | none | focused handler/store/auth/order/privacy + BDD.REPORT.CONVERSATION.API.001 + P0.099 real click/load/back |
 | `listTargetJobReports` | `Reports/listTargetJobReports.json` | target-scoped ReportsScreen only; no Parse/generating/report consumer | reports handler/review read | feedback_reports + current TargetJob canonical summary | none | focused handler/store/consumer contract |
 
 `completePracticeSession` 与 `createPracticePlan` 只作为 references/marker handoff：本 plan 不拥有其 API、fixture、handler/store 或 scenario directory。
@@ -38,7 +39,8 @@
 | 7b | `ai-provider-and-model-routing/003` | loader contract owns report defaults/override/invalid; canonical coverage lint requires all six active profiles `max_tokens >= 16384` and keeps report context at 1,000,000 | report model-profile configuration |
 | 7c | `backend-review/001 Phase 6.5-7.5` | consume the A3 profile configuration contract; implement runtime byte gate, direct semantics, validator/repair/persistence/read and exact backend evidence | frontend report owner + P0.099 visible result |
 | 8 | `backend-practice/004 Phase 3` | generic-empty-focus retry, issue-backed non-empty focus, next successor, isolation + IK markers | report replay CTA and code-level consumer gates |
-| 9 | code owners + `e2e-scenarios-p0` P0.099 | code owners complete unit/integration/eval gates；P0.099 is reserved for an explicitly run real report/generating API/UI acceptance | final closeout |
+| 9 | code owners + `e2e-scenarios-p0` P0.099 | code owners complete unit/integration/eval gates；P0.099 is reserved for an explicitly run real report/generating/conversation API/UI acceptance | final closeout |
+| 10 | `openapi-v1-contract` 001/002/003 + `backend-practice/001` | replace listPracticeSessions with closed getReportConversation contract/fixture/generated types and remove public list handler | backend report-owned read + frontend ReportConversation |
 
 `backend-review/001` 只拥有 `backend/internal/api/reports`、`backend/internal/review`、`backend/internal/store/review`；B2/B4/F3/backend-practice/frontend/scenario 均通过 context references 与 marker handoff。它不重复领取 completion、derived replay、migration、prompt/eval 或 scenario checklist。GeneratingScreen 不在本 plan 写入范围。
 
@@ -46,7 +48,7 @@
 
 - **Plan 类型**: feature-behavior + contract + async backend + migration + AI quality。
 - **TDD 策略**: `/implement` → `/tdd`；本 owner 只为 frozen-context consumption、report validator/repair、persistence/provenance 与 reports API 建立 RED/GREEN；OpenAPI、completion、derived replay、prompt/eval、frontend 与 scenarios 只消费对应 owner gate。每个 checklist item 写明聚焦断言入口。
-- **BDD 策略**: `BDD.REPORT.GENERATE.001` 由代码层 owner tests 验证 frozen-context generation/repair/persistence/replay 行为，并由仓库根 `make test` 统一回归；`E2E.P0.099` 仅作为真实 frontend/backend/provider report/generating API/UI 与六图的独立 handoff，只有显式真实运行后才产生 PASS。provider/judge reliability 仍属于独立 eval gate。
+- **BDD 策略**: `BDD.REPORT.GENERATE.001` 验证生成合同；`BDD.REPORT.CONVERSATION.API.001` 验证 reportId-owned 四状态 transcript、hidden 404、strict order/role 与无内部 locator。`E2E.P0.099` 增补真实 click/load/back 和 API/DB binding，但不改变 exact-six screenshots；provider/judge reliability 仍属于独立 eval gate。
 - **替代验证 gate**: prompt/schema drift、migration up/down/up、OpenAPI/codegen/fixture、privacy/negative lint、focused tests 与独立内容核对表；阶段完成由根 `make test` 统一回归 backend/frontend 单测。
 
 ## 4 Coverage Matrix
@@ -63,7 +65,10 @@
 | spec C-9 | deep-link truth | 6-8 | frozen API context + route-tamper frontend scenario | URL/current mutable entity authority |
 | spec C-10 | judge retry boundary | 8 | provider/protocol-invalid retry + valid-negative terminal code/eval tests | resampling a valid rejection to PASS |
 | spec C-12 | canonical-round overview | 10 | focused handler/store/API/consumer tests | paginated full-report list / mutable round inference / partial response |
+| spec C-13 | primary/alternate | 12 | handler/store/domain behavior tests + P0.099 real API/UI | ready-only transcript / getPracticeSession fallback |
+| spec C-13 | privacy/failure/boundary | 12 | hidden-404, identity, empty/order/role/closed-projection tests | session/message/client IDs, partial/reordered corruption, raw log/audit payload |
 | current-scope | regression | 8 | repo negative search | `dimension_scores`, `retry_round`, stale question fields |
+| D-29 | regression/non-current | 12 | code/spec/fixture/generated/runtime search | listPracticeSessions endpoint/handler/fixture/consumer; new relation table |
 
 ## 5 实施步骤
 
@@ -165,6 +170,20 @@ Inject A4 `report.maxFramedInputBytes` into the report service/context builder. 
 
 不保留 bytes + tokens 的跨单位容量公式。BDD 不适用：配置 guard 不新增用户流程。Report happy path、fail-closed、重试恢复与返回动作由代码 owner tests 承接，不承担默认数值证明。替代 gate 为 A4 单一 typed default/override/invalid contract、A3 六个 active profile `max_tokens >= 16384` coverage lint 与 report 1M context loader contract、小值 provider call/no-call、历史/default-sized payload zero-reconstruction、`input-*.json` zero-reference 与根 `make test`。
 
+### Phase 12: Report-owned conversation read
+
+#### 12.1 RED: ownership and closed projection
+
+先为 `backend/internal/store/review` 与 `backend/internal/api/reports` 增加 RED：reportId + current user 必须通过 `feedback_reports.session_id` 唯一关系读取 `practice_messages ORDER BY seq_no`；response 只含 reportId/reportStatus/frozen context 与 `sequence/role/content/createdAt`。queued/generating/ready/failed 均成功；missing/cross-user hidden 404，empty/identity mismatch/duplicate or non-increasing sequence/unknown role/additional locator 整体 fail closed。
+
+#### 12.2 GREEN: read-only handler/store
+
+实现不调用 AI、不写 report/session/message，不回退到 practice list/get API，不进行 cursor/pagination，也不把正文写入 log/audit/metric/outbox/task-run。复用现有 FK/unique index，不创建表、migration 或 compatibility join。OpenAPI DTO 和 fixture/generated handoff 必须先完成，handler 不手写 parallel response type。
+
+#### 12.3 Privacy, removal and handoff
+
+证明 response/错误/可观测面没有 sessionId、message UUID、clientMessageId、replyStatus/replyGeneration 或 raw transcript。Scoped negative 要求 current OpenAPI/generated/handler/router/fixture/mock/frontend positive surface 不再存在 `listPracticeSessions`；历史/accepted decision 与 exact negative declarations可保留文字。P0.099 只增加真实 transcript API/DB binding 和浏览器 click/load/back，不修改 exact-six visual manifest。
+
 ## 6 验收标准
 
 - Ready report 来自冻结完整上下文，模型最终语义经严格 validator 后无损持久化/API 返回。
@@ -173,6 +192,7 @@ Inject A4 `report.maxFramedInputBytes` into the report service/context builder. 
 - Judge/evaluator独立最多4次调用：仅retryable provider或protocol/schema invalid重试；结构合法negative verdict typed terminal FAIL且不重采样。
 - Focused code tests覆盖product provider transient→session retry success、invalid→targeted/whole多轮成功、attempt4仍错终止、nonretryable零重试与独立 invocation 清零；evalkit tests覆盖generation/judge max4、judge invalid retry和valid negative不retry。
 - 新生成报告的 generic empty focus 只用于 exact single `answer_depth` brief 或 exact single `answer_relevance` control-only issue；其他 retry focus 精确等于全部 same-code needs-work issue codes 的升序唯一集合，禁止 subset/superset。已有 ready report 的 derived-plan 空 focus 合法性仍由 backend-practice/004 owner 合同承接。
+- `getReportConversation` 对四种报告状态返回同一报告唯一 ordered closed transcript；跨用户/缺失/identity 或 sequence/role corruption fail closed，且零内部 ID/正文可观测泄漏、零 AI/写入/新表。
 - 200仅fuse；P0.099 desktop+390证明合法24/64完整换行，超限typed invalid/no raw；18/52不作为UI门禁。
 - OpenAPI、generated、fixture、DB、prompt/schema/eval、frontend consumer 与 BDD 无旧 numeric-score/unknown-action 漂移。
 - Provider/eval 可靠性结果作为独立诊断记录，不转成应用 E2E。P0.099 的 desktop/mobile zh/en full-page 截图由其自身 current-run DB/API/content/action/screenshot/report/session/context 摘要闭合，并完整覆盖满足 `<=24 whitespace words` / `<=64 Unicode code points` 的实际 action；确定性 boundary fixture 由代码层测试证明恰好24/64。

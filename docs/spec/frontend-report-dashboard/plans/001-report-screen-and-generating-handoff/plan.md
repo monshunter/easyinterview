@@ -1,8 +1,8 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 3.5
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 3.6
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-在既有 report UI owner 内交付规划范围的独立 ReportsScreen、grounded direct semantic report 与诚实 generating：列表只展示当前 TargetJob canonical rounds 的 current report 与 latest attempt，不做全局中心或完整历史；详情保持三指标 + 四常驻区块，并修复 generating 伪实时语义、raw enum、CTA 推荐优先级、长内容/mobile 可读性与假强 parity gate。
+在既有 report UI owner 内交付规划范围的独立 ReportsScreen、grounded direct semantic report、诚实 generating 与 report-owned 只读 conversation：列表只展示当前 TargetJob canonical rounds 的 current report 与 latest attempt，不做全局中心或完整历史；详情保持三指标 + 四常驻区块；会话记录以 reportId-only 附属页复用安全 Markdown message renderer，不建立 session 列表或实时控制。
 
 ## 2 Operation Matrix
 
@@ -20,6 +20,7 @@
 | getTargetJob | `TargetJobs/getTargetJob.json` | ReportsScreen current target + canonical round display | targetjob handler/store | target_jobs.summary read | read none | focused client/consumer tests |
 | listTargetJobReports | `Reports/listTargetJobReports.json` | ReportsScreen current/latest pointers only | reports handler/store | feedback_reports + canonical target read | read none | focused handler/store/consumer tests |
 | getFeedbackReport | `Reports/getFeedbackReport.json`: queued/generating/ready-needs-practice/ready-well-prepared/ready-empty-focus/failed/invalid-focus/long-content | generating/report; only status/context truth | reports handler/store | feedback_reports + frozen context | read none | focused consumer tests + P0.099 real API/UI |
+| getReportConversation | `Reports/getReportConversation.json`: ready/queued/generating/failed/missing/invalid-order/unsafe-markdown | report-conversation; ReportsScreen 只传 current report locator | reports handler/store | feedback_reports.session_id -> practice_messages ordered read | none | focused client/component/route tests + BDD.REPORT.CONVERSATION.001 + P0.099 click/load/back |
 | createPracticePlan | `PracticePlans/createPracticePlan.json`: retry/next/mismatch | replay handler; no focus input | practice handler/store | practice_plans + source report projection | none | focused request/consumer tests |
 | startPracticeSession | `PracticeSessions/startPracticeSession.json` | replay handler | practice handler/store | session/messages | practice.session.chat | focused request/consumer tests |
 
@@ -31,12 +32,13 @@
 | Phase 7.1 | `backend-review/001 6.1` + OpenAPI 001/002 codegen/fixture PASS | frontend RED/GREEN uses the real generated contract, not handwritten types |
 | Phase 7.4 | `backend-practice/004 Phase 3` server-derived request/focus PASS | frontend removes all derived settings/identity/focus route authority |
 | Phase 8 | backend 6-8 + frontend 6-7 PASS | code gates close deterministic behavior；P0.099 is reserved for an explicitly run real report/generating UI acceptance |
+| Phase 12 | ui-design ReportConversation prototype + OpenAPI 001/002/003 + backend-review report-owned read PASS | formal frontend only consumes generated `getReportConversation`; `listPracticeSessions` is already absent from current generated/runtime surface |
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: user-visible UI + API consumer + contract migration + UX truthfulness。
 - **TDD 策略**: /implement → /tdd；先修改 prototype/source tests，再以 component/hook/i18n/request negative/Playwright parity tests 建立 RED，最后迁移正式 frontend。
-- **BDD 策略**: `BDD.REPORT.UI.001` 由代码层 owner tests 验证 generating/ready/failed、replay/next/back 与 fail-closed 行为，并由仓库根 `make test` 统一回归；P0.099 仅作为真实 full-stack report/generating UI/API 与 exact-six screenshots 的独立 handoff，只有显式真实运行后才产生 PASS。
+- **BDD 策略**: `BDD.REPORT.UI.001` 验证既有 report/generating；`BDD.REPORT.CONVERSATION.001` 验证报告四状态下的只读 transcript、父报告 Back、Markdown 安全和 fail-closed。P0.099 增补真实 click/load/back + authenticated API binding，但保留 exact-six screenshot 目录不变；只有显式真实运行后才产生 PASS。
 - **替代验证 gate**: source traceability、i18n exact set、typecheck/build、computed-style/bbox/screenshot difference 与 deterministic visual artifacts 作为独立 code/UI gates，不包装为 E2E。
 
 ## 4 Coverage Matrix
@@ -57,6 +59,9 @@
 | spec C-13 | current-plan list | 10 | ReportsScreen target/overview table tests | ReportsScreen canonical round list | cross-target rows / full history / Parse list consumer |
 | spec C-14 | navigation recovery | 10 | Report/Generating Back table tests | Back control | workspace-only back / route target authority / detail-screen list consumer |
 | spec C-15 | command/read separation | 11 | ReportsScreen Back route tests + current-scope route negative | Reports Back control | Parse navigation/animation/import/poll; extra Workspace query params |
+| spec C-16/C-17 | primary/alternate | 12 | generated-client + component/route behavior tests; P0.099 real click/load/back | screen-report::ReportConversationScreen + screen-practice Markdown body | session list, live controls, third Header CTA, ready-only visibility |
+| spec C-18 | privacy/failure | 12 | stale-response/hidden-404/schema/order/role/ID negative tests | ReportConversation error states | sessionId/messageId/clientMessageId leakage; partial stale transcript |
+| D-16 | UI source structure/geometry | 12 | DOM/control/a11y + computed-style/bbox/390 screenshot parity | ui-design/src/screen-report.jsx::ReportConversationScreen | formal-first visual invention or screenshot-only parity |
 
 ## 5 实施步骤
 
@@ -144,6 +149,20 @@ Focused frontend tests 证明独立列表的 current-plan isolation、四态、1
 
 Report/Generating 恢复合同不变：当前/最后可信 API response 有 `targetJobId` 时 Back 到 `/reports?targetJobId=...`；missing reportId、404、首读网络失败或 invalid payload 无可信 identity 时回 `/workspace` 列表，route 仍为 reportId-only。Focused route/browser tests 覆盖 Reports Back 直达 Workspace 详情与 history，不经过 Parse；source gate 对当前实现和 owner docs 执行旧 Reports-to-Parse 正向引用零命中，并证明只读链没有 Parse animation/import/poll。
 
+### Phase 12: Report-owned readonly conversation
+
+#### 12.1 Prototype-first source contract
+
+先在 `ui-design/src/screen-report.jsx` 增加 `ReportConversationScreen`、route/data state 与 Report/ReportsScreen 两处入口。主入口位于 Context Strip 下方，ReportsScreen 只在 current report 行提供低强调度快捷入口；两者都传 `reportId`。复用 `screen-practice.jsx` Markdown message body 的 DOM/样式/安全锚点，但不复制 Composer、thinking、retry、finish、pause、timer 或 phone controls。
+
+#### 12.2 Generated consumer and state machine
+
+TDD 接入 generated `getReportConversation`，实现 loading/ready/error/hidden-404、reportId switch fence、strict ordered role validation、safe Markdown 与单列 responsive transcript。`reportStatus=ready` Back 到 Report；queued/generating/failed Back 到 Generating；无可信父事实回 Workspace。页面不调用 `getPracticeSession/listPracticeSessions`，不展示 session/message/client IDs，不把 transcript 写入浏览器持久化。
+
+#### 12.3 Parity, privacy and real handoff
+
+分别执行 source structure parity 与 computed-style/bbox/390 screenshot parity，证明无 Header 第三 CTA、无 live controls、长 code/table 不撑破 document。P0.099 增加真实 Report -> Conversation -> Back 操作与 `getReportConversation`/DB 绑定的非图片证据；原 exact-six screenshot manifest、目录和 manual audit 行数保持不变。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -156,6 +175,7 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 - Context Strip 正式验收只有同一 ready report 的 exact 1440x1200 / 390x844 两张 formal real UI full-page 图与固定 manifest；path/hash/state/viewport/fullPage、target/round/resume 可见和 report/session DOM/a11y/screenshot sentinel absence 全部可校验。
 - ReportsScreen 只展示当前 target 的 canonical rounds、current report 与 latest attempt，覆盖 loading/empty/error/identity mismatch/stale response；不展示其他规划或完整历史，desktop/mobile 与原型一致。
 - ReportsScreen Back 直接进入 `/workspace?targetJobId=...` 只读规划详情，query 只有 `targetJobId`，不经过 Parse、不展示解析动画、不触发 import/poll；Report/Generating Back 在 trusted target context 存在时进入 `/reports?targetJobId=...`，缺失可信 identity 时进入 `/workspace` 列表；detail/generating route 保持 reportId-only，且列表 operation 只有 ReportsScreen 消费。
+- ReportConversation 只以 reportId 定位并可读取 queued/generating/ready/failed 报告的唯一 ordered transcript；主入口/同轮快捷入口、父报告 Back、安全 Markdown、responsive、stale/privacy fail-closed 与 no-session-list negatives 全部通过。
 
 ## 7 风险与应对
 
@@ -171,11 +191,13 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 | 列表混入其他规划或 stale response | `getTargetJob` 与 overview target/canonical round 双重闭合；target switch 首帧清旧 rows，request sequence fence 拒绝旧响应 |
 | Back 使用旧 route 或标题猜测 TargetJob | 只接受当前/最后可信 API response 的 targetJobId；缺失即 workspace fallback，并对 route target 与 detail-screen list consumer 做负向测试 |
 | 读取既有规划误入解析状态机 | Reports Back 固定为 targetJobId-only Workspace detail；route/browser tests 与 source negative 同时拒绝 Parse navigation、动画、import 和 polling |
+| 只读记录退化为第二套会话产品 | route/API/DOM negative 同时拒绝 sessionId、session list、getPracticeSession、live controls、第三 Header CTA 与 Workspace 会话 consumer；只允许 reportId-owned projection |
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 3.6 | Reopen Phase 12 for prototype-first report-owned readonly conversation, generated getReportConversation consumer, report-state Back, Markdown/parity/privacy gates, listPracticeSessions negatives and P0.099 non-image flow handoff. |
 | 2026-07-14 | 3.5 | Separate code-owned report UI BDD from the explicitly run Ready-only P0.099 real acceptance handoff. |
 | 2026-07-14 | 3.4 | Reopen Phase 11 so Reports Back opens the targetJobId-only read-only Workspace detail directly, without Parse animation/import/polling; preserve Report/Generating trusted recovery. |
 | 2026-07-14 | 3.3 | Add report-locator ownership/cross-field fail-closed gates and replace-only recovery for invalid Reports deep links. |

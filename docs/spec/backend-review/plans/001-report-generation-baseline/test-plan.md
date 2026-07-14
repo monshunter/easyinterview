@@ -1,8 +1,8 @@
 # Grounded Conversation Report Test Plan
 
-> **版本**: 2.22
+> **版本**: 2.23
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 Owner test boundary
 
@@ -42,3 +42,10 @@
 - Review service keeps one small injected admitted/overflow call/no-call test; the historical 62,397-byte symptom is not reconstructed, and no default-sized payload or `input-*.json` is created.
 - A3 loader/coverage tests require all six active profiles `max_tokens >= 16384` and keep report context at 1,000,000. These profile facts remain independent of the byte guard; no cross-unit capacity formula or provider smoke is used.
 - This configuration logic has no BDD/E2E. It closes with owner contract tests、focused business tests and root `make test`.
+
+## 7 Report conversation read
+
+- Store/handler tests cover reportId/current-user lookup, existing FK/unique ownership, strict sequence projection and queued/generating/ready/failed success without AI or writes.
+- Negative tests cover hidden 404, report/session/user/target mismatch, empty messages, duplicate/non-increasing sequence, unknown role and any internal/additional response field.
+- Privacy tests assert no session/message/client IDs, reply state or raw transcript in errors/logs/audit/metrics/task payloads; read count is bounded to the report lookup plus ordered messages query without list/pagination.
+- Scoped removal tests reject `listPracticeSessions` in current OpenAPI/generated/router/handler/fixture/mock/frontend positive surfaces and prove no migration/table/compatibility layer is introduced.
