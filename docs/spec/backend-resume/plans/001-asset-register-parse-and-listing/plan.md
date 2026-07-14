@@ -1,7 +1,7 @@
 # Backend Resume Register Parse and Listing
 
 > **版本**: 3.3
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)

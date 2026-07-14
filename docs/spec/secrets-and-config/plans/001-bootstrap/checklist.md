@@ -1,7 +1,7 @@
 # Secrets and Config Bootstrap Checklist
 
 > **版本**: 1.18
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -113,4 +113,5 @@
   <!-- verified: 2026-07-14 method=vitest+build+BDD evidence="Frontend full 126 files/1018 tests and production build pass; P0.015/P0.046/P0.081 exact/+1 assertions pass." -->
 - [x] 13.7 BDD-GATE: [`bdd-checklist.md`](./bdd-checklist.md) 中 `E2E.P0.010`、`E2E.P0.046`、`E2E.P0.081`、`E2E.P0.056` 全部通过并记录当前证据。
   <!-- verified: 2026-07-14 method=serial-scenario-run evidence="Fresh P0.010/P0.015/P0.034/P0.035/P0.046/P0.056/P0.058/P0.081 pass; P0.046 isolated PostgreSQL residual=0." -->
-- [ ] 13.8 REGRESSION/POST-PASS: config/profile/provider/domain/OpenAPI/frontend focused/full gates、`make lint-config`、`make codegen-check`、旧硬编码 negative search、`sync-doc-index --check`、`make docs-check`、`git diff --check` 全部通过；完成 Bug 记录评估与 retrospective。
+- [x] 13.8 REGRESSION/POST-PASS: config/profile/provider/domain/OpenAPI/frontend focused/full gates、`make lint-config`、`make codegen-check`、旧硬编码 negative search、`sync-doc-index --check`、`make docs-check`、`git diff --check` 全部通过；完成 Bug 记录评估与 retrospective。
+  <!-- verified: 2026-07-14 evidence="Post-commit codegen-check is byte-stable; BUG-0171 and runtime-content-limits assessment are recorded; all precommit full/focused/BDD/docs/index/diff gates pass." -->

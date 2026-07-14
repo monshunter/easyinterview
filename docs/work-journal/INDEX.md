@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-14](2026-07-14.md) | `docs(runtime): close content limit delivery` | #docs #test #bdd |
 | [2026-07-14](2026-07-14.md) | `fix(runtime): centralize content size limits (BUG-0171)` | #fix #api #ui #test #docs #bdd |
 | [2026-07-14](2026-07-14.md) | `fix(config): remove target job attachment size config` | #fix #docs #test #bdd |
 | [2026-07-14](2026-07-14.md) | `fix(core-flow): separate read paths and dedupe requests (BUG-0170)` | #fix #api #ui #test #docs #bdd |

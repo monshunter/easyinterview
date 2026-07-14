@@ -1,7 +1,7 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
 > **版本**: 1.28
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -134,4 +134,5 @@ git diff --check
 - [x] 17.3 HANDOFF: Resume/Home/Practice frontend consumers compile and use generated fields; report/HTTP/provider/profile values remain absent.
 - [x] 17.4 BDD-Gate: P0.010/P0.015/P0.046/P0.081/P0.056 current boundary evidence passes.
   <!-- verified: 2026-07-14 evidence="OPENAPI-006 exact contract/fixture/generated/builder/consumer gates and fresh BDD runs pass." -->
-- [ ] 17.5 REGRESSION: 37/10 inventory, lint/fixtures/Prism/codegen-check/openapi-diff, focused/full consumers, contexts/docs/diff pass.
+- [x] 17.5 REGRESSION: 37/10 inventory, lint/fixtures/Prism/codegen-check/openapi-diff, focused/full consumers, contexts/docs/diff pass.
+  <!-- verified: 2026-07-14 evidence="Post-commit codegen-check is byte-stable; 37/10 lint, 37 fixtures, diff 0, 52 wrapper tests, consumer suites, 11 contexts and docs/diff gates pass." -->

@@ -1,7 +1,7 @@
 # Backend TargetJob BDD Plan
 
 > **版本**: 1.13
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 ## 0 场景矩阵

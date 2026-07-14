@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
 > **版本**: 1.21
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -95,4 +95,5 @@
 - [x] 10.2 ORACLE-GATE: exact five-key oracle covers required `RuntimeConfig.contentLimits`, closed required `ContentLimits`, exact five positive-int64 properties and runtime `$ref`; missing/extra/wildcard/type/minimum/required drift fails.
 - [x] 10.3 INVARIANT/HANDOFF: 37/10 and getRuntimeConfig method/path/operationId/200 stay unchanged；fixture/generated/backend builder/Resume/Home/Practice pass and internal limits remain absent.
   <!-- verified: 2026-07-14 evidence="Preserved OPENAPI-006 audit has 9 exact findings/errors=[]; current diff 0 and 52 wrapper tests pass." -->
-- [ ] 10.4 RE-FREEZE: preserve the audit artifact, re-freeze, then independently run current diff/lint/fixture/codegen/consumer/docs gates.
+- [x] 10.4 RE-FREEZE: preserve the audit artifact, re-freeze, then independently run current diff/lint/fixture/codegen/consumer/docs gates.
+  <!-- verified: 2026-07-14 evidence="OPENAPI-006 preserved audit contains 9 exact findings/errors=[]; re-frozen current diff is 0 and independent lint/fixture/wrapper/consumer/docs plus post-commit codegen-check pass." -->

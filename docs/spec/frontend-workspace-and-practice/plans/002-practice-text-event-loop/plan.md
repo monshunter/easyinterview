@@ -1,7 +1,7 @@
 # 002 — Practice Continuous Text Conversation
 
 > **版本**: 2.8
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)

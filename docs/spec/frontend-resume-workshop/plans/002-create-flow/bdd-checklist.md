@@ -1,7 +1,7 @@
 # Frontend Resume Workshop Create Flow BDD Checklist
 
 > **版本**: 1.13
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -10,7 +10,8 @@
 
 - [x] Scenario assets exist for E2E.P0.081.
 - [x] Verify script covers upload / paste happy path, IK, direct detail navigation, parser/preview absence, privacy, UI parity assertions, and raw-first-line naming negative. <!-- verified: 2026-07-07 method=scenario scenario=E2E.P0.081 -->
-- [ ] P0.081 当前 gate 覆盖 RuntimeConfig/default 10MiB upload、384KiB paste 的 UTF-8 limit/limit+1、zero request、sidebar absent 与 waiting/detail handoff。
+- [x] P0.081 当前 gate 覆盖 RuntimeConfig/default 10MiB upload、384KiB paste 的 UTF-8 limit/limit+1、zero request、sidebar absent 与 waiting/detail handoff。
+  <!-- verified: 2026-07-14 evidence="Fresh P0.081 passes 5 files/33 tests with exact runtime upload/paste assertions and zero-request rejection." -->
 - [x] P0.081 或 focused substitute gate 覆盖 Resume upload 仅支持 PDF / Markdown / TXT，DOCX 在 presign/register 前被拒绝。<!-- verified: 2026-07-07 method=focused-substitute tests=UploadTab.test.tsx -->
 
 ## E2E.P0.082 Parser UI Absence

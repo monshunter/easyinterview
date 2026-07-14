@@ -1,7 +1,7 @@
 # TargetJob Import and Parse Bootstrap Checklist
 
 > **版本**: 1.29
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)

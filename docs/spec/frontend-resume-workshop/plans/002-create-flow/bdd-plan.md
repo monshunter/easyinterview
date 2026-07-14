@@ -1,7 +1,7 @@
 # Frontend Resume Workshop Create Flow BDD Plan
 
 > **版本**: 1.12
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 Plan**: [plan](./plan.md)

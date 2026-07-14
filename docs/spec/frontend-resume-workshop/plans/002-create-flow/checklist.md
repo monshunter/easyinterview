@@ -1,7 +1,7 @@
 # Frontend Resume Workshop Create Flow Checklist
 
 > **版本**: 1.19
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)

@@ -1,7 +1,7 @@
 # 002 Practice Continuous Conversation Test Checklist
 
 > **版本**: 2.8
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
@@ -40,8 +40,9 @@
 
 ## Phase 12
 
-- [ ] Runtime message/session ASCII/multibyte limit/+1 and override/fallback tests pass.
-- [ ] Overflow zero-send/draft preservation and P0.046 backend-authority tests pass.
+- [x] Runtime message/session ASCII/multibyte limit/+1 and override/fallback tests pass.
+- [x] Overflow zero-send/draft preservation and P0.046 backend-authority tests pass.
+  <!-- verified: 2026-07-14 evidence="Focused frontend byte-limit suites, full 126 files/1018 tests and fresh P0.046 backend-authority/zero-send evidence pass." -->
 
 - [x] Shared user/assistant `react-markdown + remark-gfm` renderer tests pass with `skipHtml` and no `rehypeRaw`.
   <!-- verified: 2026-07-14 command="pnpm --dir frontend exec vitest run src/app/screens/practice/components/Transcript.test.tsx" result="2/2 PASS after recorded RED" -->
