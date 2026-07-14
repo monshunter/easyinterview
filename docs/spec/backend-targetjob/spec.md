@@ -133,7 +133,7 @@
 | Config / secret | [A4 `secrets-and-config`](../secrets-and-config/spec.md) | provider secret、feature flag；无 JD URL fetch 或 attachment size 配置 |
 | Observability | [F1 `observability-stack`](../observability-stack/spec.md) | metric / audit 类型登记、label allowlist、隐私红线 |
 | Frontend consumer | `frontend-home-job-picks-and-parse` | Home / Parse 通过 generated client 消费 TargetJob 导入与读取 |
-| Scenario coverage | scenarios owner + 本 subject | `E2E.P0.010` 粘贴主路径 / `E2E.P0.012` 解析失败 / `E2E.P0.018` 归档 |
+| BDD / E2E | 本 subject BDD 文档 + `E2E.P0.098` | import/parse 当前无真实 E2E owner；P0.098 只覆盖真实登录、completion 后 Home/Workspace/TargetJob refresh 与 detail read |
 | Backend internal runner | [backend-async-runner](../backend-async-runner/spec.md) | 只注册 `target_import` handler，并沿用 B3 payload red-line |
 
 ## 6 验收标准
@@ -159,7 +159,7 @@
 | C-16 | 有效 JD 未披露公司名 | 用户提交有效 JD，AI 输出包含 title / requirements 但 `companyName` 为空 | `target_import` runner kernel 调用真实 provider 并完成 parse | TargetJob 进入 `analysisStatus='ready'`，`companyName` 写入语言相关兜底值，requirements 可见，`ai_task_runs` 记录 jd_parse provider/model/status/validation 摘要；markdown fenced JSON 可解析，带 prose 的输出仍失败 | 001 |
 | C-17 | Practice progress projection | 结构化 TargetJob 有零/部分/全部完成轮次，canonical sequence 可能是 `1,2,4`；可能有同用户 wrong-resume completion、重复完成 session、更新的旧轮复练 plan、legacy null plan、缺 provenance/溢出/大小写错误 round 与不同 lifecycle status | `GET /targets` / `GET /targets/{id}` | Get/List 仅接纳 TargetJob 绑定 resume 的合法 exact pair；返回一致的有序去重 completed prefix、第一个未完成 canonical `currentRound` 与 status，`2` 的下一轮是现有 `4`；只匹配当前 pair+绑定 resume 的 ready plan 成为 `currentPracticePlanId`；最终完成时 current/plan 均 null；无效 summary fail closed；一页列表只做一条聚合查询，无逐卡 N+1 | 001 |
 | C-18 | 报告指针去规范化清理 | TargetJob row/response 仍含 `latest_report_id/latestReportId` | 执行 001 Phase 19 | DB、store、generated/fixture 与 public TargetJob response 均无该指针；canonical rounds 保持完整，报告当前态仅由 backend-review overview 按冻结 context 投影 | 001 + backend-review/001 |
-| C-19 | JD raw text size boundary | 构造 UTF-8 96KiB 与 96KiB+1 的 `{rawText,targetLanguage,resumeId}` | `importTargetJob` | limit 正常 queued/parse；limit+1 返回 `VALIDATION_FAILED`，不创建 TargetJob/job/outbox、不调用 AI；前端从 RuntimeConfig 同值预检 | 001 Phase 20 + P0.010/P0.015 |
+| C-19 | JD raw text size boundary | owner config 提供 UTF-8 raw-text limit | `importTargetJob` | 注入小型边界验证 overflow 返回 `VALIDATION_FAILED`、零 TargetJob/job/outbox/AI；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文本或配置 E2E | 001 Phase 20 |
 
 ## 7 关联计划
 

@@ -39,8 +39,6 @@ spec:
       - Auth visual contract
       - Settings visual contract
       - visual smoke
-      - E2E.P0.005
-      - E2E.P0.006
       - no external design system
       - no private fonts
   targets:

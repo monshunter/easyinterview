@@ -102,11 +102,11 @@ describe("Resume Workshop privacy red lines (Phase 4.4)", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("formal Resume Workshop source and P0.036 do not retain the prototype toast bridge", () => {
+  it("formal Resume Workshop source and list contract do not retain the prototype toast bridge", () => {
     const bridgeName = ["ei", "Toast"].join("");
     const scenarioFile = resolve(
       ROOT,
-      "../../scenarios/p0-036-resume-flat-list-auth-boundary.test.tsx",
+      "../../__tests__/resume-list-auth-boundary.test.tsx",
     );
     const offenders: string[] = [];
 

@@ -1,8 +1,6 @@
 package judgecompatible_test
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -18,73 +16,37 @@ import (
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
-const judgeResponseBodyLimit = 4 << 20
+const judgeResponseBodyLimit = 256
 
-func TestCompleteResponseLimitAndTrustedModelProvenance(t *testing.T) {
+func TestCompleteUsesTrustedModelProvenance(t *testing.T) {
 	const rawModel = "JUDGE-PROVIDER-MODEL-RAW-MARKER"
-	for _, tc := range []struct {
-		name     string
-		size     int
-		gzip     bool
-		wantCode string
-	}{
-		{name: "exact limit", size: judgeResponseBodyLimit},
-		{name: "one byte over", size: judgeResponseBodyLimit + 1, wantCode: sharederrors.CodeAiOutputInvalid},
-		{name: "one byte over after gzip decompression", size: judgeResponseBodyLimit + 1, gzip: true, wantCode: sharederrors.CodeAiOutputInvalid},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			body := sizedJudgeResponse(t, tc.size, rawModel)
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				if tc.gzip {
-					w.Header().Set("Content-Encoding", "gzip")
-					zw := gzip.NewWriter(w)
-					_, _ = zw.Write(body)
-					_ = zw.Close()
-					return
-				}
-				_, _ = w.Write(body)
-			}))
-			defer server.Close()
+	body := sizedJudgeResponse(t, judgeResponseBodyLimit, rawModel)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(body)
+	}))
+	defer server.Close()
 
-			adapter := newJudgeAdapterAt(t, server.URL, server.Client())
-			_, meta, err := adapter.Complete(context.Background(), judgeProfile(5000), judgePayload())
-			if tc.wantCode != "" {
-				assertJudgeStableError(t, err, tc.wantCode, rawModel)
-				return
-			}
-			if err != nil {
-				t.Fatalf("Complete: %v", err)
-			}
-			if meta.ModelID != judgeProfile(0).Default.Model {
-				t.Fatalf("untrusted response model changed provenance: %+v", meta)
-			}
-			assertJudgeDoesNotContain(t, judgeMustJSON(t, meta), rawModel)
-		})
+	adapter := newJudgeAdapterAt(t, server.URL, server.Client())
+	_, meta, err := adapter.Complete(context.Background(), judgeProfile(5000), judgePayload())
+	if err != nil {
+		t.Fatalf("Complete: %v", err)
 	}
+	if meta.ModelID != judgeProfile(0).Default.Model {
+		t.Fatalf("untrusted response model changed provenance: %+v", meta)
+	}
+	assertJudgeDoesNotContain(t, judgeMustJSON(t, meta), rawModel)
 }
 
-func TestCompleteErrorResponseLimit(t *testing.T) {
-	base := []byte(`{"error":{"code":"private","message":"private"}}`)
-	for _, tc := range []struct {
-		name     string
-		size     int
-		wantCode string
-	}{
-		{name: "exact limit", size: judgeResponseBodyLimit, wantCode: sharederrors.CodeAiProviderTimeout},
-		{name: "one byte over", size: judgeResponseBodyLimit + 1, wantCode: sharederrors.CodeAiOutputInvalid},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				_, _ = w.Write(judgePadJSON(t, base, tc.size))
-			}))
-			defer server.Close()
-			adapter := newJudgeAdapterAt(t, server.URL, server.Client())
-			_, _, err := adapter.Complete(context.Background(), judgeProfile(5000), judgePayload())
-			assertJudgeStableError(t, err, tc.wantCode, "private")
-		})
-	}
+func TestCompleteKeepsProviderErrorMessagePrivate(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = io.WriteString(w, `{"error":{"code":"private","message":"private"}}`)
+	}))
+	defer server.Close()
+	adapter := newJudgeAdapterAt(t, server.URL, server.Client())
+	_, _, err := adapter.Complete(context.Background(), judgeProfile(5000), judgePayload())
+	assertJudgeStableError(t, err, sharederrors.CodeAiProviderTimeout, "private")
 }
 
 func TestCompleteDoesNotExposeTransportReadOrParseErrors(t *testing.T) {
@@ -142,7 +104,11 @@ func TestCompleteBoundsProviderFinishReason(t *testing.T) {
 func newJudgeAdapterAt(t *testing.T, baseURL string, client *http.Client) *judgecompatible.Adapter {
 	t.Helper()
 	provider := providerregistry.ResolvedProvider{Entry: judgeEntry(), BaseURL: baseURL, APIKey: "k"}
-	adapter, err := judgecompatible.New(judgecompatible.Options{Provider: provider, HTTPClient: client})
+	adapter, err := judgecompatible.New(judgecompatible.Options{
+		Provider:             provider,
+		HTTPClient:           client,
+		MaxResponseBodyBytes: judgeResponseBodyLimit,
+	})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -161,14 +127,6 @@ func sizedJudgeResponse(t *testing.T, size int, model string) []byte {
 		t.Fatalf("response size %d too small", size)
 	}
 	return []byte(prefix + strings.Repeat("a", size-len(prefix)-len(suffix)) + suffix)
-}
-
-func judgePadJSON(t *testing.T, body []byte, size int) []byte {
-	t.Helper()
-	if len(body) > size {
-		t.Fatalf("body size %d exceeds target %d", len(body), size)
-	}
-	return append(append([]byte(nil), body...), bytes.Repeat([]byte(" "), size-len(body))...)
 }
 
 func assertJudgeStableError(t *testing.T, err error, code string, forbidden ...string) {

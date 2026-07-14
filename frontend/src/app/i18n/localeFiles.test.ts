@@ -20,7 +20,7 @@ function isProductionTypeScript(path: string): boolean {
     /\.(ts|tsx)$/.test(rel) &&
     !/\.test\.(ts|tsx)$/.test(rel) &&
     !rel.includes("/__tests__/") &&
-    !rel.startsWith("app/scenarios/") &&
+    !rel.startsWith("app/__tests__/") &&
     !rel.startsWith("api/generated/") &&
     !rel.startsWith("app/i18n/locales/") &&
     !rel.startsWith("test/")

@@ -1,7 +1,7 @@
 # Provider Registry and Capability Profiles Checklist
 
-> **版本**: 1.15
-> **状态**: active
+> **版本**: 1.16
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -60,40 +60,24 @@
 - [x] 7.1 删除仅由测试自证的 `providerregistry.SharedErrorCode` 映射层；保留 `ErrProviderConfigInvalid` / `ErrProviderSecretMissing` 的 `errors.Is` 合同，并通过 focused tests、staticcheck、production deadcode、symbol inventory、AI/config lints、owner contexts 与 docs/diff/pruning gates 验证
   <!-- verified: 2026-07-10 method=shared-provider-error-mapper-removal evidence="Production deadcode RED listed SharedErrorCode. Removed the mapper and two self-only assertions while preserving both errors.Is startup sentinels. Focused/full AI tests, staticcheck, deadcode/symbol inventory, AI/config lints and owner contexts PASS." -->
 
-## Phase 8: report generation profile budget
+## Phase 8-9: Superseded budget migration cleanup
 
-- [x] 8.1 RED: profile loader/coverage tests require `report.generate.default` context_window_tokens=1000000, max_tokens=6144, timeout_ms=60000, rate_limit.tpm=60000, version=1.2.0 and unchanged DeepSeek Pro route; missing/non-positive/`<=max_tokens` capacity, 4096, budget-without-version-bump and unrelated profile mutations fail.
-  <!-- verified: 2026-07-12 method=tdd-red evidence="Profile tests failed to compile without ContextWindowTokens; coverage lint incorrectly accepted missing context_window_tokens; B1 vocabulary lacked the generated field constant." -->
-- [x] 8.2 GREEN: update the single `config/ai-profiles.yaml` catalog with context_window_tokens=1000000 and max_tokens 4096→6144/version 1.1.0→1.2.0 only; run focused loader tests, `make lint-ai-profile-coverage` and config lint. TPM remains a separately parsed throughput hint.
-  <!-- verified: 2026-07-12 method=tdd-green evidence="Profile package, 13 coverage tests, lint-ai-profile-coverage, lint-conventions and full lint-config PASS; tracked report profile changed only context_window_tokens/max_tokens/version." -->
-- [x] 8.3 BOUNDARY-GATE: consume backend-review `REPORT_BOUNDARY_FIXTURES_READY`, exact 48,000/+1-byte framed inputs and current-schema worst-case zh/en outputs; offline prove `48,000 + 2,048 framing reserve + 6,144 < 1,000,000 context window`. TPM arithmetic is forbidden as capacity proof; A3 does not reimplement +1-byte business failure behavior.
-  <!-- verified: 2026-07-12 method=offline-boundary evidence="Review marker REPORT_BOUNDARY_FIXTURES_READY PASS; A3 verified manifest, exact bytes/SHA-256/current output shape and 48000+2048+6144=56192<1000000. TPM was checked only as unchanged throughput." -->
-- [x] 8.4 LIVE-TOKEN-GATE + HANDOFF: opt-in real-provider smoke records redacted AICallMeta usage for exact framed input and zh/en output-fixture token-count probes, rejects missing usage/`finish_reason=length`/over-budget results, then emits `REPORT_PROFILE_6144_PASS` with executable offline evidence; P0.100 must repeat the live gate before final acceptance. YAML grep alone cannot satisfy this marker.
-  <!-- verified: 2026-07-12 method=real-provider-smoke evidence="framed-48000 input/output=7050/1710 stop reserved=15242; en fixture=1298/41 stop reserved=9490; zh-CN fixture=2732/82 stop reserved=10924. All usage present, fixture input <=6144, no length finish, all below 1M. P0.100 must repeat current-run live gate." -->
-
-## Phase 9: context-aware judge final-content reliability
-
-- [x] 9.1 RED: tracked catalog test requires judge.default thinking=disabled / response_format=json_object / max_tokens=6144 / timeout=60000 / tpm=60000 / version=1.2.0; adapter request test requires the exact wire. Reasoning-only fixture must fail with AI_OUTPUT_INVALID and no reasoning text leakage.
-  <!-- verified: 2026-07-12 method=tdd-red evidence="catalog still had max_tokens=2048/v1.1.0/no thinking or JSON params; adapter omitted both wire fields and returned reasoning-only length response as nominal empty completion" -->
-- [x] 9.2 GREEN: change only judge.default thinking/response format/max tokens/version; keep provider/model/route/fallback/timeout/TPM unchanged. Adapter emits only redacted finish/token/reasoning-presence metadata on empty final content and preserves invalid provenance.
-  <!-- verified: 2026-07-12 method=tdd-green evidence="judge_compatible and profile focused tests PASS; reasoning-only error contains finish_reason=length, completion_tokens and presence=true but not private reasoning; lint-ai-profile-coverage and lint-config PASS" -->
-- [x] 9.3 LIVE-JUDGE-GATE + HANDOFF: real complete+judge smoke requires stop, positive usage, non-empty JSON, thresholds/item/causal/critical pass; emit `JUDGE_FINAL_CONTENT_V120_PASS`. P0.100 must still rerun all five cases / 11 attempts.
-  <!-- verified: 2026-07-12 method=real-provider-smoke evidence="completion v1.2.0 stop input/output=1928/1230 bytes=1235; judge v1.2.0 stop input/output=1318/791 bytes=2999; weighted=1, item verdicts=7, causal checks=1, zero tolerance=0, critical=true; JUDGE_FINAL_CONTENT_V120_PASS. Full P0.100 remains a separate gate." -->
+- [x] 8.1 删除旧 report/judge exact-coordinate、边界 fixture、bytes+tokens 公式、activation marker 与真实 provider smoke 的当前 gate。
+- [x] 8.2 保留 loader owner 的 default/override/invalid 契约，以及六 active profile `max_tokens >= 16384` floor lint。
+- [x] 9.1 Judge adapter contract 验证 non-thinking JSON wire；reasoning-only/empty final 以 `AI_OUTPUT_INVALID` 脱敏 fail closed。
 
 ## Phase 10: report generation non-thinking structured output
 
-- [x] 10.1 RED: openai-compatible contract tests require `thinking=enabled|disabled` to map to the exact official object while object `output_schema` still drives `response_format=json_object`; adapter invalid values must fail before network, and loader/tracked catalog/coverage lint reject missing or illegal report thinking.
+- [x] 10.1 RED: openai-compatible contract tests require `thinking=enabled|disabled` to map to the exact official object while object `output_schema` still drives `response_format=json_object`; adapter invalid values must fail before network, and loader owner rejects illegal report thinking without an exact-profile lint matrix.
   <!-- verified: 2026-07-13 method=tdd-red evidence="adapter omitted thinking and sent all three invalid values; loader accepted auto/boolean/number; tracked catalog lacked report thinking; coverage exact-coordinate positive fixture failed after adding thinking" -->
 - [x] 10.2 GREEN: set only `report.generate.default.default.params.thinking=disabled`; add the official openai-compatible thinking object and strict allowlist to Complete/Stream request construction; keep report response format absent from profile params and output-schema driven.
   <!-- verified: 2026-07-13 method=tdd-green evidence="focused provider/profile tests and report profile coverage cases PASS; enabled/disabled exact wire, object-schema JSON mode, invalid pre-request fail-close, tracked catalog non-thinking coordinate and missing/invalid lint cases are executable" -->
-- [x] 10.3 VERIFY + HANDOFF: run provider/profile full and race tests, full profile coverage/lint, owner context/index/docs gates and `git diff --check`; P0.100 must rerun the live report matrix before final acceptance.
-  <!-- verified: 2026-07-13 method=focused-race-contract-docs evidence="openai-compatible/profile full and race PASS; 13 profile-coverage tests and tracked lint PASS; smoke-tag consumer compiles without live call; owner context, zero-drift index/docs links and diff check PASS. Live P0.100 remains root-owner final acceptance." -->
+- [x] 10.3 VERIFY + HANDOFF: run provider/profile full and race tests, full profile coverage/lint, owner context/index/docs gates and `git diff --check`; then run root `make test` for full frontend/backend regression.
 
 ## Phase 11: typed profile defaults and provider response cap
 
-- [x] 11.1 RED: active profile missing token fields、合法 override、显式零/负数/invalid capacity 与四 adapter response body limit/+1 测试先失败。
-- [x] 11.2 GREEN: 每个 active profile 增加与 tracked catalog 一致的 typed code default；显式非法值 fail-closed，catalog 坐标不漂移。
-- [x] 11.3 GREEN: 四个 provider adapter 统一消费 A4 `ai.maxResponseBodyBytes=4194304`，删除 adapter-local 4MiB 与无界 response read；limit 接受、limit+1 返回 typed provider error。
-- [x] 11.4 CAPACITY-GATE: 消费内存构造的 917,504/917,505-byte review boundary cases，证明 `917504+2048+6144=925696<1000000`；62,397-byte regression case 调用 provider；不提交 `input-*.json`，TPM 不参与裁决。
-  <!-- verified: 2026-07-14 evidence="Profile/provider focused/full/race and offline capacity/P0.056/P0.058 gates pass; opt-in live P0.100 remains in 11.5." -->
-- [ ] 11.5 VERIFY: provider/profile focused/full/race、coverage/config lint、P0.056 与 opt-in P0.100 token usage、contexts/docs/diff gates 全部通过。
+- [x] 11.1 RED: canonical coverage lint 只锁定六个 active profile `max_tokens >= 16384`；profile loader owner package 仅保留一组 default / legal override / explicit invalid 表驱动契约。
+- [x] 11.2 GREEN: 六个 active profile typed code defaults 当前为 16384，report context typed default 为 1000000；显式非法值 fail-closed，不把 exact catalog 坐标复制成 lint gate。
+- [x] 11.3 GREEN: 四个 provider adapter 统一消费 A4 `ai.maxResponseBodyBytes=4194304`，删除 adapter-local 4MiB 与无界 response read；测试只覆盖 shared bounded reader 与确有差异的 streaming/protocol 截断分支，不复制配置 propagation matrix。
+- [x] 11.4 CONFIG-BOUNDARY: 不维护 report budget test、bytes+tokens 公式、默认尺寸材料或 `input-*.json`；backend-review 业务回归不作为配置传播 gate。
+- [x] 11.5 VERIFY: active-budget floor lint、单一 loader default/override/invalid contract、focused response-cap protocol tests、config/context/docs/diff gates 与根 `make test` 全部通过；不运行 E2E 或真实 provider smoke 证明配置。

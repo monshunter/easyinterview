@@ -14,12 +14,12 @@ profiles:
         response_format: json_object
     fallback: []
     timeout_ms: 60000
-    max_tokens: 6144
+    max_tokens: 16384
     rate_limit:
       rps: 3
       tpm: 60000
     route: judge.default
-    version: 1.2.0
+    version: 1.3.0
 
   - name: practice.voice.stt.default
     capability: stt
@@ -66,12 +66,12 @@ profiles:
         temperature: 0.6
     fallback: []
     timeout_ms: 30000
-    max_tokens: 1024
+    max_tokens: 16384
     rate_limit:
       rps: 5
       tpm: 60000
     route: practice.session.chat
-    version: 1.1.0
+    version: 1.2.0
 
   - name: practice.voice.realtime.default
     capability: realtime
@@ -100,12 +100,12 @@ profiles:
     fallback: []
     timeout_ms: 60000
     context_window_tokens: 1000000
-    max_tokens: 6144
+    max_tokens: 16384
     rate_limit:
       rps: 3
       tpm: 60000
     route: report.generate
-    version: 1.2.0
+    version: 1.3.0
 
   - name: resume.parse.default
     capability: chat
@@ -117,12 +117,12 @@ profiles:
         temperature: 0.1
     fallback: []
     timeout_ms: 30000
-    max_tokens: 8192
+    max_tokens: 16384
     rate_limit:
       rps: 5
       tpm: 60000
     route: resume.parse
-    version: 1.2.0
+    version: 1.3.0
 
   - name: resume.tailor.default
     capability: chat
@@ -134,12 +134,12 @@ profiles:
         temperature: 0.4
     fallback: []
     timeout_ms: 20000
-    max_tokens: 2048
+    max_tokens: 16384
     rate_limit:
       rps: 5
       tpm: 60000
     route: resume.tailor
-    version: 1.1.0
+    version: 1.2.0
 
   - name: target.import.default
     capability: chat
@@ -151,12 +151,12 @@ profiles:
         temperature: 0.1
     fallback: []
     timeout_ms: 30000
-    max_tokens: 2048
+    max_tokens: 16384
     rate_limit:
       rps: 5
       tpm: 60000
     route: target.import
-    version: 1.1.0
+    version: 1.2.0
 
   - name: target.intel.default
     capability: chat

@@ -147,7 +147,7 @@ Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启
 本目录是 **应用本地开发依赖** 的 Docker Compose 路径；`test/scenarios/` 是 BDD / E2E 场景契约路径。两条路径互不替代：
 
 - 应用 dev → 用 `make dev-up` 启动 Postgres / Redis / MinIO / Mailpit 依赖；backend/frontend 进程默认在宿主机单独启动并消费这些连接串。
-- BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。共享环境生命周期由 `test/scenarios/env-setup.sh` / `test/scenarios/env-status.sh` / `test/scenarios/env-verify.sh` / `test/scenarios/env-cleanup.sh` / `test/scenarios/env-redeploy.sh` 管理，根 Makefile 提供 `make scenario-env-*` 等价入口；这些入口独立于具体场景目录。当前 P0 场景默认由 shell / Python 脚本编排既有产品 runner（例如已有包测试、Vitest、Playwright、browser smoke）验证同一行为契约；场景专属依赖不得新增正式 `backend/cmd` / Go helper 进程，不要求 Kind / K8s / Helm 环境。
+- BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。共享环境生命周期由 `test/scenarios/env-setup.sh` / `test/scenarios/env-status.sh` / `test/scenarios/env-verify.sh` / `test/scenarios/env-cleanup.sh` / `test/scenarios/env-redeploy.sh` 管理，根 Makefile 提供 `make scenario-env-*` 等价入口；这些入口独立于具体场景目录。E2E 只通过真实 HTTP API，或由浏览器访问真实 frontend 并让业务请求落到真实 backend；不得在场景脚本中编排包测试、Vitest、pytest、lint、build 或 package smoke。场景专属依赖不得新增正式 `backend/cmd` / Go helper 进程，不要求 Kind / K8s / Helm 环境。
 - 本地前后端联调 / manual UAT → 先用 `make scenario-env-setup` 准备 host-run 依赖环境；`make scenario-env-redeploy TARGET=backend|frontend|all` / `test/scenarios/env-redeploy.sh backend|frontend|all` 会重新构建并重启对应 host-run backend/frontend 进程，同时输出服务地址、PID 与日志路径，供开发者继续调试。
 - 需要干净数据重新调试 → 使用 `make scenario-env-reset-redeploy`，它等价于 `env-cleanup.sh --with-volumes` → `env-setup.sh --with-migrations` → `env-redeploy.sh all` → `env-verify.sh`。普通“重启 / 重新加载当前代码”不清数据，应继续使用 `make scenario-env-redeploy TARGET=all`。
 - 需要真实 AI provider 的应用部署不得降级到单元测试 stub；`APP_ENV=test` 以外缺真实 provider config 时必须 fail-fast。
@@ -170,4 +170,4 @@ Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启
 
 ## 8 CI 边界
 
-当前单人开发阶段不在远端 CI 拉起 dev stack；`make lint` / `make test` / `make build` 仅依赖单元测试 stub。本 plan **不创建也不修改** [A5 ci-pipeline-baseline](../../docs/spec/ci-pipeline-baseline/spec.md) 的远端 workflow；A5 的远端验证触发条件成立后，再由 A5 原地评估是否在 CI 集成本地栈。
+当前单人开发阶段不在远端 CI 拉起 dev stack；根 `make test` 统一承接前后端全量单测并只依赖测试 stub，focused test 只作开发反馈，不进入 E2E 场景。本 plan **不创建也不修改** [A5 ci-pipeline-baseline](../../docs/spec/ci-pipeline-baseline/spec.md) 的远端 workflow；A5 的远端验证触发条件成立后，再由 A5 原地评估是否在 CI 集成本地栈。

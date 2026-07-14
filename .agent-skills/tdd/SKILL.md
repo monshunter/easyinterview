@@ -61,11 +61,11 @@ When `--section` and `--phase-commit` are both present, trigger Step 9.5 exactly
 1. Read checklist from `--file`.
 2. Read each file from `--references`.
 3. If exactly one loaded reference has basename `bdd-plan.md` or `bdd-test-plan.md`,
-   classify it as the BDD scenario source for Step 5B. New canonical plans key BDD verification by behavior-oriented
-   scenario IDs such as `E2E.P0.001` / `E2E.P0.004`;
+   classify it as the BDD behavior source for Step 5B. New canonical plans key BDD verification by a domain
+   Behavior ID such as `BDD.AUTH.001` or by a real E2E ID such as `E2E.P0.001` only when the flow drives a running frontend/backend through HTTP/UI;
    some active plan files may still carry `AC-*` mappings as compatibility input.
 4. If exactly one loaded reference has basename `bdd-checklist.md`, classify it as the BDD
-   asset/execution checklist for Step 5B.
+   evidence/execution checklist for Step 5B.
 5. If multiple loaded references match either BDD role, stop and ask the user to
    disambiguate before continuing.
 6. If `--test-checklist` is provided:
@@ -133,7 +133,8 @@ Executing: {checklist-file} -> {section/item-id} {item-title}
 After selecting the next item in Step 3, check if the item text contains the `BDD-Gate:` prefix:
 
 - **No** → Continue with Steps 4-8 (normal Red-Green-Refactor cycle).
-- **Yes** → Skip Steps 4-8 entirely. Jump to Step 5B (Deploy-Verify protocol).
+- **Yes** → Skip the normal implementation Red-Green-Refactor cycle. Jump to Step 5B (Behavior-Verify protocol), then continue with the phase regression and checklist-update gates.
+- An `E2E-HANDOFF:` item is a static ownership/reference check, not a behavior execution gate. It may verify that the real scenario asset and owner link exist, but it must not run the scenario, change `Ready` to PASS, or activate Step 5B. Only an explicit real-E2E `BDD-Gate:` in the E2E suite owner (or an explicitly scoped scenario run) may do that.
 
 ### Step 3C: Hard Coverage Gate detection
 
@@ -164,21 +165,27 @@ Red phase note: test already passes (pre-existing implementation). Continue with
 2. Implement the minimal change required for current item.
 3. Re-run focused test; it must pass.
 
-### Step 5B: Deploy-Verify protocol (BDD-Gate items only)
+### Step 5B: Behavior-Verify protocol (BDD-Gate items only)
 
-This step applies only when Step 3B identified a `BDD-Gate:` item. It replaces the Red-Green-Refactor cycle (Steps 4-8) for that item.
+This step applies only when Step 3B identified a `BDD-Gate:` item. It replaces the Red-Green-Refactor and item-level verification cycle (Steps 4-7.5) for that item; Step 8 still owns the phase regression and checklist update.
 
-1. **Parse scenario references**: Extract scenario identifiers from the item text (for example `BDD-Gate: 验证 E2E.P0.001, E2E.P0.004 通过` → `[E2E.P0.001, E2E.P0.004]`).
-2. **Load BDD scenarios**: Prefer the loaded reference whose basename is `bdd-plan.md` or `bdd-test-plan.md`; when the caller handed off validated files from `context.yaml`, this is the first-class `bddPlan` document. Use the parsed scenario IDs as the primary lookup key. If the current checklist item is an AC-style compatibility gate, treat that as compatibility input and resolve through the AC mapping in `bdd-plan.md`, `bdd-test-plan.md`, or the spec §验收标准 table.
-3. **Check BDD checklist prerequisite**: If a loaded `bdd-checklist.md` exists, find the checklist section/items for the parsed scenario IDs. Every asset and execution item for those scenarios must already be checked before the main checklist `BDD-Gate` can be marked complete. If any related BDD checklist item is unchecked, stop and report the exact missing items instead of running or marking the gate.
-4. **Deploy and verify**:
-   a. If a matching scenario test directory exists under `test/scenarios/` for the parsed scenario IDs → require the documented script contract and execute the scenario scripts (setup → trigger → verify → cleanup) after confirming the framework-defined environment is ready.
-   b. If the scenario directory exists but the required scripts are missing → stop and report that the BDD asset contract is incomplete. Do not fall back to manual verification for repo-defined scenarios.
-   c. If no scenario directory exists and the plan/framework explicitly documents a manual-only compatibility verification path → execute that manual verification and record evidence.
-5. **Judge result**:
-   - **Pass** → Mark the BDD-Gate item complete. Append verification evidence as an HTML comment on the line below: `<!-- verified: YYYY-MM-DD method={scenario|manual} bddChecklist=complete -->`.
+1. **Parse behavior references**: Extract domain Behavior IDs or real E2E IDs from the item text (for example `BDD-Gate: 验证 BDD.AUTH.001 通过`). One gate must resolve to exactly one evidence layer: a code owner gate contains domain Behavior IDs only；a real E2E gate contains real E2E IDs only and belongs to the E2E suite owner or an explicitly scoped scenario run. Do not mix a domain Behavior ID and a real E2E ID in one `BDD-Gate:`；record the latter as a separate `E2E-HANDOFF:` in code-owner plans until it is explicitly run.
+2. **Load BDD behaviors**: Prefer the loaded reference whose basename is `bdd-plan.md` or `bdd-test-plan.md`; when the caller handed off validated files from `context.yaml`, this is the first-class `bddPlan` document. Use the parsed IDs as the primary lookup key. If the current checklist item is an AC-style compatibility gate, treat that as compatibility input and resolve through the AC mapping in `bdd-plan.md`, `bdd-test-plan.md`, or the spec §验收标准 table.
+3. **Resolve the evidence layer** from each BDD row; it must explicitly name one of:
+   - `domain behavior test`: a code-level owner test with Given/When/Then-equivalent assertions and no E2E directory.
+   - `real API/UI E2E`: a scenario that drives an already running frontend/backend through HTTP API calls or browser UI interactions.
+   - an explicitly documented manual-only compatibility path for a legacy plan.
+   Static source presence, config default checks, lint, fixture parity, and build success are not BDD behavior evidence by themselves.
+4. **Check BDD checklist prerequisites**: Find the checklist section for each parsed ID. The behavior definition, evidence-layer choice, and required test/scenario assets must be complete before execution. Execution-result and evidence-recording items may be completed by this step; do not require them to be pre-checked before running their own verification.
+5. **Execute the selected evidence layer**:
+   a. For a domain Behavior ID, run the owner behavior test named by `bdd-plan.md` / `bdd-checklist.md`, inspect that its assertions prove the material Given/When/Then outcomes, and record the result. Focused Go/Vitest execution is development evidence; it remains a code-level test and must not be wrapped in `test/scenarios/e2e/`.
+   b. For a real E2E ID, require the matching `test/scenarios/e2e/` asset and documented environment preflight, then execute its setup → trigger → verify → cleanup contract. Follow invoked helpers/browser specs and confirm the trigger drives real HTTP/UI against the running product, the browser does not intercept/mock the business backend, and the scripts do not run `go test`, Vitest/npm test, pytest, lint, source-contract, fixture-parity, or build commands as scenario evidence.
+   c. If a real E2E directory is incomplete, stop and report the asset gap. Do not downgrade it to a code-level or manual proof.
+   d. If a legacy plan explicitly documents a manual-only compatibility path, execute it and record bounded evidence.
+6. **Judge result**:
+   - **Pass** → Complete the matching BDD checklist execution/evidence items, then mark the BDD-Gate item complete. Append verification evidence as an HTML comment on the line below: `<!-- verified: YYYY-MM-DD method={domain-behavior|e2e|manual} bddChecklist=complete -->`.
    - **Fail** → Do NOT mark the item complete. Report failure reason and return to fix the implementation. The current phase cannot advance until the BDD-Gate passes.
-5. After marking complete (or reporting failure), continue to Step 8 (checklist update) or back to the failing implementation item.
+7. After passing, continue to Step 8. After failure, return to the failing implementation item.
 
 ### Step 6: Refactor phase
 
@@ -207,9 +214,10 @@ Environment-specific consumer surfaces and live verification steps belong to the
 
 After current item is verified green:
 
-1. Mark the exact checklist checkbox as complete.
-2. Save checklist changes immediately (no batch update).
-3. Continue to next unchecked item.
+1. If this item closes an implementation phase that touches `backend/` or `frontend/`, run `make test` from the repository root before closing the phase. Focused tests are fast development feedback；the root Makefile is the authoritative whole frontend/backend unit-regression gate。代码测试不得进入 `test/scenarios/e2e/`，单 package/file PASS 也不能替代全量回归。
+2. Mark the exact checklist checkbox as complete.
+3. Save checklist changes immediately (no batch update).
+4. Continue to next unchecked item.
 
 ### Step 9: Execute mapped test items (when --test-checklist provided)
 
@@ -252,14 +260,15 @@ Only after Step 9.5 succeeds may `/tdd` continue to the next implementation phas
 When all checklist items are checked:
 
 1. If `--test-checklist` was provided, verify all mapped test checklist sections are also fully checked. If any mapped items remain unchecked, report the gap and continue executing them via Step 9 before proceeding.
-2. Ask user:
+2. For a delivery that touches `backend/` or `frontend/`, confirm a current repository-root `make test` PASS covers the complete final worktree. If the latest run predates relevant changes, rerun it. Code-level unit regression and real E2E remain separate gates; do not run `make test` from an E2E scenario.
+3. Ask user:
    > "All checklist items are complete. Switch plan/checklist to `completed` and sync INDEX?"
-3. If approved:
+4. If approved:
    - Set Header `状态` to `completed` on plan and checklist.
    - Update `更新日期` to today (`YYYY-MM-DD`).
    - If Header field order/enum/date is non-compliant, invoke `/sync-doc-index --fix-header` first.
    - Invoke `/sync-doc-index --fix-index` to sync INDEX grouping.
-4. Post-pass retrospective owner rule:
+5. Post-pass retrospective owner rule:
    - If the current delivery entered through a higher-level caller that explicitly owns close-out, that caller owns the retrospective trigger and `/tdd` must not invoke it separately.
    - `/implement` is such a caller for full plan delivery.
    - Remediation callers such as `/plan-code-review --fix` are not delivery owners; they may route work through `/tdd --section`, but they do not own global completion or retrospective by themselves.
@@ -275,10 +284,13 @@ When all checklist items are checked:
 - Adding speculative tests only to satisfy a raw coverage-percentage gate instead of the planned test scope
 - In `--section` mode: modifying checklist items outside the matched section scope
 - Marking a structural contract change complete while repo-tracked consumers, generated artifacts, or test-facing consumer artifacts are still stale
-- Marking a BDD-Gate item complete without actually executing verification (Deploy-Verify protocol)
-- Marking a BDD-Gate item complete while related `bdd-checklist.md` scenario asset/execution items remain unchecked
-- Marking a BDD-Gate item complete with `method=static-contract`, `method=unit-equivalent`, or any other non-runtime evidence
+- Marking a BDD-Gate item complete without actually executing its selected Behavior-Verify protocol
+- Marking a BDD-Gate item complete while related `bdd-checklist.md` behavior evidence/execution items remain unchecked
+- Mixing domain Behavior IDs with real E2E IDs in one `BDD-Gate:` or treating an `E2E-HANDOFF:` as current-run PASS evidence
+- Treating source presence, config defaults, lint, fixture parity, or build success as a substitute for a user-observable BDD behavior
+- Creating or accepting an E2E scenario that only wraps Go/Vitest/pytest/lint/build or replaces the business backend with mock transport/interception
 - Advancing to the next phase while a BDD-Gate item in the current phase remains unchecked
+- Treating focused backend/frontend tests as the final aggregate regression instead of running the repository-root `make test`
 - When resuming an in-flight plan, do not continue implementation outside `/tdd`.
 - Re-enter through `/implement` or the current `/tdd` owner path so Step 9.5 remains active.
 

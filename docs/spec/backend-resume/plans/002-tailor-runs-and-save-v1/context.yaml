@@ -60,7 +60,6 @@ spec:
           - shared
           - migrations
           - config
-          - test/scenarios/e2e
           - frontend/src/api
         uiRoutes: []
         apiNames:

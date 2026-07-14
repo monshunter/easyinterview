@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Out-of-scope gate for backend-review report generation.
 
-The owner plan intentionally names out-of-scope terms in markdown gates. This script
-therefore scans only runtime, fixtures, and scenario assets that must not carry
-old report-dashboard or worker-schema vocabulary.
+The owner plan intentionally names out-of-scope terms in markdown gates. This
+script therefore scans only runtime and report fixtures that must not carry old
+report-dashboard or worker-schema vocabulary.
 """
 
 from __future__ import annotations
@@ -40,9 +40,6 @@ SCAN_PREFIXES = (
     ("backend", "internal", "api", "reports"),
     ("backend", "internal", "store", "review"),
     ("openapi", "fixtures", "Reports"),
-    ("test", "scenarios", "e2e", "p0-052-report-generation-happy-path"),
-    ("test", "scenarios", "e2e", "p0-053-report-read-and-listing"),
-    ("test", "scenarios", "e2e", "p0-054-report-ai-failure-and-retry"),
 )
 
 EXCLUDED_PARTS = {".git", "node_modules", "dist", "coverage", ".test-output", "__pycache__"}

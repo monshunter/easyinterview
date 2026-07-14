@@ -50,9 +50,6 @@ spec:
       - file activation rollback
       - database migration activation rollback
       - REPORT_PROMPT_V020_READY
-      - REPORT_STORAGE_V18_PASS
-      - REPORT_PROMPT_V020_PASS
-      - PRACTICE_SEMANTIC_FOCUS_PROMPT_V020_PASS
       - report-context.v1 resolve provenance
       - retry current round cited missing behavior
       - focused retry per code directly cited missing behavior
@@ -73,7 +70,7 @@ spec:
       - generation dynamic scope full validation each round
       - judge protocol invalid retry content rejected terminal
       - aggregate usage latency attempt retry reason scope manifest
-      - independent P0.099 current run canonical 390px audit
+      - independent downstream report UI mobile audit
       - exact focus decision table
       - answer_depth answer_relevance empty exceptions
       - complete ascending needs work issue code set

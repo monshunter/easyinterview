@@ -29,7 +29,7 @@ func (s *completionTestStore) CompleteSession(context.Context, CompleteSessionSt
 	return CompleteSessionResult{ReportID: "report-1"}, nil
 }
 
-func TestE2EP0047RejectsZeroAnswerCompletion(t *testing.T) {
+func TestCompleteSessionRejectsZeroAnswer(t *testing.T) {
 	store := &completionTestStore{err: ErrSessionNotReportable}
 	service := NewService(ServiceOptions{
 		Store: store,
@@ -68,7 +68,7 @@ func TestCompletePracticeSessionPreservesFrozenReportContext(t *testing.T) {
 	t.Log("REPORT_CONTEXT_SNAPSHOT_PASS")
 }
 
-func TestE2EP0047CompletionReplayPreservesReportContext(t *testing.T) {
+func TestCompleteSessionReplayPreservesReportContext(t *testing.T) {
 	snapshot := completionServiceTestReportContext(t)
 	store := &completionTestStore{result: CompleteSessionResult{ReportID: "report-1", Replay: true, GenerationContext: snapshot}}
 	service := NewService(ServiceOptions{

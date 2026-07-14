@@ -184,7 +184,7 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.upload.dropzoneTitle":
     "Drop a PDF / Markdown resume",
   "resumeWorkshop.create.upload.dropzoneBody":
-    "After upload, the app opens resume detail and keeps the source content as the body.",
+    "PDF / Markdown / TXT, up to {maxSize}. PDFs render as a page stack; Markdown and text render as Markdown.",
   "resumeWorkshop.create.upload.choose": "Choose file",
   "resumeWorkshop.create.upload.selectedPrefix": "Selected: ",
   "resumeWorkshop.create.upload.uploading": "Uploading…",
@@ -197,7 +197,7 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.errors.extensionInvalid":
     "Unsupported file type — only .pdf / .md / .markdown / .txt are allowed.",
   "resumeWorkshop.create.errors.sizeExceeded":
-    "File exceeds {maxMb} MB. Compress or trim before retrying.",
+    "File exceeds {maxSize}. Compress or trim before retrying.",
   "resumeWorkshop.create.errors.pasteSizeExceeded":
     "The pasted resume exceeds the size limit. Shorten it before retrying.",
   "resumeWorkshop.create.errors.uploadFailed": "Upload failed · please retry.",

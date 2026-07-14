@@ -1,6 +1,6 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -42,8 +42,8 @@
 
 - **Plan 类型**: `feature-behavior` + `backend` + `contract` + `async-pipeline`。
 - **TDD 策略**: 通过 `/implement backend-targetjob/001-targetjob-import-and-parse-bootstrap backend` → `/tdd` 执行；Phase 18 先以 request/response、store、event/job、migration/config/prompt 的 RED contract tests 锁定旧来源仍可达，再做 paste-only 最小 GREEN，并运行 focused Go / codegen / migration / config / prompt gates。
-- **BDD 策略**: 需要 BDD。当前导入行为只由 `E2E.P0.010` 覆盖粘贴成功与幂等主路径、`E2E.P0.012` 覆盖 AI 失败/恢复；删除 URL 与同步手工表单场景 `E2E.P0.011` / `E2E.P0.013`。既有归档 `E2E.P0.018` 与进度 `E2E.P0.098` 不受本修订影响。
-- **替代验证 gate**: 不适用；BDD 是用户可见 API gate。补充 zero-reference gate 必须覆盖 production/OpenAPI/shared/config/migrations/prompts/generated/fixtures/scripts，证明 JD 来源变体、来源字段、来源表、来源专属错误码与刷新 job 不再可达，同时证明 resume/privacy upload 与独立 `source_records` 仍存在。
+- **BDD 策略**: `BDD.TARGETJOB.IMPORT.001` 由代码层 owner tests 验证 import/parse/Get/List 行为，并由仓库根 `make test` 统一回归；`E2E.P0.098` 仅作为 completion 后 progress refresh 的独立真实环境 handoff，只有显式运行后才产生 PASS，且不承接 JD import/parse。
+- **替代验证 gate**: zero-reference gate 覆盖 production/OpenAPI/shared/config/migrations/prompts/generated/fixtures/scripts，证明 JD 来源变体、来源字段、来源表、来源专属错误码与刷新 job 不再可达，同时证明 resume/privacy upload 与独立 `source_records` 仍存在。
 
 ### 3.1 Operation Matrix
 
@@ -51,11 +51,11 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` paste-only success / validation / AI-failure cases | Home paste input via generated client，携带 selected `resumeId` | generated `ServerInterface` adapter → `backend/internal/targetjob` handler / service / store | `target_jobs.resume_id + raw_jd_text` + `async_jobs(target_import)` + outbox `target.import.requested`；无 source row/file reference/sync-ready branch | `target.import.default` | `E2E.P0.010` paste primary + idempotency；`E2E.P0.012` parse failure |
-| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` (`default`, `prototype-baseline`, progress variants) | Home/Workspace cards and quick-start via generated client | `backend/internal/targetjob` list handler / page-first no-N+1 store query / service projection | read `target_jobs.resume_id/summary` + exact round `practice_plans` + `practice_sessions` + `practice_session_events.session_completed`; completed/ready facts require `practice_plans.resume_id = target_jobs.resume_id`; soft-deleted rows filtered; returns `practiceProgress` and only current-round `currentPracticePlanId` | none | `E2E.P0.010`, `E2E.P0.018`, `E2E.P0.098`; focused tests cover multi-card single query, wrong-resume exclusion and projection edges |
-| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`, progress variants) | parse confirmation / report next-round / quick-start via generated client | `backend/internal/targetjob` get handler / store detail + ledger facts / service projection | read `target_jobs.resume_id` + requirements + summary/fit + exact same-bound-resume completed/ready round facts; user-scoped 404 on missing/cross-user/soft-delete; returns Get/List-identical progress | none after parse completion; provenance is persisted output | `E2E.P0.010`, `E2E.P0.012`, `E2E.P0.018`, `E2E.P0.098`; focused tests cover isolation, wrong-resume/legacy null, non-contiguous successor, duplicate completion, final state and current-plan match |
-| `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` (`default`, Phase 0 add `invalid-state-transition`, `cross-user-hidden-not-found`) | workspace lifecycle / notes edits via generated client | `backend/internal/targetjob` update handler / idempotency service / store update；实施前状态为 `not-yet-implemented` | update `target_jobs.status` / `location_text` / `notes` / hints scoped by `(user_id, id)` and `(user_id, idempotency_key)` | none | `E2E.P0.010` verifies minimal status / notes update after parse; focused handler tests cover `TARGET_INVALID_STATE_TRANSITION` and cross-user idempotency |
-| `archiveTargetJob` | `openapi/fixtures/TargetJobs/archiveTargetJob.json` | Workspace delete icon via generated client | `backend/internal/targetjob` archive handler / idempotency service / store archive; `ParseExecutor` treats post-archive target invisibility as terminal `TARGET_JOB_NOT_FOUND` | update `target_jobs.status='archived'`, `deleted_at=now`, `updated_at=now` scoped by `(user_id, id)` and `(user_id, idempotency_key)`; list/detail/parse reads keep filtering `deleted_at is null` | none | `E2E.P0.018` verifies workspace delete persists across refresh; focused handler/store tests cover already-archived conflict and cross-user 404; `TestParseExecutor_MissingTargetIsTerminalWithoutFailureCleanup` covers queued/retrying import after archive |
+| `importTargetJob` | paste-only success/validation/failure fixtures | Home paste input | targetjob handler/service/store | `target_jobs.resume_id/raw_jd_text` + target-import job/outbox | `target.import.default` | import/parse 当前无真实 E2E owner；root `make test` |
+| `listTargetJobs` | current list/progress fixtures | Home/Workspace cards | targetjob list/read-model owner | TargetJob + completion-ledger projection | none | `E2E.P0.098` 仅 progress refresh；root `make test` for other behavior |
+| `getTargetJob` | current detail/progress fixtures | Parse/Workspace/Report consumers | targetjob detail/read-model owner | TargetJob requirements/progress | none after parse | `E2E.P0.098` 仅 progress/detail read；import/parse 无 E2E owner |
+| `updateTargetJob` | current update fixtures | lifecycle/notes consumers | targetjob update owner | TargetJob scoped update | none | 当前无真实 E2E owner；root `make test` |
+| `archiveTargetJob` | current archive fixture | Workspace delete | targetjob archive owner | status/deleted_at | none | 当前无真实 E2E owner；root `make test` |
 
 ## 4 历史实施记录与当前 Phase 18
 
@@ -179,9 +179,7 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 
 ### Phase 6: BDD and handoff
 
-#### 6.1 BDD-Gate `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013`
 
-按 `bdd-plan.md` / `bdd-checklist.md` 在 `test/scenarios/e2e/p0-010-targetjob-text-import-parse-ready/`、`p0-011-targetjob-url-import-fetch-and-parse/`、`p0-012-targetjob-parse-failure-retryable/`、`p0-013-targetjob-manual-form-ready/` 四个目录落地 setup / trigger / verify / cleanup，并通过 `test/scenarios/e2e/INDEX.md` 接入。
 
 #### 6.2 Handoff 给 frontend-home-job-picks-and-parse
 
@@ -201,9 +199,7 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 
 `updateTargetJob` 的状态机校验必须进入 store 事务，在持有目标 row lock 后基于当前 DB 状态重新校验；service 层不得用事务外 preflight 结果作为最终迁移依据。验证必须覆盖不同 `Idempotency-Key` 并发或 stale 迁移不能越过当前 DB 状态。
 
-#### 7.3 BDD evidence honesty remediation
 
-`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 的 evidence 必须来自真实 HTTP scenario harness。脚本不得回退为包级 focused tests；verify output 必须保留 `method=cmd-api-http` 与 `validBddEvidence=true`，防止未来 L2 review 把辅助 TDD 证据误读为 BDD 通过。
 
 #### 7.4 `cmd/api` runtime runner kernel wiring remediation
 
@@ -225,13 +221,9 @@ TargetJob handler 必须返回 B1/B2 generated `ApiErrorResponse` envelope：所
 
 AI parse 输出必须在写 DB 前严格校验：无有效 requirement、非法 requirement kind、空 label、非法 evidence level 或无法转换为 B4 / B2 契约时必须走 `AI_OUTPUT_INVALID` 失败路径，不得以 `requirementCount=0` 标记 `ready` 成功。
 
-#### 7.9 BDD handoff evidence alignment remediation
 
-`backend/internal/targetjob/doc.go`、`test/scenarios/e2e/INDEX.md` 与 `p0-010..013` 场景脚本必须一致标注当前 HTTP scenario harness 入口；包级 `go test` 结果可以作为 TDD 辅助证据，但不得替代 `cmd/api` HTTP BDD PASS。真实 BDD evidence 必须可追溯到 p0-010..013 `result.json`，并保持 `validBddEvidence=true`。
 
-#### 7.10 HTTP scenario migration remediation
 
-`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 必须通过 `cmd/api` HTTP scenario harness 执行，覆盖 auth middleware、HTTP API、TargetJob handler/service、in-process runner kernel 与 parse executor。验证输出必须保留 `status=passed` / `method=cmd-api-http` / `validBddEvidence=true`，不得退化成包级 focused test 代理证据。
 
 #### 7.11 Removed `profile_id` schema-drift remediation
 
@@ -265,13 +257,9 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 
 `WorkspacePlanList` 删除图标必须调用 generated `archiveTargetJob`，携带 `Idempotency-Key`，成功后从当前列表移除卡片；失败时不执行导航、不乐观删除并显示可恢复错误。Home 最近模拟面试复用卡片主体但不展示删除按钮。验证必须覆盖 mock transport / real generated client path，禁止继续把删除实现为纯本地隐藏。
 
-#### 12.4 BDD and screenshot acceptance
 
-`E2E.P0.018` / local browser smoke 必须在 real backend 模式下证明：workspace 卡片点击主体仍进入 `parse`，`立即面试` 仍启动 practice，删除图标调用后卡片从 UI 消失，刷新后仍不回灌。验收产物必须包含浏览器截图和后端 API/DB 证据。
 
-### Phase 13: URL source-row invariant fail-closed cleanup
 
-`url` import 事务已保证创建 `target_job_sources` 行，因此 `ParseExecutor` 在处理 URL job 时必须先找到对应 source row，再调用 fetcher。缺行表示当前持久化不变量已破坏：必须映射为 non-retryable `TARGET_IMPORT_SOURCE_INVALID`，写入 `target.analysis.failed` 并通过 `CompleteParseFailure` 删除不完整 TargetJob 资产；不得发起网络请求、AI 调用或 parse success commit。有效 URL import 的 API/BDD 行为不变，本阶段以 focused `ParseExecutor` 红绿测试和现有 P0.011 回归资产作为验证 gate。
 
 ### Phase 14: TargetJob test dead initialization cleanup
 
@@ -281,9 +269,7 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 
 删除零生产调用的 `MustNotIntroduceAppLevelConfigKey` panic API 与只验证该 panic 的 self-test；删除被全局 A4 AST gate 完全覆盖的 TargetJob 本地 `os.Getenv` 文本扫描。保留 TargetJob proxy-key 负向测试，并以 `make lint-getenv-boundary` / `make lint-env-dict` 作为真实配置边界。
 
-### Phase 16: Cmd/api cookie JSON harness consolidation
 
-保留 `targetJobHTTPScenarioHarness.doJSON` 的 receiver API 与 TargetJob canonical idempotency header，将其 JSON marshal、cookie/header 注入、handler dispatch、status 和 response body 逻辑委托给 `cmd/api` 共享 test helper；P0.010-P0.013 行为和证据格式不变。
 
 ### Phase 17: Backend-persisted practice progress projection
 
@@ -301,7 +287,7 @@ Service 对 TargetJob summary 做一次 canonical round 解码：provenance 的 
 
 #### 17.4 Business persistence and BDD
 
-前端刷新、跨 route 与新浏览器会话必须通过 API 读回同一投影；除主题外不得从 local/session storage、URL 或 fixture 恢复进度。P0.098 在本 backend owner 以真实 plan/session/event/TargetJob Get+List 证明 first→next-existing→final、wrong-resume/duplicate completion 与 report-status independence；它不替代 frontend owner 尚未执行的 live browser reload/quick-start gate。
+前端刷新、跨 route 与新浏览器会话必须通过 API 读回同一投影；除主题外不得从 local/session storage、URL 或 fixture 恢复进度。代码级 `BDD.TARGETJOB.IMPORT.001` 关闭本 owner 行为；`E2E.P0.098` 被显式运行时，只通过真实登录、completion API 与 Home/Workspace/TargetJob refresh/detail read 复核持久化进度投影。JD import/parse、chat、session start、quick-start 与下一轮 plan 创建不属于该 E2E；本轮未运行，状态保持 `Ready`。
 
 ### Phase 18: Paste-only JD import contract convergence
 
@@ -313,9 +299,7 @@ Service 对 TargetJob summary 做一次 canonical round 解码：provenance 的 
 
 将 `ImportTargetJobRequest` 收敛为 `{rawText,targetLanguage,resumeId}`，空白 `rawText` 返回 `VALIDATION_FAILED`；新建 TargetJob 只写 `target_jobs.raw_jd_text` 并派发 `target_import`。ParseExecutor 只从该列取 JD，不保留 source fallback。`TargetJob` response、`target.import.requested` payload 与 metrics 不携带常量来源字段。删除 URL/file/manual-form handler/store/fetch/config/prompt 路径及 JD source refresh enqueue/handler/registration，同时保留 resume/privacy upload 与独立 `source_records`。
 
-#### 18.3 BDD and zero-reference closure
 
-修订 `E2E.P0.010` 为 direct `rawText` 粘贴成功、幂等与 ready readback；修订 `E2E.P0.012` 为同一 wire 的 AI retryable/non-retryable 失败。删除 `E2E.P0.011` / `E2E.P0.013` 场景实体与 INDEX 投影。zero-reference gate 对 production/OpenAPI/shared/config/migrations/prompts/generated/fixtures/scripts 验证旧来源专属符号为零，并以正向断言证明 `purpose=resume`、`privacy_export` 与独立 `source_records` 未被误删。
 
 ### Phase 19: Remove TargetJob latest-report pointer
 
@@ -327,19 +311,15 @@ Service 对 TargetJob summary 做一次 canonical round 解码：provenance 的 
 
 项目未上线，原地删除 TargetJob response 字段与 `target_jobs` 列、所有 scan/insert/update/fixture/codegen 引用，不保留兼容字段、trigger 或 replacement pointer。TargetJob Get/List 继续返回完整、已校验的 canonical round catalog；当前 ready report/latest attempt 只由 backend-review 的 `listTargetJobReports` 基于 owned reports + frozen context 投影。
 
-#### 19.3 Contract closure
 
-BDD 不适用：本 Phase 本身只删除重复内部/public pointer，用户可见 report overview 由 backend-review/frontend-report-dashboard 的 P0.059 owner 验收。替代 gate 为 OpenAPI exact diff、migration up/down/up、TargetJob store unit/real PostgreSQL、generated/fixture validation 与精确 zero-reference；正向回归必须保留 Get/List canonical rounds、practice progress、resume binding 和 backend-review ownership。
 
-### Phase 20: Configured raw JD text boundary
+### Phase 20: Injected raw JD text guard
 
-#### 20.1 RED/GREEN config and service limit
+#### 20.1 Focused service guard
 
-Add UTF-8 98,304/98,305-byte fixtures plus missing/default/override/invalid config tests. Inject A4 `targetJob.maxRawTextBytes=98304` into import service; validate trimmed raw text before TargetJob/job/outbox/provider work. Delete any duplicated local limit and reject explicit invalid config at startup.
+`targetJob.maxRawTextBytes` 的 default/override/invalid 只由 A4 typed owner 验证。本 owner 向 import service 注入小型边界值，以 ASCII 与多字节文本证明超限在 TargetJob/job/outbox/provider 前拒绝，并删除重复的 package-local limit；不得构造默认大小正文或复制 A4 loader matrix。
 
-#### 20.2 Contract and BDD
 
-RuntimeConfig exposes only `targetJobRawTextBytes`; the OpenAPI request shape remains `{rawText,targetLanguage,resumeId}` without a static value copied as runtime truth. P0.010 proves limit success, limit+1 zero side effects, idempotent replay and ready parse; frontend P0.015 proves the same public value blocks the POST locally while backend remains authoritative.
 
 ## 5 验收标准
 
@@ -350,7 +330,6 @@ RuntimeConfig exposes only `targetJobRawTextBytes`; the OpenAPI request shape re
 - TargetJob handler 错误响应符合 generated `ApiErrorResponse`，`listTargetJobs.pageInfo.pageSize` 符合 B1/B2 envelope，AI parse 输出无有效 requirement 或非法字段时走 `AI_OUTPUT_INVALID`。
 - privacy gate 证明 `raw_jd_text` / prompt / response / `Authorization:` 不泄漏到 log/event/metric/audit。
 - F1 metric registry preflight 通过；`make codegen-events` / `make codegen-conventions` / `make codegen-openapi` / `make validate-fixtures` / `make migrations_lint` / `make lint-config` / `make lint-events` / `make docs-check` 全绿。
-- BDD-Gate `E2E.P0.010` / `E2E.P0.012` 全部通过，`E2E.P0.011` / `E2E.P0.013` 实体与索引引用已删除；包级 `go test` 代理证据不得作为 BDD 完成依据。
 - 来源变体、来源字段、来源表、JD attachment purpose、URL fetch、同步手工表单、JD source refresh、来源专属错误码与 `jd_source_url` 在当前代码/契约资产中 zero-reference；resume/privacy upload 与独立 `source_records` 正向 gate 通过。
 - TargetJob active SQL 与当前 B4 schema 对齐，`rg "profile_id|ProfileID|profileID" backend/internal/targetjob ...` 无命中，真实 Postgres integration gate 覆盖 ready TargetJob 详情与失败后 404 行为，缺 DB 时 fail fast 而不是 `SKIP` 假绿，本地 host-run backend 上解析失败后的 `GET /targets/{id}` 不再返回可见 failed 资产。
 - TargetJob import/list/get persist and expose the JD-level resume binding: `ImportTargetJobRequest.resumeId` is required, `target_jobs.resume_id` is non-null for created rows, and list/detail responses keep `TargetJob.resumeId` present even when no `practice_plans` row exists.
@@ -361,7 +340,7 @@ RuntimeConfig exposes only `targetJobRawTextBytes`; the OpenAPI request shape re
 - TargetJob Get/List project practice progress from persisted completion facts without N+1 or mutable progress columns, and only expose a ready plan matching the current canonical round.
 - TargetJob Get/List ignore same-user wrong-resume completion/ready-plan facts, accept strictly increasing non-contiguous positive-int32 round ladders, and choose the next existing canonical successor rather than `sequence + 1`.
 - TargetJob public/generated/fixture/store/DB surface contains no latest-report pointer; current ready report and latest attempt are projected only by backend-review from owned reports and frozen canonical-round context.
-- TargetJob raw JD 默认 96KiB UTF-8 bytes，limit 可入队解析，limit+1 在所有业务副作用与 provider 前拒绝；RuntimeConfig/frontend 与 backend 同值。
+- TargetJob raw JD 的默认/override/invalid 契约归 A4；backend 以小型注入值证明超限在所有业务副作用与 provider 前拒绝，业务场景不复制默认大小边界。
 
 ## 6 风险与应对
 
@@ -374,7 +353,6 @@ RuntimeConfig exposes only `targetJobRawTextBytes`; the OpenAPI request shape re
 | Idempotency 被跨用户复用 | Phase 5.3 store-level user-scoped dedupe + handler 层 user_id 过滤 + 越权返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND` |
 | 已移除 `feature_key` / out-of-scope voice / out-of-scope mistake 模块在 review 中回流 | Phase 6.3 active-scope 负向搜索 + plan-code-review L2 检查 |
 | paste 文本被复制到第二份 source persistence 或进入日志/事件 | `target_jobs.raw_jd_text` 保持唯一事实源；store/event/job/privacy tests 拒绝 source row、原文 payload 与日志泄漏 |
-| BDD 场景未来可能回退成只跑包级 focused tests，导致 evidence 再次被误读 | Phase 7.3 / 7.9 / 7.10 已把 p0-010..013 固定为 `cmd/api` HTTP scenario harness；verify output 必须保留 `method=cmd-api-http` / `validBddEvidence=true`，并由 6.1-6.4 BDD gate 注释记录 result.json 证据 |
 | 同用户另一份 resume 的完成或 ready plan 污染当前 TargetJob | store aggregation 同时校验 target、user 与 `practice_plans.resume_id = target_jobs.resume_id`，并以 wrong-resume integration marker 固化 |
 | canonical sequence 有空洞时错误构造不存在轮次 | service 只按严格递增数组索引取 successor；`1,2,4` 正向回归与 int32/type/provenance 负向矩阵共同守护 |
 | 删除 pointer 后调用方失去报告入口 | frontend-report-dashboard ReportsScreen 消费 `listTargetJobReports` canonical-round overview；TargetJob 继续提供 round display catalog，不创建第二份指针或列表 |

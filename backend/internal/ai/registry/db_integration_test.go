@@ -21,7 +21,7 @@ import (
 //
 // When the repo gains a Postgres-backed
 // integration harness, this test should be promoted to a `//go:build
-// integration` runtime test that re-runs the migration chain end-to-end.
+// integration` runtime test that re-runs the complete migration chain.
 func TestSeedMigrationCoversBaselineFeatureKeys(t *testing.T) {
 	t.Parallel()
 

@@ -84,6 +84,10 @@ class TestImplementSkillContract:
         assert "### Step 4.2: Quality Gate Completeness Check" in text
         assert "Code plan requires TDD" in text
         assert "Feature plan requires BDD" in text
+        assert "domain behavior test is valid BDD evidence" in text
+        assert "code-level Go/Vitest/pytest/lint/build wrappers are not E2E evidence" in text
+        assert "must declare `BDD-N/A`" in text
+        assert "omit `bddPlan` / `bddChecklist` fields" in text
         assert "route to `/plan-review --fix` before coding" in text
 
     def test_branch_resolution_checks_for_dirty_working_tree(self):

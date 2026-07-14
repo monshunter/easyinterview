@@ -117,7 +117,7 @@ docs/spec/${subspec}/
 
 - **Plan 类型**: docs-only / code-internal / feature-behavior / contract / migration / tooling
 - **TDD 策略**: Code plan requires TDD；涉及代码逻辑时写明 Red-Green-Refactor 入口、测试文件/命令与每个 checklist item 的测试断言来源；纯文档计划写 `不适用：docs-only`
-- **BDD 策略**: Feature plan requires BDD；涉及用户可感知 UI、API 行为、业务流程或端到端功能时，必须引用 `bdd-plan.md`、`bdd-checklist.md` 与主 checklist 的 `BDD-Gate:`；不适用时写明原因
+- **BDD 策略**: Feature plan requires BDD；涉及用户可感知 UI、API 行为或业务流程时，引用 `bdd-plan.md`、`bdd-checklist.md` 与主 checklist 的 `BDD-Gate:`。BDD 描述行为，不强制一一对应 E2E；验证入口可以是 domain behavior test，也可以是真实 API/UI 流程。纯内部计划写明 `BDD-N/A`，且不生成 BDD 文件
 - **替代验证 gate**: BDD 不适用的内部计划必须列出 contract test、lint、drift check、migration check、smoke 或等价可执行 gate
 
 ## 4 实施步骤
@@ -137,7 +137,7 @@ docs/spec/${subspec}/
 ## 5 验收标准
 
 - 本计划列出的实现 / 测试项全部通过
-- 关联 BDD-Gate / 场景验证全部通过
+- 适用时，关联 Behavior Gate / 真实 E2E 验证全部通过
 
 ## 6 风险与应对
 
@@ -164,7 +164,7 @@ docs/spec/${subspec}/
 ## Phase 2: 验证收口
 
 - [ ] 2.1 任务名称
-- [ ] 2.2 BDD-Gate: 验证 E2E.P0.001 通过
+- [ ] 2.2 BDD-Gate: 验证 `${Behavior ID 或真实 E2E ID}` 通过
 ```
 
 ## 6 `test-plan.md` / `test-checklist.md` 模板
@@ -221,8 +221,6 @@ spec:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      bddPlan: ./bdd-plan.md
-      bddChecklist: ./bdd-checklist.md
       discovery:
         packages: []
         uiRoutes: []
@@ -230,11 +228,13 @@ spec:
 ```
 
 `context.yaml` 只承载稳定检索标识，不承载 `commands`、脚本名、Make target 或人工操作步骤。
-当 plan 生成 `test-plan.md` / `test-checklist.md` 时同步写入 `testPlan` / `testChecklist`；当 plan 生成 `bdd-plan.md` / `bdd-checklist.md` 时必须同步写入 `bddPlan` / `bddChecklist`。没有生成对应文件时不得保留这些字段。
+当 plan 生成 `test-plan.md` / `test-checklist.md` 时同步写入 `testPlan` / `testChecklist`。只有实际生成 `bdd-plan.md` / `bdd-checklist.md` 时，才在对应 target 增加 `bddPlan: ./bdd-plan.md` 与 `bddChecklist: ./bdd-checklist.md`；纯内部 `BDD-N/A` 计划不得生成文件或保留字段。
 
 ## 8 BDD 模板
 
-### 7.1 `bdd-plan.md`
+BDD 文件描述可感知行为及其证据边界，不要求每个 Behavior ID 都创建 E2E 目录。domain behavior test 可以作为验证入口；只有通过已运行 frontend/backend 的真实 HTTP API 或浏览器 UI 驱动业务流程时，才创建 `test/scenarios/e2e/` 场景目录。纯内部、配置、lint、migration、codegen 或 tooling 计划应在主 plan/checklist 标记 `BDD-N/A`，不生成以下文件。
+
+### 8.1 `bdd-plan.md`
 
 ```markdown
 # BDD Plan
@@ -245,12 +245,12 @@ spec:
 
 ## Phase 1: 阶段名称
 
-| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+| Behavior ID / 真实 E2E ID | 行为 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.001 | 场景名称 | 前置条件 | 触发动作 | 预期结果 | `test/scenarios/...` |
+| `${Behavior ID 或真实 E2E ID}` | 行为名称 | 前置条件 | 触发动作 | 预期结果 | `${domain behavior test 或真实 API/UI 场景目录}` |
 ```
 
-### 7.2 `bdd-checklist.md`
+### 8.2 `bdd-checklist.md`
 
 ```markdown
 # BDD Checklist
@@ -261,13 +261,13 @@ spec:
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
-## E2E.P0.001 场景名称
+## `${Behavior ID 或真实 E2E ID}` 行为名称
 
-- [ ] 创建场景目录
-- [ ] 准备测试数据
-- [ ] 实现 setup / trigger / verify / cleanup
-- [ ] 执行并通过场景验证
+- [ ] 确认验证入口属于 domain behavior test 或真实 API/UI E2E
+- [ ] 若为 domain behavior test：执行 owner test 并记录行为断言
+- [ ] 若为真实 E2E：创建 `test/scenarios/e2e/` 目录，准备数据并实现 setup / trigger / verify / cleanup
+- [ ] 执行并通过对应行为验证
 - [ ] 记录验证证据
 ```
 
-主 `checklist.md` 只保留阶段级 `BDD-Gate` 汇总项；场景资产和执行状态只记录在 `bdd-checklist.md`。
+主 `checklist.md` 只保留阶段级 `BDD-Gate` 汇总项；行为证据和执行状态记录在 `bdd-checklist.md`。只有真实 E2E 才维护场景目录与其脚本资产。

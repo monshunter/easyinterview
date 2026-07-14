@@ -1,6 +1,6 @@
 ---
 name: scenario-run
-description: Execute repository-defined scenario tests. Supports single scenario, full suite, rerun, and hybrid AI-agent-first/manual evidence modes. Use parallel sub-agent dispatch only when the framework and suite docs explicitly mark the target scenarios as `parallel-safe`; otherwise default to serial execution. Read the framework README and target suite README, then run the documented environment preflight before scenario scripts. Triggers on /scenario-run.
+description: Execute repository-defined real API/UI E2E scenarios. Before environment setup or scenario execution, reject any scenario that wraps Go/Vitest/pytest/lint/build code gates or replaces the business backend with browser mocks/interception. Supports single, suite, rerun, and hybrid modes; parallelize only explicitly parallel-safe scenarios. Triggers on /scenario-run.
 ---
 
 # Scenario Run Skill
@@ -71,11 +71,18 @@ Execution modes:
 4. Read the framework README and target suite README once before execution
 5. If `test/scenarios/_shared/scripts/common.sh` exists, prefer its helpers for run initialization and result writing
 6. Surface any documented long-running scenarios or expected duration notes before execution starts
-7. Run environment preflight before scenario execution:
+7. Run the **E2E eligibility preflight before starting the environment or executing scripts** for every resolved scenario:
+   - read its README plus `setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh`
+   - follow repo-tracked helpers, browser specs, and commands invoked by those scripts; eligibility cannot be hidden one call away
+   - require `trigger.sh` to drive a real HTTP API or browser UI against the running product and require `verify.sh` to assert a real response, persistence result, or user-visible state
+   - if `trigger.sh` or `verify.sh` invokes `go test`, Vitest/npm test, pytest, lint, source-contract, fixture parity, build, package smoke, or root `make test`, mark the scenario `ERROR` with reason `not a real E2E: wraps code-level gate`; do not execute it as E2E
+   - if a browser flow or referenced browser spec uses fixture transport, dev mock, jsdom, route fulfillment/interception, or request mocking to replace the business backend, mark it `ERROR` with reason `not a real E2E: backend is mocked`; do not execute it as E2E
+   - do not reinterpret a rejected scenario as PASS, MANUAL_REQUIRED, or a domain behavior test. Report that its code-level test should remain with the code owner and that the stale E2E asset must be removed or redesigned
+8. Run environment preflight only for scenarios that passed Step 7:
    - prefer `test/scenarios/env-setup.sh`, adding framework/suite documented arguments such as `--with-migrations` when required by the target scenario README
    - then run `test/scenarios/env-verify.sh`
    - if a suite or scenario documents additional local configuration, such as real provider env files or host-run backend/frontend commands, treat that as scenario setup evidence; do not invent secrets or start long-running processes without the required local env
-8. Determine direct vs parallel mode:
+9. Determine direct vs parallel mode:
    - default to serial execution
    - only enable parallel mode when the framework and suite docs explicitly mark every resolved scenario as `parallel-safe`
    - if any resolved scenario is `shared-cluster`, keep the run serial
@@ -89,17 +96,18 @@ Run artifact layout:
 
 ### Step 3A: Execute scenarios — direct mode
 
-For each scenario:
+For each scenario that passed Step 2 eligibility (skip rejected scenarios and preserve their `ERROR` result):
 
 1. Read the scenario `README.md`
 2. Treat `scripts/` as the execution contract for repo-defined scenarios
 3. If a `Ready` or `Verified` scenario is missing any of `setup.sh`, `trigger.sh`, `verify.sh`, or `cleanup.sh`, stop and mark the scenario as `ERROR`; do not fall back to manual verification
-4. Run `scripts/setup.sh`
-5. Run `scripts/trigger.sh`
-6. Run `scripts/verify.sh`
-7. Always run `scripts/cleanup.sh`, even after failure
-8. Verify cleanup expectations from the framework/suite/scenario docs
-9. Record the scenario result in the run output. If the scenario writes a valid result artifact with `result=MANUAL_REQUIRED`, keep that state distinct from PASS/FAIL/ERROR.
+4. Reconfirm the Step 2 eligibility result immediately before execution. If scripts changed after preflight or runtime output reveals a forbidden code-test wrapper/backend mock, stop, mark `ERROR`, and do not treat its output as E2E evidence.
+5. Run `scripts/setup.sh`
+6. Run `scripts/trigger.sh`
+7. Run `scripts/verify.sh`
+8. Always run `scripts/cleanup.sh`, even after failure
+9. Verify cleanup expectations from the framework/suite/scenario docs
+10. Record the scenario result in the run output. If the scenario writes a valid result artifact with `result=MANUAL_REQUIRED`, keep that state distinct from PASS/FAIL/ERROR.
 
 Notes:
 - For suite-documented long-running scenarios, lack of new stdout between phase boundaries is not by itself an execution failure signal.
@@ -109,7 +117,7 @@ Notes:
 
 #### 3B.1 Batch preparation
 
-Only enter this section when Step 2 determined that the resolved scenario set is explicitly `parallel-safe`.
+Only enter this section when Step 2 determined that the eligible scenario set is explicitly `parallel-safe`. Do not dispatch scenarios already rejected by the eligibility preflight.
 
 Split the resolved scenarios into batches of `N` (`--batch-size`, default `8`).
 
@@ -135,11 +143,12 @@ Execution protocol:
 1. Read the scenario README and the framework/suite README context already provided.
 2. If `test/scenarios/_shared/scripts/common.sh` exists, source it at the start of every shell call.
 3. Inspect `scripts/` first and treat those files as the execution contract.
-4. If the scenario is marked `Ready` or `Verified` but any required script is missing, fail the scenario as `ERROR` instead of inventing a manual fallback.
-5. Run `setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` in order.
-6. Always perform cleanup verification after cleanup runs.
-7. Write a final result artifact to the output directory.
-8. For `hybrid` scenarios, AI Agent execution comes first: run the scripts and accept a `MANUAL_REQUIRED` result when local real-provider credentials, browser actions, or human observation evidence are intentionally missing. Do not convert that state into PASS or ERROR.
+4. Reapply the real-E2E eligibility gate: fail as `ERROR` without execution if scripts wrap Go/Vitest/pytest/lint/build/root-make-test gates or if browser mocks/interception replace the business backend.
+5. If the scenario is marked `Ready` or `Verified` but any required script is missing, fail the scenario as `ERROR` instead of inventing a manual fallback.
+6. Run `setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` in order.
+7. Always perform cleanup verification after cleanup runs.
+8. Write a final result artifact to the output directory.
+9. For `hybrid` scenarios, AI Agent execution comes first: run the scripts and accept a `MANUAL_REQUIRED` result when local real-provider credentials, browser actions, or human observation evidence are intentionally missing. Do not convert that state into PASS or ERROR.
 ```
 
 After all sub-agents finish:
@@ -154,6 +163,7 @@ If any scenario has result `FAIL`:
 
 If any scenario has result `ERROR`:
 - report which scenarios had execution/tooling errors
+- distinguish real-E2E eligibility errors from environment/tool failures; eligibility errors require deleting or redesigning the stale E2E asset, not rerunning it unchanged
 - suggest rerunning those scenarios individually
 
 If any scenario has result `MANUAL_REQUIRED`:

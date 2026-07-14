@@ -25,15 +25,15 @@
 ## Phase 3: dev-doctor 结构化健康检查
 
 - [x] 3.1 落地 `deploy/dev-stack/scripts/dev-doctor.sh`（POSIX sh + jq，≤200 行）：输出 spec D-6 锁定的 JSON 结构（services 含 `type=dependency|app` + summary）；`summary.down==0 && summary.degraded==0` 时 exit 0；不得硬编码固定 7-service 口径
-- [x] 3.2 实现 e2e probe：PG `pg_isready` + `select 1`；Redis set/get/del 一次；MinIO `mc ls` 默认 bucket；optional 项目 HTTP 组件查 `/healthz`，已声明 `/metrics` 的组件查 `/metrics` 非空；宿主机 backend/frontend 由对应 owner 的 dev command / scenario runner 验证；启用 AIClient 的组件只校验真实 provider env 已注入，不调用真实 LLM
+- [x] 3.2 实现 dependency/runtime probe：PG `pg_isready` + `select 1`；Redis set/get/del 一次；MinIO `mc ls` 默认 bucket；optional 项目 HTTP 组件查 `/healthz`，已声明 `/metrics` 的组件查 `/metrics` 非空；宿主机 backend/frontend 由对应 owner 的 dev command / runtime health 验证；启用 AIClient 的组件只校验真实 provider env 已注入，不调用真实 LLM。
 - [x] 3.3 dev-up gate 接入（C-1）：`up` target 在 `docker compose up -d --wait` 后调用 dev-doctor；`summary.ok == total` 才 exit 0；否则输出 DOWN/DEGRADED 服务的最近 50 行 `docker logs` 尾段
 - [x] 3.4 失败可观察（C-2）：构造 Postgres 5432 或任一已接入 optional 项目组件 host port 冲突复现路径；`make dev-up` 非 0 退出且 stderr 含冲突服务名 + 占用进程；`make dev-doctor` 对冲突服务报 `status=DOWN, reason="port conflict: ..."`，其它服务保持 OK
 - [x] 3.5 Phase 3 自检：全员 OK 时 dev-doctor JSON 通过 schema 校验（3 个依赖名固定，项目组件来自 compose）且 exit 0；`docker stop redis-dev` 后报 DOWN/exit 1；缺 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 时启用 AIClient 的组件 fail-fast 且 dev-doctor 报缺真实 provider 配置；端口冲突复现路径日志贴入工作日志
 
 ## Phase 4: 指标日志 + 文档 + AC 收口
 
-- [x] 4.1 应用 `/metrics` 与容器日志验证（C-7）：对已接入 compose 且声明 `/metrics` 的 optional 项目组件执行 curl 非空校验；当前没有 optional app service 时验证依赖容器日志；宿主机 backend/frontend 由对应 owner 的 dev command / scenario runner 验证；不创建 OTLP smoke，不安装 OTel / Grafana / Loki / Prometheus
-- [x] 4.2 落地 `deploy/dev-stack/README.md`：服务表（name/image/port/credentials/volume）、optional 项目组件表（component/service/host port/health/metrics）与宿主机运行边界、`make dev-*` 命令清单、AI provider 配置说明（非测试本地 app run 使用真实 provider，stub 仅单测）、常见故障排查、与 `test/scenarios/` 本地 runner 契约说明、资源占用提示与默认依赖镜像下载体积估算（< 1.5GB），并声明默认本地栈不包含 OTel / Grafana / Loki / Prometheus / AI provider
+- [x] 4.1 应用 `/metrics` 与容器日志验证（C-7）：对已接入 compose 且声明 `/metrics` 的 optional 项目组件执行 curl 非空校验；当前没有 optional app service 时验证依赖容器日志；宿主机 backend/frontend 由对应 owner 的 dev command / runtime health 验证；不创建 OTLP smoke，不安装 OTel / Grafana / Loki / Prometheus。
+- [x] 4.2 落地 `deploy/dev-stack/README.md`：服务表（name/image/port/credentials/volume）、optional 项目组件表（component/service/host port/health/metrics）与宿主机运行边界、`make dev-*` 命令清单、AI provider 配置说明（非测试本地 app run 使用真实 provider，stub 仅单测）、常见故障排查、与 `test/scenarios/` 真实 API/UI E2E 契约及根 `make test` 单测边界说明、资源占用提示与默认依赖镜像下载体积估算（< 1.5GB），并声明默认本地栈不包含 OTel / Grafana / Loki / Prometheus / AI provider
 - [x] 4.3 在 `deploy/dev-stack/README.md` 声明最低 docker engine（24+）与 compose plugin（v2.20+）版本；本 plan 不创建或修改 A5 远端 CI workflow，当前单人开发阶段不在 CI 拉起 dev stack
 - [x] 4.4 A2 executable gate handoff（C-8）：依次复跑 C-1 / C-2 / C-3 / C-4 / C-5 / C-6 / C-7 / C-9 八项 AC；执行证据贴入工作日志；不修改 engineering-roadmap parent checklist
 - [x] 4.5 文档收口：`deploy/dev-stack/README.md` Header 完整；plans/INDEX.md 把本 plan 切到 completed 段；`/sync-doc-index --check` 通过
@@ -49,7 +49,7 @@
 - [x] 5.4 A4 env/config 字典补齐 `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL`，root `.env.example` 与 dev-stack env 模板同步；验证：focused config test + `make lint-config`
   <!-- verified: 2026-05-26 command="go test ./backend/internal/platform/config -run TestDefaultEmailDictionaryIncludesMailpitSMTPBindings -count=1 && make lint-config" evidence="A4 default env bindings include Mailpit SMTP keys; lint-config reports 32 env keys in .env.example and spec with no leaks" -->
 - [x] 5.5 hybrid UAT 账号入口改为 synthetic 邮箱 + Mailpit 6 位 code，删除直接 session bootstrap helper，保留 no-backend-cmd 与 test/scenarios no-Go negative gate；验证：`test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession && test -z "$(find test/scenarios -name '*.go' -type f -print -quit)"`
-  <!-- verified: 2026-05-26 command="test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession && test -z \"$(find test/scenarios -name '*.go' -type f -print -quit)\" && test ! -e test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/bootstrap_account.py" evidence="no devsession backend cmd/internal package, no Go files under test/scenarios, and no direct-session bootstrap_account.py helper" -->
+  <!-- verified: 2026-05-26 evidence="no devsession backend cmd/internal package, no Go files under test/scenarios, and no direct-session bootstrap helper" -->
 - [x] 5.6 Mailpit live gate：`make dev-up && make dev-doctor` 输出 Postgres / Redis / MinIO / Mailpit 四个 dependency OK；若无法拉取镜像或本机端口占用，记录 blocker 与复现输出
   <!-- verified: 2026-05-26 command="make dev-up; make dev-doctor" evidence="first docker pull attempt hit registry EOF; retry succeeded. make dev-up completed and standalone make dev-doctor returned postgres-dev/redis-dev/minio-dev/mailpit-dev all OK with summary ok=4 degraded=0 down=0 total=4" -->
 
@@ -61,15 +61,14 @@
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="4 tests passed, including root Makefile scenario-env-* target and dry-run delegation coverage" -->
 - [x] 6.3 更新 `.agent-skills/scenario-env/SKILL.md` 与 `.agent-skills/scenario-redeploy/SKILL.md`，让 skill 根据用户意图优先调用顶层 env scripts，覆盖 setup/verify/status/cleanup/rebuild/redeploy，并明确 host-run frontend/backend 边界；验证：focused skill contract pytest。
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="5 tests passed, including scenario-env/scenario-redeploy top-level env script and host-run redeploy contract coverage" -->
-- [x] 6.4 更新 `test/scenarios/README.md`、`test/scenarios/e2e/README.md`、`deploy/dev-stack/README.md`，说明共享环境入口与具体场景 runner、hybrid UAT / 本地联调 runbook 的边界；验证：docs contract pytest + `make docs-check`。
+- [x] 6.4 更新 `test/scenarios/README.md`、`deploy/dev-stack/README.md`，说明共享环境入口与真实 API/UI 验收、本地联调 runbook 的边界；验证：docs contract + `make docs-check`。
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q && make docs-check" evidence="6 scenario env contract tests passed; docs-check reported zero Header/INDEX drift and link checks OK" -->
 - [x] 6.5 Phase 6 live gate：执行 `test/scenarios/env-setup.sh`、`test/scenarios/env-verify.sh`、`test/scenarios/env-cleanup.sh`，证明环境可独立启动/验证/清理；若 Docker/端口/镜像阻塞，记录 blocker 与输出，不用具体场景 runner 代替。
   <!-- verified: 2026-05-27 command="test/scenarios/env-setup.sh && test/scenarios/env-verify.sh && test/scenarios/env-cleanup.sh" evidence="setup reused already healthy dev-stack; verify returned postgres-dev/redis-dev/minio-dev/mailpit-dev OK with summary ok=4 degraded=0 down=0 total=4; cleanup stopped containers and cleaned up easyinterview-dev network while preserving named volumes" -->
 
 ## Phase 7: local raw output debug default revision
 
-- [x] 7.1 默认开启本地 raw output debug：`config/dev.yaml` / `config/test.yaml` / 根 `.env.example` / `deploy/dev-stack/.env.example` 使用 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，`config/config.yaml` 与 staging/prod 默认保持关闭；`E2E.P0.100` trigger 从 `deploy/dev-stack/.env` 校验 true；验证：focused config test、scenario env contract test、真实 `scenario-run -i E2E.P0.100` PASS。
-  <!-- verified: 2026-05-27 command="go test ./backend/internal/platform/config -run TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments -count=1; python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k real_provider_hybrid_uat_uses_dev_stack_env_as_single_source; scenario-run -i E2E.P0.100" evidence="dev/test config raw debug true and staging/prod false; P0.100 env contract requires AI_DEBUG_PRINT_RAW_OUTPUT=true; real-provider full funnel run p0-100-debug-1779866312146 passed with redacted provider/profile/model/task-run evidence" -->
+- [x] 7.1 默认开启本地 raw output debug：`config/dev.yaml` / `config/test.yaml` / 根 `.env.example` / `deploy/dev-stack/.env.example` 使用 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，`config/config.yaml` 与 staging/prod 默认保持关闭；真实 provider preflight 从 `deploy/dev-stack/.env` 校验 true；代码层阶段收口执行根 `make test`。
 
 ## Phase 8: developer debug handoff revision
 
@@ -79,7 +78,7 @@
   <!-- verified: 2026-05-27 command="test/scenarios/env-redeploy.sh all" evidence="dev-stack dependencies OK, backend go build passed and backend listened on 127.0.0.1:8080, frontend build passed and Vite listened on 127.0.0.1:5173" -->
 - [x] 8.3 修订 `env-setup.sh` / `env-status.sh` / `env-verify.sh`：创建、巡检或验证共享环境后输出同一调试摘要；status/verify 保持 `dev-doctor` JSON stdout，调试摘要走 stderr。
   <!-- verified: 2026-05-27 command="test/scenarios/env-setup.sh --dry-run; test/scenarios/env-status.sh --dry-run" evidence="setup explains dev-up/dev-doctor and debug summary; status keeps dry-run make dev-doctor on stdout and debug summary notice on stderr" -->
-- [x] 8.4 文档与 skill 对齐：更新 `deploy/dev-stack/README.md`、`test/scenarios/README.md`、`test/scenarios/e2e/README.md`、`scenario-env` / `scenario-redeploy` skill，明确 redeploy 是 build + restart，且输出可接管地址/日志/PID。
+- [x] 8.4 文档与 skill 对齐：更新 `deploy/dev-stack/README.md`、`test/scenarios/README.md`、`scenario-env` / `scenario-redeploy` skill，明确 redeploy 是 build + restart，且输出可接管地址/日志/PID。
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="contract requires dev-stack debug log paths, env-redeploy command, scenario README redeploy restart semantics, and skill host-run restart wording" -->
 - [x] 8.5 Phase 8 自检：scenario env contract pytest、dry-run、`env-redeploy.sh all` live restart、端口监听、日志/PID 存在、Mailpit 最新邮件为 code-only 且本地 frontend origin / CORS 来源一致。
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; test/scenarios/env-redeploy.sh backend --dry-run; test/scenarios/env-setup.sh --dry-run; test/scenarios/env-status.sh --dry-run; test/scenarios/env-redeploy.sh all; lsof -nP -iTCP:8080 -iTCP:5173 -sTCP:LISTEN; curl -X POST http://127.0.0.1:8080/api/v1/auth/email/start ..." evidence="12 contract tests passed; redeploy summary printed endpoints/logs/PIDs; backend/frontend listeners survived after command exit; latest Mailpit email contains frontend /auth/verify callback and not backend verify API" -->
@@ -103,7 +102,7 @@
   <!-- verified: 2026-07-09 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k reset_redeploy" evidence="red failed before Makefile target existed; focused gate passed after adding the target and dry-run order assertion" -->
 - [x] 10.2 Makefile implementation：根 `Makefile` 新增 `scenario-env-reset-redeploy`，依次调用 `env-cleanup.sh --with-volumes`、`env-setup.sh --with-migrations`、`env-redeploy.sh all`、`env-verify.sh`，并支持 `ARGS=--dry-run` 无副作用预览。
   <!-- verified: 2026-07-09 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k reset_redeploy" evidence="Makefile target uses SCENARIO_ENV_* variables and dry-run output shows reset, setup/migrations, redeploy backend/frontend, final verify order" -->
-- [x] 10.3 Docs/runbook：`deploy/dev-stack/README.md`、`test/scenarios/README.md`、`test/scenarios/e2e/README.md` 说明一键清数据重编译重部署入口，并区分普通重启 `scenario-env-redeploy TARGET=all`。
+- [x] 10.3 Docs/runbook：`deploy/dev-stack/README.md`、`test/scenarios/README.md` 说明一键清数据重编译重部署入口，并区分普通重启 `scenario-env-redeploy TARGET=all`。
   <!-- verified: 2026-07-09 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k \"reset_redeploy or scenario_docs_describe\"" evidence="focused contract verifies Makefile target plus dev-stack/scenario/e2e README reset-redeploy wording" -->
 - [x] 10.4 Phase 10 self-check：focused contract pytest、`make scenario-env-reset-redeploy ARGS=--dry-run`、`make docs-check`、`sync-doc-index --check`、`git diff --check` 全部通过。
   <!-- verified: 2026-07-09 command="make scenario-env-reset-redeploy ARGS=--dry-run; python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check; make docs-check; git diff --check" evidence="dry-run previewed reset/setup-migrations/redeploy/verify without changing environment; 13 scenario env contract tests passed; docs/index/link gates and whitespace gate passed" -->

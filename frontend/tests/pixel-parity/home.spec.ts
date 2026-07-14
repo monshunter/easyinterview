@@ -344,7 +344,7 @@ test.describe("home screen DOM anchor parity", () => {
       `home-paste-only-${testInfo.project.name}`,
     );
     console.log(
-      `E2E.P0.014 home paste-only browser gate project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} formalScreenshotBytes=${formalScreenshot.length} prototypeScreenshotBytes=${prototypeScreenshot.length} changedRatio=${changedRatio.toFixed(6)}`,
+      `PIXEL_PARITY home paste-only browser gate project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} formalScreenshotBytes=${formalScreenshot.length} prototypeScreenshotBytes=${prototypeScreenshot.length} changedRatio=${changedRatio.toFixed(6)}`,
     );
     await prototype.close();
   });

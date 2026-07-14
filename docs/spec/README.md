@@ -34,8 +34,9 @@ docs/spec/
 6. **索引投影**：`docs/spec/INDEX.md` 和 `docs/spec/${subspec}/plans/INDEX.md` 只反映 Header，不作为状态真理源。
 7. **原地修订**：同主题后续修订优先原地更新原 spec 和原 plan，不创建同主题 sibling bugfix/follow-up。
 8. **Code plan requires TDD**：涉及前端 / 后端 / 工具脚本 / 迁移 / codegen / 测试辅助等代码逻辑的 plan，必须写明 TDD 策略并通过 `/implement` → `/tdd` 执行。
-9. **Feature plan requires BDD**：引入用户可感知 UI、API 行为、业务流程或端到端功能的 plan，必须包含 `bdd-plan.md`、`bdd-checklist.md` 与主 `checklist.md` 中的 `BDD-Gate:` 项。
-10. **BDD 不适用需说明**：纯内部契约 / 工具 / 迁移 / codegen 若不产生用户行为流，可不创建 BDD 文件，但 plan 必须写明“不适用原因 + 替代验证 gate”。
+9. **Feature plan requires BDD**：引入用户可感知 UI、API 行为或业务流程的 plan，必须包含 `bdd-plan.md`、`bdd-checklist.md` 与主 `checklist.md` 中的 `BDD-Gate:` 项；Behavior ID 可以由 code-level domain behavior test 验证，不要求一一创建 E2E。
+10. **真实 E2E 单独判定**：只有通过真实 HTTP API 或浏览器访问已运行 frontend，且业务请求落到真实 backend 的流程，才能分配 `E2E.*` ID 和创建 `test/scenarios/e2e/` 资产；Go/Vitest/pytest/lint/build wrapper 不是 E2E。
+11. **BDD 不适用需说明**：纯配置、内部契约、工具、迁移、codegen、lint、fixture 或 build 若不产生用户行为流，必须写明 `BDD-N/A + 替代验证 gate`，不得创建 BDD 文件或在 `context.yaml` 保留 `bddPlan` / `bddChecklist`。
 
 ## 3 文档元信息
 
@@ -53,7 +54,7 @@ docs/spec/
 |------|------|
 | `draft` | 草稿，尚未正式生效 |
 | `active` | 生效中或正在执行 |
-| `completed` | 已完成，作为历史交付记录保留 |
+| `completed` | 已完成，作为交付记录保留 |
 
 ## 4 命名规范
 
@@ -85,7 +86,7 @@ docs/spec/
 
 - **Plan 类型**：`docs-only` / `code-internal` / `feature-behavior` / `contract` / `migration` / `tooling` 等，可组合。
 - **TDD 策略**：涉及代码逻辑时必须说明 Red-Green-Refactor 入口、测试文件或测试命令；纯文档计划写 `不适用：docs-only`。
-- **BDD 策略**：涉及用户可感知 UI、API 行为、业务流程或端到端功能时必须引用 `bdd-plan.md` / `bdd-checklist.md` 与 `BDD-Gate:`；不适用时写明原因。
+- **BDD 策略**：涉及用户可感知 UI、API 行为或业务流程时必须引用 `bdd-plan.md` / `bdd-checklist.md` 与 `BDD-Gate:`；说明验证入口是 domain behavior test 还是真实 API/UI E2E。内部计划写 `BDD-N/A`。
 - **替代验证 gate**：BDD 不适用的内部计划必须列出可执行替代 gate，如 contract test、lint、drift check、migration check、smoke。
 
 ## 7 检查清单
@@ -96,8 +97,9 @@ docs/spec/
 - [ ] Header 字段完整且顺序正确
 - [ ] `plan.md` 与 `checklist.md` 成对存在
 - [ ] `context.yaml` target 路径全部有效
-- [ ] 代码逻辑计划已写明 TDD 策略；用户行为功能计划已具备 BDD 文件与 `BDD-Gate:`
-- [ ] BDD 不适用的内部计划已写明不适用原因和替代验证 gate
+- [ ] 代码逻辑计划已写明 TDD 策略；用户行为功能计划已具备 BDD 文件、Behavior ID / 真实 E2E ID 与 `BDD-Gate:`
+- [ ] Behavior ID 已选择 domain behavior test 或真实 API/UI E2E，且只有后者创建 E2E 资产
+- [ ] BDD 不适用的内部/配置/tooling 计划已写明 `BDD-N/A` 和替代验证 gate，且没有 BDD 文件/context 字段
 - [ ] `docs/spec/INDEX.md` 已同步
 
 ## 8 协作约定

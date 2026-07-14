@@ -26,7 +26,7 @@
 
 - **Plan 类型**: `contract + tooling + mock-source`
 - **TDD 策略**: fixture coverage、schema validation、provenance、privacy allowlist、UUIDv7 / `tmp_` id scan、prototype sync idempotency、example projection 和 Prism byte-equal smoke 是可执行断言。重进本 plan 时必须先运行对应 gate 暴露 drift，再最小修复 fixture 或工具。
-- **BDD 策略**: 本 plan 不创建本地 BDD 文件，只交付内部 mock data truth source；TargetJob 由 P0.010/P0.015 验收，Practice recovery 把 exact fixture markers 交给 P0.046，Resume summary/detail split 把 list/get markers 交给 P0.034/P0.036/P0.037。对应 checklist 的 `BDD-Gate` 未通过时不得收口。
+- **BDD 策略**: 不适用。本 plan 只交付内部 fixture/mock data truth source，不创建 BDD 文件或引用场景编号。用户行为由 domain owner 独立验收；fixture markers 只用于 contract/consumer tests。
 - **替代验证 gate**: `make validate-fixtures`、`make sync-fixtures-from-prototype`、`make render-openapi-fixture-examples`、`python3 scripts/codegen/prism_fixture_smoke.py`、fixture render/unit tests、`make lint-openapi`、`make codegen-check`、`sync-doc-index --check`。
 
 ## 4 交付范围
@@ -94,18 +94,18 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | operationId | fixture scenarios | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|-------------------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticePlan` | baseline round, derived round, mismatch request | shared start helper | backend-practice | normalized plan pair + IK/audit | none | P0.022/P0.070/P0.072 |
-| `getPracticePlan` | current pair, legacy null pair | exact plan reuse / Practice budget | backend-practice | nullable read compatibility | none | P0.022/P0.098 |
-| `listTargetJobs` | not-started, partial, completed | Home/Workspace rail + quick-start | backend-targetjob | completion-ledger projection | none | P0.018/P0.098 |
-| `getTargetJob` | not-started, partial, completed | Parse/Report current-round gate | backend-targetjob | completion-ledger projection | none after JD parse | P0.057/P0.098 |
+| `createPracticePlan` | baseline round, derived round, mismatch request | shared start helper | backend-practice | normalized plan pair + IK/audit | none | fixture + generated consumer tests |
+| `getPracticePlan` | current pair, legacy null pair | exact plan reuse / Practice budget | backend-practice | nullable read compatibility | none | fixture + generated consumer tests |
+| `listTargetJobs` | not-started, partial, completed | Home/Workspace rail + quick-start | backend-targetjob | completion-ledger projection | none | fixture + generated consumer tests |
+| `getTargetJob` | not-started, partial, completed | Parse/Report current-round gate | backend-targetjob | completion-ledger projection | none after JD parse | fixture + generated consumer tests |
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
-| 2026-07-14 | 1.19 | Add Phase 11 for OPENAPI-005 summary-only list fixture, full detail fixture and Prism/mock consumer handoff. | OPENAPI-005 + P0.034/P0.036/P0.037 |
-| 2026-07-14 | 1.16 | Reopen for OPENAPI-004 canonical-round report overview fixtures, prototype projection, Prism parity and latest-report-pointer removal. | OPENAPI-004 + P0.016/P0.059 |
-| 2026-07-13 | 1.15 | Add canonical blank-rawText 422 validation fixture and Practice reload/same-ID recovery plus planned typed failure fixture matrix. | openapi-v1-contract 1.54 + P0.046 |
+| 2026-07-14 | 1.19 | Add Phase 11 for OPENAPI-005 summary-only list fixture, full detail fixture and Prism/mock consumer handoff. | OPENAPI-005 |
+| 2026-07-14 | 1.16 | Reopen for OPENAPI-004 canonical-round report overview fixtures, prototype projection, Prism parity and latest-report-pointer removal. | OPENAPI-004 |
+| 2026-07-13 | 1.15 | Add canonical blank-rawText 422 validation fixture and Practice reload/same-ID recovery plus typed failure fixture matrix. | openapi-v1-contract 1.54 |
 | 2026-07-13 | 1.14 | Reopen fixture owner for OPENAPI-002 paste-only TargetJob requests/responses, upload purpose cleanup and runtime projection gates. | OPENAPI-002 + 001/003 + mock-contract-suite/001 |
 | 2026-07-12 | 1.13 | Add exact baseline/derived CreatePracticePlanRequest positive and negative fixture matrix. | openapi-v1-contract 1.46 |
 | 2026-07-12 | 1.12 | Add the canonical REPORT_CONTEXT_TOO_LARGE failed-report scenario sourced from B1. | openapi-v1-contract 1.45 + shared-conventions 1.30 |
@@ -147,7 +147,7 @@ Update `ui-design/src/data.jsx` mapping inputs and `PROTOTYPE_MAPPING.md` so pro
 
 ### 10.4 BDD and zero-reference gates
 
-BDD behavior remains owned by P0.010/P0.015: fixtures provide paste success/failure states, while scenario owners prove the user flow. Current positive fixture/prototype/example surfaces must have zero positive/runtime `TargetJobImportSource*`, `target_job_attachment`, TargetJob `sourceType/sourceUrl`, URL/file/manual-form requests or compatibility aliases. Accepted ADR/oracle and exact negative test/fixture declarations may retain rejected tokens；searches must classify positive/runtime reachability and may not exclude a whole file or test directory. Inventory remains exactly 37 fixtures for 37 operations.
+Fixtures provide paste success/failure contract states；this plan does not prove user flow. Current positive fixture/prototype/example surfaces must have zero positive/runtime `TargetJobImportSource*`, `target_job_attachment`, TargetJob `sourceType/sourceUrl`, URL/file/manual-form requests or compatibility aliases. Accepted ADR/oracle and exact negative test/fixture declarations may retain rejected tokens；searches must classify positive/runtime reachability and may not exclude a whole file or test directory. Inventory remains exactly 37 fixtures for 37 operations.
 
 ## 11 Practice message recovery fixtures
 
@@ -158,7 +158,7 @@ BDD behavior remains owned by P0.010/P0.015: fixtures provide paste success/fail
 - pending/retryable/terminal contain zero assistant reply for that user message；
 - complete contains exactly one assistant reply after that user message；
 - no scenario derives status merely from assistant absence；the explicit persisted field is the assertion source；
-- a reload marker identifies the retryable-failed user message that P0.046 retries with the same ID/text.
+- a reload marker identifies the retryable-failed user message that downstream consumer tests retry with the same ID/text.
 
 ### 11.2 Planned send failure matrix
 
@@ -177,7 +177,7 @@ Every scenario must use `ApiErrorResponse` and lock status/code/retryable/detail
 
 ### 11.3 Validator, projection and BDD handoff
 
-Focused fixture tests first RED on missing role-specific fields, assistant recovery fields, invalid reply enum, duplicate user/assistant IDs, wrong failure marker and retry success that allocates a second message. GREEN then runs fixture validation, example rendering and Prism byte parity for `getPracticeSession` and `sendPracticeMessage` without adding operations or tags. Hand exact scenario/status/body markers to mock-contract-suite/001, frontend-workspace-and-practice/002, backend-practice/002 and P0.046; local fixture tests do not substitute for reload/optimistic/pending/retry user-flow evidence.
+Focused fixture tests first RED on missing role-specific fields, assistant recovery fields, invalid reply enum, duplicate user/assistant IDs, wrong failure marker and retry success that allocates a second message. GREEN then runs fixture validation, example rendering and Prism byte parity for `getPracticeSession` and `sendPracticeMessage` without adding operations or tags. Hand exact status/body markers to mock-contract-suite/001, frontend-workspace-and-practice/002 and backend-practice/002；local fixture tests do not substitute for user-flow evidence。
 
 ## 12 OPENAPI-004 TargetJob report overview fixtures
 
@@ -191,7 +191,7 @@ Remove `latestReportId` from all TargetJob fixtures and prototype sync logic. Ma
 
 ### 12.3 Parity and handoff
 
-Validate fixtures, render examples and run live Prism byte parity for `listTargetJobReports` plus affected list/get TargetJob defaults. Pass exact markers to backend-review/frontend-report/mock owners and P0.059；P0.016 only receives the unchanged Parse-entry negative contract. Positive/runtime fixtures must have zero cursor/pageInfo/full report/latestReportId compatibility fields.
+Validate fixtures, render examples and run live Prism byte parity for `listTargetJobReports` plus affected list/get TargetJob defaults. Pass exact markers to backend-review/frontend-report/mock owners；Parse retains only the unchanged entry negative contract. Positive/runtime fixtures must have zero cursor/pageInfo/full report/latestReportId compatibility fields.
 
 ## 13 Phase 11: OPENAPI-005 Resume list summary fixtures
 
@@ -205,4 +205,4 @@ Keep `Resumes/getResume.json` on the complete `Resume` contract, including sourc
 
 ### 11.3 Example, Prism, mock and BDD handoff
 
-Render examples and run byte-equal Prism/mock parity for both `listResumes` and `getResume`; inventory remains 37 fixtures / 37 operations. Hand the summary/full markers to backend-resume, all generated frontend consumers and mock-contract-suite in the same batch. P0.034 consumes backend register/list projection, P0.036 consumes summary-only flat list/auth/navigation, and P0.037 consumes full read-only detail. No fixture compatibility scenario or frontend detail-fetch fallback is allowed.
+Render examples and run byte-equal Prism/mock parity for both `listResumes` and `getResume`; inventory remains 37 fixtures / 37 operations. Hand the summary/full markers to backend-resume, all generated frontend consumers and mock-contract-suite in the same batch. No fixture compatibility scenario or frontend detail-fetch fallback is allowed；阶段收口执行根 `make test`。

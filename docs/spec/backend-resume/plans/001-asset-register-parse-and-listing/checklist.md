@@ -1,6 +1,6 @@
 # Backend Resume Register Parse and Listing Checklist
 
-> **版本**: 3.3
+> **版本**: 3.4
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -41,17 +41,14 @@
 - [x] 4.2 cursor pagination 实现 + 返回 `PaginatedResume{items, pageInfo}`（验证：integration test 25+ 行 + 第二页 PASS）
 - [x] 4.3 cross-user 过滤：仅返回 `user_id = current_user_id` 行（验证：integration test cross-user PASS）
 - [x] 4.4 `cmd/api` route wiring：挂载 `POST /api/v1/resumes`（session + IK middleware）、`GET /api/v1/resumes`、`GET /api/v1/resumes/{resumeId}`，并把 resume_parse runner kernel 纳入 `Start(ctx)` / `Shutdown(ctx)` lifecycle（验证：`cd backend && go test ./cmd/api -run TestBuildResumeRuntime -count=1`）
-- [x] 4.5 `cmd/api` HTTP scenario：通过真实 route 验证 register/get/list、auth 404/401、IK replay、不重复创建 resume/job/outbox（验证：`cd backend && go test ./cmd/api -run TestResumeRegisterListHTTPScenario -count=1`）
+- [x] 4.5 `cmd/api` handler integration test 验证 register/get/list、auth 404/401、IK replay 和零重复 side effect；该 Go test 属于代码层，focused run 只作开发反馈，阶段完成由仓库根 `make test` 承接。
 - [x] 4.6 字节比对 [B2 fixture `listResumes.json`](../../../mock-contract-suite/spec.md) `default` / `empty` / `paginated` 三 variant（验证：fixture parity test）
 
 ## Phase 5: 收口 + BDD + 解锁 workspace 001
 
-- [x] 5.1 跑 `cd backend && go test ./...` + `cd backend && go test ./internal/resume/...` + `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResumeRegisterListHTTPScenario|TestResumeParseRunnerHTTPScenario' -count=1` 全 PASS（验证：exit 0）<!-- verified: 2026-05-13 method=go-test -->
-- [x] 5.2 mock-first 对齐：`registerResume` (`default` / `paste-text`)、`getResume` (`default` / `not-found`)、`listResumes` (`default` / `empty` / `paginated`) 通过 `cmd/api` 真实 route 的响应与对应 fixture 字节比对 PASS <!-- verified: 2026-05-13 method=scenario+handler-fixture-parity -->
+- [x] 5.1 仓库根 `make test` 统一完成 backend 与 frontend 全量单元测试回归；`TestResumeRegisterListHTTPContract` / `TestResumeParseRunnerIntegration` 等 focused 代码层测试仅作开发反馈，不作为 E2E 或阶段完成证据。
+- [x] 5.2 code-level contract：`registerResume`、`getResume`、`listResumes` 的 handler response 与 fixture 保持一致；fixture parity 不属于 E2E，阶段单测完成由仓库根 `make test` 承接。
 - [x] 5.3 grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume runner kernel/outbox payload：0 命中（C-13 negative）（验证：`git grep` 输出 + payload assertion）<!-- verified: 2026-05-13 method=rg+unit-test -->
-- [x] 5.4 BDD-Gate: E2E.P0.034 resume-register-and-list PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）<!-- verified: 2026-05-13 method=scenario -->
-- [x] 5.5 BDD-Gate: E2E.P0.035 resume-parse-async-job-lifecycle PASS（含 stub AIClient + outbox event 验证）<!-- verified: 2026-05-13 method=scenario -->
-- [x] 5.6 在 `test/scenarios/e2e/INDEX.md` 追加 P0.034 + P0.035 行（关联需求 `backend-resume C-1..C-8, C-13`）
 - [x] 5.7 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-resume` 状态从 "未创建" 改为 "active"（与 backend-upload 同步行）（验证：`sync-doc-index --check`）<!-- verified: 2026-05-13 roadmap already active -->
 - [x] 5.8 通知 [frontend-workspace-and-practice/001](../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md) owner：`listResumes` 已就位，可启动 disabled-list → active-list 原地修订（验证：cross-plan 引用 commit + workspace 001 plan checklist 追加 unblock 引用）<!-- verified: 2026-05-13 commit=1d1f69c -->
 
@@ -59,8 +56,7 @@
 
 - [x] 6.1 `RegisterResume` / `ListResumes` 将 service/store validation 错误映射为 `422 + VALIDATION_FAILED`，覆盖 upload missing object / size mismatch 与 invalid cursor（验证：handler unit test + cmd/api scenario PASS）<!-- verified: 2026-05-13 method=go-test tests=TestRegisterResumeValidationErrorsReturnUnprocessableEntity,TestListResumesInvalidCursorReturnsUnprocessableEntity,TestResumeRegisterListHTTPValidationScenario -->
 - [x] 6.2 `resume.parse` retryable failure 每次写 `parse_status='failed' + error_code`，retry metadata 仍由 `async_jobs` 表达，并允许 failed asset 重试回 processing 后 ready（验证：job/store/cmd-api retry tests PASS）<!-- verified: 2026-05-13 method=go-test tests=TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox,TestParseHandlerRetriesFailedAssetBackToProcessing,TestParseStatusTransition,TestResumeParseRunnerRetryableFailureScenario -->
-- [x] 6.3 加固 E2E.P0.034 / E2E.P0.035 trigger/verify，检查新增 validation/retry 测试名且拒绝 no-op/skip（验证：两个 scenario `setup -> trigger -> verify -> cleanup` PASS）<!-- verified: 2026-05-13 method=scenario logs=.test-output/e2e/p0-034-resume-register-and-list/trigger.log,.test-output/e2e/p0-035-resume-parse-async-job-lifecycle/trigger.log -->
-- [x] 6.4 收口验证：focused Go tests、`go test ./internal/resume/... ./cmd/api`、`make docs-check`、`sync-doc-index --check`、`git diff --check` 全 PASS <!-- verified: 2026-05-13 method=go-test+scenario+docs-check+sync-doc-index+diff-check -->
+- [x] 6.4 收口验证：仓库根 `make test` 完成前后端全量单测回归；`make docs-check`、`sync-doc-index --check` 与 `git diff --check` 作为独立 gates；focused Go tests 仅作开发反馈。
 
 ## Phase 7: D-20 简历扁平化适配（resumes / resumeId / structured_profile）
 
@@ -69,58 +65,51 @@
 - [x] 7.1 store 文件名与表名对齐为 `resumes.go`：读写 `resumes`、`structured_profile` / `display_name`；`source_type` 当前收敛 {`upload`,`paste`}，范围外输入只作为 validation negative（验证：`cd backend && go test ./internal/resume/store -run 'TestCreateWithParseJob|TestCompleteParse|TestParseStatusTransition' -count=1` PASS）
 - [x] 7.2 handler register/get/list 使用 generated `Resume`、`ResumeWithJob`、`resumeId`、`PaginatedResume`；register 仅支持 `upload` / `paste`，unsupported input 返回 validation error（验证：handler unit test + `cmd/api` wiring test PASS）
 - [x] 7.3 parse job 写 `resumes.structured_profile`（无 master 确认），`resume.parse.completed` envelope 使用 `resumeId`（验证：parse job unit test + outbox envelope test PASS）
-- [x] 7.4 收口：`cd backend && go test ./internal/resume/... ./cmd/api`；owner 文档与 P0.034 场景通过 stale-token grep，`async_jobs.resource_type=resume_asset` 作为当前内部 job resource 值保留；`sync-doc-index --check`（验证：全 gate PASS + 负向 grep 0 命中）
 
 ## Phase 8: LLM-derived display_name for ready resumes
 
-- [x] 8.1 `backend/internal/resume/jobs/parse.go` 从 LLM structured output 派生可识别 `display_name`，过滤通用上传 / 粘贴标题（验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox -count=1` PASS）<!-- verified: 2026-07-07 method=go-test -->
-- [x] 8.2 `CompleteParseSuccess` 在 ready 事务中写入派生 `display_name`，无法派生时保留空值，不回退到注册 title 或 raw resume 第一行（验证：`cd backend && go test ./internal/resume/store -run 'TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test+scenario -->
-- [x] 8.3 cmd/api resume_parse runner kernel ready / retry-to-ready 场景断言 stored resume 使用 LLM-derived `displayName`（验证：`cd backend && go test ./cmd/api -run 'TestResumeParseRunnerHTTPScenario|TestResumeParseRunnerRetryableFailureScenario' -count=1` PASS；P0.035 trigger/verify 检查当前测试名）<!-- verified: 2026-07-07 method=go-test+scenario -->
+- [x] 8.1 `backend/internal/resume/jobs/parse.go` 从 LLM structured output 派生可识别 `display_name`，过滤通用上传 / 粘贴标题（验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox -count=1` PASS）
+- [x] 8.2 `CompleteParseSuccess` 在 ready 事务中写入派生 `display_name`，无法派生时保留空值，不回退到注册 title 或 raw resume 第一行（验证：`cd backend && go test ./internal/resume/store -run 'TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）
 
 ## Phase 9: Upload file readable text snapshot
 
-- [x] 9.1 `backend/internal/resume/jobs/parse.go` 对 upload source 提取 PDF / Markdown / text 可读正文，AI prompt input 与 `parsed_text_snapshot` 使用同一正文，不能使用文件名或二进制 bytes；DOCX 不再属于当前上传白名单（验证：`cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerExtractsReadableUploadText|TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test+scenario -->
-- [x] 9.2 `CreateWithParseJob` 创建 queued resume 时只保存来源 `title`，不写 `display_name`；ready 后只由 parse success 写入 LLM-derived `display_name`（验证：`cd backend && go test ./internal/resume/store -run 'TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady|TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test+scenario -->
-- [x] 9.3 `resume.parse` upload 对象读取预算覆盖真实浏览器生成 PDF，不因 256KiB 截断导致 `parsed_text_snapshot` 为空，并拒绝 PDF literal / binary 乱码正文（验证：`cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerRejectsUnreadablePDFText|TestParseHandlerExtractsReadableUploadText' -count=1` PASS，assert read budget >= 554631 bytes；local UAT 真实 PDF snapshot 以中文正文开头）<!-- verified: 2026-07-07 method=go-test+local-uat -->
-- [x] 9.4 `resume.parse` 在已抽取正文后遇到 AI provider / AI output 失败，仍写入 `parsed_text_snapshot` 供只读详情显示，且不发 completed event（验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` PASS；`cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1` PASS；local UAT 真实 PDF `parse_status=failed` / `AI_OUTPUT_INVALID` 时 snapshot_len=3083）<!-- verified: 2026-07-07 method=go-test+local-uat -->
+- [x] 9.1 `backend/internal/resume/jobs/parse.go` 对 upload source 提取 PDF / Markdown / text 可读正文，AI prompt input 与 `parsed_text_snapshot` 使用同一正文，不能使用文件名或二进制 bytes；DOCX 不再属于当前上传白名单（验证：`cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerExtractsReadableUploadText|TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' -count=1` PASS）
+- [x] 9.2 `CreateWithParseJob` 创建 queued resume 时只保存来源 `title`，不写 `display_name`；ready 后只由 parse success 写入 LLM-derived `display_name`（验证：`cd backend && go test ./internal/resume/store -run 'TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady|TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）
+- [x] 9.3 `resume.parse` bounded reader 读取完整合法对象后提取正文，不因头部截断丢失 PDF 尾部结构，并拒绝 literal/binary 乱码；focused test 使用小型合成 PDF 与小型 injected overflow，不以真实文件或默认尺寸作为门禁。
+- [x] 9.4 `resume.parse` 在已抽取正文后遇到 AI provider / AI output 失败，仍写入 `parsed_text_snapshot` 供只读详情显示，且不发 completed event（验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` PASS；`cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1` PASS；local UAT 真实 PDF `parse_status=failed` / `AI_OUTPUT_INVALID` 时 snapshot_len=3083）
 
 ## Phase 10: Display name robustness and prompt contract hardening
 
 - [x] 10.1 `resume.parse` prompt schema / prompt body 显式要求 required `displayName`，并更新 prompt hash；验证: `make lint-prompts`。<!-- verified: 2026-07-07 method=lint command="make lint-prompts" -->
-- [x] 10.2 `decodeResumeParseResponse` 优先使用 AI `displayName`，并拒绝通用上传/粘贴标题、上传文件名和 raw 第一行直出；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox -count=1`。<!-- verified: 2026-07-07 method=go-test -->
-- [x] 10.3 AI provider / output 失败但已有可读正文时，`CompleteParseFailure` 同时写入 fallback `display_name`，确保 failed-with-snapshot 详情不再长期显示“名称生成中”；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` 与 `cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1`。<!-- verified: 2026-07-07 method=go-test -->
-- [x] 10.4 `ResumeDetailView` 对 `failed` 或已有正文的上传详情停止轮询 `getResume`，避免同一详情 URL 重复请求；验证: `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx`。<!-- verified: 2026-07-07 method=vitest -->
+- [x] 10.2 `decodeResumeParseResponse` 优先使用 AI `displayName`，并拒绝通用上传/粘贴标题、上传文件名和 raw 第一行直出；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox -count=1`。
+- [x] 10.3 AI provider / output 失败但已有可读正文时，`CompleteParseFailure` 同时写入 fallback `display_name`，确保 failed-with-snapshot 详情不再长期显示“名称生成中”；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` 与 `cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1`。
+- [x] 10.4 `ResumeDetailView` 对 `failed` 或已有正文的上传详情停止轮询 `getResume`，避免同一详情 URL 重复请求；验证: `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx`。
 
 ## Phase 11: Markdown snapshot and active resume limits
 
 - [x] 11.1 `resume.parse` prompt schema / prompt body required `markdownText`，要求 LLM 保持原简历结构和事实并输出 Markdown；验证: `make lint-prompts`。<!-- verified: 2026-07-07 method=prompt-lint command="python3 scripts/lint/prompt_lint.py --prompts-dir config/prompts --migrations-dir migrations" -->
-- [x] 11.2 `decodeResumeParseResponse` 校验并返回 `markdownText`，parse success 将 `ParsedTextSnapshot` 写为 Markdown；验证: `cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox|TestParseHandlerRequiresMarkdownTextInAIResponse' -count=1`。<!-- verified: 2026-07-07 method=go-test -->
-- [x] 11.3 `resume.maxActive` 默认 10 并由 `RegisterResume` / `CreateWithParseJob` 强制；达到上限的新 IK 返回 validation error，不创建 resume/job；相同 IK replay 不误拒；验证: focused service/store tests。<!-- verified: 2026-07-07 method=go-test command="cd backend && go test ./internal/resume/... ./internal/platform/config ./cmd/api -count=1" -->
-- [x] 11.4 `upload.maxBytes.resume` 默认改为 2MiB，配置校验与前端本地校验一致；验证: config/cmd-api focused tests。<!-- verified: 2026-07-07 method=go-test+vitest -->
-- [x] 11.5 AI provider / output validation 失败但已抽取 PDF 可读正文时，失败态 `parsed_text_snapshot` 保存 Markdown fallback（标题、章节、技能 bullet），不保存原始折叠文本；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerMarkdownFallbackSurvivesPDFAIOutputFailure -count=1`。<!-- verified: 2026-07-07 method=go-test -->
+- [x] 11.2 `decodeResumeParseResponse` 校验并返回 `markdownText`，parse success 将 `ParsedTextSnapshot` 写为 Markdown；验证: `cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox|TestParseHandlerRequiresMarkdownTextInAIResponse' -count=1`。
+- [x] 11.3 `RegisterResume` / `CreateWithParseJob` 使用注入 active limit；small-limit focused tests 覆盖新 IK 拒绝、零 resume/job、same-IK replay 与并发原子性；默认值归 A4。
+- [x] 11.4 HISTORICAL-SUPERSEDED: 删除 backend-resume 对 upload default/RuntimeConfig 传播的重复测试；A4 owns config，backend-upload/frontend owners use focused guards。
+- [x] 11.5 AI provider / output validation 失败但已抽取 PDF 可读正文时，失败态 `parsed_text_snapshot` 保存 Markdown fallback（标题、章节、技能 bullet），不保存原始折叠文本；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerMarkdownFallbackSurvivesPDFAIOutputFailure -count=1`。
 
 ## Phase 12: Source-format preview and DOCX exclusion
 
-- [x] 12.1 `createUploadPresign` / upload register 对 `purpose=resume` 仅允许 PDF / Markdown / TXT，DOCX 在 presign/register 前返回 validation error；验证: upload handler/service focused tests。<!-- verified: 2026-07-07 method=go-test packages=./internal/upload/service,./internal/upload/handler tests=TestCreateUploadPresignRejectsResumeDOCX,TestCreateUploadPresignRejectsResumeDOCXBeforePresign -->
-- [x] 12.2 `resume.parse` 删除 DOCX 解包路径，历史 DOCX object 误入 parse 时返回 unsupported source text error，不进入 AI prompt；验证: parse focused tests。<!-- verified: 2026-07-07 method=go-test package=./internal/resume/jobs tests=TestParseHandlerRejectsDOCXUploadText,TestParseHandlerExtractsReadableUploadText -->
-- [x] 12.3 `getResumeSource` 按 `user_id + resumeId` scoped lookup upload-backed PDF 原件并返回 inline `application/pdf`；paste / Markdown / TXT / missing / archived / cross-user 返回 404；验证: store/service/handler/cmd-api focused tests。<!-- verified: 2026-07-07 method=go-test packages=./internal/resume,./internal/resume/handler,./internal/resume/store,./cmd/api tests=TestGetResumeSource,TestGetSourceFile,TestGeneratedRouteCatalogHasNoResumeVersionOperations -->
+- [x] 12.1 `createUploadPresign` / upload register 对 `purpose=resume` 仅允许 PDF / Markdown / TXT，DOCX 在 presign/register 前返回 validation error；验证: upload handler/service focused tests。
+- [x] 12.2 `resume.parse` 删除 DOCX 解包路径，历史 DOCX object 误入 parse 时返回 unsupported source text error，不进入 AI prompt；验证: parse focused tests。
+- [x] 12.3 `getResumeSource` 按 `user_id + resumeId` scoped lookup upload-backed PDF 原件并返回 inline `application/pdf`；paste / Markdown / TXT / missing / archived / cross-user 返回 404；验证: store/service/handler/cmd-api focused tests。
 
-## Phase 13: Real-resume output budget regression
+## Phase 13: Resume parse output-capacity handoff
 
-- [x] 13.1 RED: `TestCatalogKeepsResumeParseOutputBudget` 从当前 profile catalog 断言 `resume.parse.default.max_tokens >= 8192`，并先在 2048 配置下失败（验证：focused Go test RED）<!-- verified: 2026-07-12 method=go-test-red test=TestCatalogKeepsResumeParseOutputBudget observed_max_tokens=2048 -->
-- [x] 13.2 GREEN: 只提升 `resume.parse.default.max_tokens` 到 8192 并递增 profile version，profile focused tests 与 config lint PASS<!-- verified: 2026-07-12 method=go-test+lint tests=TestCatalogKeepsResumeParseOutputBudget,profile-package command=make-lint-config -->
-- [x] 13.3 E2E.P0.035 trigger/verify 执行并检查 budget regression 测试名、runner marker、PASS，继续拒绝 no-op / skip<!-- verified: 2026-07-12 method=scenario trigger=PASS verify=PASS cleanup=PASS test=TestCatalogKeepsResumeParseOutputBudget -->
-- [x] 13.4 BDD-Gate: E2E.P0.035 resume-parse-async-job-lifecycle PASS（含真实长简历输出预算与失败态 snapshot gate）
-<!-- verified: 2026-07-12 method=scenario bddChecklist=complete -->
+- [x] 13.1 OWNER-GATE: A3 catalog/code-default contract 保证 active profile 至少 16K；backend-resume 不复制 profile 默认数值测试。
+- [x] 13.2 FOCUSED-GATE: backend-resume 只用小型 stub response 验证 structured output 截断与 `finish_reason=length` fail-closed、deterministic snapshot 和 ready-only outbox；focused run 仅作开发反馈，阶段完成由根 `make test` 承接。
 
 ## Phase 14: Deterministic full-resume snapshot and truncation fail-closed
 
-- [x] 14.1 RED：长简历输入末尾唯一 marker 必须进入 AI prompt；stub AI 返回不含 `markdownText` 的 structured-only JSON，当前 decoder 因旧 required 字段失败（验证：focused Go test RED）<!-- verified: 2026-07-12 method=go-test-red test=TestParseHandlerPreservesLongInputTailWithStructuredOnlyResponse observed=AI_OUTPUT_INVALID -->
-- [x] 14.2 GREEN：成功/失败 `parsed_text_snapshot` 均由完整提取正文确定性构建；decoder、prompt、schema 删除 `markdownText` 回显合同，长输入尾 marker 在 prompt 与 snapshot 中均保留（验证：focused Go tests PASS）<!-- verified: 2026-07-12 method=go-test-red-green tests=TestParseHandlerPreservesInlineHeadingWordsInSourceSnapshot,internal-resume-jobs review-remediation=inline-heading-words-preserved -->
-- [x] 14.3 RED/GREEN：`FinishReason="length"` 在 JSON decode 前映射 `AI_OUTPUT_INVALID`，保留含尾 marker 的完整 snapshot，不发 `resume.parse.completed`（验证：focused Go test RED → GREEN）<!-- verified: 2026-07-12 method=mutation-red-green test=TestParseHandlerRejectsLengthFinishReasonAndPreservesSourceSnapshot -->
+- [x] 14.1 RED：长简历输入末尾唯一 marker 必须进入 AI prompt；stub AI 返回不含 `markdownText` 的 structured-only JSON，当前 decoder 因旧 required 字段失败（验证：focused Go test RED）
+- [x] 14.2 GREEN：成功/失败 `parsed_text_snapshot` 均由完整提取正文确定性构建；decoder、prompt、schema 删除 `markdownText` 回显合同，长输入尾 marker 在 prompt 与 snapshot 中均保留；focused Go tests 仅作开发反馈，阶段完成由根 `make test` 承接。
+- [x] 14.3 RED/GREEN：`FinishReason="length"` 在 JSON decode 前映射 `AI_OUTPUT_INVALID`，保留含尾 marker 的完整 snapshot，不发 `resume.parse.completed`；focused Red/Green 仅作开发反馈，阶段完成由根 `make test` 承接。
 - [x] 14.4 同步 prompt body/schema/hash、baseline seed migration、eval cases 与 `resolved-prompts.json`；`make lint-prompts` / `make eval-offline-resolve` PASS，当前合同负向 grep 不再要求 `markdownText`<!-- verified: 2026-07-12 method=prompt-lint+eval-offline result=24/24-pass seed-body=matched -->
-- [x] 14.5 E2E.P0.035 trigger/verify 执行并检查 tail-marker、structured-only、finish-reason tests 的 runner marker 与 PASS，继续拒绝 no-op / skip<!-- verified: 2026-07-12 method=script-contract-red-green+scenario trigger=PASS verify=PASS cleanup=PASS verifier=exact-pass+reject-fail test=TestParseHandlerPreservesInlineHeadingWordsInSourceSnapshot -->
-- [x] 14.6 BDD-Gate: E2E.P0.035 PASS（完整正文进入 prompt + deterministic snapshot + output truncation fail-closed）<!-- verified: 2026-07-12 method=scenario bddChecklist=complete -->
 
 ## Phase 15: Closed ResumeSummary list projection
 
@@ -128,18 +117,14 @@
 - [x] 15.2 RED store tests：当前 list SQL/row scanner 在 exact projection gate 下失败；断言显式 summary 列、stable cursor、user scope、active-only，并禁止选择/扫描 `original_text|parsed_text_snapshot|structured_profile|file_object_id|parsed_summary object|created_at|deleted_at` 或 `SELECT *`；NULL `source_type` scan 与非法 enum service mapping 必须 fail closed，create path 继续写合法非空 source。 <!-- verified: 2026-07-14 method=go-test-red tests=TestListUsesClosedResumeSummaryProjection,TestListRejectsNullSourceType,TestCreateWithParseJobRejectsInvalidSourceType,TestDuplicateResumeRejectsInvalidSourceType observed=full-detail-record-build-failure -->
 - [x] 15.3 GREEN store：实现独立 summary row/query；`summaryHeadline` 只投影 trim 后非空 headline；`hasReadableContent` 仅在 trim 后 snapshot 非空、trim 后 original text 非空或 structured profile 为非空 object 时为 true，空白文本/空对象为 false，且不按 file/source/status 推断；原始正文/JSON/file object 不装入 list result；`Get` full-detail scanner 保持独立。 <!-- verified: 2026-07-14 method=go-test tests=internal/resume/store summary-projection+null-source+create-duplicate-source-integrity -->
 - [x] 15.4 Service/domain：`List` 只映射 closed `ResumeSummary`，覆盖 exact fields、null headline、readable true/false、25+ rows、第二页、invalid cursor、cross-user；`Get` 仍返回 full `Resume` 详情。验证：service tests。 <!-- verified: 2026-07-14 method=go-test tests=TestGetAndListResumesMapStoreRecordsWithUserScope,TestListResumesMapsNullHeadlineAndUnreadableContent,TestListResumesRejectsInvalidSourceType,TestListCursorPagination -->
-- [x] 15.5 Handler/fixture：generated `PaginatedResume` 外层与 `pageInfo` 保持不变，`items: ResumeSummary[]` exact JSON keys 与 default/empty/paginated fixture 字节一致；逐项断言详情字段 absent；get fixture parity 保持完整详情。验证：handler + cmd/api tests。 <!-- verified: 2026-07-14 method=go-test tests=TestListResumesFixtureParity,TestGetResumeFixtureParity,TestResumeRegisterListHTTPScenario note=generic-handler-writer-required-no-production-change -->
-- [x] 15.6 负向 gate：list store/service/handler 不复用 full-detail mapper，不出现 `SELECT *`，不把 forbidden fields 写入 response；Go tests、OpenAPI codegen/inventory、frontend typecheck 与 fixture parity PASS。 <!-- verified: 2026-07-14 method=full-go+contract-gates evidence="backend go test ./... PASS; exact nine-field scalar projection; no detail mapper, SELECT *, forbidden response field, or list N+1; OpenAPI/codegen/fixture/type gates PASS" -->
-- [x] 15.7 `BDD-Gate: E2E.P0.034` PASS：register/get/list 真实 route 覆盖 summary exact keys、forbidden fields absent、full get detail、pagination 与 cross-user。 <!-- verified: 2026-07-14 method=scenario result=PASS evidence="fresh setup/trigger/verify/cleanup; method=cmd-api-http; exact nine-field summary, full get, pagination, cross-user and no-skip markers" -->
-- [x] 15.8 `BDD-Gate: E2E.P0.036` PASS：frontend list/Home 只消费 summary，列表无需正文/structured profile。 <!-- verified: 2026-07-14 method=scenario result=PASS evidence="5/5; summaryFields=9 listResumes=1 getResumeBeforeOpen=0 getResumeAfterOpen=1" -->
-- [x] 15.9 `BDD-Gate: E2E.P0.037` PASS：用户打开详情后才调用 `getResume` 获取完整详情，list payload 不预取详情。 <!-- verified: 2026-07-14 method=scenario+browser result=PASS evidence="8/8; ready detail initial=1 maxInFlight=1; browser list GET=1 and detail click GET=1" -->
-- [x] 15.10 收口：backend focused/full tests、P0.034/036/037、context validation、`sync-doc-index --check`、`make docs-check`、`git diff --check` PASS；同步证据后恢复 completed。 <!-- verified: 2026-07-14 method=post-pass-reconcile evidence="backend full/focused and fresh P0.034/P0.036/P0.037 PASS; owner context valid; aggregate INDEX finalization delegated to root integration" -->
+- [x] 15.5 Handler/fixture：generated `PaginatedResume` 外层与 `pageInfo` 保持不变，`items: ResumeSummary[]` exact JSON keys 与 default/empty/paginated fixture 字节一致；逐项断言详情字段 absent；get fixture parity 保持完整详情。Handler / `TestResumeRegisterListHTTPContract` 仅作开发反馈，阶段单测完成由根 `make test` 承接。
+- [x] 15.6 负向 gate：list store/service/handler 不复用 full-detail mapper，不出现 `SELECT *`，不把 forbidden fields 写入 response；Go tests、OpenAPI codegen/inventory、frontend typecheck 与 fixture parity PASS。
 
-## Phase 16: Configured Resume content boundaries
+## Phase 16: Injected Resume content guards
 
-- [x] 16.1 RED: active/upload/paste/extracted missing/default/override/invalid 与 limit/+1 测试暴露旧 2MiB upload、8MiB reader 和无 paste cap。
-- [x] 16.2 GREEN: 注入 `maxActive=10`、upload 10MiB、paste/extracted 384KiB；显式非法 fail-fast，删除重复 production constants。
-- [x] 16.3 REGISTER/PARSE: upload/paste/extracted limit 接受、limit+1 在 resume/job/provider 前拒绝；UTF-8 bytes、无静默截断、无半成品。
-- [x] 16.4 CONTRACT/BDD: RuntimeConfig 只公开 upload/paste；P0.081、P0.034、P0.035 current gates 通过，list/get 合同不变。
-- [x] 16.5 VERIFY: focused/full resume/upload/config/AI、OpenAPI scenario、privacy、contexts/docs/diff 与旧 2MiB/8MiB truth negative search 通过；post-commit codegen drift 由 A4 13.8 收口。
-  <!-- verified: 2026-07-14 evidence="Fresh P0.034/P0.035/P0.081 pass in-memory paste/extracted/upload boundaries; backend full and frontend full/build pass." -->
+- [x] 16.1 OWNER-GATE: active/upload/paste/extracted missing/default/override/invalid 与跨字段约束只由 A4 typed contract 覆盖；本 owner 删除重复 loader/composition tests。
+- [x] 16.2 FOCUSED-GATE: 使用小型 injected limits 验证 active-count 并发/replay、paste/extracted overflow 在 resume/job/provider 前零副作用；不构造默认大小文件或字符串。
+
+## BDD Gate
+
+- [x] BDD-Gate: `BDD.RESUME.ASSET.001` 由 [BDD checklist](./bdd-checklist.md) 关联 register/parse/list/detail owner behavior tests；不创建或声明真实 E2E PASS。

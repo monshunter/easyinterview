@@ -3,7 +3,6 @@ package openaicompatible
 import (
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/internal/responsebody"
 	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
@@ -287,8 +287,31 @@ func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, 
 		return
 	}
 
-	scanner := bufio.NewScanner(resp.Body)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	limitedBody := &io.LimitedReader{R: resp.Body, N: a.maxResponseBodyBytes}
+	scanner := bufio.NewScanner(limitedBody)
+	maxInt := int(^uint(0) >> 1)
+	maxTokenBytes := maxInt
+	if a.maxResponseBodyBytes < int64(maxInt) {
+		maxTokenBytes = int(a.maxResponseBodyBytes)
+	}
+	scanner.Buffer(nil, maxTokenBytes)
+	limitChecked := false
+	responseLimitFailed := func() bool {
+		if limitedBody.N != 0 || limitChecked {
+			return false
+		}
+		extra, err := io.ReadAll(io.LimitReader(resp.Body, 1))
+		if err != nil {
+			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharederrors.CodeAiProviderTimeout}
+			return true
+		}
+		limitChecked = true
+		if len(extra) > 0 {
+			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharederrors.CodeAiOutputInvalid}
+			return true
+		}
+		return false
+	}
 	inputTokens := 0
 	outputTokens := 0
 	outputChars := 0
@@ -312,6 +335,9 @@ func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, 
 	}
 
 	for scanner.Scan() {
+		if responseLimitFailed() {
+			return
+		}
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, ":") {
 			continue
@@ -351,6 +377,9 @@ func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, 
 	}
 	if ctx.Err() != nil {
 		emitDone(sharederrors.CodeAiProviderTimeout, "context_cancelled")
+		return
+	}
+	if responseLimitFailed() {
 		return
 	}
 	if err := scanner.Err(); err != nil {
@@ -491,34 +520,14 @@ func mergeFallbackHeaders(profile *aiclient.ModelProfile, _ http.Header, meta *a
 }
 
 func readResponseBody(resp *http.Response, maxResponseBodyBytes int64) ([]byte, error) {
-	reader := io.Reader(resp.Body)
-	compressed := false
-	if !resp.Uncompressed {
-		switch strings.ToLower(strings.TrimSpace(resp.Header.Get("Content-Encoding"))) {
-		case "", "identity":
-		case "gzip":
-			zr, err := gzip.NewReader(resp.Body)
-			if err != nil {
-				return nil, stableError(sharederrors.CodeAiOutputInvalid)
-			}
-			defer zr.Close()
-			reader = zr
-			compressed = true
-		default:
-			return nil, stableError(sharederrors.CodeAiOutputInvalid)
-		}
+	body, err := responsebody.Read(resp, maxResponseBodyBytes)
+	if err == nil {
+		return body, nil
 	}
-	body, err := io.ReadAll(io.LimitReader(reader, maxResponseBodyBytes+1))
-	if err != nil {
-		if compressed {
-			return nil, stableError(sharederrors.CodeAiOutputInvalid)
-		}
+	if errors.Is(err, responsebody.ErrRead) {
 		return nil, stableError(sharederrors.CodeAiProviderTimeout)
 	}
-	if int64(len(body)) > maxResponseBodyBytes {
-		return nil, stableError(sharederrors.CodeAiOutputInvalid)
-	}
-	return body, nil
+	return nil, stableError(sharederrors.CodeAiOutputInvalid)
 }
 
 func stableError(code string) *sharederrors.APIError {

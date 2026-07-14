@@ -35,7 +35,7 @@ This owner plan remains the executable contract/codegen evidence index; Phase 17
 
 - **Plan 类型**: `contract + tooling + feature-behavior handoff`
 - **TDD 策略**: schema inventory、semantic lint、Go/TS generator structure、codegen idempotency 与 negative surface tests 必须按 Red-Green-Refactor 执行；每个 correction Phase 的 checklist 明确对应断言与命令入口。
-- **BDD 策略**: 本 plan 不复制场景资产；用户可见 contract correction 必须引用下游 owner BDD。Phase 17 复用 P0.010/P0.015/P0.046/P0.081/P0.056。
+- **BDD 策略**: 本 plan 不复制场景资产；用户可见 contract correction 必须引用下游 owner BDD。Phase 17 只变更内部 schema/codegen 投影，不新增用户流程，因此 BDD 不适用。
 - **替代验证 gate**: `make lint-openapi`、generator tests、`make codegen-check`、`make openapi-diff`、scoped zero-reference 与 downstream compile/consumer gates。
 
 ### 3.1 Current Operation Inventory
@@ -87,7 +87,7 @@ git diff --check
 
 ## 6 BDD Applicability
 
-本 plan 不新建本地 BDD 文件，因为它只拥有 API schema、codegen 与 contract gate；用户可见行为不能只用内部 contract test 收口。Phase 14 必须以 frontend-workspace-and-practice/002 的 BDD 与 P0.046 failure/recovery scenario 作为 mandatory `BDD-Gate`；Phase 16 必须复用 P0.034/P0.036/P0.037，分别证明 backend register/list projection、frontend flat list/auth boundary 与 full detail read-only contract。未取得对应 handoff evidence 时，本 plan 不得恢复 completed。
+BDD 不适用：本 plan 只拥有 API schema、codegen 与 contract gate，不创建 BDD 文件或引用场景编号。用户可见行为由 domain owner 独立验收；本 plan 只等待 fixture、backend/frontend consumer 与 generated contract handoff。阶段收口从仓库根执行 `make test`。
 
 ## 7 Revision Log
 
@@ -146,18 +146,18 @@ TargetJob lifecycle `status` 只表示岗位生命周期，不能解释为面试
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticePlan` | `PracticePlans/createPracticePlan.json` round variants | shared parse/workspace/report start helper | backend-practice generated adapter/service/store | insert `practice_plans.round_id/round_sequence` + idempotency/audit | none | P0.022/P0.070/P0.072/P0.098 |
-| `getPracticePlan` | `PracticePlans/getPracticePlan.json` current + legacy-null | shared start exact-pair reuse; Practice budget | backend-practice generated adapter/store | read nullable legacy/current plan identity | none | P0.022/P0.070/P0.098 |
-| `listTargetJobs` | `TargetJobs/listTargetJobs.json` zero/partial/final progress | Home/Workspace cards and quick-start | backend-targetjob list handler/store/service projection | TargetJob summary + plans/sessions/completion events; no mutable progress column | none | P0.018/P0.098 |
-| `getTargetJob` | `TargetJobs/getTargetJob.json` zero/partial/final progress | Parse/Report/current-round handoff | backend-targetjob get handler/store/service projection | same ledger projection as list | none after persisted JD parse | P0.057/P0.098 |
+| `createPracticePlan` | `PracticePlans/createPracticePlan.json` round variants | shared parse/workspace/report start helper | backend-practice generated adapter/service/store | insert `practice_plans.round_id/round_sequence` + idempotency/audit | none | fixture + generated consumer tests |
+| `getPracticePlan` | `PracticePlans/getPracticePlan.json` current + legacy-null | shared start exact-pair reuse; Practice budget | backend-practice generated adapter/store | read nullable legacy/current plan identity | none | fixture + generated consumer tests |
+| `listTargetJobs` | `TargetJobs/listTargetJobs.json` zero/partial/final progress | Home/Workspace cards and quick-start | backend-targetjob list handler/store/service projection | TargetJob summary + plans/sessions/completion events; no mutable progress column | none | fixture + generated consumer tests |
+| `getTargetJob` | `TargetJobs/getTargetJob.json` zero/partial/final progress | Parse/Report/current-round handoff | backend-targetjob get handler/store/service projection | same ledger projection as list | none after persisted JD parse | fixture + generated consumer tests |
 
 ## 12 OPENAPI-001 grounded direct report contract
 
 ### 12.1 Closed wire shape
 
-After OPENAPI-001 is accepted and B1 emits `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS`, update the proposed `FeedbackReport` while the old baseline remains unchanged. Require nullable-until-state-resolved `summary` / `preparednessLevel` / `provenance`, non-null minimal `ReportContextSnapshot` with `hasNextRound`, code+label dimensions, dimensionCode evidence and `retryFocusDimensionCodes`. Close the report state machine: ready requires non-null summary/preparedness/provenance plus non-empty dimensions/actions; failed alone requires non-null errorCode and all other states require null errorCode. Keep CreatePracticePlanRequest as `type: object` with typed superset properties and conditional `oneOf`: baseline requires its existing non-focus fields and forbids sourceReportId; retry/next each require a non-null UUID sourceReportId and allow only goal+sourceReportId. Existing generators must produce Go/TS object types rather than `any`; schema/runtime fixtures reject invalid report states, baseline source, derived missing/null/blank source and every derived extra, while valid ready/failed and minimal retry/next requests pass. Delete `DimensionResult` and old dimension/focus names, close objects and apply ADR bounds. Synchronize `REPORT_CONTEXT_TOO_LARGE` into `ApiErrorCode` only through the B1 source. Run 003 base-ref exact audit across breaking and additive findings before codegen/fixtures.
+After OPENAPI-001 is accepted and the B1 conventions gate passes, update the proposed `FeedbackReport` while the old baseline remains unchanged. Require nullable-until-state-resolved `summary` / `preparednessLevel` / `provenance`, non-null minimal `ReportContextSnapshot` with `hasNextRound`, code+label dimensions, dimensionCode evidence and `retryFocusDimensionCodes`. Close the report state machine: ready requires non-null summary/preparedness/provenance plus non-empty dimensions/actions; failed alone requires non-null errorCode and all other states require null errorCode. Keep CreatePracticePlanRequest as `type: object` with typed superset properties and conditional `oneOf`: baseline requires its existing non-focus fields and forbids sourceReportId; retry/next each require a non-null UUID sourceReportId and allow only goal+sourceReportId. Existing generators must produce Go/TS object types rather than `any`; schema/runtime fixtures reject invalid report states, baseline source, derived missing/null/blank source and every derived extra, while valid ready/failed and minimal retry/next requests pass. Delete `DimensionResult` and old dimension/focus names, close objects and apply ADR bounds. Synchronize `REPORT_CONTEXT_TOO_LARGE` into `ApiErrorCode` only through the B1 source. Run 003 base-ref exact audit across breaking and additive findings before codegen/fixtures.
 
-Under approved方案 A，`ReportNextAction.label.maxLength=200` code points is only a malformed-output fuse。F3/runtime/frontend enforce English `<=24` whitespace words / zh-CN `<=64` Unicode code points；targeted action-label repair uses an internal 18/52 generation margin and is revalidated against 200+24/64。P0.099 proves desktop+390 wrapping and typed-invalid/no-raw behavior。Old baseline clean PASS is invalid until new audit/re-freeze；codegen-check remains separately pending。
+Under approved方案 A，`ReportNextAction.label.maxLength=200` code points is only a malformed-output fuse。F3/runtime/frontend enforce English `<=24` whitespace words / zh-CN `<=64` Unicode code points；targeted action-label repair uses an internal 18/52 generation margin and is revalidated against 200+24/64。Downstream UI owner proves desktop/mobile wrapping and typed-invalid/no-raw behavior。Old baseline clean PASS is invalid until new audit/re-freeze；codegen-check remains separately pending。
 
 Generation/judge max4，attempt_count/retry_count/reason/scope and business/outbox backoff are internal runtime/eval contracts。Do not add HTTP fields、progress or retry-generation operation。`FeedbackReport` remains queued/generating/ready/failed；frontend maxAttempts49 exhaustion is a client continue-check state，not an API failed transition。This decision creates no additional expected finding beyond the existing maxLength200 correction。
 
@@ -183,13 +183,13 @@ Delete all five `TargetJobImportSource*` schemas, flatten and constrain `ImportT
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `importTargetJob` | `TargetJobs/importTargetJob.json` paste-only `default` / `paste-primary` | Home paste submit and Parse polling | backend-targetjob generated adapter/service/runner | TargetJob + async job; no URL/file source provenance | parse pasted JD text | P0.010/P0.015 paste-only |
+| `importTargetJob` | `TargetJobs/importTargetJob.json` paste-only `default` / `paste-primary` | Home paste submit and Parse polling | backend-targetjob generated adapter/service/runner | TargetJob + async job; no URL/file source provenance | parse pasted JD text | fixture + backend/frontend consumer tests |
 | `createUploadPresign` | `Uploads/createUploadPresign.json` resume/privacy only | Resume Workshop/privacy consumers; no Home consumer | backend-upload generated adapter/service | file object for remaining purposes only | none | existing resume/privacy scenarios; no TargetJob attachment |
-| `listTargetJobs` / `getTargetJob` | TargetJobs list/get without source fields | Home/Workspace/Parse/Report | backend-targetjob list/get adapters | current TargetJob projection without source provenance | none after persisted parse | P0.010/P0.015/P0.018/P0.057 |
+| `listTargetJobs` / `getTargetJob` | TargetJobs list/get without source fields | Home/Workspace/Parse/Report | backend-targetjob list/get adapters | current TargetJob projection without source provenance | none after persisted parse | fixture + backend/frontend consumer tests |
 
 ### 13.4 Zero-reference and handoff gates
 
-Run exact current-contract searches over OpenAPI, generated artifacts, positive fixtures, frontend/backend runtime consumers, mock runtime and active positive scenarios. Positive/runtime occurrences of `TargetJobImportSource*`, `target_job_attachment`, TargetJob `sourceType/sourceUrl`, URL/file/manual-form import branches or compatibility aliases must be zero. Accepted ADR、expected-findings oracle 与显式 negative test/fixture declaration 可包含被拒绝 token；gate 必须按语义/可达面区分正负引用，禁止用整文件或整测试目录排除。BDD assets are owned downstream: P0.010/P0.015 must prove the paste-only main/failure paths, while URL/file/manual-form positive scenarios are removed rather than retained as compatibility coverage.
+Run exact current-contract searches over OpenAPI, generated artifacts, positive fixtures, frontend/backend runtime consumers and mock runtime. Positive/runtime occurrences of `TargetJobImportSource*`, `target_job_attachment`, TargetJob `sourceType/sourceUrl`, URL/file/manual-form import branches or compatibility aliases must be zero. Accepted ADR、expected-findings oracle 与显式 negative test/fixture declaration 可包含被拒绝 token；gate 必须按语义/可达面区分正负引用，禁止用整文件或整测试目录排除。用户流程由 downstream owner 验收；URL/file/manual-form 正向资产直接删除，不保留兼容覆盖。
 
 ## 14 Practice durable message recovery（方案 A）
 
@@ -232,12 +232,12 @@ Consumer contract tests must fail on `error.message` regex/string parsing；retr
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `getPracticeSession` | `PracticeSessions/getPracticeSession.json`: pending/retryable-failed/terminal-failed/complete + reload recovery | Practice transcript hydration, composer lock and retry affordance | backend-practice get adapter/service/store | user `client_message_id` + durable reply status + ordered assistant projection | none on read | P0.044 + P0.046 |
-| `sendPracticeMessage` | `PracticeSessions/sendPracticeMessage.json`: default plus validation/auth/not-found/conflict/mismatch/retryable failure | optimistic row, thinking state and typed retry dispatch | backend-practice generated adapter/service/store | reserve once by `(session_id,client_message_id)`; transition reply status; at-most-one assistant | interviewer generation | P0.044 + P0.046 |
+| `getPracticeSession` | `PracticeSessions/getPracticeSession.json`: pending/retryable-failed/terminal-failed/complete + reload recovery | Practice transcript hydration, composer lock and retry affordance | backend-practice get adapter/service/store | user `client_message_id` + durable reply status + ordered assistant projection | none on read | fixture + backend/frontend consumer tests |
+| `sendPracticeMessage` | `PracticeSessions/sendPracticeMessage.json`: default plus validation/auth/not-found/conflict/mismatch/retryable failure | optimistic row, thinking state and typed retry dispatch | backend-practice generated adapter/service/store | reserve once by `(session_id,client_message_id)`; transition reply status; at-most-one assistant | interviewer generation | fixture + backend/frontend consumer tests |
 
 ### 14.5 Contract audit and downstream handoff
 
-This union/persistence correction changes existing Practice message validation semantics. D-35 + history 1.54 + the product-approved 方案 A remain the sole governance authority. 003 must use a separate Practice machine oracle as D-35's executable five-key finding projection—not as a third `OPENAPI-NNN` ADR—and must never merge those findings into OPENAPI-002's exact 17 allowset. Preserve both owner-specific artifacts before baseline mutation, then wait for 002 fixture matrix、mock-contract-suite parity、backend-practice persistence、frontend-workspace-and-practice typed consumer and P0.046 before re-freeze. Operation/tag inventory stays 37/10；no retry endpoint, client-side business-state store or compatibility message schema is allowed.
+This union/persistence correction changes existing Practice message validation semantics. D-35 + history 1.54 + the product-approved 方案 A remain the sole governance authority. 003 must use a separate Practice machine oracle as D-35's executable five-key finding projection—not as a third `OPENAPI-NNN` ADR—and must never merge those findings into OPENAPI-002's exact 17 allowset. Preserve both owner-specific artifacts before baseline mutation, then wait for 002 fixture matrix、mock-contract-suite parity、backend-practice persistence and frontend-workspace-and-practice typed consumer tests before re-freeze. Operation/tag inventory stays 37/10；no retry endpoint, client-side business-state store or compatibility message schema is allowed.
 
 ## 15 OPENAPI-004 TargetJob canonical-round report overview
 
@@ -253,7 +253,7 @@ Replace the response with closed `TargetJobReportsOverview{targetJobId,rounds}`.
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `listTargetJobReports` | `Reports/listTargetJobReports.json` canonical rounds/current/latest/empty/fail-closed cases | target-scoped ReportsScreen via generated client | backend-review list overview service/store | owned TargetJob canonical summary + `feedback_reports.generation_context/status/generated_at/created_at`；no TargetJob pointer | none | P0.059 |
+| `listTargetJobReports` | `Reports/listTargetJobReports.json` canonical rounds/current/latest/empty/fail-closed cases | target-scoped ReportsScreen via generated client | backend-review list overview service/store | owned TargetJob canonical summary + `feedback_reports.generation_context/status/generated_at/created_at`；no TargetJob pointer | none | fixture + backend/frontend consumer tests |
 
 003 must exact-audit OPENAPI-004 from old baseline before re-freeze. 002 fixtures/Prism, db/targetjob cleanup, backend-review selection and frontend consumers must all pass before baseline mutation.
 
@@ -271,8 +271,8 @@ Add the closed source schema, switch only `PaginatedResume.items`, and regenerat
 
 | operationId | response contract | fixture | backend projection | frontend consumer | BDD |
 |-------------|-------------------|---------|--------------------|-------------------|-----|
-| `listResumes` | `PaginatedResume.items: ResumeSummary[]` | `Resumes/listResumes.json` summary-only scenarios | dedicated list columns/record/mapper; no detail payload fetch | Home picker, Resume Workshop list and every generated-client list consumer | P0.034 + P0.036 |
-| `getResume` | full `Resume` unchanged | `Resumes/getResume.json` full-detail scenarios | existing owned detail lookup/mapper | Resume Workshop read-only detail | P0.037 |
+| `listResumes` | `PaginatedResume.items: ResumeSummary[]` | `Resumes/listResumes.json` summary-only examples | dedicated list columns/record/mapper; no detail payload fetch | Home picker, Resume Workshop list and every generated-client list consumer | fixture + backend/frontend consumer tests |
+| `getResume` | full `Resume` unchanged | `Resumes/getResume.json` full-detail examples | existing owned detail lookup/mapper | Resume Workshop read-only detail | fixture + backend/frontend consumer tests |
 
 002 Phase 11 must migrate fixture/example/Prism/mock bytes；003 Phase 9 must generate the declared OPENAPI-005 exact oracle from merge-base old baseline before any re-freeze；004 Phase 7 coordinates backend store/service/handler, generated consumers and frontend list/detail migration. All consumers compile and pass focused tests in the same batch；frontend may not issue N+1 `getResume` requests to restore removed list fields.
 
@@ -284,8 +284,8 @@ Add required `RuntimeConfig.contentLimits` referencing a closed required `Conten
 
 ### 17.2 Fixture/generated handoff
 
-Update getRuntimeConfig fixture, generated Go/TS types and backend builder mapping. The fixture uses A4 defaults 10485760/393216/98304/32768/262144. Explicitly reject report framed input, HTTP body, provider response and profile token values from the public schema.
+Update getRuntimeConfig fixture, generated Go/TS types and backend builder mapping. Contract fixtures use small positive representative values rather than复制 A4 默认数值。Explicitly reject report framed input, HTTP body, provider response and profile token values from the public schema. `ContentLimits` 及五个子字段均为 required；consumer 不得为缺失子字段逐项 fallback，只有整体 runtime source 不可用时才可沿用既有 bootstrap fallback。
 
-### 17.3 BDD and regression
+### 17.3 Substitute contract gates
 
-P0.010/P0.015, P0.046, P0.081 and P0.056 consume their appropriate public/internal boundaries. Run lint/fixture/codegen/Prism, backend builder and all frontend consumers; operation/tag inventory remains 37/10 and no business request wire changes.
+BDD 不适用：本 Phase 不新增用户流程，也不改变业务错误、恢复或持久化语义。替代 gate 为 closed schema semantic lint、fixture validation、Go/TS codegen drift、backend builder focused test、frontend compile/consumer test 与 internal-field negative search；operation/tag inventory remains 37/10 and no business request wire changes。不得要求任何 E2E 作为配置传播证据；阶段收口执行根 `make test`。

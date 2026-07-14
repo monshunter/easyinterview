@@ -47,7 +47,7 @@ Home 粘贴 JD
   - Footer actions 只保留「立即面试」，并从受保护 TargetJob 事实读取真实 `targetJobId`、`resumeId`、可选 `currentPracticePlanId` 和 `roundId` 进入 practice handoff；route 仍只携带 `targetJobId`。
   - 未登录启动通过 auth continuation 接续到 practice。
 - Parity 与验证：
-  - Home / Parse progress / Workspace detail 必须通过 Vitest + jsdom DOM 锚点、generated-client request、privacy checks、Playwright desktop/mobile pixel parity 与 BDD `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.018`。
+  - Home / Parse / Workspace detail 的前后端单测完成由根 `make test` 统一承接；Playwright pixel parity 独立执行。JD import/parse 当前没有真实 E2E owner。
 
 ### 2.2 Out of Scope
 
@@ -118,11 +118,11 @@ Home 粘贴 JD
 
 | operationId | Fixture | Frontend consumer | Backend handler | Persistence | AI dependency | Scenario |
 |-------------|---------|-------------------|-----------------|-------------|---------------|----------|
-| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | Home recent ready cards；same-key initial underlying request count = 1 | `backend-targetjob` | `target_jobs` / `target_job_requirements` read | none in frontend | `E2E.P0.014` |
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home ready resume select；same-key initial underlying request count = 1 | `backend-resume` | `resumes` read | none | `E2E.P0.014` / `E2E.P0.015` |
-| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json`（paste success + current validation/failure variants） | Home submits `{ rawText, targetLanguage, resumeId }` | `backend-targetjob` | `target_jobs` create + saved `resume_id` + parse job；无并行 source-specific persistence | backend-only parse job | `E2E.P0.015` |
-| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse classification/scheduled polling + Workspace ready detail；each same-key tick count = 1 | `backend-targetjob` | `target_jobs.summary` / requirements read | backend-generated `target.import.parse` structured rounds | `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.018` |
-| `createPracticePlan` / `getPracticePlan` / `startPracticeSession` | `openapi/fixtures/PracticePlans/*`, `openapi/fixtures/PracticeSessions/*` | Workspace readonly detail Start action and Home recent quick start | `backend-practice` | `practice_plans` / `practice_sessions` create/read | none | `E2E.P0.016`, `E2E.P0.018` |
+| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | Home recent ready cards；same-key initial underlying request count = 1 | `backend-targetjob` | `target_jobs` / `target_job_requirements` read | none in frontend | `E2E.P0.098` 仅 Home progress refresh |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home ready resume select；same-key initial underlying request count = 1 | `backend-resume` | `resumes` read | none | 当前无真实 E2E owner；root `make test` |
+| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json`（paste success + current validation/failure variants） | Home submits `{ rawText, targetLanguage, resumeId }` | `backend-targetjob` | `target_jobs` create + saved `resume_id` + parse job；无并行 source-specific persistence | backend-only parse job | 当前无真实 E2E owner；root `make test` |
+| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse classification/scheduled polling + Workspace ready detail；each same-key tick count = 1 | `backend-targetjob` | `target_jobs.summary` / requirements read | backend-generated `target.import.parse` structured rounds | `E2E.P0.098` 仅 TargetJob progress/detail read；import/parse 无 owner |
+| `createPracticePlan` / `getPracticePlan` / `startPracticeSession` | `openapi/fixtures/PracticePlans/*`, `openapi/fixtures/PracticeSessions/*` | Workspace readonly detail Start action and Home recent quick start | `backend-practice` | `practice_plans` / `practice_sessions` create/read | none | 当前无真实 E2E owner；root `make test` |
 
 ## 7 验收标准
 
@@ -141,18 +141,18 @@ Home 粘贴 JD
 | C-11 | Workspace 回访统一详情 | `listTargetJobs` 返回已保存 ready 规划且有 `targetJobId/resumeId` | 用户从 Home 或 workspace 卡片打开 | 直达 `/workspace?targetJobId=...` 并渲染同一详情母版；无 Parse loading/animation；返回 `/workspace` 列表 | 001 / frontend-workspace-and-practice 001 |
 | C-12 | 规划详情报告入口 | ready TargetJob 有可信 `targetJobId` | 打开 Workspace 面试规划详情并点击标题行右上角“面试报告” | 精确进入 `/reports?targetJobId=<uuid>`；入口不在全局 TopBar；Parse 不渲染 ready detail/报告入口，Workspace detail 不渲染报告列表、不调用 `listTargetJobReports`、不保留 `section=reports` 兼容逻辑，Start 不受影响 | 001 |
 | C-13 | 规划详情轮次三态 | ready TargetJob 有合法 2~5 轮与 `practiceProgress` 完成前缀/current | 打开或刷新 `/workspace?targetJobId=...` | 每张 round assumption 卡显示且仅显示 done/current/pending 之一，对应“已进行 / 即将进行 / 未进行”及三种不同背景/边框；状态与列表 mini rail 一致，全完成与无效投影 fail closed | 001 |
-| C-14 | JD size boundary | RuntimeConfig/default 96KiB，用户粘贴 UTF-8 limit 或 limit+1 | 点击「立即面试」 | limit 发起 exact import；limit+1 inline validation 且零 import/pending vault；backend P0.010 同值 authoritative gate | 001 Phase 22 + P0.015 |
+| C-14 | JD size boundary | owner config 提供 UTF-8 JD byte limit | 点击「立即面试」 | 注入小型 boundary 验证 overflow inline validation 且零 import；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文本或配置 E2E | 001 Phase 22 |
 
 ## 8 关联计划
 
-- [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) — Home + Parse command progress + Workspace unified plan detail 当前 owner 计划，覆盖 paste-only UI/API contract、generated-client request、real-mode gate、resume selection、recent mocks、规划详情报告入口、ready replace/direct detail handoff 和 P0.014-P0.016/P0.018 BDD。
+- [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) — Home + Parse command progress + Workspace unified plan detail 当前 owner；JD import/parse 的 BDD 只保留 Given/When/Then，当前无真实 E2E owner。
+
 
 ## 9 关联文档
 
 - 上游 spec：[`product-scope`](../product-scope/spec.md)、[`engineering-roadmap`](../engineering-roadmap/spec.md)、[`frontend-shell`](../frontend-shell/spec.md)、[`frontend-workspace-and-practice`](../frontend-workspace-and-practice/spec.md)、[`openapi-v1-contract`](../openapi-v1-contract/spec.md)、[`mock-contract-suite`](../mock-contract-suite/spec.md)
 - UI 真理源：`ui-design/src/screen-home.jsx`、`ui-design/src/screens-p0-complete.jsx::ParseScreen`、`ui-design/src/primitives.jsx`、[`docs/ui-design/jd-resume-management.md`](../../ui-design/jd-resume-management.md)、[`docs/ui-design/ui-architecture.md`](../../ui-design/ui-architecture.md)、[`docs/ui-design/module-job-workspace.md`](../../ui-design/module-job-workspace.md)、[`docs/ui-design/module-map.md`](../../ui-design/module-map.md)
 - 当前正式前端入口：`frontend/src/app/screens/home/`、`frontend/src/app/screens/parse/`、`frontend/src/app/navigation/interviewContext.ts`、`frontend/src/api/generated/`
-- 场景：`test/scenarios/e2e/p0-014-home-default-render/`、`test/scenarios/e2e/p0-015-jd-import-and-parse/`、`test/scenarios/e2e/p0-016-parse-confirm-to-workspace/`
 - 变更记录：[history.md](./history.md)
 
 ## 10 修订记录

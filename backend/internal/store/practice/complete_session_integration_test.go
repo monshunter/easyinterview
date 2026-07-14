@@ -17,7 +17,7 @@ import (
 	domain "github.com/monshunter/easyinterview/backend/internal/practice"
 )
 
-func TestIntegrationE2EP0047RejectsZeroAnswerCompletion(t *testing.T) {
+func TestIntegrationRejectsZeroAnswerCompletion(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		t.Fatal("DATABASE_URL is required for the reportable-completion integration gate")
@@ -304,7 +304,7 @@ func integrationMessageID(sessionID string, suffix int) string {
 func installCompletionIntegrationGate(ctx context.Context, db *sql.DB, reportID string, lockKey int64) error {
 	dropCompletionIntegrationGate(db)
 	ddl := fmt.Sprintf(`
-create function test_e2ep0047_completion_gate() returns trigger language plpgsql as $$
+create function test_completion_gate() returns trigger language plpgsql as $$
 begin
   if new.id = '%s'::uuid then
     perform pg_advisory_xact_lock(%d);
@@ -312,9 +312,9 @@ begin
   return new;
 end
 $$;
-create trigger test_e2ep0047_completion_gate
+create trigger test_completion_gate
 before insert on feedback_reports
-for each row execute function test_e2ep0047_completion_gate()`, reportID, lockKey)
+for each row execute function test_completion_gate()`, reportID, lockKey)
 	_, err := db.ExecContext(ctx, ddl)
 	return err
 }
@@ -323,8 +323,8 @@ func dropCompletionIntegrationGate(db *sql.DB) {
 	if db == nil {
 		return
 	}
-	_, _ = db.ExecContext(context.Background(), `drop trigger if exists test_e2ep0047_completion_gate on feedback_reports`)
-	_, _ = db.ExecContext(context.Background(), `drop function if exists test_e2ep0047_completion_gate()`)
+	_, _ = db.ExecContext(context.Background(), `drop trigger if exists test_completion_gate on feedback_reports`)
+	_, _ = db.ExecContext(context.Background(), `drop function if exists test_completion_gate()`)
 }
 
 func waitForAdvisoryWaiter(ctx context.Context, db *sql.DB, lockKey int64) error {

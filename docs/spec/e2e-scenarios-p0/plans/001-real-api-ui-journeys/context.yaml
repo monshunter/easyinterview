@@ -1,0 +1,52 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: e2e-scenarios-p0
+  name: 001-real-api-ui-journeys
+  sequence: 1
+  baseBranch: main
+  branch: fix/runtime-size-limits-0714
+  specVersion:
+    from: 2.8
+    to: 2.13
+spec:
+  defaultTarget: scenario
+  discovery:
+    aliases:
+      - e2e-scenarios-p0
+      - e2e-scenarios-p0/001
+      - completion-report-real-e2e
+    keywords:
+      - completePracticeSession
+      - round progress reload
+      - E2E.P0.098
+      - E2E.P0.099
+      - E2E.P0.101
+      - real API and browser UI
+      - report generating UI
+      - Mailpit email code profile setup
+      - current-run evidence
+  targets:
+    scenario:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../backend-review/plans/001-report-generation-baseline/bdd-plan.md
+        - ../../../frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-plan.md
+        - ../../../backend-auth/plans/001-email-code-session-bootstrap/bdd-plan.md
+        - ../../../frontend-shell/plans/001-app-shell-auth-settings/bdd-plan.md
+      discovery:
+        packages:
+          - test/scenarios/e2e/p0-098-practice-completion-progress-refresh
+          - test/scenarios/e2e/p0-099-report-generating-live-ui
+          - test/scenarios/e2e/p0-101-auth-email-code-profile-setup
+        apiNames:
+          - completePracticeSession
+          - getFeedbackReport
+          - startAuthEmailChallenge
+          - verifyAuthEmailChallenge
+          - completeMyProfile
+          - logout

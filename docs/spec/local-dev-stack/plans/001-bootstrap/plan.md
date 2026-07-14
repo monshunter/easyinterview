@@ -17,14 +17,14 @@
 
 [engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A2 保留为当前 active Foundation spec；后续 workstream 依赖本地数据库 / 缓存 / 对象存储以及统一项目启动入口。本 plan 通过 §4 的 4 个 phase 验收 spec §6 C-1..C-9，关闭 roadmap rebaseline 中保留的 A2 executable gate 承诺。
 
-每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来就能用 `docker compose` 直连最小外部依赖；Phase 2 起来就能用 `make` 管理生命周期；Phase 3 起来就能机器消费 `make dev-doctor` JSON；Phase 4 收口 optional 应用 `/metrics`、依赖容器日志与文档。本 plan 不引入 BDD 资产；当前 `test/scenarios/` 场景覆盖由具体 feature plan 通过 repo-tracked 本地 runner 维护，AC 验证完全由 `make dev-*` 命令驱动。
+每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来就能用 `docker compose` 直连最小外部依赖；Phase 2 起来就能用 `make` 管理生命周期；Phase 3 起来就能机器消费 `make dev-doctor` JSON；Phase 4 收口 optional 应用 `/metrics`、依赖容器日志与文档。本 plan 不引入 BDD 资产；真实 E2E 由具体 feature plan 通过真实 HTTP API 或连接真实 backend 的浏览器 UI 维护，A2 的 AC 验证完全由 `make dev-*` 环境命令驱动。
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: `tooling + dev-infra + code-internal`。本 plan 修改本地 docker-compose dev stack、Make targets、doctor 脚本、README 与健康检查约定；不产生用户可见 UI、HTTP API 行为或业务 workflow。
-- **TDD 策略**: 本 plan 既有实现以 checklist 中每个 phase 的 `自检` 命令作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，优先以 `make dev-*`、`dev-doctor` JSON schema/probe、端口冲突复现、volume idempotency 和 README smoke 作为 focused assertions。
+- **TDD 策略**: 本 plan 既有实现以 checklist 中每个 phase 的 `自检` 命令作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，优先以 `make dev-*`、`dev-doctor` JSON schema/probe、端口冲突复现、volume idempotency 和 README smoke 作为 focused assertions。Focused test 只作开发反馈，代码阶段收口统一执行根 `make test`，且不得嵌入 E2E 场景。
 - **BDD 策略**: BDD 不适用。本 plan 只交付开发环境基础设施；后续 P0 用户行为场景由 `e2e-scenarios-p0` 或具体 feature plan 维护 BDD。
-- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、`make scenario-env-setup` / `status` / `verify` / `cleanup` / `redeploy` dry-run 与 focused live gate、`make scenario-env-reset-redeploy ARGS=--dry-run` 组合顺序 gate、host-run backend loopback bind contract、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、local raw debug config tests、P0.100 preflight contract、`sync-doc-index --check`、Markdown link check、`git diff --check`。
+- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、`make scenario-env-setup` / `status` / `verify` / `cleanup` / `redeploy` dry-run 与 focused live gate、`make scenario-env-reset-redeploy ARGS=--dry-run` 组合顺序 gate、host-run backend loopback bind contract、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、local raw debug config tests、`sync-doc-index --check`、Markdown link check、`git diff --check`。代码测试阶段收口统一执行根 `make test`；这些环境生命周期 gate 不称为 E2E。
 
 ## 4 实施步骤
 
@@ -105,15 +105,15 @@
 
 退出码：`summary.down == 0 && summary.degraded == 0` 时 exit 0；否则 exit 1。`make dev-doctor` 把脚本输出原样打到 stdout，stderr 留给执行过程日志。脚本可以固定 3 个默认依赖名，但项目组件列表必须来自 compose service labels 或统一配置，不能硬编码固定 7-service 口径。
 
-#### 3.2 端到端 probe 实现（spec §4.2）
+#### 3.2 依赖连通性 probe 实现（spec §4.2）
 
-容器健康基础上对 PG / Redis / MinIO 必须执行 e2e probe：
+容器健康基础上对 PG / Redis / MinIO 必须执行 dependency connectivity probe：
 
 - Postgres：`pg_isready` + 一次 `select 1`。
 - Redis：`redis-cli set __doctor__ ok EX 5` + `get` + `del`。
 - MinIO：`mc ls` 默认 bucket（不存在则报 DEGRADED + reason）。
 
-Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/metrics`，`GET /metrics` 必须返回非空文本。宿主机运行的 backend / frontend 由对应 owner 的 dev command、unit/integration test 或 scenario runner 验证；backend internal runner 通过 backend 组件状态、最近日志与 `/metrics` 出口观测，不单独注册本地进程 probe。对启用 AIClient 的组件，doctor 只校验 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 是否注入并报告缺失；不得在 doctor 中调用真实 LLM。
+Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/metrics`，`GET /metrics` 必须返回非空文本。宿主机运行的 backend / frontend 由对应 owner 的 dev command、unit/integration test 或 runtime health 验证；backend internal runner 通过 backend 组件状态、最近日志与 `/metrics` 出口观测，不单独注册本地进程 probe。对启用 AIClient 的组件，doctor 只校验 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 是否注入并报告缺失；不得在 doctor 中调用真实 LLM。
 
 #### 3.3 dev-up gate 接入（C-1）
 
@@ -143,7 +143,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - `curl http://localhost:${PORT}/metrics` 返回非空文本指标（仅对已声明 `/metrics` 的组件强制）。
 - `make dev-logs SERVICE=<name>` 能输出对应容器最近日志。
 - `make dev-doctor` 对该组件维持 OK。
-- 宿主机运行 backend / frontend 的验证不由 A2 伪造，归对应 feature / runtime owner 的本地 dev command、单测或 scenario runner。
+- 宿主机运行 backend / frontend 的验证不由 A2 伪造，归对应 feature / runtime owner 的本地 dev command、单测或 runtime health。
 
 本 plan 不创建 OTLP smoke，不安装 OTel Collector / Grafana / Loki / Prometheus。F1 后续可基于 `/metrics` 与 stdout/stderr 日志接入生产或可选观测链路。
 
@@ -156,7 +156,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - `make dev-*` 命令清单与典型用例。
 - 常见故障排查（端口占用 / 卷不可写 / 镜像拉取失败 / Postgres 连接失败）。
 - AI provider 配置说明：非测试本地 app run 使用真实 provider / OpenAI-compatible endpoint；`.env.example` 只提供 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 空值示例，真实 key 写入被 `.gitignore` 忽略的 `.env`；单元测试 stub 不适用于本地部署。
-- 与 `test/scenarios/` 的边界说明：本地 docker-compose 走外部依赖，场景验证走 repo-tracked Go / Vitest / Playwright / browser runner，默认不需要 Kind / K8s / Helm。
+- 与 `test/scenarios/` 的边界说明：本地 docker-compose 只管理共享依赖；E2E 只通过真实 HTTP API，或浏览器访问真实 frontend 且业务请求落到真实 backend。`go test`、Vitest、pytest、lint、build 与 package smoke 属于代码层 gate，由根 `make test` 等入口承接，不嵌入场景脚本；默认不需要 Kind / K8s / Helm。
 - 资源占用提示（≥ 8GB RAM 推荐）+ 默认依赖镜像总下载体积估算（< 1.5GB，对 spec §4.3 兑现）。
 - 明确默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider。
 
@@ -200,9 +200,9 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 后端 `cmd/api` 在 `EMAIL_PROVIDER=mailpit` 时必须注册 SMTP `DeliveryWriter`，通过 `auth_challenges` 查询收件邮箱、从 C1 transient delivery secret store 取 6 位 code，并将 code-only 邮件投递到 Mailpit SMTP。`email_dispatch` payload 仍不得包含 raw email、raw code、完整 URL、邮件正文或标题；默认 `DevMailSink` 保留给单元测试和非 Mailpit 配置。A4 env/config 字典保留 `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL`，其中 `EMAIL_VERIFY_BASE_URL` 仅作为本地 frontend origin / CORS 推导来源。
 
-#### 5.4 hybrid UAT 账号入口回收
+#### 5.4 真实联调账号入口回收
 
-`E2E.P0.100` 不再通过直接 DB session bootstrap 取得账号；runbook 改为 synthetic `.example.test` 邮箱 + Mailpit 6 位 code。场景工具仍只允许 shell / Python，且不得新增 `backend/cmd` / Go helper 作为验收依赖。
+真实联调不得通过直接 DB session bootstrap 取得账号；runbook 改为 synthetic `.example.test` 邮箱 + Mailpit 6 位 code。环境工具仍只允许 shell / Python，且不得新增 `backend/cmd` / Go helper 作为验收依赖。
 
 #### 5.5 Phase 5 自检
 
@@ -219,7 +219,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 在 `test/scenarios/` 新增顶层环境入口，作为 `scenario-env` / `scenario-redeploy` skill 的唯一 repo-tracked 执行层：
 
-- `env-setup.sh`：默认执行 `make dev-up` + `make dev-doctor`；`--with-migrations` 时在默认 `DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable` 下执行 `make migrate-up`。该脚本只能准备共享本地环境，不得引用具体 `test/scenarios/e2e/p0-*` 场景目录。
+- `env-setup.sh`：默认执行 `make dev-up` + `make dev-doctor`；`--with-migrations` 时在默认 `DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable` 下执行 `make migrate-up`。该脚本只能准备共享本地环境，不得引用具体业务场景目录。
 - `env-status.sh`：只读执行 `make dev-doctor`，用于 skill status 与人工巡检。
 - `env-verify.sh`：执行 `make dev-doctor` 并检查 JSON summary 全 OK；可作为 `/scenario-run` 前置环境 gate。
 - `env-cleanup.sh`：默认执行 `make dev-down` 并保留命名卷；只有显式 `--with-volumes` / `--reset` 时才执行 `DEV_RESET_FORCE=1 make dev-reset`。
@@ -237,7 +237,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - `scenario-env-cleanup`
 - `scenario-env-redeploy`
 
-这些 target 只委派 `test/scenarios/env-*.sh`，并透传 `ARGS` / `TARGET` 等显式参数；不得把业务场景 ID 或 `e2e/p0-100-real-provider-full-funnel-hybrid` 路径写死进 Makefile。
+这些 target 只委派 `test/scenarios/env-*.sh`，并透传 `ARGS` / `TARGET` 等显式参数；不得把业务场景 ID 或具体 E2E 路径写死进 Makefile。
 
 #### 6.3 skill 集成
 
@@ -245,13 +245,13 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 - description 与 Usage 覆盖 setup / verify / cleanup / status / redeploy / rebuild。
 - setup / verify / cleanup / status 优先调用 `test/scenarios/env-*.sh`，再退到 README 手动引导；不得从具体场景脚本提取环境 bootstrap。
-- local integration 解释必须区分 Docker Compose 外部依赖、host-run backend/frontend command、repo-tracked scenario runner；redeploy backend/frontend/all 必须重启对应 host-run 进程，并在缺真实 secret 时报告具体 blocker。
+- local integration 解释必须区分 Docker Compose 外部依赖、host-run backend/frontend command 与真实 API/UI 验收；redeploy backend/frontend/all 必须重启对应 host-run 进程，并在缺真实 secret 时报告具体 blocker。
 
 更新 `.agent-skills/scenario-redeploy/SKILL.md`：把 `test/scenarios/env-redeploy.sh [component]` 作为当前 repo 首选入口，并声明当前 host-run redeploy 是 build + 重启 host-run 进程，不是 Kind / Helm / cluster rollout。
 
 #### 6.4 场景 README 与 dev-stack README 对齐
 
-更新 `test/scenarios/README.md`、`test/scenarios/e2e/README.md`、`deploy/dev-stack/README.md`：
+更新 `test/scenarios/README.md`、`deploy/dev-stack/README.md`：
 
 - 明确 `env-*.sh` 是共享环境入口，独立于具体场景用例。
 - 明确具体场景 `setup.sh` 只准备场景数据/输出目录，不能私有化共享环境 bootstrap。
@@ -270,15 +270,15 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 `config/dev.yaml` 与 `config/test.yaml` 必须默认 `ai.debugPrintRawOutput=true`；`config/config.yaml` 与 staging/prod overrides 不得把该默认扩大到非本地环境。根 `.env.example` 与 `deploy/dev-stack/.env.example` 必须将 `AI_DEBUG_PRINT_RAW_OUTPUT=true` 作为 local test/integration 默认值。
 
-#### 7.2 P0.100 hybrid preflight
+#### 7.2 真实 provider preflight
 
-`E2E.P0.100` 的 `scripts/trigger.sh` 必须从 `deploy/dev-stack/.env` 校验 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；缺失或非 true 时输出 `MANUAL_REQUIRED`，防止真实 provider hybrid 场景在无法调试 raw output 的状态下给出 false-green。
+真实 provider 手工/评估 preflight 必须从 `deploy/dev-stack/.env` 校验 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；缺失或非 true 时输出 `MANUAL_REQUIRED`，防止无法调试 raw output 时给出 false-green。该 preflight 不映射为 E2E 场景。
 
 #### 7.3 Phase 7 自检
 
 - Red/green config test：`go test ./backend/internal/platform/config -run TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments -count=1`。
-- Red/green scenario contract：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k real_provider_hybrid_uat_uses_dev_stack_env_as_single_source`。
-- Live hybrid gate：`scenario-run -i E2E.P0.100` 在当前本地 `.env` 下产出 PASS，并在 redacted evidence 中保留 provider/profile/model/task-run 摘要，不复制 raw response。
+- Red/green environment contract：验证真实 provider preflight 只读取 `deploy/dev-stack/.env`。
+- 真实 provider 调试不属于 local-dev-stack 完成 gate；环境只保证 secret/config 可被宿主机进程读取且缺失时 fail fast。
 
 ### Phase 8: developer debug handoff revision
 
@@ -359,11 +359,11 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 - 复用既有 `SCENARIO_ENV_CLEANUP` / `SCENARIO_ENV_SETUP` / `SCENARIO_ENV_REDEPLOY` / `SCENARIO_ENV_VERIFY` 变量，不复制脚本内部逻辑。
 - 默认实际执行会删除 named volumes、重跑 migrations、重编译并重启 host-run backend/frontend，再验证 readiness。
 - 支持 `ARGS=--dry-run`，四段命令都只输出 dry-run，不清理数据、不重启进程。
-- 不接收具体场景 ID，不引用任何 `test/scenarios/e2e/p0-*` 目录，不新增 backend/cmd helper。
+- 不接收具体场景 ID，不引用任何具体业务场景目录，不新增 backend/cmd helper。
 
 #### 10.3 Docs and runbook
 
-`deploy/dev-stack/README.md`、`test/scenarios/README.md` 与 `test/scenarios/e2e/README.md` 必须说明：`make scenario-env-reset-redeploy` 是“清理数据 + 迁移 + 重新编译 + 重新部署 + verify”的组合入口；普通重启仍使用 `make scenario-env-redeploy TARGET=all`，不要把“重启”误解成清数据。
+`deploy/dev-stack/README.md` 与 `test/scenarios/README.md` 必须说明：`make scenario-env-reset-redeploy` 是“清理数据 + 迁移 + 重新编译 + 重新部署 + verify”的组合入口；普通重启仍使用 `make scenario-env-redeploy TARGET=all`，不要把“重启”误解成清数据。
 
 #### 10.4 Phase 10 self-check
 
@@ -411,7 +411,7 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 | 2026-07-07 | 1.15 | Wording cleanup：收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。 | product-scope/001 Phase 6.58 |
 | 2026-06-15 | 1.14 | Host-run backend loopback bind revision：`env-redeploy.sh backend|all` 启动 backend 时将通配 `APP_LISTEN_ADDR` 收敛到 `127.0.0.1:${API_HOST_PORT:-8080}`，避免无关 bridge listener 阻断本地重启并导致简历页 500。 | BUG investigation |
 | 2026-05-27 | 1.13 | Developer debug handoff revision：`env-redeploy.sh backend|frontend|all` 从 build-only 修订为 build + 重启 host-run 进程，并输出 endpoint/log/PID/container log 调试入口。 | user feedback |
-| 2026-05-27 | 1.12 | Raw debug local default revision：local dev/test 与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，P0.100 preflight 校验该开关，staging/prod 默认关闭。 | user feedback |
+| 2026-05-27 | 1.12 | Raw debug local default revision：local dev/test 与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，真实 provider preflight 校验该开关，staging/prod 默认关闭。 | user feedback |
 | 2026-05-27 | 1.11 | Single env source revision：`deploy/dev-stack/.env` 成为本地真实前后端联调唯一 env 来源，`.env.example` 补齐 auth secrets、frontend real mode、AI provider 与共享依赖 keys，禁止场景复制独立 `.env`。 | user feedback / BUG-0110 follow-up |
 | 2026-05-27 | 1.10 | Environment lifecycle revision：把共享测试环境与本地前后端联调环境 lifecycle 抽到 `test/scenarios/env-*.sh`、根 `scenario-env-*` Make target 与 scenario skill 入口，支持独立 setup/status/verify/cleanup/redeploy。 | user objective / scenario-env independent lifecycle |
 | 2026-05-26 | 1.9 | Mailpit revision：默认 dev-stack 新增 Mailpit，backend `EMAIL_PROVIDER=mailpit` 走 SMTP writer，manual UAT 账号入口回到真实 email-code flow；`test/scenarios` 继续禁止新增 Go / `backend/cmd` 场景 helper。 | user feedback / manual UAT boundary fix |

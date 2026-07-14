@@ -63,7 +63,7 @@ func (s *conversationHandlerService) CompletePracticeSession(_ context.Context, 
 	return domain.CompleteSessionResult{ReportID: "report-1"}, nil
 }
 
-func TestE2EP0047RejectsZeroAnswerCompletion(t *testing.T) {
+func TestCompletePracticeSessionRejectsZeroAnswer(t *testing.T) {
 	service := &conversationHandlerService{completeErr: &domain.ServiceError{
 		Code: "VALIDATION_FAILED", Message: "practice session requires an answered candidate message",
 	}}
@@ -76,7 +76,7 @@ func TestE2EP0047RejectsZeroAnswerCompletion(t *testing.T) {
 	}
 }
 
-func TestE2EP0047FreezesReportContext(t *testing.T) {
+func TestCompletePracticeSessionFreezesReportContext(t *testing.T) {
 	service := &conversationHandlerService{completeResult: completionHandlerResult(false)}
 	raw, _ := json.Marshal(api.CompletePracticeSessionRequest{ClientCompletedAt: time.Unix(10, 0).UTC().Format(time.RFC3339)})
 	req := httptest.NewRequest(http.MethodPost, "/practice/sessions/session-1/complete", bytes.NewReader(raw))
@@ -97,7 +97,7 @@ func TestE2EP0047FreezesReportContext(t *testing.T) {
 	t.Log("REPORT_CONTEXT_SNAPSHOT_PASS")
 }
 
-func TestE2EP0047CompletionReplayPreservesReportContext(t *testing.T) {
+func TestCompletePracticeSessionReplayPreservesReportContext(t *testing.T) {
 	service := &conversationHandlerService{completeResult: completionHandlerResult(true)}
 	raw, _ := json.Marshal(api.CompletePracticeSessionRequest{ClientCompletedAt: time.Unix(10, 0).UTC().Format(time.RFC3339)})
 	req := httptest.NewRequest(http.MethodPost, "/practice/sessions/session-1/complete", bytes.NewReader(raw))

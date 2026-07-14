@@ -14,7 +14,7 @@ Install Python gate dependencies once in an isolated environment with `python3 -
 | Command | Purpose | Owner |
 |---------|---------|-------|
 | `make lint` | B1 conventions + A4 config + A3/F3/E1/runtime-topology local gates + Go lint + frontend typecheck-backed lint | A5 aggregator → B1 / A4 / A3 / F3 / E1 / backend / frontend |
-| `make test` | UI prototype Node contract + Python tooling/skill contracts + backend Go unit tests + frontend TypeScript unit tests; AI tests via stub/fixture only | A5 aggregator → product/UI / scripts / skills / backend / frontend owners |
+| `make test` | Canonical full regression: UI prototype Node contract + Python tooling/skill contracts + all backend Go unit tests + all frontend TypeScript unit tests; AI tests via stub/fixture only | A5 aggregator → product/UI / scripts / skills / backend / frontend owners |
 | `make build` | Backend `go build ./cmd/...` + frontend bundle | A5 aggregator → backend / frontend owners |
 | `make docs-check` | `sync-doc-index --check` (Header / INDEX drift) + relative-link sanity for `docs/` | A5 aggregator → `/sync-doc-index` skill + A5 `scripts/lint/check_md_links.py` |
 | `make codegen-check` | B1 conventions generator + B2 OpenAPI generator + `git diff --exit-code` on generated outputs | A5 aggregator → B1 + B2 |
@@ -34,7 +34,7 @@ Frontend and backend workstreams are split by contract, not by informal agreemen
 | 5. Frontend implementation | `frontend/src/api/generated/client.ts` + `frontend/src/api/mockTransport.ts`; frontend may complete user-visible UI against fixtures before backend handler completion | Frontend owner |
 | 6. Backend implementation | Real handler/store/migration/job code implements the same `operationId` and response envelope; tests prove SQL, auth, privacy, idempotency, and error paths | Backend owner |
 | 7. Local integration | `make dev-up` provides Docker Compose external dependencies; backend/frontend default to host-managed dev processes unless a component owner explicitly adds an optional compose app service | Backend + frontend owner |
-| 8. Scenario verification | `test/scenarios/` scripts provide BDD/E2E gates through shell/Python orchestration around repo-tracked local runners such as existing package tests, Vitest, Playwright, and browser smoke; scenario-owned dependencies must not be implemented as new `backend/cmd` / Go helper processes. Kind / K8s / Helm are not the default P0 scenario target | Scenario owner + feature owner |
+| 8. Scenario verification | `test/scenarios/e2e/` drives an already running environment only through real HTTP APIs or browser UI whose business requests reach the real backend. Playwright is valid here only on that real frontend/backend path. `go test`, Vitest, pytest, lint, build, source contracts, fixture parity, and package smoke remain code-level gates and must not be orchestrated inside scenario scripts or reported as E2E evidence. Kind / K8s / Helm are not the default P0 scenario target | Scenario owner + feature owner |
 
 ### 2.1 Operation Matrix Requirement
 
@@ -60,7 +60,7 @@ Use this path when the UI and interaction shape can be developed before real bac
 2. Update OpenAPI/fixtures if the UI consumes new or changed data.
 3. Run `make codegen && make codegen-check` after contract changes.
 4. Implement frontend against generated client + fixture-backed fetch.
-5. Run focused frontend tests, visual parity gates when UI changes, then `make test` / `make build` as appropriate.
+5. Use focused frontend tests only for development feedback; when the phase closes, run root `make test` for the full frontend/backend unit regression, plus visual parity gates and `make build` as appropriate.
 6. Keep the operation matrix marking backend status as `mock-only` or `not-yet-implemented` until a backend owner lands the real handler.
 
 ### 2.3 Backend-First Path
@@ -70,7 +70,7 @@ Use this path when correctness depends on auth, persistence, jobs, privacy, or A
 1. Update OpenAPI/fixtures and migrations before handler code.
 2. Implement handler/store/job code against generated DTO and shared conventions.
 3. Add unit/contract tests for success, failure, auth, idempotency, and privacy red lines.
-4. Run focused Go tests, migration gates when needed, then `make test` / `make build`.
+4. Use focused Go tests only for development feedback; when the phase closes, run migration gates when needed, then root `make test` for the full frontend/backend unit regression and `make build`.
 5. Wire frontend to the real generated client method only after the operation matrix shows the backend handler and persistence path.
 
 ### 2.4 AI Provider Boundary
@@ -132,8 +132,8 @@ When remote CI eventually lands, any new workflow that needs a runner secret **m
 | Before pushing a docs-only change | `make docs-check` |
 | After editing `shared/conventions.yaml` or `openapi/openapi.yaml` | `make codegen && make codegen-check` |
 | After editing `migrations/` | `make migrate-check` |
-| Frontend feature with mock data | `make codegen && pnpm --filter @easyinterview/frontend test && pnpm --filter @easyinterview/frontend build` |
-| Backend API implementation | `cd backend && go test ./...` then `make test && make build` |
+| Frontend feature with mock data | `make codegen`; optional focused Vitest for development feedback; then root `make test` and `pnpm --filter @easyinterview/frontend build` |
+| Backend API implementation | Optional focused `go test` for development feedback; then root `make test && make build` |
 | Full pre-push gate | `make lint && make test && make build && make docs-check && make codegen-check` |
 
 ## 7 Related Documents

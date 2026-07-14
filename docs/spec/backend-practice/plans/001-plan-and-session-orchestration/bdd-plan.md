@@ -1,24 +1,15 @@
-# 001 Plan and Session Orchestration BDD Plan
+# Practice Plan and Session Orchestration BDD Plan
 
-> **版本**: 2.3
+> **版本**: 2.5
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
-## 1 Scenario Matrix
+**关联 Plan**: [plan](./plan.md)
 
-| 场景 ID | 类型 | Phase | Given | When | Then |
-|---------|------|-------|-------|------|------|
-| E2E.P0.022 | primary | 2 | valid target/resume | create/read plan | plan has context fields and no question/mode/hint fields |
-| E2E.P0.023 | primary | 3/4 | ready plan | start/read session | exactly one opening assistant message and ordered messages |
-| E2E.P0.024 | failure/recovery | 3 | opening AI fails | retry same IK | no duplicate session/message/outbox; eventual success |
-| E2E.P0.025 | boundary/security | 3/4 | replay/mismatch/cross-user inputs | call start/read | deterministic replay/conflict/404 isolation |
-| E2E.P0.026 | privacy/regression | 5 | conversation start completes | inspect evidence | no raw message leakage or stale question contract |
-| E2E.P0.023 | grounding primary | 6 | parse failed/empty structured profile but complete source snapshot exists | start session | opening AI payload contains the complete tail marker and uses only resume-backed facts |
-| E2E.P0.024 | grounding failure | 6 | all resume content fields are empty | start session | typed validation, zero AI call, and no opening assistant message |
-| E2E.P0.022 | round identity primary | 7 | Real PostgreSQL TargetJob has a bound resume and canonical structured rounds with complete provenance, including equal durations and `1,2,4` sequences | create/read baseline plan | response and DB persist the first incomplete exact `roundId/roundSequence`; no duration-only reuse and successor follows the next existing canonical row |
-| E2E.P0.070 | derived plan primary/replay | 7 | same-bound-resume report source round is complete and has an immediate existing successor | create retry/next and replay IK | retry preserves source pair; next chooses current canonical successor; replay returns the same pair |
-| E2E.P0.072 | round identity failure/isolation | 7 | request/source/completion resume mismatch, missing provenance, overflow/case-drift round, mismatched budget, all complete, legacy null source or cross-user report | create plan | typed failure, no plan insert, no cross-user or wrong-resume disclosure |
+## 行为合同
 
-## 2 Scenario Assets
+| Behavior ID | Given | When | Then | 验证入口 |
+|-------------|-------|------|------|----------|
+| `BDD.PRACTICE.PLAN.001` | 用户具有 TargetJob 与 resume 上下文；创建或启动也可能遇到 provider / persistence 失败 | 创建、复用或重试 practice plan / session | 只复用身份完全匹配的资源；成功保持幂等与隔离，失败不产生重复事实或泄露原始材料 | `backend/internal/practice/conversation_service_test.go` + `backend/internal/store/practice/create_plan_integration_test.go`，由根 `make test` 承接 |
 
-Existing scenario IDs/directories are revised in place to the conversation contract. Trigger logs must contain actual Go/contract runner evidence; verify scripts must assert pass markers and stale-question negative checks.
+当前没有覆盖 plan 创建、session start 或 opening message 的真实 API/UI E2E owner。数据库 integration 与单元测试属于代码层 gate，阶段回归统一由根 `make test` 承接。

@@ -1,6 +1,6 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.18
+> **版本**: 1.19
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -21,6 +21,8 @@
 
 本次 v1.18 按用户确认的方案 A 统一运行时内容大小配置：以真实失败样本、当前 1,000,000-token report profile 与各业务输入形态重新校准默认值；所有可配置 size 参数必须同时拥有 typed code default，缺 key 使用缺省值，显式非法值启动失败；公共 `runtime-config` 仅投影前端提交前需要的五项限制。
 
+本次 v1.19 按奥卡姆剃刀收敛配置测试：默认值、override 与非法组合由 platform config 的单一 typed contract suite 持有；消费者仅保留无法由类型/构造保证的业务分支，使用小型注入值或 metadata。配置数值传播不再扩展或重复运行 domain BDD / scenario，也不构造默认大小文件或字符串。
+
 本次 v1.10 技术债清理同步当前实现事实：`runtime_config_handler.go` 支持由 C1 backend-auth 注入 session-aware resolver；resolver 缺省时才使用 anonymous opt-out 默认，不再将 handler 描述为 stub。
 
 本次 v1.11 技术债清理将 `config/config.yaml` 与 `.env.example` 的 secret 默认值描述收敛为空字符串 / 说明注释，不改变配置文件合同或 lint 行为。
@@ -29,7 +31,7 @@
 
 本次 v1.13 技术债清理删除仅供单测清理 module cache 的 `_resetRuntimeConfigCache` export。各用例改用生产 `forceRefresh` 选项建立独立缓存边界，缓存、失败恢复和刷新行为不变。
 
-Phase 1-12 及其已完成条目只保留为历史交付证据；Phase 13 是当前内容大小配置与代码缺省合同。旧 Phase 中的附件配置与散落硬编码口径不得作为当前实现、验收或兼容要求，统一由 Phase 13 覆盖。
+Phase 1-12 及其已完成条目只保留为历史交付证据；Phase 13 是当前内容大小配置、代码缺省与最小验证合同。旧 Phase 中的附件配置、散落硬编码和配置专用场景口径不得作为当前实现、验收或兼容要求，统一由 Phase 13 覆盖。
 
 ## 2 背景
 
@@ -47,10 +49,10 @@ Phase 1-12 及其已完成条目只保留为历史交付证据；Phase 13 是当
 
 ## 3 质量门禁分类
 
-- **Plan 类型**: `platform-config + code-internal + contract + feature-behavior + tooling`。Phase 13 同时修改 backend typed config、domain composition、AI profile/provider、OpenAPI/runtime-config 与前端提交前校验，属于跨层用户可感知行为修订。
-- **TDD 策略**: 必须通过 `/implement secrets-and-config/001-bootstrap platform-config` → `/tdd`。RED 覆盖缺 key/合法 override/显式非法值、limit/limit+1、runtime-config schema、provider response body、profile fallback 与前端 UTF-8 byte 校验；GREEN 后再运行各 owner focused/full regression。
-- **BDD 策略**: 适用。由本目录 [`bdd-plan.md`](./bdd-plan.md) / [`bdd-checklist.md`](./bdd-checklist.md) 统筹，并复用现有 `E2E.P0.010`（JD）、`E2E.P0.046`（Practice）、`E2E.P0.081`（Resume）、`E2E.P0.056`（Report）验证用户边界与失败恢复，不创建同语义 sibling 场景。
-- **补充验证 gate**: config/profile/provider/domain/OpenAPI/codegen/frontend focused tests，`make lint-config`、`make codegen-check`、full backend/frontend gates、场景四用例、旧硬编码 negative search、`sync-doc-index --check`、`make docs-check`、`git diff --check`。
+- **Plan 类型**: `platform-config + code-internal + contract + tooling`。Phase 13 的 public projection 与既有 domain consumer 不新增独立用户流程；用户行为继续由各 domain owner 持有，A4 只持有配置与投影合同。
+- **TDD 策略**: 必须通过 `/implement secrets-and-config/001-bootstrap platform-config` → `/tdd`。platform config 保留一组表驱动契约测试覆盖缺 key、合法 override、显式非法值与跨字段约束；消费者只为错误映射、持久化原子性、provider call/no-call、协议读取上限等非平凡分支保留 focused test，并注入小型边界值或 metadata。
+- **BDD 策略**: 不适用。默认数值、配置注入和 public projection 不是独立用户流程；不得为其新增、扩展或重复运行任何 E2E。真实用户流程由 domain owner 独立验证，但不充当 A4 配置 gate。
+- **替代验证 gate**: platform config typed contract、OpenAPI schema/codegen drift、AI profile catalog lint、必要的 provider/domain/frontend focused tests、旧硬编码 negative search、`sync-doc-index --check`、`make docs-check`、`git diff --check`。
 
 ## 4 实施步骤
 
@@ -317,24 +319,24 @@ BDD 不适用：本 phase 删除内部 config/validator orphan，不新增 UI、
 
 #### 13.3 对齐 AI profile、provider response 与容量 gate
 
-canonical AI profile 的 `max_tokens` / `context_window_tokens` 继续由 A3 catalog 持有，但缺失字段必须有与当前 catalog 一致的代码缺省；四个 provider adapter 统一使用注入的 `ai.maxResponseBodyBytes=4194304`。Report 默认容量 gate 固定为 `917504 + 2048 framing reserve + 6144 output = 925696 < 1000000`，不得再把 provider TPM 提示当作单次请求 context 上限。
+canonical AI profile 的 `max_tokens` / `context_window_tokens` 继续由 A3 catalog 持有；六个 active profile 的 `max_tokens` 不低于 16384，缺失字段使用 typed code defaults。四个 provider adapter 统一使用注入的 `ai.maxResponseBodyBytes`。配置层不把 bytes 与 tokens 直接相加，不维护 report budget test、exact-profile lint 或真实 provider smoke；profile 合法性由 A3 loader owner 契约与 active-budget floor lint 承接。
 
 #### 13.4 投影 public runtime-config 并接入前端
 
 `RuntimeConfig.contentLimits` 精确投影 `resumeUploadBytes`、`resumePasteTextBytes`、`targetJobRawTextBytes`、`practiceMessageBytes`、`practiceSessionTextBytes`。正式前端通过 generated client + `AppRuntimeProvider` 消费，不保留 2MiB 或 rune-count 本地真理源；report/HTTP/provider/profile 限制不得公开。
 
-#### 13.5 跨 owner coverage matrix
+#### 13.5 跨 owner 最小验证矩阵
 
-| 路径 | Config owner | Backend consumer | Frontend consumer | Contract / persistence | BDD |
-|------|--------------|------------------|-------------------|------------------------|-----|
-| Resume upload/paste | A4 + backend-upload/resume | upload handler + resume parse | frontend-resume-workshop | RuntimeConfig + existing resume persistence | `E2E.P0.081` |
-| TargetJob raw JD | A4 + backend-targetjob | target-job import | frontend-home | RuntimeConfig + existing target-job persistence | `E2E.P0.010` |
-| Practice message/session | A4 + backend-practice | chat handler + message store aggregate | frontend-practice | RuntimeConfig + `practice_messages` | `E2E.P0.046` |
-| Report framed input | A4 + A3 + backend-review | report context builder + provider adapter | internal-only error receipt | existing report job/result persistence | `E2E.P0.056` |
+| 路径 | Config owner | Backend consumer | Frontend consumer | 最小验证 owner |
+|------|--------------|------------------|-------------------|------------------|
+| Resume upload/paste | A4 + backend-upload/resume | upload handler + resume parse | frontend-resume-workshop | A4 typed contract + 一个小型 consumer boundary test；不构造 10MiB/384KiB 材料 |
+| TargetJob raw JD | A4 + backend-targetjob | target-job import | frontend-home | A4 typed contract + 既有 domain UTF-8 boundary test；不扩展场景 |
+| Practice message/session | A4 + backend-practice | chat handler + message store aggregate | frontend-practice | A4 typed contract + 既有持久化/错误语义 focused test；不扩展场景 |
+| Report framed input | A4 + A3 + backend-review | report context builder + provider adapter | internal-only error receipt | 小型 framed-input business test + provider call/no-call；不以真实大文件证明配置 |
 
-#### 13.6 BDD、回归与 post-pass
+#### 13.6 最小回归与 post-pass
 
-先运行本目录 BDD 四场景，再运行各 owner focused/full gates。负向搜索必须证明旧 48,000、2MiB、8,000-rune、8MiB 与 adapter-local 4MiB 不再是生产真理源；合法历史与显式 boundary fixtures 可保留。成功后执行 doc reconcile、Bug 记录评估与 retrospective。
+只运行 13.5 中的 owner contract 与必要 focused gates，不为配置注入启动场景环境，也不在多个 consumer 重复默认值或 `limit / limit+1`。负向搜索必须证明旧 48,000、2MiB、8,000-rune、8MiB 与 adapter-local 4MiB 不再是生产真理源；合法历史与针对独立业务缺陷的 boundary test 可保留。成功后执行 doc reconcile、Bug 记录评估与 retrospective。
 
 ## 5 验收标准
 
@@ -358,6 +360,7 @@ canonical AI profile 的 `max_tokens` / `context_window_tokens` 继续由 A3 cat
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
 | 2026-07-14 | 1.18 | 方案 A：统一内容大小 typed defaults、代码缺省、AI 容量 gate、runtime-config 投影与跨 owner BDD。 | runtime size limits recalibration |
+| 2026-07-14 | 1.19 | 按奥卡姆剃刀删除跨层重复配置测试与配置专用场景 gate，保留单一 typed contract 和必要业务缺陷回归。 | config test proportionality |
 | 2026-07-13 | 1.17 | 删除无当前消费者的 TargetJob attachment maxBytes config/validator/composition binding，保留 Resume 与 Privacy Export 配额。 | Home paste-only JD intake |
 | 2026-07-10 | 1.15 | 删除无正式入口消费者的平行 frontend runtime-config fetch/cache/type/test 包。 | tech-debt pruning |
 | 2026-07-10 | 1.14 | 删除零消费者 `Loader.GetDuration` 与旧 bootstrap 合同引用。 | tech-debt pruning |

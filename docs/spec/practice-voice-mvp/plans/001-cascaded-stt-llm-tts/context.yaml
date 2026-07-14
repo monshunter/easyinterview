@@ -19,22 +19,17 @@ spec:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      bddPlan: ./bdd-plan.md
-      bddChecklist: ./bdd-checklist.md
       discovery:
         packages:
           - backend/internal/api/practice
           - backend/internal/practice
           - config/ai-profiles.yaml
           - openapi/fixtures/PracticeSessions
-          - test/scenarios/e2e
         apiNames: [createPracticeVoiceTurn]
     frontend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      bddPlan: ./bdd-plan.md
-      bddChecklist: ./bdd-checklist.md
       discovery:
         packages:
           - ui-design/src/screen-practice.jsx

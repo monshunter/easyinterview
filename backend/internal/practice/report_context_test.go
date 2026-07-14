@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestE2EP0047FreezesReportContext(t *testing.T) {
+func TestBuildReportContextFreezesSnapshot(t *testing.T) {
 	summary := json.RawMessage(`{
   "interviewRounds": [
     {"sequence":1,"type":"technical","name":"Technical","durationMinutes":45,"focus":"system design"},

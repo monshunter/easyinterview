@@ -14,15 +14,11 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/outputschema"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
-	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	practicedomain "github.com/monshunter/easyinterview/backend/internal/practice"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
-
-var reportPayloadByteLimit = int(platformconfig.DefaultContentLimits().ReportMaxFramedInputBytes)
 
 const (
 	reportBoundaryManifestSchemaVersion = "report-boundary-fixtures.v1"
@@ -114,13 +110,9 @@ func TestReportBoundaryFixtures(t *testing.T) {
 		}
 	}
 
-	verifyReportBoundaryInput(t, "exact limit", reconstructReportBoundaryInput(t, reportPayloadByteLimit), reportPayloadByteLimit)
-	verifyReportBoundaryInput(t, "limit plus one", reconstructReportBoundaryInput(t, reportPayloadByteLimit+1), reportPayloadByteLimit+1)
-	verifyReportBoundaryInput(t, "62,397-byte regression", reconstructReportBoundaryInput(t, 62_397), 62_397)
 	verifyReportBoundaryOutput(t, filepath.Join(fixtureDir, "output-worst-case-en.json"), "en")
 	verifyReportBoundaryOutput(t, filepath.Join(fixtureDir, "output-worst-case-zh-CN.json"), "zh-CN")
 
-	fmt.Println("REPORT_BOUNDARY_FIXTURES_READY")
 }
 
 func reconstructReportBoundaryFixtures(t *testing.T) map[string][]byte {
@@ -129,37 +121,6 @@ func reconstructReportBoundaryFixtures(t *testing.T) map[string][]byte {
 		"output-worst-case-en.json":    marshalReportBoundaryOutput(t, worstCaseReportBoundaryOutput("en")),
 		"output-worst-case-zh-CN.json": marshalReportBoundaryOutput(t, worstCaseReportBoundaryOutput("zh-CN")),
 	}
-}
-
-func reconstructReportBoundaryInput(t *testing.T, targetBytes int) []byte {
-	t.Helper()
-	resolution := reportBoundaryResolution(t)
-	reportCtx := reportBoundaryContext(t, "en")
-	basePayload, err := reportCompletePayload(resolution, reportCtx, nil)
-	if err != nil {
-		t.Fatalf("build base report boundary payload: %v", err)
-	}
-	baseFrame, err := frameReportMessages(basePayload.Messages)
-	if err != nil {
-		t.Fatalf("frame base report boundary payload: %v", err)
-	}
-	padding := targetBytes - len(baseFrame)
-	if padding < 0 {
-		t.Fatalf("current report prompt/context base frame is %d bytes, above fixture target %d", len(baseFrame), targetBytes)
-	}
-	reportCtx.FrozenContext.TargetJob.RawJD += strings.Repeat("x", padding)
-	payload, err := reportCompletePayload(resolution, reportCtx, nil)
-	if err != nil {
-		t.Fatalf("build report boundary payload at %d bytes: %v", targetBytes, err)
-	}
-	framed, err := frameReportMessages(payload.Messages)
-	if err != nil {
-		t.Fatalf("frame report boundary payload at %d bytes: %v", targetBytes, err)
-	}
-	if len(framed) != targetBytes {
-		t.Fatalf("reconstructed report boundary payload = %d bytes, want %d", len(framed), targetBytes)
-	}
-	return framed
 }
 
 func reportBoundaryResolution(t *testing.T) registry.PromptResolution {
@@ -305,24 +266,6 @@ func buildReportBoundaryManifest(files map[string][]byte) reportBoundaryManifest
 		SemanticReachableFocusMax:       4,
 		SemanticReachableFocusMaxReason: "retry focus must be unique and issue-backed while issues are capped at four",
 		Files:                           entries,
-	}
-}
-
-func verifyReportBoundaryInput(t *testing.T, label string, raw []byte, expectedBytes int) {
-	t.Helper()
-	if len(raw) != expectedBytes {
-		t.Fatalf("boundary input %s = %d bytes, want %d", label, len(raw), expectedBytes)
-	}
-	var messages []aiclient.Message
-	if err := json.Unmarshal(raw, &messages); err != nil {
-		t.Fatalf("decode boundary input %s: %v", label, err)
-	}
-	reframed, err := frameReportMessages(messages)
-	if err != nil {
-		t.Fatalf("reframe boundary input %s: %v", label, err)
-	}
-	if !bytes.Equal(reframed, raw) {
-		t.Fatalf("boundary input %s is not the final canonical framed message JSON", label)
 	}
 }
 

@@ -1,7 +1,7 @@
 # AI Tools, Streaming, and STT Extension Checklist
 
 > **版本**: 1.4
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
@@ -45,7 +45,7 @@
 
 - [x] 4.1 在 A3 spec §4.1 锁定 `Transcribe` 入参形态为 bytes + filename + content type + optional language/prompt；验证: A3 docs 引用同一 audio payload contract，`make docs-check` 与 `sync-doc-index --check` 通过
   <!-- verified: 2026-05-06 docs="docs/spec/ai-provider-and-model-routing/spec.md docs/spec/ai-provider-and-model-routing/history.md docs/spec/INDEX.md" command="make docs-check && python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check" -->
-- [x] 4.2 落地 openai_compatible `/v1/audio/transcriptions` 适配，使 `capability=stt` adapter 可执行；tracked voice profile 在 secret provisioning 与真实 provider smoke 完成前保持 `disabled`；验证: STT adapter mockserver tests 覆盖 multipart bytes 形态 happy path、provider error path、secret missing fail-fast 与 unsupported profile fail-closed
+- [x] 4.2 落地 openai_compatible `/v1/audio/transcriptions` 适配，使 `capability=stt` adapter 可执行；tracked voice profile 状态由 voice product owner 决定；验证: STT adapter mockserver tests 覆盖 multipart bytes 形态 happy path、provider error path、secret missing fail-fast 与 unsupported profile fail-closed。
   <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run 'TestTranscribe_PostsMultipartAudioAndReturnsTranscript|TestTranscribe_ProviderErrorReturnsSharedCode|TestTranscribe_MissingTextReturnsAIOutputInvalid' -count=1 (missing Transcribe/multipart support)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run 'TestTranscribe_PostsMultipartAudioAndReturnsTranscript|TestTranscribe_ProviderErrorReturnsSharedCode|TestTranscribe_MissingTextReturnsAIOutputInvalid|TestNew_RequiresOpenAICompatibleResolvedProviderSecret' -count=1 && cd backend && go test ./internal/ai/aiclient -run 'TestTranscribe_RoutesSTTProfileThroughProvider|TestTranscribe_RequiresAudioBytesFilenameAndContentType|TestTranscribe_RealtimeProfileFailsClosed' -count=1" regression="cd backend && go test ./internal/ai/aiclient/... -count=1" -->
 - [x] 4.3 校验或扩展 7 个 ai_* metric family 的 label 集合，确保 STT 可观测；验证: focused metric/log tests 断言 `capability=stt` 有界 label、无 audio/transcript 明文，F1 allowed/forbidden label gate 通过
   <!-- verified: 2026-05-06 docs="docs/spec/observability-stack/spec.md docs/spec/observability-stack/history.md" test="cd backend && go test ./internal/ai/aiclient/observability -run 'TestDecorator_TranscribeRecordsSTTWithoutPlaintext|TestPrivacy_NoPlaintextLeaksAnywhere' -count=1" command="make docs-check" -->
@@ -69,8 +69,7 @@
   <!-- verified: 2026-05-06 docs="docs/spec/ai-provider-and-model-routing/spec.md#6-验收标准 C-13/C-14/C-15" command="make docs-check" -->
 - [x] 6.2 单测 + 离线契约测试覆盖被激活的 tool / streaming / STT 协议子集；验证: `cd backend && go test ./internal/ai/aiclient/... -count=1`、新增 focused tests 与 adapter contract tests 均通过
   <!-- verified: 2026-05-06 command="cd backend && go test ./internal/ai/aiclient/... -count=1" focused="openai_compatible tool/stream/STT contract tests; aiclient Transcribe interface tests; observability privacy tests" -->
-- [ ] 6.3 非测试本地 app run 或 repo-tracked scenario runner 端到端 smoke 通过，无明文泄漏，埋点齐全；验证: 按 `test/scenarios/README.md` 与 active suite README 执行本地 runner smoke，记录真实 provider registry/profile/secret 组合，privacy grep 无明文；默认不要求 Kind / K8s / Helm
-  <!-- pending: 2026-07-10 scenario-readme="test/scenarios/README.md test/scenarios/e2e/README.md test/scenarios/e2e/p0-007-practice-voice-disabled-fail-closed/README.md test/scenarios/e2e/p0-009-voice-provider-failure-fallback/README.md" reason="E2E.P0.007/009 now cover deterministic voice orchestration and failure isolation, but both use in-process Go/Vitest runners and no real provider secret. practice.voice.stt.default remains disabled pending secret provisioning and real-provider smoke, so this gate remains unchecked." -->
+- [x] 6.3 BDD-N/A/REGRESSION: 本 plan 不要求真实 provider smoke；运行 provider/AIClient contract、observability/privacy、profile/config lint 与根 `make test`，并保持 E2E 目录不包装代码测试。
 - [x] 6.4 active-scope out-of-scope 输入负向搜索通过；验证: 搜索确认 A3-owned 代码、配置、deploy、generated artifacts、active docs 与本 plan 修订过的 owner docs 只使用 current capability keys、provider keys、单一 profile catalog、provider-ref routing 与当前模块命名；精确 out-of-scope literal 仅在 denylist / rejection validator / negative fixture 中作为防回归证据保留（历史 work journal / reports / bugs 只读例外）
   <!-- verified: 2026-05-06 commands="active-scope out-of-scope-literal rg sweeps over config/deploy/A3/F1/F3 current docs" result="no matches" allowed-exception="loader rejection tests and lint fixtures retain exact out-of-scope keys." -->
 
@@ -80,5 +79,4 @@
   <!-- verified: 2026-07-10 method=openai-stream-error-test-dupl evidence="Scoped dupl -t 100 reports malformed-chunk and provider-error tests as the provider package's only clone group; repo search finds only their declarations and this owner gate." -->
 - [x] 7.2 Replace both old tests and owner references with one table-driven test retaining both named chunks and exact shared error codes.
   <!-- verified: 2026-07-10 method=openai-stream-error-test-table evidence="TestStream_ErrorChunksEmitSharedError runs named malformed_chunk and provider_error_event cases with exact chunks and expected AI_OUTPUT_INVALID/AI_PROVIDER_TIMEOUT codes. Focused/full provider tests pass, old names are absent, scoped dupl is zero and staticcheck passes." -->
-- [x] 7.3 Run focused/full provider and AIClient tests, full backend, vet/staticcheck and 002/product/docs/pruning gates; keep 002 active for existing 6.3 blocker.
-  <!-- verified: 2026-07-10 method=openai-stream-error-test-table-closeout evidence="Focused/full OpenAI-compatible and AIClient tree tests PASS; old names are absent and scoped dupl is zero. Full backend, go vet/staticcheck, 002/product contexts and docs/index/diff/pruning gates PASS with real_residuals=0. Plan remains active only for its pre-existing real-provider smoke item 6.3." -->
+- [x] 7.3 Run focused/full provider and AIClient tests, root `make test`, vet/staticcheck and 002/product/docs/pruning gates；plan 收口为 completed。

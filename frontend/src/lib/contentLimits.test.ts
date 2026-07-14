@@ -1,17 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_CONTENT_LIMITS, resolveContentLimits, utf8ByteLength } from "./contentLimits";
+import {
+  formatBinaryByteLimit,
+  utf8ByteLength,
+} from "./contentLimits";
 
 describe("content limits", () => {
-  it("counts UTF-8 bytes and accepts the exact boundary only", () => {
+  it("counts UTF-8 bytes", () => {
     expect(utf8ByteLength("你好")).toBe(6);
-    expect(utf8ByteLength("你好")).toBeLessThanOrEqual(6);
-    expect(utf8ByteLength("你好a")).toBeGreaterThan(6);
+    expect(utf8ByteLength("你好a")).toBe(7);
   });
 
-  it("uses A4 defaults for missing or invalid public fields", () => {
-    expect(resolveContentLimits(undefined)).toEqual(DEFAULT_CONTENT_LIMITS);
-    expect(resolveContentLimits({ contentLimits: { resumeUploadBytes: 0 } } as never))
-      .toEqual(DEFAULT_CONTENT_LIMITS);
+  it("formats binary byte limits without decimal rounding drift", () => {
+    expect(formatBinaryByteLimit(2 * 1024 * 1024, true)).toBe("2MiB");
+    expect(formatBinaryByteLimit(1536, false)).toBe("1.5 KiB");
+    expect(formatBinaryByteLimit(17, false)).toBe("17 bytes");
   });
 });

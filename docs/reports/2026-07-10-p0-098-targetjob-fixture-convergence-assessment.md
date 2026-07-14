@@ -3,7 +3,7 @@
 > **日期**: 2026-07-10
 > **审查人**: Codex
 
-**关联计划**: [001 Full Funnel Happy Journey](../spec/e2e-scenarios-p0/plans/001-full-funnel-happy-journey/plan.md)
+**历史计划**: `001-full-funnel-happy-journey`（已删除；沿革见 [E2E scenarios history](../spec/e2e-scenarios-p0/history.md)）
 **关联 Bug**: [BUG-0157](../bugs/BUG-0157.md)
 
 ## 1 复盘范围与成功证据

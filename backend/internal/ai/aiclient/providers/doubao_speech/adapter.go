@@ -6,13 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/internal/responsebody"
 	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
@@ -207,12 +207,14 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, a.maxResponseBodyBytes+1))
+	respBody, err := responsebody.Read(resp, a.maxResponseBodyBytes)
 	if err != nil {
-		return nil, 0, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "doubao_speech: read response: "+err.Error(), true)
-	}
-	if int64(len(respBody)) > a.maxResponseBodyBytes {
-		return nil, 0, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "doubao_speech: response body is too large", false)
+		code := sharederrors.CodeAiOutputInvalid
+		if errors.Is(err, responsebody.ErrRead) {
+			code = sharederrors.CodeAiProviderTimeout
+		}
+		meta := sharederrors.CodeRegistry[code]
+		return nil, 0, sharederrors.Wrap(code, meta.Message, meta.Retryable)
 	}
 	return respBody, resp.StatusCode, nil
 }

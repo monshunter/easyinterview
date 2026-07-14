@@ -1,17 +1,24 @@
 # Honest Grounded Report Screen BDD Plan
 
-> **版本**: 3.4
+> **版本**: 3.5
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
-## Scenario Matrix
+## Domain behavior
+
+| Behavior ID | Given | When | Then | 验证入口 |
+|-------------|-------|------|------|----------|
+| `BDD.REPORT.UI.001` | report 处于 generating、ready、failed 或 identity/context 不合法 | 页面轮询、恢复、展示报告或触发 replay/next/back | 状态与 CTA 只来自 API truth；ready 内容完整可读，typed failure/route recovery fail closed 且不泄露 private IDs | `frontend/src/app/screens/generating/__tests__/GeneratingScreen.test.tsx` + `frontend/src/app/screens/report/__tests__/ConversationReport.test.tsx`，由根 `make test` 承接 |
+
+## Real E2E handoff
 
 | ID | Type | Phase | Given | When | Then |
 |----|------|-------|-------|------|------|
-| E2E.P0.056 | primary/composed | 6-7 | report queued/generating during action-local retry waits and tab hidden/blur during timer or in-flight request | pause/resume under one maxAttempts49 polling run | polling current/next attempt+delay preserved，resume n+1，no duplicate/concurrency/reset1；ready transitions honestly |
-| E2E.P0.057 | primary/boundary | 7 | ready report with empty generic focus or valid non-empty issue-backed focus | replay/next CTA | Replay remains legal in both cases, sends no client focus, and a server-derived fresh session starts once |
-| E2E.P0.058 | failure/recovery/composed | 7/10 | report action attempt4/nonretryable API failed，client poll-window/network timeout，invalid direct shape/focus，or first-load failure without trusted target | load/action/back | existing typed-state/retry-layer rules hold；trusted target returns `/reports?targetJobId=...`，no trusted identity falls back workspace；no route target/detail list consumer/raw enum/fake report/internal attempts |
-| E2E.P0.059 | current-plan list/regression/visual/formal acceptance | 8-11 | current TargetJob + canonical overview populated/empty/loading/error fixtures，以及 identical report prototype/formal fixtures与 trusted target ready report | deep-open Reports，验证隔离/状态/parity，分别从 report 返回 Reports、再从 Reports 点击 Back | Reports 只显示当前规划 current/latest、跨 target/stale/mismatch fail closed、无完整历史；1440/390 parity 通过；report Back 返回同一 Reports；Reports Back 直接进入 targetJobId-only `/workspace` 只读详情，无 Parse detour/animation/import/poll；report route stays reportId-only |
-| E2E.P0.070 | cross-layer | 7 | ready needs-work source report | replay plan create/read | focus is projected by backend, not URL/request |
-| E2E.P0.072 | security/failure | 7 | invalid/cross-user source report | replay request | fail closed without focus/privacy leakage |
-| E2E.P0.099 | current-run canonical real UX + deterministic boundary parity | 8 | current-run en/zh ready rows + exact 24/64 ui-design/OpenAPI fixtures | capture exact six images；bind per-row canonical content/action/content-audit/screenshot/report/session/context digests；run prototype/formal parity | 390x844 real action regions show actual `<=24-whitespace-word` / `<=64-Unicode-code-point` labels fully；deterministic fixtures prove exact boundary wrapping with no clipping/ellipsis/hiding/overflow |
+| E2E.P0.099 | real full-stack report/generating UI | 8 | shared host-run frontend/backend/provider with current-run en/zh ready reports and one honest generating resource | browser captures exact six full-page desktop/mobile images and runner binds authenticated report API plus read-only DB evidence | current ready/generating state is visible；each row binds current report/session/context/screenshot digests；ready action regions are complete with no clipping/ellipsis/hiding/overflow |
+
+## Evidence boundary
+
+- Polling、typed failure、CTA、server-owned focus、route recovery、ReportsScreen isolation and deterministic parity are frontend/backend code tests, not E2E scenarios.
+- Exact 24/64 boundary uses deterministic code-level fixtures. P0.099 only proves current legal real report content is fully visible at desktop/mobile.
+- Fixture transport、dev mock、jsdom、route interception、component test server or Playwright against mock data cannot satisfy P0.099.
+- Root `make test` runs the complete frontend/backend unit regression independently and is never an E2E step or PASS marker.

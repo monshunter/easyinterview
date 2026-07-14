@@ -4,7 +4,7 @@ metadata:
   subspec: product-scope
   name: 001-core-loop-module-pruning
   sequence: 1
-  branch: fix/request-dedup-resume-summary-routing-0714
+  branch: fix/runtime-size-limits-0714
   baseBranch: main
   specVersion:
     from: 2.21

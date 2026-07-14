@@ -731,37 +731,6 @@ func TestReportPayloadUsesConfiguredByteLimitBeforeProvider(t *testing.T) {
 	}
 }
 
-func TestReportDefaultBoundaryUsesInMemoryPayloadsBeforeProvider(t *testing.T) {
-	for _, targetBytes := range []int{62_397, reportPayloadByteLimit} {
-		t.Run(fmt.Sprintf("%d bytes reach provider", targetBytes), func(t *testing.T) {
-			reportCtx := exactReportPayloadContext(t, targetBytes)
-			ai := &conversationReportAI{results: []conversationAIResult{{
-				response: aiclient.CompleteResponse{Content: validDirectReportJSON("en"), FinishReason: "stop"},
-				meta:     validReportCallMeta("en"),
-			}}}
-			repo := &conversationReportRepository{ctx: reportCtx}
-			out := newConversationReportService(ai, repo).GenerateReport(context.Background(), AsyncJob{
-				JobID: testUUID(8), ResourceID: reportCtx.Session.ReportID,
-			})
-			if !out.Succeeded || len(ai.payloads) != 1 || repo.providerAdmissionCount != 1 {
-				t.Fatalf("outcome=%+v calls=%d admissions=%d", out, len(ai.payloads), repo.providerAdmissionCount)
-			}
-		})
-	}
-
-	t.Run("limit plus one fails before provider", func(t *testing.T) {
-		reportCtx := exactReportPayloadContext(t, reportPayloadByteLimit+1)
-		ai := &conversationReportAI{}
-		repo := &conversationReportRepository{ctx: reportCtx}
-		out := newConversationReportService(ai, repo).GenerateReport(context.Background(), AsyncJob{
-			JobID: testUUID(8), ResourceID: reportCtx.Session.ReportID,
-		})
-		if out.Succeeded || out.Retryable || out.ErrorCode != sharederrors.CodeReportContextTooLarge || len(ai.payloads) != 0 || repo.providerAdmissionCount != 0 {
-			t.Fatalf("outcome=%+v calls=%d admissions=%d", out, len(ai.payloads), repo.providerAdmissionCount)
-		}
-	})
-}
-
 func TestGenerateReportProviderInfrastructureErrorConsumesOneAttemptWithoutLeakingRawError(t *testing.T) {
 	reportCtx := validGenerationReportContext("en")
 	providerErr := sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "provider echoed secret prompt material", true)

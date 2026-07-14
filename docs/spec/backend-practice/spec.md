@@ -24,14 +24,14 @@
 
 | operationId | HTTP 行为 | backend handler | persistence | AI / job dependency | scenario coverage |
 |-------------|-----------|-----------------|-------------|---------------------|-------------------|
-| `createPracticePlan` | `POST /practice/plans`，要求 `Idempotency-Key`；请求不包含 question/mode/hint/focus，可携带 `roundId` 与 report-derived `sourceReportId` | `backend/internal/api/practice.CreatePracticePlan` + `backend/internal/practice.CreatePracticePlan` | `practice_plans.round_id/round_sequence/focus_dimension_codes`, `idempotency_records`, `audit_events` | none；服务端从 TargetJob/source report 推导 sequence/focus | `E2E.P0.022`, `E2E.P0.070`, `E2E.P0.072` |
-| `getPracticePlan` | `GET /practice/plans/{planId}`，用户隔离读取 | `backend/internal/api/practice.GetPracticePlan` | `practice_plans` | none | `E2E.P0.022`, `E2E.P0.070` |
+| `createPracticePlan` | `POST /practice/plans`，要求 `Idempotency-Key`；请求不包含 question/mode/hint/focus，可携带 `roundId` 与 report-derived `sourceReportId` | `backend/internal/api/practice.CreatePracticePlan` + `backend/internal/practice.CreatePracticePlan` | `practice_plans.round_id/round_sequence/focus_dimension_codes`, `idempotency_records`, `audit_events` | none；服务端从 TargetJob/source report 推导 sequence/focus | 当前无真实 E2E owner；root `make test` |
+| `getPracticePlan` | `GET /practice/plans/{planId}`，用户隔离读取 | `backend/internal/api/practice.GetPracticePlan` | `practice_plans` | none | 当前无真实 E2E owner；root `make test` |
 | `listPracticeSessions` | `GET /practice/sessions`，按 cursor / targetJob / status 列表 | `backend/internal/api/practice.ListPracticeSessions` | `practice_sessions` | none | workspace / report owner gates |
-| `startPracticeSession` | `POST /practice/sessions`，要求 `Idempotency-Key`；同步返回 session 与 opening assistant message | `backend/internal/api/practice.StartPracticeSession` + `backend/internal/practice.StartPracticeSession` | `practice_sessions`, `practice_messages`, lifecycle event, outbox, `idempotency_records`, `ai_task_runs` | `practice.session.chat` + `AIClient.Complete` | `E2E.P0.023`-`E2E.P0.026` |
-| `getPracticeSession` | `GET /practice/sessions/{sessionId}`，返回 session 与有序 messages；user message 含原 `clientMessageId/replyStatus`；读取前惰性收敛已过期 pending lease | `backend/internal/api/practice.GetPracticeSession` + `backend/internal/practice.GetPracticeSession` | `practice_sessions`, `practice_messages.client_message_id/reply_status/reply_generation/reply_lease_expires_at` | none | `E2E.P0.023`, `E2E.P0.025`, `E2E.P0.044`, `E2E.P0.046` |
-| `sendPracticeMessage` | `POST /practice/sessions/{sessionId}/messages`；body `clientMessageId` 幂等，成功返回唯一 user/assistant pair；失败持久化 user reply status；同 ID reserve 可接管已过期 lease | `backend/internal/api/practice.SendPracticeMessage` + `backend/internal/practice.SendPracticeMessage` + SQL reserve/fail/commit | `practice_messages.client_message_id/reply_status/reply_generation/reply_lease_expires_at`, `ai_task_runs` | `practice.session.chat`; recent ordered messages + plan/session context | `E2E.P0.044`, `E2E.P0.046` |
-| `completePracticeSession` | `POST /practice/sessions/{sessionId}/complete`，要求 `Idempotency-Key`；零回答或 pending assistant reply 拒绝，成功返回 `202 ReportWithJob` | `backend-practice/002` 的 practice handler/service/store（唯一 completion owner） | `practice_sessions`, terminal `practice_messages`, `feedback_reports.generation_context`, async job/outbox/idempotency | transaction 内无 AI；随后 `report_generate` | `E2E.P0.047` 产出 owner artifact；P0.056/058 只消费 marker |
-| `createPracticeVoiceTurn` | 当前禁用；任何请求 fail-closed 为 typed `AI_UNSUPPORTED_CAPABILITY`，不得读取音频后调用 provider | existing voice handler boundary | none | none while disabled | `E2E.P0.007` |
+| `startPracticeSession` | `POST /practice/sessions`，要求 `Idempotency-Key`；同步返回 session 与 opening assistant message | `backend/internal/api/practice.StartPracticeSession` + `backend/internal/practice.StartPracticeSession` | `practice_sessions`, `practice_messages`, lifecycle event, outbox, `idempotency_records`, `ai_task_runs` | `practice.session.chat` + `AIClient.Complete` | 当前无真实 E2E owner；root `make test` |
+| `getPracticeSession` | `GET /practice/sessions/{sessionId}`，返回 session 与有序 messages；user message 含原 `clientMessageId/replyStatus`；读取前惰性收敛已过期 pending lease | `backend/internal/api/practice.GetPracticeSession` + `backend/internal/practice.GetPracticeSession` | `practice_sessions`, `practice_messages.client_message_id/reply_status/reply_generation/reply_lease_expires_at` | none | 当前无真实 E2E owner；root `make test` |
+| `sendPracticeMessage` | `POST /practice/sessions/{sessionId}/messages`；body `clientMessageId` 幂等，成功返回唯一 user/assistant pair；失败持久化 user reply status；同 ID reserve 可接管已过期 lease | `backend/internal/api/practice.SendPracticeMessage` + `backend/internal/practice.SendPracticeMessage` + SQL reserve/fail/commit | `practice_messages.client_message_id/reply_status/reply_generation/reply_lease_expires_at`, `ai_task_runs` | `practice.session.chat`; recent ordered messages + plan/session context | 当前无真实 E2E owner；root `make test` |
+| `completePracticeSession` | `POST /practice/sessions/{sessionId}/complete`，要求 `Idempotency-Key`；零回答或 pending assistant reply 拒绝，成功返回 `202 ReportWithJob` | `backend-practice/002` 的 practice handler/service/store（唯一 completion owner） | `practice_sessions`, terminal `practice_messages`, `feedback_reports.generation_context`, async job/outbox/idempotency | transaction 内无 AI；随后 `report_generate` | `E2E.P0.098` 仅真实登录、completion API 与进度刷新；其余由 root `make test` |
+| `createPracticeVoiceTurn` | 当前禁用；任何请求 fail-closed 为 typed `AI_UNSUPPORTED_CAPABILITY`，不得读取音频后调用 provider | existing voice handler boundary | none | none while disabled | 当前无真实 E2E owner；root `make test` |
 
 ### 2.2 数据模型
 
@@ -122,7 +122,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 
 - completion 至少要求一条已提交的 candidate `user` message，且不存在等待提交的 assistant reply；零回答返回 typed `VALIDATION_FAILED`，session 保持可继续对话，不写 completion fact、report、job、outbox 或 idempotency success。
 - 成功事务从同一数据库一致性视图冻结 TargetJob raw/structured data、绑定 Resume source/profile、canonical round ladder/current round、source Plan settings、session language、terminal message count/last sequence，并写入 `feedback_reports.generation_context`；事务内不调用 AI。
-- P0.047 owner artifact 必须产出 `ZERO_ANSWER_COMPLETION_REJECTED_PASS`、`REPORT_CONTEXT_SNAPSHOT_PASS`、`REPORT_CONTEXT_REPLAY_PASS`。P0.056/P0.058 和 `backend-review/001` 只能消费该 artifact/marker 与持久化快照，不得重新查询 mutable TargetJob/Resume/Plan 来重建快照，也不得复制 completion 实现或测试所有权。
+- completion owner 的代码层测试由根 `make test` 统一回归；`backend-review/001` 只消费持久化快照，不得重新查询 mutable TargetJob/Resume/Plan 或复制 completion 测试所有权。
 
 ### 2.6 电话模式禁用
 
@@ -176,9 +176,9 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 | C-10 | 轮次持久化与完成事实 | TargetJob 有结构化轮次，可能相邻轮次时长相同、sequence 不连续、完成请求重放或存在 legacy plan | 创建 baseline/retry/next plan 并完成 session | 新 plan 持久化 exact `roundId/roundSequence`；请求轮次/预算不匹配、全轮完成和非法 source fail closed；`session_completed` 每个 round pair 去重贡献进度，report 状态不影响完成事实 | 001/002 |
 | C-11 | server-owned report focus | ready source report 的 retry focus 为空、为 issue-backed dimension codes，或 source/context/request 不匹配 | 创建 retry/next plan | retry 空 focus 执行通用同轮复练；非空 focus 原子投影且全部 issue-backed，并通过 F3-owned active v0.2 `semanticFocus/{{semantic_focus_json}}` pair 传入 prompt；next 为空；客户端无 focus 输入，非法 source fail closed 且 IK replay 精确 | 004 + F3/002 |
 | C-12 | 绑定、目录与 prompt 信任边界 | TargetJob 绑定 resume A；同用户另有 resume B；summary 可能缺 provenance、含大于 int32 / 非连续 sequence 或大小写错误 type；简历/JD/历史可能含指令式文本，assistant history 可能已臆造项目 | 创建 plan 并启动/继续会话 | 只有绑定 resume A 的 source/completion/ready-plan 事实有效；`1,2,4` 目录按 canonical successor 推进，溢出/非法 type/缺 provenance fail closed；system policy 不被 JSON 编码的不可信上下文覆盖，persona 只影响风格，assistant-only claim 不成为候选人事实 | 001/002 |
-| C-13 | reportable completion | running session 为零回答、存在 pending reply 或已有至少一条 committed user message | 调用 complete 并重放 | 002 唯一负责拒绝不可报告 completion 或原子冻结 `report-context.v1`；P0.047 产出 owner artifact，review 只消费 | 002 |
+| C-13 | reportable completion | running session 为零回答、存在 pending reply 或已有至少一条 committed user message | 调用 complete 并重放 | 002 唯一负责拒绝不可报告 completion 或原子冻结 `report-context.v1`；review 只消费持久化快照 | 002 |
 | C-14 | 刷新可恢复消息 | user message 已持久化为 pending/retryable/terminal 状态，页面刷新或重挂载 | `getPracticeSession` 后按需用同一 ID 重试 | 读模型返回原 `clientMessageId/replyStatus`；pending 继续 thinking，retryable failure 原 row 可重试，terminal failure 无 retry；成功后仅一个 assistant reply，浏览器存储不参与 | 002 |
-| C-16 | 消息与会话文本边界 | 当前累计文本分别位于 256KiB 内/边界，提交 32KiB 内或 limit+1 用户消息 | `sendPracticeMessage` | 单条 32KiB 与累计 256KiB 边界可正常持久化/调用 AI；任一 limit+1 返回 `VALIDATION_FAILED`，不写 user row、不调用 AI；前端从 runtime config 同值预检 | 002 Phase 12 + P0.046 |
+| C-16 | 消息与会话文本边界 | owner config 提供单条与累计 UTF-8 byte limit | `sendPracticeMessage` | 注入小型边界验证 overflow 返回 `VALIDATION_FAILED`、零持久化与零 AI；默认/override/invalid 只由 typed config owner 覆盖，不分配默认大小字符串或建立配置 E2E | 002 Phase 12 |
 | C-15 | pending lease 与 generation fence | G1 worker 在写 reply 前失联或迟到，90 秒 lease 已过期，随后发生 GET 或两个同 ID 并发 retry | 读取会话并 reserve G2，再释放 G1 Commit/Fail | GET 或同 ID reserve 惰性收敛过期 pending；只一个调用取得 G2；G1 Commit/Fail 均 typed conflict 且零写入；G2 最终只写一个 assistant reply | 002 |
 
 ## 5 关联计划
@@ -192,10 +192,10 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
-| 2026-07-14 | 1.34 | 方案 A：新增 32KiB 单条与 256KiB 会话文本 typed config，统一 UTF-8 byte 边界、持久化前拒绝与 P0.046 恢复合同。 |
+| 2026-07-14 | 1.34 | 新增单条与会话累计文本 typed config，并将默认值测试收敛到 typed config owner。 |
 | 2026-07-14 | 1.33 | Confirm T-B/P-A recovery contract: 90-second server lease, internal reply-generation fence, GET/same-ID-reserve lazy convergence, 95-second client timeout reconciliation and terminal return-to-current-plan handoff. |
 | 2026-07-13 | 1.32 | Reopen 002 for server-persisted reply status and same-client-message recovery across refresh, plus typed frontend error consumption handoff. |
-| 2026-07-12 | 1.31 | 完成 004 server-owned report focus：active practice v0.2 只消费结构化 semantic focus，P0.070/P0.072 在 PostgreSQL v19 闭环 projection/IK/isolation/privacy 与 legacy-negative gate。 |
+| 2026-07-12 | 1.31 | 完成 server-owned report focus 的 projection、idempotency、isolation 与 privacy 合同。 |
 | 2026-07-12 | 1.30 | 将 report-derived prompt handoff 固化为 backend 构造 `semanticFocus`、F3/002 提供 immutable practice v0.2 pair 并独占激活/回滚。 |
 | 2026-07-12 | 1.29 | 将零回答拒绝与 `report-context.v1` completion 快照唯一归属 002；允许空 report focus 表示通用同轮复练，并修正验收编号。 |
 | 2026-07-12 | 1.28 | Report-derived retry focus 改为服务端投影 report-local dimension codes；客户端 focus 输入删除，completion 冻结 report context。 |
@@ -203,5 +203,5 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 | 2026-07-12 | 1.26 | Tighten TargetJob-resume binding, canonical round provenance/type/int32 constraints, non-contiguous successor semantics, and the system-policy versus JSON-encoded untrusted-context prompt boundary. |
 | 2026-07-12 | 1.25 | Add normalized practice-plan round identity, server-side current/next validation, and session-completion ledger semantics for backend progress projection. |
 | 2026-07-12 | 1.24 | Reopen 001/002 so start and send use the complete resume source snapshot, fail closed without evidence, and forbid invented resume projects. |
-| 2026-07-12 | 1.23 | 重新打开 002：关闭 message commit 与 completion 的竞态，并强化 P0.046/P0.047 的失败恢复与生命周期证据。 |
+| 2026-07-12 | 1.23 | 重新打开 002：关闭 message commit 与 completion 的竞态，并强化失败恢复与生命周期合同。 |
 | 2026-07-12 | 1.22 | 按奥卡姆剃刀将 Practice 从题目/turn 状态机重构为连续 message conversation；删除专用 hint/mode/question 合同并暂时禁用语音。 |

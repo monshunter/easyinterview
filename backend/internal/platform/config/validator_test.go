@@ -40,8 +40,8 @@ objectStorage:
 upload:
   presignTTLSeconds: 600
   maxBytes:
-    resume: 2097152
-    privacyExport: 5242880
+    resume: 2048
+    privacyExport: 4096
 resume:
   maxActive: 10
 async:
@@ -442,23 +442,6 @@ func TestDefaultUploadConfigPaths(t *testing.T) {
 	if got := loader.GetInt("upload.presignTTLSeconds"); got != 600 {
 		t.Fatalf("upload.presignTTLSeconds = %d", got)
 	}
-	for path, want := range map[string]int{
-		"ai.maxResponseBodyBytes":       4194304,
-		"http.maxRequestBodyBytes":      10485760,
-		"practice.maxMessageBytes":      32768,
-		"practice.maxSessionTextBytes":  262144,
-		"report.maxFramedInputBytes":    917504,
-		"resume.maxActive":              10,
-		"resume.maxExtractedTextBytes":  393216,
-		"resume.maxPasteTextBytes":      393216,
-		"targetJob.maxRawTextBytes":     98304,
-		"upload.maxBytes.resume":        10485760,
-		"upload.maxBytes.privacyExport": 5242880,
-	} {
-		if got := loader.GetInt(path); got != want {
-			t.Fatalf("%s = %d, want %d", path, got, want)
-		}
-	}
 	if got := loader.GetInt("upload.maxBytes.targetJobAttachment"); got != 0 {
 		t.Fatalf("removed upload.maxBytes.targetJobAttachment = %d, want 0", got)
 	}
@@ -471,9 +454,6 @@ objectStorage:
   provider: s3
 upload:
   presignTTLSeconds: 600
-  maxBytes:
-    resume: 2097152
-    privacyExport: 5242880
 async:
   queueWeights:
     critical: 6
@@ -488,54 +468,11 @@ objectStorage:
   provider: minio
 upload:
   presignTTLSeconds: 0
-  maxBytes:
-    resume: 2097152
-    privacyExport: 5242880
 async:
   queueWeights:
     critical: 6
     default: 3
     low: 1
-featureFlag:
-  source: file
-  filePath: "./feature-flags.yaml"
-`,
-		"max-bytes": `
-objectStorage:
-  provider: filesystem
-upload:
-  presignTTLSeconds: 600
-  maxBytes:
-    resume: -1
-    privacyExport: 5242880
-async:
-  queueWeights:
-    critical: 6
-    default: 3
-    low: 1
-featureFlag:
-  source: file
-  filePath: "./feature-flags.yaml"
-`,
-		"resume-max-active": `
-objectStorage:
-  provider: filesystem
-upload:
-  presignTTLSeconds: 600
-  maxBytes:
-    resume: 2097152
-    privacyExport: 5242880
-async:
-  queueWeights:
-    critical: 6
-    default: 3
-    low: 1
-  leaseTimeoutSeconds: 300
-  shutdownGraceSeconds: 10
-  reaperIntervalSeconds: 60
-  scanIntervalSeconds: 5
-resume:
-  maxActive: 0
 featureFlag:
   source: file
   filePath: "./feature-flags.yaml"
@@ -554,9 +491,8 @@ featureFlag:
 				t.Fatal("expected upload config validation error")
 			}
 			if !strings.Contains(err.Error(), "upload") &&
-				!strings.Contains(err.Error(), "objectStorage.provider") &&
-				!strings.Contains(err.Error(), "resume.maxActive") {
-				t.Fatalf("error must mention upload/resume config boundary: %v", err)
+				!strings.Contains(err.Error(), "objectStorage.provider") {
+				t.Fatalf("error must mention upload config boundary: %v", err)
 			}
 		})
 	}

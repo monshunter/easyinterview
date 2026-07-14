@@ -21,7 +21,6 @@
 
 ## Phase 6: Review remediation
 - Repository/service tests simulate completion winning before assistant commit and require rollback plus typed conflict.
-- Scenario contract tests require P0.046/P0.047 to execute every named failure/replay/lifecycle assertion and reject no-test output.
 
 ## Phase 7: Resume grounding
 - Send SQL precedence matches start exactly and ignores empty JSON `{}` / `null` profiles.
@@ -37,10 +36,9 @@
 - Report queued/ready/failed variants leave the same completion fact; final round and privacy deletion boundaries are covered.
 
 ## Phase 9: Reportable completion and frozen context
-- `TestE2EP0047RejectsZeroAnswerCompletion` rejects zero-user and pending-reply completion before writes/provider; one committed user message succeeds.
-- `TestE2EP0047FreezesReportContext` and `TestE2EP0047CompletionReplayPreservesReportContext` assert one-view report-context.v1, concurrent mutation isolation, terminal coordinate and exact replay.
-- Exact backend command: `cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice -run '^(TestE2EP0047RejectsZeroAnswerCompletion|TestE2EP0047FreezesReportContext|TestE2EP0047CompletionReplayPreservesReportContext)$' -count=1 -v`.
-- P0.047 writes `.test-output/e2e/p0-047-practice-text-loop-complete-and-generating-handoff/completion-backend-evidence.json` with exact keys `schemaVersion/scenarioId/command/tests/markers/database/result`; PASS requires the three test PASS markers, three owner markers, zero forbidden failure/no-test markers and redacted DB assertions.
+- Focused completion tests reject zero-user/pending-reply completion before writes/provider and accept one committed user message.
+- Focused snapshot/replay tests assert one-view report-context.v1, concurrent mutation isolation, terminal coordinate and exact replay.
+- Focused runs are development feedback only；phase completion is reported by repository-root `make test`, with real PostgreSQL checks as a separate integration gate.
 - Frontend test asserts Finish disabled/accessibly explained until a committed user message exists.
 
 ## Phase 10: Durable reply-state recovery
@@ -56,11 +54,8 @@
 - Store unit RED/GREEN uses an injected server clock and covers `new → pending(G1,+90s)`, GET expiry to `retryable_failed(G1)`, same-ID expired/retryable takeover to `pending(G2,+90s)`, Fail/Commit lease clearing, unexpired/different-ID conflicts and stale-generation zero-write conflicts.
 - Real PostgreSQL runs exactly the four Phase 11 integration tests with independent connections and a start barrier. Sequential reserve calls do not satisfy the concurrency gate. The stale-worker case must pause G1, expire through GET, reserve G2, release both stale Commit and Fail, then commit G2 and count one assistant reply.
 - Service/API tests prove `Now` reaches GET/reserve consistently, generation is carried only across internal Reserve/Commit/Fail calls, stale conflicts map deterministically, and the public response never includes generation/lease.
-- Scenario contract tests require a shared tracked Practice source-path manifest for P0.044/P0.046, trigger-time/current SHA-256 equality, screenshot SHA-256/dimensions/viewport and the exact Phase 11 markers；they reject FAIL/no-tests/missing paths/stale artifacts.
-- Focused implementation order is migration SQL contract → store unit/domain → real PostgreSQL four-test set → service/API/OpenAPI/codegen/fixture → P0.044/P0.046 serial setup/trigger/verify/cleanup → full regression/docs/diff.
 
-## Phase 12: Message/session UTF-8 byte limits
+## Phase 12: Message/session injected guards
 
-- Unit fixtures cover ASCII and multibyte values at 32KiB/32KiB+1 and persisted totals at 256KiB/256KiB+1.
+- Unit fixtures use small injected values to cover ASCII/multibyte acceptance and overflow without constructing default-sized strings.
 - Store/service tests prove authoritative aggregate, replay behavior, zero write/provider on overflow and concurrent total-limit fencing.
-- RuntimeConfig/frontend contract and P0.046 cover server/client agreement without browser persistence becoming fact.

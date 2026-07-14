@@ -54,7 +54,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 		sessionID        = "018f2a40-0000-7000-9000-00000000a003"
 		privacyRequestID = "018f2a40-0000-7000-9000-00000000a004"
 		privacyJobID     = "018f2a40-0000-7000-9000-00000000a005"
-		email            = "upload-roundtrip-p0-033@example.test"
+		email            = "upload-roundtrip@example.test"
 		sessionToken     = "upload-roundtrip-session-token"
 	)
 	cleanupUploadRoundtripRows(t, db, userID, email, challengeID, sessionID, privacyRequestID, privacyJobID)
@@ -135,35 +135,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 		if after != before {
 			t.Fatalf("removed purpose created file_objects rows: before=%d after=%d", before, after)
 		}
-		t.Logf("P0.033 JD purpose rejection: status=422 row_count=%d", after)
-	})
-
-	var privacyExport api.UploadPresign
-	t.Run("preserves_privacy_export_boundary", func(t *testing.T) {
-		privacyExportRec := serveUploadRoundtripPresign(
-			handler,
-			sessionCookie,
-			"upload-roundtrip-privacy-export-key",
-			[]byte(`{"purpose":"privacy_export","fileName":"privacy-export.zip","contentType":"application/zip","byteSize":5242880}`),
-		)
-		if privacyExportRec.Code != http.StatusCreated {
-			t.Fatalf("privacy export presign status = %d body=%s", privacyExportRec.Code, privacyExportRec.Body.String())
-		}
-		if err := json.Unmarshal(privacyExportRec.Body.Bytes(), &privacyExport); err != nil {
-			t.Fatalf("decode privacy export presign: %v", err)
-		}
-		var purpose, uploadStatus string
-		var byteSize int64
-		if err := db.QueryRowContext(ctx, `
-select purpose, byte_size, upload_status
-from file_objects
-where id=$1 and user_id=$2`, privacyExport.FileObjectId, userID).Scan(&purpose, &byteSize, &uploadStatus); err != nil {
-			t.Fatalf("read privacy export file object: %v", err)
-		}
-		if purpose != "privacy_export" || byteSize != 5_242_880 || uploadStatus != "pending" {
-			t.Fatalf("privacy export row = purpose=%q byte_size=%d upload_status=%q", purpose, byteSize, uploadStatus)
-		}
-		t.Logf("P0.033 privacy_export: status=201 byte_size=%d upload_status=%s", byteSize, uploadStatus)
+		t.Logf("removed JD purpose rejection: status=422 row_count=%d", after)
 	})
 
 	presignBody := []byte(`{"purpose":"resume","fileName":"resume.pdf","contentType":"application/pdf","byteSize":1024}`)
@@ -240,7 +212,7 @@ where id=$1 and user_id=$2`, privacyExport.FileObjectId, userID).Scan(&purpose, 
 	if !processed {
 		t.Fatal("privacy_delete job was not processed")
 	}
-	assertUploadRoundtripPrivacyDelete(t, db, []string{presign.FileObjectId, privacyExport.FileObjectId}, privacyRequestID, email)
+	assertUploadRoundtripPrivacyDelete(t, db, []string{presign.FileObjectId}, privacyRequestID, email)
 }
 
 type uploadRoundtripLiveConfig struct {
@@ -324,8 +296,8 @@ objectStorage:
 upload:
   presignTTLSeconds: 600
   maxBytes:
-    resume: 2097152
-    privacyExport: 5242880
+    resume: 2048
+    privacyExport: 4096
 ai:
   providerRegistryPath: "`+providersPath+`"
   modelProfilePath: "`+profilesPath+`"

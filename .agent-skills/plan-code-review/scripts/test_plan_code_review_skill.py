@@ -49,16 +49,22 @@ class TestPlanCodeReviewSkill:
         assert "go test -list" in text
         assert "executed at least one intended test" in text
 
-    def test_reviews_scenario_wrappers_as_process_success_evidence(self):
+    def test_review_rejects_code_test_wrappers_and_backend_mocks_as_e2e(self):
         text = _skill_text()
-        assert "Treat scenario wrapper scripts as evidence artifacts" in text
-        assert "Do not stop after reading the Go test body" in text
-        assert "preserves the real test process exit status" in text
-        assert "`go test | tee`" in text
-        assert "`--- PASS`" in text
-        assert "package-level `ok`" in text
-        assert "reject `--- FAIL`, package `FAIL`, and `no tests to run`" in text
-        assert "merely grepping a test name or package path" in text
+        assert "A domain Behavior ID may map directly to a code-level owner behavior test" in text
+        assert "An `E2E.*` ID is valid only when" in text
+        assert "already running frontend/backend through real HTTP API calls or browser UI" in text
+        assert "E2E script runs `go test`, Vitest/npm test, pytest, lint" in text
+        assert "route interception, or request mocking replaces the business backend" in text
+        assert "do not require or create an E2E directory" in text
+
+    def test_review_requires_root_make_test_for_frontend_backend_regression(self):
+        text = _skill_text()
+        assert "require a current repository-root `make test` result" in text
+        assert "代码测试不得进入 `test/scenarios/e2e/`" in text
+        assert "单 package/file PASS 也不是全量单元回归证据" in text
+        assert "state the repository-root `make test`" in text
+        assert "run repository-root `make test` as the aggregate unit-regression gate" in text
 
     def test_review_reconstructs_coverage_matrix_against_current_artifacts(self):
         text = _skill_text()
@@ -89,7 +95,7 @@ class TestPlanCodeReviewSkill:
         text = _skill_text()
         assert "Docker Compose external dependencies" in text
         assert "host-run app commands" in text
-        assert "repo-tracked local scenario runner boundaries" in text
+        assert "repo-tracked real API/UI scenario boundaries" in text
         assert "local scenario runner entrypoint" in text
         assert "Kind scenario target" not in text
         assert "Docker Compose vs Kind" not in text
@@ -133,6 +139,7 @@ class TestPlanCodeReviewSkill:
         assert "`credentials: \"include\"`" in text
         assert "absence of fixture `Prefer` headers" in text
         assert "side-effect\n     `Idempotency-Key`" in text
-        assert "verify.sh` must check a real-mode marker" in text
+        assert "drive the running frontend/backend\n     through real HTTP/UI" in text
+        assert "must not wrap the focused frontend test" in text
         assert "sweep sibling/completed\n     plans in the same subspec" in text
         assert "adjacent backend owner evidence" in text

@@ -10,11 +10,6 @@ import { DisplayPreferencesProvider } from "../../display/DisplayPreferencesProv
 import { NavigationProvider } from "../../navigation/NavigationProvider";
 import { HomeScreen } from "./HomeScreen";
 
-const SCENARIO_DIR = resolve(
-  __dirname,
-  "../../../../../test/scenarios/e2e/p0-014-home-default-render",
-);
-
 function wrap(ui: React.ReactElement, navigate = vi.fn()) {
   return (
     <NavigationProvider value={{ navigate }}>
@@ -35,39 +30,6 @@ describe("HomeScreen", () => {
     expect(source).not.toContain('source: { type: "url"');
     expect(source).not.toContain('source: { type: "file"');
     expect(source).not.toContain('source: { type: "manual_text"');
-  });
-
-  it("binds P0.014 claims to Vitest plus desktop/mobile Playwright evidence", () => {
-    const readme = readFileSync(resolve(SCENARIO_DIR, "README.md"), "utf8");
-    const seed = readFileSync(resolve(SCENARIO_DIR, "data/seed-input.md"), "utf8");
-    const expected = readFileSync(
-      resolve(SCENARIO_DIR, "data/expected-outcome.md"),
-      "utf8",
-    );
-    const trigger = readFileSync(resolve(SCENARIO_DIR, "scripts/trigger.sh"), "utf8");
-    const assets = `${readme}\n${seed}\n${expected}`;
-
-    for (const testFile of [
-      "targetJob.realApiMode.test.ts",
-      "HomeScreen.test.tsx",
-      "HomeLayout.test.tsx",
-      "HomeResumeSelection.test.tsx",
-      "HomeRecentMocks.test.tsx",
-      "MockInterviewCard.test.tsx",
-    ]) {
-      expect(trigger).toContain(testFile);
-      expect(expected).toContain(testFile);
-    }
-    expect(trigger).toContain("tests/pixel-parity/home.spec.ts");
-    expect(trigger).toContain(
-      "paste-only Home matches the UI truth and captures desktop/mobile evidence",
-    );
-    expect(expected).toContain("E2E.P0.014 home paste-only browser gate");
-    expect(assets).toContain("1440×900");
-    expect(assets).toContain("390×844");
-    expect(assets).toContain("formal/prototype");
-    expect(readme).toContain("stub fetch");
-    expect(assets).not.toMatch(/Real Backend Overlay|live backend/);
   });
 
   it("renders the home shell with required testids", () => {

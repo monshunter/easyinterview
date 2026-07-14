@@ -596,7 +596,7 @@ P3 仍然不做：
 | C-22 | Practice 发送与刷新恢复 | D-26 已生效，AI 首次成功、可重试失败或终态失败 | 提交、等待、失败、刷新并按需重试 | user row 立即出现；pending 锁输入并显示 thinking；retry 只在可重试失败 row 下；刷新恢复原 `clientMessageId/replyStatus`；同 ID 成功后 user/reply 各唯一一条 | backend-practice/002 + frontend-workspace-and-practice/002 + openapi-v1-contract/001 |
 | C-23 | 当前规划报告隔离 | D-27 已生效，用户从 Workspace 详情进入报告列表或从 Report/Generating 返回 | 打开 `/reports?targetJobId=...` | 只显示当前规划 current/latest；Reports Back 返回同一 Workspace 详情；TopBar 与 Parse 无报告入口/嵌入列表；跨 target/mismatch/stale fail closed，无完整历史 | frontend-workspace 001 + frontend-report 001 + frontend-shell 004 |
 | C-24 | JD 命令与只读详情分路 | 用户刚完成 import，或点击既有 ready 规划卡片 | 进入相应 route | 仅刚 import 的 queued/processing 工作进入 `/parse?targetJobId=...`；ready 初读/轮询用 replace 进入 `/workspace?targetJobId=...`；ready 卡片、Reports Back、Practice terminal recovery 直达 Workspace，且 Workspace query 只有 `targetJobId` | frontend-home 001 + frontend-workspace 001/002 + frontend-report 001 + frontend-shell 004 |
-| C-25 | Custom Accent 最小控制 | 用户打开主题菜单 | 选择自定义 accent 或 Ocean/Plum | custom 只显示色相/饱和度滑杆，无 preview/value/reset；选择 Ocean/Plum 退出 custom，主题仍可正常切换 | frontend-shell/002 + E2E.P0.005/P0.006 |
+| C-25 | Custom Accent 最小控制 | 用户打开主题菜单 | 选择自定义 accent 或 Ocean/Plum | custom 只显示色相/饱和度滑杆，无 preview/value/reset；选择 Ocean/Plum 退出 custom，主题仍可正常切换 | frontend-shell/002 component/parity gates + root `make test` |
 | C-19 | 复盘和用户画像零入口 | 当前 P0 只保留 JD / 简历 -> 模拟面试 -> 报告 -> 复练当前轮 / 进入下一轮 | 走查 TopBar、用户菜单、URL/hash route、OpenAPI、DB、shared、config 和场景索引 | 不存在 `debrief` / `profile` 目标 route、`Debriefs` / `Profile` OpenAPI tag、`debriefs` / `candidate_profiles` / `experience_cards` 表或正向场景 | [001-core-loop-module-pruning](./plans/001-core-loop-module-pruning/plan.md) |
 
 ## 9 质量、安全与评估

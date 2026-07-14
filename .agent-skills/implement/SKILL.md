@@ -116,7 +116,7 @@ Map the validator output using
 
 - Locate exactly one `role == "checklist"` path as `/tdd --file` input.
 - If a `role == "test-checklist"` file exists, extract its path as `/tdd --test-checklist`.
-- Treat `role == "bdd-plan"` and `role == "bdd-checklist"` as BDD references for `/tdd` gate verification.
+- Treat `role == "bdd-plan"` and `role == "bdd-checklist"` as user-behavior references for `/tdd` gate verification. Their IDs may be domain Behavior IDs backed by code-level behavior tests or real E2E IDs backed by running-product HTTP/UI flows.
 - Treat all other validated markdown files as `/tdd --references`.
 - Keep file order stable and deduplicate by absolute path.
 
@@ -164,10 +164,11 @@ Before branch resolution or `/tdd` handoff, inspect the loaded plan/checklist/co
 Required document-level rules:
 
 1. Code plan requires TDD: if the plan introduces front-end, back-end, tooling, migration, codegen, or test helper logic, the quality gate section must name a TDD strategy and checklist items must carry executable test assertions.
-2. Feature plan requires BDD: if the plan introduces user-visible UI, API behavior, business workflow, or end-to-end flow, the validated file set must include `bdd-plan` and `bdd-checklist`, and the main checklist must include scenario-ID `BDD-Gate:` items.
-3. Internal code plans without BDD must explicitly state why BDD is not applicable and name a substitute verification gate such as contract test, lint, drift check, migration check, or smoke.
+2. Feature plan requires BDD: if the plan introduces user-visible UI, API behavior, or business workflow, the validated file set must include `bdd-plan` and `bdd-checklist`, and the main checklist must include Behavior-ID or justified real-E2E-ID `BDD-Gate:` items. A domain behavior test is valid BDD evidence and does not require an E2E directory.
+3. An `E2E.*` ID is valid only when its scenario drives an already running frontend/backend through real HTTP API calls or browser UI; code-level Go/Vitest/pytest/lint/build wrappers are not E2E evidence.
+4. Pure configuration defaults, internal contracts, tooling, migration, codegen, lint, fixture, and build plans without a user behavior flow must declare `BDD-N/A`, name a substitute gate, omit BDD files, and omit `bddPlan` / `bddChecklist` fields from `context.yaml`.
 
-If any required classification, BDD file, BDD-Gate, TDD strategy, or substitute gate is missing, stop and route to `/plan-review --fix` before coding. Do not infer missing quality gates during implementation.
+If any required classification, BDD file, BDD-Gate, TDD strategy, substitute gate, or evidence-layer distinction is missing, stop and route to `/plan-review --fix` before coding. Do not infer missing quality gates during implementation.
 
 ### Step 4.3: Frontend / Backend Contract Preflight
 

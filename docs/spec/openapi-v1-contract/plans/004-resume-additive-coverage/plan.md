@@ -6,8 +6,6 @@
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
-**关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
-**关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
 
 ## 1 目标
 
@@ -29,16 +27,16 @@
 
 - **Plan 类型**: `contract + feature-behavior + cross-layer handoff`
 - **TDD 策略**: Phase 7 先以 OpenAPI inventory/generator、fixture validator、backend store/service/handler 与 frontend consumer focused tests 建立 RED，再最小修改 source/codegen/projection/consumer；每个 checklist item 必须保留实际断言来源。
-- **BDD 策略**: 复用 [bdd-plan](./bdd-plan.md) / [bdd-checklist](./bdd-checklist.md) 的 E2E.P0.034/P0.036/P0.037；主 checklist 以 `BDD-Gate:` 汇总，不复制场景资产。
-- **替代验证 gate**: contract/internal 层补充 `make lint-openapi`、`make validate-fixtures`、generator tests、`make codegen-check`、backend/frontend focused tests、`make openapi-diff` 与 scoped negative search。
+- **BDD 策略**: 不适用。本 plan 只维护 OpenAPI schema、fixture、generated artifact 与 consumer contract，不拥有真实 API/UI 用户流程，也不把代码层测试包装成 E2E。
+- **替代验证 gate**: `make lint-openapi`、`make validate-fixtures`、`make codegen-check`、`make openapi-diff`、scoped negative search；阶段收口由仓库根 `make test` 完成前后端全量回归。
 
 ### 3.1 Operation Matrix
 
 | operationId | Fixture | Frontend consumer | Backend handler | Persistence | AI dependency | Gate |
 |-------------|---------|-------------------|-----------------|-------------|---------------|------|
-| `listResumes` | `Resumes/listResumes.json` summary-only items | Home picker / Resume Workshop list / every list consumer | backend-resume dedicated summary projection | `resumes` list-safe columns only | none | fixture + generated `ResumeSummary` + inventory + P0.034/P0.036 |
+| `listResumes` | `Resumes/listResumes.json` summary-only items | Home picker / Resume Workshop list / every list consumer | backend-resume dedicated summary projection | `resumes` list-safe columns only | none | fixture + generated `ResumeSummary` + inventory |
 | `registerResume` | `Resumes/registerResume.json` | upload / paste create flow | backend-resume real handler | `resumes`, upload object link | parse job backend-only | fixture + generated client + B4 contract |
-| `getResume` | `Resumes/getResume.json` full detail | Resume Workshop read-only detail and explicit detail consumers | backend-resume owned full-detail handler | `resumes` detail columns | none | fixture + generated full `Resume` + P0.037 |
+| `getResume` | `Resumes/getResume.json` full detail | Resume Workshop read-only detail and explicit detail consumers | backend-resume owned full-detail handler | `resumes` detail columns | none | fixture + generated full `Resume` |
 | `getResumeSource` | `Resumes/getResumeSource.json` | PDF resume detail preview object | backend-resume real handler | `resumes.file_object_id` + `file_objects` + object bytes | none | fixture + generated client + inventory |
 | `updateResume` | `Resumes/updateResume.json` | Resume Workshop edit overwrite | backend-resume real handler | `resumes` | none | idempotency + fixture |
 | `duplicateResume` | `Resumes/duplicateResume.json` | Resume Workshop save-as-new | backend-resume real handler | `resumes` | none | idempotency + fixture |
@@ -98,6 +96,6 @@ Backend-resume must introduce a dedicated list record/query/service mapper/handl
 
 Go/TS generated results type list items as `ResumeSummary`; full detail operations retain `Resume`. Home, Resume Workshop and every `listResumes` consumer use only summary fields, including backend `hasReadableContent`, and do not recover removed data via N+1 detail calls or frontend storage. Row navigation then issues the explicit `getResume` detail query. Compile/type tests and focused UI tests must inventory all consumers rather than patching only the visible list.
 
-### 7.4 Fixture, mock, audit and BDD closure
+### 7.4 Fixture, mock and audit closure
 
-002 Phase 11 owns list/get fixtures, examples and Prism/mock parity；003 Phase 9 generates and exact-matches the declared OPENAPI-005 oracle before guarded re-freeze；001 Phase 16 owns source/codegen. P0.034 proves backend register/list, P0.036 proves authenticated summary-only flat list and navigation, and P0.037 proves full read-only detail after navigation. All layers migrate in one batch with no alias, optional detail compatibility field, second list endpoint or frontend fallback.
+002 Phase 11 owns list/get fixtures, examples and Prism/mock parity；003 Phase 9 generates and exact-matches the declared OPENAPI-005 oracle before guarded re-freeze；001 Phase 16 owns source/codegen。所有层在同一批次迁移，不增加 alias、可选详情兼容字段、第二个列表 endpoint 或 frontend fallback；最终由根 `make test` 执行前后端全量回归。

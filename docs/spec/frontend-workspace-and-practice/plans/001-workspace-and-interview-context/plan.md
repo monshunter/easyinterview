@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.42
+> **版本**: 1.43
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -21,7 +21,6 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 历史 v1.19 曾把 `workspace` 收敛为纯列表并让卡片导航 Parse；该结论已由本计划 Phase 26 明确 supersede，不再作为当前实现合同。
 本次 v1.20 原地修订修复面试列表卡片规格回归：desktop plan-list grid 必须使用固定最大列宽，1/2/3 张卡片的规格保持稳定，不得因单卡数量被拉伸为整行宽卡。
 本次 v1.21 原地修订融合 Home 最近模拟面试与 workspace 面试列表卡片：workspace 卡片必须复用 Home recent card 的主体结构、公司/状态 eyebrow、岗位/地点层级和 mini round rail。本次 v1.22 原地修订把列表卡片的 `进入规划` 可见 footer CTA 改为点击卡片主体承接，并增加 `立即面试` 主按钮和使用简历列表 trash 图标样式的删除能力；Home recent 复用同一卡片动作模型但不展示删除按钮。
-本次 v1.23 原地修订把删除按钮从本地列表隐藏升级为 generated `archiveTargetJob` 持久软归档；删除成功后卡片移除，刷新后不得回灌，删除失败时保留卡片并展示可恢复错误。本次 v1.24 原地修订把删除图标移到卡片右上角，footer 只保留 `立即面试` 主按钮。v1.25 review remediation 要求 workspace list quick-start 必须把结构化 `roundId/roundName` 带入 practice route。v1.26 清理 out-of-scope workspace detail/start/modal 标签口径，保留负向 gate 事实但不再使用生命周期标签。v1.28 将记录区术语收敛为 records static affordance，保持记录区空状态行为不变。v1.31 修复 P0.021 wrapper 漂移，改为当前存在的 workspace source boundary 与 report replay handoff regression gate。
 本次 v1.38 原地修订收口结构化轮次目录与时长一致性：`TargetJob.summary.interviewRounds[]` 是轮次顺序和规划时长的唯一来源；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照，Practice Top Bar 从 plan 读取预算；报告下一轮只取有序列表的紧邻后一项，末轮、空/未知轮次、加载失败和重复点击 fail closed，不再使用固定 `25:00`、固定轮次表或默认回退。当前轮的持久化事实由 v1.39 `practiceProgress` 接管。
 本次 v1.39 按方案 A 把轮次进度事实收回后端：Home/Workspace/Parse/Report 只消费 `TargetJob.practiceProgress`，不再用 TargetJob lifecycle `status`、自由文本、时长或浏览器状态猜测当前轮；计划只按 exact round pair 复用，全部完成后启动 fail closed。
 
@@ -45,14 +44,12 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|----------|
-| `listTargetJobs` | current fixture | query-free `WorkspacePlanList`；same-key initial count=1 | `backend-targetjob/001` | current projection | none | `E2E.P0.018`, `E2E.P0.098` |
-| `archiveTargetJob` | `openapi/fixtures/TargetJobs/archiveTargetJob.json` | `WorkspacePlanList` 删除图标 | `backend-targetjob/001` Phase 12 | `target_jobs.status='archived'` + `deleted_at` | none | `E2E.P0.018` persistent delete gate |
-| `getTargetJob` | current fixture | `/workspace?targetJobId` read-only detail + shared start/display；detail same-key initial count=1 | `backend-targetjob/001` | current structured/progress projection | none | P0.018/P0.021/P0.057/P0.098 |
+| `listTargetJobs` | current list/progress fixtures | Workspace list rail | backend-targetjob list owner | TargetJob + completion projection | none | `E2E.P0.098` 仅 progress refresh |
+| `getTargetJob` | current detail/progress fixtures | Workspace detail | backend-targetjob detail owner | TargetJob requirements/progress | none | `E2E.P0.098` 仅 progress/detail read |
+| `createPracticePlan` / `getPracticePlan` | current plan fixtures | quick-start/start helpers | backend-practice plan owner | practice plans | none | 当前无真实 E2E owner；root `make test` |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` | Resume detail owner only；Workspace detail 不消费 | `backend-resume/001` | `resumes` | none | external owner gates |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home selector + Resume Workshop；Workspace/Parse detail 不消费 | `backend-resume/001` | `resumes` summary projection | none | Home/Resume owner gates |
-| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` | Shared start validates target/resume/time budget before reuse；Practice reads runtime budget | `backend-practice/001` | `practice_plans.time_budget_minutes` | none | P0.021/P0.045 focused gates |
-| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` | Shared start creates baseline / retry / next-round plan with selected round duration | `backend-practice/001` | `practice_plans.time_budget_minutes` | none | P0.021/P0.057 focused gates |
-| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | Workspace list quick start、Workspace detail 与 report handoff start practice and navigate `practice` | `backend-practice/001` | `practice_sessions` + opening `practice_messages` row | backend-only `practice.session.chat` | workspace + detail/report focused gates |
+| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | Workspace list quick start、Workspace detail 与 report handoff start practice and navigate `practice` | `backend-practice/001` | `practice_sessions` + opening `practice_messages` row | backend-only `practice.session.chat` | 当前无真实 E2E owner；root `make test` |
 | `getFeedbackReport` | N/A | 本 plan 不消费；report owner handles replay/next-round CTA | external owner | external | none | external owner gates |
 
 ### 2.2 UI / Route Boundary
@@ -67,7 +64,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 - **Plan 类型**: `feature-behavior + contract + frontend-ui + BDD`。
 - **TDD 策略**: 适用。Vitest 覆盖 route hydration、InterviewContext reducer、ordered round resolver、plan time-budget create/reuse、Practice plan budget display、report next-round/last-round/unknown-round/double-click handoff、generated client body/header、auth pendingAction、privacy and out-of-scope negative gates。
-- **BDD 策略**: 适用。`E2E.P0.018` / `E2E.P0.021` 覆盖 workspace 与 shared start，`E2E.P0.045` 覆盖 Practice Top Bar runtime budget，`E2E.P0.057` 覆盖报告复练/下一轮及 fail-closed 边界。
+- **BDD 策略**: `BDD.WORKSPACE.CONTEXT.001` 由代码层 owner tests 验证 list/detail、后端 progress 投影、exact-plan reuse 与 fail-closed 行为，并由仓库根 `make test` 统一回归；`E2E.P0.098` 仅作为 completion/progress refresh 的独立真实环境 handoff，只有显式运行后才产生 PASS，且不承接 quick-start/session start/next-round。
 - **替代验证 gate**:
   - `pnpm --filter @easyinterview/frontend test src/app/screens/workspace src/app/screens/parse/ParseResumeBinding.test.tsx src/app/screens/report/__tests__/ReplayCta.test.tsx src/app/App.test.tsx`
   - `pnpm --filter @easyinterview/frontend test:pixel-parity`
@@ -116,7 +113,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 ### Phase 6: Verification closeout
 
-- Frontend focused tests, workspace pixel parity, BDD scenario scripts, fixture validation, docs/index checks and negative grep gates passed in owner closeout.
+- Focused tests remain development feedback；phase completion uses repository-root `make test`, with workspace pixel parity, fixture validation, docs/index checks and negative grep as separate gates. Only `E2E.P0.098` owns the real completion/progress-refresh flow described in the BDD plan.
 
 ### Phase 7: Interview nav and plan-list landing revision
 
@@ -157,7 +154,6 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - Reopen the completed owner because runtime evidence showed parse-failed / blank TargetJob rows could appear as interview-plan cards, and TopBar `面试` from a detail page reused stale context.
 - Require `useWorkspaceTargetJobs` consumers to request `analysisStatus=ready` and require `WorkspacePlanList` to ignore non-ready or blank-title records if stale data still appears.
 - Align route split with `ui-design/src/screen-workspace.jsx`: workspace ignores stale `InterviewContext` and out-of-scope route params, so it cannot produce “缺少目标岗位 ID”.
-- Add regression coverage for failed/blank record exclusion, ready-query assertion, TopBar no-context list landing after a hydrated detail context, and E2E.P0.018 scenario wording.
 
 ### Phase 14: Workspace route purity remediation
 
@@ -199,17 +195,12 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 ### Phase 19: Remove non-executable workspace detail/start scenarios
 
 - Current workspace runtime is a pure plan-list owner; detail loading moved to parse, while parse/report focused gates own direct practice start and auth recovery.
-- Delete E2E.P0.019 and E2E.P0.020 scenario packages because their triggers reference five workspace tests removed in Phase 14 and cannot execute current behavior.
-- Remove their BDD matrix, context discovery and scenario index entries without keeping placeholder directories or lifecycle banners; retain E2E.P0.018 for list/parse/archive behavior and E2E.P0.021 for workspace boundary/privacy.
 - Add a repository-wide scenario contract test requiring every explicit frontend Vitest/Playwright path in trigger scripts to resolve to a tracked file.
-- Gate with the generic contract red/green cycle, current parse/report start-practice tests, E2E.P0.018/E2E.P0.021, owner/product contexts, docs/index/diff checks and pruning surface.
 
 ### Phase 20: Remove obsolete auto-start context state and implicit route-param carry
 
 - Delete `autoStartPractice` from `InterviewContextState`, defaults and route hydration, and delete the unreferenced `CLEAR_AUTO_START` action.
 - Replace `startPracticeFromParams` arbitrary input spreading plus one-key stripping with an explicit current practice-route output assembled from normalized context, new plan/session IDs and optional language.
-- Preserve URL hostile-input rejection in routeUrl/P0.088 negative tests; direct-start callers continue to receive target/job/resume/round/mode/practice/hint/source-report context only.
-- BDD is not applicable because this is internal state and route-param sanitization with no user-visible flow change. Alternative gates: focused red/green unit tests, parse/report/home/workspace direct-start regressions, P0.018/P0.021/P0.057/P0.088 wrappers, typecheck/full frontend tests and owner/global gates.
 
 ### Phase 21: Remove test-only InterviewContext reducer actions
 
@@ -229,7 +220,6 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - Reopen the completed owner after screenshot review because Phase 8 still rendered low-value source/language metadata and a secondary CTA that visually competed with the theme.
 - Update `docs/ui-design/module-job-workspace.md` and `ui-design/src/screen-workspace.jsx` so no-context plan cards are concise: status + updated date, title, company/location, and a theme accent `进入规划` / `Open plan` CTA only.
 - Update formal `WorkspacePlanList` to remove source/language display, keep footer as a minimal action row, and strengthen separation from page background via existing card/rule/elevation tokens.
-- Add jsdom, Playwright and E2E.P0.018 assertions that fail when `workspace.planList.cardMeta`, source labels, target language text, or secondary button styling return to the card.
 
 ### Phase 23: Remove unreachable static Workspace detail branch
 
@@ -237,7 +227,6 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - Delete the unreachable detail DOM, its exclusive context/history/modal/requirement helpers, and the now-unconsumed `screen-workspace-insight.jsx` source/script entry; move the one live Parse binding-pill consumer into its owner as a smaller local component, and retain `getWorkspaceResumeOptions` because Home and Parse still consume it.
 - Replace UI contract assertions that kept the old detail branch alive with explicit zero-residual assertions for `hasPlanContext`, `PlanSwitcherModal`, `ResumePickerModal` and the old detail helpers.
 - Reconcile the active workspace/practice spec from the stale embedded-insight contract to the current pure list boundary.
-- BDD is not applicable because the branch has no executable path and current user behavior remains the plan list plus Parse-owned detail. Alternative gates: UI contract red/green, source dependency inventory, P0.018, formal workspace tests, owner/product contexts and docs/diff/pruning gates.
 
 ### Phase 24: Structured round runtime consistency
 
@@ -246,7 +235,6 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - Resolve the selected round once through the shared round assumptions; write its `durationMinutes` into `CreatePracticePlanRequest.timeBudgetMinutes`, and display the persisted plan budget in Practice. Phase 25 supersedes the old duration-only reuse predicate with exact persisted round-pair reuse.
 - Resolve next round as the immediate existing successor in the fetched TargetJob round list. Sequence must be positive int32, unique and strictly increasing, but gaps such as `1,2,4` are valid: round `2` advances to round `4`, never a fabricated `3`. Disable next-round while round data is loading, when derived round IDs are duplicated, when the current round is missing/unknown, at the final/single round, or while a start is in flight; never fall back to the first or a fabricated default round.
 - Keep elapsed time as informational budget progress: no automatic completion, no TargetJob status mutation, no new OpenAPI/schema field.
-- BDD-Gate: update and run `E2E.P0.021`, `E2E.P0.045` and `E2E.P0.057`.
 - Closeout evidence: [BUG-0161](../../../../bugs/BUG-0161.md) and [structured-round runtime consistency assessment](../../../../reports/2026-07-12-structured-round-runtime-consistency-assessment.md).
 
 ### Phase 25: Backend-persisted round progress and exact plan reuse
@@ -255,8 +243,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - Replace `roundIndexFromTargetJobStatus` with a strict progress mapper. It validates exact round pair, positive int32 strictly increasing/unique canonical sequences without requiring contiguity, completed prefix, current first-incomplete and final completed/null state. Navigation derives `roundId/roundName` only from valid current progress; changing `TargetJob.status` cannot change the result.
 - `buildCreatePlanRequest` sends `roundId` only; the backend derives sequence. Shared start reuses a plan only when ready target/resume/roundId/roundSequence exactly match, with duration as an integrity check. Equal-duration adjacent rounds and legacy null identity must create/validate a new plan. A new response with a mismatched pair cannot start a session.
 - Home/Workspace/Parse quick-start must target `practiceProgress.currentRound`; final/invalid progress disables start with zero plan/session calls. Report next-round is enabled only when the next existing canonical array item exactly equals the backend current round; it must not compare with `sequence + 1`. Retry-current-round remains allowed and server-validated.
-- No round/progress/plan-completion business state may be written to local/session storage, IndexedDB or URL as a fact. Run UI contract, focused/full frontend, typecheck/build, Home/Workspace/Parse/Report parity, P0.018/P0.021/P0.057/P0.098 and negative searches for status/text/duration/contiguous-sequence fallback and business-storage persistence.
-- Real PostgreSQL projection tests plus Vitest/static scope checks are supporting evidence, not a live-browser substitute. Phase 25 BDD closes only after a real API-mode browser reloads Home/Workspace/Parse after completion, observes the persisted rail/current round, clicks quick-start and proves the generated request/response use the exact next existing canonical round.
+- Real PostgreSQL projection tests and focused frontend tests are development feedback. Code-level `BDD.WORKSPACE.CONTEXT.001` closes this owner through repository-root `make test`. When explicitly run, `E2E.P0.098` validates only the real completion API plus Home/Workspace/TargetJob progress-refresh contract；Parse、quick-start、session start 与 next-round plan creation 均在其范围外。本轮未运行，状态保持 `Ready`。
 
 ### Phase 26: Workspace list/detail route split
 
@@ -264,44 +251,34 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - Workspace detail reuses the unified read-only detail component and API-owned resume/round/progress facts. It must not call `importTargetJob`, start a Parse poll scheduler, render Parse progress animation, or run route-side auto-start. Missing/invalid/mismatched detail fails closed without leaking another TargetJob.
 - Under React StrictMode, shell/001 safe-read single-flight and stable loader dependencies must yield exactly one same-key initial underlying `listTargetJobs` for list and one `getTargetJob` for detail. Request-count evidence comes from bottom transport spies; hook/effect call count is insufficient.
 - Ready import transition and Back behavior remain shell/004 Phase 12 responsibility: Parse ready uses replace to workspace detail; Back cannot replay the animation. Workspace only consumes the canonical route state.
-- Update existing `E2E.P0.018` as primary BDD; retain P0.021 boundary/privacy and P0.098 persisted-progress regression. Do not create a sibling scenario.
 
 ### Phase 27: Workspace detail round-state affordance
 
 - Prototype-first: `ui-design/src/screens-p0-complete.jsx::ParseScreen` consumes the already-validated `eiResolvePracticeProgress` result and renders round-assumption cards as `done/current/pending`; Workspace target detail starts in preview state and never runs the Parse animation.
 - Formal frontend uses only `resolveTargetJobPracticeProgress(targetJob)`. Indexes before `completedCount` are done, the exact valid `currentIndex` is current, and later indexes are pending. Each valid card exposes a localized visible label plus `data-round-state`; invalid/missing projections keep neutral cards with no fabricated state and disable Start.
 - Reuse existing palette tokens: done uses `okSoft/ok`, current uses `accentSoft/accent`, pending uses `bgSoft/rule-strong`. Do not add API/schema/store fields, theme tokens, lifecycle-status fallbacks, URL state or browser persistence.
-- Extend focused Vitest, UI source contract and desktop/mobile Parse parity to cover in-progress, all-completed, invalid projection, lifecycle independence, computed background/border, bbox and screenshots. Extend existing `E2E.P0.018` and retain persisted-progress `E2E.P0.098`; do not add a sibling scenario.
 
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
 |----|--------|------|
-| A-1 | `/workspace` renders list and `/workspace?targetJobId` renders read-only detail with parity | Workspace tests, pixel parity, `E2E.P0.018` |
 | A-2 | InterviewContext route hydration and carry/clear behavior are deterministic | `InterviewContext.test.tsx`, `App.test.tsx` |
 | A-3 | Workspace has no Plan Switcher / Resume Picker; workspace detail displays API-saved binding readonly | source negative + detail tests |
 | A-4 | Start practice runs from parse/report owner through `getPracticePlan` / `createPracticePlan` / `startPracticeSession` with idempotency | `ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` |
 | A-5 | Workspace owner no longer contains embedded insight / records static affordance runtime | source negative gate |
 | A-6 | Privacy and out-of-scope route/module gates have zero runtime residuals | scenario verify scripts, pruning-surface lint |
-| A-7 | TopBar shows `面试` / `Interview`; no-context `workspace` shows a plan list landing; plan cards open current-plan detail | TopBar tests, WorkspaceScreen tests, `E2E.P0.018`, pixel parity workspace spec |
 | A-8 | Workspace plan-list cards keep stable desktop width regardless of 1/2/3 card count | `WorkspaceScreen.test.tsx`, browser screenshot |
-| A-8 | Plan-list landing visually renders as Home recent-style cards with mini round rail, not loose text columns or a separate workspace-only body | `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
-| A-9 | Plan-list cards stay concise and theme-consistent: no source/language metadata, accent quick-start CTA, clear card/page separation | `WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
 | A-10 | Target job import persists selected resume binding; workspace detail recovers it from `getTargetJob`, never query/list-item authority | backend targetjob + detail tests |
-| A-11 | Workspace card goes directly to workspace detail; initial getTargetJob count=1; zero import/poll/Parse animation/route-side session start | Workspace tests, pixel parity, `E2E.P0.018` |
-| A-12 | Workspace plan list requests ready TargetJobs only, filters failed / blank-title records defensively, and TopBar / out-of-scope-param workspace navigation clears stale detail context | `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx`, `App.test.tsx`, `E2E.P0.018` |
 | A-13 | Parse/report handoff owners start practice directly and do not route through `workspace(autoStartPractice=1)` | `ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` |
 | A-14 | Workspace card click opens planning detail while footer provides quick start carrying structured `roundId/roundName`, and top-right delete performs persistent `archiveTargetJob`; Home recent reuses quick start and omits delete | `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, browser screenshots |
-| A-15 | Workspace delete is durable across refresh and never implemented as local-only hiding | generated-client tests, real-backend smoke, `E2E.P0.018`, screenshot acceptance |
-| A-16 | Selected structured round duration is persisted as `PracticePlan.timeBudgetMinutes` and rendered as the Practice budget; stale plan budgets are not silently reused | shared start tests, PracticeScreen tests, `E2E.P0.021`, `E2E.P0.045` |
-| A-17 | Report next-round advances to the next existing ordered TargetJob round (including `2→4`), never assumes `sequence + 1`, and never starts from duplicated IDs, final/single/empty/unknown/loading state or duplicate clicks | round resolver/ReplayCta tests, `E2E.P0.057` |
-| A-18 | Home/Workspace/Parse/Report consume backend-persisted progress, reuse only exact current round plans, survive real browser refresh, and fail closed after final/invalid progress without browser business-state persistence | strict round mapper/start/card/report tests, live real-API `E2E.P0.098`, storage negative gate, UI parity |
-| A-19 | Workspace detail round cards render persisted done/current/pending states with visible labels, distinct existing-token treatments and list-rail consistency; invalid projection stays neutral and non-startable | `ParseRoundStates.test.tsx`, UI contract, `frontend/tests/pixel-parity/parse.spec.ts`, `E2E.P0.018`, `E2E.P0.098` |
+| A-18 | Home/Workspace/Parse/Report consume backend-persisted progress, reuse only exact current round plans, and fail closed after final/invalid progress without browser business-state persistence | repository-root `make test`; focused mapper/start/Parse/Report tests only for development feedback; storage negative gate and UI parity |
+| A-20 | Real login plus completion survives Home/Workspace/TargetJob refresh and detail read | `E2E.P0.098`; explicitly excludes Parse, chat, plan creation and session start |
 
 ## 6 变更记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.43 | Separate code-owned Workspace behavior BDD from the Ready-only P0.098 real progress-refresh handoff. |
 | 2026-07-14 | 1.42 | Add Phase 27 rail-consistent done/current/pending treatments to Workspace detail round assumptions. |
 | 2026-07-14 | 1.41 | Add Phase 26 `/workspace` list plus targetJobId detail, direct card routing and exact detail GET count. |
 | 2026-07-12 | 1.40 | Accept non-contiguous canonical sequences and require actual live-browser reload/quick-start evidence before closing the persisted-progress BDD gate. |
@@ -311,8 +288,6 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 | 2026-07-10 | 1.35 | Remove the unconsumed useStartPracticeContext export. |
 | 2026-07-10 | 1.34 | Remove five test-only InterviewContext reducer actions and keep the runtime action surface explicit. |
 | 2026-07-10 | 1.33 | Remove obsolete auto-start context state and replace implicit practice route-param carry with an explicit allowlist. |
-| 2026-07-10 | 1.32 | Remove non-executable P0.019/P0.020 workspace scenarios and add a global trigger-path existence gate. |
-| 2026-07-10 | 1.31 | Repair P0.021 wrapper drift to current workspace boundary and report replay handoff tests; rename negative labels to out-of-scope. |
 | 2026-07-10 | 1.30 | Align workspace route/list negative wording to out-of-scope/stale terminology without behavior changes. |
 | 2026-07-09 | 1.25 | Review remediation: preserve structured round params in workspace list quick-start practice handoff. |
 | 2026-07-09 | 1.24 | Move the workspace card delete icon to the card top-right; keep footer for `立即面试` only. |

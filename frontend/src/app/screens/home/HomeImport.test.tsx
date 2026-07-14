@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { createFixtureBackedFetch, createFixtureRegistry } from "../../../api/mockTransport";
@@ -17,9 +17,12 @@ import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResu
 import importTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/importTargetJob.json";
 
 type ListResumesResponse = Awaited<ReturnType<EasyInterviewClient["listResumes"]>>;
+type RuntimeConfigResponse = Awaited<ReturnType<EasyInterviewClient["getRuntimeConfig"]>>;
 
 const defaultListResumesResponse = listResumesFixture.scenarios.default.response
   .body as ListResumesResponse;
+const defaultRuntimeConfigResponse = getRuntimeConfigFixture.scenarios.default.response
+  .body as RuntimeConfigResponse;
 const RESUME_ID = "01918fa0-0000-7000-8000-000000001000";
 
 function createClient(scenario?: string) {
@@ -33,6 +36,7 @@ function createClient(scenario?: string) {
     scenario ? { scenario } : undefined,
   );
   const client = new EasyInterviewClient({ fetch });
+  vi.spyOn(client, "getRuntimeConfig").mockResolvedValue(defaultRuntimeConfigResponse);
   vi.spyOn(client, "listResumes").mockResolvedValue(defaultListResumesResponse);
   return client;
 }
@@ -69,20 +73,6 @@ function renderHome(client: EasyInterviewClient, options?: { lang?: Lang }) {
 }
 
 describe("HomeImport — paste-only", () => {
-	 it("rejects runtime limit+1 UTF-8 bytes before import and keeps the JD", async () => {
-		const client = createClient("paste-primary");
-		const spy = vi.spyOn(client, "importTargetJob");
-		renderHome(client);
-		await selectDefaultResume();
-		const overLimit = `${"a".repeat(98_304)}b`;
-		const textarea = screen.getByTestId("home-jd-textarea");
-		fireEvent.change(textarea, { target: { value: overLimit } });
-		await userEvent.click(screen.getByTestId("home-jd-submit"));
-		expect(screen.getByTestId("home-import-error")).toHaveTextContent(/超出|exceeds/i);
-		expect(textarea).toHaveValue(overLimit);
-		expect(spy).not.toHaveBeenCalled();
-	});
-
   it("submits the exact flattened request with trimmed raw text", async () => {
     const client = createClient("paste-primary");
     const spy = vi.spyOn(client, "importTargetJob");

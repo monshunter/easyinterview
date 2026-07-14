@@ -60,8 +60,6 @@ spec:
           - openapi/fixtures/PracticePlans
           - openapi/fixtures/PracticeSessions
           - openapi
-          - test/scenarios/e2e/p0-070-practice-derived-plan-create-read-replay
-          - test/scenarios/e2e/p0-072-practice-derived-source-isolation-privacy
           - scripts/lint
         apiNames:
           - createPracticePlan

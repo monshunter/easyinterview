@@ -24,16 +24,16 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticePlan` | `PracticePlans/createPracticePlan.json` | start helpers | existing practice handler | `practice_plans`, idempotency | none | P0.022/P0.070/P0.072 |
-| `getPracticePlan` | `PracticePlans/getPracticePlan.json` | start helpers | existing practice handler | `practice_plans` | none | P0.022/P0.070 |
-| `startPracticeSession` | `PracticeSessions/startPracticeSession.json` | start helpers | practice start handler/service | session + opening `practice_messages` | `practice.session.chat` | P0.023-P0.026 |
-| `getPracticeSession` | `PracticeSessions/getPracticeSession.json` | Practice loader | practice read handler/store | session + messages | none | P0.023/P0.025/P0.044 |
+| `createPracticePlan` | current plan fixtures | start helpers | practice plan owner | plan + idempotency/audit | none | 当前无真实 E2E owner；root `make test` |
+| `getPracticePlan` | current plan fixtures | start/read helpers | practice plan read owner | plan read | none | 当前无真实 E2E owner；root `make test` |
+| `startPracticeSession` | current session fixtures | start helpers | practice session owner | session + opening message | `practice.session.chat` | 当前无真实 E2E owner；root `make test` |
+| `getPracticeSession` | current session fixtures | Practice loader | practice read owner | session + messages | none | 当前无真实 E2E owner；root `make test` |
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: feature-behavior + contract + migration + backend + codegen。
-- **TDD 策略**: 每个 phase 先更新/新增 focused Red test，再修改 OpenAPI/shared/migration/service/store；断言来源见 test-plan/checklist。
-- **BDD 策略**: 适用。P0.022-P0.026 覆盖 plan、opening message、AI failure、idempotency/isolation 与隐私。
+- **TDD 策略**: 每个 phase 可先运行 focused Red test 获取开发反馈，再修改 OpenAPI/shared/migration/service/store；阶段完成由根 `make test` 承接。
+- **BDD 策略**: plan create/read、session start/opening 与 isolation/privacy 保留 Given/When/Then 合同；当前无真实 API/UI E2E owner。
 - **替代验证 gate**: OpenAPI codegen/fixture、conventions codegen、migration up-down-up、prompt/schema/eval lint、privacy negative search。
 
 ## 4 Coverage Matrix
@@ -41,12 +41,7 @@
 | Source | Category | Plan phase | Verification | Negative scope |
 |--------|----------|------------|--------------|----------------|
 | D-24 conversation | cross-layer contract | 1 | codegen/fixture/migration/prompt gates | questionBudget/PracticeTurn/QuestionAssessment |
-| plan create/read | primary | 2 | service/store/API tests + P0.022 | mode/hint fields |
-| session opening | primary | 3 | starter tests + P0.023 | first_question/currentTurn |
-| AI failure retry | failure/recovery | 3 | starter failure matrix + P0.024 | canned opening/duplicate message |
 | session read | boundary | 4 | ordered/empty/cross-user tests | local fixture transcript |
-| idempotency/isolation | security/boundary | 5 | P0.025 | duplicate session/opening |
-| privacy | privacy/observability | 5 | P0.026 + redaction lint | raw message in event/log/audit/task payload |
 
 ## 5 实施步骤
 
@@ -63,7 +58,6 @@
 - Remove question budget, mode and hints from request/domain/store.
 - Preserve goal, interviewer persona, difficulty, language, time budget, resume/source/focus context.
 - Cover baseline and report-derived plans, idempotency and cross-user isolation.
-- Run P0.022/P0.070/P0.072 only after the real handler/store path compiles; Phase 1 contract work cannot substitute fixture-only evidence for this BDD gate.
 
 ### Phase 3: Session start with opening message
 
@@ -80,7 +74,6 @@
 ### Phase 5: Privacy, migration and BDD closeout
 
 - Prove raw message content exists only in `practice_messages` and authorized prompt/read/report input.
-- Run migration/codegen/prompt/fixture/full backend gates and P0.022-P0.026.
 - Sync owner docs/index/context; leave plan active until downstream 002/003 and frontend/report owners close.
 
 ### Phase 6: Complete resume grounding for session start
@@ -89,7 +82,6 @@
 - GREEN both the start reservation SQL and shared conversation context use one `ResumeContext` field with no character/token slicing; remove the `resume context unavailable` model fallback and return typed `VALIDATION_FAILED` before prompt resolve/AI.
 - Revalidate `practice_plans.resume_id = target_jobs.resume_id` when reserving both session start and follow-up messages so an old plan/session cannot continue with a stale same-user resume after TargetJob rebinding.
 - Harden `practice.session.chat` prompt/schema/eval contract: immutable policy is sent as a `system` message while JD, complete resume, persisted round, persona and ordered history are JSON-encoded as untrusted user data. Candidate company/project/product/technology facts require persisted resume or candidate-authored `user` evidence; `assistant` history is continuity-only and cannot turn a prior model hallucination into a candidate fact. Unnamed projects trigger a clarification question rather than an invented project. Persona controls tone/perspective only and cannot create facts or replace round identity.
-- Sync prompt hash, baseline seed and resolved eval artifact; run prompt lint/eval plus E2E.P0.023/P0.024 with named tail-marker and fail-closed evidence.
 
 ### Phase 7: Persisted canonical round identity and plan selection
 
@@ -139,5 +131,4 @@
 | 2026-07-12 | 2.4 | Require TargetJob-bound resume provenance across plan/source/completion facts, admit strict non-contiguous int32 round directories, and separate system policy from JSON-encoded untrusted interview context. |
 | 2026-07-12 | 2.3 | Reopen Phase 7 for canonical round identity persistence and ledger-validated plan selection. |
 | 2026-07-12 | 2.2 | Reopen start orchestration for full source-snapshot grounding, no-context fail-closed behavior, and evidence-only project questions. |
-| 2026-07-12 | 2.1 | Move the real P0.022 gate from Phase 1 to Phase 2 after handler implementation. |
 | 2026-07-12 | 2.0 | Reopen for conversation/message model and opening assistant message. |

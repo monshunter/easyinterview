@@ -148,6 +148,9 @@ def test_bdd_checklist_templates_are_declared_in_spec_scaffolds():
         assert "BDD-Gate" in text
     for text in (spec_template, init_spec_template):
         assert "主 `checklist.md` 只保留阶段级 `BDD-Gate`" in text
+        assert "domain behavior test" in text
+        assert "只有真实 E2E 才维护场景目录" in text
+        assert "纯内部 `BDD-N/A` 计划不得生成文件或保留字段" in text
 
 
 def test_spec_readmes_define_tdd_bdd_quality_gate_rules():
@@ -157,5 +160,34 @@ def test_spec_readmes_define_tdd_bdd_quality_gate_rules():
     for text in (spec_readme, init_spec_readme):
         assert "Code plan requires TDD" in text
         assert "Feature plan requires BDD" in text
-        assert "纯内部契约 / 工具 / 迁移 / codegen" in text
-        assert "不适用原因 + 替代验证 gate" in text
+        assert "domain behavior test" in text
+        assert "真实 HTTP API" in text
+        assert "BDD-N/A" in text
+
+
+def test_scenario_templates_only_define_real_api_ui_e2e():
+    scenario_readme = _read(INIT_TEMPLATE_ROOT / "scenarios-readme.md")
+    e2e_readme = _read(INIT_TEMPLATE_ROOT / "scenarios-e2e-readme.md")
+
+    for text in (scenario_readme, e2e_readme):
+        assert "真实 HTTP" in text
+        assert "真实 frontend" in text
+        assert "真实 backend" in text
+        assert "`go test`" in text
+        assert "不得" in text
+        assert "根 `make test`" in text
+    assert "request interception/mock backend 不是 E2E" in scenario_readme
+    assert "route interception" in e2e_readme
+
+
+def test_scenario_skills_reject_code_gate_wrappers_and_mock_backends():
+    create_skill = _read(REPO_ROOT / ".agent-skills" / "scenario-create" / "SKILL.md")
+    run_skill = _read(REPO_ROOT / ".agent-skills" / "scenario-run" / "SKILL.md")
+
+    assert "real-E2E eligibility gate before allocating an ID or creating a directory" in create_skill
+    assert "ERROR: not a real API/UI E2E flow" in create_skill
+    assert "Never wrap `make test`, focused Go/Vitest/pytest tests" in create_skill
+    assert "E2E eligibility preflight before starting the environment or executing scripts" in run_skill
+    assert "not a real E2E: wraps code-level gate" in run_skill
+    assert "not a real E2E: backend is mocked" in run_skill
+    assert "do not execute it as E2E" in run_skill

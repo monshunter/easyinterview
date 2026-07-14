@@ -47,8 +47,8 @@ Recognized roles (output-side) and their source YAML keys (input-side):
 | `spec` | `spec` | Design/spec markdown | review + execution references |
 | `testPlan` | `test-plan` | Supporting test plan | `/tdd --references` |
 | `testChecklist` | `test-checklist` | Test checklist mapped to impl phases | `/tdd --test-checklist` |
-| `bddPlan` | `bdd-plan` | BDD scenario design document keyed by scenario IDs | `/tdd` BDD-Gate reference |
-| `bddChecklist` | `bdd-checklist` | BDD scenario asset and execution checklist | `/tdd` BDD-Gate prerequisite reference |
+| `bddPlan` | `bdd-plan` | User-behavior design keyed by domain Behavior IDs and, only when justified, real E2E IDs | `/tdd` BDD-Gate reference |
+| `bddChecklist` | `bdd-checklist` | Behavior evidence and execution checklist; E2E assets are conditional | `/tdd` BDD-Gate prerequisite/reference |
 | `references[]` | `reference` | Additional markdown references (array) | review + execution references |
 
 > YAML field keys are strictly camelCase; normalized output roles are strictly kebab-case. Do not mix the two conventions. `validate_context.py` silently ignores kebab-case YAML keys, which drops files from the normalized set.
@@ -74,8 +74,8 @@ spec:
       spec: ../../spec.md
       testPlan: ./test-plan.md            # optional
       testChecklist: ./test-checklist.md  # optional, feeds /tdd --test-checklist
-      bddPlan: ./bdd-plan.md              # optional, feeds /tdd BDD-Gate
-      bddChecklist: ./bdd-checklist.md    # optional, BDD assets + verification progress
+      bddPlan: ./bdd-plan.md              # optional; user-observable behavior only
+      bddChecklist: ./bdd-checklist.md    # optional; behavior evidence + progress
       references:                         # optional, read-only refs
         - ./release-notes.md
 ```
@@ -84,8 +84,9 @@ Role mapping rules:
 
 - There must be exactly one `checklist`.
 - `test-checklist`, when present, is passed to `/tdd --test-checklist`.
-- `bdd-plan`, when present, is passed as a reference to `/tdd` for BDD-Gate item verification; `/tdd` treats `bdd-plan.md` as the BDD scenario source keyed by layer scenario IDs.
-- `bdd-checklist`, when present, is passed as a reference to `/tdd`; all referenced scenario asset/execution items must be complete before the related main checklist `BDD-Gate` can be marked complete.
+- `bdd-plan`, when present, is passed as a reference to `/tdd` for BDD-Gate verification. It distinguishes domain Behavior IDs backed by code-level behavior tests from real E2E IDs backed by running-product HTTP/UI flows.
+- `bdd-checklist`, when present, is passed as a reference to `/tdd`; its behavior definition and evidence-entry prerequisites must be complete before execution, and `/tdd` records the execution/evidence result before the related main checklist `BDD-Gate` is marked complete.
+- A domain Behavior ID does not create a `test/scenarios/e2e/` directory. An `E2E.*` ID requires a real running frontend/backend flow and cannot wrap Go/Vitest/pytest/lint/build commands.
 - All other markdown files remain read-only references.
 - Consumers must keep file order stable and deduplicate by absolute path.
 
@@ -96,8 +97,8 @@ The validator intentionally checks only manifest shape, path boundaries, and ref
 Document-level consumers enforce these rules:
 
 - Code plan requires TDD: plans that introduce front-end, back-end, tooling, migration, codegen, or test helper logic must declare a TDD strategy and executable test assertions.
-- Feature plan requires BDD: plans that introduce user-visible UI, API behavior, business workflow, or end-to-end flow must include `bddPlan`, `bddChecklist`, and scenario-ID `BDD-Gate:` items.
-- Internal code plans without BDD must document why BDD is not applicable and name a substitute verification gate.
+- Feature plan requires BDD: plans that introduce user-visible UI, API behavior, or business workflow must include `bddPlan`, `bddChecklist`, and Behavior-ID or justified real-E2E-ID `BDD-Gate:` items.
+- Pure internal/config/tooling/migration/codegen plans without a user behavior flow must declare `BDD-N/A`, document the substitute verification gate, generate no BDD files, and retain no `bddPlan` / `bddChecklist` fields.
 
 `/design`, `/create-doc`, `/plan-review`, and `/implement` enforce these document-level rules; `validate_context.py` remains limited to schema and path validation.
 

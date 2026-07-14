@@ -41,7 +41,7 @@ func (frozenReportContextMatcher) Match(value driver.Value) bool {
 		snapshot.Conversation.MessageCount == 3 && snapshot.Conversation.LastMessageSeqNo == 3
 }
 
-func TestE2EP0047FreezesReportContext(t *testing.T) {
+func TestCompleteSessionFreezesReportContext(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)
@@ -100,7 +100,7 @@ func TestE2EP0047FreezesReportContext(t *testing.T) {
 	t.Log("REPORT_CONTEXT_SNAPSHOT_PASS")
 }
 
-func TestE2EP0047CompletionReplayPreservesReportContext(t *testing.T) {
+func TestCompleteSessionReplayPreservesReportContext(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatal(err)

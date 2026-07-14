@@ -1,6 +1,6 @@
 # Secrets and Config Spec
 
-> **版本**: 2.17
+> **版本**: 2.18
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -206,7 +206,7 @@
 | C-8 | secrets 红线 | 本地改动包含一行形似真实凭证的测试样本（例如 `OPENAI_API_KEY=<redacted-test-token>`；测试文件通过临时生成内容触发正则，不在文档中写真实形态） | pre-commit / 本地 gitleaks | hook 拦截，gitleaks 拦截；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | A4 后续 001 |
 | C-12 | 后台队列权重配置 | `config/config.yaml` 声明 `async.queueWeights`，dev/staging/prod override 可调整权重 | backend internal runner 初始化读取 typed config | 读取到 `critical/default/low` 三档权重，缺失或非正数 fail-fast；不需要新增 env key | A4 后续 001 + backend-runtime-topology |
 | C-13 | 上传基础 config-only path | `config/config.yaml` 声明 `objectStorage.provider`、`upload.presignTTLSeconds`、`upload.maxBytes.resume` 与 `upload.maxBytes.privacyExport` | backend-upload handler / objectstore 初始化读取 typed config | Resume 10MB 与 Privacy Export 5MB 默认值可读取；非法 provider、非正数 TTL / 当前 maxBytes fail-fast；JD intake 不产生附件配额；`.env.example` 不新增 `UPLOAD_*` / `OBJECT_STORE_*` | A4 001 + backend-upload/001 |
-| C-14 | 内容大小缺省、覆盖与公开投影 | repo-tracked YAML 分别删除一个 size key、写入合法 override、写入 `0` / 负数 / 非法跨字段组合 | 加载配置并调用 runtime-config / domain composition | 缺 key 使用 typed code default；合法 override 贯穿 backend 与 `contentLimits`；显式非法值 fail-fast；内部 report/HTTP/provider/profile 限制不泄漏；旧 48,000、2MiB、8,000-rune、8MiB 与 adapter-local 4MiB 常量不再作为生产真理源 | A4 001 Phase 13 + A3/backend/frontend owners + P0.010/P0.046/P0.081/P0.056 |
+| C-14 | 内容大小 typed contract | A4 owner 的表驱动样例分别覆盖缺 key、一个合法 override、非正数与跨字段非法组合 | 加载并校验 typed config，再校验 public schema/codegen allowlist | 缺 key 使用 typed code default；合法 override 可被 typed consumer 注入；显式非法值 fail-fast；内部 report/HTTP/provider/profile 限制不泄漏。各业务 owner 只用小型注入值测试非平凡拒绝分支，不复制默认数值、默认大小 `limit/limit+1`、RuntimeConfig 传播或配置专属场景环境 | A4 001 Phase 13 + B2 OpenAPI Phase 17 |
 | C-9 | env 字典覆盖 | `.env.example` 中缺 `AI_PROVIDER_REGISTRY_PATH` 或 registry 引用的 provider secret env | `make lint-config` | 报错：env key 在代码或 registry truth source 出现但 `.env.example` 缺失 | A4 后续 001 + A3 003 |
 | C-10 | AI provider 本地运行校验 | `APP_ENV=dev` 且启用了需要 AIClient 的 backend 运行路径，但 provider registry 缺失或选中 provider secret 缺失 | 启动宿主机 backend runtime 或已显式接入 compose 的 optional app service | 进程启动失败并报告缺失 provider registry / secret；`APP_ENV=test` 的单元测试仍可走 stub | A4 后续 001 + A3 003 + A2 |
 | C-11 | config schema 分类 | `SESSION_COOKIE_SECRET` 标记为 secret，`runtime.defaultUiLanguage` 标记为 public | `make lint-config` / runtime-config schema check | secret 字段缺 redaction 或出现在 runtime-config schema 时失败；public 字段缺 runtime-config schema 时失败 | A4 后续 001 |

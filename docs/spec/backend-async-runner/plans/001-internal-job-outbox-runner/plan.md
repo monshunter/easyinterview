@@ -26,7 +26,7 @@
 | 2026-07-13 | 1.14 | Close Phase 5 report goal: split business/infra backoff, cap report job/provider execution at four attempts, fence all kernel finalizes plus current report/`resume_tailor` direct async-job transactions, and remove duplicate review-store lease/reaper ownership with a structure gate. |
 | 2026-07-13 | 1.13 | L2：report job explicit max_attempts4；claim attempts is lease generation，kernel finalize and current report direct transactions fence on running+claimed generation. |
 | 2026-07-13 | 1.12 | Reopen in place：business async uses10s/20s/40s/80s cap80，outbox/infra retains30s/2m/10m/1h/6h，and report max4 provider calls use only10s/20s/40s. |
-| 2026-07-10 | 1.11 | Remove the test-only targetjob drainer, duplicate async job contracts and SQL, and the targetjob-to-kernel adapter; run all retained handlers and scenarios directly through runner.Runtime. |
+| 2026-07-10 | 1.11 | Remove the test-only targetjob drainer, duplicate async job contracts and SQL, and the targetjob-to-kernel adapter; run retained handler integration tests directly through runner.Runtime. |
 | 2026-07-10 | 1.10 | Remove unused logger dependencies from report and resume runtime builders and all composition call sites. |
 | 2026-07-10 | 1.9 | 技术债口径清理：把 `report_generate` 的初始 `feedback_reports` 行描述为 pending row，不再使用 placeholder 口径。 |
 | 2026-07-10 | 1.8 | 技术债口径清理：把 review runner 描述改为实施前基线与当前 kernel owner 事实，不再使用旧交接口径。 |
@@ -37,29 +37,29 @@
 
 - **Plan 类型**: `code-internal` + `contract` + `tooling` + `docs`。涉及 backend Go 代码 / SQL / 配置 / lint 脚本 / 多个 owner spec 边界条款同步。
 - **TDD 策略**: Code plan requires TDD。通过 `/implement backend-async-runner/001-internal-job-outbox-runner backend` → `/tdd` 执行；每个代码 / 契约 checklist item 先写或调整 focused test（kernel unit / domain handler integration / outbox integration / cmd/api lifecycle test），再实现最小变更；详见 [test-plan](./test-plan.md) 跨 phase 测试映射。
-- **BDD 策略**: 不创建本 plan 专属 BDD 文件。本计划是行为保持的 backend-internal 迁移，不新增用户可见 UI / API envelope / 业务入口；但它会触达既有用户可见链路，必须在 Phase 4 以 `BDD-Gate:` 重跑当前仍保留的 owner spec 场景（auth email / privacy_delete / target_import / report_generate / resume_parse / resume_tailor），并把证据归档到 [test-checklist](./test-checklist.md)。
+- **BDD 策略**: 不适用。本计划是 backend-internal runner/SQL/runtime 迁移，不新增用户可见 UI、API envelope 或业务入口；不得把 Go HTTP、package test 或 integration test 包装成 E2E。
 - **替代验证 gate**:
   - **Contract test**：kernel `Runtime{Register,RunOnce,ReapOnce,Start,Shutdown}` 接口语义 unit test；`BackoffPolicy.Next` table 测试。
   - **Integration test**：outbox dispatcher 5s scan + FOR UPDATE SKIP LOCKED + retry / dead-letter / metrics 在真 PG 上覆盖；`async.queueWeights` typed config 注入测试。
-  - **Regression rerun**：`backend/internal/targetjob/pipeline_test.go` / `targetjob/e2e_scenario_test.go` / `privacy/runner/delete_handler_test.go` / `resume/jobs/*_test.go` / `cmd/api/resume_parse_runner_scenario_test.go` / `cmd/api/resume_tailor_runner_scenario_test.go` / `cmd/api/reports_http_scenario_test.go` 必须 PASS；各 owner spec BDD 场景在 P4 rerun。
+  - **Regression rerun**：开发中按需运行 runner/domain/cmd-api focused tests；阶段收口统一从仓库根执行 `make test`，不得由 E2E shell 再次编排。
   - **Out-of-scope negative search**：`make lint-runner-out-of-scope`（新增 lint script）扫描 spec D-12 列出的 out-of-scope entry point；本 plan 自身 zero-reference gate 在 P4 收口。
   - **Doc reconcile**：spec D-* 决策落实后必须同步修订 `backend-runtime-topology` § 模块边界、`backend-review` D-13 / D-16、`backend-targetjob` D-5、`backend-resume` § 模块边界、`backend-auth` D-* / `email_dispatch` 章节、`event-and-outbox-contract` § 模块边界、`secrets-and-config` 新增 `async.*` typed config 节点。doc reconcile gate 以 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` + 针对各 owner spec D-* 边界条款的精确 grep 为准（本仓库未维护独立 `scripts/check_docs/` 工具集）。
   - **Drift gate**：`cd backend && go build ./...`、`cd backend && go vet ./...`、Go race test、`make codegen-check`（如新增 generated 资源）、`validate_context.py`、`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`、`git diff --check`。
 
 ### 3.1 Operation Matrix
 
-本计划不新增 user-facing operation；以下当前仍可执行 job_type 的 API envelope、fixture、frontend consumer 与 scenario 入口均不变，matrix 标注当前 handler、kernel registration、persistence 与 scenario gate。B3 当前 7 个 canonical job_type 中，`privacy_export` 仅保留为 DB / OpenAPI 501 contract（`requestPrivacyExport` fixture），无 runner producer / handler。
+本计划不新增 user-facing operation；以下当前仍可执行 job_type 的 API envelope、fixture 与 frontend consumer 均不变，matrix 标注当前 handler、kernel registration、persistence 与代码回归 gate。B3 当前 7 个 canonical job_type 中，`privacy_export` 仅保留为 DB / OpenAPI 501 contract（`requestPrivacyExport` fixture），无 runner producer / handler。
 
-| canonical job_type | 触发 operationId（OpenAPI） | fixture | frontend consumer | backend handler | kernel registration | persistence | AI dependency | scenario coverage |
+| canonical job_type | 触发 operationId（OpenAPI） | fixture | frontend consumer | backend handler | kernel registration | persistence | AI dependency | code regression |
 |--------------------|---------------------------|---------|-------------------|----------------------|--------------------------|-------------|---------------|-------------------|
-| `email_dispatch` | `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json` | email-code login UI（auth flow） | `backend/internal/auth/email_dispatch_handler.go` | `backend/internal/auth/email_dispatch_handler.go` 注册到 kernel；producer 改为 `INSERT INTO async_jobs(job_type='email_dispatch')` | `async_jobs(email_dispatch)` + `DeliveryWriter` sink | stub/fixture（dev `DevMailSink`） | BDD `E2E.P0.003`；smoke `TestAuthEmailEndToEnd`（1 个 scan 周期内 email code 可见） |
-| `privacy_delete` | `deleteMe` (`DELETE /v1/me`) | `openapi/fixtures/Auth/deleteMe.json` | account / privacy 设置面 | `backend/internal/privacy/runner/delete_handler.go` | `PrivacyDeleteHandler` 直接注册到 `runner.Runtime` | `privacy_requests` + `async_jobs(privacy_delete)` + 用户级资源级联删除 | none | BDD `E2E.P0.003` + `E2E.P0.033`；smoke `DELETE /api/v1/me` → `privacy_requests.status='completed'` |
-| `report_generate` | source event：`completePracticeSession`（同事务写 pending `feedback_reports` row + `async_jobs(report_generate)`）；查询：`getFeedbackReport` / `listTargetJobReports` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` / `openapi/fixtures/Reports/getFeedbackReport.json` / `openapi/fixtures/Reports/listTargetJobReports.json` | 报告面 | `backend/internal/review/generate_handler.go` 的 `review.GenerateHandler` | `GenerateHandler`直接注册到`runner.Runtime`；kernel单点负责lease/finalize/reaper，review store不保留重复owner | `feedback_reports` + `async_jobs(report_generate)` + `outbox_events('report.generated')` | A3/F3 评审 AI profile | BDD `E2E.P0.041` + `E2E.P0.052` / `053` / `054` / `055`（Go HTTP BDD tests）；regression `review/generate_handler_test.go` + `cmd/api/reports_http_scenario_test.go` |
-| `target_import` | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | 目标导入面 | `targetjob.ParseExecutor` | 直接注册到 `runner.Runtime` | `target_jobs` + `async_jobs(target_import)` + `outbox_events('target.import.requested')` | A3 解析 profile | BDD `E2E.P0.010` / `011` / `012` / `013`；regression `targetjob/pipeline_test.go` + `e2e_scenario_test.go` |
-| `resume_parse` | `registerResume` / `confirmResumeStructuredMaster` | `openapi/fixtures/Resumes/registerResume.json` / `openapi/fixtures/Resumes/confirmResumeStructuredMaster.json` | 简历上传面 | `resumejobs.ParseHandler` | 直接注册到 `runner.Runtime` | `resume_assets` + `async_jobs(resume_parse)` | A3 简历解析 profile | BDD `E2E.P0.034` / `035`；regression `resume/jobs/parse_test.go` + `cmd/api/resume_parse_runner_scenario_test.go` |
-| `resume_tailor` | `requestResumeTailor`（查询 `getResumeTailorRun` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion`） | `openapi/fixtures/ResumeTailor/requestResumeTailor.json` / `openapi/fixtures/ResumeTailor/getResumeTailorRun.json` / `openapi/fixtures/Resumes/acceptResumeTailorSuggestion.json` / `openapi/fixtures/Resumes/rejectResumeTailorSuggestion.json` | 简历适配面 | `resumejobs.TailorHandler` | 直接注册到 `runner.Runtime`；退避走 kernel `BackoffPolicy` | `resume_tailor_runs` + `async_jobs(resume_tailor)` | A3 简历适配 profile | BDD `E2E.P0.077` / `078` / `080`；regression `resume/jobs/tailor_test.go` + `cmd/api/resume_tailor_runner_scenario_test.go` |
+| `email_dispatch` | `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json` | email-code login UI（auth flow） | `backend/internal/auth/email_dispatch_handler.go` | handler 注册到 kernel | `async_jobs(email_dispatch)` + `DeliveryWriter` sink | stub/fixture（dev `DevMailSink`） | auth/runner Go tests + root `make test` |
+| `privacy_delete` | `deleteMe` | `openapi/fixtures/Auth/deleteMe.json` | account / privacy 设置面 | `backend/internal/privacy/runner/delete_handler.go` | `PrivacyDeleteHandler` 注册到 kernel | `privacy_requests` + `async_jobs(privacy_delete)` + 用户级资源级联删除 | none | privacy/runner Go tests + root `make test` |
+| `report_generate` | `completePracticeSession` / `getFeedbackReport` / `listTargetJobReports` | corresponding PracticeSessions/Reports fixtures | 报告面 | `backend/internal/review/generate_handler.go` | `GenerateHandler` 注册到 kernel | `feedback_reports` + `async_jobs(report_generate)` + `outbox_events` | A3/F3 report profile | review/runner Go tests + root `make test` |
+| `target_import` | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | 目标导入面 | `targetjob.ParseExecutor` | handler 注册到 kernel | `target_jobs` + `async_jobs(target_import)` + `outbox_events` | A3 parse profile | targetjob/runner Go tests + root `make test` |
+| `resume_parse` | `registerResume` / `confirmResumeStructuredMaster` | corresponding Resumes fixtures | 简历上传面 | `resumejobs.ParseHandler` | handler 注册到 kernel | `resume_assets` + `async_jobs(resume_parse)` | A3 resume parse profile | resume/runner Go tests + root `make test` |
+| `resume_tailor` | `requestResumeTailor` | corresponding ResumeTailor fixtures | 简历适配面 | `resumejobs.TailorHandler` | handler 注册到 kernel | `resume_tailor_runs` + `async_jobs(resume_tailor)` | A3 resume tailor profile | resume/runner Go tests + root `make test` |
 
-矩阵字段 `frontend consumer` 仅列出受影响入口的语义所属，无前端实现修改；本计划属于 backend-internal 重构，所有仍保留 user-facing operation 的 OpenAPI envelope / fixture / scenario 行为不变，由 P4 `BDD-Gate:` owner scenario rerun + P2 handler test rerun 提供 evidence handoff。D-22 裁剪后，范围外模块的 job/event 不再作为本计划当前正向矩阵行。
+矩阵字段 `frontend consumer` 仅列出受影响入口的语义所属，无前端实现修改；本计划属于 backend-internal 重构，所有仍保留 user-facing operation 的 OpenAPI envelope / fixture 行为不变。D-22 裁剪后，范围外模块的 job/event 不再作为本计划当前正向矩阵行。
 
 ## 4 实施步骤
 
@@ -169,7 +169,7 @@ Claimed `attempts`是lease generation。Report provider pre-call reservation 与
 
 #### 6.3 Current correction gates
 
-用RED/GREEN证明：一次`GenerateReport`动作initial+最多3次retry、等待10s/20s/40s；动作返回销毁retry context，新动作从0开始；改变或重放`async_jobs.attempts`不会恢复/继承产品retry context。同步P0.058 `report-backend-evidence.v3`，并对`llm_attempt_count`、pre-call reserve、report job显式max4、crash/replay全局cap执行当前范围负向搜索。
+用RED/GREEN证明：一次`GenerateReport`动作initial+最多3次retry、等待10s/20s/40s；动作返回销毁retry context，新动作从0开始；改变或重放`async_jobs.attempts`不会恢复/继承产品retry context。该证明属于 Go/integration test，不生成 E2E marker；同时对`llm_attempt_count`、pre-call reserve、report job显式max4、crash/replay全局cap执行当前范围负向搜索。
 
 #### 3.2 Consumer 注册接口
 
@@ -216,9 +216,9 @@ kernel package 承接租约、退避、回收、shutdown 与 outbox 测试；业
 - `secrets-and-config` D-9 / §config dictionary：additive 新增 `async.leaseTimeoutSeconds` / `async.shutdownGraceSeconds` / `async.reaperIntervalSeconds` / `async.scanIntervalSeconds` typed config 节点。
 - `engineering-roadmap` §5.2 / §6.3 S2：确认 `backend-async-runner` 已作为 active subject 引用，负向 gate 拦截 `backend-async-runner.*未创建` / `未创建.*backend-async-runner` 回流。
 
-#### 4.5 Owner BDD 场景回归
+#### 4.5 Owner 代码层回归
 
-依次 rerun 各当前仍保留 owner spec BDD suite（target_import / report_generate / privacy_delete / resume_parse / resume_tailor / auth email），证据归档到 [test-checklist](./test-checklist.md)；任一场景失败 → 回到对应 phase 修复。
+依次 rerun target_import / report_generate / privacy_delete / resume_parse / resume_tailor / auth email 的 owner package 与必要 integration tests，证据归档到 [test-checklist](./test-checklist.md)；阶段完成统一从仓库根执行 `make test`。本内部迁移不创建 BDD/E2E 场景。
 
 #### 4.6 Spec / plan 状态收尾
 
@@ -238,30 +238,30 @@ kernel package 承接租约、退避、回收、shutdown 与 outbox 测试；业
 
 #### 4.10 Canonical runner contract cleanup
 
-生产入口已经只使用 `runner.Runtime`，因此删除仅由测试使用的 `targetjob.Drainer`、`targetjob.ClaimedJob` / `targetjob.JobOutcome` / `targetjob.JobHandler`、targetjob store 中重复的 claim/finalize SQL，以及 `runner.FromTargetjobHandler` adapter。该历史 phase 当时迁移的 refresh handler 由 Phase 7 删除；其余保留 handler 继续直接实现 `runner.Handler`。相关 cmd/api 场景通过 `runner.Runtime.RunOnce` 验证 lease、dispatch 与 finalize，场景文件和测试名不再保留 drainer 标签。
+生产入口已经只使用 `runner.Runtime`，因此删除仅由测试使用的 `targetjob.Drainer`、`targetjob.ClaimedJob` / `targetjob.JobOutcome` / `targetjob.JobHandler`、targetjob store 中重复的 claim/finalize SQL，以及 `runner.FromTargetjobHandler` adapter。该历史 phase 当时迁移的 refresh handler 由 Phase 7 删除；其余保留 handler 继续直接实现 `runner.Handler`。相关 cmd/api integration tests 通过 `runner.Runtime.RunOnce` 验证 lease、dispatch 与 finalize，测试文件和用例名不再保留 drainer 标签。
 
 ## 5 验收标准
 
 - 本计划列出的当前实现 / 测试项全部通过（覆盖 [spec C-1~C-24](../../spec.md#6-验收标准)，含 C-13a missing-consumer safety、BUG-0106 privacy identity cleanup、report action-local retry ownership与当前lease-generation fencing范围）。
 - 替代验证 gate 全部 PASS：contract / integration / regression rerun / out-of-scope negative lint / doc reconcile / drift gate。
-- 不存在新增的用户可见行为缺口；既有 owner spec BDD 场景 rerun 通过。
+- 不存在新增的用户可见行为缺口；owner package/integration regression 与根 `make test` 通过。
 
 ## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
-| review.Runner 删除后报告生成回归 | Phase 2.5 完成时 rerun `review/runner_test.go` + `cmd/api/reports_http_scenario_test.go`；任何失败必须先修复再进入下一 phase |
+| review.Runner 删除后报告生成回归 | Phase 2.5 完成时 rerun kernel、`GenerateHandler`、report contract 与 cmd/api composition tests；任何失败必须先修复再进入下一 phase |
 | email_dispatch 切到 async_jobs 后 email code 投递延迟 | 把 `email_dispatch` 列入 `low` priority bucket，且 production `Runtime.Start` 对每个 registered job_type 启动独立 lease loop；P3/P4 收口阶段 smoke 验证 auth email start → DevMailSink delivery 延迟 ≤ 1 个 scan 周期，并用 scheduler regression 证明 long-running critical/default handler 不会阻塞 email loop |
 | Outbox dispatcher 上线后 consumer 缺失导致 outbox 行被误确认或长期积压 | runtime 缺少 consumer 时不得置 `published`；dry-run consumer 仅允许测试显式注入；缺少 consumer 的 event 走 retry/dead-letter 并暴露 `outbox_publish_failures_total`，P3 完成前与 F2 / 各 owner 明确启用边界 |
 | 范围外模块的 runner 名称回流 | P2.3 / P2.6 作为 negative reconcile；`make lint-runner-out-of-scope` 和 active-doc grep 继续拦截局部 runtime / deleted module positive surface |
 | 多 owner spec D-* 边界条款同步遗漏 | Phase 4.4 用 checklist 逐项打勾；P4 收尾必须运行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` |
-| 退避收口期间 in-flight job 行为变化导致已部署环境异常 | 本仓库无线上环境，P0 不需要兼容 layer；本 plan 仅需保证 dev / test scenario 通过 |
+| 退避收口期间 in-flight job 行为变化导致已部署环境异常 | 本仓库无线上环境，P0 不需要兼容 layer；本 plan 以 owner package/integration tests 与根 `make test` 为完成 gate |
 | typed config 节点新增导致 A4 owner spec 需要 additive 修订 | Phase 1.6 把 A4 修订作为前置 checklist item；若实施期发现 A4 owner spec 已有冲突决策，停止进入 plan-review / design 修订，不以 kernel default 常量绕过 |
 | product、business job与infra schedule误复用 | runner/outbox两个显式factory + injection tests；report使用动作内waiter与reset测试，负向断言runner attempts/max_attempts不拥有产品10s/20s/40s或调用上限 |
 
 ## Phase 7: OPENAPI-002 TargetJob refresh runner contraction
 
-本批次依赖顺序固定为：统一 RED → B1/B3/OpenAPI 真理源与生成物 → A4/B4/F3/backend-upload/backend-async-runner 各自 owner surface → backend-targetjob Phase 18 集成 → BDD/全局 zero-reference。Runner 只在 B3 Phase 9 的 12-event/7-job/6-API-facing handoff 可消费后进入 GREEN；任一上游 handoff 未完成时不得宣称本 Phase 完成。
+本批次依赖顺序固定为：统一 RED → B1/B3/OpenAPI 真理源与生成物 → A4/B4/F3/backend-upload/backend-async-runner 各自 owner surface → backend-targetjob Phase 18 集成 → 全局 zero-reference。Runner 只在 B3 Phase 9 的 12-event/7-job/6-API-facing handoff 可消费后进入 GREEN；任一上游 handoff 未完成时不得宣称本 Phase 完成。
 
 Consume B3 2.15 regenerated 12-event/7-job manifests before runtime edits. RED runner/registry/builder/queue tests must fail while the old refresh job can be registered, leased, handled, assigned to low priority, or emitted as a metric label. GREEN deletes its handler, registration, cmd/api wiring, queue assignment and targeted tests while keeping `target_import` operational and `source_records` table/model/query behavior intact.
 

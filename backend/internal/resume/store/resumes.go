@@ -657,6 +657,17 @@ insert into async_jobs (
 }
 
 func ensureActiveResumeLimit(ctx context.Context, tx *sql.Tx, userID string, maxActive int) error {
+	var lockedUserID string
+	if err := tx.QueryRowContext(ctx, `
+select id
+from users
+where id = $1
+for update`,
+		userID,
+	).Scan(&lockedUserID); err != nil {
+		return fmt.Errorf("lock resume owner for active limit: %w", err)
+	}
+
 	var count int
 	if err := tx.QueryRowContext(ctx, `
 select count(*)

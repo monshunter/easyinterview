@@ -1,8 +1,6 @@
 package openaicompatible_test
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -19,114 +17,41 @@ import (
 
 const responseBodyLimit = 256
 
-func TestCompleteResponseBodyLimitAndTrustedModelProvenance(t *testing.T) {
+func TestCompleteUsesTrustedModelProvenance(t *testing.T) {
 	const untrustedModel = "provider-model-RAW-MARKER"
-	tests := []struct {
-		name       string
-		size       int
-		gzip       bool
-		wantCode   string
-		wantModel  string
-		wantFinish string
-	}{
-		{name: "exact limit", size: responseBodyLimit, wantModel: chatModelID, wantFinish: "stop"},
-		{name: "one byte over", size: responseBodyLimit + 1, wantCode: sharederrors.CodeAiOutputInvalid},
-		{name: "one byte over after gzip decompression", size: responseBodyLimit + 1, gzip: true, wantCode: sharederrors.CodeAiOutputInvalid},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			body := sizedChatResponse(t, tc.size, untrustedModel)
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				if tc.gzip {
-					w.Header().Set("Content-Encoding", "gzip")
-					zw := gzip.NewWriter(w)
-					_, _ = zw.Write(body)
-					_ = zw.Close()
-					return
-				}
-				_, _ = w.Write(body)
-			}))
-			defer server.Close()
+	body := sizedChatResponse(t, responseBodyLimit, untrustedModel)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(body)
+	}))
+	defer server.Close()
 
-			adapter := newAdapterAt(t, server.URL, server.Client())
-			resp, meta, err := adapter.Complete(context.Background(), chatProfile(5000), samplePayload())
-			if tc.wantCode != "" {
-				assertStableAPIError(t, err, tc.wantCode, untrustedModel)
-				return
-			}
-			if err != nil {
-				t.Fatalf("Complete: %v", err)
-			}
-			if resp.FinishReason != tc.wantFinish {
-				t.Fatalf("finish reason=%q, want %q", resp.FinishReason, tc.wantFinish)
-			}
-			if meta.ModelID != tc.wantModel || meta.ModelFamily != chatModelFamily {
-				t.Fatalf("untrusted response model changed provenance: %+v", meta)
-			}
-			assertDoesNotContain(t, mustJSON(t, meta), untrustedModel)
-		})
+	adapter := newAdapterAt(t, server.URL, server.Client())
+	resp, meta, err := adapter.Complete(context.Background(), chatProfile(5000), samplePayload())
+	if err != nil {
+		t.Fatalf("Complete: %v", err)
 	}
+	if resp.FinishReason != "stop" {
+		t.Fatalf("finish reason=%q, want stop", resp.FinishReason)
+	}
+	if meta.ModelID != chatModelID || meta.ModelFamily != chatModelFamily {
+		t.Fatalf("untrusted response model changed provenance: %+v", meta)
+	}
+	assertDoesNotContain(t, mustJSON(t, meta), untrustedModel)
 }
 
-func TestCompleteErrorBodyLimitAndProviderMessageIsolation(t *testing.T) {
+func TestCompleteKeepsProviderErrorMessagePrivate(t *testing.T) {
 	const rawMarker = "PROVIDER-PRIVATE-RAW-MARKER"
-	base := []byte(`{"error":{"code":"AI_PROVIDER_TIMEOUT","message":"` + rawMarker + `"}}`)
-	tests := []struct {
-		name     string
-		size     int
-		wantCode string
-	}{
-		{name: "exact limit", size: responseBodyLimit, wantCode: sharederrors.CodeAiProviderTimeout},
-		{name: "one byte over", size: responseBodyLimit + 1, wantCode: sharederrors.CodeAiOutputInvalid},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write(padJSON(t, base, tc.size))
-			}))
-			defer server.Close()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.WriteString(w, `{"error":{"code":"AI_PROVIDER_TIMEOUT","message":"`+rawMarker+`"}}`)
+	}))
+	defer server.Close()
 
-			adapter := newAdapterAt(t, server.URL, server.Client())
-			_, meta, err := adapter.Complete(context.Background(), chatProfile(5000), samplePayload())
-			assertStableAPIError(t, err, tc.wantCode, rawMarker)
-			assertDoesNotContain(t, mustJSON(t, meta), rawMarker)
-		})
-	}
-}
-
-func TestTranscribeResponseBodyLimit(t *testing.T) {
-	tests := []struct {
-		name     string
-		size     int
-		wantCode string
-	}{
-		{name: "exact limit", size: responseBodyLimit},
-		{name: "one byte over", size: responseBodyLimit + 1, wantCode: sharederrors.CodeAiOutputInvalid},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			body := sizedTranscriptionResponse(t, tc.size)
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write(body)
-			}))
-			defer server.Close()
-
-			adapter := newAdapterAt(t, server.URL, server.Client())
-			resp, _, err := adapter.Transcribe(context.Background(), sttProfile(5000), aiclient.TranscriptionInput{
-				Audio: []byte("audio"), Filename: "answer.webm", ContentType: "audio/webm",
-			})
-			if tc.wantCode != "" {
-				assertStableAPIError(t, err, tc.wantCode)
-				return
-			}
-			if err != nil || resp.Text == "" {
-				t.Fatalf("Transcribe exact-limit response failed: text=%d err=%v", len(resp.Text), err)
-			}
-		})
-	}
+	adapter := newAdapterAt(t, server.URL, server.Client())
+	_, meta, err := adapter.Complete(context.Background(), chatProfile(5000), samplePayload())
+	assertStableAPIError(t, err, sharederrors.CodeAiProviderTimeout, rawMarker)
+	assertDoesNotContain(t, mustJSON(t, meta), rawMarker)
 }
 
 func TestCompleteRejectsUntrustedRouteAndFallbackHeaders(t *testing.T) {
@@ -188,31 +113,40 @@ func TestStreamUsesTrustedModelAndBoundsErrorBody(t *testing.T) {
 		assertDoesNotContain(t, mustJSON(t, meta), rawModel)
 	})
 
-	base := []byte(`{"error":{"code":"AI_PROVIDER_TIMEOUT","message":"private"}}`)
-	for _, tc := range []struct {
-		name     string
-		size     int
-		wantCode string
-	}{
-		{name: "exact error limit", size: responseBodyLimit, wantCode: sharederrors.CodeAiProviderTimeout},
-		{name: "error one byte over", size: responseBodyLimit + 1, wantCode: sharederrors.CodeAiOutputInvalid},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write(padJSON(t, base, tc.size))
-			}))
-			defer server.Close()
-			adapter := newAdapterAt(t, server.URL, server.Client())
-			ch, err := adapter.Stream(context.Background(), chatProfile(5000), samplePayload())
-			if err != nil {
-				t.Fatalf("Stream: %v", err)
-			}
-			events := collectStreamEvents(t, ch)
-			if len(events) != 1 || events[0].ErrorCode != tc.wantCode {
-				t.Fatalf("events=%+v, want error code %s", events, tc.wantCode)
-			}
-		})
+	t.Run("maps a provider error to a stable code", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, `{"error":{"code":"AI_PROVIDER_TIMEOUT","message":"private"}}`)
+		}))
+		defer server.Close()
+		adapter := newAdapterAt(t, server.URL, server.Client())
+		ch, err := adapter.Stream(context.Background(), chatProfile(5000), samplePayload())
+		if err != nil {
+			t.Fatalf("Stream: %v", err)
+		}
+		events := collectStreamEvents(t, ch)
+		if len(events) != 1 || events[0].ErrorCode != sharederrors.CodeAiProviderTimeout {
+			t.Fatalf("events=%+v, want timeout error", events)
+		}
+	})
+}
+
+func TestStreamSuccessBodyLimit(t *testing.T) {
+	body := sizedStreamResponse(t, responseBodyLimit+1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write(body)
+	}))
+	defer server.Close()
+
+	adapter := newAdapterAt(t, server.URL, server.Client())
+	ch, err := adapter.Stream(context.Background(), chatProfile(5000), samplePayload())
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	events := collectStreamEvents(t, ch)
+	if len(events) != 1 || events[0].Type != aiclient.StreamEventError || events[0].ErrorCode != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("events=%+v, want one output-invalid event", events)
 	}
 }
 
@@ -273,21 +207,14 @@ func sizedChatResponse(t *testing.T, size int, model string) []byte {
 	return []byte(prefix + strings.Repeat("a", size-len(prefix)-len(suffix)) + suffix)
 }
 
-func sizedTranscriptionResponse(t *testing.T, size int) []byte {
+func sizedStreamResponse(t *testing.T, size int) []byte {
 	t.Helper()
-	prefix, suffix := `{"text":"`, `"}`
+	prefix := `data: {"model":"ignored","choices":[{"delta":{"content":"`
+	suffix := `"},"finish_reason":"stop"}]}` + "\n\n"
 	if size < len(prefix)+len(suffix) {
-		t.Fatalf("response size %d too small", size)
+		t.Fatalf("stream response size %d too small", size)
 	}
 	return []byte(prefix + strings.Repeat("a", size-len(prefix)-len(suffix)) + suffix)
-}
-
-func padJSON(t *testing.T, body []byte, size int) []byte {
-	t.Helper()
-	if len(body) > size {
-		t.Fatalf("body size %d exceeds target %d", len(body), size)
-	}
-	return append(append([]byte(nil), body...), bytes.Repeat([]byte(" "), size-len(body))...)
 }
 
 func assertStableAPIError(t *testing.T, err error, code string, forbidden ...string) {

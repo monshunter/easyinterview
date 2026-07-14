@@ -59,7 +59,7 @@ spec:
       - listResumes exact nine fields
       - getResume full detail fixture
       - no list provenance or detail fields
-      - P0.034 P0.036 P0.037 handoff
+      - resume summary detail consumer handoff
   targets:
     contract:
       plan: ./plan.md

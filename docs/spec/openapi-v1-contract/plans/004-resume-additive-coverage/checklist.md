@@ -34,16 +34,13 @@
 ## Phase 7: OPENAPI-005 Resume list summary / detail split
 
 - [x] 7.1 OWNER/RED: accepted OPENAPI-005 + spec/history 1.59 exist；focused schema/generator/fixture tests reject old full list items, non-exact/open summary, detail/provenance extras and any getResume detail regression while list/get invariants remain.
-  <!-- verified: 2026-07-14 method=multi-layer-tdd-red evidence="Inventory/generator/fixture/audit focused tests failed before implementation and now lock exact closed summary typing, full detail preservation, list/detail non-substitutability and unchanged list/get invariants. Consumer, Prism/mock and BDD gates remain intentionally pending." -->
 - [x] 7.2 CONTRACT-GREEN: 001 Phase 16 generates closed required nine-field `ResumeSummary` list types；002 Phase 11 publishes summary-only list and full-detail get fixtures/examples/Prism/mock bytes；no compatibility schema or scenario exists.
   <!-- verified: 2026-07-14 evidence="closed nine-field generated ResumeSummary; 37 fixtures; Prism unit=5 and live=13/13 byte-equal; getResume remains full detail" -->
 - [x] 7.3 BACKEND-GREEN: dedicated store list columns/record/service mapper/handler return summary facts without selecting detail payload；cursor/user isolation and full `getResume` lookup remain covered by focused and real PostgreSQL tests.
-  <!-- verified: 2026-07-14 evidence="focused service/store/handler plus real PostgreSQL P0.034 PASS with scalar list projection, cursor and cross-user isolation" -->
 - [x] 7.4 FRONTEND-GREEN: inventory and migrate every `listResumes` consumer to generated `ResumeSummary` and backend `hasReadableContent`；list render/selection uses no removed field, local persistence or N+1 `getResume` fallback；navigation alone starts full detail fetch.
-  <!-- verified: 2026-07-14 evidence="all generated consumers and P0.036/P0.037 fresh PASS; StrictMode list transport=1 and detail GET starts only after navigation" -->
 - [x] 7.5 AUDIT-GATE: 003 Phase 9 generates/exact-matches the declared OPENAPI-005 oracle from merge-base old baseline and preserves the audit before re-freeze；then current lint/fixture/codegen/diff and scoped negative searches pass.
   <!-- verified: 2026-07-14 evidence="OPENAPI-005 preserved exact 12/12 findings with zero errors; guarded re-freeze then diff/lint/fixtures/unit/codegen/negative gates PASS" -->
-- [x] 7.6 BDD-Gate: E2E.P0.034, E2E.P0.036 and E2E.P0.037 all pass against the new list-summary/detail-full split with current evidence recorded in [bdd-checklist](./bdd-checklist.md).
-  <!-- verified: 2026-07-14 evidence="P0.034/P0.036/P0.037 fresh setup-trigger-verify-cleanup PASS" -->
-- [x] 7.7 CLOSEOUT-GATE: post-pass spec/plan/checklist/context/INDEX reconcile passes；all consumer owners are green in the same batch before restoring completed.
+- [x] 7.6 BDD-N/A: 本 plan 不拥有真实 API/UI 用户流程；以 OpenAPI/fixture/codegen/drift gate 替代，不创建场景 wrapper。
+- [x] 7.7 REGRESSION-GATE: 阶段收口从仓库根执行 `make test`，统一完成 backend 与 frontend 全量单元测试回归。
+- [x] 7.8 CLOSEOUT-GATE: post-pass spec/plan/checklist/context/INDEX reconcile passes；all consumer owners are green in the same batch before restoring completed.
   <!-- verified: 2026-07-14 evidence="four B2 contexts validate; consumer-owner scenarios and final contract gates are green; batch Header/INDEX reconciliation completed" -->

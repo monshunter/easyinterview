@@ -53,7 +53,7 @@ git diff --check
 
 ## Phase 12: OPENAPI-001 grounded direct report
 
-- [x] 12.1 OWNER/GOVERNANCE-GATE: consume B1 `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` (canonical literal/retryability only); 003 records accepted OPENAPI-001 and snapshots merge-base old baseline; baseline remains untouched. OpenAPI parity is proved here, not required to emit the B1 marker.
+- [x] 12.1 OWNER/GOVERNANCE-GATE: consume the B1 conventions gate (canonical literal/retryability only); 003 records accepted OPENAPI-001 and snapshots merge-base old baseline; baseline remains untouched.
   <!-- verified: 2026-07-12 method=owner-handoff evidence="B1 source-ready marker consumed; accepted OPENAPI-001/product approval verified; old baseline loaded from merge-base commit c3c9902a37b1aaefe0c4fb154296d711c8a6332d and worktree baseline blob remains untouched" -->
 - [x] 12.2 RED-GREEN: edit proposed OpenAPI for summary + frozen context/hasNextRound + code/label/dimensionCode/retryFocusDimensionCodes and typed-object conditional oneOf CreatePracticePlanRequest. Matrix requires baseline-with-source fail; retry/next missing/null/blank/malformed source fail; retry/next with any extra fail; minimal retry/next `{goal,sourceReportId}` pass. Remove old fields/DimensionResult, close objects and enforce bounds. Sync only B1-sourced `REPORT_CONTEXT_TOO_LARGE` into `ApiErrorCode`. (inventory/schema/error-enum/conditional negative tests + `make lint-openapi`)
   <!-- verified: 2026-07-12 method=tdd-red-green evidence="RED failed on DimensionResult/old fields, derived minimal requests, baseline+source, unknown fields and maxLength. GREEN passes exact direct-report inventory, 12-case baseline/derived matrix, closed/bounds validator, Swagger validation and 10-tag/37-operation inventory with B1 error parity." -->
@@ -79,8 +79,7 @@ git diff --check
   <!-- verified: 2026-07-13 commands="python3 -m unittest scripts.lint.openapi_inventory_test; go test ./backend/cmd/codegen/openapi -count=1; make lint-openapi; make codegen-openapi; isolated-index make codegen-check; validate_context openapi/contract" result="24 Python tests PASS; Go generator PASS; OpenAPI 3.1 valid; 37 operations/10 tags; typed flattened Go/TS request; source union/discriminator/TargetJob provenance/target_job_attachment absent; resume/privacy upload purposes retained; old baseline byte-unchanged" -->
 - [x] 13.4 AUDIT/HANDOFF-GATE: 003 Phase 6 wrapper RED proves unconsolidated new-property constraints and a stale 15-finding oracle do not match, then GREEN exact-matches 17 findings with `rawText` constraints folded into `required_property_added.after` and both source-only `ApiErrorCode` removals present; audit passes before baseline edit. 002 canonical 422 fixture and mock runtime pass before frontend/backend consumers compile; re-freeze remains deferred until every owner gate is green.
   <!-- verified: 2026-07-14 method=tdd-exact-oracle+preserved-audit+mock evidence="RED: stale 15 tests failed against actual/expected 17. GREEN: focused exact-17 and stale-oracle-negative tests PASS; preserved OPENAPI-002 artifact replays merge-base 2550c1b with 17 breaking findings/errors=[]; 37 fixtures, 24 inventory tests and lint-mock-contract PASS. Baseline remains unchanged pending all-owner re-freeze." -->
-- [x] 13.5 BDD-Gate: downstream P0.010/P0.015 prove paste submit, accepted/failed import and persisted readback using the flattened request; URL/file/manual-form positive scenarios are deleted, not treated as compatibility coverage.
-  <!-- verified: 2026-07-13 method=scenario-run evidence="E2E.P0.010 and E2E.P0.015 PASS with exact {rawText,targetLanguage,resumeId}, accepted/failed/readback paths and no compatibility scenarios." -->
+- [x] 13.5 BDD-N/A/HANDOFF: downstream backend/frontend consumer tests cover paste submit, accepted/failed import and persisted readback using the flattened request; URL/file/manual-form positive assets are deleted, not treated as compatibility coverage.
 - [x] 13.6 ZERO-REFERENCE-GATE: current OpenAPI/generated/positive-fixture/frontend/backend/mock/positive-scenario surfaces contain zero positive/runtime `TargetJobImportSource*|target_job_attachment|sourceType/sourceUrl|url/file/manual_form` TargetJob-import branches. ADR/oracle and exact negative test/fixture declarations are allowed; no whole-file/directory exclusion.
   <!-- verified: 2026-07-13 method=artifact-level-negative-search evidence="Current positive/runtime OpenAPI, generated, fixture, Home, TargetJob, mock and active scenario surfaces contain zero obsolete import branches; explicit negative gates remain; canonical success scenario is renamed paste-primary." -->
 
@@ -96,8 +95,7 @@ git diff --check
   <!-- verified: 2026-07-13 method=generated-client+consumer-tests evidence="Exact valid/non-JSON/empty/Abort/transport cases PASS; raw HTTP body is discarded, typed metadata is preserved, and Practice maps failures without parsing or displaying Error.message." -->
 - [x] 14.5 HANDOFF-GATE: 002 and mock owners publish exact get/send recovery fixtures including planned validation/auth/not-found/conflict/mismatch/retryable cases; 003 preserves a separate D-35 Practice machine-oracle audit before baseline re-freeze. The oracle is only the executable projection of D-35 + history 1.54 + 方案 A, not a third `OPENAPI-NNN` ADR, and its findings never enter OPENAPI-002's exact 17 allowset.
   <!-- verified: 2026-07-14 method=machine-oracle-red-green evidence="D-35 focused 7 tests and full openapi_diff 41 tests PASS; the 11-finding oracle/audit retains 8 breaking plus 3 additive findings, and scoped OPENAPI-003 naming is zero-residual." -->
-- [x] 14.6 BDD-Gate: frontend-workspace-and-practice/002 and P0.046 prove immediate optimistic user row, pending input lock/thinking state, retry icon only for retryable failure, reload recovery and same-ID retry with no duplicate messages.
-  <!-- verified: 2026-07-13 method=scenario-run evidence="P0.044/P0.046 PASS with typed frontend and real PostgreSQL recovery evidence; same-ID retry converges to one user/assistant pair and row-local retry is absent outside retryable failure." -->
+- [x] 14.6 BDD-N/A/HANDOFF: frontend-workspace-and-practice/002 and backend-practice/002 consumer tests cover optimistic row, pending lock/thinking, retryable-only affordance, reload recovery and same-ID retry without duplicates.
 
 ## Phase 15: OPENAPI-004 TargetJob report overview
 
@@ -107,8 +105,7 @@ git diff --check
   <!-- verified: 2026-07-14 method=openapi+codegen-green evidence="Focused overview source/semantic tests PASS, full inventory 27 tests and Go generator tests PASS, lint-openapi preserves 37/10, generated Go/TS are typed with no old aliases, and a second codegen run is byte-idempotent at sha 1262419c6ebe18e3f27c168b52fbf2764a369dfe. Nested PracticeRoundRef was RED-proven open then closed in place; overview rounds preserve the canonical 2..5 bound." -->
 - [x] 15.3 AUDIT-GATE: 003 Phase 8 exact-matches old baseline → proposed OPENAPI-004 findings before baseline edit and preserves the deterministic artifact.
   <!-- verified: 2026-07-14 method=old-baseline-exact-audit evidence="Focused RED failed on the absent OPENAPI-004 normalizer/CLI; GREEN emits a deterministic zero-error 15-finding artifact (6 breaking, 9 additive). Full openapi_diff 48 tests PASS and live isolation keeps OPENAPI-002=17, D-35=11 and OPENAPI-004=15." -->
-- [x] 15.4 HANDOFF-GATE: 002 canonical fixtures/Prism, db/targetjob zero-ref, backend-review real PostgreSQL selection, target-scoped ReportsScreen/P0.059 and Parse/Report/Generating zero-list-consumer gates pass before re-freeze.
-  <!-- verified: 2026-07-14 evidence="37 fixtures and Prism live 13/13 byte-equal; backend report handoff plus P0.016/P0.059 current gates PASS before re-freeze" -->
+- [x] 15.4 HANDOFF-GATE: 002 canonical fixtures/Prism, db/targetjob zero-ref, backend-review real PostgreSQL selection, target-scoped ReportsScreen and Parse/Report/Generating zero-list-consumer gates pass before re-freeze.
 - [x] 15.5 REGRESSION-GATE: `make lint-openapi validate-fixtures codegen-check openapi-diff` and scoped old-shape zero-reference pass after guarded re-freeze.
   <!-- verified: 2026-07-14 evidence="baseline/current sha256=6e81b656...9bc6; openapi-diff findings=0; lint=37 operations; fixtures=37; OpenAPI unit=122 PASS; codegen 69 files changed=0" -->
 
@@ -122,17 +119,17 @@ git diff --check
   <!-- verified: 2026-07-14 method=old-baseline-exact-audit evidence="OPENAPI-005 exact-set oracle and preserved audit PASS with 12 findings (1 breaking, 11 additive), 37/10 plus list/get invariants, and zero errors; frozen baseline sha256 remains e92eea4ca25618c9e6300b104ad6aea85b2b9e6094de8571349898bdecf29527." -->
 - [x] 16.4 HANDOFF-GATE: 002 Phase 11 fixture/example/Prism/mock, 004 Phase 7, backend dedicated list projection/service/handler and every frontend `listResumes` consumer pass without compatibility fields or N+1 `getResume` fallback.
   <!-- verified: 2026-07-14 evidence="Resume list fixture/Prism parity, scalar backend projection and generated ResumeSummary consumers PASS; no compatibility field or list-row getResume fallback remains" -->
-- [x] 16.5 BDD-Gate: E2E.P0.034 proves register/list summary projection, E2E.P0.036 proves flat list/auth and row navigation using summary fields, and E2E.P0.037 proves detail still fetches/renders full `Resume` only after navigation.
-  <!-- verified: 2026-07-14 evidence="P0.034/P0.036/P0.037 fresh setup-trigger-verify-cleanup PASS" -->
+- [x] 16.5 BDD-N/A/HANDOFF: backend/frontend consumer tests prove register/list summary projection, flat list/auth navigation and full detail fetch only after navigation.
+- [x] 16.6 REGRESSION-GATE: 阶段收口从仓库根执行 `make test`。
 - [x] 16.6 REGRESSION-GATE: after guarded re-freeze, `make lint-openapi validate-fixtures codegen-check openapi-diff`, downstream focused tests and scoped list-detail zero-reference gates all pass with current evidence.
   <!-- verified: 2026-07-14 evidence="guarded re-freeze is byte-equal; independent diff/lint/fixture/unit/Prism/codegen and downstream consumer gates PASS" -->
 
 ## Phase 17: RuntimeConfig content limits projection
 
 - [x] 17.1 RED: schema/generator tests require exact five-field closed `ContentLimits`, positive int64, required RuntimeConfig field and no internal limits/any/optional fallback.
-- [x] 17.2 GREEN: source/fixture/generated Go/TS/backend builder use defaults 10485760/393216/98304/32768/262144.
-- [x] 17.3 HANDOFF: Resume/Home/Practice frontend consumers compile and use generated fields; report/HTTP/provider/profile values remain absent.
-- [x] 17.4 BDD-Gate: P0.010/P0.015/P0.046/P0.081/P0.056 current boundary evidence passes.
-  <!-- verified: 2026-07-14 evidence="OPENAPI-006 exact contract/fixture/generated/builder/consumer gates and fresh BDD runs pass." -->
+- [x] 17.2 GREEN: source/fixture/generated Go/TS/backend builder use small positive representative values；`ContentLimits` 与五个子字段 required，consumer 无 per-field fallback。
+- [x] 17.3 HANDOFF: Resume/Home/Practice frontend consumers compile and use generated fields；仅整体 runtime source 不可用时保留既有 bootstrap fallback；report/HTTP/provider/profile values remain absent.
+- [x] 17.4 BDD-N/A/SUBSTITUTE-GATE: Phase 17 不新增用户流程；以 closed-schema lint、fixture validation、Go/TS codegen drift、builder focused test、frontend compile/consumer test 与 internal-field negative search 收口，不运行或扩展任何 E2E 来证明配置传播。
+  <!-- verified: 2026-07-14 evidence="OPENAPI-006 closed contract, fixture, generated, builder and consumer gates pass; configuration-only scenario dependency removed." -->
 - [x] 17.5 REGRESSION: 37/10 inventory, lint/fixtures/Prism/codegen-check/openapi-diff, focused/full consumers, contexts/docs/diff pass.
   <!-- verified: 2026-07-14 evidence="Post-commit codegen-check is byte-stable; 37/10 lint, 37 fixtures, diff 0, 52 wrapper tests, consumer suites, 11 contexts and docs/diff gates pass." -->

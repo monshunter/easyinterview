@@ -13,12 +13,14 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_design_skill_requires_layer_numbering_context_for_bdd():
+def test_design_skill_separates_domain_behavior_ids_from_real_e2e_ids():
     text = _read(SKILL_PATH)
 
-    assert "read `test/scenarios/README.md` plus the relevant layer `README.md` / `INDEX.md`" in text
-    assert "scenario IDs that follow those conventions" in text
-    assert "Each scenario uses a behavior-oriented scenario ID such as `E2E.P0.001` or `E2E.P1.003`" in text
+    assert "stable domain Behavior ID such as `BDD.AUTH.001`" in text
+    assert "may be verified by a code-level domain behavior test" in text
+    assert "Allocate an ID such as `E2E.P0.001` only when" in text
+    assert "drives the running product through real HTTP/UI" in text
+    assert "domain Behavior IDs do not create scenario directories" in text
 
 
 def test_design_skill_prohibits_ac_style_bdd_gate_ids_for_new_docs():
@@ -34,12 +36,12 @@ def test_design_skill_prohibits_hard_coverage_gates_in_test_plans():
     assert "observational background rather than a completion, commit, or phase-exit condition" in text
 
 
-def test_plan_docs_use_scenario_ids_for_bdd_gate_examples():
+def test_plan_docs_allow_behavior_or_real_e2e_ids_for_bdd_gate_examples():
     plan_template = _read(SPEC_TEMPLATE_PATH)
     init_template = _read(INIT_SPEC_TEMPLATE_PATH)
 
-    assert "BDD-Gate: 验证 E2E.P0.001 通过" in plan_template
-    assert "BDD-Gate: 验证 E2E.P0.001 通过" in init_template
+    assert "BDD-Gate: 验证 `${Behavior ID 或真实 E2E ID}` 通过" in plan_template
+    assert "BDD-Gate: 验证 `${Behavior ID 或真实 E2E ID}` 通过" in init_template
     assert "BDD-Gate: 验证 AC-1, AC-2 通过" not in plan_template
     assert "BDD-Gate: 验证 AC-1, AC-2 通过" not in init_template
 
@@ -48,8 +50,8 @@ def test_design_skill_generates_bdd_plan_and_checklist_together():
     text = _read(SKILL_PATH)
     spec_template = _read(SPEC_TEMPLATE_PATH)
 
-    assert "generate bdd-plan.md and bdd-checklist.md" in text
-    assert "add `bddPlan` and `bddChecklist` to context.yaml" in text
+    assert "generate `bdd-plan.md` and `bdd-checklist.md`" in text
+    assert "add `bddPlan` and `bddChecklist` to `context.yaml`" in text
     assert "bdd-checklist.md" in spec_template
 
 
@@ -58,8 +60,18 @@ def test_design_skill_requires_tdd_for_code_and_bdd_for_user_behavior():
 
     assert "Code plan requires TDD" in text
     assert "Feature plan requires BDD" in text
-    assert "user-visible UI, API behavior, business workflow, or end-to-end flow" in text
-    assert "BDD is not a discretionary optional artifact" in text
+    assert "user-visible UI, API behavior, or business workflow" in text
+    assert "BDD describes user-observable behavior" in text
+    assert "Pure configuration defaults, internal contracts, tooling" in text
+    assert "generate no BDD files" in text
+
+
+def test_design_skill_never_wraps_code_tests_as_e2e():
+    text = _read(SKILL_PATH)
+
+    assert "do not create a `test/scenarios/e2e/` shell wrapper" in text
+    assert "Go, Vitest, npm test, pytest, lint, source-contract, fixture, or build commands" in text
+    assert "without mock transport or request interception replacing the backend" in text
 
 
 def test_design_skill_requires_explicit_coverage_matrix_for_plan_and_tests():
@@ -74,7 +86,7 @@ def test_design_skill_requires_explicit_coverage_matrix_for_plan_and_tests():
     assert "Regression / non-current-negative" in text
     assert "Every non-docs checklist item must name its verification source" in text
     assert "Test plans must include a coverage matrix" in text
-    assert "BDD scenario selection must cover the primary user journey plus the highest-risk alternate or failure/recovery journey" in text
+    assert "BDD behavior selection must cover the primary user journey plus the highest-risk alternate or failure/recovery journey" in text
 
 
 def test_design_skill_requires_branch_guard_before_doc_mutation():

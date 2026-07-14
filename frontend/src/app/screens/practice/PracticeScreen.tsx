@@ -319,7 +319,7 @@ const PracticeSessionScreen: FC<PracticeScreenProps & { sessionId: string }> = (
 
   const send = useCallback(() => {
     const text = input;
-    if (!text.trim() || sending || paused || hasUnresolvedReply) return;
+    if (!contentLimits || !text.trim() || sending || paused || hasUnresolvedReply) return;
     const textBytes = utf8ByteLength(text.trim());
     const sessionTextBytes = committedMessages.reduce(
       (total, message) => total + utf8ByteLength(message.content),
@@ -377,7 +377,7 @@ const PracticeSessionScreen: FC<PracticeScreenProps & { sessionId: string }> = (
   if (!sessionId || loader.state === "sessionLost") return <PracticeSessionLostState onBack={backToWorkspace} />;
 
   const loaderBlocksInteraction = loader.state === "loading" || (loader.state === "error" && !hasRowLocalRetry);
-  const inputDisabled = paused || isThinking || terminalRecovery || loaderBlocksInteraction || !messages.ready || loader.data?.status === "completed" || loader.data?.status === "completing";
+  const inputDisabled = !contentLimits || paused || isThinking || terminalRecovery || loaderBlocksInteraction || !messages.ready || loader.data?.status === "completed" || loader.data?.status === "completing";
   const sendDisabled = inputDisabled || hasUnresolvedReply;
   const finishDisabled = paused || sending || loaderBlocksInteraction || !loader.data || !messages.ready || completion.state.kind === "loading" || !hasCommittedCandidateMessage || hasUnresolvedReply || (loader.data.status !== "running" && loader.data.status !== "waiting_user_input");
   const interviewerLabel = route.params.roundName || ctx.roundName || t("practice.toolbar.role.manager");

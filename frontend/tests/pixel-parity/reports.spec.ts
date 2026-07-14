@@ -382,7 +382,7 @@ test.describe("current-plan reports source, geometry, and screenshot parity", ()
       `/workspace?targetJobId=${TARGET_JOB_ID}`,
     );
     console.log(
-      `E2E.P0.059 current-plan reports ready state matches the UI truth project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} rounds=4 current=2 generating=1 failed=1 currentPlanIsolation=true currentLatestOnly=true topbarReportsEntry=0 backTarget=workspace-detail changedRatio=${changedRatio.toFixed(6)}`,
+      `PIXEL_PARITY current-plan reports ready state matches the UI truth project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} rounds=4 current=2 generating=1 failed=1 currentPlanIsolation=true currentLatestOnly=true topbarReportsEntry=0 backTarget=workspace-detail changedRatio=${changedRatio.toFixed(6)}`,
     );
     await prototype.close();
   });
@@ -483,7 +483,7 @@ test.describe("current-plan reports source, geometry, and screenshot parity", ()
           `reports-${state}-${testInfo.project.name}`,
         );
         console.log(
-          `E2E.P0.059 reports state=${state} project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} currentPlanIsolation=${state === "mismatch" ? "true" : "verified"} currentLatestOnly=true changedRatio=${changedRatio.toFixed(6)}`,
+          `PIXEL_PARITY reports state=${state} project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} currentPlanIsolation=${state === "mismatch" ? "true" : "verified"} currentLatestOnly=true changedRatio=${changedRatio.toFixed(6)}`,
         );
       } finally {
         releaseResponse();

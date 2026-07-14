@@ -49,7 +49,7 @@ piece of discussion content to the Brief fields below.
 | `ui_truth_source` | `docs/ui-design/`, `ui-design/src/*.jsx`, `ui-design/src/app.jsx`, `ui-design/src/primitives.jsx`, or another explicitly named UI source when user-visible UI is in scope | UI source parity rows in coverage matrix |
 | `open_questions` | Unresolved items | spec Open Questions |
 | `inferred_outputs` | Recommended document set (see Step 3) | Output scope |
-| `bdd_scenarios` | Target test layers, numbering rules, and scenario IDs/reservations | bdd-plan + bdd-checklist + checklist BDD-Gate |
+| `bdd_scenarios` | User-observable behaviors, verification layers, domain Behavior IDs, and any justified real E2E ID reservations | bdd-plan + bdd-checklist + checklist BDD-Gate |
 | `bdd_strategy` | Whether BDD phase gates are needed + rationale | BDD document generation |
 
 The Brief is a transient confirmation artifact — it is never persisted as a file.
@@ -60,9 +60,9 @@ Present the Brief to the user in a structured format:
 
 1. **Summary table** with subject, goals, key decisions
 2. **Recommended output scope** — which documents will be generated and why (see Step 3 logic)
-3. **BDD strategy** — whether BDD phase gates are recommended and the reasoning
+3. **BDD strategy** — whether BDD phase gates are recommended, which user behaviors they describe, and whether each behavior is proved by a domain behavior test or a real API/UI E2E flow
 4. **Coverage matrix** — primary flows, important edge conditions, failure paths, regression/non-current-negative checks, and which plan/test/BDD artifact will cover each one
-5. **Acceptance criteria summary** (if any criteria were extracted) + BDD scenario matrix (when BDD is active)
+5. **Acceptance criteria summary** (if any criteria were extracted) + BDD behavior matrix (when BDD is active)
 
 Wait for explicit user confirmation before proceeding. If the user cancels, stop without
 generating any files.
@@ -123,8 +123,10 @@ user toggle. This prevents users from accidentally under-scoping or over-generat
 
 4. **Needs BDD phase gates?** (behavior phases that can be independently deployed and verified,
    acceptance criteria with Given/When/Then, end-to-end verification requirements)
-   - Feature plan requires BDD: any plan that introduces user-visible UI, API behavior, business workflow, or end-to-end flow must read `test/scenarios/README.md` plus the relevant layer `README.md` / `INDEX.md`, generate bdd-plan.md and bdd-checklist.md with scenario IDs that follow those conventions, add BDD-Gate items keyed by scenario IDs, and add `bddPlan` and `bddChecklist` to context.yaml.
-   - BDD is not a discretionary optional artifact for user behavior. Skip BDD only for docs-only or internal contract/tooling/migration/codegen plans that do not create a user behavior flow; record the reason and the substitute verification gate.
+   - Feature plan requires BDD: any plan that introduces user-visible UI, API behavior, or business workflow must generate `bdd-plan.md` and `bdd-checklist.md`, add `BDD-Gate:` items keyed by Behavior ID or justified real E2E ID, and add `bddPlan` and `bddChecklist` to `context.yaml`.
+   - BDD describes user-observable behavior; it does not imply an E2E directory. Use a domain Behavior ID and code-level domain behavior test when that is the smallest sufficient proof.
+   - Allocate an `E2E.*` ID only after confirming that the verification drives an already running frontend/backend through real HTTP API calls or browser UI interactions. Read `test/scenarios/README.md` plus the E2E `README.md` / `INDEX.md` only for that real-E2E branch.
+   - Pure configuration defaults, internal contracts, tooling, migration, codegen, lint, fixtures, and build orchestration are `BDD-N/A` unless they introduce a distinct user-observable flow. Record the reason and substitute gate in the main plan, generate no BDD files, and leave `bddPlan` / `bddChecklist` out of `context.yaml`.
 
 **Output the reasoning** for each decision so the user can challenge it in Step 2.
 
@@ -157,7 +159,7 @@ Each coverage row must map to one or more concrete artifacts:
 | `source` | Spec requirement, decision, acceptance criterion, risk, or explicit inference from the Brief |
 | `category` | One of the categories above |
 | `plan_phase` | The phase/checklist item that implements or verifies it |
-| `verification` | Unit test, contract test, lint/drift check, migration check, smoke, or BDD scenario ID |
+| `verification` | Unit test, contract test, lint/drift check, migration check, smoke, domain Behavior ID, or real E2E ID |
 | `negative_scope` | Non-current or intentionally excluded behavior to search for, when relevant |
 | `ui_source_anchor` | Required for UI parity rows; cite the concrete `ui-design/src/*.jsx` function/component/constant or docs/ui-design section that owns the target shape |
 
@@ -190,7 +192,7 @@ owns the repository's document creation mechanics.
 - Checklist path: `docs/spec/{subspec}/plans/{NNN-plan}/checklist.md`
 - Template source: `docs/spec/TEMPLATES.md` plan/checklist sections
 - Ensure `docs/spec/{subspec}/plans/INDEX.md` exists using `/init-docs` `subspec-plans` scaffold before writing the first plan for a subject; do not create local `plans/README.md` or `plans/TEMPLATES.md`
-- When BDD is needed: add `BDD-Gate:` items at the end of each behavior phase per `docs/spec/TEMPLATES.md`, using scenario IDs from `bdd-plan.md`; track scenario asset readiness and execution in `bdd-checklist.md`
+- When BDD is needed: add `BDD-Gate:` items at the end of each behavior phase per `docs/spec/TEMPLATES.md`, using Behavior IDs or justified real E2E IDs from `bdd-plan.md`; track behavior evidence and execution in `bdd-checklist.md`
 - Phase design must follow the phase closability principle from spec 4.4:
   each behavior phase is a vertical behavior slice that can be independently deployed and verified
 - Every implementation plan must include `## 3 质量门禁分类` with Plan 类型, TDD 策略, BDD 策略, and 替代验证 gate.
@@ -218,14 +220,15 @@ owns the repository's document creation mechanics.
 - BDD files live inside the relevant plan directory:
   `docs/spec/{subspec}/plans/{NNN-plan}/bdd-plan.md` and
   `docs/spec/{subspec}/plans/{NNN-plan}/bdd-checklist.md`
-- Only generated when Step 3 inferred BDD is needed
-- Before allocating IDs, read `test/scenarios/README.md` and the target suite `README.md` / `INDEX.md`
-- `bdd-plan.md` contains detailed Given/When/Then scenarios grouped by Phase and does not contain execution progress checkboxes
-- `bdd-checklist.md` contains scenario asset and execution tasks for each scenario ID: create scenario directory, prepare data, implement setup/trigger/verify/cleanup, execute verification, and record evidence
-- Each scenario uses a behavior-oriented scenario ID such as `E2E.P0.001` or `E2E.P1.003`; if needed, map back to spec acceptance criteria inside `bdd-plan.md`, not in `BDD-Gate` items
-- BDD scenario selection must cover the primary user journey plus the highest-risk alternate or failure/recovery journey for each independently deployable behavior phase. Do not push unit-level edge cases into BDD, but do include user-visible auth, permission, empty/error, recovery, and non-current-negative flows when they define product correctness.
-- `bdd-plan.md` must include a scenario matrix that labels each scenario as primary, alternate, failure/recovery, or regression/non-current-negative, and maps it to the plan phase and checklist BDD-Gate.
-- `bdd-checklist.md` must make setup, data isolation, cleanup, pollution recovery, execution command, and evidence capture explicit for every scenario.
+- Only generated when Step 3 inferred a real user-observable behavior; `BDD-N/A` plans generate neither file
+- `bdd-plan.md` contains detailed Given/When/Then behaviors grouped by Phase and does not contain execution progress checkboxes
+- Give each behavior a stable domain Behavior ID such as `BDD.AUTH.001`. A Behavior ID may be verified by a code-level domain behavior test and does not reserve or require an E2E scenario.
+- Allocate an ID such as `E2E.P0.001` only when the verification drives the running product through real HTTP/UI. Before allocating that ID, read `test/scenarios/README.md` and the E2E `README.md` / `INDEX.md`.
+- `bdd-checklist.md` records the chosen verification entrypoint, executable behavior assertions, result, and evidence. Only a real E2E entry includes scenario-directory, data-isolation, setup/trigger/verify/cleanup, and environment tasks.
+- BDD behavior selection must cover the primary user journey plus the highest-risk alternate or failure/recovery journey for each independently deployable behavior phase. Do not push unit-level edge cases into BDD, but do include user-visible auth, permission, empty/error, recovery, and non-current-negative flows when they define product correctness.
+- `bdd-plan.md` must include a behavior matrix that labels each behavior as primary, alternate, failure/recovery, or regression/non-current-negative, maps it to the plan phase and checklist BDD-Gate, and names `domain behavior test` or `real API/UI E2E` as its evidence layer.
+- A domain behavior test stays in its code owner and is executed through the normal code-test gates; do not create a `test/scenarios/e2e/` shell wrapper around Go, Vitest, npm test, pytest, lint, source-contract, fixture, or build commands.
+- A real E2E scenario must exercise the running frontend/backend without mock transport or request interception replacing the backend.
 
 #### 4.5 context.yaml
 
@@ -263,16 +266,17 @@ Run validation and present a summary:
    ```
 
 2. **BDD reference integrity** (when BDD is active):
-   - Every scenario ID in the checklist has a corresponding entry in `bdd-plan.md`
-   - Every scenario ID in `bdd-plan.md` has a corresponding asset/execution section in `bdd-checklist.md`
-   - Every generated scenario ID follows the relevant layer `README.md` / `INDEX.md` numbering convention
+   - Every Behavior ID or real E2E ID in the checklist has a corresponding entry in `bdd-plan.md`
+   - Every ID in `bdd-plan.md` has a corresponding evidence/execution section in `bdd-checklist.md`
+   - Every real E2E ID follows `test/scenarios/e2e/README.md` / `INDEX.md`; domain Behavior IDs do not create scenario directories
+   - Every E2E entry proves real running-product HTTP/UI interaction and does not wrap code-level test, lint, fixture, or build commands
    - Report any gaps as errors
 
 3. **Coverage integrity**:
    - Every non-docs checklist item names a concrete verification source
    - Every coverage matrix row maps to a plan phase and at least one verification artifact
    - Every UI source parity row maps to a `ui_source_anchor`, a target component/file, and at least one source-structure test plus one visual-geometry or explicit N/A rationale
-   - Every BDD-Gate item maps to a scenario labeled in the BDD scenario matrix
+   - Every BDD-Gate item maps to a behavior labeled in the BDD behavior matrix
    - Any high-risk category marked `N/A` includes a rationale
    - Regression/non-current-negative rows include explicit search targets when non-current terminology, routes, modules, schemas, events, configs, or model/provider assumptions are part of the risk
 
@@ -296,8 +300,10 @@ Run validation and present a summary:
 - Generating implementation plan/context artifacts without a concrete spec path (either a newly
   generated spec file or an explicit `source_spec` reuse path)
 - Generating `bddPlan` / `bddChecklist` in context.yaml without generating the matching `bdd-plan.md` / `bdd-checklist.md` files (or vice versa)
+- Generating BDD files or retaining `bddPlan` / `bddChecklist` fields for a pure internal/config/tooling `BDD-N/A` plan
 - Generating BDD-Gate checklist items with `AC-*` references for new documents
-- Inventing BDD scenario IDs without first consulting the relevant `test/scenarios/<layer>/README.md` and `INDEX.md` when such conventions exist
+- Allocating an `E2E.*` ID or creating a scenario directory for a code-level Go/Vitest/pytest/lint/fixture/build gate instead of a real running-product HTTP/UI flow
+- Inventing real E2E IDs without first consulting `test/scenarios/e2e/README.md` and `INDEX.md`
 - Creating or updating files under `docs/` without invoking `/create-doc`
 - Invoking `/create-doc`, creating spec / plan directories, or updating INDEX files before
   the Step 2.5 branch guard succeeds

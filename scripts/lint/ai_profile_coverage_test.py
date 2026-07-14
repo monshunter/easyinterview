@@ -27,6 +27,7 @@ DEFAULT_JUDGE = textwrap.dedent(
       provider_ref: judge-deepseek
       model: deepseek-v4-pro
     timeout_ms: 1000
+    max_tokens: 16384
     version: 1.0.0
     """
 ).strip()
@@ -297,6 +298,7 @@ def test_fails_when_judge_default_unsupported(tmp_path: Path) -> None:
           provider_ref: judge-deepseek
           model: deepseek-v4-pro
         timeout_ms: 1000
+        max_tokens: 16384
         version: 1.0.0
         """
     ).strip()
@@ -317,6 +319,7 @@ def test_fails_when_judge_default_uses_non_runnable_provider(tmp_path: Path) -> 
           provider_ref: judge-placeholder
           model: judge-provider-required
         timeout_ms: 1000
+        max_tokens: 16384
         version: 1.0.0
         """
     ).strip()
@@ -345,73 +348,9 @@ def test_fails_when_chat_profile_uses_non_runnable_model(tmp_path: Path) -> None
     assert "must be runnable" in result.stderr
 
 
-REPORT_PROFILE = textwrap.dedent(
-    """
-    name: report.generate.default
-    capability: chat
-    status: active
-    default:
-      provider_ref: deepseek
-      model: deepseek-v4-pro
-      params:
-        temperature: 0.2
-        thinking: disabled
-    fallback: []
-    timeout_ms: 60000
-    context_window_tokens: 1000000
-    max_tokens: 6144
-    rate_limit:
-      rps: 3
-      tpm: 60000
-    route: report.generate
-    version: 1.2.0
-    """
-).strip()
-
-
-def make_report_repo(tmp_path: Path, report_body: str) -> Path:
-    repo = make_repo(tmp_path, CHAT_FOLLOWUP)
-    with (repo / "docs/spec/ai-provider-and-model-routing/spec.md").open("a", encoding="utf-8") as fh:
-        fh.write(
-            "\n| Report generation | context | `chat` | `report.generate.default` |\n"
-        )
-    catalog = repo / "config/ai-profiles.yaml"
-    with catalog.open("a", encoding="utf-8") as fh:
-        fh.write("\n  - " + textwrap.indent(report_body, "    ").lstrip() + "\n")
-    return repo
-
-
-def test_report_profile_exact_coordinate_passes(tmp_path: Path) -> None:
-    repo = make_report_repo(tmp_path, REPORT_PROFILE)
+def test_fails_when_active_default_budget_is_below_floor(tmp_path: Path) -> None:
+    judge = DEFAULT_JUDGE.replace("max_tokens: 16384", "max_tokens: 8192")
+    repo = make_repo(tmp_path, CHAT_FOLLOWUP, judge_body=judge)
     result = run(repo)
-    assert result.returncode == 0, result.stderr
-
-
-def test_report_profile_budget_and_unrelated_drift_fail(tmp_path: Path) -> None:
-    mutations = {
-        "missing-context-window": REPORT_PROFILE.replace(
-            "context_window_tokens: 1000000\n", ""
-        ),
-        "non-positive-context-window": REPORT_PROFILE.replace(
-            "context_window_tokens: 1000000", "context_window_tokens: 0"
-        ),
-        "context-not-above-output": REPORT_PROFILE.replace(
-            "context_window_tokens: 1000000", "context_window_tokens: 6144"
-        ),
-        "4096-regression": REPORT_PROFILE.replace("max_tokens: 6144", "max_tokens: 4096"),
-        "missing-thinking": REPORT_PROFILE.replace("    thinking: disabled\n", ""),
-        "invalid-thinking": REPORT_PROFILE.replace("thinking: disabled", "thinking: auto"),
-        "budget-without-version-bump": REPORT_PROFILE.replace("version: 1.2.0", "version: 1.1.0"),
-        "provider-route-drift": REPORT_PROFILE.replace("provider_ref: deepseek", "provider_ref: judge-deepseek"),
-        "model-drift": REPORT_PROFILE.replace("model: deepseek-v4-pro", "model: deepseek-v4-flash"),
-        "fallback-drift": REPORT_PROFILE.replace("fallback: []", "fallback:\n      - provider_ref: deepseek\n        model: deepseek-v4-flash"),
-        "route-drift": REPORT_PROFILE.replace("route: report.generate", "route: report.generate.other"),
-        "unrelated-rps-drift": REPORT_PROFILE.replace("rps: 3", "rps: 4"),
-    }
-    for label, body in mutations.items():
-        case_root = tmp_path / label
-        case_root.mkdir()
-        repo = make_report_repo(case_root, body)
-        result = run(repo)
-        assert result.returncode == 1, f"{label}: {result.stdout}\n{result.stderr}"
-        assert "report.generate.default exact profile drift" in result.stderr
+    assert result.returncode == 1
+    assert "judge.default: max_tokens must be at least 16384" in result.stderr

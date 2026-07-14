@@ -32,14 +32,11 @@ spec:
       - real browser visual smoke
       - serve-pixel-parity
       - test:pixel-parity
-      - E2E.P0.006
   targets:
     frontend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      bddPlan: ./bdd-plan.md
-      bddChecklist: ./bdd-checklist.md
       references:
         - ../../../../ui-design/README.md
         - ../../../../ui-design/INDEX.md
@@ -56,7 +53,6 @@ spec:
           - frontend/tests/pixel-parity
           - frontend/dist
           - ui-design
-          - test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate
         uiRoutes:
           - home
           - workspace

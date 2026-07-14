@@ -49,9 +49,6 @@ spec:
       - sourceReportId
       - URL privacy
       - phone mode safe params
-      - E2E.P0.088
-      - E2E.P0.089
-      - E2E.P0.090
   targets:
     frontend:
       plan: ./plan.md
@@ -76,7 +73,6 @@ spec:
           - frontend/src/app/screens/parse
           - frontend/src/app/screens/workspace
           - frontend/tests/pixel-parity
-          - test/scenarios/e2e
         uiRoutes:
           - home
           - workspace

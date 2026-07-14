@@ -27,7 +27,7 @@ import {
  * reachable in the SPA flow.
  *
  * Full e2e with fixture-backed transport is deferred to the scenario
- * gate (E2E.P0.015 / E2E.P0.016 under test/scenarios/e2e/).
+ * gate. These fixture-backed checks are UI parity tests, not E2E.
  */
 
 interface OperationFixture {
@@ -280,7 +280,7 @@ test.describe("parse screen DOM anchor parity", () => {
     });
     expect(screenshot.length).toBeGreaterThan(10_000);
     console.log(
-      `E2E.P0.015 processing-response loading browser gate project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} screenshotBytes=${screenshot.length}`,
+      `PIXEL_PARITY processing-response loading browser gate project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} screenshotBytes=${screenshot.length}`,
     );
 
     await page.waitForTimeout(1_000);
@@ -449,7 +449,7 @@ test.describe("parse screen DOM anchor parity", () => {
       `parse-loading-${testInfo.project.name}`,
     );
     console.log(
-      `E2E.P0.015 parse loading parity browser gate project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} formalScreenshotBytes=${formalScreenshot.length} prototypeScreenshotBytes=${prototypeScreenshot.length} changedRatio=${changedRatio.toFixed(6)}`,
+      `PIXEL_PARITY parse loading browser gate project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} formalScreenshotBytes=${formalScreenshot.length} prototypeScreenshotBytes=${prototypeScreenshot.length} changedRatio=${changedRatio.toFixed(6)}`,
     );
     await prototype.close();
   });
@@ -510,7 +510,7 @@ test.describe("parse screen DOM anchor parity", () => {
     await expect(roundCards.nth(2)).toHaveAttribute("data-round-state", "pending");
     await expect(roundCards.nth(2)).toContainText("Not started");
     console.log(
-      "E2E.P0.016 structured-rounds browser gate count=3 first='Frontend architecture screen · 45m' second='Hiring manager impact interview · 50m' third='Collaboration and operating style · 40m'",
+      "PIXEL_PARITY structured-rounds browser gate count=3 first='Frontend architecture screen · 45m' second='Hiring manager impact interview · 50m' third='Collaboration and operating style · 40m'",
     );
     expect(updateCalls).toHaveLength(0);
 
@@ -522,7 +522,7 @@ test.describe("parse screen DOM anchor parity", () => {
     });
     expect(screenshot.length).toBeGreaterThan(10_000);
     console.log(
-      `E2E.P0.016 workspace readonly-detail browser gate resumeId=01918fa0-0000-7000-8000-000000001000 resumeListRequests=0 parseAnimation=0 screenshotBytes=${screenshot.length}`,
+      `PIXEL_PARITY workspace readonly-detail browser gate resumeId=01918fa0-0000-7000-8000-000000001000 resumeListRequests=0 parseAnimation=0 screenshotBytes=${screenshot.length}`,
     );
   });
 
@@ -696,7 +696,7 @@ test.describe("parse screen DOM anchor parity", () => {
     expect(formalScreenshot.length).toBeGreaterThan(3_000);
     expect(prototypeScreenshot.length).toBeGreaterThan(3_000);
     console.log(
-      `E2E.P0.016 round-state parity project=${testInfo.project.name} sequence=${formalSequence.join(",")} distinctBackgrounds=3 distinctBorders=3 viewport=${viewport!.width}x${viewport!.height}`,
+      `PIXEL_PARITY round-state project=${testInfo.project.name} sequence=${formalSequence.join(",")} distinctBackgrounds=3 distinctBorders=3 viewport=${viewport!.width}x${viewport!.height}`,
     );
     await prototype.close();
   });
@@ -810,7 +810,7 @@ test.describe("parse screen DOM anchor parity", () => {
       "01918fa0-0000-7000-8000-000000002000",
     );
     console.log(
-      `E2E.P0.016 workspace plan-detail reports entry project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} reportListRequestsBeforeClick=0 topbarReportsEntry=0 embeddedReports=0 sectionReportsAccepted=false destination=/reports targetJobId=01918fa0-0000-7000-8000-000000002000 changedRatio=${changedRatio.toFixed(6)}`,
+      `PIXEL_PARITY workspace plan-detail reports entry project=${testInfo.project.name} viewport=${viewport!.width}x${viewport!.height} reportListRequestsBeforeClick=0 topbarReportsEntry=0 embeddedReports=0 sectionReportsAccepted=false destination=/reports targetJobId=01918fa0-0000-7000-8000-000000002000 changedRatio=${changedRatio.toFixed(6)}`,
     );
     await prototype.close();
   });
@@ -852,7 +852,7 @@ test.describe("parse screen DOM anchor parity", () => {
     );
     expect(url.search).not.toContain("resume-unbound");
     console.log(
-      "E2E.P0.016 workspace start-interview direct browser gate resumeId=01918fa0-0000-7000-8000-000000001000 route=practice noUpdateTargetJob=true",
+      "PIXEL_PARITY workspace start-interview browser gate resumeId=01918fa0-0000-7000-8000-000000001000 route=practice noUpdateTargetJob=true",
     );
   });
 });

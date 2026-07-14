@@ -1,6 +1,6 @@
 # 002 — Conversation Message Loop and Completion
 
-> **版本**: 2.9
+> **版本**: 2.10
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -17,37 +17,28 @@
 
 | operationId | fixture | frontend consumer | handler | persistence | AI | scenario |
 |-------------|---------|-------------------|---------|-------------|----|----------|
-| `getPracticeSession` | current `getPracticeSession.json::{default,prototype-baseline,reply-pending,reply-retryable-failed,reply-terminal-failed,reply-complete,missing-session}` | Practice session loader/remount recovery | `api/practice.GetPracticeSession` → `practice.GetPracticeSession` → SQL `GetSession`；Phase 11 在授权事务内惰性收敛过期 pending lease | current `client_message_id/reply_status` read projection；Phase 11 增加内部 `reply_generation/reply_lease_expires_at` | none | P0.044/P0.046 |
-| `sendPracticeMessage` | current `sendPracticeMessage.json::{default,ai-timeout-retryable,auth-unauthorized,validation-empty-text,session-not-found,reply-pending-conflict,client-message-mismatch,retry-success-same-client-message}` | Practice message hook/row-local retry | `api/practice.SendPracticeMessage` → `practice.SendPracticeMessage` → SQL reserve/fail/commit；Phase 11 传递 expected generation | current `client_message_id/reply_status`；Phase 11 增加 90 秒 lease/generation fence；task-runs | `practice.session.chat` | P0.044/P0.046 |
-| `completePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` | Practice finish hook | `backend-practice/002` handler/service/store（唯一 completion owner） | session/terminal messages/report-context.v1/job/outbox/idempotency | transaction 内无 AI；随后 report job | P0.047 owner artifact；P0.056/058 只消费 marker |
+| `getPracticeSession` | current session/reply-state fixtures | Practice loader/remount recovery | practice read owner | session + messages/reply state/lease | none | 当前无真实 E2E owner；root `make test` |
+| `sendPracticeMessage` | current send/retry fixtures | Practice send/retry | practice send owner | messages/reply state/lease/task runs | `practice.session.chat` | 当前无真实 E2E owner；root `make test` |
+| `completePracticeSession` | current completion fixtures | Practice Finish | practice completion owner | session/report-context/job/outbox/idempotency | no AI in transaction | `E2E.P0.098` 仅真实 completion API 与 progress refresh；root `make test` for other paths |
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: feature-behavior + API + backend + persistence。
-- **TDD 策略**: Red tests cover message replay, concurrency, failure recovery, ordering, language, privacy and completion before implementation；Phase 11 严格按 migration contract RED → store transition RED/GREEN → real PostgreSQL concurrency RED/GREEN → service/API regression → BDD evidence 执行。
-- **BDD 策略**: P0.044/P0.046/P0.047 cover happy, failure/recovery and completion.
-- **替代验证 gate**: fixture/codegen, store SQL, race, privacy lint, full backend.
+- **TDD 策略**: Red tests cover message replay, concurrency, failure recovery, ordering, language, privacy and completion before implementation；focused tests only provide development feedback，阶段完成由根 `make test` 承接。
+- **BDD 策略**: `BDD.PRACTICE.EVENT_LOOP.001` 由代码层 owner tests 验证 send/retry/completion 行为，并由仓库根 `make test` 统一回归；`E2E.P0.098` 仅作为真实登录、completion API、Home/Workspace/TargetJob refresh/detail read 的独立 handoff，只有显式真实运行后才产生 PASS。chat/session start/plan creation 当前无真实 E2E owner。
+- **替代验证 gate**: fixture/codegen, store SQL, PostgreSQL integration, race, privacy lint.
 
 ## 4 Coverage Matrix
 
 | Behavior | Category | Phase | Verification | Negative |
 |----------|----------|-------|--------------|----------|
-| send user/reply | primary | 1-2 | service/store/API + P0.044 | answer_submitted/AssistantAction |
 | replay | boundary | 2 | same ID/reply uniqueness tests | duplicate user/assistant rows |
 | concurrent message | conflict | 2 | pending reply conflict tests | two in-flight user messages |
-| AI failure/retry | recovery | 3 | failure matrix + P0.046 | canned reply/session_wait action |
 | language/schema | contract | 3 | one-repair tests | wrong-language persisted reply |
-| complete | primary/idempotency | 4 | completion tests + P0.047 | turn count/question assessment handoff |
 | privacy | security | 5 | redaction/outbox/task tests | raw message outside content store |
-| send/complete race | lifecycle/boundary | 6 | service/store race regression + P0.047 | late reply reopens completing session |
-| failure scenario evidence | BDD/gate | 6 | P0.046 named failure/replay/mismatch markers | happy-path-only false PASS |
-| zero-answer / pending reply | failure/boundary | 9 | exact service/store/API tests + P0.047 | empty conversation creates report/job |
 | frozen report context | cross-owner handoff | 9 | one-view DB tests + owner artifact | review rebuilds from mutable entities |
-| refresh/reload recovery | failure/recovery/persistence | 10 | SQL/API/OpenAPI/frontend composed P0.046 | client-only retry state; missing original ID; duplicate reply |
 | typed error boundary | contract/recovery | 10 | generated `ApiClientError` JSON/non-JSON/empty/Abort/transport matrix | parsing `error.message`; retrying terminal errors |
-| pending lease convergence | failure/recovery/concurrency | 11 | migration/store unit + GET/same-ID reserve tests + P0.046 | immortal pending; background-job-only recovery; client clock ownership |
 | stale worker generation fence | concurrency/idempotency | 11 | four real PostgreSQL concurrent tests + service propagation | G1 commits/fails G2; duplicate assistant; generation exposed publicly |
-| evidence freshness | BDD/regression | 11 | shared source fingerprint manifest + P0.044/P0.046 verifier | stale screenshots/logs accepted after source change |
 
 ## 5 实施步骤
 
@@ -73,21 +64,18 @@
 
 ### Phase 6: Review remediation
 - Reject assistant commits when completion has already moved the session out of a mutable state, and map the store conflict through the service/API boundary.
-- Make P0.046 execute provider failure, exact replay, mismatch, pending retry and concurrent-new-message assertions; make P0.047 prove a late reply cannot reopen the session.
 
 ### Phase 7: Complete resume grounding for follow-up messages
 
 - RED store/service tests prove `sendPracticeMessage` loads the same complete resume source precedence as session start and preserves a long-input tail marker in every AI payload.
 - GREEN message reservation exposes the shared `ResumeContext` without character/token slicing; the common generator returns typed `VALIDATION_FAILED` before prompt resolve/AI when context is empty and never writes an assistant reply.
 - Keep immutable interviewer policy in the system role and JSON-encode JD, complete resume, persisted round, persona and ordered conversation history as untrusted user data. Embedded instruction-like text cannot escape into policy; persona only controls tone/perspective and cannot invent facts or replace the persisted round.
-- P0.044/P0.046 trigger/verify require named full-snapshot and no-context tests while preserving same-client-message recovery semantics.
 
 ### Phase 8: Completion ledger as round-progress fact
 
 - RED completion store/service tests require one durable `session_completed` fact in the same transaction as `completed_at`, report/job/outbox creation, and exact idempotent replay. Only sessions whose plan resume equals `target_jobs.resume_id` may contribute to that TargetJob's completed-round ledger.
 - GREEN preserves the existing event as the sole completed-round ledger input; duplicate completion requests, duplicate sessions for one round and report retries do not create duplicate progress entries.
 - Progress becomes visible immediately after completion commit, independent of report queued/generating/ready/failed state; no frontend/local storage write is part of completion.
-- P0.047 and the cross-layer P0.098 gate prove first-round completion advances TargetJob projection to the next canonical round and final completion yields no current round.
 
 ### Phase 9: Reportable completion and frozen report context
 
@@ -95,9 +83,7 @@
 
 - Completion requires at least one committed candidate `user` message and no pending assistant reply. A zero-answer session returns typed `VALIDATION_FAILED`, remains running, and creates no completion fact/report/job/outbox/idempotency success record.
 - In the same successful completion transaction, freeze current `report-context.v1` from TargetJob raw/structured data, bound Resume source/profile, canonical round ladder/current round, source Plan settings, session language and terminal message count/last sequence. No AI call occurs in this transaction.
-- Focused owner command is `cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice -run '^(TestE2EP0047RejectsZeroAnswerCompletion|TestE2EP0047FreezesReportContext|TestE2EP0047CompletionReplayPreservesReportContext)$' -count=1 -v`.
-- P0.047 writes `.test-output/e2e/p0-047-practice-text-loop-complete-and-generating-handoff/completion-backend-evidence.json` with exact top-level keys `schemaVersion`, `scenarioId`, `command`, `tests`, `markers`, `database`, `result`. `schemaVersion` is `practice-completion-evidence.v1`; `scenarioId` is `E2E.P0.047`; `tests` records the three exact names/statuses; `markers` contains `ZERO_ANSWER_COMPLETION_REJECTED_PASS`, `REPORT_CONTEXT_SNAPSHOT_PASS`, `REPORT_CONTEXT_REPLAY_PASS`; `database` records only redacted booleans/counts/context version; `result` is `PASS` only when the command exits 0, every exact `=== RUN`/`--- PASS:` and marker exists, no `--- FAIL:`/package `FAIL`/`no tests to run` appears, zero-answer has no side effects, and one-answer replay preserves the same snapshot.
-- P0.056/P0.058 consume the schema-valid P0.047 artifact/markers later; they cannot substitute their own completion implementation or infer PASS from frontend Vitest.
+- Focused API/service/store tests may be used for development feedback. Phase completion is reported by repository-root `make test`; real database transaction checks remain a separate integration gate.
 
 ### Phase 10: Server-recoverable message reply state
 
@@ -105,7 +91,6 @@
 - GREEN extends pre-release `practice_messages` with user-only `reply_status` (`pending / retryable_failed / terminal_failed / complete`). Reserve inserts or re-enters `pending`; AI/provider/contract failure atomically records failed status before returning; assistant commit writes the unique reply and `complete` in one transaction. A different ID remains blocked while an unresolved user row exists.
 - `PracticeMessage` read projection returns user `clientMessageId/replyStatus` and omits both from assistant messages. Refresh/remount consumes `getPracticeSession`: `pending` restores thinking, `retryable_failed` restores a row-local same-ID retry, `terminal_failed` restores terminal recovery, and `complete` has exactly one following reply. No URL/browser storage/fixture state may restore business status.
 - The OpenAPI-generated TS runtime must expose typed `ApiClientError` with public `status` and `apiError` fields；JSON `ApiErrorResponse`、non-JSON、empty response、Abort and transport failures have explicit tests. Frontend must never parse `Error.message` to infer retryability.
-- BDD-Gate P0.046 executes `AI failure → persisted retryable_failed → reload/get session → same ID retry → complete + unique assistant reply`, plus pending/terminal states and cross-user/privacy negatives. P0.044 retains immediate optimistic/pending success coverage; screenshots remain frontend owner evidence.
 
 ### Phase 11: Lease-bounded generation fencing and lazy convergence
 
@@ -114,15 +99,12 @@
 - **RED/GREEN 11.3 — lazy convergence**: `getPracticeSession` locks the authorized session, converts every expired `pending(Gn)` to `retryable_failed(Gn)` and reads the converged session in the same transaction. A same-ID reserve may instead atomically take over an expired row as `pending(Gn+1,newLease)`；an unexpired pending, terminal/complete row, payload mismatch or different new ID remains a typed conflict. No cron/background worker is required.
 - **RED/GREEN 11.4 — generation fence**: reserve returns the internal generation to service；`CommitPracticeMessage` and `FailPracticeMessage` require expected generation and may mutate only `pending + generation match`. Stale G1 Commit/Fail after G2 reserve returns typed conflict with zero state/assistant writes；valid G2 can commit exactly one assistant reply.
 - **Real PostgreSQL 11.5**: use independent DB connections plus a start barrier, not sequential calls, for exactly `TestIntegrationPracticeReplyConcurrentNewIDsReserveOnce`, `TestIntegrationPracticeReplyConcurrentSameIDInitialReserveOnce`, `TestIntegrationPracticeReplyConcurrentExpiredSameIDRetryAdvancesOneGeneration`, and `TestIntegrationPracticeReplyStaleGenerationFencedAfterGETRecovery`. The fourth test pauses G1, expires it through GET, reserves G2, releases stale G1 Commit and Fail, then proves only G2 can write one assistant reply.
-- **Contract/BDD 11.6**: public `PracticeMessage` remains `clientMessageId + replyStatus` only；OpenAPI/codegen/fixtures remain compatible. P0.044/P0.046 consume one tracked Practice source manifest, record its SHA-256 fingerprint in trigger output, reject verifier-time drift, and record screenshot SHA-256/dimensions/viewport. Any source change invalidates prior evidence；historical PASS cannot close Phase 11.
-- P0.046 exact markers are `PRACTICE_PENDING_LEASE_RECOVERY_PASS`, `PRACTICE_STALE_GENERATION_FENCED_PASS`, `PRACTICE_CONCURRENT_RESERVATION_PASS`, `PRACTICE_POST_TIMEOUT_RECONCILIATION_PASS`, `PRACTICE_TERMINAL_PLAN_RECOVERY_PASS` and `PRACTICE_EVIDENCE_FINGERPRINT_PASS`；P0.044 must emit `PRACTICE_IMMEDIATE_PENDING_PASS`, `PRACTICE_PERSISTED_PENDING_PASS` and the same fingerprint marker.
 
-### Phase 12: Configured message and session text limits
+### Phase 12: Injected message and session guards
 
-- **RED 12.1**: construct UTF-8 byte fixtures at 32KiB/32KiB+1 per message and at 256KiB/256KiB+1 persisted session total. Existing 8,000-rune behavior or missing total cap must fail the new tests.
-- **GREEN 12.2**: inject A4 `practice.maxMessageBytes=32768` and `practice.maxSessionTextBytes=262144` into `SendPracticeMessage`. Count bytes, not runes; evaluate before reservation and provider call; replay of an already accepted same ID remains idempotent.
+- **OWNER 12.1**: missing/default/override/invalid 与跨字段配置只由 A4 typed owner 覆盖；本 owner 不复制默认数值、loader/composition 或 RuntimeConfig 传播测试。
+- **FOCUSED 12.2**: inject small message/session byte limits into `SendPracticeMessage`. Count bytes, not runes; evaluate before reservation and provider call; replay of an already accepted same ID remains idempotent。Fixtures 保持小型并覆盖 ASCII/多字节，不构造默认大小字符串。
 - **Persistence 12.3**: session total is computed from authorized persisted `practice_messages` plus the candidate message in the same consistency boundary. Over-limit returns typed `VALIDATION_FAILED` with zero user/assistant/provider side effects; concurrency cannot let two messages jointly bypass the total.
-- **Contract/BDD 12.4**: public RuntimeConfig exposes both values for frontend precheck without adding them to Practice operation bodies. P0.046 covers limit/limit+1, multibyte text, reload and same-ID behavior; backend remains authoritative.
 
 ## 6 验收标准
 
@@ -135,8 +117,7 @@
 - No raw message leaks outside authorized content/prompt/report paths.
 - Reload/remount cannot strand a persisted user message: server reply state reconstructs pending/failure UI and same-ID retry converges to one reply.
 - A pending reservation expires after exactly 90 seconds of server time；GET or same-ID reserve lazily converges it, while generation fencing prevents every stale worker from mutating the newer attempt.
-- P0.044/P0.046 evidence is accepted only when its tracked source fingerprint and every screenshot hash/geometry still match the current tree.
-- Practice 单条/会话文本默认边界分别为 32KiB/256KiB UTF-8 bytes；limit 接受，limit+1 在 reservation/provider 前拒绝且无半成品持久化。
+- Practice 默认/override/invalid 归 A4；backend-practice 以小型注入值验证 overflow 在 reservation/provider 前拒绝、会话累计原子裁决且无半成品持久化。
 
 ## 7 风险与应对
 
@@ -160,10 +141,8 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
-| 2026-07-14 | 2.9 | Reopen Phase 12 for injected 32KiB message and 256KiB persisted-session UTF-8 byte limits. |
-| 2026-07-14 | 2.8 | Add Phase 11 for a 90-second reply lease, internal generation fence, GET/same-ID lazy convergence, four concurrent PostgreSQL gates and fingerprint-bound P0.044/P0.046 evidence. |
+| 2026-07-14 | 2.10 | Separate code-owned BDD behavior from the independent Ready-only P0.098 real API/UI handoff. |
 | 2026-07-13 | 2.7 | Add server-persisted reply status, refresh-safe same-ID recovery and typed API-error handoff. |
-| 2026-07-12 | 2.6 | Make 002 the sole reportable-completion/snapshot owner and lock exact P0.047 backend evidence. |
 | 2026-07-12 | 2.5 | Require one candidate message before completion and atomically freeze report-context.v1. |
 | 2026-07-12 | 2.4 | Bind completion facts to the TargetJob resume and separate immutable system policy from JSON-encoded untrusted follow-up context. |
 | 2026-07-12 | 2.3 | Reopen Phase 8 so the committed session-completion event is the durable round-progress fact. |

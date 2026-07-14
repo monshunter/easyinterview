@@ -35,7 +35,7 @@
 
 ## Phase 5: OPENAPI-001 pre-release correction
 
-- [x] 5.1 OWNER/GOVERNANCE-GATE: OPENAPI-001 is accepted, product-owner approval is recorded, B1 `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` exists, and spec/history/baseline README describe the same pre-release correction rule.
+- [x] 5.1 OWNER/GOVERNANCE-GATE: OPENAPI-001 is accepted, product-owner approval is recorded, B1 conventions gate passes, and spec/history/baseline README describe the same pre-release correction rule.
   <!-- verified: 2026-07-12 method=governance-preflight evidence="accepted OPENAPI-001 v1.1 records 方案 A approval; B1 marker exists; spec D-32, history 1.45 and baseline README align; baseline blob 352e7605a86ed85aa396446749bcf117dd70a200 is untouched" -->
 - [x] 5.2 RED-GREEN: base-ref audit compares merge-base old baseline to proposed OpenAPI, fails without accepted ADR, and exact-matches severity/path/kind/before/after against OPENAPI-001 expected-findings JSON, including closed/constraint findings. Conditional finding encodes baseline source prohibition and derived retry/next non-null source-only branches. `REPORT_CONTEXT_TOO_LARGE` occurs exactly once as additive enum_value_added and never enters the breaking allowset. (openapi_diff unit + oracle fixture tests)
   <!-- verified: 2026-07-12 method=tdd-base-ref-oracle evidence="RED lacked decision/oracle normalizer and old current produced 36 missing findings. GREEN resolves merge-base baseline, requires accepted matching ADR, validates conditional source-only semantics and exact-matches 36 findings by five key fields; wrapper suite passes." -->
@@ -50,8 +50,7 @@
 - [x] 6.2 RED-GREEN: base-ref audit folds new `rawText` minLength/pattern into `required_property_added.after` and exact-matches 17 findings, including independent removal findings for `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE`; RED proves an extra constraint finding and a stale 15-finding oracle fail. Missing/unexpected/drifted finding, wildcard, edited baseline and simultaneous zero-finding replacement all fail.
 - [x] 6.3 INVARIANT-GATE: audit proves 37/10 plus exact method/path/operationId/status/response for `importTargetJob` and `createUploadPresign`, with resume/privacy purposes retained.
   <!-- verified: 2026-07-14 artifact="OPENAPI-002-targetjob-paste-only.json" findings=17 expected=17 errors=0 invariants="37 operations/10 tags" -->
-- [x] 6.4 Preserve deterministic old-baseline JSON finding artifact before baseline mutation; 001/002/mock/frontend/backend/persistence/event/P0.010/P0.015 paste-only and scoped zero-reference gates all pass.
-  <!-- verified: 2026-07-14 evidence="preserved old-baseline audit plus paste-only owner handoffs and current P0.010/P0.015 gates PASS before re-freeze" -->
+- [x] 6.4 Preserve deterministic old-baseline JSON finding artifact before baseline mutation; 001/002/mock/frontend/backend/persistence/event paste-only and scoped zero-reference gates all pass.
 - [x] 6.5 Re-freeze `openapi-v1.0.0.yaml` only after 6.4; require clean current-baseline `make openapi-diff`, then independently run lint, fixture, codegen and downstream consumer gates. Historical clean PASS is not current evidence.
   <!-- verified: 2026-07-14 evidence="baseline/current sha256=6e81b656...9bc6; independent diff=0, lint=37, fixtures=37, unit=122 and codegen changed=0 PASS" -->
 
@@ -60,8 +59,7 @@
 - [x] 7.1 GOVERNANCE/RED: spec D-35/history 1.54 and the product-approved方案 A are the sole authority；snapshot old baseline and fail until a separate deterministic five-key Practice machine oracle exists. The oracle is D-35's executable projection, not a third `OPENAPI-NNN` ADR. Never add Practice findings to OPENAPI-002's exact 17.
 - [x] 7.2 AUDIT-GATE: old baseline → proposed role-discriminated message schema exact-matches the Practice manifest while baseline remains unchanged; missing/extra/wildcard findings fail.
   <!-- verified: 2026-07-14 artifact="D-35-practice-durable-recovery.json" findings=11 expected=11 errors=0 isolation="OPENAPI-002 remains exact 17" -->
-- [x] 7.3 HANDOFF-GATE: 001 schema/codegen/typed `ApiClientError`, 002 fixtures, mock runtime, backend persistence, frontend typed consumer and P0.046 reload/same-ID retry pass before re-freeze.
-  <!-- verified: 2026-07-14 evidence="typed client/fixture/mock/backend/frontend recovery owners and P0.044/P0.046 current gates PASS before re-freeze" -->
+- [x] 7.3 HANDOFF-GATE: 001 schema/codegen/typed `ApiClientError`, 002 fixtures, mock runtime, backend persistence and frontend typed consumer reload/same-ID retry tests pass before re-freeze.
 - [x] 7.4 RE-FREEZE: preserve the old-baseline artifact, then re-freeze and independently run current diff, lint, fixture, codegen and consumer gates.
   <!-- verified: 2026-07-14 evidence="preserved D-35 audit retained; guarded re-freeze and independent contract/codegen/consumer gates PASS" -->
 
@@ -71,8 +69,7 @@
 - [x] 8.2 AUDIT-GATE: old baseline → proposed schema exact-matches cursor/pageSize/flat response/TargetJob pointer removals and new closed required overview schemas; missing/extra/wildcard/drift fails.
 - [x] 8.3 INVARIANT-GATE: 37/10 and exact listTargetJobReports method/path/operationId/200 remain unchanged.
   <!-- verified: 2026-07-14 artifact="OPENAPI-004-targetjob-report-overview.json" findings=15 expected=15 errors=0 invariants="37 operations/10 tags" -->
-- [x] 8.4 HANDOFF-GATE: 001/002, db/targetjob, backend-review, target-scoped ReportsScreen/P0.059, Parse/Report/Generating zero-list-consumer and mock gates pass before baseline edit.
-  <!-- verified: 2026-07-14 evidence="report overview owners, scoped zero-reference checks and current P0.016/P0.058/P0.059 gates PASS before re-freeze" -->
+- [x] 8.4 HANDOFF-GATE: 001/002, db/targetjob, backend-review, target-scoped ReportsScreen, Parse/Report/Generating zero-list-consumer and mock gates pass before baseline edit.
 - [x] 8.5 RE-FREEZE: preserve old-baseline artifact, re-freeze, then independently run current diff/lint/fixture/codegen/consumer and old-shape zero-reference gates.
   <!-- verified: 2026-07-14 evidence="preserved OPENAPI-004 audit retained; guarded re-freeze plus independent diff/lint/fixture/codegen/consumer gates PASS" -->
 
@@ -84,8 +81,8 @@
   <!-- verified: 2026-07-14 method=exact-set-oracle evidence="Generated OPENAPI-005 exact-set oracle and preserved audit contain the same 12 five-key findings; missing/unexpected findings fail, order is insignificant, and full openapi_diff suite 50 tests PASS." -->
 - [x] 9.3 INVARIANT-GATE: audit preserves 37/10, listResumes method/path/operationId/200/pagination and getResume method/path/operationId/200 + full `Resume`.
   <!-- verified: 2026-07-14 method=invariant-audit evidence="Audit reports one intentional PaginatedResume item-ref break plus eleven ResumeSummary additions, with 37 operations/10 tags and exact list/get methods, paths, operationIds, 200 responses, parameters and full getResume response unchanged." -->
-- [x] 9.4 HANDOFF-GATE: 001/002/004, backend list projection, mock, all frontend list/detail consumers and P0.034/P0.036/P0.037 pass without compatibility fields or N+1 detail fetch before baseline edit.
-  <!-- verified: 2026-07-14 evidence="all Resume summary/detail owners and P0.034/P0.036/P0.037 fresh PASS before baseline edit; no compatibility or list-row detail fetch" -->
+- [x] 9.4 HANDOFF-GATE: 001/002/004, backend list projection, mock and all frontend list/detail consumer tests pass without compatibility fields or N+1 detail fetch before baseline edit.
+- [x] 9.5 BDD-N/A/REGRESSION: 本 plan 不拥有真实 API/UI 流程；阶段收口从仓库根执行 `make test`。
 - [x] 9.5 RE-FREEZE: preserve the deterministic old-baseline artifact, then re-freeze and independently run current diff/lint/fixture/codegen/downstream gates；clean current diff alone is insufficient.
   <!-- verified: 2026-07-14 artifact="OPENAPI-005-resume-list-summary.json" findings=12 expected=12 errors=0 evidence="baseline/current sha256=6e81b656...9bc6; independent gates PASS" -->
 

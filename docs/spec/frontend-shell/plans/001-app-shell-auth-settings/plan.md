@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.27
+> **版本**: 1.28
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -44,24 +44,22 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `frontend` + `contract`。
-- **TDD 策略**: 本计划按 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 完成。再次修改该合同必须先补 focused Vitest / component test / route-state test，再改实现；测试断言覆盖 route normalization、TopBar、display preferences、Auth screens、runtime auth provider、pendingAction、settings、dev mock session state 和 protected route guard。
-- **BDD 策略**: 需要 BDD。本计划维护 [bdd-plan](./bdd-plan.md) 与 [bdd-checklist](./bdd-checklist.md)，主 checklist 以 `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.004`、`E2E.P0.032`、`E2E.P0.101`、`E2E.P0.102` 作为当前行为 gate。
-- **替代验证 gate**: UI-only 或 recovery-path 修订通过 focused Vitest、UI truth-source structure checks、source-level zero-residue grep、`pnpm --filter @easyinterview/frontend typecheck` / `build`、context validator、`make docs-check` 和 `git diff --check` 收口。
+- **TDD 策略**: 本计划按 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 完成。focused Vitest / component / route-state test 只用于开发反馈；阶段完成由仓库根 `make test` 承接前后端全量单测。
+- **BDD 策略**: `BDD.SHELL.AUTH.001` 由代码层 owner tests 验证 auth guard、profile setup、pendingAction 与 settings 行为，并由仓库根 `make test` 统一回归；`E2E.P0.101` 仅作为真实 email-code、session 与 profile completion 的独立 handoff，只有显式真实运行后才产生 PASS。safe-read 与通用 shell 合同继续由独立 typecheck/build/UI/docs gates 维护。
 
 ## 4 Operation Matrix
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `getRuntimeConfig` | `openapi/fixtures/Auth/getRuntimeConfig.json#default` | `AppRuntimeProvider`、runtime bootstrap、display request options | backend-auth runtime config handler | 无 | 无 | focused runtime tests、E2E.P0.001、E2E.P0.004、E2E.P0.032 |
-| `getMe` | `openapi/fixtures/Auth/getMe.json#authenticated\|unauthenticated\|profileIncomplete` | `AppRuntimeProvider`、TopBar user area、profile setup guard、protected route guard | backend-auth current-user handler | backend session cookie lookup | 无 | App runtime tests、E2E.P0.032、E2E.P0.101、E2E.P0.102 |
-| `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json#default` | `AuthLoginScreen`、`requestAuth(pendingAction)` start path | backend-auth challenge issue handler | backend auth challenge storage | 无 | Auth focused tests、E2E.P0.002、E2E.P0.101 |
-| `verifyAuthEmailChallenge` | `openapi/fixtures/Auth/verifyAuthEmailChallenge.json#default` | `AuthVerifyScreen`、post-verify auth refresh | backend-auth verify handler | backend consumes challenge and mints first-party session cookie | 无 | Auth focused tests、E2E.P0.002、E2E.P0.101 |
-| `completeMyProfile` | `openapi/fixtures/Auth/completeMyProfile.json#default` | `AuthProfileSetupScreen` | backend-auth `PATCH /me` handler | backend user display name, terms acceptance and profile completion fields | 无 | Auth focused tests、E2E.P0.101 |
-| `logout` | `openapi/fixtures/Auth/logout.json#default` | `AuthLogoutScreen`、TopBar logout route、dev mock client state clear | backend-auth logout handler | backend clears session cookie/session | 无 | dev mock tests、E2E.P0.032、E2E.P0.101 |
-| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json#default\|empty\|one-job\|twelve-plus` | Home recent records visibility under authenticated runtime | targetjob list handler behind session middleware | `target_jobs` filtered by session user | 无 | Home auth guard tests、E2E.P0.102 |
-| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json#paste-primary` | Home submit via auth gate + safe pendingAction | targetjob import handler behind session middleware | `target_jobs` / async parse job | target job parse may use AI after authenticated import | Home auth gate tests、E2E.P0.102 |
-| `N/A` safe-read request orchestration | existing generated operations and fixtures unchanged | generated/runtime client wrapper、`AppRuntimeProvider`、Home/`useRecentTargetJobs`、Parse、`useWorkspaceTargetJobs`、Reports、Practice loaders | owner handlers unchanged；`/auth/email/verify` bypasses and advances auth epoch | owner stores unchanged；no frontend business cache | unchanged | focused single-flight/runtime/loader tests、E2E.P0.102 request-count assertion |
-| `N/A` UI shell/settings/display | N/A | `routes.ts`、`normalizeRoute.ts`、`routeUrl.ts`、`TopBar`、`SettingsScreen`、`DisplayPreferencesProvider` | 无 API 变更 | frontend local display preference only | 无 | focused Vitest、pixel parity / visual smoke owners、E2E.P0.001、E2E.P0.004、E2E.P0.032 |
+| `getRuntimeConfig` | `openapi/fixtures/Auth/getRuntimeConfig.json#default` | `AppRuntimeProvider` | backend-auth runtime config handler | 无 | 无 | 当前无真实 E2E owner；root `make test` |
+| `getMe` | `openapi/fixtures/Auth/getMe.json#authenticated\|unauthenticated\|profileIncomplete` | `AppRuntimeProvider`、TopBar、profile/protected-route guards | backend-auth current-user handler | session cookie lookup | 无 | `E2E.P0.101` 仅 session/profile 状态 |
+| `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json#default` | `AuthLoginScreen` | backend-auth challenge handler | auth challenge storage | 无 | `E2E.P0.101` |
+| `verifyAuthEmailChallenge` | `openapi/fixtures/Auth/verifyAuthEmailChallenge.json#default` | `AuthVerifyScreen` | backend-auth verify handler | challenge consumption + session | 无 | `E2E.P0.101` |
+| `completeMyProfile` | `openapi/fixtures/Auth/completeMyProfile.json#default` | `AuthProfileSetupScreen` | backend-auth `PATCH /me` handler | backend user display name, terms acceptance and profile completion fields | 无 | root `make test`；`E2E.P0.101` profile completion |
+| `logout` | `openapi/fixtures/Auth/logout.json#default` | `AuthLogoutScreen`、TopBar | backend-auth logout handler | session revocation | 无 | `E2E.P0.101` 仅 logout/relogin |
+| `listTargetJobs` / `importTargetJob` | current fixtures | Home authenticated read/import guard | targetjob handlers | targetjob owner | import may enqueue AI parse | 当前无 auth-shell E2E owner；root `make test` |
+| safe-read orchestration | existing generated operations | runtime and screen loaders | owner handlers | owner stores | unchanged | 当前无真实 E2E owner；root `make test` |
+| UI shell/settings/display | N/A | routes、TopBar、Settings、display provider | 无 | display preference only | 无 | 当前无真实 E2E owner；UI/typecheck/build gates |
 
 ## 5 验收标准
 
@@ -79,14 +77,13 @@
 ## 6 当前验证面
 
 - Focused frontend gates: route normalization / URL codec、App auth dispatch、runtime provider、Auth screens、TopBar、DisplayPreferencesProvider、Settings visual、dev mock client、Home auth guard。
-- BDD gates: `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.004`、`E2E.P0.032`、`E2E.P0.101`、`E2E.P0.102`。
 - Contract/doc gates: frontend-shell context validation、product-scope context validation、`sync-doc-index --check`、`make docs-check`、`git diff --check`、`make lint-core-loop-pruning-surface`。
 
 ### Phase 8: auth alias test lifecycle isolation
 
 `AppAuthDispatch.test.tsx` 中的 `auth_reset` / `auth_register` 用例只验证同步 route normalization。两项在断言后显式 unmount，使不属于测试目标的 runtime-config/auth Promise 不再于测试尾部回写 provider state；生产 App、runtime provider、route behavior 与 BDD 合同不变。
 
-门禁：focused AppAuthDispatch 14 tests 通过且无 React act warning，frontend-shell focused/full frontend tests、typecheck/build 与 owner docs gates 保持绿色。BDD 不适用，因为本批只修正测试生命周期。
+门禁：AppAuthDispatch focused tests 仅作开发反馈并要求无 React act warning；阶段单测完成由仓库根 `make test` 承接，typecheck/build 与 owner docs 为独立 gates。BDD 不适用，因为本批只修正测试生命周期。
 
 ### Phase 9: i18n catalog reachability cleanup
 
@@ -104,17 +101,13 @@
 
 `SettingsScreen` 只消费主题 token、语言、字体预设与字体更新回调；设置页内部通过本地 tab 切换展示个人资料与隐私内容，不发起 route 跳转。删除从未读取的 `nav` 形参与 `app.jsx` 对应传参，保留 `fontPreset` / `setFontPreset` 显示设置链，不增加空转参数或 wrapper。
 
-门禁：UI contract 先对当前冗余 Settings 签名和调用方传参失败，删除后以 AST 证明 Settings 参数全部有读取点；focused Settings/P0.005、静态浏览器 settings tab/font smoke、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates 通过。BDD 不适用，因为本批不改变 settings 的可见内容、tab 或字体行为。
 
-### Phase 12: zero-consumer Auth CSS pruning
 
-删除 `auth.css` 中没有正式 Auth DOM、静态原型或场景消费者的 `ei-auth-link-row` 规则；保留当前 `ei-auth-secondary-link`、`ei-auth-help` 与 email-code 页面布局。BDD 不适用，因为该 wrapper 不可达；替代 gate 为 AuthVisual source RED/GREEN、class inventory、focused Auth/P0.005、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
 
 ### Phase 13: StrictMode-safe GET single-flight
 
 以 focused RED 先复现 StrictMode 双 mount 对同一 logical safe-read GET 发出两次底层 request，再在共享 generated/runtime client 边界引入仅在途 single-flight registry。key 必须精确覆盖 client identity、method/path/query、规范化相关 headers、normalized `okStatuses`、read/auth epoch 与 auth/session scope；Promise resolve/reject 后驱逐。caller `AbortSignal`、所有非 GET 与语义写入 GET 绕过 registry，避免共享取消权和写请求语义。每个语义写请求必须在 dispatch 前与 resolve/reject settle 后分别推进 read epoch；`/auth/email/verify` 必须显式按写语义 bypass，并在成功后另推进 auth/session epoch。
 
-同时缩窄 `AppRuntimeProvider`、Home / `useRecentTargetJobs`、Parse、`useWorkspaceTargetJobs`、Reports、Practice 等 screen loader 的 bootstrap/refresh effect 依赖为稳定 client/auth/request-option/route identity 输入，移除不稳定整体 runtime object 造成的同值重跑。GREEN matrix 必须证明：StrictMode 同 key 两个 caller只触发一次底层 GET；settle 后 retry 触发新 request；不同 client/query/header/okStatuses/epoch/auth 均分离；signal/non-GET/verify GET 均不合并；任一语义写请求 dispatch 前和 settle 后都产生新的 read epoch；locale/auth/epoch 切换会发出新请求。BDD 由 `E2E.P0.102` 增加 authenticated protected-route request-count 断言，证明重复 mount 不产生紧邻的同 key GET。
 
 ## 7 风险与应对
 
@@ -130,6 +123,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.28 | Separate code-owned shell/auth BDD from the Ready-only P0.101 real API/UI handoff. |
 | 2026-07-14 | 1.27 | Complete the single-flight identity with normalized okStatuses and fence every semantic mutation before dispatch and after settle. |
 | 2026-07-14 | 1.26 | Reopen for StrictMode-safe GET single-flight and stable AppRuntimeProvider dependencies. |
 | 2026-07-10 | 1.25 | Delete the zero-consumer Auth link-row CSS wrapper. |

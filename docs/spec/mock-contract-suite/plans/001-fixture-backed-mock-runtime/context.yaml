@@ -5,10 +5,10 @@ metadata:
   name: 001-fixture-backed-mock-runtime
   sequence: 1
   baseBranch: main
-  branch: fix/interview-turn-ux-0713
+  branch: fix/runtime-size-limits-0714
   specVersion:
-    from: 1.17
-    to: 1.18
+    from: 1.18
+    to: 1.19
 spec:
   defaultTarget: tooling
   discovery:
@@ -33,10 +33,11 @@ spec:
       - remove TargetJob sourceType sourceUrl
       - remove target_job_attachment purpose
       - preserve createUploadPresign resume privacy
-      - P0.015 paste only handoff
       - TargetJob mock zero reference
       - Practice durable reply status mock parity
       - retryable failure reload same ID retry
+      - code level mock parity
+      - BDD not applicable
   targets:
     tooling:
       plan: ./plan.md

@@ -72,8 +72,7 @@
   <!-- verified: 2026-07-13 method=prototype-sync-twice evidence="Two consecutive syncs populated five prototype fixtures; SHA-256 manifests for all 44 fixture JSON files were identical after run one and run two; TargetJob paste-primary remained canonical." -->
 - [x] 8.5 Run `make validate-fixtures`, example rendering and Prism byte parity for import/list/get TargetJob plus upload presign; hand exact markers to mock/frontend/backend owners.
   <!-- verified: 2026-07-13 method=validate+render+live-prism evidence="37 fixtures validate; 53 sync/render/validator tests PASS; rendered example sha256=e4ddbd14c5b4...; live Prism import=202, list/get=200 and upload=201 bodies are byte-equal to defaults." -->
-- [x] 8.6 BDD/ZERO-REFERENCE-GATE: P0.010/P0.015 consume paste-only states; current positive fixture/prototype/example surfaces contain zero positive/runtime `TargetJobImportSource*|target_job_attachment|sourceType/sourceUrl|url/file/manual_form` import variants. ADR/oracle and exact negative declarations are allowed; whole-file/directory exclusions are forbidden.
-  <!-- verified: 2026-07-13 method=scenario+semantic-zero-ref evidence="E2E.P0.010/P0.015 PASS; positive fixture/prototype/rendered example surfaces contain no obsolete TargetJob import variants; explicit rejected-payload tests remain." -->
+- [x] 8.6 BDD-N/A/ZERO-REFERENCE-GATE: current positive fixture/prototype/example surfaces contain zero positive/runtime `TargetJobImportSource*|target_job_attachment|sourceType/sourceUrl|url/file/manual_form` import variants. ADR/oracle and exact negative declarations are allowed; whole-file/directory exclusions are forbidden.
 
 ## Phase 9: Practice message recovery fixtures
 
@@ -87,8 +86,7 @@
   <!-- verified: 2026-07-13 method=paired-fixture+store evidence="retry-success-same-client-message reuses exact ID/text and yields one complete user plus one assistant; store gates reject pending/terminal retry and mismatch." -->
 - [x] 9.5 PARITY-GATE: validate fixtures, render examples and run Prism byte parity for `getPracticeSession` / `sendPracticeMessage`; mock runtime unknown-scenario behavior stays fail-loudly.
   <!-- verified: 2026-07-13 method=validate+render+live-prism evidence="37 fixtures validate; rendered example sha256=e4ddbd14c5b4...; live Prism get/send default bodies are byte-equal; mock transport tests retain fail-loud unknown scenario behavior." -->
-- [x] 9.6 BDD-Gate: hand exact markers to mock-contract-suite/001, frontend-workspace-and-practice/002, backend-practice/002 and P0.046; scenario proof covers reload → same-ID retry with no duplicate user/assistant message.
-  <!-- verified: 2026-07-13 method=scenario-run evidence="P0.046 consumed current get/send recovery fixtures plus API/service/store markers and isolated PostgreSQL readback; retry reused the same ID/text and produced exactly one user/assistant pair." -->
+- [x] 9.6 HANDOFF-GATE: hand exact markers to mock-contract-suite/001, frontend-workspace-and-practice/002 and backend-practice/002；fixture plan does not claim reload user-flow evidence.
 
 ## Phase 10: OPENAPI-004 TargetJob report overview fixtures
 
@@ -100,8 +98,7 @@
   <!-- verified: 2026-07-14 method=prototype-sync-idempotency evidence="Four TargetJob fixtures and the sync renderer contain no latestReportId; 63 fixture/sync/CLI tests PASS, two consecutive sync runs produce identical fixture-tree sha256=d312ca1cb5151bf9b1685317faf43cde8caf2d7a0bf5ed82db17c25991c78192, and current positive surfaces have no replacement pointer." -->
 - [x] 10.4 PARITY-GATE: validate/render/live Prism byte parity passes for list reports and affected TargetJob defaults; mock runtime consumes the same bytes.
   <!-- verified: 2026-07-14 method=render+live-prism+mock-contract evidence="All 37 fixtures validate; derived OpenAPI sha256-prefix=189bc6376f26; Prism 5.14.2 returned byte-equal defaults for 11 operations including listTargetJobReports plus list/get/import/update/archive TargetJob; smoke contract 4/4 and lint-mock-contract PASS." -->
-- [x] 10.5 HANDOFF/ZERO-REF: backend-review/frontend-report/P0.059 consume current overview markers；P0.016 proves Parse has no list consumer；positive/runtime fixture/example/prototype surfaces contain no cursor/pageInfo/full report/latest-report-pointer compatibility fields.
-  <!-- verified: 2026-07-14 evidence="backend/frontend report handoff and P0.016/P0.059 current gates PASS; scoped old overview/pointer positive-runtime search is clean" -->
+- [x] 10.5 HANDOFF/ZERO-REF: backend-review/frontend-report consume current overview markers；Parse has no list consumer；positive/runtime fixture/example/prototype surfaces contain no cursor/pageInfo/full report/latest-report-pointer compatibility fields.
 
 ## Phase 11: OPENAPI-005 Resume list summary fixtures
 
@@ -113,5 +110,5 @@
   <!-- verified: 2026-07-14 method=validator-green evidence="listResumes was removed from provenance paths only; getResume/update/duplicate provenance gates remain. Full fixture validator suite 44 tests PASS, including explicit non-substitutability mutations." -->
 - [x] 11.4 PARITY-GATE: fixture validation, example rendering and live Prism/mock byte parity pass for `listResumes` and `getResume` with 37/37 inventory unchanged.
   <!-- verified: 2026-07-14 evidence="validate-fixtures=37; rendered examples current; Prism unit=5 PASS and live matrix=13/13 byte-equal including listResumes/getResume" -->
-- [x] 11.5 BDD-Gate: exact markers are consumed by P0.034/P0.036/P0.037 and downstream backend/frontend focused tests；no compatibility fixture or N+1 detail-fetch fallback remains.
-  <!-- verified: 2026-07-14 evidence="P0.034/P0.036/P0.037 fresh PASS with backend projection, summary-only list and navigation-only detail fetch markers" -->
+- [x] 11.5 BDD-N/A/HANDOFF: exact markers are consumed by downstream backend/frontend focused tests；no compatibility fixture or N+1 detail-fetch fallback remains。
+- [x] 11.6 REGRESSION-GATE: 阶段收口从仓库根执行 `make test`。

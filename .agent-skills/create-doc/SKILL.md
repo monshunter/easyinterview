@@ -88,7 +88,7 @@ docs/spec/${subspec}/
 - `plan.md` - Plan document
 - `checklist.md` - Checklist
 - `test-plan.md` / `test-checklist.md` (conditional) - Required when the test plan is independent enough to need phase mapping; otherwise keep test assertions in the main checklist
-- `bdd-plan.md` / `bdd-checklist.md` (conditional) - Required for user-visible UI, API behavior, business workflow, or end-to-end feature plans
+- `bdd-plan.md` / `bdd-checklist.md` (conditional) - Required for user-visible UI, API behavior, or business workflow plans；Behavior IDs may use code-level domain behavior tests and do not imply E2E assets
 
 If `docs/spec/${subspec}/plans/INDEX.md` is missing, initialize it from `/init-docs` `subspec-plans` scaffold before creating the plan directory. Do not create `docs/spec/${subspec}/plans/README.md` or `docs/spec/${subspec}/plans/TEMPLATES.md`; plan rules are centralized in `docs/spec/README.md`, and spec, plan, checklist, context, and BDD templates are centralized in `docs/spec/TEMPLATES.md`.
 
@@ -96,8 +96,8 @@ Every new or revised plan must include a `## 3 质量门禁分类` section:
 
 - **Plan 类型**: classify as `docs-only`, `code-internal`, `feature-behavior`, `contract`, `migration`, `tooling`, or a clear combination.
 - **TDD 策略**: Code plan requires TDD. Any front-end, back-end, tooling, migration, codegen, or test helper logic must name the Red-Green-Refactor entry and the executable test assertion source for each checklist item.
-- **BDD 策略**: Feature plan requires BDD. User-visible UI, API behavior, business workflow, or end-to-end flows must generate `bdd-plan.md` / `bdd-checklist.md` and add scenario-ID `BDD-Gate:` items to the main checklist.
-- **替代验证 gate**: Internal code plans that do not produce a user behavior flow must state why BDD is not applicable and name substitute gates such as contract test, lint, drift check, migration check, or smoke.
+- **BDD 策略**: Feature plan requires BDD. User-visible UI, API behavior, or business workflow plans generate `bdd-plan.md` / `bdd-checklist.md` and add Behavior-ID `BDD-Gate:` items to the main checklist. A Behavior ID may name a code-level domain behavior test；allocate an `E2E.*` ID only for a real HTTP/UI flow against a running frontend/backend.
+- **替代验证 gate**: Pure configuration、internal contract、tooling、migration、codegen、lint、fixture or build plans that do not produce a user behavior flow must state `BDD-N/A` and name substitute gates such as contract test, lint, drift check, migration check, or smoke. Do not generate BDD files or retain `bddPlan` / `bddChecklist` context fields for those plans.
 
 **context.yaml** must be generated with the plan. Minimal template lives in `docs/spec/TEMPLATES.md`.
 

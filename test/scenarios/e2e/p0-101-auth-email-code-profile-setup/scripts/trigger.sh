@@ -28,6 +28,7 @@ export EI_PLAYWRIGHT_OUTPUT_DIR="$OUTPUT_DIR/playwright"
 
 {
   echo "SCENARIO_RUNNER=E2E.P0.101"
+  echo "E2E_TRANSPORT=host-run-real-frontend-backend"
   echo "RUN_ID=$RUN_ID"
   echo "PLAYWRIGHT_SPEC=frontend/tests/e2e/auth-email-code.spec.ts"
   echo "PLAYWRIGHT_CONFIG=frontend/playwright.auth-email-code.config.ts"

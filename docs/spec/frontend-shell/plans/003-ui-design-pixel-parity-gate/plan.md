@@ -6,8 +6,6 @@
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
-**关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
-**关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
 
 ## 1 目标
 
@@ -31,26 +29,23 @@
 | Playwright config | `frontend/playwright.config.ts` | desktop + mobile projects, `tests/pixel-parity`, static web server, `.playwright-output` |
 | Static server | `frontend/scripts/serve-pixel-parity.mjs` | serves `frontend/dist`, `ui-design/`, and `/health`; fails loudly when required dirs are missing |
 | Pixel specs | `frontend/tests/pixel-parity/*.spec.ts` | current 12-spec parity suite for shell and migrated screens |
-| Scenario | `test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/` | setup/trigger/verify/cleanup wrapper for `test:pixel-parity` |
 | Handoff docs | `frontend/README.md` §2.7 | install, build, run, screenshot smoke and offline limits |
 
 ### 2.2 Current Gate Expectations
 
 - `pnpm --filter @easyinterview/frontend build` produces `frontend/dist/index.html`.
 - `pnpm --filter @easyinterview/frontend test:pixel-parity` runs current parity specs in both viewport projects.
-- `E2E.P0.006` verify requires passing summary, desktop/mobile markers, and all current spec markers.
 - Out-of-scope entries such as standalone `jd_match`, `debrief`, `profile`, `mistakes`, `growth`, `drill`, and standalone `voice` must not appear as live route/testid parity failures.
-- `ui-design/index.html` may need CDN access unless assets are vendored; this is documented in the scenario README.
+- `ui-design/index.html` may need CDN access unless assets are vendored; this is documented in the frontend README.
 
 ## 3 质量门禁
 
-- **Plan 类型**: `frontend + tooling + visual parity + BDD`。
+- **Plan 类型**: `frontend + tooling + visual parity`。
 - **TDD 策略**: 适用。Playwright config, server fixture and specs are executable tests. The owner gate fails when selectors, geometry, build output, browser install or server paths are missing.
-- **BDD 策略**: 适用。`E2E.P0.006` is the real-browser parity scenario and is tracked by [bdd-plan](./bdd-plan.md) / [bdd-checklist](./bdd-checklist.md).
+- **BDD 策略**: 不适用。该 plan 只维护 visual parity 工具与代码层 gate，不新增用户业务流程；因此不保留 `bdd-*.md`，也不把 Playwright parity 包装成 E2E。
 - **替代验证 gate**:
   - `pnpm --filter @easyinterview/frontend build`
   - `pnpm --filter @easyinterview/frontend test:pixel-parity`
-  - `test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/scripts/setup.sh && test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/scripts/trigger.sh && test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/scripts/verify.sh && test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/scripts/cleanup.sh`
   - `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-shell/plans/003-ui-design-pixel-parity-gate/context.yaml --target frontend`
   - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`
   - `make docs-check`
@@ -81,29 +76,23 @@
 - Added workspace server-bound initial route bootstrap for full-state checks.
 - Added authenticated user menu browser parity and logout flow.
 
-### Phase 5: Scenario and docs handoff
+### Phase 5: Tooling and docs handoff
 
-- Added `E2E.P0.006` scenario assets and verification wrapper.
 - Updated frontend README with install/build/run/screenshot-smoke instructions.
-- Preserved jsdom smoke (`E2E.P0.005`) as fast feedback while Playwright owns real browser parity.
 
 ### Phase 6: Current inventory hardening
 
-- Keep the P0.006 verify marker list derived from the same 12 tracked Playwright specs.
 - Keep screenshot smoke buffer-only; do not retain snapshot config, ignore rules or PNGs.
 - Keep browser dependencies limited to packages imported by the current parity suite.
-- Keep scenario wording aligned with ocean/light and current ocean dark tokens.
+- Keep parity wording aligned with ocean/light and current ocean dark tokens.
 
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
 |----|--------|------|
-| A-1 | Playwright config and static server are executable | scaffold/server tests, P0.006 setup |
 | A-2 | TopBar, auth/settings shell and user menu match current UI source in real browsers | `topbar.spec.ts`, `screens.spec.ts`, `layout.spec.ts` |
 | A-3 | Current business screens have viewport-safe parity coverage | home/parse/workspace/resume/practice/generating/report specs |
 | A-4 | Screenshot smoke, dark mode and customAccent work through current browser evidence | `screenshot.spec.ts` and per-screen smoke |
-| A-5 | Out-of-scope routes/modules do not become live parity surfaces | pixel specs and P0.006 verify negative checks |
-| A-6 | Scenario/documentation handoff is complete | `E2E.P0.006`, `frontend/README.md`, docs-check |
 
 ## 6 变更记录
 

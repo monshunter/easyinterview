@@ -1,21 +1,24 @@
 # Grounded Conversation Report BDD Plan
 
-> **版本**: 2.19
+> **版本**: 2.20
 > **状态**: active
 > **更新日期**: 2026-07-14
 
-## Scenario Matrix
+## Domain behavior
+
+| Behavior ID | Given | When | Then | 验证入口 |
+|-------------|-------|------|------|----------|
+| `BDD.REPORT.GENERATE.001` | completed session 具有 frozen context；provider output 也可能 invalid/truncated/retryable | 生成、repair/retry、持久化、读取或 replay report | 只使用 frozen context；合法 direct report 原子持久化，非法/过大输出 fail closed 且无 stale-worker/隐私副作用 | `backend/internal/review/conversation_report_test.go` + `report_generation_contract_test.go`，由根 `make test` 承接 |
+
+## Real E2E handoff
 
 | ID | Type | Phase | Given | When | Then |
 |----|------|-------|-------|------|------|
-| E2E.P0.056 | primary/contract | 7,11 | schema-valid P0.047 completion owner artifact + completed context-rich conversation + in-memory 62,397-byte regression/default-limit payloads | run exact `TestE2EP0056ReportBackendEvidence` then compose frontend runner | regression and 917,504-byte limit reach provider unchanged; backend artifact + frontend markers pass; frozen context, valid anchors/actions and no hidden score |
-| E2E.P0.058 | failure/recovery | 6-9,11 | schema-valid completion owner artifact plus missing/mismatched/in-memory 917,505-byte oversized snapshot, action-local attempt2/3/4 recovery, attempt4 invalid/provider failure, second independent invocation and nonretryable failure | run exact `TestE2EP0058ReportFailureBackendEvidence` then compose typed frontend states | oversized input makes zero provider/repair calls and returns recoverable receipt；one action uses initial+3 with10s/20s/40s；new action resets；no partial ready |
-| E2E.P0.070 | primary/replay | 8 | ready source report with empty or issue-backed needs-work focus | retry plan create/read/replay | server creates generic same-round retry for empty focus or atomically projects issue-backed focus |
-| E2E.P0.072 | security/failure | 8 | missing/cross-user/wrong-target/resume/round/non-ready/invalid source | derived plan create | fail closed without privacy or focus leakage |
-| E2E.P0.099 | real integration/UX + deterministic boundary parity | 8 | real shared env + current-run en/zh ready rows + exact 24/64 ui-design/OpenAPI fixtures | capture exact six full-page images；bind each ready row's canonical content/action/content-audit/screenshot/report/session/context digests；run prototype/formal pixel parity on boundary fixtures | 390x844 real report images prove actual labels satisfy `<=24 whitespace words` / `<=64 Unicode code points` and are fully visible；deterministic parity independently proves exact 24/64 wrapping with no clipping/ellipsis/hiding/overflow |
-| E2E.P0.100 | real-provider quality + bounded retry | 8-9 | distinct fixed-five contexts + deterministic action-retry and takeover fixtures | product action-local initial+3 + lease fencing + evalkit generation/judge independent max4；strict diagnostic additionally requires 11/11 + blind audit | product waits10s/20s/40s and new invocation resets；mechanical finals100%；fixed-five semantic至少4/5；strict run59381 remains FAIL；async attempts stay infra-only；stale worker zero report/outbox/audit/job |
-| E2E.P0.059 | cross-owner canonical-round overview | 10 | owned ready TargetJob has canonical rounds with no report, prior-ready+newer-failed, generating-only and latest-ready histories | call `listTargetJobReports`, then ReportsScreen joins `PracticeRoundRef` to current TargetJob summary | every round appears in canonical order；current/latest pointers remain independent and minimal；invalid ownership/context/round identity fails closed；only current target renders，with no full history or global report center |
+| E2E.P0.099 | real report/generating API/UI | 8 | shared real frontend/backend/provider, current-run en/zh ready reports and one honest generating resource | browser captures exact six full-page images while runner binds authenticated report API and read-only PostgreSQL evidence | every row binds current DB/API state plus report/session/context/screenshot digests；390x844 ready images show complete action regions and generating images never claim ready |
 
-Scenario entity ownership remains registry truth: frontend-report-dashboard owns 056/058/059, frontend-home-job-picks-and-parse owns 016, backend-practice owns 070/072, and e2e-scenarios-p0 owns 099/100. This plan supplies named backend evidence; it does not duplicate the scenario directories.
+## Evidence boundary
 
-P0.056 backend artifact uses schema `report-backend-evidence.v1`; P0.058 uses `report-backend-evidence.v3` with separate database and runtime facts. Both use the exact keys/commands/markers defined in test-plan. Neither scenario may recreate `completePracticeSession`; both must consume `practice-completion-evidence.v1` from backend-practice/002. PASS requires exact Go test execution evidence, schema-valid redacted artifacts and absence of FAIL/no-test/raw-content markers before frontend composition.
+- Report validator、repair/retry、persistence、replay projection、canonical-round overview、配置默认值和 provider/judge reliability 均由 code/integration/eval gate 承接，不包装为 E2E。
+- Exact 24/64 boundary belongs to code-level tests；P0.099 only proves that the current legal real content is fully visible at desktop/mobile.
+- P0.099 must reach the host-run frontend/backend and current database/API. Fixture transport, route interception, dev mock, jsdom, package test output or provider CLI/eval cannot satisfy it.
+- Root `make test` is the independent whole backend/frontend unit regression gate and never an E2E step or PASS marker.

@@ -41,7 +41,7 @@ runtime:
 		practiceRoutes{},
 		uploadRoutes{},
 		resumeRoutes{Handler: resumehandler.New(resumehandler.Options{
-			Service: newResumeScenarioService(),
+			Service: newResumeContractService(),
 			Session: currentUserFromContext,
 		})},
 		reportRoutes{},

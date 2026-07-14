@@ -61,7 +61,6 @@ spec:
           - shared
           - migrations
           - config
-          - test/scenarios/e2e
         uiRoutes: []
         apiNames:
           - createUploadPresign

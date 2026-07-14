@@ -14,6 +14,7 @@ fi
 
 for marker in \
   "SCENARIO_RUNNER=E2E.P0.101" \
+  "E2E_TRANSPORT=host-run-real-frontend-backend" \
   "PLAYWRIGHT_SPEC=frontend/tests/e2e/auth-email-code.spec.ts" \
   "PLAYWRIGHT_CONFIG=frontend/playwright.auth-email-code.config.ts" \
   "E2E.P0.101 first-login-profile-setup email-code flow PASS" \

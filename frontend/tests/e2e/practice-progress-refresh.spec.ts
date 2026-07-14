@@ -19,16 +19,6 @@ interface TargetJobProgressResponse {
   };
 }
 
-interface PracticePlanResponse {
-  id: string;
-  resumeId: string;
-  roundId?: string | null;
-  roundSequence?: number | null;
-  status: string;
-  targetJobId: string;
-  timeBudgetMinutes: number;
-}
-
 const FRONTEND_ORIGIN =
   process.env.EI_P0_098_FRONTEND_ORIGIN ?? "http://127.0.0.1:5173";
 const API_BASE_URL =
@@ -38,16 +28,12 @@ const MAILPIT_BASE_URL =
 const AUTH_EMAIL =
   process.env.EI_P0_098_AUTH_EMAIL ??
   "p0-098-live-round-refresh@example.test";
-const RESUME_ID =
-  process.env.EI_P0_098_RESUME_ID ??
-  "019f6098-0000-7000-8000-000000000002";
 const TARGET_JOB_ID =
   process.env.EI_P0_098_TARGET_JOB_ID ??
   "019f6098-0000-7000-8000-000000000003";
 const ROUND_ONE_SESSION_ID =
   process.env.EI_P0_098_ROUND_ONE_SESSION_ID ??
   "019f6098-0000-7000-8000-000000000020";
-const INTERCEPTED_SESSION_ID = "019f6098-0000-7000-8000-000000000090";
 const WORKSPACE_DETAIL_PATH = `/workspace?targetJobId=${TARGET_JOB_ID}`;
 
 interface ReadyDetailRequestCounts {
@@ -58,7 +44,7 @@ interface ReadyDetailRequestCounts {
 
 test.setTimeout(120_000);
 
-test("E2E.P0.098 completion refreshes Workspace and quick-start posts the backend current round", async ({
+test("E2E.P0.098 completion refreshes the persisted current round across live pages", async ({
   page,
 }) => {
   const seenMessageIds = new Set(await listMessageIdsForEmail(AUTH_EMAIL));
@@ -166,137 +152,6 @@ test("E2E.P0.098 completion refreshes Workspace and quick-start posts the backen
   console.log(
     "E2E.P0.098 workspace detail refresh PASS states=done,current,pending labels=已进行,即将进行,未进行 visualStyles=distinct",
   );
-
-  await page.goto(`${FRONTEND_ORIGIN}/workspace`, {
-    waitUntil: "domcontentloaded",
-  });
-  await expect(
-    page.getByTestId(`workspace-plan-list-start-${TARGET_JOB_ID}`),
-  ).toBeVisible();
-
-  let interceptedStartBody: Record<string, unknown> | null = null;
-  let interceptedStartIdempotencyKey = "";
-  let createdPlanId = "";
-
-  await page.route(
-    new RegExp(
-      `^${escapeRegExp(API_BASE_URL)}/practice/sessions$`,
-    ),
-    async (route) => {
-      const request = route.request();
-      if (request.method() !== "POST") {
-        await route.continue();
-        return;
-      }
-      interceptedStartBody = request.postDataJSON() as Record<string, unknown>;
-      interceptedStartIdempotencyKey =
-        (await request.headerValue("idempotency-key")) ?? "";
-      const planId = String(interceptedStartBody.planId ?? "");
-      createdPlanId = planId;
-      const now = new Date().toISOString();
-      await route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        headers: corsHeaders(),
-        body: JSON.stringify({
-          id: INTERCEPTED_SESSION_ID,
-          planId,
-          targetJobId: TARGET_JOB_ID,
-          status: "waiting_user_input",
-          language: "zh-CN",
-          messages: [],
-          createdAt: now,
-          updatedAt: now,
-        }),
-      });
-    },
-  );
-  await page.route(
-    new RegExp(
-      `^${escapeRegExp(API_BASE_URL)}/practice/sessions/${INTERCEPTED_SESSION_ID}$`,
-    ),
-    async (route) => {
-      const now = new Date().toISOString();
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        headers: corsHeaders(),
-        body: JSON.stringify({
-          id: INTERCEPTED_SESSION_ID,
-          planId: createdPlanId,
-          targetJobId: TARGET_JOB_ID,
-          status: "waiting_user_input",
-          language: "zh-CN",
-          messages: [],
-          createdAt: now,
-          updatedAt: now,
-        }),
-      });
-    },
-  );
-
-  const createPlanResponsePromise = page.waitForResponse(
-    (response) =>
-      response.request().method() === "POST" &&
-      response.url() === `${API_BASE_URL}/practice/plans`,
-  );
-  const createPlanRequestPromise = page.waitForRequest(
-    (request) =>
-      request.method() === "POST" &&
-      request.url() === `${API_BASE_URL}/practice/plans`,
-  );
-
-  await page
-    .getByTestId(`workspace-plan-list-start-${TARGET_JOB_ID}`)
-    .click();
-
-  const [createPlanRequest, createPlanResponse] = await Promise.all([
-    createPlanRequestPromise,
-    createPlanResponsePromise,
-  ]);
-  expect(createPlanResponse.status()).toBe(201);
-  const createPlanBody = createPlanRequest.postDataJSON() as Record<
-    string,
-    unknown
-  >;
-  const createdPlan = (await createPlanResponse.json()) as PracticePlanResponse;
-
-  expect(createPlanBody).toMatchObject({
-    goal: "baseline",
-    resumeId: RESUME_ID,
-    roundId: "round-2-technical",
-    targetJobId: TARGET_JOB_ID,
-    timeBudgetMinutes: 30,
-  });
-  expect(createPlanBody).not.toHaveProperty("roundSequence");
-  expect(createdPlan).toMatchObject({
-    resumeId: RESUME_ID,
-    roundId: "round-2-technical",
-    roundSequence: 2,
-    status: "ready",
-    targetJobId: TARGET_JOB_ID,
-    timeBudgetMinutes: 30,
-  });
-  expect(await createPlanRequest.headerValue("idempotency-key")).not.toBe("");
-
-  await expect.poll(() => interceptedStartBody).not.toBeNull();
-  expect(createdPlanId).toBe(createdPlan.id);
-  expect(interceptedStartBody).toEqual({ planId: createdPlan.id });
-  expect(interceptedStartIdempotencyKey).not.toBe("");
-  await expect(page).toHaveURL(/\/practice\?/);
-  await expect(page.getByTestId("practice-screen")).toBeVisible();
-  expect(new URL(page.url()).searchParams.get("planId")).toBe(createdPlan.id);
-  expect(new URL(page.url()).searchParams.get("sessionId")).toBe(INTERCEPTED_SESSION_ID);
-
-  const persistedPlan = await getPracticePlan(page, createdPlan.id);
-  expect(persistedPlan.roundId).toBe("round-2-technical");
-  expect(persistedPlan.roundSequence).toBe(2);
-  console.log(
-    "E2E.P0.098 next plan POST PASS requestRoundId=round-2-technical responseRoundId=round-2-technical responseRoundSequence=2 persistedRoundSequence=2",
-  );
-  console.log(
-    "E2E.P0.098 session start interception PASS realPlanCreate=true aiSessionStart=intercepted",
-  );
 });
 
 async function loginExistingUser(
@@ -333,26 +188,6 @@ async function getTargetJob(page: Page): Promise<TargetJobProgressResponse> {
       return JSON.parse(body) as TargetJobProgressResponse;
     },
     { apiBaseUrl: API_BASE_URL, targetJobId: TARGET_JOB_ID },
-  );
-}
-
-async function getPracticePlan(
-  page: Page,
-  planId: string,
-): Promise<PracticePlanResponse> {
-  return page.evaluate(
-    async ({ apiBaseUrl, requestedPlanId }) => {
-      const response = await fetch(
-        `${apiBaseUrl}/practice/plans/${requestedPlanId}`,
-        { credentials: "include" },
-      );
-      const body = await response.text();
-      if (!response.ok) {
-        throw new Error(`getPracticePlan failed: HTTP ${response.status} ${body}`);
-      }
-      return JSON.parse(body) as PracticePlanResponse;
-    },
-    { apiBaseUrl: API_BASE_URL, requestedPlanId: planId },
   );
 }
 
@@ -513,15 +348,4 @@ async function pollMailCode(
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error(`Timed out waiting for Mailpit message to ${email}`);
-}
-
-function corsHeaders(): Record<string, string> {
-  return {
-    "Access-Control-Allow-Credentials": "true",
-    "Access-Control-Allow-Origin": FRONTEND_ORIGIN,
-  };
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

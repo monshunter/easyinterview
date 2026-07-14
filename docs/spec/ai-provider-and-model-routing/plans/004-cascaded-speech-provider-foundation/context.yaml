@@ -43,8 +43,6 @@ spec:
         - ../002-tools-streaming-and-stt/plan.md
         - ../003-provider-registry-and-capability-profiles/plan.md
         - ../../../practice-voice-mvp/plans/001-cascaded-stt-llm-tts/plan.md
-        - ../../../practice-voice-mvp/plans/001-cascaded-stt-llm-tts/bdd-plan.md
-        - ../../../practice-voice-mvp/plans/001-cascaded-stt-llm-tts/bdd-checklist.md
       discovery:
         packages:
           - backend/internal/ai/aiclient

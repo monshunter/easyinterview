@@ -1,3 +1,0 @@
-# Expected outcome
-
-Persisted user and assistant GFM render through one safe semantic message-body with prototype-owned typography; fenced code and tables remain inside the message viewport with local 390px scrolling and zero document overflow. The submitted candidate answer appears before the server reply, reload preserves the pending recovery projection before lease expiry, and all conflicting actions remain disabled while pending. Focused service/repository contracts converge the same `clientMessageId` to one user row and one assistant reply, while API output exposes recovery fields only on the user message. Desktop 1440 and mobile 390 Practice screenshots retain current source SHA-256, per-PNG SHA-256, dimensions, viewport, and DPR evidence.

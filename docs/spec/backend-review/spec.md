@@ -1,6 +1,6 @@
 # Backend Review Spec
 
-> **版本**: 1.26
+> **版本**: 1.28
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -14,11 +14,11 @@
 
 ### 2.1 Operation Matrix
 
-| operation / async path | frontend consumer | persistence | AI dependency | scenario coverage |
-|------------------------|-------------------|-------------|---------------|-------------------|
-| `getFeedbackReport` | generating/report | `feedback_reports` | none on read | `E2E.P0.056`, `E2E.P0.058`, `E2E.P0.099` |
-| `listTargetJobReports` | target-scoped ReportsScreen | `feedback_reports` + current TargetJob canonical round summary | none on read | focused handler/store contract gate + `E2E.P0.059` |
-| `report_generate` | async runner | `feedback_reports`, jobs/outbox/audit/task-runs | `report.generate` | `E2E.P0.056`, `E2E.P0.058`, `E2E.P0.099`, `E2E.P0.100` |
+| operation / async path | frontend consumer | persistence | AI dependency | verification |
+|------------------------|-------------------|-------------|---------------|--------------|
+| `getFeedbackReport` | generating/report | `feedback_reports` | none on read | focused handler/store/consumer tests + `E2E.P0.099` real API/UI |
+| `listTargetJobReports` | target-scoped ReportsScreen | `feedback_reports` + current TargetJob canonical round summary | none on read | focused handler/store/consumer contract tests |
+| `report_generate` | async runner | `feedback_reports`, jobs/outbox/audit/task-runs | `report.generate` | focused service/store/integration tests + independent eval gate + `E2E.P0.099` visible report |
 
 `completePracticeSession` 与 `createPracticePlan` 是跨 owner handoff，不是本 subject 的实现 operation：前者由 `backend-practice/002` 产出 `practice-completion-evidence.v1`，后者由 `backend-practice/004` 产出 server-derived replay markers；本 subject 只消费对应 reference/marker。
 
@@ -34,7 +34,7 @@
 
 `backend-practice/002` 保证 completed session 后不可追加 `practice_messages`，并在同一数据库一致性视图校验 TargetJob/Resume/Plan 绑定关系；`backend-review` 生成器只按 `seq_no` 读取 terminal messages 并校验数量与最后序号等于已冻结坐标，禁止回查 mutable TargetJob/Resume/Plan 重建或补写快照。不得在 job payload、outbox、audit、metric label 或普通 log 中复制 JD、简历、会话或完整 generation context。
 
-数据库始终冻结全量原文用于审计，generation 不做静默截断、抽样或模型摘要。可信 policy + 完整 untrusted context 的最终 UTF-8 payload 上限由 A4 `report.maxFramedInputBytes` 注入，默认 917,504 bytes（896KiB）；它与 A3 的 1,000,000-token context window、2,048 framing reserve、6,144 output budget 共同满足 `925696 < 1000000`。超限在任何 provider 调用或会话内重试计数开始前 fail fast，报告以 non-retryable `REPORT_CONTEXT_TOO_LARGE` 失败。TPM 不参与单请求容量裁决；任何未来压缩必须另行设计事实保真 gate。
+数据库始终冻结全量原文用于审计，generation 不做静默截断、抽样或模型摘要。可信 policy + 完整 untrusted context 的最终 UTF-8 payload 上限由 A4 `report.maxFramedInputBytes` 注入，默认 917,504 bytes（896KiB）。A3 独立持有 `report.generate.default` 的 1,000,000-token context window 和 16,384-token output budget；当前不用 bytes 与 tokens 相加的跨单位公式宣称两者容量等价。超过 byte guard 时在任何 provider 调用或会话内重试计数开始前 fail fast，报告以 non-retryable `REPORT_CONTEXT_TOO_LARGE` 失败。TPM 只是吞吐配置，不参与单请求裁决；任何未来压缩必须另行设计事实保真 gate。
 
 `getFeedbackReport` 必须从冻结快照投影与 OPENAPI-001 一致的最小 immutable `context`：`sourcePlanId`、`targetJobTitle`、`targetJobCompany`、`resumeId`、`resumeDisplayName`、`roundId`、`roundSequence`、`roundName`、`roundType`、`language`、`hasNextRound`。前端不得为 Context Strip 或 CTA 再读取当前可变 TargetJob/Resume/route identity；`reportId` 是唯一 locator。queued/generating/ready/failed 均返回相同 context 投影。
 
@@ -44,7 +44,7 @@
 - JD、Resume、assistant/user messages 均是数据，不得改变 system policy。
 - JD/Resume/Round 只提供比较上下文，不得单独成为候选人本场表现的正负证据；每个用户可见表现判断最终必须落到候选人 `user` message。assistant message 只能说明系统问过什么。
 - 每个 highlight / issue 必须携带内部 `sourceMessageSeqNos`，且至少锚定一个同 session 的候选人 `user` message；锚点保存在 content-bearing report JSON，API 当前不展示 turn-based UI。
-- Prompt policy 要求：当最后一条 message 是未获回答的 assistant 追问时，只能表述“尚未覆盖 / 证据不足”，不得推断“回避、不会、经验不足或准备不足”。seqNo validator 只能证明 evidence 引用了 user message，不能机械证明自然语言支持度；该禁止项由 context-aware judge/P0.100 zero-tolerance 验收，不虚称 runtime deterministic guarantee。
+- Prompt policy 要求：当最后一条 message 是未获回答的 assistant 追问时，只能表述“尚未覆盖 / 证据不足”，不得推断“回避、不会、经验不足或准备不足”。seqNo validator 只能证明 evidence 引用了 user message，不能机械证明自然语言支持度；该禁止项由独立 context-aware judge/eval zero-tolerance gate 验收，不虚称 runtime deterministic guarantee。
 
 ### 2.4 LLM 最终输出
 
@@ -119,7 +119,7 @@ OpenAPI ready read model 对用户返回相同业务 shape 与最小 frozen `con
 - 生成审计以脱敏 bounded coordinate 记录 `attempt_count`、`retry_count`、每轮 `reason` 与 `scope`，并聚合所有调用的 token usage 与 latency；不得保存 raw prompt/output、secret 或候选人正文。label-only 结果只原样 merge 到目标 label，非 label 字段保持不变；服务端不截断、压缩、代写或启发式改写。
 - Evalkit 与产品 runtime 都使用动作会话内 generation budget=4 并复用相同 validator/scope 状态机；manifest 输出 attempt/retry/reason/scope 脱敏审计和聚合 usage/latency，但不得把它描述为 report 生命周期持久化额度。
 - Judge/evaluator 使用与 generation 相互独立的 budget=4。仅 retryable provider failure 或 judge protocol/schema invalid 可以再次调用；每次调用都消耗 judge attempt 并聚合 usage/latency。一个结构合法的 unsupported、causal mismatch、zero-tolerance 或 critical negative verdict 是有效的 terminal content rejection，必须一次失败并禁止重新抽样到 PASS。实现与 manifest 必须把 retryable `protocol invalid` 和 terminal `content rejected` 表达为不同 typed outcome。
-- 完整 payload 在默认配置下超过 917,504 bytes 以 `REPORT_CONTEXT_TOO_LARGE` terminal fail；provider 不被调用，前端只提供返回动作。62,397-byte 真实回归样本必须进入 provider 路径。
+- 完整 payload 超过注入上限时以 `REPORT_CONTEXT_TOO_LARGE` terminal fail；provider 不被调用，前端只提供返回动作。用小型注入上限验证 admitted/overflow 控制流；历史 62,397-byte 症状只作为根因证据，不重建为测试材料，默认上限的 exact/+1 也不作为场景或大材料测试要求。
 - ready report 必须持久化实际 `PromptResolution` 与 `AICallMeta` 的 prompt/rubric/model/provider/language/feature/data-source coordinates；禁止使用 store 硬编码占位值。
 
 ### 2.7 复练事实源
@@ -131,9 +131,9 @@ OpenAPI ready read model 对用户返回相同业务 shape 与最小 frozen `con
 
 ### 2.8 Report-quality rubric 与评测
 
-`config/rubrics/report.generate` 只用于 offline/live judge，不注入 runtime prompt，也不作为候选人能力 taxonomy。可靠性验收必须使用不同真实上下文案例。P0.100 completion 在独立 generation budget=4 内通过完整 validator；只有完整 schema+semantic validation 通过才进入 judge budget=4。Judge transport/protocol/schema retry 与业务 content rejection 必须 typed 分离：前者在剩余 budget 内可重试，后者是有效终端 sample FAIL，严禁重采样。逐项 verdict 必须覆盖 summary、preparedness、每个 dimension/highlight/issue/action 与 retry focus；每条事实/判断/建议按 `supported / partial / unsupported` 标注。partial 仅在报告明确说明证据有限且未用于负面 readiness/action 时允许。任一编造事实、unsupported readiness/action、无关或不可立即执行建议、causal mismatch、critical miss 均使该样本失败。产品验收要求所有最终输出机械合同100%通过，并以固定五类代表场景至少4/5（80%）表达概率性语义置信度；失败样本不得替换。更严格P0.100继续要求5类/11次、关键3/3和blind review，任一sample FAIL都使严格场景FAIL。P0.099 仍以自身 current-run canonical audit + 390x844 截图闭合显示，恰好24/64由确定性parity独立证明。
+`config/rubrics/report.generate` 只用于 offline/live judge，不注入 runtime prompt，也不作为候选人能力 taxonomy。可靠性验证是独立 code/eval gate，不是应用 E2E：generation budget=4 内每轮复用完整 validator，只有完整 schema+semantic validation 通过才进入独立 judge budget=4。Judge transport/protocol/schema retry 与业务 content rejection 必须 typed 分离；结构合法的 content rejection 是终端 FAIL，严禁重采样。逐项 verdict 覆盖 summary、preparedness、每个 dimension/highlight/issue/action 与 retry focus，并按 `supported / partial / unsupported` 判定。失败诊断只保留有界计数、reason/scope 与 digest，不保留 report/context/transcript 正文。
 
-P0.100 在调用 judge 前必须按同一决策表机械拒绝非例外 empty focus、focus 与全部 needs-work same-code issue 集合不精确相等、`I >= 2` empty focus 和重复 action type，避免让 judge 为结构性 invalid 输出背书；失败诊断只保留有界 `issue_count`、`needs_work_count`、action type、focus count/mode、token count 与 digest 等脱敏结构坐标，不保留 report/context/transcript 正文。
+调用 judge 前，机械 gate 必须拒绝非例外 empty focus、focus 与全部 needs-work same-code issue 集合不精确相等、`I >= 2` empty focus 和重复 action type，避免让 judge 为结构性 invalid 输出背书。固定五类、重复采样与 blind review 可作为独立可靠性诊断，但不得被称作 E2E 或成为 `E2E.P0.099` 的前置条件。
 
 ### 2.9 TargetJob 轮次报告概览
 
@@ -161,7 +161,7 @@ TargetJobReportsOverview
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| Practice transcript / completion snapshot | `backend-practice/002` | terminal messages、零回答/pending-reply gate、`generation_context` 与 P0.047 owner artifact；review 只消费 |
+| Practice transcript / completion snapshot | `backend-practice/002` | terminal messages、零回答/pending-reply gate、`generation_context` 与 completion owner artifact；review 只消费 |
 | API schema | `openapi-v1-contract` | direct semantic FeedbackReport shape |
 | DB | `db-migrations-baseline` | report context snapshot 与 direct semantic JSON |
 | Prompt / eval | `prompt-rubric-registry` | runtime generation policy、output schema、judge-only rubric |
@@ -173,16 +173,16 @@ TargetJobReportsOverview
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 冻结生成消费 | 002 已产出 P0.047 owner artifact，且 JD/Resume 可随后修改 | runner 校验 marker/坐标并生成报告 | payload 只使用完成时快照与 terminal messages，不漂移、不重建 completion context | 001（消费）/ backend-practice 002（产出） |
+| C-1 | 冻结生成消费 | 002 已产出 completion owner artifact，且 JD/Resume 可随后修改 | runner 校验 marker/坐标并生成报告 | payload 只使用完成时快照与 terminal messages，不漂移、不重建 completion context | 001（消费）/ backend-practice 002（产出） |
 | C-2 | 最终语义 | 模型返回 direct report shape | validate/persist/read | API 逐项无损返回，无隐藏数值重算 | 001 |
 | C-3 | Grounding | candidate user message 支持判断 | 生成报告 | 每个 evidence 有合法内部 anchor | 001 |
 | C-4 | 未回答追问 | 最后一条为 assistant 新追问 | prompt + context-aware quality gate | 只标记未覆盖/证据不足；任一能力负面推断使 eval/UAT 失败 | 001 |
 | C-5 | Generation retry / repair / fail closed | 单次用户动作的会话内 retry context | runtime/evalkit执行 | 每轮按当前violations选择action_labels/whole_report并完整复验；最多4调用，重试前依次等待10s/20s/40s；attempt4 invalid/provider failure结束本次动作；用户重新操作从0计数；无report级持久化额度 | 001 |
 | C-6 | 复练当前轮 | ready report focus 为空或含 issue-backed needs-work codes | 创建 retry plan | 004 服务端派生通用同轮或定向 focus，客户端不能覆盖；review 只消费 marker | backend-practice 004 |
 | C-7 | 隐私与隔离 | 跨用户或非内容存储面 | 读取/生成/审计 | 404/fail closed 且无 raw context 泄漏 | 001 |
-| C-8 | 真实可靠性与UI | P0.100+P0.099 | BDD | 所有最终输出机械合同100%；固定五类语义至少4/5；strict P0.100保留11/11诊断；200只作fuse；24/64 fail-close；18/52只作targeted-repair内部余量；desktop+390完整换行；超限typed invalid/no raw | 001 |
+| C-8 | 可靠性与真实 UI | 独立 code/eval inputs + P0.099 current run | eval + BDD | code/eval gate 验机械与语义可靠性；P0.099 只验真实 report/generating API/UI、desktop+390 完整显示与 current-run digest，不互相冒充 | 001 |
 | C-9 | 深链事实源 | 仅有 reportId 或 URL 带冲突 identity/status | 读取报告/点击 CTA | 状态、Context Strip 与动作 identity 均来自 frozen report context，route 不能覆盖 | 001 |
-| C-10 | Judge bounded retry | generation output完整合法 | evaluator调用 | 独立budget=4；仅provider retryable或protocol/schema invalid重试；结构合法negative verdict typed content-rejected并终端FAIL，不重采样 | 001 + F3 004 + P0.100 |
+| C-10 | Judge bounded retry | generation output完整合法 | evaluator调用 | 独立budget=4；仅provider retryable或protocol/schema invalid重试；结构合法negative verdict typed content-rejected并终端FAIL，不重采样 | 001 + F3 004 code/eval gate |
 | C-11 | Report job/fencing | report job创建、reap/takeover、迟到worker | generation persistence/finalize | async `max_attempts`只约束基础设施执行恢复；仅running+claimed attempt可写report/outbox/audit/job，stale worker零领域副作用；不得充当产品retry counter | 001 + backend-async-runner/001 |
 | C-12 | TargetJob 轮次报告概览 | owned ready TargetJob 含 canonical rounds，且各轮可有 ready / queued / generating / failed 历史 | 调用 `listTargetJobReports` | 无分页地返回每个 canonical round 的 `PracticeRoundRef + currentReport + latestAttempt`；两个指针按各自稳定顺序独立选择，非法 ownership/context/round identity 整体 fail closed，不返回完整报告内容 | 001 |
 
@@ -194,21 +194,23 @@ TargetJobReportsOverview
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.28 | Remove the cross-unit byte/token capacity formula; keep the 917,504-byte input guard and the 1M/16K profile contract as independently owned configuration facts. |
+| 2026-07-14 | 1.27 | Raise the A3 report output setting to 16,384 and replace default-sized report/scenario boundaries with one 62,397 regression plus small injected provider call/no-call tests; the former capacity-formula interpretation is superseded by 1.28. |
 | 2026-07-14 | 1.26 | 方案 A：report framed input 默认提升至 896KiB，由 A4 注入并以 1M context window 公式验证；62,397-byte 回归样本不得再被本地拒绝。 |
-| 2026-07-14 | 1.25 | Move the unchanged canonical-round overview consumer from embedded Parse to the independent target-scoped ReportsScreen and P0.059; no wire, schema, persistence, or selection change. |
+| 2026-07-14 | 1.25 | Move the unchanged canonical-round overview consumer from embedded Parse to the independent target-scoped ReportsScreen and focused consumer contract gate; no wire, schema, persistence, or selection change. |
 | 2026-07-14 | 1.24 | 将 `listTargetJobReports` 收敛为 Parse 消费的 canonical-round overview，锁定最小 wire、独立 current/latest 排序、完整 round coverage 与 fail-closed 边界。 |
-| 2026-07-13 | 1.23 | 区分机械100%、固定五类4/5语义产品验收与严格P0.100 11/11诊断；记录最终prompt run59381为产品通过、strict FAIL。 |
+| 2026-07-13 | 1.23 | 区分机械100%、固定五类4/5语义产品验收与严格可靠性诊断；评估结果不作为应用 E2E。 |
 | 2026-07-13 | 1.22 | Replace report-lifetime durable retry budget with per-user-action in-memory `1+3` and `10s/20s/40s`; new action resets, async job attempts remain infrastructure-only. |
 | 2026-07-13 | 1.21 | L2：report job explicit max_attempts4；running+claimed-attempt lease fencing covers success/failure/report/outbox/audit/job；run35622 aborted7/11 not PASS. |
 | 2026-07-13 | 1.20 | 用户确认generation/judge各自最多4次调用；generation durable pre-call reservation + crash-safe cap，judge仅重试provider/protocol invalid，valid negative终端FAIL；旧单次预算废止。 |
 | 2026-07-13 | 1.19 | Evalkit复用产品完整semantic validator；sole-label→action_labels，其它schema/semantic/mixed→one whole_report repair；所有阶段完整复验，second invalid zero judge。 |
 | 2026-07-13 | 1.18 | 方案 A 最终边界：wire fuse200 code points；semantic/UX 24 whitespace words / 64 Unicode code points；targeted action-label repair internal margin18/52。 |
 | 2026-07-13 | 1.17 | A-200：wire fuse改200；sole label200/14-40仍action_labels；14/40 UX与desktop+390 gate不变。 |
-| 2026-07-13 | 1.16 | Normalize all action-label schema120/14-40 violations into action_labels scope，including label>120 schema-invalid；record current live P0.100 FAIL until corrected. |
+| 2026-07-13 | 1.16 | Normalize all action-label schema120/14-40 violations into action_labels scope，including label>120 schema-invalid；record the live eval failure until corrected. |
 | 2026-07-13 | 1.15 | Runtime 锁定整报告 / 唯一 action-length label-only repair 决策表与全量复验；evalkit 仅共享 schema+14/40 repair，runner 其它 semantic gate 不 repair且零 judge。 |
-| 2026-07-13 | 1.14 | 将 action 120-char 定位为 wire/schema fuse；P0.100 5 类/11 次与 P0.099 current-run UX audit 保持独立证据链。 |
+| 2026-07-13 | 1.14 | 将 action 120-char 定位为 wire/schema fuse；可靠性 eval 与 P0.099 current-run UX audit 保持独立证据链。 |
 | 2026-07-13 | 1.13 | 锁定 evalkit 同源 output-schema validation、一次 `$ / output_schema_invalid` repair、second-invalid fail、generation aggregate + repair_used、judge one-shot，以及 action 长度/逐 code 分号片段。 |
-| 2026-07-13 | 1.12 | 真实 P0.100 judge 暴露 action 合同矛盾后，按 retry/review/next 分类型锁定 support 边界，并将 focus 封闭为两个 exact empty 例外或完整升序 needs-work issue-code set。 |
+| 2026-07-13 | 1.12 | 真实 judge eval 暴露 action 合同矛盾后，按 retry/review/next 分类型锁定 support 边界，并将 focus 封闭为两个 exact empty 例外或完整升序 needs-work issue-code set。 |
 | 2026-07-13 | 1.11 | 初步收紧 generic focus、multi-issue 与 lower-tier action 因果；最终 focus 集合合同由 1.12 exact decision table 取代，并保留 004 对既有 ready report 空 focus 派生的 owner 边界。 |
 | 2026-07-12 | 1.10 | 锁定四档准备度、三档证据 confidence、control-only 非回答与可立即执行 action 语义；runtime validator 镜像可机械 cross-field invariant，judge 接收完整分档并逐项审计 preparedness/focus。 |
 | 2026-07-12 | 1.9 | 收窄 review 为 frozen-context consumer；completion/replay 改为 002/004 marker handoff，并允许空 focus 表达通用同轮复练。 |

@@ -23,12 +23,10 @@
 
 - Eligibility table covers opening-only, route/draft-only, first committed user message, pending assistant reply, loading, sending, completing and non-mutable session states; only the committed-user/no-pending/mutable idle combination enables Finish.
 - Prototype/formal DOM and i18n tests require the same visible zh/en zero-answer reason and stable `aria-describedby`; no hardcoded bilingual copy lives in the component.
-- P0.047 composes frontend disabled-reason evidence with backend `VALIDATION_FAILED`/zero-side-effect evidence, then covers one-answer success and idempotent completion replay.
 
 ## Phase 8: reportId-only handoff
 
 - Component/router tests require exact navigation query/state/context `{reportId}` and fail on any copied target/plan/session/resume/round/status/error field.
-- P0.047 inspects browser URL/history plus downstream `getFeedbackReport` request, proving reportId is the sole locator and completion replay keeps the same locator.
 
 ## Phase 9: Immediate feedback and message-local recovery
 
@@ -38,7 +36,6 @@
 - Failure/retry tables assert row-local icon placement, server original text + same-ID payload, next-draft preservation, retry lock, repeated-failure stability and server-adopt deduplication；transport failures without a response or typed `ApiClientError.apiError.retryable=true` are retryable, while validation/auth/not-found/conflict/mismatch have no retry icon and recover through server truth.
 - The recovery integration path is explicit: AI failure → page reload → `getPracticeSession` returns the same user text/clientMessageId as `retryable_failed` → retry → exactly one assistant reply and no duplicate user row.
 - Finish-state tests cover pending, retryable-failed, retrying and terminal-recovery in addition to existing loader/completion guards；no unresolved message state can enable completion.
-- Pixel parity uses identical pending/failed fixtures at 1440 and 390, comparing DOM, computed style, key bounding boxes, viewport overflow and screenshot diff; P0.044/P0.046 record current runtime evidence.
 
 ## Phase 10: Timeout reconciliation, terminal recovery and fresh parity
 
@@ -47,8 +44,6 @@
 - PracticeScreen fake-timer tests assert no timeout at 94,999 ms, POST abort + same-ID GET at 95,000 ms, adoption of each authoritative status, missing-ID/read-failure unresolved fallback, no new-ID send, and stale late POST/reconcile responses ignored after a newer request sequence.
 - Historical Phase 10 terminal tests asserted no retry/thinking, safe localized copy and the then-current `parse(targetJobId)` route. Phase 11 supersedes only the destination; no-retry, no-composer-send and no-raw-error behavior remains regression coverage.
 - Pixel-parity Playwright compares formal and prototype surfaces for four states at 1440x900 and 390x844 using DOM snapshot, computed styles, key bounding boxes, overflow and screenshot ratio；scenario screenshots record exact pixel dimensions and SHA-256.
-- Scenario contract tests require the shared tracked source manifest to include UI docs/source, prototype contract, formal Practice hooks/screen/i18n/route/generated client, OpenAPI/templates/Practice fixtures, backend practice/store/migration, fingerprint helper and P0.044/P0.046 directories. Both scripts reject missing/changed paths, mismatched trigger/current SHA-256, missing PNG hashes, FAIL and no-tests output.
-- TDD order: source RED/GREEN → hook/screen RED → cancellation/timeout/reconcile/route GREEN → focused/full frontend → parity → scenario contract → serial P0.044/P0.046 → docs/diff closeout.
 
 ## Phase 11: Safe Markdown/GFM projection and Workspace-detail recovery
 
@@ -56,10 +51,9 @@
 - Security cases inject raw HTML, event handlers, Markdown images, `javascript:`/unsafe links and safe links；they prove HTML is inert, remote images do not create a network-fetching `<img>`, unsafe URIs are rejected and safe external links are hardened.
 - Payload tests distinguish source from projection: initial send and same-ID retry must receive the byte-identical raw `message.text` and original `clientMessageId`, never rendered DOM text or normalized Markdown, while preserving the next draft.
 
-## Phase 12: Runtime byte limits
+## Phase 12: Runtime byte guards
 
-- ASCII/multibyte exact 32KiB/32KiB+1 message and 256KiB/256KiB+1 loaded-session tests use `TextEncoder` bytes.
-- Runtime defaults/overrides and zero-send/draft-preservation tests compose with backend typed rejection/reload authority.
+- ASCII/multibyte tests use `TextEncoder` with small injected message/session limits；no default-sized strings are constructed.
+- Required-field and zero-send/draft-preservation tests compose with backend focused rejection；defaults/overrides remain A4-owned.
 - Responsive parity covers headings, lists, blockquotes, inline/fenced code and GFM tables at 1440 and 390；pre/code/table may scroll locally but cannot create document horizontal overflow.
 - Terminal route tests require exactly `{name:"workspace", params:{targetJobId}}` / `/workspace?targetJobId=...` read-only detail and reject query-free workspace, `planId`, current-scope `parse(targetJobId)`, row retry, composer send and technical error text.
-- Reuse P0.044 for user+assistant GFM/parity and P0.046 for malicious-content negatives, exact raw retry and terminal Workspace detail；refresh source fingerprints and screenshots without creating sibling scenarios.

@@ -34,5 +34,5 @@ spec:
           - frontend/src/app/screens/practice
           - openapi/fixtures/PracticeSessions
           - openapi/templates/ts
-          - test/scenarios/e2e
+          - test/scenarios/e2e/p0-098-practice-completion-progress-refresh
         apiNames: [getPracticeSession, sendPracticeMessage, completePracticeSession]

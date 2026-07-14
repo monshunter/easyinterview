@@ -1,18 +1,15 @@
-# 002 Practice Continuous Conversation BDD Plan
+# Practice Text Event Loop BDD Plan
 
-> **版本**: 2.8
+> **版本**: 2.10
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
-## Scenario Matrix
-| ID | Type | Phase | Given | When | Then |
-|----|------|-------|-------|------|------|
-| E2E.P0.044 | primary/pending/reload UX | 3/9 | running session with deferred successful send, or server user row with `replyStatus=pending` | submit one message, inspect pending, reload/re-read, resolve response | user row appears and composer clears immediately；pending locks composer/Finish and shows accessible interviewer-thinking；reload restores the same server row/ID without duplicate send；success converges to one server user/reply pair with no question classification |
-| E2E.P0.045 | alternate/regression | 2 | text session + phone params | load/operate UI | no side/question/hint; phone disabled; still text |
-| E2E.P0.046 | failure/reload/recovery | 3/6/9 | loader failure, typed retryable AI/network failure persisted as `retryable_failed` with a next draft, or terminal validation/auth/not-found/conflict/mismatch | inspect failed row, reload and recover | loader refreshes independently；AI failure → reload restores the server original text/same clientMessageId and one row-local retry；same-ID retry preserves draft and converges to exactly one user/reply pair；terminal errors expose no retry and re-read server truth；Finish remains disabled until convergence |
-| E2E.P0.047 | primary/recovery/boundary | 4/6/7/8 | opening-only zero-answer session, one-answer session, or transient completion failure | inspect Finish, direct-call completion, finish/retry | zero-answer UI is disabled with localized accessible reason and backend independently rejects with zero side effects; one-answer completion/replay reaches generating with reportId as the only URL/history/API locator and no copied business identity/status |
-| E2E.P0.044 | lease-aligned pending UX | 10 | current tracked sources, one deferred POST and one persisted pending server row before 90-second lease expiry | submit/reload, inspect pending and let server truth converge | immediate/persisted row and thinking lock match prototype/formal at 1440/390；no duplicate send；fresh source/screenshot hashes prove current evidence |
-| E2E.P0.046 | timeout and terminal recovery | 10/11 | POST crosses 95 seconds, stale response may return, server row can be pending/retryable/terminal/complete | abort, reconcile the same ID, retry only retryable or choose terminal CTA | authoritative state wins；uncertain read stays fail-locked；stale response is ignored；terminal has one `/workspace?targetJobId` read-only-detail CTA and no current-scope `parse(targetJobId)` recovery；lease/fence/concurrency/timeout/terminal/fingerprint markers all pass |
-| E2E.P0.044 | safe Markdown/GFM conversation | 11 | persisted user and assistant text contains GFM headings/lists/blockquote/code/table at desktop or mobile | load/reload the conversation | both roles render through the shared safe projection；raw text remains authoritative；prototype/formal DOM/style/bbox/viewport parity holds and code/table creates no document overflow |
-| E2E.P0.046 | Markdown security/raw retry | 11 | persisted text contains raw HTML, remote image and unsafe/safe links, or a retryable row with Markdown source | render, inspect requests/DOM and retry the same row | HTML/scripts/events remain inert；no remote image request；unsafe URI rejected；safe link hardened；retry sends byte-identical raw text and same ID；terminal CTA enters Workspace detail |
-| E2E.P0.046 | Runtime text boundaries | 12 | RuntimeConfig/default 32KiB message / 256KiB session and server-loaded history near boundary | submit ASCII/multibyte limit and limit+1, reload after backend decision | limit sends；+1 zero send and draft retained；backend authoritative total/reply state reloads consistently |
+**关联 Plan**: [plan](./plan.md)
+
+## 行为合同
+
+| Behavior ID | Given | When | Then | 验证入口 |
+|-------------|-------|------|------|----------|
+| `BDD.PRACTICE.TEXT.001` | 已存在可训练或已完成的 plan/session；输入也可能不可接受 | 用户发送、重试、完成或在终态继续发送文本 | UI 展示持久化 user/assistant turns 并一致恢复；终态/非法输入 fail closed，不伪造消息或完成状态 | `frontend/src/app/screens/practice/PracticeScreen.test.tsx` + `hooks/usePracticeMessages.test.tsx`，由根 `make test` 承接 |
+
+当前没有覆盖 chat、session start 或文本 event loop 的真实 API/UI E2E owner。代码层回归统一由根 `make test` 承接，不能作为 E2E 证据。

@@ -46,17 +46,16 @@ Unsupported paths and malformed query input must normalize to the current route 
 
 - **Plan 类型**: `feature-behavior` + `frontend` + `routing`。
 - **TDD 策略**: 本计划按 `/implement frontend-shell/004-url-addressable-routing frontend` -> `/tdd` 完成。Current regression gate covers route codec, hash adapter, route store, History integration, auth pendingAction serialization, privacy redline and host fallback tests.
-- **BDD 策略**: 需要 BDD。本计划维护 [bdd-plan](./bdd-plan.md) / [bdd-checklist](./bdd-checklist.md)，主 checklist 使用 `BDD-Gate:` 引用 `E2E.P0.088`、`E2E.P0.089`、`E2E.P0.090`。
-- **替代验证 gate**: 不适用；BDD 是用户行为 gate。Supplemental gates include focused Vitest, host fallback tests, context validator, `make docs-check` and `git diff --check`。
+- **替代验证 gate**: 不适用；BDD 是用户行为 gate。阶段单测完成由仓库根 `make test` 承接；host fallback、context validator、`make docs-check` 与 `git diff --check` 是独立 gates。
 
 ## 4 Operation Matrix / Contract Boundary
 
 | Boundary | Contract | Frontend Consumer | Backend Handler | Persistence | AI dependency | Scenario Coverage |
 |----------|----------|-------------------|-----------------|-------------|---------------|-------------------|
-| Browser History router | Route codec + safe-param allowlist | route adapter, NavigationProvider, TopBar, auth pendingAction | N/A | browser history only | none | E2E.P0.088 / E2E.P0.089 / E2E.P0.090 |
-| Hash adapter | `#route=...` -> `LooseRoute` -> normalize -> canonical replace | `bootstrapRoute.ts`, pixel parity harness, scenario harness | N/A | none | none | E2E.P0.090 + E2E.P0.006 |
-| Generated API client | No new OpenAPI operation, fixture or generated client contract | Route params only feed existing screen hooks | owner handlers unchanged | owner stores unchanged | owner-specific only | E2E.P0.088 and owner scenarios |
-| Host fallback | Known frontend paths return `index.html`; API/static/script paths stay owned by their handlers | direct open / reload / preview / pixel server | API routes unchanged | N/A | none | E2E.P0.088 / E2E.P0.090 |
+| Browser History router | route codec + safe-param allowlist | route adapter、NavigationProvider、TopBar、auth pendingAction | N/A | browser history only | none | 当前无真实 E2E owner；root `make test` |
+| Hash adapter | hash input -> normalize -> canonical replace | bootstrap/parity harness | N/A | none | none | 当前无真实 E2E owner；code-level/parity gates |
+| Generated API client | no new operation/fixture contract | route params feed existing screen hooks | owner handlers | owner stores | owner-specific | 当前无 routing E2E owner；root `make test` |
+| Host fallback | known frontend paths return app shell | direct open/reload/preview | API routes unchanged | N/A | none | 当前无真实 E2E owner；host smoke separate from E2E |
 
 ## 5 Privacy Redline
 
@@ -81,15 +80,9 @@ Blocked payload categories:
 ### 6.1 Phase 8 route-table evidence reconciliation
 
 - Reconcile the canonical route table with `routeUrl.ts`: workspace accepts no query params, while resume workshop accepts only `resumeId`, `flow`, `createMode` and `targetJobId`.
-- Keep old workspace detail/start keys only as hostile P0.088 inputs that must be stripped; practice, generating and report continue to preserve their own current safe params.
-- Remove stale discovery keywords and align P0.088 README/data/BDD wording with the executable jsdom assertions.
-- Gate with focused routeUrl/P0.088 tests, the P0.088 wrapper, owner/product contexts and docs/diff/pruning checks. No routing runtime behavior changes.
 
-### 6.2 Phase 9 P0.089 workspace-zero-query evidence reconciliation
 
-- Treat the direct-open and popstate workspace payloads in P0.089 as hostile inputs; both must canonicalize to query-free `/workspace` while the positive auth continuation still restores safe practice params.
 - Align the executable test title, BDD wording, scenario README and data assets with the current route table; remove claims that workspace retains `planId`, `targetJobId` or other query params.
-- Gate with the focused P0.089 test, its four-stage scenario wrapper, owner/product contexts and docs/diff/pruning checks. No routing runtime behavior changes.
 
 ### 6.3 Phase 10 unconsumed route helper removal
 
@@ -102,7 +95,6 @@ Blocked payload categories:
 - Register protected context route `reports` at `/reports`; its safe-param allowlist contains only `targetJobId`, chrome stays visible, and the route is deliberately absent from `PRIMARY_NAV_ROUTES` / TopBar.
 - Missing or invalid Reports target identity automatically uses `replaceRoute(workspace)` so the bad deep link does not remain immediately behind a pushed workspace entry. The route-store bootstrap canonicalizer must not overwrite a newer child mount redirect with its stale initial URL.
 - Keep `parse` free of `section=reports` and strip hostile `section`, `reportId`, status and round query inputs. Narrow `report` / `generating` to reportId-only locators; trusted target context for Back comes from API responses, never URL or pendingAction.
-- Cover direct open, reload, App navigation, replace/back/forward, hash adapter and SPA host fallback in P0.088/P0.090. Cover unauthenticated direct-open and exact targetJobId-only pendingAction restoration in P0.089.
 - Gate with route codec/store/App/auth/privacy/host fallback tests, TopBar negative, owner contexts, docs/diff and pruning checks. Existing route history remains regression evidence; this Phase reopens the completed owner in place.
 
 ### 6.5 Phase 12 command/query route split
@@ -110,7 +102,6 @@ Blocked payload categories:
 - Supersede Phase 8/9 的 workspace-zero-query 结论：`/workspace` 无 `targetJobId` 时展示规划列表；`/workspace?targetJobId=<uuid>` 是受保护、可直开/刷新/历史恢复的只读详情 route。它只保留合法 `targetJobId`，并剔除 `planId`、`resumeId`、`autoStartPractice` 与其他业务状态。
 - `/parse?targetJobId=<uuid>` 只承载刚导入 TargetJob 的 queued/processing 命令进度；`resumeId` 不再是 safe param。TargetJob 首读已 ready 或轮询转 ready 时，screen 必须 `replaceRoute({ name: "workspace", params: { targetJobId } })`，避免 Back 回到冗余动画。
 - ready Home/Workspace card 直接 push 到 workspace detail；不得先进入 Parse。Workspace detail 复用统一只读详情组件，但不播放 Parse loading animation，也不触发 import/poll/start side effects。
-- P0.088 覆盖 list/detail direct/reload/back-forward、Parse ready replace 与合法 targetJobId preservation；P0.089 覆盖 workspace/parse targetJobId-only pendingAction restore 和 raw/extra zero-hit；P0.090 覆盖 hash adapter、host fallback 与 planId/resumeId/auto-start stripping。
 
 ## 7 验收标准
 
@@ -124,7 +115,6 @@ Blocked payload categories:
 - Auth pendingAction restore returns to the original canonical route using safe params only.
 - Hostile URL / hash / history state input is scrubbed into canonical safe state.
 - Host fallback returns `index.html` for known frontend paths and does not swallow API/static/script paths.
-- `E2E.P0.088`、`E2E.P0.089`、`E2E.P0.090` pass.
 
 ## 8 风险与应对
 
@@ -132,7 +122,6 @@ Blocked payload categories:
 |------|----------|
 | Frontend URL mirrors backend implementation too closely | Keep the URL route-centric and user-centric; action verbs remain API/client concerns |
 | Sensitive payload leaks through query, history or pendingAction | Shared safe-param allowlist + runtime privacy redline tests |
-| Hash adapter breaks preview or parity harness | Keep the current adapter covered by E2E.P0.090 |
 | Host fallback swallows API paths | Explicit fallback tests distinguish known frontend paths from API/static/script paths |
 | Components bypass router | Route adapter remains the only write path; focused tests cover navigation behavior |
 
@@ -144,8 +133,4 @@ Blocked payload categories:
 | 2026-07-14 | 1.11 | Use replace-only workspace recovery for invalid Reports deep links and prevent stale bootstrap canonicalization from recreating the bad URL. |
 | 2026-07-14 | 1.10 | Reopen in place for protected `/reports`, targetJobId-only deep links/auth restore, no TopBar entry, no Parse section compatibility, and reportId-only report/generating routes. |
 | 2026-07-10 | 1.9 | Remove the unconsumed routeUrlsEqual wrapper and false consumer comment. |
-| 2026-07-10 | 1.8 | Reconcile P0.089 workspace hostile-input evidence with the query-free canonical route contract. |
-| 2026-07-10 | 1.7 | Align the route owner and P0.088 with workspace zero-query and current resume-workshop safe params. |
-| 2026-07-10 | 1.6 | Isolate the synchronous P0.089 hostile-query test lifecycle with explicit cleanup; keep routing and privacy behavior unchanged. |
-| 2026-07-10 | 1.5 | Normalize hash adapter wording across owner, BDD, tests and E2E.P0.090 without changing routing behavior. |
 | 2026-07-07 | 1.4 | Compress URL routing owner docs to the current canonical URL, safe-param, hash adapter, privacy and host fallback contract. |

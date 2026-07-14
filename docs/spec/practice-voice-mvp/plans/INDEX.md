@@ -13,7 +13,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-cascaded-stt-llm-tts](./001-cascaded-stt-llm-tts/plan.md) | [plan](./001-cascaded-stt-llm-tts/plan.md) / [checklist](./001-cascaded-stt-llm-tts/checklist.md) / [context](./001-cascaded-stt-llm-tts/context.yaml) / [bdd-plan](./001-cascaded-stt-llm-tts/bdd-plan.md) / [bdd-checklist](./001-cascaded-stt-llm-tts/bdd-checklist.md) | 2.0 | completed | 2026-07-12 |
+| [001-cascaded-stt-llm-tts](./001-cascaded-stt-llm-tts/plan.md) | [plan](./001-cascaded-stt-llm-tts/plan.md) / [checklist](./001-cascaded-stt-llm-tts/checklist.md) / [context](./001-cascaded-stt-llm-tts/context.yaml) | 2.0 | completed | 2026-07-12 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）
 

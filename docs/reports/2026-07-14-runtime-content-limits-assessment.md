@@ -9,68 +9,82 @@
 
 ## 1 复盘范围与成功证据
 
-- 本次交付将 HTTP、Resume、TargetJob、Practice、Report 与四个 AI provider 的大小限制收敛到统一 typed defaults、YAML override、fail-fast validation 和显式注入；RuntimeConfig 只公开五个前端 preflight 所需字段。
-- 报告生成不再使用旧 package-local threshold：内存构造的 62,397-byte 回归输入与 917,504-byte 默认边界各进入 provider 一次，917,505-byte 输入在 provider/repair/retry 前以 `REPORT_CONTEXT_TOO_LARGE` 终止且 provider calls 为 0。
-- `backend/internal/review/testdata/report-boundary/` 已删除全部 `input-*.json`；测试 helper 在内存构造 exact regression/limit/limit+1 payload，并验证 canonical JSON round-trip、调用次数和持久化副作用。
-- 当前场景 P0.010、P0.015、P0.034、P0.035、P0.046、P0.056、P0.058、P0.081 均通过。后端全量及相关 race、前端 126 files / 1018 tests 与 production build、OpenAPI 37/10、37 fixtures、52 个 diff-wrapper tests、11 个 owner context、docs/index/diff gate 均通过。
-- 主实现提交后独立执行 `make codegen-check`，69 个 codegen-owned 输出与当前真理源字节一致；提交为 `1e5c414fb fix(runtime): centralize content size limits (BUG-0171)`。
+- HTTP、Resume、TargetJob、Practice、Report 与 provider adapter 的内容限制已收敛到统一 typed defaults、YAML override、fail-fast validation 和显式注入；RuntimeConfig 只公开五个前端 preflight 字段。
+- Report 不再使用旧 48,000-byte package-local threshold；A4 当前 `report.maxFramedInputBytes=917504`。
+- A3 当前要求六个 active LLM profile `max_tokens >= 16384`，report 的 output budget 为 16,384 tokens、context window 为 1,000,000 tokens。这些 token 配置与 byte guard 独立验证，不用跨单位加法宣称容量等价，TPM 也不参与单请求裁决。
+- `backend/internal/review/testdata/report-boundary/input-*.json` 已删除；不再构造 default/default+1 大材料或用真实大文件证明配置逻辑。
+- 前端删除本地 content-limit 默认 fallback；运行时配置未就绪时 consumer fail closed，不产生第二份默认真理源。
+- 生产代码完成后，仓库根 `make test` 已通过：`ui-design` 65 项、当时的 Python/Skill 542 项（含 5,122 个 subtests）、backend `go test ./...` 全部 package、frontend 125 个 test files / 998 项 tests。后续仅修改治理文档与 Skill 合同，并单独重跑当前完整 Python/Skill suite：543 项、5,122 个 subtests 全部通过；前后端生产代码未再变化。
+- `make lint-config`、`make lint-ai-profile-coverage`、49 个 plan context、20 组 BDD plan/checklist 成对审计（19 个 domain Behavior ID、3 个真实 E2E ID）、`make docs-check` 与 `git diff --check` 构成本次静态收口证据。
+- 本轮没有启动场景环境，也没有运行 P0.098/P0.099/P0.101；三个目录只代表可在真实 API/UI 环境运行的 `Ready` 资产，不代表当前运行 PASS。
 
 ## 2 会话中的主要阻点/痛点
 
-- Report 的旧 package hardcode 在 provider 前拒绝了模型容量可以承载的输入。
-  - **证据**：62,397-byte framed input 在旧边界下返回“材料与对话过长”，而当前 profile context window 为 1,000,000 tokens；修复后同一输入进入 provider。
-  - **影响**：用户收到不可恢复的错误页面，且提示把责任错误转移给输入材料。
-- 历史边界验证依赖提交的输入 JSON，而业务真正需要证明的是 byte gate 与下游副作用。
-  - **证据**：删除两个输入文件后，62,397 / 917,504 / 917,505 三个 exact payload 仍可在内存稳定重建并通过 canonical round-trip；P0.056/P0.058 保持通过。
-  - **影响**：真实大文件会增加仓库资产与 hash 维护成本，却不能替代 provider call/no-call 和持久化断言。
-- 调高默认值后，P0.058 store 证据仍把 60,000 bytes 当作 oversized。
-  - **证据**：新默认值下该样本已合法，首次 P0.058 暴露测试不再进入 oversized 分支；改为 917,505 bytes 后，provider calls=0 与 terminal persistence 重新得到证明。
-  - **影响**：固定历史样本会在配置演进后悄悄测试另一条路径，形成假阳性。
-- OPENAPI-005 的历史 replay 测试假定自身 audit current hash 永远等于最新 baseline。
-  - **证据**：OPENAPI-006 合法 re-freeze 后该断言失败；修复为校验 OPENAPI-005 current hash 等于 OPENAPI-006 old-baseline hash，完整 52 个 wrapper tests 通过。
-  - **影响**：正确追加下一条 breaking decision 反而会破坏历史审计重放，阻塞合法 baseline 演进。
-- `make codegen-check` 以当前 `HEAD` 为比较基准，未提交的预期 generated diff 在主提交前必然被判为漂移。
-  - **证据**：实现阶段其他 codegen/lint gate 已通过；主提交后相同 `make codegen-check` 通过且工作区无生成物变化。
-  - **影响**：若不区分 pre-commit 生成正确性与 post-commit byte-stability，会提前记录无法成立的 PASS。
+### 配置合同被跨层复制
+
+同一默认值、override、invalid 和 limit/default+1 曾在 loader、composition、domain、frontend 与场景层重复断言。重复测试没有增加业务覆盖，反而让每次默认值调整需要同步大量数字、fixture 和 marker。
+
+修订后只保留一组 A4 typed loader/validator owner contract。Consumer 只测试类型和注入无法自动保证的非平凡分支，例如错误映射、provider call/no-call、持久化原子性或协议读取上限，并使用小型注入值。
+
+### 大 payload 被误当作边界证明
+
+历史设计提交 `input-*.json`，并在内存构造默认大小、default+1 payload。业务真正需要证明的是 guard 的控制流和副作用，不是把测试数据填充到某个生产默认字节数。
+
+修订后不再重建 62,397-byte 历史输入；该数值只保留在 Bug 根因记录中。业务控制流由一个小型 injected limit 的 admitted/overflow 测试证明，生产默认数值由 A4 typed owner contract 与 A3 profile loader/coverage lint 各自证明。只有 parser 的编码/格式行为才有理由使用真实文件 fixture；当前 report-boundary 目录仅保留 output-schema zh/en fixtures 及 manifest。
+
+### 跨单位算术被误当成容量证明
+
+旧 `report_budget_test.go` 直接将 UTF-8 bytes、framing reserve tokens 和 output tokens 相加后与 context-window tokens 比较。这个算式没有 tokenizer 转换合同，即使数值成立也不能证明实际请求一定被模型接受。该测试已删除；当前只独立校验 byte guard 与 profile token fields，不构造两者的虚假算术关系。
+
+### 代码测试被包装成 E2E
+
+旧 `test/scenarios/e2e` shell 聚合 Go test、Vitest、pytest、lint、build、fixture parity 或 provider CLI/eval，再输出场景 PASS。这些证据没有驱动已运行应用，不是端到端用户流程。
+
+修订后的 E2E 只保留真实 HTTP API 或真实 browser UI 到 host-run backend 的流程。Report 范围只由 P0.099 验证真实 report/generating 页面、authenticated API、read-only DB 与 current-run 六图；provider reliability 归入独立 code/eval gate。
 
 ## 3 根因归类
 
-- 大小限制存在多个生产真理源。
-  - **类别**：spec-plan
-  - 旧设计没有明确 typed config owner、consumer injection、公开/内部边界和跨字段约束；本轮已由 A4 Phase 13 与各 consumer owner 原地收敛。
-- 边界测试把文件资产当作业务证明。
-  - **类别**：spec-plan
-  - 旧 gate 锁定 fixture hash，而没有优先锁定 exact byte construction、provider calls 和 persistence；backend-review Phase 11 已改为内存构造。
-- 场景 oversized 样本没有绑定当前配置边界。
-  - **类别**：spec-plan
-  - 固定数字在默认值变化后失去语义；P0.058 当前 gate 已使用 default limit+1 并输出 zero-provider marker。
-- OpenAPI 历史审计没有按 decision chain 重放。
-  - **类别**：spec-plan
-  - 旧断言比较“历史 current”与“今天 baseline”，而非下一条 accepted decision 的 old-baseline；OPENAPI-006 audit chain 已修正并加入回归测试。
-- post-commit codegen 验证顺序。
-  - **类别**：无需仓库改动
-  - 这是 gate 的既定 HEAD 语义，本轮 checklist 与工作日志已明确先提交、再验证、再文档收口，无需改变工具。
+- **spec/plan**：配置默认值、consumer 业务行为和真实 E2E 曾被写进同一验收链，导致调整一个数值需要跨层同步大量断言。
+- **AGENTS.md / README**：此前没有明确区分 Behavior ID、代码级行为测试与真实 E2E，Go/Vitest/pytest/lint/build 因而被包装成场景。
+- **skill**：design、implement、tdd、plan review/code review 与 scenario skills 曾倾向“有业务词就建 BDD/E2E”，缺少 BDD-N/A 和最小充分证据的退出条件。
+- **no repo change needed**：62,397-byte 历史请求是根因证据，不是必须长期保存的回归 fixture；删除真实大小材料不会削弱小值注入的控制流验证。
+
+### 3.1 修订后的测试分层
+
+| 层级 | Owner | 允许的证据 | 不承担 |
+|------|-------|------------|--------|
+| 配置合同 | A4 typed loader/validator | default、override、代表性 invalid、cross-field | consumer 业务、副作用、E2E |
+| Consumer code | 各业务 package/frontend module | 小值注入、错误映射、call/no-call、持久化/协议缺陷 | 重复默认数值、真实大材料 |
+| Provider/profile contract | A3 loader/coverage lint + F3/evalkit | 六个 active profile 至少 16K、report 16K/1M fields、validator/judge reliability | byte/token 换算、应用 E2E |
+| 全量单测 | 根 `make test` | backend `go test ./...` + frontend 全量 tests | 真实环境用户旅程 |
+| E2E | `test/scenarios/e2e` | 真实 API/UI、持久化结果、用户可见状态 | Go/Vitest/pytest/lint/build 包装 |
+
+开发时可以运行 focused test 快速反馈；阶段完成与 CI 必须从仓库根执行 `make test`，整体回归前后端单测。E2E 单独运行、单独报告，不再次编排 `make test`。
 
 ## 4 对流程资产的改进建议
 
-- 所有新增/修订 size limit 必须同时声明 typed default、YAML key、consumer、单位、UTF-8 byte 语义、limit/+1、跨字段 validator、公开投影与内部负向清单。
-  - **落点**：secrets-and-config Phase 13 与相关 owner checklist
-  - **优先级**：high
-- 大小边界测试默认在内存构造 exact payload，并同时断言下游 call count 与 persistence；除解析器确需文件格式外，不提交仅用于凑 byte 数的输入文件。
-  - **落点**：backend-review Phase 11、P0.056、P0.058
-  - **优先级**：high
-- 场景中的 oversized/limit 样本应从当前运行时默认值派生或显式写成 default+1，并在 marker 中输出实际 byte 数，避免历史字面量失效。
-  - **落点**：P0.010、P0.034、P0.035、P0.046、P0.058、P0.081
-  - **优先级**：high
-- breaking audit replay 固定使用 decision chain：前一条 audit current hash 必须匹配后一条 accepted decision 的 old-baseline hash；不得要求历史 audit 匹配今天 baseline。
-  - **落点**：OpenAPI breaking-change gate Phase 10 与 `scripts/lint/openapi_diff_test.py`
-  - **优先级**：high
-- 保持 `codegen-check` 的 post-commit byte-stability 语义；在 phase checklist 中明确该 gate 的执行顺序，不为适配未提交工作区而放宽比较。
-  - **落点**：实施 checklist / 工作日志
-  - **优先级**：medium
+- **high / AGENTS.md**：已加入配置测试适度性门禁，要求单一 owner contract、consumer 只测非平凡业务分支、配置 wiring 不单设场景环境。
+- **high / AGENTS.md + scenario README**：已加入 E2E 证据边界，只承载真实 API/UI，禁止代码测试包装和 mock backend；无真实链路的旧场景直接删除。
+- **high / Makefile + AGENTS.md**：已明确根 `make test` 是阶段完成和 CI 的前后端全量单测入口；focused PASS 或 E2E shell 不能替代。
+- **medium / skills**：已修订 design、implement、tdd、plan review/code review 与 scenario skills，使纯配置/内部工具使用 BDD-N/A，Behavior ID 不再被强制映射为 P0 E2E；单个 `BDD-Gate` 只允许一种 evidence layer，代码 owner 的真实场景引用单独记为 `E2E-HANDOFF`，不得改变 `Ready` 状态。
+- **medium / spec-plan**：Backend Review、Frontend Report 与 E2E owner 已把配置、code/eval、deterministic parity 与 P0.099 real UI 分层，不再保留已删除场景的当前 owner 引用。
 
 ## 5 建议优先级与后续动作
 
-1. 下一步优先使用 `/plan-code-review --fix secrets-and-config/001-bootstrap` 对 `1e5c414fb` 相较 `main` 做 L2 反查，重点检查所有 consumer 是否只接收注入值、RuntimeConfig 是否保持五字段 closed projection，以及 limit+1 是否都在副作用前拒绝。
-2. 若后续新增新的内容类型，先扩展 A4 owner matrix 与 validator，再由具体业务 owner 消费；不要在业务 package 或前端页面新增独立默认值。
-3. 不再恢复 report `input-*.json`；只有当解析器必须验证真实文件编码/格式时，才在相应解析 owner 下引入最小 fixture，而不是把它当作 byte-boundary oracle。
+- **P0 / 已完成**：保持 A4 单一配置 owner、A3 active-profile floor 和小值 consumer branch 三层证据，不恢复默认尺寸 payload、跨单位公式或配置专用 BDD/E2E。
+- **P1 / 按需执行**：只有需要产品验收时，才显式使用 `/scenario-run` 在真实环境分别运行 P0.098、P0.099、P0.101；结果必须与本次静态审计和根 `make test` 分开报告。
+- **P2 / 持续约束**：新增 BDD 时先判定是否存在用户可观察行为；纯配置、内部工具、lint/codegen/migration 直接声明 BDD-N/A，并记录最小替代 gate。
+
+### 5.1 当前收口结论
+
+- A4 owner contract、A3 typed loader + active-profile coverage lint、小值 consumer tests 与 `input-*.json` zero-reference 已通过。
+- 根 `make test` 已完成前后端全量单测回归；必要的 race、PostgreSQL、OpenAPI/codegen、lint、build、prompt/eval 继续作为独立 gate 报告。
+- E2E 脚本不调用 Go test、Vitest/npm test、pytest、lint、build 或 provider CLI/eval；Playwright 只用于驱动真实应用 UI。
+- P0.099 仅可在真实 environment evidence 完整时报告结果，不使用历史 PASS、fixture 页面或 code test marker 冒充。
+
+### 5.2 后续原则
+
+1. 新增内容限制时先扩展 A4 owner matrix；仅当 consumer 出现新的非平凡业务分支时才增加 focused test。
+2. 默认大小调整只更新配置真理源和 owner contract；不要在多个 domain、frontend 或 E2E 复制数值。
+3. 保持“根 `make test` 全量单测 / E2E 真实用户流程 / eval 模型可靠性”三条证据链独立，分别报告结果。
+4. 不恢复 bytes + tokens 的跨单位容量公式；如需证明某个模型对具体请求的可接受性，必须另行定义 tokenizer/provider 契约，不得用配置单测代替。

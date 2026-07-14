@@ -74,7 +74,7 @@ requestAuth({
 - D1 shell i18n helper 位于 [`src/app/i18n/messages.ts`](./src/app/i18n/messages.ts)，只负责导入 locale、BCP 47 tag 归一化、类型约束和 `useI18n()` helper。
 - 每种 UI 语言必须有独立 locale 文件：[`src/app/i18n/locales/zh.ts`](./src/app/i18n/locales/zh.ts)、[`src/app/i18n/locales/en.ts`](./src/app/i18n/locales/en.ts)。不要把多语言 message map 糅合回 `messages.ts` 或组件文件。
 - UI 语言优先级为用户显式选择 > 浏览器 locale > English fallback；显式选择写入 `localStorage["ei-lang"]`，未知、缺失或不支持时 fallback English。语言选择只关联前端显示偏好，不由 runtime config 或登录态覆盖。
-- 新增语言时新增 locale 文件，并在 `src/app/i18n/localeCatalog.ts` 追加 `SUPPORTED_LOCALES` 元数据（`code` / `label` / `shortLabel` / `aliases`）；TypeScript 必须通过 `LocaleMessages` 校验 key 完整性，同时扩展 `localeFiles.test.ts`、i18n component test 和 E2E.P0.004 类场景。
+- 新增语言时新增 locale 文件，并在 `src/app/i18n/localeCatalog.ts` 追加 `SUPPORTED_LOCALES` 元数据（`code` / `label` / `shortLabel` / `aliases`）；TypeScript 必须通过 `LocaleMessages` 校验 key 完整性，同时扩展 `localeFiles.test.ts` 和 i18n component test。只有真实运行环境中的完整用户流程需要覆盖新语言时才新增 E2E。
 - TopBar 语言选择必须保持为与 `ui-design/src/app.jsx` 一致的可访问 icon dropdown：`button[data-testid="topbar-lang-toggle"]` 显示 globe icon + 当前语言标签（如 `中文` / `English`）并打开 `topbar-lang-menu`，语言项使用 `topbar-lang-option-{locale}`，方便后续新增 locale；不要改成 native select、按钮组或只切状态的静态控件。
 - RouteName、testid、URL/hash 和业务语言字段不本地化；`Accept-Language` 只作为 generated client 的 UI display hint，不覆盖 `targetLanguage` / practice language 等业务字段。
 
@@ -125,19 +125,18 @@ requestAuth({
 
 Frontend owner 替换 fallback shell 时应保留 `ei-screen-shell` 外壳与 `ei-screen-card` 节奏；新分区只在 card 内部展开内容，不在 shell 外加自定义 wrapper。
 
-#### Visual smoke 工具与 parity gate 重跑
+#### 代码层 visual smoke 与 parity gate 重跑
 
 D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
 
-1. **jsdom fast smoke（E2E.P0.005，毫秒级）**：覆盖 DOM 锚点 / className / `:root[data-theme][data-mode]` selector resolution / customAccent inline overlay / out-of-scope module 负向 / `ui-design` 源字面量追溯。日常开发循环跑这个就够。
+1. **jsdom unit smoke（毫秒级）**：覆盖 DOM 锚点 / className / `:root[data-theme][data-mode]` selector resolution / customAccent inline overlay / out-of-scope module 负向 / `ui-design` 源字面量追溯。开发中可 focused 运行，阶段完成与 CI 统一执行根 `make test` 全量回归。
 
    ```bash
-   pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-005-app-shell-visual-system-smoke.test.tsx
-   # 端到端 scenario
-   ./test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/scripts/{setup,trigger,verify,cleanup}.sh
+   pnpm --filter @easyinterview/frontend test src/app/__tests__/app-shell-visual-system.test.tsx
+   make test
    ```
 
-2. **Playwright + chromium pixel parity gate（E2E.P0.006，秒级）**：在 desktop (1440×900) 与 mobile (390×844) 两个 chromium project 下加载 `frontend/dist/index.html` 与 `ui-design/index.html` golden preview，断言 DOM 锚点 + computed style + bounding box + screenshot smoke / 必要截图差异。CI / 主线合并前必跑。
+2. **Playwright + chromium pixel parity gate（秒级）**：在 desktop (1440×900) 与 mobile (390×844) 两个 chromium project 下加载 `frontend/dist/index.html` 与 `ui-design/index.html` golden preview，断言 DOM 锚点 + computed style + bounding box + screenshot smoke / 必要截图差异。它是 fixture-backed UI parity gate，不是 E2E；需要 UI 变更时单独运行。
 
    ```bash
    # 0. 一次性预装 chromium 二进制（首次或新机器）
@@ -149,8 +148,6 @@ D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
    # 2. 跑当前 pixel parity spec 集合（desktop / mobile viewport 项按 spec 声明）
    pnpm --filter @easyinterview/frontend test:pixel-parity
 
-   # 3. 完整 scenario 入口（包含 pre-check / verify / cleanup）
-   ./test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/scripts/{setup,trigger,verify,cleanup}.sh
    ```
 
    规约入口：
@@ -165,13 +162,13 @@ D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
 
    修改 frontend bundle 后重跑 Playwright parity 时，先确认 4173 端口没有复用非当前 `dist` 的 server；若存在 stale server，停止后重新运行 gate，避免 `reuseExistingServer` 读取非当前构建产物。
 
-   离线 / 无外网时的局限：`ui-design/index.html` 通过 unpkg.com 加载 React + Babel，并通过 Google Fonts 加载字体；离线运行 ui-design 对照断言会失败。需要离线运行时按 [`test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/README.md`](../test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/README.md) §7 vendor CDN 资源。
+   离线 / 无外网时的局限：`ui-design/index.html` 通过 unpkg.com 加载 React + Babel，并通过 Google Fonts 加载字体；离线运行 ui-design 对照断言会失败，需要先提供等价的本地 vendor 资源。
 
 #### `ui-design` 原生迁移规则
 
 - 新组件 / 新视觉先在 `ui-design/src/*.jsx` 落原型，再在正式前端原生迁移；不允许 AI 自由发挥或外部品牌设计系统补全。
 - 每条样式 / token / className 必须能追溯到 `ui-design/src/*.jsx`、`ui-design/src/primitives.jsx` 或 `ui-design/src/app.jsx`；test 文件已固化 hex / fontSize / 布局值 → ui-design 源的 lint 关系。
-- 任何视觉偏差不得以「风格接近」收口；要么修到与原型一致，要么先修改 `ui-design/` 真理源（更新 `docs/ui-design/` + 静态原型 + scenario test），再回到正式前端做迁移。
+- 任何视觉偏差不得以「风格接近」收口；要么修到与原型一致，要么先修改 `ui-design/` 真理源（更新 `docs/ui-design/` + 静态原型 + 代码层测试 / parity gate），再回到正式前端做迁移。
 
 ## 3 UI 真理源与原生迁移
 

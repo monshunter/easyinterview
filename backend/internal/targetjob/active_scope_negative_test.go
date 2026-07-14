@@ -71,7 +71,7 @@ func TestURLFetchPackageIsDeleted(t *testing.T) {
 	}
 }
 
-func TestPackageDocReflectsCompletedScenarioGateState(t *testing.T) {
+func TestPackageDocReflectsCompletedContractState(t *testing.T) {
 	raw, err := os.ReadFile("doc.go")
 	if err != nil {
 		t.Fatalf("read doc.go: %v", err)

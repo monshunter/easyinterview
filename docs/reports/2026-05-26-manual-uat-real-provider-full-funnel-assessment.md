@@ -3,7 +3,7 @@
 > **日期**: 2026-05-26
 > **审查人**: Codex
 
-**关联计划**: [002 Manual UAT Real Provider Full Funnel](../spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/plan.md)
+**历史计划**: `002-manual-uat-real-provider-full-funnel`（已删除；沿革见 [E2E scenarios history](../spec/e2e-scenarios-p0/history.md)）
 
 ## 1 复盘范围与成功证据
 

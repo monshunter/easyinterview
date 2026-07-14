@@ -18,9 +18,12 @@ import importTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/i
 import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 
 type ListResumesResponse = Awaited<ReturnType<EasyInterviewClient["listResumes"]>>;
+type RuntimeConfigResponse = Awaited<ReturnType<EasyInterviewClient["getRuntimeConfig"]>>;
 
 const defaultListResumesResponse = listResumesFixture.scenarios.default.response
   .body as ListResumesResponse;
+const defaultRuntimeConfigResponse = getRuntimeConfigFixture.scenarios.default.response
+  .body as RuntimeConfigResponse;
 const emptyListResumesResponse = listResumesFixture.scenarios.empty.response
   .body as ListResumesResponse;
 const readableNonReadyListResumesResponse = {
@@ -73,6 +76,7 @@ function createClient(scenario?: string) {
     scenario ? { scenario } : undefined,
   );
   const client = new EasyInterviewClient({ fetch });
+  vi.spyOn(client, "getRuntimeConfig").mockResolvedValue(defaultRuntimeConfigResponse);
   vi.spyOn(client, "listResumes").mockResolvedValue(
     scenario === "empty" ? emptyListResumesResponse : defaultListResumesResponse,
   );
@@ -130,7 +134,7 @@ describe("Home resume selection", () => {
     expect(requestCounts.get("GET /api/v1/resumes")).toBe(1);
     expect(requestCounts.get("GET /api/v1/targets")).toBe(1);
     console.info(
-      "E2E.P0.014 Home StrictMode transport PASS listTargetJobs=1 listResumes=1",
+      "Home StrictMode transport PASS listTargetJobs=1 listResumes=1",
     );
   });
 

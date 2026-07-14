@@ -175,7 +175,7 @@ func TestLoaderRejectsUnknownCatalogTopLevelField(t *testing.T) {
 	}
 }
 
-func TestLoaderValidatesReportContextWindowTokens(t *testing.T) {
+func TestLoaderOwnsReportBudgetDefaultsOverridesAndValidation(t *testing.T) {
 	base := `name: report.generate.default
 capability: chat
 status: active
@@ -183,57 +183,54 @@ default:
   provider_ref: deepseek
   model: deepseek-v4-pro
 timeout_ms: 60000
-max_tokens: 6144
+max_tokens: 16
 rate_limit:
   tpm: 60000
 route: report.generate
 version: 1.2.0
 `
 
-	invalid := map[string]string{
-		"zero":                strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 0\n", 1),
-		"negative":            strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: -1\n", 1),
-		"equal-to-output":     strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 6144\n", 1),
-		"smaller-than-output": strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 6143\n", 1),
-	}
-	for label, body := range invalid {
-		t.Run(label, func(t *testing.T) {
-			path := writeProfileCatalog(t, catalog(body))
-			_, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
-			if err == nil {
-				t.Fatalf("expected invalid context_window_tokens to be rejected")
-			}
-			if !strings.Contains(err.Error(), "context_window_tokens") {
-				t.Fatalf("expected context_window_tokens error, got %v", err)
-			}
-		})
-	}
-	missingBoth := strings.Replace(base, "max_tokens: 6144\n", "", 1)
-	missingPath := writeProfileCatalog(t, catalog(missingBoth))
-	missingLoader, err := profile.NewLoader(profile.Options{Path: missingPath, PollInterval: -1})
-	if err != nil {
-		t.Fatalf("NewLoader missing report budgets: %v", err)
-	}
-	defer missingLoader.Close()
-	defaulted, err := missingLoader.Resolve("report.generate.default")
-	if err != nil || defaulted.ContextWindowTokens != profile.DefaultReportContextWindowTokens || defaulted.MaxTokens != profile.DefaultReportMaxTokens {
-		t.Fatalf("report code defaults drifted: profile=%+v err=%v", defaulted, err)
-	}
+	t.Run("missing values use code defaults", func(t *testing.T) {
+		body := strings.Replace(base, "max_tokens: 16\n", "", 1)
+		loader, err := profile.NewLoader(profile.Options{Path: writeProfileCatalog(t, catalog(body)), PollInterval: -1})
+		if err != nil {
+			t.Fatalf("NewLoader: %v", err)
+		}
+		defer loader.Close()
+		got, err := loader.Resolve("report.generate.default")
+		if err != nil || got.ContextWindowTokens != profile.DefaultReportContextWindowTokens || got.MaxTokens != profile.DefaultReportMaxTokens {
+			t.Fatalf("report code defaults drifted: profile=%+v err=%v", got, err)
+		}
+	})
 
-	valid := strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 1000000\n", 1)
-	path := writeProfileCatalog(t, catalog(valid))
-	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
-	if err != nil {
-		t.Fatalf("NewLoader valid report profile: %v", err)
-	}
-	defer loader.Close()
-	got, err := loader.Resolve("report.generate.default")
-	if err != nil {
-		t.Fatalf("Resolve: %v", err)
-	}
-	if got.ContextWindowTokens != 1_000_000 {
-		t.Fatalf("context_window_tokens=%d, want 1000000", got.ContextWindowTokens)
-	}
+	t.Run("explicit values override defaults", func(t *testing.T) {
+		body := strings.Replace(base, "max_tokens: 16\n", "max_tokens: 16\ncontext_window_tokens: 64\n", 1)
+		loader, err := profile.NewLoader(profile.Options{Path: writeProfileCatalog(t, catalog(body)), PollInterval: -1})
+		if err != nil {
+			t.Fatalf("NewLoader: %v", err)
+		}
+		defer loader.Close()
+		got, err := loader.Resolve("report.generate.default")
+		if err != nil || got.MaxTokens != 16 || got.ContextWindowTokens != 64 {
+			t.Fatalf("explicit report budget not preserved: profile=%+v err=%v", got, err)
+		}
+	})
+
+	t.Run("explicit non-positive value fails", func(t *testing.T) {
+		body := strings.Replace(base, "max_tokens: 16\n", "max_tokens: 0\n", 1)
+		_, err := profile.NewLoader(profile.Options{Path: writeProfileCatalog(t, catalog(body)), PollInterval: -1})
+		if err == nil || !strings.Contains(err.Error(), "'max_tokens' must be positive") {
+			t.Fatalf("error=%v, want max_tokens positive-value failure", err)
+		}
+	})
+
+	t.Run("invalid cross-field values fail", func(t *testing.T) {
+		body := strings.Replace(base, "max_tokens: 16\n", "max_tokens: 16\ncontext_window_tokens: 16\n", 1)
+		_, err := profile.NewLoader(profile.Options{Path: writeProfileCatalog(t, catalog(body)), PollInterval: -1})
+		if err == nil || !strings.Contains(err.Error(), "context_window_tokens") {
+			t.Fatalf("error=%v, want context_window_tokens validation failure", err)
+		}
+	})
 }
 
 func TestLoaderRejectsUnknownProfileField(t *testing.T) {

@@ -69,7 +69,7 @@ The wrapper must verify the exact path, method and statuses. Any other status tr
 
 - **Plan 类型**: `contract + tooling + governance`。
 - **TDD 策略**: 适用。Wrapper unit tests cover breaking/additive reclassification, composition schema diff, privacy export whitelist and contract-record requirements.
-- **BDD 策略**: 不创建本地 BDD；本 plan 是内部 contract evolution tooling。涉及用户可见 correction 时，guarded re-freeze 必须等待业务 owner 的 BDD evidence；Phase 9 复用 P0.034/P0.036/P0.037。
+- **BDD 策略**: 不适用。本 plan 是内部 contract evolution tooling，不创建 BDD 文件，也不引用场景编号。用户可见 correction 由业务 owner 独立验收；本 plan 只等待 schema/fixture/codegen/consumer handoff。
 - **替代验证 gate**:
   - `make openapi-diff`
   - `python3 -m unittest scripts.lint.openapi_diff_test`
@@ -136,7 +136,7 @@ The wrapper must verify the exact path, method and statuses. Any other status tr
 
 ### 5.1 Authorize before mutation
 
-Require accepted `OPENAPI-001-report-direct-semantics.md` and B1 `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` before changing current OpenAPI. Capture the merge-base `openapi/baseline/openapi-v1.0.0.yaml` and compare it to the proposed new OpenAPI before baseline re-freeze.
+Require accepted `OPENAPI-001-report-direct-semantics.md` and the B1 conventions gate before changing current OpenAPI. Capture the merge-base `openapi/baseline/openapi-v1.0.0.yaml` and compare it to the proposed new OpenAPI before baseline re-freeze.
 
 ### 5.2 Exact finding audit
 
@@ -160,7 +160,7 @@ The audit must separately enforce unchanged invariants: 37 operations / 10 tags�
 
 ### 6.3 Guarded consumer handoff and re-freeze
 
-Do not re-freeze until 001 source/codegen, 002 fixtures/prototype/Prism, mock-contract-suite runtime, frontend Home, backend TargetJob/upload, persistence/event owners and P0.010/P0.015 all pass paste-only positive/negative gates. Require zero positive/runtime references for `TargetJobImportSource*`, `target_job_attachment`, TargetJob `sourceType/sourceUrl`, URL/file/manual-form import branches and compatibility aliases. Accepted ADR/oracle and exact negative declarations may retain rejected tokens; whole-file/test-directory exclusions are forbidden.
+Do not re-freeze until 001 source/codegen, 002 fixtures/prototype/Prism, mock-contract-suite runtime, frontend Home, backend TargetJob/upload and persistence/event owners all pass paste-only positive/negative gates. Require zero positive/runtime references for `TargetJobImportSource*`, `target_job_attachment`, TargetJob `sourceType/sourceUrl`, URL/file/manual-form import branches and compatibility aliases. Accepted ADR/oracle and exact negative declarations may retain rejected tokens; whole-file/test-directory exclusions are forbidden.
 
 Preserve the deterministic old-baseline audit artifact under `openapi/baseline/audits/` before re-freeze. Final completion requires both that artifact and a clean current-baseline `make openapi-diff`, followed independently by fixture, codegen and consumer gates; clean current diff alone is never sufficient evidence.
 
@@ -172,7 +172,7 @@ Treat spec D-35 / history 1.54 and the product-approved方案 A as the sole corr
 
 ### 7.2 Guarded re-freeze
 
-Do not re-freeze the Practice correction until 001 typed schema/codegen/`ApiClientError` gates, 002 get/send recovery fixtures, mock-contract-suite parity, backend-practice persistence, frontend typed consumer and P0.046 reload/same-ID retry all pass. Final proof requires the preserved old-baseline artifact plus clean current diff and independent fixture/codegen/consumer gates.
+Do not re-freeze the Practice correction until 001 typed schema/codegen/`ApiClientError` gates, 002 get/send recovery fixtures, mock-contract-suite parity, backend-practice persistence and frontend typed consumer tests all pass. Final proof requires the preserved old-baseline artifact plus clean current diff and independent fixture/codegen/consumer gates.
 
 ## 10 Phase 8: OPENAPI-004 TargetJob report overview correction
 
@@ -182,7 +182,7 @@ Require accepted OPENAPI-004 and spec/history 1.57 before proposed schema mutati
 
 ### 8.2 Invariants and guarded re-freeze
 
-Audit must prove 37 operations/10 tags and unchanged `GET /api/v1/targets/{targetJobId}/reports`, operationId `listTargetJobReports`, 200 response. Preserve the old-baseline artifact before mutation. Do not re-freeze until 001/002, migration/TargetJob, backend-review, target-scoped ReportsScreen/P0.059, Parse/Report/Generating zero-list-consumer and mock gates pass. Final proof requires preserved audit + clean current diff + independent lint/fixture/codegen/consumer gates; a clean diff alone is insufficient.
+Audit must prove 37 operations/10 tags and unchanged `GET /api/v1/targets/{targetJobId}/reports`, operationId `listTargetJobReports`, 200 response. Preserve the old-baseline artifact before mutation. Do not re-freeze until 001/002, migration/TargetJob, backend-review, target-scoped ReportsScreen, Parse/Report/Generating zero-list-consumer and mock gates pass. Final proof requires preserved audit + clean current diff + independent lint/fixture/codegen/consumer gates; a clean diff alone is insufficient.
 
 ## 11 Phase 9: OPENAPI-005 Resume list summary correction
 
@@ -194,7 +194,7 @@ The generated oracle must exact-match the response item ref change, new closed/r
 
 ### 9.2 Invariants and guarded re-freeze
 
-Audit separately locks 37 operations/10 tags；`GET /api/v1/resumes`, operationId `listResumes`, 200 `PaginatedResume` pagination envelope；and `GET /api/v1/resumes/{resumeId}`, operationId `getResume`, 200 full `Resume`. Preserve the deterministic old-baseline artifact before mutation. Do not re-freeze until 001 Phase 16, 002 Phase 11, 004 Phase 7, backend list projection, mock parity, every frontend consumer and P0.034/P0.036/P0.037 all pass without compatibility fields or N+1 detail fetch. Final proof requires preserved audit + clean current diff + independent lint/fixture/codegen/consumer gates.
+Audit separately locks 37 operations/10 tags；`GET /api/v1/resumes`, operationId `listResumes`, 200 `PaginatedResume` pagination envelope；and `GET /api/v1/resumes/{resumeId}`, operationId `getResume`, 200 full `Resume`. Preserve the deterministic old-baseline artifact before mutation. Do not re-freeze until 001 Phase 16, 002 Phase 11, 004 Phase 7, backend list projection, mock parity and every frontend consumer pass without compatibility fields or N+1 detail fetch. Final proof requires preserved audit + clean current diff + independent lint/fixture/codegen/consumer gates；阶段收口执行根 `make test`。
 
 ## 12 Phase 10: OPENAPI-006 Runtime content limits
 

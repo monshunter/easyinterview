@@ -45,23 +45,15 @@ CANONICAL_DEV_STACK_ENV = {
     "AI_PROVIDER_REGISTRY_PATH": "config/ai-providers.yaml",
     "AI_MODEL_PROFILE_PATH": "config/ai-profiles.yaml",
 }
-EXPECTED_REPORT_PROFILE = {
-    "name": "report.generate.default",
-    "capability": "chat",
-    "status": "active",
-    "default": {
-        "provider_ref": "deepseek",
-        "model": "deepseek-v4-pro",
-        "params": {"temperature": 0.2, "thinking": "disabled"},
-    },
-    "fallback": [],
-    "timeout_ms": 60000,
-    "context_window_tokens": 1000000,
-    "max_tokens": 6144,
-    "rate_limit": {"rps": 3, "tpm": 60000},
-    "route": "report.generate",
-    "version": "1.2.0",
+CANONICAL_ACTIVE_BUDGET_PROFILES = {
+    "judge.default",
+    "practice.chat.default",
+    "report.generate.default",
+    "resume.parse.default",
+    "resume.tailor.default",
+    "target.import.default",
 }
+MIN_ACTIVE_MAX_TOKENS = 16_384
 
 
 def read(path: Path) -> str:
@@ -188,13 +180,15 @@ def validate(repo: Path) -> list[str]:
     if missing:
         problems.append("missing profiles: " + ", ".join(sorted(missing)))
 
-    report_profile = profiles.get("report.generate.default")
-    if report_profile is not None and report_profile != EXPECTED_REPORT_PROFILE:
-        problems.append(
-            "report.generate.default exact profile drift: require context_window_tokens=1000000, "
-            "max_tokens=6144, timeout_ms=60000, rate_limit.tpm=60000, version=1.2.0, "
-            "thinking=disabled, DeepSeek Pro route/fallback unchanged, and no unrelated fields"
-        )
+    for name in sorted(CANONICAL_ACTIVE_BUDGET_PROFILES):
+        profile = profiles.get(name)
+        if profile is None:
+            continue
+        max_tokens = profile.get("max_tokens")
+        if not isinstance(max_tokens, int) or max_tokens < MIN_ACTIVE_MAX_TOKENS:
+            problems.append(
+                f"{name}: max_tokens must be at least {MIN_ACTIVE_MAX_TOKENS}"
+            )
 
     for name, profile in sorted(profiles.items()):
         capability = str(profile.get("capability", ""))

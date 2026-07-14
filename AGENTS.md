@@ -62,8 +62,27 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 ### 2.1.1 TDD / BDD 质量门禁（强制）
 
 - **Code plan requires TDD**：凡 plan 涉及前端 / 后端 / 工具脚本 / 迁移 / codegen / 测试辅助等代码逻辑，必须通过 `/implement` 进入 `/tdd` 执行；checklist 中每个实现项必须有对应测试断言和实际运行证据。
-- **Feature plan requires BDD**：凡 plan 引入用户可感知 UI、API 行为、业务流程或端到端功能，必须在同一 plan 目录内维护 `bdd-plan.md` 和 `bdd-checklist.md`，主 `checklist.md` 必须包含引用场景编号的 `BDD-Gate:` 项。
+- **Feature plan requires BDD**：凡 plan 引入用户可感知 UI、API 行为、业务流程或端到端功能，必须在同一 plan 目录内维护 `bdd-plan.md` 和 `bdd-checklist.md`，主 `checklist.md` 必须包含引用 Behavior ID 或已有真实资产 E2E ID 的 `BDD-Gate:` 项。
 - **BDD 不适用时必须说明**：纯内部契约 / 工具 / 迁移 / codegen 若不产生用户行为流，可不创建 BDD 文件，但 plan 必须写明“不适用原因 + 替代验证 gate”（如 contract test、lint、drift check、migration check、smoke），并由 `/plan-review` 审查。
+- **BDD 资产遵循最小充分原则**：`bdd-plan.md` / `bdd-checklist.md` 只描述真实用户行为与可观察结果；纯配置默认值、源码契约、单测编排、lint、fixture 或 build gate 不得包装为 BDD。主题不再产生用户行为时，应删除 BDD 文件及 `context.yaml` / INDEX 引用，在主 plan 中记录“不适用原因 + 替代验证 gate”，不得保留空壳、历史 PASS 或伪场景编号。
+- **BDD 与 E2E 不强制一一对应**：代码层 Given/When/Then 可以作为 domain behavior test，但只有确实通过真实 API/UI 驱动运行环境的流程才能关联 `test/scenarios/e2e/` ID；没有真实 E2E 资产时不得为了满足文档格式虚构、复用或改号映射。
+
+#### 2.1.1.1 配置测试适度性门禁（强制）
+
+- **单一 owner 契约层**：纯配置默认值、合法 override、非法值和跨字段约束，只在 typed loader / validator 的 owner package 保留一组表驱动契约测试；不得在 loader、composition、domain、frontend 与场景层逐层复制同一组默认值和 `limit / limit+1` 断言。
+- **消费者只测非平凡业务分支**：配置消费者仅在错误映射、持久化原子性、provider call/no-call、协议读取上限等无法由类型、构造函数或编译保证的业务分支保留 focused test。测试应注入小型边界值或使用 metadata，不得为了验证默认配置构造真实大文件、默认大小字符串或同尺寸 fixture。
+- **配置 wiring 不单设环境**：仅证明配置已经注入、默认数值可以跨层传播或公开投影一致，不得新增或扩展 BDD / E2E / scenario 环境；优先使用 owner contract test、编译、lint、codegen/drift check 和必要的一个 focused consumer test。
+- **BDD 以用户流程为准**：只有配置变更本身新增用户流程，或改变用户可感知的错误、恢复、持久化语义时，才由对应 domain owner 增补 BDD。已有业务场景不得仅因默认值调整而复制边界输入、重复运行或变成配置测试 owner。
+- **集成环境例外必须有独立理由**：数据库并发、外部协议截断、真实组件组合等缺陷可以使用 integration test，但其断言必须针对该缺陷，而不是顺带证明配置默认值；plan/checklist 必须写明为何 owner contract test 不足。
+
+#### 2.1.1.2 E2E 证据边界（强制）
+
+- **E2E 必须操作真实运行环境**：`test/scenarios/e2e/` 只承载通过 HTTP API 调用或浏览器 UI 操作驱动已运行前后端的端到端业务流程；证据必须来自真实请求、页面交互、持久化结果或用户可见状态。
+- **禁止包装代码层测试**：`go test`（包括 `-tags=integration`）、Vitest / npm test、pytest、lint、source-contract、fixture parity、build 和 package smoke 均属于代码层 gate，不得出现在 E2E 的 `trigger.sh`、`verify.sh`、PASS marker 或结果证据中，也不得通过 shell 聚合后改称 E2E。
+- **浏览器场景禁止 mock 代替后端**：Playwright / browser runner 只有在访问真实 frontend 且业务请求落到真实 backend 时才可作为 E2E；fixture transport、dev mock、jsdom 或进程内 handler 不属于 E2E。
+- **无真实链路的旧场景直接删除**：若场景移除代码层 runner 后不再包含真实 API/UI 主路径，应删除该场景目录与 INDEX/BDD 引用，把已有单元或 integration test 留在代码 owner；不得保留空壳、归档 banner 或兼容入口。
+- **前后端单测由根 Makefile 统一承接**：开发中可以运行 focused test 快速反馈，但阶段完成与 CI 回归必须从仓库根目录执行 `make test`，由该入口整体运行 backend `go test ./...` 与 frontend 全量 test；不得把单文件、单 package PASS 或 E2E shell 包装当作前后端单测已回归。
+- **代码 gate 与 E2E 分层执行**：单元、integration、lint、build 可由 plan/checklist 独立列为前置或回归 gate，但不能成为 E2E 场景内部步骤或场景通过证据。E2E 不得再次编排 `make test`，二者分别报告结果。
 
 ### 2.1.2 深度重校对门禁（强制）
 
@@ -86,7 +105,7 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 2. 相关模块 README：至少包括命中目录的 `README.md`，例如 `frontend/README.md`、`backend/README.md`、`openapi/README.md`、`deploy/dev-stack/README.md`、`test/scenarios/README.md`
 3. 若涉及用户可见 UI：同时读取 `docs/ui-design/` 对应文档与 `ui-design/src/*.jsx` / `ui-design/src/primitives.jsx` / `ui-design/src/app.jsx` 的相关源码
 4. 若涉及 API / fixture / generated client / handler：读取 `openapi/openapi.yaml`、相关 `openapi/fixtures/<tag>/<operationId>.json`、generated client/server artifacts，以及计划中的 operation matrix
-5. 若涉及本地依赖或场景验证：区分 Docker Compose 外部依赖、宿主机前后端运行入口与 `test/scenarios/` 本地 runner 场景契约，按 `deploy/dev-stack/README.md` 和 `test/scenarios/README.md` 执行；不得凭历史印象默认引入 Kind / K8s / Helm 环境
+5. 若涉及本地依赖或场景验证：区分 Docker Compose 外部依赖、宿主机前后端运行入口、根 `make test` 代码回归与 `test/scenarios/e2e/` 真实 API/UI 场景契约，按 `deploy/dev-stack/README.md` 和 `test/scenarios/README.md` 执行；不得凭历史印象默认引入 Kind / K8s / Helm 环境
 
 若计划或 checklist 缺少 operation matrix，或未标明 `operationId`、fixture、frontend consumer、backend handler、persistence、AI dependency、scenario coverage 的当前状态，必须先回到 `/plan-review --fix` 或请求用户批准修订，不得直接实施或宣称验证闭环。
 
@@ -216,7 +235,7 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 
 关键要点：
 - 首次使用若存在镜像缓存脚本，应先运行 `image-cache.sh pull` 预热外部依赖镜像
-- 当前场景测试默认不需要 Kind / K8s / Helm；验证入口以 `test/scenarios/README.md` 与对应层级 README 中声明的 repo-tracked Go / Vitest / Playwright / browser runner 为准
+- 当前场景测试默认不需要 Kind / K8s / Helm；`test/scenarios/e2e/` 只允许真实 HTTP API 或连接真实 backend 的浏览器 UI 流程。`go test`、Vitest、pytest、lint、build 与 package smoke 由代码层 gate 承接，前后端全量单测统一执行根 `make test`；focused test 只作开发反馈，不得嵌入场景脚本或 E2E 证据
 - 禁止预设 Helm Chart、组件名、命名空间或外部依赖平台，必须以仓库当前测试框架文档为真理源
 
 ---

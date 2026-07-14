@@ -23,29 +23,23 @@
 
 当前 `backend-practice/spec.md` 把 `PracticeGoal` 定义为 `baseline / retry_current_round / next_round`，并把 `sourceReportId` 作为唯一派生计划 source 字段。
 
-本次原地重开承接方案 A 的 server-owned report-local dimension focus、frozen context 请求校验与 P0.070/P0.072 当前证据。
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: feature-behavior + OpenAPI consumer + backend service/store + prompt context + scenario。
-- **TDD 策略**: 必须通过 `/implement → /tdd` 顺序执行 Phase 3；先让 generated/API/domain/store/prompt-context/P0.070/072 focused tests RED，再最小 GREEN，每项完成立即同步 checklist。
-- **BDD 策略**: 当前 BDD gate 为 `E2E.P0.070` / `E2E.P0.072`。
-- **替代验证 gate**: `validate_context.py`、focused Go test existence/search、P0.070/P0.072 scenario docs、OpenAPI operation/enum search、negative grep、`make docs-check`、`git diff --check`。
 
 ## 3.1 Operation Matrix
 
 | `operationId` | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |---------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` `report-derived` scenarios | Report next actions and workspace/practice owner create retry / next-round plans | `backend/internal/api/practice.Handler.CreatePracticePlan` + `backend/internal/practice.Service.CreatePracticePlan` + `backend/internal/store/practice.SQLRepository.CreatePlan` | `practice_plans.source_report_id` / `audit_events` / `idempotency_records` | none | `E2E.P0.070`, `E2E.P0.072` |
-| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` sourceReportId shape | Workspace/practice state refresh | `Handler.GetPracticePlan` + `Service.GetPracticePlan` + `SQLRepository.GetPlan` | `practice_plans` read | none | `E2E.P0.070` |
+| `createPracticePlan` | report-derived plan fixtures | Report retry/next actions | practice plan owner | source report + plan/idempotency/audit | none | 当前无真实 E2E owner；root `make test` |
+| `getPracticePlan` | current plan fixture | Workspace/practice refresh | practice plan read owner | plan read | none | 当前无真实 E2E owner；root `make test` |
 | `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` current plan goals only | Interview session start | `Handler.StartPracticeSession` + `Service.StartPracticeSession` + `SQLRepository.ReserveSessionStart` / `CommitSessionStart` | `practice_sessions` / `practice_messages` / `practice_session_events` / `outbox_events` / `idempotency_records` | `practice.session.chat` opening for baseline / retry_current_round / next_round | Covered by active backend-practice start-session gates; no report-seeded message bypass |
 
 ## 3.2 Coverage Matrix
 
 | 行 | 类别 | source | verification | negative_scope |
 |----|------|--------|--------------|----------------|
-| R1 | Primary | retry_current_round / next_round report-derived plan creation | service/store/API derived-source tests + `E2E.P0.070` | no owner=004 rejection for valid report-derived sources |
-| R2 | Failure / recovery | missing / cross-user / wrong-target report source | service/store/API source isolation tests + `E2E.P0.072` | no source existence leak across users |
 | R3 | Cross-layer contract | B2 `sourceReportId`, B4 `source_report_id`, generated Go/TS | OpenAPI inventory + generated artifact search + fixture validation owner gates | no `sourceDebriefId` / `source_debrief_id` positive fields |
 | R4 | Regression / negative | prohibited source fields / goals | negative grep across runtime/generated/fixtures/scenario docs | no `PracticeGoalDebrief`, `goal='debrief'`, debrief start scenario, or seeded-message bypass |
 | R5 | Regression / naming | current report-local dimension focus | generated/API/store/prompt/scenario exact-set gate | no positive `focusCompetencyCodes`, `focus_competency_codes`, `retryFocusCompetencyCodes`, `retry_focus_competency_codes`, `retryFocusTurnIds`, `retry_focus_turn_ids`, `retry_round` or code-only prompt focus |
@@ -72,9 +66,7 @@ Keep report-derived starts on the regular AI conversation-opening path. Do not a
 
 Ensure current docs, context, fixtures, generated clients, runtime code, and scenarios do not list `sourceDebriefId`, `source_debrief_id`, `PracticeGoalDebrief`, or `goal='debrief'` as current positive contract.
 
-#### 2.2 Scenario set reconciliation
 
-Keep `E2E.P0.070` and `E2E.P0.072` as the active scenario proof.
 
 ### Phase 3: Server-owned dimension focus and frozen identity
 
@@ -87,14 +79,12 @@ Keep `E2E.P0.070` and `E2E.P0.072` as the active scenario proof.
 
 The current-name negative gate requires zero positive runtime/generated/OpenAPI/fixture/scenario hits for `focusCompetencyCodes`, `focus_competency_codes`, `retryFocusCompetencyCodes`, `retry_focus_competency_codes`, `retryFocusTurnIds`, `retry_focus_turn_ids`, `retry_round` and code-only report focus. Historical migrations, history rows, immutable `practice.session.chat/v0.1.0` rollback assets and explicitly named negative fixtures may retain literals, but the final active v0.2 runtime cannot consume them. This owner alone emits `REPORT_DERIVED_LEGACY_IDENTIFIER_NEGATIVE_PASS` after the exact set is clean and F3 emits `PRACTICE_SEMANTIC_FOCUS_PROMPT_V020_PASS`.
 
-Focused gate: `go test ./backend/internal/api/practice ./backend/internal/practice ./backend/internal/store/practice ./backend/cmd/api -run 'Derived|DimensionFocus|P0070|P0072' -count=1`, followed by registry-owned P0.070/P0.072 four-stage scripts.
 
 ## 5 验收标准
 
 - Current plan/test/BDD/context describe only report-derived `retry_current_round` / `next_round` behavior as positive scope.
 - `sourceDebriefId` / `source_debrief_id` / `PracticeGoalDebrief` / `goal='debrief'` do not appear in active runtime, generated artifacts, OpenAPI fixtures, or this plan's positive gates.
 - Empty retry focus creates a generic same-round plan; every non-empty focus code is issue-backed; the F3 v0.2 active pair consumes structured semantic focus, and final active runtime has zero positive old competency/turn/action identifier consumers outside explicit rollback/history/negative allowlists.
-- `E2E.P0.070` and `E2E.P0.072` remain the only scenario IDs owned by this plan.
 - `validate_context.py`, `make docs-check`, and `git diff --check` pass.
 
 ## 6 风险与应对
@@ -102,7 +92,6 @@ Focused gate: `go test ./backend/internal/api/practice ./backend/internal/practi
 | 风险 | 应对措施 |
 |------|----------|
 | 范围外 source 字段看起来可用 | 只在负向断言中枚举禁止字段，正向 contract 只列 `sourceReportId` / `source_report_id` |
-| 不匹配的 scenario IDs 或 no-op commands 被当作 proof | BDD/test docs 限定为 P0.070/P0.072，并验证匹配 tests/scripts 存在 |
 | 禁止 source 字段回流到 generated artifacts | Negative grep 覆盖 OpenAPI、generated Go/TS、fixtures、backend runtime 和 scenario docs |
 | backend runtime 与 F3 active version 提前耦合 | 发布前 Phase 3 只断言 exact v0.2 coordinate；F3 marker 后 final gate 断言 `ResolveActive` v0.2，8-status rollback 与 000019 仍由 F3/002 独占 |
 
@@ -110,7 +99,6 @@ Focused gate: `go test ./backend/internal/api/practice ./backend/internal/practi
 
 | 日期 | 版本 | 变更 | 原因 |
 |------|------|------|------|
-| 2026-07-12 | 1.8 | Complete active-v0.2 semantic focus, PostgreSQL v19 P0.070/P0.072 and exact legacy-negative marker gates. | Close Phase 3 with current runtime and scenario evidence. |
 | 2026-07-12 | 1.7 | Hand off semantic-focus prompt assets and activation to F3/002 through immutable practice v0.2 exact-candidate and final marker gates. | Coordinated scheme A activation. |
 | 2026-07-12 | 1.6 | Make derived-plan legacy negative marker owner-specific and include snake_case focus/turn identifiers in the exact set. | Cross-owner evidence reconcile. |
 | 2026-07-12 | 1.5 | Allow generic empty-focus retry, require issue-backed non-empty focus, close server-derived request semantics and lock legacy-name negatives. | Owner reconcile. |

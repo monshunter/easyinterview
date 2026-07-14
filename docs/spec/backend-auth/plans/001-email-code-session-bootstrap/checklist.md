@@ -1,8 +1,8 @@
 # Email-Code Session Bootstrap Checklist
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -35,8 +35,6 @@
 
 ## Phase 5: BDD and handoff
 
-- [x] 5.1 BDD-Gate: 验证 E2E.P0.003 通过
-  <!-- verified: 2026-05-06 method=scenario bddChecklist=complete scenario=E2E.P0.003 run=.test-output/runs/20260506T1911-backend-auth-p0-003/e2e/E2E.P0.003/result.json -->
 - [x] 5.2 Handoff 给 frontend-shell；验证: backend README 或 package docs 说明 Auth API、cookie 行为、dev mail sink、错误码和前端 pendingAction 接入边界
 - [x] 5.3 active-scope 负向搜索通过；验证: backend-auth / API wiring active code 不引入 Bearer token P0 主认证、OAuth / SSO P0 行为、`external_identities` P0 读写 store、明文 token/session 存储、log-only raw code delivery、独立 worker 前置依赖或 out-of-scope AI gateway / voice route 口径；允许 A3 provider adapter 内部使用 provider-side `Authorization: Bearer`，不得误判为浏览器主认证
   <!-- verified: 2026-05-06 method=rg scope=backend/internal/auth,backend/cmd/api,backend/internal/api/generated allowed=negative-doc-comments+internal-session-hash-only -->
@@ -44,42 +42,30 @@
 ## Phase 6: L2 remediation
 
 - [x] 6.1 修复 `DELETE /me` idempotency user scope；验证: store / handler tests 覆盖两个不同用户使用相同 `Idempotency-Key` 时不会复用彼此 active `privacy_delete` handoff，同一用户重复 key 仍返回同一 active request / job
-  <!-- verified: 2026-05-06 command="cd backend && go test ./internal/auth -run TestSQLStorePrivacyDeleteDedupeKeyIsScopedByUser -count=1" -->
 - [x] 6.2 修复 runtime Auth wiring；验证: `cmd/api` wiring tests 断言 auth start / verify / logout / `/me` / `DELETE /me` routes mounted，protected `/me` 经过 C1 session middleware，`/runtime-config` 使用 C1 session-aware resolver 而非 anonymous nil resolver
-  <!-- verified: 2026-05-06 command="cd backend && go test ./cmd/api -run TestBuildAPIHandlerMountsAuthRoutesAndSessionAwareRuntimeConfig -count=1" -->
 - [x] 6.3 修复 session cookie Secure policy；验证: handler tests 覆盖 verify minted cookie 与 logout / deleteMe clear cookie 共用 cookie policy，prod/staging Secure=true，dev 降级行为显式可测，属性仍为 HttpOnly + SameSite=Lax + Path=/
-  <!-- verified: 2026-05-06 command="cd backend && go test ./internal/auth -run 'Test(VerifyAuthEmailChallengeConsumesTokenAndSetsSessionCookie|SessionCookiePolicyAllowsDevInsecureButKeepsProdSecure|LogoutRevokesCurrentSessionAndClearsCookie|LogoutWithoutSessionIsIdempotentAndClearsCookie|LogoutCanUseExplicitDevInsecureCookiePolicy|DeleteMeCreatesPrivacyDeleteHandoffRevokesSessionAndIsIdempotent)' -count=1" -->
 - [x] 6.4 修复 challenge rate-limit SQL scope；验证: SQL store tests 断言同邮箱或同 IP 1 分钟窗口统计不再过滤 `status='pending'`，consumed / pending recent challenge 均计入第 3 次 rate-limit / dedupe 基线
-  <!-- verified: 2026-05-06 command="cd backend && go test ./internal/auth -run TestSQLStoreCountRecentChallengesCountsAllRecentAttempts -count=1" -->
 - [x] 6.5 修复 logout revoke failure response；验证: handler tests 覆盖有效 session revoke 失败时返回 B1 error envelope 而不是 204，同时清 cookie 且响应不泄露 session id / cookie / secret
-  <!-- verified: 2026-05-06 command="cd backend && go test ./internal/auth -run TestLogoutRevokeFailureReturnsErrorEnvelopeAndClearsCookie -count=1" -->
 - [x] 6.6 修复 runtime Auth secret fail-fast；验证: `cmd/api` builder tests 覆盖 `AUTH_CHALLENGE_TOKEN_PEPPER` / `SESSION_COOKIE_SECRET` 缺失时返回明确错误并不构造 auth email dispatch runtime，本地 dev 不得用空 pepper / 空 session secret 启动 C1 session runtime
-  <!-- verified: 2026-05-06 command="cd backend && go test ./cmd/api -run TestBuildAuthServiceRejectsEmptyAuthSecrets -count=1" -->
 - [x] 6.7 修复 logout optional-session resolver error；验证: `cmd/api` route tests 覆盖 cookie-bearing logout 在 session resolver / store error 时返回 B1 error envelope 而不是 204，缺失 / invalid / expired / revoked session 仍保持 optional-session 幂等清 cookie
-  <!-- verified: 2026-05-06 command="cd backend && go test ./cmd/api -run 'TestBuild(AuthServiceRejectsEmptyAuthSecrets|APIHandlerLogoutPropagatesSessionResolverErrors|APIHandlerLogoutKeepsKnownSessionErrorsOptional)' -count=1" -->
 - [x] 6.8 修复 logout revoke race 的 touch zero-row 归类；验证: middleware tests 覆盖 `ResolveSession` 读到 active session 后 `TouchSession` 返回 `sql.ErrNoRows` 的并发 revoke race，`logout` optional path 仍进入 handler 并幂等清 cookie，required protected path 归类为 B1 `AUTH_UNAUTHORIZED`
-  <!-- verified: 2026-05-06 command="cd backend && go test ./internal/auth -run TestSessionMiddlewareTreatsTouchLostRaceAsAuthState -count=1" -->
 
 ## Phase 8: Unified email login and profile completion
 
 - [x] 8.1 OpenAPI contract and generated clients；验证: `AuthEmailStartRequest` 只保留 email / safe request fields，不含 `purpose` 或 `displayName`；`UserContext.profileCompletionRequired` 为必填；新增 `completeMyProfile` / `PATCH /me` request/response；fixtures 更新；`make codegen-openapi` 通过且 generated Go / TS artefacts 与 schema 一致
   <!-- verified: 2026-05-28 commands="make codegen-openapi; python3 scripts/lint/openapi_inventory.py openapi/openapi.yaml; python3 scripts/lint/validate_fixtures.py --repo-root .; make lint-mock-contract; make openapi-diff" evidence="OpenAPI inventory and fixtures synced to 60 operations; generated Go/TS artifacts include completeMyProfile and profileCompletionRequired" -->
 - [x] 8.2 Persistence and migration；验证: 新 migration 为 `users` 添加 `profile_completed_at` / `terms_accepted_at` 并 backfill 既有 active displayName 用户；migration up/down 或 dry-run gate 通过；store tests 覆盖新邮箱用户保持未补全、既有用户为已补全
-  <!-- verified: 2026-05-28 commands="python3 scripts/lint/migrations_lint.py --repo-root .; bash -lc 'set -a; . deploy/dev-stack/.env; set +a; make migrate-status'; cd backend && go test ./..." evidence="migration lint ok; dev DB schema_migrations version=13 dirty=false; backend store tests passed in full suite" -->
 - [x] 8.3 Unified challenge start and verify semantics；验证: service/handler tests 覆盖 start 不检查账号存在、不返回 duplicate register / unknown login 差异；verify 既有邮箱直接登录、新邮箱创建未补全账号和 session；out-of-scope `purpose=signup/login` 不参与当前分支，displayName 不在 verify 前持久化
-  <!-- verified: 2026-05-28 command="cd backend && go test ./..." evidence="auth service/handler tests cover unified start, existing-email login, new-email incomplete account creation, and no pre-verify displayName persistence" -->
 - [x] 8.4 `/me` and `completeMyProfile`；验证: handler/store tests 覆盖已登录未补全用户 `/me` 返回 200 + `profileCompletionRequired=true`，未登录仍为 B1 error；`PATCH /me` 要求 session、trimmed displayName 非空、`acceptedTerms=true`，成功后返回 `profileCompletionRequired=false` 且不修改邮箱或创建新账号
-  <!-- verified: 2026-05-28 command="cd backend && go test ./..." evidence="auth /me and completeMyProfile handler/store tests passed in full backend suite" -->
 - [x] 8.5 Privacy / metrics / out-of-scope negative gates；验证: focused grep/test 断言 raw code、session cookie、完整邮箱不进日志/audit/metric label；当前 active backend/openapi/frontend generated truth 不含注册分流完成证据、duplicate-register start rejection、displayName-before-verify、password/OAuth auth wire 或 email URL callback
   <!-- verified: 2026-05-28 commands="make lint-config; rg -n 'purpose=signup|purpose=login|duplicate-register|duplicate register|AuthRegisterScreen|email URL callback|/auth/verify\\?token=|displayName-before-verify|OAuth|password auth|Bearer token' backend/internal/auth backend/cmd/api openapi/openapi.yaml frontend/src/app frontend/src/api -g '!**/*_test.go' -g '!**/*.test.ts' -g '!**/*.test.tsx'" evidence="lint-config PASS; scoped negative search only found backend/internal/auth/doc.go redline comment" -->
-- [x] 8.6 BDD-Gate: 验证 E2E.P0.101 通过；验证: real frontend/backend/Mailpit 覆盖单入口新邮箱首次登录 -> `/me.profileCompletionRequired=true` -> 重新登录仍未补全 -> `PATCH /me` -> `/me.profileCompletionRequired=false` -> 后续同邮箱登录正常；证明邮箱唯一、displayName 不唯一且不参与账号唯一性判断
-  <!-- verified: 2026-05-28 command="bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/cleanup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/setup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/trigger.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/cleanup.sh" evidence="P0.101 PASS: first-login-profile-setup profileCompletionRequired=true; cross-browser and logout relogin still profile setup; complete profile returns false; existing email login bypasses profile setup" -->
+- [x] 8.6 BDD-Gate: `BDD.AUTH.EMAIL.001` 由 [BDD checklist](./bdd-checklist.md) 关联 email-code/session/profile-completion owner behavior tests。
+- [x] 8.6a E2E-HANDOFF: `E2E.P0.101` 仅覆盖 real frontend/backend/Mailpit 登录闭环；本轮未运行，current-run 状态仍为 `Ready`。
+- [x] 8.7 阶段单测完成证据统一为仓库根 `make test`；focused Auth/cmd/api tests 只作开发反馈。
 
 ## Phase 9: unauthorized account handler test consolidation
 
 - [x] 9.1 Record scoped `internal/auth` `dupl` RED and confirm the two exact old test names have no external owner/gate consumers.
   <!-- verified: 2026-07-10 method=auth-unauthorized-envelope-test-dupl evidence="Scoped dupl -t 100 reports the GetMe/DeleteMe unauthenticated tests as internal/auth's only clone group; repo-wide exact-name search finds only their declarations." -->
 - [x] 9.2 Replace both tests with one table-driven test while preserving named GET/DELETE cases, handler calls, 401 status, JSON envelope and exact error code assertions.
-  <!-- verified: 2026-07-10 method=auth-unauthorized-envelope-test-table evidence="One TestAccountHandlersWithoutSessionReturnAuthEnvelope runs named get_me/delete_me cases with the original methods, handlers, 401 and AUTH_UNAUTHORIZED JSON assertions. Focused/full Auth pass, old names are absent, scoped dupl is zero and staticcheck passes." -->
-- [x] 9.3 Run focused/full Auth, cmd/api, full backend, vet/staticcheck and owner/product/docs/pruning closeout gates.
-  <!-- verified: 2026-07-10 method=auth-unauthorized-envelope-test-closeout evidence="Named get_me/delete_me cases and full Auth PASS; old names are absent and scoped dupl is zero. Cmd/api/full backend, go vet/staticcheck, auth/product contexts and docs/index/diff/pruning gates PASS with real_residuals=0." -->
+- [x] 9.3 仓库根 `make test` 完成前后端全量单测回归；vet/staticcheck 与 owner/product/docs/pruning 作为独立 closeout gates。

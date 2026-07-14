@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"reflect"
 	"testing"
@@ -166,6 +167,114 @@ func TestResumesIntegrationCRUDStateIsolationPaginationAndRollback(t *testing.T)
 	}
 }
 
+func TestCreateWithParseJobSerializesActiveLimitPerUser(t *testing.T) {
+	db := openResumeStoreTestDB(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	ensureResumesErrorCodeColumn(t, ctx, db)
+
+	const (
+		userID    = "019f6000-0000-7000-8000-000000000001"
+		maxActive = 1
+	)
+	t.Cleanup(func() { cleanupResumeStoreUsers(t, db, userID) })
+	mustExec(t, ctx, db, `insert into users(id, email, status) values ($1, 'resume-limit-concurrency@example.com', 'active')`, userID)
+	for i := 0; i < maxActive-1; i++ {
+		mustExec(t, ctx, db, `
+insert into resumes(id, user_id, title, language, parse_status, source_type, original_text)
+values ($1, $2, 'Baseline Resume', 'en', 'queued', 'paste', 'resume text')`,
+			fmt.Sprintf("019f6000-0000-7000-8100-%012d", i+1), userID)
+	}
+
+	blocker, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatalf("begin resume insert blocker: %v", err)
+	}
+	defer blocker.Rollback()
+	if _, err := blocker.ExecContext(ctx, `lock table resumes in share mode`); err != nil {
+		t.Fatalf("lock resumes table: %v", err)
+	}
+
+	const appA = "resume-limit-concurrency-a"
+	const appB = "resume-limit-concurrency-b"
+	dbA := openNamedResumeStoreTestDB(t, appA)
+	dbB := openNamedResumeStoreTestDB(t, appB)
+	repos := []*resumestore.Repository{resumestore.NewRepository(dbA), resumestore.NewRepository(dbB)}
+	inputs := []resumestore.CreateAssetInput{
+		{
+			AssetID:          "019f6000-0000-7000-8200-000000000001",
+			UserID:           userID,
+			JobID:            "019f6000-0000-7000-8300-000000000001",
+			DedupeKey:        "resume-limit-concurrency-ik-a",
+			SourceType:       "paste",
+			Title:            "Concurrent Resume A",
+			Language:         "en",
+			RawText:          "resume text a",
+			MaxActiveForUser: maxActive,
+			Now:              time.Date(2026, 7, 14, 21, 0, 0, 0, time.UTC),
+		},
+		{
+			AssetID:          "019f6000-0000-7000-8200-000000000002",
+			UserID:           userID,
+			JobID:            "019f6000-0000-7000-8300-000000000002",
+			DedupeKey:        "resume-limit-concurrency-ik-b",
+			SourceType:       "paste",
+			Title:            "Concurrent Resume B",
+			Language:         "en",
+			RawText:          "resume text b",
+			MaxActiveForUser: maxActive,
+			Now:              time.Date(2026, 7, 14, 21, 0, 1, 0, time.UTC),
+		},
+	}
+
+	start := make(chan struct{})
+	results := make(chan error, len(inputs))
+	for i := range inputs {
+		go func(i int) {
+			<-start
+			_, err := repos[i].CreateWithParseJob(ctx, inputs[i])
+			results <- err
+		}(i)
+	}
+	close(start)
+	waitForBlockedResumeLimitContenders(t, ctx, db, appA, appB)
+	if err := blocker.Commit(); err != nil {
+		t.Fatalf("release resume insert blocker: %v", err)
+	}
+
+	succeeded := 0
+	limitRejected := 0
+	for range inputs {
+		err := <-results
+		switch {
+		case err == nil:
+			succeeded++
+		case errors.Is(err, resumestore.ErrResumeLimitExceeded):
+			limitRejected++
+		default:
+			t.Fatalf("concurrent CreateWithParseJob error = %v", err)
+		}
+	}
+	if succeeded != 1 || limitRejected != 1 {
+		t.Fatalf("concurrent outcomes: succeeded=%d limitRejected=%d, want 1/1", succeeded, limitRejected)
+	}
+
+	var active int
+	if err := db.QueryRowContext(ctx, `select count(*) from resumes where user_id = $1 and deleted_at is null`, userID).Scan(&active); err != nil {
+		t.Fatalf("count active resumes: %v", err)
+	}
+	if active != maxActive {
+		t.Fatalf("active resumes = %d, want %d", active, maxActive)
+	}
+	var jobs int
+	if err := db.QueryRowContext(ctx, `select count(*) from async_jobs where id in ($1, $2)`, inputs[0].JobID, inputs[1].JobID).Scan(&jobs); err != nil {
+		t.Fatalf("count concurrent parse jobs: %v", err)
+	}
+	if jobs != 1 {
+		t.Fatalf("concurrent parse jobs = %d, want 1", jobs)
+	}
+}
+
 func openResumeStoreTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")
@@ -181,6 +290,56 @@ func openResumeStoreTestDB(t *testing.T) *sql.DB {
 		t.Fatalf("ping db: %v", err)
 	}
 	return db
+}
+
+func openNamedResumeStoreTestDB(t *testing.T, applicationName string) *sql.DB {
+	t.Helper()
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		t.Fatal("DATABASE_URL is required for named resume store integration connection")
+	}
+	parsed, err := url.Parse(dsn)
+	if err != nil {
+		t.Fatalf("parse DATABASE_URL: %v", err)
+	}
+	query := parsed.Query()
+	query.Set("application_name", applicationName)
+	parsed.RawQuery = query.Encode()
+	db, err := sql.Open("postgres", parsed.String())
+	if err != nil {
+		t.Fatalf("open named postgres connection: %v", err)
+	}
+	db.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = db.Close() })
+	if err := db.Ping(); err != nil {
+		t.Fatalf("ping named postgres connection: %v", err)
+	}
+	return db
+}
+
+func waitForBlockedResumeLimitContenders(t *testing.T, ctx context.Context, db *sql.DB, appA, appB string) {
+	t.Helper()
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		var blocked int
+		if err := db.QueryRowContext(ctx, `
+select count(*)
+from pg_stat_activity
+where application_name in ($1, $2)
+  and state = 'active'
+  and wait_event_type = 'Lock'`, appA, appB).Scan(&blocked); err != nil {
+			t.Fatalf("inspect concurrent resume limit transactions: %v", err)
+		}
+		if blocked == 2 {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("wait for concurrent resume limit transactions: %v", ctx.Err())
+		case <-ticker.C:
+		}
+	}
 }
 
 func ensureResumesErrorCodeColumn(t *testing.T, ctx context.Context, db *sql.DB) {

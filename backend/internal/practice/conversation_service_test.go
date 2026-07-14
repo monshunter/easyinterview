@@ -553,29 +553,8 @@ func TestSendPracticeMessageUsesOrdinaryConversationHistory(t *testing.T) {
 }
 
 func TestSendPracticeMessageUsesConfiguredUTF8ByteLimitsBeforeAI(t *testing.T) {
-	newReservation := func() PracticeMessageReservation {
-		return PracticeMessageReservation{
-			Session:         SessionReservation{SessionID: "session-1", UserID: "user-1", TargetJobID: "target-1", Language: "zh-CN", Goal: sharedtypes.PracticeGoalBaseline, ResumeContext: "真实简历上下文"},
-			UserMessage:     MessageRecord{ID: "m2", Role: "user", Content: "你好", SeqNo: 2},
-			ReplyGeneration: 1,
-		}
-	}
-
-	t.Run("exact message byte limit is accepted and aggregate limit is forwarded", func(t *testing.T) {
-		store := &conversationTestStore{messageReservation: newReservation()}
-		ai := &conversationTestAI{responses: []string{`{"messageText":"继续。"}`}}
-		service := NewService(ServiceOptions{Store: store, Registry: conversationTestRegistry{}, AI: ai, NewID: func() string { return "m3" }, MaxMessageBytes: 6, MaxSessionTextBytes: 10})
-		_, err := service.SendPracticeMessage(context.Background(), SendPracticeMessageRequest{UserID: "user-1", SessionID: "session-1", ClientMessageID: "client-1", Text: "你好"})
-		if err != nil || len(ai.payloads) != 1 {
-			t.Fatalf("err=%v aiCalls=%d want success and one AI call", err, len(ai.payloads))
-		}
-		if store.messageReserveInput.MaxSessionTextBytes != 10 {
-			t.Fatalf("aggregate limit=%d want 10", store.messageReserveInput.MaxSessionTextBytes)
-		}
-	})
-
 	t.Run("one byte over message limit is rejected before store and AI", func(t *testing.T) {
-		store := &conversationTestStore{messageReservation: newReservation()}
+		store := &conversationTestStore{}
 		ai := &conversationTestAI{}
 		service := NewService(ServiceOptions{Store: store, Registry: conversationTestRegistry{}, AI: ai, NewID: func() string { return "m3" }, MaxMessageBytes: 6, MaxSessionTextBytes: 10})
 		_, err := service.SendPracticeMessage(context.Background(), SendPracticeMessageRequest{UserID: "user-1", SessionID: "session-1", ClientMessageID: "client-1", Text: "你好a"})
@@ -597,8 +576,8 @@ func TestSendPracticeMessageUsesConfiguredUTF8ByteLimitsBeforeAI(t *testing.T) {
 		if !errors.As(err, &serviceErr) || serviceErr.Code != sharederrors.CodeValidationFailed {
 			t.Fatalf("err=%v want %s", err, sharederrors.CodeValidationFailed)
 		}
-		if store.messageReserveInput.MaxSessionTextBytes != 10 || len(ai.payloads) != 0 {
-			t.Fatalf("reserve=%+v aiCalls=%d", store.messageReserveInput, len(ai.payloads))
+		if len(ai.payloads) != 0 {
+			t.Fatalf("aiCalls=%d want 0", len(ai.payloads))
 		}
 	})
 }

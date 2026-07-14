@@ -70,7 +70,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     () => readyResumes.find((resume) => resume.id === selectedResumeId) ?? null,
     [readyResumes, selectedResumeId],
   );
-  const canSubmit = Boolean(input.trim()) && Boolean(selectedResume) && !importing;
+  const canSubmit = Boolean(contentLimits) && Boolean(input.trim()) && Boolean(selectedResume) && !importing;
 
   const sortedJobs = useMemo(() => {
     return [...rawJobs].sort(
@@ -188,7 +188,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
 
   const handlePasteImport = async () => {
     const rawText = input.trim();
-    if (!runtime || !rawText || importing || !selectedResume) return;
+    if (!runtime || !contentLimits || !rawText || importing || !selectedResume) return;
     if (utf8ByteLength(rawText) > contentLimits.targetJobRawTextBytes) {
       setImportError("home.errors.rawTextTooLarge");
       return;

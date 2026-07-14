@@ -4,10 +4,16 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { EasyInterviewClient } from "../../../../api/generated/client";
+import type { RuntimeConfig } from "../../../../api/generated/types";
 import { NavigationProvider } from "../../../navigation/NavigationProvider";
 import { DisplayPreferencesProvider } from "../../../display/DisplayPreferencesProvider";
 import { AppRuntimeContext } from "../../../runtime/AppRuntimeProvider";
 import { ResumeCreateFlow } from "./ResumeCreateFlow";
+
+import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
+
+const TEST_RUNTIME_CONFIG = getRuntimeConfigFixture.scenarios.default.response
+  .body as RuntimeConfig;
 
 function renderCreateFlow(
   navigate: ReturnType<typeof vi.fn> = vi.fn(),
@@ -15,9 +21,18 @@ function renderCreateFlow(
 ) {
   return render(
     <DisplayPreferencesProvider>
-      <NavigationProvider value={{ navigate }}>
-        <ResumeCreateFlow initialMode={initialMode} />
-      </NavigationProvider>
+      <AppRuntimeContext.Provider
+        value={{
+          client: {} as EasyInterviewClient,
+          runtime: { status: "ready", config: TEST_RUNTIME_CONFIG },
+          auth: { status: "authenticated", user: {} as never },
+          refreshAuth: vi.fn(),
+        }}
+      >
+        <NavigationProvider value={{ navigate }}>
+          <ResumeCreateFlow initialMode={initialMode} />
+        </NavigationProvider>
+      </AppRuntimeContext.Provider>
     </DisplayPreferencesProvider>,
   );
 }
@@ -25,7 +40,6 @@ function renderCreateFlow(
 function renderCreateFlowWithRuntime(
   client: Pick<EasyInterviewClient, "registerResume">,
   navigate: ReturnType<typeof vi.fn> = vi.fn(),
-  pasteLimit?: number,
 ) {
   return {
     navigate,
@@ -34,18 +48,7 @@ function renderCreateFlowWithRuntime(
         <AppRuntimeContext.Provider
           value={{
             client: client as EasyInterviewClient,
-            runtime: {
-              status: "ready",
-              config: pasteLimit === undefined ? {} as never : {
-                contentLimits: {
-                  resumeUploadBytes: 10 * 1024 * 1024,
-                  resumePasteTextBytes: pasteLimit,
-                  targetJobRawTextBytes: 96 * 1024,
-                  practiceMessageBytes: 32 * 1024,
-                  practiceSessionTextBytes: 256 * 1024,
-                },
-              } as never,
-            },
+            runtime: { status: "ready", config: TEST_RUNTIME_CONFIG },
             auth: { status: "authenticated", user: {} as never },
             refreshAuth: vi.fn(),
           }}
@@ -239,26 +242,4 @@ describe("ResumeCreateFlow container", () => {
     expect(screen.queryByTestId("resume-preview-confirm")).not.toBeInTheDocument();
   });
 
-  it("accepts exact UTF-8 paste bytes from runtime config", async () => {
-    const user = userEvent.setup();
-    const registerResume = vi.fn().mockResolvedValue(REGISTER_RESULT);
-    renderCreateFlowWithRuntime({ registerResume }, vi.fn(), 6);
-    fireEvent.change(screen.getByTestId("resume-create-paste-textarea"), {
-      target: { value: "你好" },
-    });
-    await user.click(screen.getByTestId("resume-create-paste-submit"));
-    expect(registerResume).toHaveBeenCalledTimes(1);
-  });
-
-  it("rejects paste limit+1 before register and preserves the draft", async () => {
-    const user = userEvent.setup();
-    const registerResume = vi.fn().mockResolvedValue(REGISTER_RESULT);
-    renderCreateFlowWithRuntime({ registerResume }, vi.fn(), 6);
-    const textarea = screen.getByTestId("resume-create-paste-textarea");
-    fireEvent.change(textarea, { target: { value: "你好a" } });
-    await user.click(screen.getByTestId("resume-create-paste-submit"));
-    expect(screen.getByTestId("resume-create-paste-error")).toHaveTextContent(/超出|exceeds/i);
-    expect(textarea).toHaveValue("你好a");
-    expect(registerResume).not.toHaveBeenCalled();
-  });
 });

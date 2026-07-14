@@ -1,8 +1,8 @@
 # Fixture-backed Mock Runtime Checklist
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -53,13 +53,12 @@
 - [ ] 8.2 GREEN: consume migrated fixtures/generated types so `importTargetJob` accepts only exact `{rawText,targetLanguage,resumeId}` and TargetJob read responses omit source provenance; do not copy local DTOs or fixture bodies.
 - [ ] 8.3 PRESERVATION-GATE: `createUploadPresign` remains in the 37-operation registry; resume/privacy purpose scenarios resolve in frontend/backend mock paths while TargetJob attachment purpose fails.
 - [ ] 8.4 PARITY-GATE: exact fixture status/body parity passes for `importTargetJob`, `listTargetJobs`, `getTargetJob` and `createUploadPresign`; unknown named scenarios still fail loudly.
-- [ ] 8.5 BDD-HANDOFF: provide P0.015 paste accepted/failure fixture names and exact response markers; P0.015 contains no URL/file/manual_form positive step. Local BDD is not applicable; focused mock gates plus scenario handoff are the replacement evidence.
-- [ ] 8.6 ZERO-REFERENCE-GATE: current positive fixture/generated/frontend-mock/backend-mock/seed surfaces contain zero positive/runtime old TargetJob-import variants. ADR/oracle and exact negative declarations are allowed; whole-file/directory exclusion is forbidden.
-- [ ] 8.7 Run `make lint-mock-contract`, `make validate-fixtures`, `make lint-openapi`, `make codegen-check`, focused frontend mock tests, backend mockruntime tests, context validation and `git diff --check` before restoring completed status.
+- [ ] 8.5 ZERO-REFERENCE-GATE: current positive fixture/generated/frontend-mock/backend-mock/seed surfaces contain zero positive/runtime old TargetJob-import variants. ADR/oracle and exact negative declarations are allowed; whole-file/directory exclusion is forbidden.
+- [ ] 8.6 COMPLETION-GATE: use focused registry/frontend/backend/boundary tests only for development feedback；before restoring completed status, run root `make test`, `make lint-mock-contract`, `make validate-fixtures`, `make lint-openapi`, `make codegen-check`, context/docs checks and `git diff --check`.
 
 ## 9 Practice durable recovery mock parity
 
 - [ ] 9.1 RED/GREEN: registry/frontend/backend tests consume role-discriminated get-session fixtures for all four reply statuses and reject illegal user/assistant recovery fields.
 - [ ] 9.2 FAILURE-MATRIX: exact status/body parity passes for validation/auth/not-found/conflict/mismatch/retryable send scenarios; unknown scenario remains fail-loudly.
 - [ ] 9.3 REPLAY-GATE: retryable failure → reload → same-ID/same-text success yields exactly one user and one assistant; terminal/mismatch paths never retry.
-- [ ] 9.4 BDD-Gate: pass exact markers to frontend-workspace-and-practice/002 and P0.046, then run focused mock, fixture, OpenAPI, codegen, context and diff gates.
+- [ ] 9.4 COMPLETION-GATE: use focused mock parity tests only for development feedback；before restoring completed status, run root `make test`, mock/fixture/OpenAPI/codegen gates, context/docs checks and `git diff --check`. `BDD-N/A` because this phase does not drive a real API/UI user flow.

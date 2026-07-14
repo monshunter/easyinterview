@@ -2,24 +2,28 @@
 
 ## 1 目标
 
-本目录承载 EasyInterview 的 BDD / 端到端场景测试约定。
+本目录只承载操作真实运行环境的端到端场景测试约定。BDD 文档中的 domain behavior test 留在代码 owner，不因使用 Given/When/Then 就进入本目录。
 
-当前仓库只维护一套本地场景契约。阶段差异通过场景编号、BDD 文档和产品阶段表达，不通过多套环境拆分；默认场景编排只使用 shell / Python，外部依赖按需由 `make dev-up` 提供。场景脚本可以调用已有产品 runner（例如既有包测试、Vitest、Playwright、browser smoke）作为被验证对象，但不得把场景专属依赖实现为新的 `backend/cmd` / Go helper 进程。
+当前仓库只维护一套本地场景契约。阶段差异通过场景编号和产品阶段表达，不通过多套环境拆分；默认场景编排只使用 shell / Python，外部依赖按需由 `make dev-up` 提供。E2E 只接收针对真实运行环境的 HTTP API 调用，或针对真实运行前后端的浏览器 UI 操作；场景不得把包测试、源码检查或构建包装成 E2E。
 
 当前标准套件：
 
 | 套件 | 用途 | 默认执行方式 |
 |------|------|--------------|
-| `e2e` | 围绕真实用户目标的主链路与高风险链路验证 | automated / hybrid |
+| `e2e` | 通过真实 API/UI 驱动运行中前后端的用户主链路与高风险链路 | automated / hybrid |
 
 所有设计、计划、`BDD-Gate`、场景创建、环境操作与调查诊断，均以本目录文档为真理源。
 
 ## 2 基本原则
 
 - 测试环境只保留一套本地 runner 契约；不要为普通 P0 场景默认引入 Kind / K8s / Helm。
-- 场景编号必须使用行为导向 ID，例如 `E2E.P0.001`、`E2E.P1.003`。
-- checklist 中的 `BDD-Gate` 只能引用场景编号，不引用 `AC-*`。
+- 场景编号必须使用行为导向 ID，格式为 `E2E.P{阶段}.{三位序号}`。
+- checklist 引用真实 E2E 时使用已登记场景编号，不引用 `AC-*`；domain Behavior ID 留在代码 owner，不在本目录分配场景资产。
 - 场景断言优先验证用户可见结果、关键证据与下一步行动建议。
+- E2E 证据只有两类：调用正在运行的真实 backend HTTP API；或浏览器操作正在运行、使用真实 backend 的 frontend。名称中包含 `e2e`、使用 Playwright 或位于 `test/scenarios/e2e/`，都不能替代这项事实。
+- `go test`、Vitest、`pnpm/npm test`、pytest、lint、source/contract test、codegen/drift check、build、直接 provider/eval CLI 和仅数据库断言均不是 E2E trigger/verify 证据，不得产生场景 PASS marker。前后端代码层单元测试作为整体全量回归，统一由根 Makefile 的 `make test` 承接；场景脚本不得选择性重编排或重复执行这些测试。
+- Playwright 只有在相关用户动作真实访问 host-run frontend/backend 时才算 E2E。fixture client、mock/stub transport、dev-mock、component runner、静态截图基线，以及被 `route.fulfill` / `route.abort` 接管的请求均不算 E2E 证据；混合脚本必须从场景合同和 verify marker 中排除这些阶段。
+- 配置默认值、合法/非法 override、跨字段约束和配置投影不单建 E2E 场景；它们只由 typed loader / validator owner 的一组契约测试负责。只有配置改变了真实用户流程时，E2E 才验证该流程的可见行为，不重复数值边界或配置 wiring。
 - 执行者顺序默认是 AI Agent 先运行场景脚本、环境 preflight 和可自动化证据检查；需要真实浏览器观察或真实 provider 凭证时，再由人工或浏览器 Agent 接手补齐同一场景输出目录下的脱敏证据。
 - `test/scenarios/` 新增场景工具只允许 shell / Python；需要账号、数据或环境准备时，应放在场景目录或 `_shared/` 下，不得新增正式 `backend/cmd` / Go helper 作为验收依赖。
 - 不预设 Helm、外部 Git 平台或非当前项目组件名，环境契约必须由本仓库文档定义。
@@ -33,8 +37,6 @@ test/scenarios/
 ├── _shared/
 │   ├── README.md
 │   └── scripts/
-│       ├── frontend-real-backend-gate.sh
-│       ├── frontend-real-backend-verify.sh
 │       └── local-dev-runtime.sh
 └── e2e/
     ├── README.md
@@ -43,8 +45,6 @@ test/scenarios/
 
 当前共享脚本：
 
-- `test/scenarios/_shared/scripts/frontend-real-backend-gate.sh`
-- `test/scenarios/_shared/scripts/frontend-real-backend-verify.sh`
 - `test/scenarios/_shared/scripts/local-dev-runtime.sh`
 - `test/scenarios/env-setup.sh`
 - `test/scenarios/env-status.sh`
@@ -77,12 +77,12 @@ test/scenarios/
 
 1. 先读本文件。
 2. 再读 `test/scenarios/e2e/README.md` 与 `test/scenarios/e2e/INDEX.md`。
-3. 按目标场景 README 判断是否需要共享环境；需要时使用 `env-status.sh` / `env-setup.sh` / `env-verify.sh`，纯 Go / Vitest / Playwright / pytest 场景直接运行其四段脚本。
+3. 按目标场景 README 准备并验证共享环境，再运行真实 HTTP 或真实浏览器场景。纯 Go / Vitest / pytest、源码契约、lint 或 build 目标不属于本场景框架；前后端全量单元回归运行根 `make test`，不嵌入四段场景脚本。Playwright 也必须先证明它连接的是真实 host-run 前后端。
 
 ## 5 场景编号与目录命名
 
-- 场景 ID：`E2E.P0.001`、`E2E.P1.004`
-- 场景目录：`test/scenarios/e2e/p0-001-<slug>/`
+- 场景 ID：`E2E.P{阶段}.{三位序号}`
+- 场景目录：`test/scenarios/e2e/p{阶段}-{三位序号}-<slug>/`
 - 目录 slug 应表达用户价值或业务动作，而非仅写技术术语。
 
 ## 6 场景契约
@@ -97,11 +97,13 @@ test/scenarios/
 - `data/seed-input.md`
 - `data/expected-outcome.md`
 
-## 7 运行输出
+## 7 运行输出与证据边界
 
 默认输出目录为 `.test-output/`。
 
-`trigger.sh` 声称执行 Vitest、Playwright、pytest、Go test、lint 或其他 runner 时，必须把 runner 输出写入场景输出目录下的日志（通常是 `trigger.log`）。`verify.sh` 必须检查日志中的实际执行证据：命令/runner marker、目标测试文件或场景路径、以及 pass marker 或退出状态证据。禁止只检查测试文件、spec 文件、脚本或目录存在来代表 runner 已执行。
+`trigger.sh` 必须把真实 HTTP 请求或真实浏览器 runner 输出写入场景输出目录（通常是 `trigger.log`）。`verify.sh` 必须检查实际执行证据：目标真实环境、HTTP 方法/状态或浏览器用户动作、业务结果，以及 runner 的成功状态。禁止只检查文件存在，也禁止使用 package test、source contract、lint、build 或数据库直查结果替代 E2E 证据。
+
+`setup.sh` / `cleanup.sh` 可以为隔离目的写入或删除固定场景数据，环境 readiness 也可以作为 preflight；这些操作均不能独立产生 PASS。若一个 Playwright 流程同时包含真实请求和 route mock，只有未被拦截且实际到达真实服务的部分可以写入 Given / When / Then、expected outcome 和 verify marker。
 
 Hybrid 场景若已经完成 AI Agent preflight 但缺少本地真实凭证、浏览器操作或人工观察证据，`verify.sh` 必须写出 `result=MANUAL_REQUIRED` 等价 JSON artifact 并退出 0；不得把它标记为 full PASS，也不得退化为框架 ERROR。补齐脱敏证据后，同一场景可再次运行并转为 PASS。
 

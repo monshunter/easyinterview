@@ -23,9 +23,24 @@ import (
 const DefaultPollInterval = 5 * time.Second
 
 const (
+	DefaultActiveProfileMaxTokens    = 16_384
 	DefaultReportContextWindowTokens = 1_000_000
-	DefaultReportMaxTokens           = 6_144
+	DefaultReportMaxTokens           = DefaultActiveProfileMaxTokens
 )
+
+type tokenBudgetDefaults struct {
+	maxTokens           int
+	contextWindowTokens int
+}
+
+var defaultTokenBudgets = map[string]tokenBudgetDefaults{
+	"judge.default":           {maxTokens: DefaultActiveProfileMaxTokens},
+	"practice.chat.default":   {maxTokens: DefaultActiveProfileMaxTokens},
+	"report.generate.default": {maxTokens: DefaultReportMaxTokens, contextWindowTokens: DefaultReportContextWindowTokens},
+	"resume.parse.default":    {maxTokens: DefaultActiveProfileMaxTokens},
+	"resume.tailor.default":   {maxTokens: DefaultActiveProfileMaxTokens},
+	"target.import.default":   {maxTokens: DefaultActiveProfileMaxTokens},
+}
 
 // Options control loader construction. Callers typically use NewLoader.
 type Options struct {
@@ -295,18 +310,21 @@ func validateProfile(path string, doc *yaml.Node, raw *aiclient.ModelProfile) er
 	}
 	_, hasContextWindow := mappingValue(doc, "context_window_tokens")
 	_, hasMaxTokens := mappingValue(doc, "max_tokens")
-	if raw.Name == "report.generate.default" {
-		if !hasContextWindow {
-			raw.ContextWindowTokens = DefaultReportContextWindowTokens
-		}
+	if defaults, ok := defaultTokenBudgets[raw.Name]; ok {
 		if !hasMaxTokens {
-			raw.MaxTokens = DefaultReportMaxTokens
+			raw.MaxTokens = defaults.maxTokens
 		}
+		if !hasContextWindow {
+			raw.ContextWindowTokens = defaults.contextWindowTokens
+		}
+	}
+	if hasMaxTokens && raw.MaxTokens <= 0 {
+		return profileValidationError(path, fieldLine(doc, "max_tokens"), "'max_tokens' must be positive")
 	}
 	if hasContextWindow && raw.ContextWindowTokens <= 0 {
 		return profileValidationError(path, fieldLine(doc, "context_window_tokens"), "'context_window_tokens' must be positive")
 	}
-	if hasContextWindow && raw.ContextWindowTokens <= raw.MaxTokens {
+	if raw.ContextWindowTokens > 0 && raw.ContextWindowTokens <= raw.MaxTokens {
 		return profileValidationError(path, fieldLine(doc, "context_window_tokens"), "'context_window_tokens' must be greater than 'max_tokens'")
 	}
 	if raw.Version == "" {

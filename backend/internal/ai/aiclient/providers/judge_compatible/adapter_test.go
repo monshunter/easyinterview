@@ -41,7 +41,7 @@ func judgeProfile(timeoutMs int) *aiclient.ModelProfile {
 				"response_format": "json_object",
 			},
 		},
-		MaxTokens: 6144,
+		MaxTokens: 37,
 		TimeoutMs: timeoutMs,
 		Route:     "judge.default",
 		Version:   "1.0.0",
@@ -90,8 +90,8 @@ func TestCompletePostsAndParses(t *testing.T) {
 		if !ok || responseFormat["type"] != "json_object" {
 			t.Fatalf("judge request must require a JSON object: %+v", request["response_format"])
 		}
-		if request["max_tokens"] != float64(6144) {
-			t.Fatalf("max_tokens=%v, want 6144", request["max_tokens"])
+		if request["max_tokens"] != float64(37) {
+			t.Fatalf("max_tokens=%v, want 37", request["max_tokens"])
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"model":"deepseek-v4-pro","choices":[{"message":{"content":"{\"scores\":[]}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":4}}`))
@@ -115,36 +115,6 @@ func TestCompletePostsAndParses(t *testing.T) {
 	}
 	if meta.InputTokens != 5 || meta.OutputTokens != 4 {
 		t.Fatalf("token usage not propagated: in=%d out=%d", meta.InputTokens, meta.OutputTokens)
-	}
-}
-
-func TestCompleteUsesConfiguredResponseBodyByteLimit(t *testing.T) {
-	body := []byte(`{"model":"deepseek-v4-pro","choices":[{"message":{"content":"{\"scores\":[]}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":4}}`)
-	for _, tc := range []struct {
-		name      string
-		limit     int64
-		wantError bool
-	}{
-		{name: "exact byte limit", limit: int64(len(body))},
-		{name: "one byte over", limit: int64(len(body) - 1), wantError: true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(body) }))
-			defer server.Close()
-			adapter, err := judgecompatible.New(judgecompatible.Options{Provider: resolved(server.URL, "k"), MaxResponseBodyBytes: tc.limit})
-			if err != nil {
-				t.Fatalf("New: %v", err)
-			}
-			_, _, err = adapter.Complete(context.Background(), judgeProfile(5000), aiclient.CompletePayload{Messages: []aiclient.Message{{Role: "user", Content: "score this"}}})
-			var apiErr *sharederrors.APIError
-			if tc.wantError {
-				if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
-					t.Fatalf("err=%v want %s", err, sharederrors.CodeAiOutputInvalid)
-				}
-			} else if err != nil {
-				t.Fatalf("Complete: %v", err)
-			}
-		})
 	}
 }
 

@@ -1,12 +1,12 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.18
+> **版本**: 1.19
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
-> Phase 1-12 的已勾选项只保留为历史交付证据；Phase 13 是当前内容大小配置与代码缺省合同。旧 Phase 中出现的附件配置或散落硬编码不构成当前实现、验收或兼容要求。
+> Phase 1-12 的已勾选项只保留为历史交付证据；Phase 13 是当前内容大小配置、代码缺省与最小验证合同。旧 Phase 中出现的附件配置、散落硬编码或配置专用场景不构成当前实现、验收或兼容要求。
 
 ## Phase 1: Three-tier config loader 与 redactor
 
@@ -99,19 +99,17 @@
 
 ## Phase 13: Runtime content size defaults and boundary alignment
 
-- [x] 13.1 RED-CONFIG: 为全部 size key 增加缺 key、合法 override、显式 `0`/负数、`paste > extracted`、`message > session` 用例；在 typed defaults 与 validator 未落地前测试按预期失败。
-  <!-- verified: 2026-07-14 method=focused-red evidence="go test ./internal/platform/config -run TestContentLimits -count=1 failed to compile because Loader.ContentLimits, config.ContentLimits, and DefaultContentLimits do not yet exist; the new tests cover every key with missing/default, override, zero, negative, and both cross-field invalid combinations." -->
+- [x] 13.1 RED-CONFIG: 在 platform config owner 的单一表驱动 suite 覆盖全部 size defaults/合法 override、一个代表性 non-positive 值、`paste > extracted` 与 `message > session`；consumer 不复制同一矩阵。
+  <!-- verified: 2026-07-14 method=focused-red evidence="The owner suite covers every typed default and legal override, one representative non-positive rejection, and both cross-field invalid combinations without a per-key zero/negative matrix." -->
 - [x] 13.2 GREEN-CONFIG: 落地统一 typed code defaults 与 YAML 镜像：HTTP 10MiB、Resume upload 10MiB、Privacy Export 5MiB、Resume active 10、Resume extracted/paste 384KiB、TargetJob raw 96KiB、Practice message 32KiB/session 256KiB、Report framed 896KiB、AI response 4MiB。
   <!-- verified: 2026-07-14 method=typed-defaults-green evidence="ContentLimits and DefaultContentLimits now resolve missing keys, honor YAML overrides, reject all explicit non-positive values plus invalid paste/extracted and message/session combinations; focused and full platform config tests, make lint-config, and git diff --check pass." -->
-- [x] 13.3 BACKEND-GREEN: 将全局 HTTP body、upload/resume/target-job/practice/report consumers 与四个 AI provider adapters 改为注入配置；UTF-8 bytes 的 limit 接受、limit+1 拒绝且不调用 provider；删除重复生产常量。
-  <!-- verified: 2026-07-14 method=focused+full+race evidence="All injected consumers pass exact/+1 tests; backend go test ./... and selected config/practice/review/provider race packages pass." -->
-- [x] 13.4 REPORT-CAPACITY: A3 profile code fallback 与 canonical catalog 一致；测试锁定 `917504 + 2048 + 6144 = 925696 < 1000000`，真实 62,397-byte 失败样本可进入 provider 路径，TPM 不再作为单请求 hard cap。
-  <!-- verified: 2026-07-14 method=in-memory-capacity+P0.056 evidence="62,397 and 917,504 bytes each reach provider once; 917,505 is terminal before provider; formula/profile fallback tests pass." -->
+- [x] 13.3 BACKEND-GREEN: 将全局 HTTP body、upload/resume/target-job/practice/report consumers 与四个 AI provider adapters 改为注入配置；删除重复生产常量。仅为错误映射、持久化原子性、provider call/no-call 与协议读取上限保留小型 focused tests，不逐层复制默认值边界。
+  <!-- verified: 2026-07-14 method=focused-business-contract evidence="Configured small-value domain boundaries, report provider call/no-call, SSE response cap, and resume quota atomicity cover non-trivial behavior without default-size materials or composition-only duplicates." -->
+- [x] 13.4 PROFILE-HANDOFF: 六个 active profile `max_tokens >= 16384`；A3 loader owner 保留 default/override/invalid 契约。A4 不维护 bytes+tokens 公式、report budget test、exact-profile lint 或真实 provider smoke。
+  <!-- verified: 2026-07-14 method=loader-owner+active-floor evidence="The loader owner default/override/invalid contract and active-profile floor lint require all six active budgets to be at least 16384; focused consumers use small injected limits, and root make test owns full regression." -->
 - [x] 13.5 CONTRACT: OpenAPI `RuntimeConfig.contentLimits` 只含五项 public limit；backend builder、fixture、generated Go/TS 同步；内部 report/HTTP/provider/profile 上限不泄漏。
-  <!-- verified: 2026-07-14 method=OPENAPI-006-exact-audit evidence="Exact 1 breaking + 8 additive audit preserved; 37/10 lint, fixtures, generated artifacts and 52 wrapper tests pass. Final post-commit codegen-check remains owned by 13.8." -->
-- [x] 13.6 FRONTEND: Resume upload/paste、Home JD raw text、Practice message/session 校验统一消费 runtime config 并按 UTF-8 bytes 判断；删除 2MiB 与 rune/character 本地真理源，limit/limit+1 focused tests 通过。
-  <!-- verified: 2026-07-14 method=vitest+build+BDD evidence="Frontend full 126 files/1018 tests and production build pass; P0.015/P0.046/P0.081 exact/+1 assertions pass." -->
-- [x] 13.7 BDD-GATE: [`bdd-checklist.md`](./bdd-checklist.md) 中 `E2E.P0.010`、`E2E.P0.046`、`E2E.P0.081`、`E2E.P0.056` 全部通过并记录当前证据。
-  <!-- verified: 2026-07-14 method=serial-scenario-run evidence="Fresh P0.010/P0.015/P0.034/P0.035/P0.046/P0.056/P0.058/P0.081 pass; P0.046 isolated PostgreSQL residual=0." -->
-- [x] 13.8 REGRESSION/POST-PASS: config/profile/provider/domain/OpenAPI/frontend focused/full gates、`make lint-config`、`make codegen-check`、旧硬编码 negative search、`sync-doc-index --check`、`make docs-check`、`git diff --check` 全部通过；完成 Bug 记录评估与 retrospective。
-  <!-- verified: 2026-07-14 evidence="Post-commit codegen-check is byte-stable; BUG-0171 and runtime-content-limits assessment are recorded; all precommit full/focused/BDD/docs/index/diff gates pass." -->
+  <!-- verified: 2026-07-14 method=OPENAPI-006-exact-audit evidence="The focused RuntimeConfig schema, fixture, generated-artifact and consumer contract was verified in this phase; Phase 13.8 does not repeat unrelated global codegen gates." -->
+- [x] 13.6 FRONTEND: Resume upload/paste、Home JD raw text、Practice message/session 校验统一消费 runtime config 并按 UTF-8 bytes 判断；删除 2MiB 与 rune/character 本地真理源。只保留 formatter、runtime-config resolve 与一个小型 UI consumer boundary contract，不构造默认大小文件。
+  <!-- verified: 2026-07-14 method=focused-vitest+build evidence="Typed runtime content-limit resolution, binary formatting, and a small injected upload boundary cover the frontend contract; production build passes without scenario-owned default-size assertions." -->
+- [x] 13.7 BDD-N/A: 配置默认值、注入与 public projection 不产生独立用户流程；删除 A4 配置专用 BDD 文档及所有配置断言/运行要求。真实场景仍由 domain owner 独立维护。
+- [x] 13.8 REGRESSION/POST-PASS: owner config 契约、active-profile floor、必要 provider/domain/frontend focused tests、`make lint-config`、旧硬编码 negative search、根 `make test`、context/docs/diff gate 通过；不强制与本次无关的 codegen、migration、eval、E2E 或真实 provider gate；完成 Bug 记录与 retrospective 评估。

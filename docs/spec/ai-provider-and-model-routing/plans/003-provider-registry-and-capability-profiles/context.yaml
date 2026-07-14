@@ -8,7 +8,7 @@ metadata:
   branch: runtime-size-limits
   specVersion:
     from: 1.8
-    to: 2.28
+    to: 2.29
 spec:
   defaultTarget: backend
   discovery:
@@ -31,20 +31,15 @@ spec:
       - profile catalog consolidation
       - fail-closed profile
       - realtime_audio_disabled
-      - report.generate.default max_tokens 6144
+      - six active profiles max_tokens floor 16384
+      - typed profile defaults
       - context_window_tokens 1000000
-      - provider framing reserve 2048
-      - REPORT_BOUNDARY_FIXTURES_READY
-      - AICallMeta token usage
-      - report output token budget
-      - 917504 byte input boundary
       - typed profile code defaults
+      - profile loader fallback invalid contract
       - ai max response body bytes 4194304
-      - REPORT_PROFILE_6144_PASS
       - report.generate.default thinking disabled
       - openai compatible thinking wire
-      - judge.default thinking disabled json_object max_tokens 6144
-      - JUDGE_FINAL_CONTENT_V120_PASS
+      - judge.default thinking disabled json_object
   targets:
     backend:
       plan: ./plan.md

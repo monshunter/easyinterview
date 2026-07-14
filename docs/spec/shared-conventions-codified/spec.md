@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.31
+> **版本**: 1.32
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 背景与目标
 
@@ -63,7 +63,7 @@
 | D-10 | Resume contract shared vocabulary | 当前 B1 仅保留 Resume shared error code `RESUME_EXPORT_NOT_AVAILABLE`，用于 B2 `exportResume` P0 `501` 响应；其它 Resume request/response schema、provenance 与 fixture contract 由 B2 OpenAPI 承接 | 业务代码 (`backend-resume` / `frontend-resume-workshop`) 不得绕过 B1 私造错误码；B2 schema 必须通过 `$ref` 引用本 spec 锁定的错误码字面量 |
 | D-11 | Generator 实现 | `backend/cmd/codegen/conventions` 使用 `yaml.v3` 将 `shared/conventions.yaml` 解码为 typed `Spec`，再由手写 Go renderer 与 `go/format` 生成当前 Go/TS 资产 | generator 保持单入口；输出完整性和幂等性由 focused tests 与 `make codegen-check` 固化 |
 | D-12 | TypeScript 生成边界 | conventions 输出固定为 `enums.ts`、`errors.ts`、`ai.ts`、`pagination.ts`，ID 输出固定为 `frontend/src/lib/ids/generated.ts` | 消费方从 conventions barrel 或 IDs 模块引用；不得把已拆分资产重新合并为单文件或复制出第二套生成入口 |
-| D-13 | Report context size error | `REPORT_CONTEXT_TOO_LARGE` 是 B1 canonical report error code，message 为 `report context exceeds supported generation size`，`retryable: false`。它由 `shared/conventions.yaml` 单源生成 Go/TS constants，并以 string enum additive 同步到 B2 `ApiErrorCode`。 | backend-review 在最终 UTF-8 prompt 超过 48,000 bytes 时 terminal fail 且不调用 provider/repair；B1 不拥有该业务阈值，只拥有跨语言字面量与 retryability |
+| D-13 | Report context size error | `REPORT_CONTEXT_TOO_LARGE` 是 B1 canonical report error code，message 为 `report context exceeds supported generation size`，`retryable: false`。它由 `shared/conventions.yaml` 单源生成 Go/TS constants，并以 string enum additive 同步到 B2 `ApiErrorCode`。 | backend-review 消费 A4 注入的 `report.maxFramedInputBytes`（当前缺省 917,504 UTF-8 bytes），超限时 terminal fail 且不调用 provider/repair；B1 不拥有该业务阈值，只拥有跨语言字面量与 retryability |
 | D-20 | 扁平 Resume vocabulary boundary | Resume 是单一实体，API path / request / response 使用 `resumeId` 与 `Resume`；UI resume ≡ OpenAPI `Resume` | 由 [openapi-v1-contract/004](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) 与 [backend-resume](../backend-resume/spec.md) 同步 `shared/conventions.yaml`、Go/TS generated errors、B2 `ApiErrorCode` 与 parity fixtures；新增 Resume shared vocabulary 必须先修订 owner spec |
 | D-21 | TargetJob paste-only error vocabulary | 删除 URL / 文件导入源专用的 `TARGET_IMPORT_SOURCE_INVALID` 与 `TARGET_IMPORT_SOURCE_UNAVAILABLE`；保留 generic `VALIDATION_FAILED` 处理粘贴输入校验，保留 retryable `TARGET_IMPORT_FAILED` 处理异步导入失败 | YAML、Go/TS generated errors 与 OpenAPI `ApiErrorCode` 必须同步收敛；不得保留旧错误码或兼容 alias |
 
@@ -128,6 +128,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 1.32 | 将 report 超限错误的当前业务边界改为 A4 注入配置；48,000 bytes 只作为已修复历史根因。 | 001-bootstrap Phase 9 + backend-review/001 |
 | 2026-07-13 | 1.31 | 收敛 TargetJob paste-only 错误词汇：删除两项 source-specific error，保留 `VALIDATION_FAILED` 与 `TARGET_IMPORT_FAILED`。 | 001-bootstrap Phase 10 |
 | 2026-07-12 | 1.30 | 授权 `REPORT_CONTEXT_TOO_LARGE`，锁定 non-retryable YAML/Go/TS/OpenAPI enum parity 与 additive-diff 口径。 | 001-bootstrap Phase 9 + backend-review/001 |
 | 2026-07-10 | 1.27 | 将已经实现的 generator 与 TypeScript 输出边界固化为当前决策，删除陈旧待确认段落。 | tech-debt pruning |

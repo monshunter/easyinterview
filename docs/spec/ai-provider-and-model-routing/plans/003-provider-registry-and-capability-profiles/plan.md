@@ -1,7 +1,7 @@
 # Provider Registry and Capability Profiles
 
-> **版本**: 1.15
-> **状态**: active
+> **版本**: 1.16
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -32,9 +32,9 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `code-internal + contract + platform-foundation`。本 plan 修改 AI provider runtime contract、profile/registry schema、配置绑定、共享字段与 lint gate；不直接引入用户可感知 UI、HTTP API 行为或业务工作流。
-- **TDD 策略**: Code plan requires TDD。后续实施必须通过 `/implement` -> `/tdd` 执行；每个 checklist item 需先补 focused tests / negative fixtures，再改 loader/router/config/codegen。断言来源包括 profile/registry loader tests、AIClient routing/fallback tests、A4 env dictionary tests、B1 generated vocabulary parity tests、F3 profile coverage lint、privacy/observability regression tests 与 negative terminology search。
+- **TDD 策略**: Code plan requires TDD。后续实施必须通过 `/implement` -> `/tdd` 执行。纯 profile 配置默认值、override 与非法值只在 typed loader owner package 保留一组表驱动契约，并由 canonical catalog/coverage lint 锁定当前坐标；消费者只为 fallback、协议读取上限、隐私/观测等非平凡分支保留 focused test，不逐 adapter、composition、domain 或 scenario 复制相同默认值与 `limit / limit+1` 断言。
 - **BDD 策略**: BDD 不适用。本 plan 是内部 AI provider 配置与路由契约，不创建用户可见 UI、外部 API 行为或端到端业务流程。后续电话模式、report、practice 等用户行为 workstream 必须在自身 plan 维护 BDD gate。
-- **替代验证 gate**: focused Go tests、config/env lint、profile catalog coverage lint、B1 codegen drift check、provider registry negative fixtures、privacy grep、`make lint-config`、`make codegen-check`、`make docs-check`、`make lint`、`make test`、`make build`、context validation。
+- **替代验证 gate**: profile loader owner contract、active-budget floor lint、共享 response-cap 非平凡协议分支 focused test、backend-review 独立业务回归、config/env lint、B1 codegen drift check、privacy grep、docs/context/diff gates。纯配置不运行真实 provider、不做 bytes+tokens 公式，也不新增或复用 E2E gate；阶段收口由根 `make test` 执行前后端全量回归。
 
 ## 4 实施步骤
 
@@ -178,44 +178,22 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 删除没有运行时消费者、仅由自测维持的 `providerregistry.SharedErrorCode` 及其断言。Provider registry/bootstrap 启动失败继续使用 `ErrProviderConfigInvalid` 与 `ErrProviderSecretMissing` 哨兵错误，通过 `errors.Is` 保持可判定性；运行时业务边界继续由各 owner 映射 B1 `AI_*` 错误，不在启动配置层保留重复映射 API。
 
-### Phase 8: report generation profile budget
+### Phase 8-9: Superseded budget migration cleanup
 
-#### 8.1 Exact profile revision
+早期 report/judge budget 调整及其 exact-coordinate、边界 fixture、bytes+tokens 公式、activation marker 与真实 provider smoke 已被当前 typed-default 模型取代。当前只保留：
 
-In the single `config/ai-profiles.yaml` catalog, add `report.generate.default.context_window_tokens=1000000`, change `max_tokens` from 4096 to 6144 and bump its profile version from `1.1.0` to `1.2.0`. Keep `capability=chat`, `provider_ref=deepseek`, `model=deepseek-v4-pro`, `timeout_ms=60000`, `rate_limit.tpm=60000`, route and fallback unchanged. The loader treats `context_window_tokens` as single-request input+output capacity and rejects non-positive values or values not greater than `max_tokens`; TPM stays a distinct throughput hint. Coverage tests reject 4096 regression, missing/invalid context capacity, a budget change without the version bump, or unrelated profile drift.
+- loader owner 对 default / override / invalid 的单一契约；
+- 六个 active profile `max_tokens >= 16384` 的 floor lint；
+- judge adapter 的 non-thinking JSON request 与 reasoning-only/empty final fail-close；
+- backend-review 自身的业务错误与 provider call/no-call 回归。
 
-#### 8.2 Cross-owner boundary fixtures
-
-Consume backend-review's `REPORT_BOUNDARY_FIXTURES_READY` marker and deterministic final-input fixtures at exactly 48,000 UTF-8 bytes and +1 byte, plus current-schema worst-case zh/en report JSON fixtures. A3 owns two distinct proofs:
-
-1. deterministic offline capacity: use the tokenizer-independent upper bound `input_tokens <= UTF-8 bytes`, add an explicit 2,048-token provider framing reserve, and prove `48,000 + 2,048 + 6,144 < 1,000,000 context_window_tokens`;
-2. opt-in real-provider token smoke: use AICallMeta usage for the exact framed 48,000-byte request and a token-count probe that sends each zh/en worst-case output fixture as the sole user content with minimal output, requiring reported input tokens `<=6144` and total reserved request tokens below the context window.
-
-`rate_limit.tpm=60000` is checked only as an unchanged throughput setting and never used as context-capacity evidence. Backend-review owns +1-byte terminal `REPORT_CONTEXT_TOO_LARGE`, zero provider/repair calls and report schema bounds; A3 must not duplicate those business rules.
-
-#### 8.3 Activation marker
-
-Run profile loader/coverage/config lint and focused offline capacity tests. During real-provider closeout, P0.100 must also record the redacted AICallMeta token usage/token-count probes; missing usage, `finish_reason=length`, an over-budget fixture or a capacity violation fails. Emit `REPORT_PROFILE_6144_PASS` only after the exact profile coordinate and deterministic offline proof pass; final acceptance additionally requires the live usage smoke. backend-review cannot close its provider-boundary gate from a YAML grep alone.
-
-### Phase 9: context-aware judge final-content reliability
-
-#### 9.1 RED: reproduce reasoning-only exhaustion
-
-Use the P0.100 context-aware complete-grounded case to record only redacted call metadata. The regression is exact: `judge.default` v1.1.0 returns `finish_reason=length`, input tokens 1,292, output tokens 2,048 and zero final-content bytes. Add profile and adapter tests that fail while the catalog lacks explicit non-thinking JSON parameters / 6,144 output budget, and while a reasoning-only response can escape the provider adapter as a nominal completion.
-
-#### 9.2 GREEN: non-thinking JSON and privacy-safe fail close
-
-Set only the judge profile's `default.params.thinking=disabled`, `response_format=json_object`, `max_tokens=6144` and `version=1.2.0`; keep DeepSeek Pro/provider/route/no-fallback/60s timeout/60k TPM unchanged. `judge_compatible` maps those profile params onto the official wire and rejects empty final content with `AI_OUTPUT_INVALID`, preserving only finish reason, token usage and a reasoning-presence boolean; reasoning text never enters errors/logs/artifacts.
-
-#### 9.3 LIVE-JUDGE-GATE + handoff
-
-Rebuild evalkit and run the same real complete+grade smoke with temporary raw content only. Require completion and judge `finish_reason=stop`, positive input/output usage, non-empty strict JSON, every rubric score and weighted threshold, complete item/causal verdicts, empty zero-tolerance violations and critical safety true. Emit `JUDGE_FINAL_CONTENT_V120_PASS`, then let P0.100 rerun the full five-case / 11-attempt matrix; one smoke cannot replace the scenario matrix.
+旧数值迁移不再作为当前 gate，也不得在 composition、domain、scenario 或 live provider 层复制。
 
 ### Phase 10: report generation non-thinking structured output
 
 #### 10.1 RED: reproduce missing report thinking wire
 
-Add openai-compatible request contract tests that require profile `thinking=enabled|disabled` to become the official `{"thinking":{"type":"..."}}` object while an object `output_schema` independently produces `response_format=json_object`. Add loader, tracked-catalog and coverage-lint tests that reject missing/invalid `report.generate.default.default.params.thinking`; an invalid runtime profile must fail with `AI_PROVIDER_CONFIG_INVALID` before any provider request.
+Add openai-compatible request contract tests that require profile `thinking=enabled|disabled` to become the official `{"thinking":{"type":"..."}}` object while an object `output_schema` independently produces `response_format=json_object`. Loader owner tests reject invalid thinking values；an invalid runtime profile must fail with `AI_PROVIDER_CONFIG_INVALID` before any provider request，不再由 exact-profile lint 复制同一断言。
 
 #### 10.2 GREEN: explicit non-thinking report profile and fail close
 
@@ -223,21 +201,25 @@ Set only `report.generate.default.default.params.thinking=disabled`, keeping its
 
 #### 10.3 Verification and handoff
 
-Run focused provider/profile tests, race tests, complete profile coverage tests, the tracked lint, owner context/index/docs gates and `git diff --check`. The final P0.100 real-provider rerun must observe non-empty report JSON under the current profile; no test or documentation result may substitute for that live scenario gate.
+Run focused provider/profile tests, race tests, active-budget floor lint, owner context/index/docs gates and `git diff --check`; then run root `make test` for full frontend/backend regression。不要求真实 provider smoke。
 
 ### Phase 11: typed profile defaults and provider response cap
 
-#### 11.1 RED: default/override/invalid profile and adapter boundaries
+#### 11.1 RED: canonical active budgets and one owner contract
 
-Add tests that remove each canonical `max_tokens` / `context_window_tokens` field, provide a legal override, and provide explicit zero/negative/invalid capacity. Missing fields must resolve through typed code defaults that equal the tracked catalog; explicit invalid values must fail before network. Add exact response-body limit/+1 tests for every provider adapter.
+Canonical catalog/coverage lint must require all six active profiles (`judge.default`, `practice.chat.default`, `report.generate.default`, `resume.parse.default`, `resume.tailor.default`, `target.import.default`) to keep `max_tokens >= 16384`。Current typed defaults use `16384`, and report context default remains `1000000`。Keep one table-driven loader-owner contract for typed defaults, legal override and explicit invalid capacity; do not lock exact profile coordinates or repeat the same matrix for every profile/composition layer.
 
 #### 11.2 GREEN: shared defaults and injected response limit
 
-Keep the current catalog coordinates unchanged and encode matching per-profile code defaults for every active profile. Route `ai.maxResponseBodyBytes=4194304` from A4 typed config into openai-compatible, judge-compatible, Doubao and MiniMax adapters; delete adapter-local 4MiB constants and replace unbounded `io.ReadAll` paths with a shared bounded reader.
+Encode matching `16384` per-profile code defaults for every active profile and keep the report context default at `1000000`. Route `ai.maxResponseBodyBytes=4194304` from A4 typed config into openai-compatible, judge-compatible, Doubao and MiniMax adapters; delete adapter-local 4MiB constants and replace unbounded response reads with a shared bounded reader. Test the shared reader and any genuinely distinct streaming/protocol truncation branch once; configuration injection itself is covered by types, construction and code review rather than four duplicate adapter matrices.
 
-#### 11.3 Report capacity handoff
+#### 11.3 Config/business boundary handoff
 
-Consume backend-review's in-memory 917,504 / 917,505-byte boundary gate and prove `917504 + 2048 + 6144 = 925696 < 1000000`. The in-memory 62,397-byte regression case must enter the provider path; no `input-*.json` boundary files are committed. TPM remains a throughput hint only. Focused/full provider/profile/race tests, lint/config gates, P0.056 and opt-in P0.100 token usage complete the handoff.
+配置层不把 bytes 与 tokens 直接相加，不维护 report budget 测试或默认尺寸材料。Backend-review 的历史业务回归只证明其自身 provider path，不作为 profile 配置传播证据。No `input-*.json` boundary files are committed；E2E 与真实 provider smoke 均不是配置 gate。
+
+#### 11.4 Verification and handoff
+
+Run the active-budget floor lint, the single loader default/override/invalid contract, focused shared-response-cap protocol tests, config lint, context/docs validation, root `make test` and `git diff --check`. Do not start a scenario environment or real provider smoke solely to prove profile defaults or wiring.
 
 ## 5 验收标准
 
@@ -249,9 +231,10 @@ Consume backend-review's in-memory 917,504 / 917,505-byte boundary gate and prov
 - 当前 active scope 不含向量化 / 重排代码与基础设施；chat profiles 全部指向 `deepseek` provider ref 且模型 ID 只使用 `deepseek-v4-flash` / `deepseek-v4-pro`。
 - A4 env/config 字典、B1 shared vocabulary、F3 + Product/UI profile coverage lint、A3 docs/README/fixtures 全部同步。
 - 隐私红线与零厂商 SDK 红线保持；全局 gate 与 context validation 通过。
-- `report.generate.default` 精确使用 context_window_tokens 1000000 / max_tokens 6144 / timeout 60000 / tpm 60000 / version 1.2.0 / thinking disabled；缺 key 使用同值 typed code default，显式非法失败；917,504-byte input + 2,048 framing reserve + 6,144 output 的 offline capacity gate 通过，最终 P0.100 还通过 actual usage token smoke。
-- 四个 provider adapter 统一消费 `ai.maxResponseBodyBytes=4194304` 注入值并覆盖 limit/+1；不存在 adapter-local 4MiB 或无界 response `ReadAll`。
-- `judge.default` 精确使用 non-thinking JSON / max tokens 6144 / timeout 60000 / tpm 60000 / version 1.2.0；reasoning-only 响应在 adapter 内脱敏 fail-closed，真实 complete+judge smoke 以 stop / 非空 JSON / 正 usage 通过，最终 P0.100 仍需全矩阵通过。
+- 六个 active profile 的 `max_tokens` 均不低于 16384；coverage lint 只锁定 active 集合与 floor，一处 loader default/override/invalid owner contract 通过，不存在跨 composition/domain/scenario 的重复配置断言。
+- `report.generate.default` 使用 1M context、16K output typed defaults 与 thinking disabled；不做 bytes+tokens 公式、exact-profile lint、report budget test 或真实 provider smoke。
+- 四个 provider adapter 统一消费 `ai.maxResponseBodyBytes=4194304` 注入值；共享 bounded reader 与必要的 streaming/protocol 截断分支有 focused evidence，不存在 adapter-local 4MiB 或无界 response `ReadAll`，也不按 adapter 复制配置 propagation matrix。
+- `judge.default` 使用至少 16K output 与 non-thinking JSON；reasoning-only 响应在 adapter 内脱敏 fail-closed。下游业务若验证 judge 行为，也不承担 profile 默认值或容量配置证明。
 
 ## 6 风险与应对
 
@@ -264,7 +247,7 @@ Consume backend-review's in-memory 917,504 / 917,505-byte boundary gate and prov
 | F3 新增 feature_key 或 Product/UI 新增 AI 场景但 A3 profile catalog 未跟进 | Phase 2.3 / 4.3 profile coverage lint 拦截；新增 AI 场景必须同步 spec §4.5、F3 字典与 profile catalog |
 | A4 env 字典与 A3 registry schema 漂移 | Phase 4.1 将 env/config 字典、bindings、validator 与 lint-config 作为同一阶段交付 |
 | 单一 catalog 文件变大导致未来多人冲突 | 当前 17 个 profile 规模优先降低文件碎片；若未来 profile 数量或 owner 并发显著增加，再由 A3/F3 plan 显式重新评估目录型 catalog |
-| Judge 默认 thinking 先耗尽 max tokens，final content 为空 | profile 显式关闭 thinking 并提高 final JSON budget；adapter 不使用或泄漏 reasoning，真实 smoke/P0.100 均要求 stop + 非空 final JSON |
+| Judge 默认 thinking 先耗尽 max tokens，final content 为空 | profile 显式关闭 thinking 并将 final JSON budget 提升到 16,384；adapter 不使用或泄漏 reasoning，profile 坐标由 catalog/lint 锁定，业务行为验证不重复承担配置容量证明 |
 
 ## 7 Owner Handoff
 
@@ -276,11 +259,12 @@ Consume backend-review's in-memory 917,504 / 917,505-byte boundary gate and prov
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-14 | 1.16 | Raise all six active profile budgets to a 16K floor and replace exact-coordinate, formula, scenario and real-provider capacity gates with one loader owner contract. | A4 Phase 13 |
 | 2026-07-14 | 1.15 | Reopen Phase 11 for typed profile code defaults, shared 4MiB provider response cap and 896KiB report capacity handoff. | A4 Phase 13 + backend-review/001 |
-| 2026-07-13 | 1.14 | Add Phase 10 for report generation non-thinking structured output: official openai-compatible thinking wire, loader/adapter/lint fail-close, and output-schema-owned JSON mode. | backend-review/001 + P0.100 |
-| 2026-07-12 | 1.13 | Add Phase 9 for DeepSeek default-thinking exhaustion: non-thinking JSON judge profile, 6,144 final budget, privacy-safe reasoning-only failure and real stop smoke. | F3/004 + P0.100 |
-| 2026-07-12 | 1.12 | Separate 1M single-request context capacity from 60k TPM; consume review-owned boundary fixtures and require offline framing reserve plus live provider usage/token-count proof. | backend-review/001 + P0.100 |
-| 2026-07-12 | 1.11 | Reopen Phase 8 for report.generate.default 4096→6144 and executable input/output budget boundaries. | backend-review/001 |
+| 2026-07-13 | 1.14 | Add Phase 10 for report generation non-thinking structured output: official openai-compatible thinking wire, loader/adapter/lint fail-close, and output-schema-owned JSON mode. | backend-review/001 |
+| 2026-07-12 | 1.13 | Historical judge budget migration; current gate retains non-thinking JSON and privacy-safe empty-final failure only. | F3/004 |
+| 2026-07-12 | 1.12 | Historical report capacity exploration; superseded by typed defaults and loader owner validation. | backend-review/001 |
+| 2026-07-12 | 1.11 | Historical report budget migration; old exact values are not current gates. | backend-review/001 |
 | 2026-07-10 | 1.10 | 删除仅由测试自证的 provider 启动错误码映射层，保留哨兵错误合同。 | tech-debt pruning |
 | 2026-07-10 | 1.9 | 统一 schema、model alias 与 profile directory 的 out-of-scope 术语，修正 completed-state 表述并对齐 checklist 版本。 | tech-debt pruning |
 | 2026-07-10 | 1.8 | 将 Product/UI capability 描述收敛为 fail-closed profile，并对齐当前电话模式术语。 | tech-debt pruning |

@@ -139,7 +139,7 @@ def test_validate_context_includes_bdd_checklist_role(tmp_path):
 
     (plan_dir / "bdd-plan.md").write_text("# BDD Plan\n", encoding="utf-8")
     (plan_dir / "bdd-checklist.md").write_text(
-        "# BDD Checklist\n\n## E2E.P0.001\n\n- [x] 创建场景目录\n",
+        "# BDD Checklist\n\n## BDD.DEMO.001\n\n- [x] 确认 domain behavior test 入口\n",
         encoding="utf-8",
     )
     payload = yaml.safe_load(context_path.read_text(encoding="utf-8"))

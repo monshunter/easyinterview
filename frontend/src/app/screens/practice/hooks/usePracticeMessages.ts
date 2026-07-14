@@ -26,7 +26,7 @@ export function usePracticeMessages(explicitSessionId?: string): UsePracticeMess
   const sessionId = explicitSessionId ?? ctx.sessionId ?? "";
   const maxMessageBytes = resolveContentLimits(
     runtime?.runtime.status === "ready" ? runtime.runtime.config : undefined,
-  ).practiceMessageBytes;
+  )?.practiceMessageBytes;
 
   const sendMessage = useCallback(async (
     submission: PracticeMessageSubmission,
@@ -34,6 +34,7 @@ export function usePracticeMessages(explicitSessionId?: string): UsePracticeMess
   ) => {
     if (!client) throw new Error("usePracticeMessages: client not mounted");
     if (!sessionId) throw new Error("usePracticeMessages: sessionId missing");
+    if (maxMessageBytes === undefined) throw new Error("usePracticeMessages: runtime config not ready");
     if (!submission.text.trim()) throw new Error("usePracticeMessages: text missing");
     if (!submission.clientMessageId) throw new Error("usePracticeMessages: clientMessageId missing");
     if (utf8ByteLength(submission.text.trim()) > maxMessageBytes) {
@@ -42,5 +43,8 @@ export function usePracticeMessages(explicitSessionId?: string): UsePracticeMess
     return client.sendPracticeMessage(sessionId, submission, options);
   }, [client, maxMessageBytes, sessionId]);
 
-  return useMemo(() => ({ ready: Boolean(client && sessionId), sendMessage }), [client, sessionId, sendMessage]);
+  return useMemo(
+    () => ({ ready: Boolean(client && sessionId && maxMessageBytes !== undefined), sendMessage }),
+    [client, maxMessageBytes, sessionId, sendMessage],
+  );
 }

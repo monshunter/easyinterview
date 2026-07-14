@@ -1,8 +1,8 @@
 # 004 — Report-derived Practice Plans Checklist
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -10,19 +10,12 @@
 
 - [x] 1.1 `sourceReportId` remains the only current derived-plan source field for `CreatePracticePlanRequest` / `PracticePlan`; verification: OpenAPI and generated Go/TS expose `sourceReportId` for retry / next-round and do not expose `sourceDebriefId`.
   <!-- verified: 2026-07-06 method=current-state-search evidence="rg over openapi/openapi.yaml, backend/internal/api/generated, frontend/src/api/generated, backend/internal/practice, backend/internal/store/practice shows sourceReportId/source_report_id current hits and no sourceDebriefId/source_debrief_id positive hits outside negative scenario text." -->
-- [x] 1.2 Report-derived create/read/idempotency remains covered by executable tests and scenario docs; verification: `TestE2EP0070PracticeDerivedPlanCreateReadReplay` exists and `test/scenarios/e2e/p0-070-practice-derived-plan-create-read-replay` describes retry / next-round `sourceReportId`.
-  <!-- verified: 2026-07-06 method=current-state-search evidence="rg found backend/cmd/api/practice_http_scenario_test.go TestE2EP0070PracticeDerivedPlanCreateReadReplay and P0.070 README states retry_current_round/next_round sourceReportId create/read/replay." -->
-- [x] 1.3 Report source validation / isolation remains covered by executable tests and scenario docs; verification: `TestE2EP0072PracticeDerivedSourceValidationIsolationPrivacy` exists and `test/scenarios/e2e/p0-072-practice-derived-source-isolation-privacy` covers missing/cross-user/wrong-target source.
-  <!-- verified: 2026-07-06 method=current-state-search evidence="rg found backend/cmd/api/practice_http_scenario_test.go TestE2EP0072PracticeDerivedSourceValidationIsolationPrivacy and P0.072 README describes missing/cross-user/wrong-target source validation." -->
 
 ## Phase 2: Source Boundary Reconciliation
 
 - [x] 2.1 Remove out-of-scope source contract from plan/checklist/test/BDD/context; verification: this plan no longer lists `goal='debrief'`, `sourceDebriefId`, `source_debrief_id`, `PracticeGoalDebrief`, or raw source-question seeding as current implementation items.
   <!-- verified: 2026-07-06 method=doc-rewrite evidence="plan/test/BDD docs rewritten to report-derived only; context keywords use current sourceReportId wording only." -->
-- [x] 2.2 Keep only current scenario gates for this owner; verification: active BDD docs retain only `E2E.P0.070` and `E2E.P0.072`, and no P0.071/P0.073 scenario directories exist under `test/scenarios/e2e`.
-  <!-- verified: 2026-07-06 method=current-state-search evidence="find test/scenarios/e2e -maxdepth 1 -type d -name 'p0-07*' shows P0.070/P0.072 plus resume P0.074-079, no P0.071/P0.073." -->
 - [x] 2.3 Run docs/context gates after reconciliation; verification: `validate_context.py`, `make docs-check`, `git diff --check`, and negative grep pass.
-  <!-- verified: 2026-07-06 method=focused-go-doc-gates evidence="cd backend && go test ./internal/practice ./internal/store/practice ./internal/api/practice ./cmd/api -run 'Derived|Source|TestE2EP0070|TestE2EP0072' -count=1 PASS; runtime/generated/fixture negative grep for sourceDebriefId/source_debrief_id/PracticeGoalDebrief/goal='debrief'/debrief-derived/raw_questions returned no matches; validate_context.py backend-practice/004 backend PASS; sync-doc-index --check PASS; git diff --check PASS." -->
 
 ## Phase 3: Server-owned dimension focus
 
@@ -31,10 +24,9 @@
 - [x] 3.2 RED-GREEN: retry atomically projects retryFocusDimensionCodes to plan focus_dimension_codes; empty means generic same-round retry, non-empty is unique and wholly issue-backed; next persists empty focus; read/start replay exact values.
   <!-- verified: 2026-07-12 method=red-green+sqlmock evidence="TestCreateDerivedPracticePlanUsesOnlySourceAuthority, TestSQLRepositoryCreateDerivedPlanProjectsDimensionFocus, TestSQLRepositoryGetPlanReplaysExactDimensionFocus and start reservation current-column assertion PASS; full internal/practice + store/practice packages PASS" -->
 - [x] 3.3 RED-GREEN: retry start/send with non-empty focus joins source report code→label+issues into JSON-encoded `semanticFocus/{{semantic_focus_json}}`; empty focus injects no fabricated guidance; code-only, unsupported/missing cross-ref, raw transcript/anchor and report focus on next/baseline fail negative gates. Runtime tests may use the F3-owned immutable v0.2 exact coordinate before release, but final runtime must resolve the active v0.2 pair while v0.1 remains exactly retrievable for rollback; completion requires `REPORT_DERIVED_SEMANTIC_PROMPT_PASS` plus F3 `PRACTICE_SEMANTIC_FOCUS_PROMPT_V020_PASS`. (`go test ./backend/internal/practice ./backend/internal/store/practice -run 'DimensionFocus|Derived|SemanticFocus' -count=1`)
-  <!-- verified: 2026-07-12 method=red-green+active-registry+postgres-v19 evidence="specified candidate test was pre-existing GREEN, so coverage was strengthened to resolve active practice v0.2/v0.2 registry.v1 and render only code+label+issues; raw {{semantic_focus}} runtime substitution failed RED then was removed. Focused store tests prove empty focus=[], source anchors stripped, raw unknown fields/code-only/missing issue/unsupported code fail closed. P0.070 tagged PostgreSQL start/send emits REPORT_DERIVED_SEMANTIC_PROMPT_PASS; both practice packages full and race PASS." -->
 - [x] 3.4 RED-GREEN: missing/cross-user/non-ready/missing-context/unsupported-or-duplicate-non-empty-focus and IK mismatch fail without insert/leak; empty focus stays valid, and server derives settings/identity/duration rather than validating client copies.
-  <!-- verified: 2026-07-12 method=coverage-adequacy+focused-go evidence="TestSQLRepositoryCreateDerivedPlanFailsClosedOnSourceMatrix covers missing/cross/non-ready/context/binding/focus failures with rollback and no leak; TestCreateDerivedPracticePlanRejectsCopiedServerFields rejects copied authority; TestCreateDerivedPracticePlanIdempotencyMismatchHasNoSecondInsertOrLeak emits REPORT_DERIVED_IDEMPOTENCY_PASS" -->
-- [x] 3.5 BDD-Gate: registry-owned P0.070/P0.072 require named projection/semantic-prompt/empty-focus/isolation/privacy/idempotency markers, F3 `PRACTICE_SEMANTIC_FOCUS_PROMPT_V020_PASS`, and real PostgreSQL evidence.
-  <!-- verified: 2026-07-12 method=scenario bddChecklist=complete evidence="P0.070 and P0.072 setup/trigger/verify/cleanup passed serially on disposable PostgreSQL schema v19; exact RUN/PASS/package-ok, IK replay, active-v0.2/F3 handoff, projection, empty-focus, semantic-prompt, isolation, privacy, zero-insert and cleanup gates all passed." -->
 - [x] 3.6 REGRESSION-GATE: final active runtime/generated/OpenAPI/fixtures/scenarios contain zero positive `focusCompetencyCodes|focus_competency_codes|retryFocusCompetencyCodes|retry_focus_competency_codes|retryFocusTurnIds|retry_focus_turn_ids|retry_round` or code-only prompt focus; immutable v0.1/000002 rollback, history and explicit negative fixtures are allowlisted but never active consumers after F3 activation. Emit owner-only `REPORT_DERIVED_LEGACY_IDENTIFIER_NEGATIVE_PASS` after the exact-set gate passes.
-  <!-- verified: 2026-07-12 marker=REPORT_DERIVED_LEGACY_IDENTIFIER_NEGATIVE_PASS method=exact-negative-scenario-gate evidence="P0.072 verify searched non-test practice runtime, generated Go/TS, current OpenAPI, JSON fixtures, active practice v0.2 prompt and P0.070/072 scenario inputs. Zero positive legacy competency/turn/action or raw semantic-focus placeholder hits; immutable/history/test negatives and PROTOTYPE_MAPPING.md negative documentation are explicit allowlists." -->
+
+## BDD Gate
+
+- [x] BDD-Gate: `BDD.PRACTICE.DERIVED.001` 由 [BDD checklist](./bdd-checklist.md) 关联报告派生 plan 的 owner behavior tests；不创建或声明真实 E2E PASS。

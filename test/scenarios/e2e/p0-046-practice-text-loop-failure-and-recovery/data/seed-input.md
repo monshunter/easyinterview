@@ -1,3 +1,0 @@
-# Seed input
-
-Use the checked-in Practice `reply-retryable-failed`, retry-success, and `reply-terminal-failed` OpenAPI fixtures plus test-local hostile and raw-Markdown message projections for browser evidence; no API fixture or generated client is changed. The trigger derives a unique empty database from the server credentials in `DATABASE_URL`, applies current migrations, and runs the previous recovery test plus four exact independent-connection lease/generation/concurrency tests before force-dropping that database. All browser/backend evidence is bound to the shared Practice source manifest.

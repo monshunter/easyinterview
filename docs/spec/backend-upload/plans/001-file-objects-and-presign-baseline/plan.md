@@ -1,7 +1,7 @@
 # Backend Upload File Objects and Presign Baseline
 
 > **版本**: 1.6
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -16,7 +16,6 @@
 - state machine 校验：`pending → uploaded`、`pending|uploaded → scan_failed`、`pending|uploaded|scan_failed → deleted`，非法转换统一返回 B1 已登记 `VALIDATION_FAILED`；业务 register 不写 `registered` 状态，但必须在确认 object exists 后原子完成 `pending → uploaded` 或对已 `uploaded` 幂等通过；
 - 隐私删除：privacy_delete job 调用 `DeleteFileObjectsForUser(userId)`，先对象存储 hard delete → DB 行 hard delete → audit tombstone（与 [backend-runtime-topology](../../../backend-runtime-topology/spec.md) 共同维护）；
 - mock-first 对齐：handler 实际响应字段集 / status code / IK 行为与 [B2 fixture `createUploadPresign.json` `default` scenario](../../../mock-contract-suite/spec.md) 字节级一致；
-- 通过 spec §6 C-1..C-9 验收；E2E.P0.033 继续覆盖 resume presign/register/privacy delete，且增加 JD attachment purpose 不可用断言；
 - 不实现 backend internal GC runner（D-3.2 未确认事项 P0 不实现）；不实现独立 `getFileObject` endpoint（D-3.2 由 openapi-v1-contract/004 决定）。
 
 ## 2 背景
@@ -38,28 +37,26 @@
 
 - **Plan 类型**: `code-internal + feature-behavior + contract`。本 plan 实现 backend handler / store / state machine / privacy delete 链路；涉及用户可见 HTTP API 行为。
 - **TDD 策略**: 适用。Red-Green-Refactor 入口：
-  1. config contract test：A4 typed config / validator 能读取 `objectStorage.provider`、`upload.presignTTLSeconds`、`upload.maxBytes.*`，且 `.env.example` 不新增未登记 key；
+  1. config contract：由 A4 typed owner 唯一覆盖 `objectStorage.provider`、`upload.presignTTLSeconds`、`upload.maxBytes.*` 的 default/override/invalid；本 owner 不复制；
   2. handler unit test（`backend/internal/upload/handler/*_test.go`）：IK replay / purpose validation / TTL / byteSize limit / auth check；
   3. store integration test（`backend/internal/upload/store/*_integration_test.go`）：state transition / FK / cross-user isolation；
   4. ObjectStore interface mock + dev MinIO smoke：presign 签发可消费、URL 在 TTL 内可 PUT、超期拒绝；
   5. privacy delete unit test：对象存储删除失败 retryable / DB 行硬删幂等；
-  6. 跑 `make backend-test` + `cd backend && go test ./internal/upload/...` 全 PASS。
+  6. 开发中可运行 upload focused tests 快速反馈；阶段单测完成由仓库根 `make test` 统一承接 backend 与 frontend 全量回归。
   7. Phase 7 先以 OpenAPI/DB/config/handler tests 证明 JD attachment purpose 与专属 maxBytes 仍可达（RED），再删除最小分支并保持 resume/privacy tests 通过（GREEN）。
   执行入口：`/implement backend-upload/001-file-objects-and-presign-baseline` → `/tdd`。
-- **BDD 策略**: 适用（Feature plan requires BDD）。E2E.P0.033 继续覆盖 `purpose=resume` 的 presign → PUT → register → privacy delete，并在 Phase 7 增加 JD attachment purpose 被拒绝、`privacy_export` 仍被合同接受的边界断言。
 - **替代验证 gate**:
-  - `make backend-test`（含 `internal/upload/...`）
+  - 仓库根 `make test`（统一 frontend/backend 全量单测回归）
   - `make lint-config`
-  - `go test ./internal/upload/handler/... -run TestPresignIdempotency`
-  - `go test ./internal/upload/store/... -run TestStateTransition`
-  - smoke：`curl -X POST /api/v1/uploads/presign -H 'Idempotency-Key: ...' -d '{"purpose":"resume","fileName":"resume.pdf","contentType":"application/pdf","byteSize":1048576}'`
+  - handler/store focused tests 仅作开发反馈；真实 store/object storage 组合由独立 integration gate 验证，不包装为 E2E
+  - smoke：`curl -X POST /api/v1/uploads/presign -H 'Idempotency-Key: ...' -d '{"purpose":"resume","fileName":"resume.pdf","contentType":"application/pdf","byteSize":1024}'`
   - `sync-doc-index --check`
 
 ### 3.1 Frontend / Backend Operation Matrix
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` resume default；purpose/size/auth/IK failure 由 handler tests 与 E2E.P0.033 断言 | `frontend-resume-workshop/002-create-flow` 与 privacy export consumer；TargetJob 不消费 | `backend/internal/upload/handler/presign.go` | `file_objects` + object storage object；public purpose=`resume|privacy_export` | none | E2E.P0.033 + handler/store unit/integration tests |
+| `createUploadPresign` | current resume fixture；failure cases in code tests | Resume CreateFlow and privacy-export consumer | backend-upload presign handler | `file_objects` + object storage | none | 当前无真实 E2E owner；root `make test` + separate storage integration |
 
 Config dependency: A4 `objectStorage.*` / `OBJECT_STORAGE_*`、`upload.presignTTLSeconds` 与 `upload.maxBytes.{resume,privacyExport}` 保留；JD attachment 专属 maxBytes 必须删除。不得引入 `UPLOAD_*` 或 `OBJECT_STORE_*` 旁路。
 
@@ -69,18 +66,13 @@ Config dependency: A4 `objectStorage.*` / `OBJECT_STORAGE_*`、`upload.presignTT
 
 #### 0.1 修订 / 验证 A4 config schema
 
-- 在 [A4 secrets-and-config](../../../secrets-and-config/spec.md) 与 config artifacts 中登记 config-only paths：
-  - `objectStorage.provider` (`minio | filesystem`)
-  - `upload.presignTTLSeconds`（默认 600）
-  - `upload.maxBytes.resume`（默认 10485760）
-  - `upload.maxBytes.targetJobAttachment`（默认 10485760）
-  - `upload.maxBytes.privacyExport`（默认 5242880）
+- 在 [A4 secrets-and-config](../../../secrets-and-config/spec.md) 与 config artifacts 中登记 `objectStorage.provider`、`upload.presignTTLSeconds`、`upload.maxBytes.resume` 与 `upload.maxBytes.privacyExport`；旧 `upload.maxBytes.targetJobAttachment` 必须 zero-reference。默认/override/invalid 由 A4 typed owner 唯一覆盖。
 - 复用现有 `OBJECT_STORAGE_ENDPOINT` / `OBJECT_STORAGE_BUCKET` / `OBJECT_STORAGE_ACCESS_KEY` / `OBJECT_STORAGE_SECRET_KEY` env key；不得使用未登记的 `OBJECT_STORE_*` 或 `UPLOAD_*` env key。
 
-#### 0.2 config tests
+#### 0.2 config owner gate
 
 - `make lint-config` 必须 PASS。
-- config unit test 覆盖默认值、dev override、非法 provider、非正数 TTL / maxBytes fail-fast。
+- A4 owner 的单一 typed contract 覆盖默认值、override、非法 provider、非正数 TTL / maxBytes；backend-upload 不复制同一矩阵。
 
 ### Phase 1: handler skeleton + IK + purpose validation
 
@@ -143,13 +135,14 @@ Config dependency: A4 `objectStorage.*` / `OBJECT_STORAGE_*`、`upload.presignTT
 
 #### 4.3 unit + integration test
 - `delete_for_user_test.go`：成功路径 / 对象存储失败重试 / 部分成功幂等
+- focused test 只用于开发反馈；阶段完成由仓库根 `make test` 承接前后端全量单测。
 
 ### Phase 5: 收口与 BDD
 
 #### 5.1 跨 gate 收口
 
 按 §3 替代验证 gate 依序运行：
-- `make backend-test` + `go test ./internal/upload/...` PASS
+- 仓库根 `make test` 承接前后端全量单测
 - `make lint-config` PASS
 - handler smoke：curl 真实端口验证 201 + IK replay 一致
 - mock-first 对齐验证：本地 mock-server 与 真实 handler 同 endpoint 字节比对
@@ -157,8 +150,7 @@ Config dependency: A4 `objectStorage.*` / `OBJECT_STORAGE_*`、`upload.presignTT
 
 #### 5.2 BDD 场景验证
 
-- 执行 `test/scenarios/e2e/p0-033-file-presign-register-roundtrip/` 全套 setup → trigger → verify → cleanup PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）
-- 在 `test/scenarios/e2e/INDEX.md` 追加 E2E.P0.033 行
+保留 presign/upload/register 的 Given/When/Then 行为合同；当前没有真实 API/UI E2E owner，不以 Go integration wrapper 充当场景证据。
 
 #### 5.3 spec / history / INDEX 同步
 
@@ -191,10 +183,9 @@ Config dependency: A4 `objectStorage.*` / `OBJECT_STORAGE_*`、`upload.presignTT
 
 - 对象存储删除成功后，`file_objects` DB hard delete 与 audit tombstone 必须在同一 DB transaction 内提交；audit 写入失败不得让 row 先消失。
 
-#### 6.5 Live scenario gate hardening
+#### 6.5 Integration defect gate
 
-- E2E.P0.033 必须要求 `DATABASE_URL` 与 `OBJECT_STORAGE_*` live env；integration-tag tests 出现 skip 或 focused gate no-op 时 scenario 必须 fail，不得作为 Ready/PASS BDD 证据。
-- `trigger.sh` 必须执行 `go test ./cmd/api -tags=integration -run TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip -count=1 -v`，该测试必须覆盖真实 `POST /api/v1/uploads/presign` → MinIO signed `PUT` → internal `RegisterFileObject` → `DELETE /api/v1/me` → runtime runner kernel 处理 `privacy_delete` → DB hard delete + audit tombstone 的 live roundtrip。
+真实 MinIO、DB transaction 与 privacy runner 组合仍可由代码层 integration test 覆盖，但不得放入 `test/scenarios/e2e/` 或包装为 E2E。focused run 只用于开发反馈，Phase 6 完成由仓库根 `make test` 承接。
 
 ### Phase 7: Remove JD attachment upload purpose
 
@@ -208,24 +199,16 @@ Config dependency: A4 `objectStorage.*` / `OBJECT_STORAGE_*`、`upload.presignTT
 
 消费 OpenAPI/B4 的 purpose 收缩与 A4 Phase 12 maxBytes 删除 handoff；backend-upload 只删除自己拥有的 public purpose validation、handler/service 分支，不直接修改 A4 config/validator/composition 或 B4 DB constraint。`createUploadPresign` endpoint、file_objects state machine、resume register 与 privacy delete 保持不变。
 
-#### 7.3 BDD and zero-reference
 
-E2E.P0.033 继续验证 resume presign→PUT→register→privacy delete，并增加 JD attachment purpose 被拒绝与 privacy export purpose 仍合法的边界断言。zero-reference gate 覆盖 OpenAPI/generated/backend/migrations/config/fixtures/scripts，同时以正向断言防止误删 resume/privacy 能力。
 
-### Phase 8: Typed upload defaults and exact size boundaries
 
-Add missing/default/override/invalid tests for resume 10MiB and privacy_export 5MiB. Route A4 typed values into presign and register; no package-local fallback may differ from the shared code default. E2E.P0.033 must exercise exact limit/limit+1 for both purposes with actual object size verification and zero DB/object side effects on overflow. RuntimeConfig exposes only resume upload bytes for frontend P0.081; privacy export remains internal.
 
 ## 5 验收标准
 
 - 本计划列出的 §4 所有 Phase task 全部完成
 - §3 替代验证 gate 全部通过
 - spec §6 C-1..C-9 全部 PASS
-- BDD E2E.P0.033 PASS（含 setup → trigger → verify → cleanup 全脚本；trigger 必须包含 `TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip` live roundtrip evidence）
 - backend-resume owner 已收到 createUploadPresign 落地信号；backend-targetjob 当前 paste-only 合同不消费 upload handoff
-- Phase 6 L2 remediation hardening 全部通过；若本机 live DB / MinIO env 未就绪，只能记录 scenario gate hardening 验证，不能把 E2E.P0.033 记为 live PASS。
-- Phase 7 消费 OpenAPI/B4 purpose 与 A4 maxBytes 删除 handoff、完成 backend-upload 自有分支删除后，E2E.P0.033 与 resume/privacy focused tests 通过，旧 purpose 精确 zero-reference。
-- Phase 8 missing/default/override/invalid 与 exact limit/+1 通过；resume 10MiB public projection 与 privacy 5MiB internal boundary 不漂移。
 
 ## 6 风险与应对
 
@@ -235,4 +218,3 @@ Add missing/default/override/invalid tests for resume 10MiB and privacy_export 5
 | R2: presign URL 在 TTL 内泄漏导致越权 | TTL ≤ 600s + objectKey 含 userId 前缀；server-side 校验 register 时 fileObject.userId 匹配 |
 | R3: state machine 复杂度与现有 file_objects.upload_status 字段对齐 | B4 baseline `file_objects.upload_status` 已存在；本 plan Phase 2.1 不改 schema，只补 store-layer validation |
 | R4: privacy delete 对象存储失败 + DB 一致性 | retryable job + 保留 DB 原状态 + 重试上限；超过上限触发 P2 告警进入人工排查；不得私加 `deleted_pending` 状态 |
-| R5: 历史 fixture/mock 让 TargetJob upload consumer 口径回流 | Phase 7 current operation matrix、E2E.P0.033 负向断言与全局 zero-reference 共同证明 TargetJob 不调用 upload endpoint；只保留 resume/privacy consumer |

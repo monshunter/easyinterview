@@ -59,11 +59,11 @@ B1 同批新增 canonical non-retryable `REPORT_CONTEXT_TOO_LARGE`。B2 `ApiErro
 | Fixtures | Reports / PracticePlans、prototype sync、Prism projection | openapi-v1-contract 002 |
 | 后端 | generated DTO、report mapper/store/generator、derived plan handler | backend-review/001 |
 | 前端 | generated TS、Generating/Report、route/request negatives | frontend-report-dashboard/001 |
-| Mock/Scenario | P0.056-059/070/072/099/100 | registry 中现有 scenario owner |
+| Mock/downstream | report fixtures + generated consumers | registry、backend-review 与 frontend-report owners |
 
 ## 4 迁移与回滚
 
-- **迁移顺序**：先提交本 ADR；B1 `shared-conventions-codified/001` 产出 `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS`；再运行旧 merge-base baseline → 新 OpenAPI audit；随后同批更新 schema、fixtures/prototype、Go/TS codegen、backend、frontend、scenario；最后原地 re-freeze `openapi-v1.0.0.yaml`。
+- **迁移顺序**：先提交本 ADR；B1 conventions gate 固化 canonical literal/retryability；再运行旧 merge-base baseline → 新 OpenAPI audit；随后同批更新 schema、fixtures/prototype、Go/TS codegen、backend、frontend consumers；最后原地 re-freeze `openapi-v1.0.0.yaml`。
 - **放行条件**：旧 baseline findings 与 §2.1 exact-match；`make lint-openapi`、fixture validation、prototype sync 两次幂等、Prism smoke、codegen check、consumer tests 与 current-baseline `make openapi-diff` 全部通过。
 - **回滚**：任一 consumer 未能同批迁移、finding 超出 §2.1、privacy 泄漏或核心场景失败时，整体回滚 OpenAPI/fixtures/codegen/backend/frontend/baseline；不得单独保留兼容字段。
 - **SemVer**：baseline 尚未发布，因此本次保持 `v1.0.0` 并作为 accepted pre-release correction 原地 re-freeze；发布后同类变更必须使用 v2.0.0。
@@ -90,10 +90,10 @@ B1 同批新增 canonical non-retryable `REPORT_CONTEXT_TOO_LARGE`。B2 `ApiErro
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
-| 2026-07-13 | 1.6 | Close FeedbackReport state machine：ready non-null summary/preparedness/provenance + non-empty dimensions/actions；failed-only non-null errorCode. | B2/F3/P0.056/P0.099 |
+| 2026-07-13 | 1.6 | Close FeedbackReport state machine：ready non-null summary/preparedness/provenance + non-empty dimensions/actions；failed-only non-null errorCode. | B2/F3/frontend-report |
 | 2026-07-13 | 1.5 | Keep max4 generation/judge attempts internal：no attempt/retry/reason/scope HTTP fields or retry endpoint；status remains queued/generating/ready/failed. | backend-review/frontend-report-dashboard |
-| 2026-07-13 | 1.4 | Clarify evalkit/runtime full-validator reuse：sole-label targeted repair；all other/mixed whole-report repair；one-budget full revalidation and second-invalid fail-close. | B2/F3/P0.100 |
-| 2026-07-13 | 1.3 | Finalize A：wire fuse200；semantic/UX 24 words / 64 code points；targeted repair internal margin18/52. | B2/F3/P0.099/P0.100 |
-| 2026-07-13 | 1.2 | Accept A-200：ReportNextAction.label fuse200；14/40 remains UX gate；expected finding after=minLength1,maxLength200. | B2/F3/P0.099/P0.100 |
+| 2026-07-13 | 1.4 | Clarify evalkit/runtime full-validator reuse：sole-label targeted repair；all other/mixed whole-report repair；one-budget full revalidation and second-invalid fail-close. | B2/F3 |
+| 2026-07-13 | 1.3 | Finalize A：wire fuse200；semantic/UX 24 words / 64 code points；targeted repair internal margin18/52. | B2/F3/frontend-report |
+| 2026-07-13 | 1.2 | Accept A-200：ReportNextAction.label fuse200；14/40 remains UX gate；expected finding after=minLength1,maxLength200. | B2/F3/frontend-report |
 | 2026-07-12 | 1.1 | Make the oracle exact across severity and record `REPORT_CONTEXT_TOO_LARGE` enum widening as additive-only. | B1 001 + B2 003 |
 | 2026-07-12 | 1.0 | Accept grounded direct report pre-release correction. | OPENAPI-001 |

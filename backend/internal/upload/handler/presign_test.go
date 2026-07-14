@@ -20,6 +20,11 @@ import (
 	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
 )
 
+const (
+	testResumeUploadBytes  int64 = 250_000
+	testPrivacyExportBytes int64 = 4_096
+)
+
 func TestHandlerImplementsCreateUploadPresignSurface(t *testing.T) {
 	var _ interface {
 		CreateUploadPresign(http.ResponseWriter, *http.Request)
@@ -103,7 +108,7 @@ func TestCreateUploadPresignPurposeValidation(t *testing.T) {
 
 func TestCreateUploadPresignByteSizeLimit(t *testing.T) {
 	h := newTestHandler(&fakePresignService{})
-	req := newPresignRequest(`{"purpose":"privacy_export","fileName":"privacy.zip","contentType":"application/zip","byteSize":5242881}`)
+	req := newPresignRequest(`{"purpose":"privacy_export","fileName":"privacy.zip","contentType":"application/zip","byteSize":4097}`)
 	rec := httptest.NewRecorder()
 
 	h.CreateUploadPresign(rec, req)
@@ -155,7 +160,7 @@ func TestCreateUploadPresignReturnsCreatedResponse(t *testing.T) {
 	if svc.in.UserID != "user-1" || svc.in.IdempotencyKey != "idem-1" || svc.in.Purpose != "resume" {
 		t.Fatalf("service input = %+v", svc.in)
 	}
-	if svc.in.PresignTTL != 10*time.Minute || svc.in.MaxBytes != 2097152 {
+	if svc.in.PresignTTL != 10*time.Minute || svc.in.MaxBytes != testResumeUploadBytes {
 		t.Fatalf("config input ttl=%s max=%d", svc.in.PresignTTL, svc.in.MaxBytes)
 	}
 }
@@ -222,8 +227,8 @@ func newTestHandler(svc uploadhandler.PresignService) *uploadhandler.Handler {
 		},
 		PresignTTL: 10 * time.Minute,
 		MaxBytesByPurpose: map[string]int64{
-			"resume":         2097152,
-			"privacy_export": 5242880,
+			"resume":         testResumeUploadBytes,
+			"privacy_export": testPrivacyExportBytes,
 		},
 	})
 }

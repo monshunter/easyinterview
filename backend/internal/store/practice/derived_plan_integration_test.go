@@ -30,7 +30,7 @@ type derivedIntegrationFixture struct {
 	summary  string
 }
 
-func TestE2EP0070PracticeDerivedPlanCreateReadReplay(t *testing.T) {
+func TestPracticeDerivedPlanCreateReadReplay(t *testing.T) {
 	fixture := newDerivedIntegrationFixture(t, "70")
 	fixture.cleanup(t)
 	t.Cleanup(func() {
@@ -87,8 +87,8 @@ func TestE2EP0070PracticeDerivedPlanCreateReadReplay(t *testing.T) {
 		SessionID:           "019f5700-0000-7000-8000-000000000142",
 		UserID:              fixture.userID,
 		PlanID:              focused.ID,
-		IdempotencyKeyHash:  "p0-070-start-hash",
-		RequestFingerprint:  "p0-070-start-fingerprint",
+		IdempotencyKeyHash:  "derived-plan-start-hash",
+		RequestFingerprint:  "derived-plan-start-fingerprint",
 		ExpiresAt:           fixture.now.Add(time.Hour),
 		Now:                 fixture.now,
 	})
@@ -125,7 +125,7 @@ values ($1,$2,1,'assistant','请介绍你的系统设计方案。',$3)`, "019f57
 	t.Log("REPORT_DERIVED_POSTGRES_PASS")
 }
 
-func TestE2EP0072PracticeDerivedSourceValidationIsolationPrivacy(t *testing.T) {
+func TestPracticeDerivedSourceValidationIsolationPrivacy(t *testing.T) {
 	fixture := newDerivedIntegrationFixture(t, "72")
 	fixture.cleanup(t)
 	t.Cleanup(func() {

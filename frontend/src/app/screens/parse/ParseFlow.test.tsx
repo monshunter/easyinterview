@@ -222,7 +222,7 @@ describe("ParseFlow — analysisStatus polling", () => {
     // Still in loading state since fixture returns queued
     expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
     console.info(
-      "E2E.P0.015 Parse StrictMode transport PASS initial=1 tick1=2 tick2=3",
+      "Parse StrictMode transport PASS initial=1 tick1=2 tick2=3",
     );
   });
 

@@ -25,7 +25,7 @@ spec:
       - ReportNextAction label 200 malformed output fuse
       - 方案 A 200 24 64 approved
       - OPENAPI-001 expected finding maxLength 200
-      - downstream independent 24 whitespace words 64 Unicode code points content and P0.099 current run canonical 390px UX
+      - downstream independent 24 whitespace words 64 Unicode code points content and mobile UX
       - targeted action label repair internal margin 18 words 52 code points
       - downstream product full semantic validator reuse
       - all other schema semantic mixed whole report repair

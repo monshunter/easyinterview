@@ -8,7 +8,6 @@
 
 ## Phase 1: Contract tests
 - [x] Phase 1 contract/migration/prompt negative and generation tests pass.
-  <!-- verified: 2026-07-12 method=contract 5 cross-layer + 28 event inventory + 22 event baseline tests; OpenAPI 37 fixtures; migration lint and Go tests; 6 prompt/rubric/profile lints; offline eval 24/24; context/docs/index/diff gates -->
 
 ## Phase 2: Plan tests
 - [x] Phase 2 plan validation/store/idempotency/isolation tests pass.
@@ -20,18 +19,16 @@
 - [x] Phase 4 ordered/empty/missing/cross-user/list tests pass.
 
 ## Phase 5: Gate set
-- [x] Phase 5 focused/full/codegen/migrate/docs/diff gates pass.
+- [x] Phase 5 仓库根 `make test` 完成前后端全量单测回归；codegen/migrate/docs/diff 作为独立 gates。
 
 ## Phase 6: Resume grounding
 - [x] Store precedence and complete snapshot tail-marker tests pass.<!-- verified: 2026-07-12 method=go-test -->
 - [x] Empty resume context returns typed validation and records zero AI/opening reply.<!-- verified: 2026-07-12 method=go-test -->
 - [x] Persisted-resume/candidate-user evidence, clarification, assistant-history non-evidence lint and offline eval pass.<!-- verified: 2026-07-12 method=unittest+prompt-lint+eval-offline result=27/27-pass -->
 - [x] System-role policy, JSON untrusted-context escaping and persona-style-only payload/lint/eval gates pass.<!-- verified: 2026-07-12 method=go+pytest+eval includes=TestBackendPracticeConversationPromptPreflight -->
-- [x] P0.023/P0.024 scenario gates pass.<!-- verified: 2026-07-12 method=scenario -->
 
 ## Phase 7: Round identity and plan selection
 
 - [x] Contract/generated round fields and paired persistence tests pass.<!-- verified: 2026-07-12 method=unit+integration -->
 - [x] Baseline/retry/next transactional selection and idempotency tests pass.<!-- verified: 2026-07-12 method=real-postgres-integration -->
 - [x] TargetJob-bound resume/provenance plus same-duration/non-contiguous/int32/type/legacy/all-complete/invalid-source tests pass.<!-- verified: 2026-07-12 method=unit+real-postgres-integration markers="target-resume-binding-and-provenance,canonical-round-type-case-sensitive,non-contiguous-successor" -->
-- [x] P0.022/P0.070/P0.072 scenario gates pass with real round identity evidence.<!-- verified: 2026-07-12 method=scenario-run -->

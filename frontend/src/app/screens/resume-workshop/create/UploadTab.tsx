@@ -5,7 +5,10 @@ import { ResumeWorkshopIcon } from "../components/ResumeWorkshopIcon";
 import { useResumePresignUpload } from "./hooks/useResumePresignUpload";
 import { useResumeRegistration } from "./hooks/useResumeRegistration";
 import { deriveDefaultTitle } from "./util/title";
-import { resolveContentLimits } from "../../../../lib/contentLimits";
+import {
+  formatBinaryByteLimit,
+  resolveContentLimits,
+} from "../../../../lib/contentLimits";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".md", ".markdown", ".txt"];
@@ -52,7 +55,10 @@ export const UploadTab: FC<UploadTabProps> = ({
   const runtime = useAppRuntimeOptional();
   const maxResumeUploadBytes = resolveContentLimits(
     runtime?.runtime.status === "ready" ? runtime.runtime.config : undefined,
-  ).resumeUploadBytes;
+  )?.resumeUploadBytes;
+  const maxResumeUploadLabel = maxResumeUploadBytes === undefined
+    ? ""
+    : formatBinaryByteLimit(maxResumeUploadBytes, lang === "zh");
 
   const performUpload = useCallback(
     async (file: File) => {
@@ -98,6 +104,7 @@ export const UploadTab: FC<UploadTabProps> = ({
       onPickFile(null);
       return;
     }
+    if (maxResumeUploadBytes === undefined) return;
     if (!hasAllowedExtension(file.name)) {
       onPickFile(null);
       onValidationError(t("resumeWorkshop.create.errors.extensionInvalid"));
@@ -107,8 +114,8 @@ export const UploadTab: FC<UploadTabProps> = ({
       onPickFile(null);
       onValidationError(
         t("resumeWorkshop.create.errors.sizeExceeded").replace(
-          "{maxMb}",
-          `${Math.round(maxResumeUploadBytes / (1024 * 1024))}`,
+          "{maxSize}",
+          maxResumeUploadLabel,
         ),
       );
       return;
@@ -133,7 +140,10 @@ export const UploadTab: FC<UploadTabProps> = ({
           {t("resumeWorkshop.create.upload.dropzoneTitle")}
         </div>
         <p className="ei-resume-create-upload-body">
-          {t("resumeWorkshop.create.upload.dropzoneBody")}
+          {t("resumeWorkshop.create.upload.dropzoneBody").replace(
+            "{maxSize}",
+            maxResumeUploadLabel,
+          )}
         </p>
         <input
           ref={inputRef}
@@ -141,6 +151,7 @@ export const UploadTab: FC<UploadTabProps> = ({
           accept=".pdf,.md,.markdown,.txt"
           data-testid="resume-create-upload-input"
           className="ei-resume-create-upload-input"
+          disabled={maxResumeUploadBytes === undefined || submitting}
           onChange={(event) => {
             const f = event.target.files?.[0] ?? null;
             // Reset value so selecting the same file twice still fires.
@@ -152,7 +163,7 @@ export const UploadTab: FC<UploadTabProps> = ({
           type="button"
           className="ei-resume-create-cta-accent"
           data-testid="resume-create-upload-choose"
-          disabled={submitting}
+          disabled={maxResumeUploadBytes === undefined || submitting}
           onClick={() => inputRef.current?.click()}
         >
           <ResumeWorkshopIcon name="upload" size={14} />

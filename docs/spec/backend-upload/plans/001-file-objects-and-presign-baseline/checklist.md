@@ -1,7 +1,7 @@
 # Backend Upload File Objects and Presign Baseline Checklist
 
-> **版本**: 1.6
-> **状态**: active
+> **版本**: 1.7
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -12,7 +12,7 @@
 
 - [x] 0.1 登记 A4 config-only paths：`objectStorage.provider` / `upload.presignTTLSeconds` / `upload.maxBytes.resume` / `upload.maxBytes.targetJobAttachment` / `upload.maxBytes.privacyExport`，复用现有 `OBJECT_STORAGE_*` env key（验证：A4 spec/config artifacts 同步）
 - [x] 0.2 禁止 backend-upload 直接读取未登记 `UPLOAD_*` / `OBJECT_STORE_*` env key（验证：grep negative + `make lint-config` PASS）
-- [x] 0.3 config unit test 覆盖默认值、dev override、非法 provider、非正数 TTL / maxBytes fail-fast（验证：config tests PASS）
+- [x] 0.3 A4 typed owner 单一 contract 覆盖默认值、override、非法 provider、非正数 TTL / maxBytes；backend-upload 不复制 config matrix（验证：A4 contract + lint-config PASS）
 
 ## Phase 1: handler skeleton + IK + purpose validation
 
@@ -48,10 +48,8 @@
 
 ## Phase 5: 收口与 BDD
 
-- [x] 5.1 跑 `make lint-config` + `make backend-test` + `go test ./internal/upload/...` 全 PASS（验证：exit 0）
+- [x] 5.1 阶段完成由仓库根 `make test` 承接前后端全量单测；`make lint-config` 作为独立配置 gate。
 - [x] 5.2 mock-first 对齐：handler 真实响应与 B2 fixture `default` scenario 字节比对 PASS（验证：mock-contract-suite 测试集成）
-- [x] 5.3 BDD-Gate: 验证 E2E.P0.033 file-presign-register-roundtrip PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）
-- [x] 5.4 在 `test/scenarios/e2e/INDEX.md` 追加 E2E.P0.033 行（关联需求 `backend-upload C-1, C-2, C-3, C-4, C-6, C-7, C-8`，状态 Ready，automated）
 - [x] 5.5 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-upload` 状态从 "未创建" 改为 "active"，spec 3.10 → 3.11，history.md 追加 3.11 行（验证：`sync-doc-index --check`）
 - [x] 5.6 通知 backend-resume/001 owner：createUploadPresign + Register internal API 已就位（验证：cross-plan 引用 commit）
 
@@ -61,22 +59,21 @@
 - [x] 6.2 `createUploadPresign` idempotency TTL 与 `upload.presignTTLSeconds` 对齐，超过 signed URL TTL 不 replay 旧 body（验证：`go test ./backend/cmd/api -run TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL -count=1`；`go test ./backend/internal/upload/handler -run TestCreateUploadPresignIdempotencyReplayAndTTL -count=1`）
 - [x] 6.3 `cmd/api` runtime privacy_delete runner kernel 挂入 upload deleter，`DELETE /api/v1/me` 创建的 job 可调用 `DeleteFileObjectsForUser(userId)`（验证：`go test ./backend/internal/privacy/runner -run TestPrivacyDeleteHandler -count=1`；`go test ./backend/cmd/api -run 'TestBuildTargetJobRuntime(RegistersPrivacyDeleteHandler|WiresRunnerAndAIClient)' -count=1`）
 - [x] 6.4 `file_objects` DB hard delete 与 audit tombstone 同事务提交，audit 失败时 row 保留可重试（验证：`go test ./backend/internal/upload/store -run 'TestRepositoryHardDeleteWithAuditTombstone|TestRepositoryInsertAuditTombstoneDoesNotPersistObjectKey' -count=1`；`go test ./backend/internal/upload/service -run 'TestDeleteFileObjectsForUser(DeletesObjectsBeforeDBAndWritesAudit|ObjectDeleteFailureIsRetryableAndKeepsDBRows|UsesAtomicDBDeleteAndAudit)' -count=1`）
-- [x] 6.5 BDD-Gate hardening: E2E.P0.033 在缺少 `DATABASE_URL` / `OBJECT_STORAGE_*`、live integration skip 或 focused gate no-op 时 fail；`trigger.sh` 必须执行 `TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip` 覆盖真实 HTTP presign → MinIO PUT → register → `DELETE /api/v1/me` → privacy runner kernel roundtrip，不能只以离线 focused tests 作为 PASS 证据（验证：`python3 test/scenarios/e2e/p0-033-file-presign-register-roundtrip/scripts/script_contract_test.py`；`go test ./backend/cmd/api -tags=integration -run TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip -count=1 -v`）
+- [x] 6.5 上述 focused commands 只作开发反馈；Phase 6 完成证据统一为仓库根 `make test`，integration test 不进入 E2E。
 
 ## Phase 7: Remove JD attachment upload purpose
 
 - [x] 7.1 RED: B1/B3/OpenAPI、B4、A4 与 backend-upload 各 owner test 共同证明 JD attachment purpose 与专属 maxBytes 仍可达；本 owner 锁定 purpose validation/handler 分支和 `resume` / `privacy_export` 正向基线。
   <!-- verified: 2026-07-13 method=service-purpose-red evidence="direct upload service test accepted target_job_attachment and returned nil before GREEN; handler/config tests lock rejection plus resume/privacy limits" -->
 - [x] 7.2 GREEN: 先消费 OpenAPI/B4 purpose 与 A4 Phase 12 maxBytes handoff，再只删除 backend-upload handler/service 自有分支；不直接修改 A4 config/validator/composition 或 B4 DB constraint，并保留 endpoint、state machine、resume register 与 privacy delete。
-  <!-- verified: 2026-07-13 method=owner-green evidence="OpenAPI and runtime accept only resume/privacy_export; service rejects target_job_attachment; full backend go test ./... passes." -->
-- [x] 7.3 BDD-Gate: E2E.P0.033 证明 resume roundtrip、JD attachment purpose 被拒绝、privacy export purpose 仍合法。
 
-## Phase 8: Typed upload defaults and exact size boundaries
+## Phase 8: Injected upload size guard
 
-- [ ] 8.1 RED: resume/privacy missing/default/override/invalid 与 10MiB/5MiB limit/+1 tests 暴露 package-local fallback/边界漂移。
-- [ ] 8.2 GREEN: presign/register 消费 A4 typed limits/code defaults；显式非法启动失败，limit+1 零 DB/object side effect。
-- [ ] 8.3 BDD-Gate: P0.033 exact resume/privacy limit/+1 + actual object size；P0.081 consumes only resume public value。
-- [ ] 8.4 focused/full upload/config/API/objectstore、scenario、privacy、contexts/docs/diff 与 duplicate-limit negative search 通过。
-  <!-- verified: 2026-07-13 method=live-scenario evidence="P0.033 setup/trigger/verify/cleanup PASS against live PostgreSQL and MinIO after repairing stale auth request data and an over-broad status grep; signed PUT/register/privacy delete completed and removed JD purpose was rejected." -->
-- [x] 7.4 Zero-ref: OpenAPI/generated/backend/migrations/config/fixtures/scripts 精确搜索旧 purpose 为零，resume/privacy focused/full gates 通过。
-  <!-- verified: 2026-07-13 method=negative-search evidence="No production target_job_attachment/targetJobAttachment hit remains outside explicit negative tests; make codegen-check, backend go test ./..., and P0.033 live owner gates pass." -->
+- [x] 8.1 OWNER-GATE: resume/privacy missing/default/override/invalid 只由 A4 typed contract 覆盖；删除 backend-upload 重复 config/wiring tests。
+- [x] 8.2 FOCUSED-GATE: presign/register 注入小型 declared/object limits；overflow/size mismatch 零 DB/object state transition，不生成默认大小文件。
+- [x] 8.4 仓库根 `make test`、privacy integration、contexts/docs/diff 与 duplicate-limit negative search 通过；不新增配置 E2E。
+- [x] 7.4 Zero-ref: OpenAPI/generated/backend/migrations/config/fixtures/scripts 精确搜索旧 purpose 为零；仓库根 `make test` 完成前后端全量单测回归，resume/privacy focused tests 仅作开发反馈。
+
+## BDD Gate
+
+- [x] BDD-Gate: `BDD.UPLOAD.FILE.001` 由 [BDD checklist](./bdd-checklist.md) 关联 presign/register owner behavior tests；不创建或声明真实 E2E PASS。

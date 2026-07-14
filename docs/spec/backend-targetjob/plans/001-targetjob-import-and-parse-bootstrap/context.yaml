@@ -43,8 +43,6 @@ spec:
       - target_job_requirements table
       - raw_jd_text sole source of truth
       - ImportTargetJobRequest rawText targetLanguage resumeId
-      - E2E.P0.010 paste import
-      - E2E.P0.012 parse failure
       - TARGET_JOB_NOT_FOUND
       - TARGET_INVALID_STATE_TRANSITION
       - VALIDATION_FAILED blank rawText
@@ -85,6 +83,7 @@ spec:
         packages:
           - backend/cmd/api
           - backend/internal/api
+          - test/scenarios/e2e/p0-098-practice-completion-progress-refresh
           - backend/internal/targetjob
           - backend/internal/platform/config
           - backend/internal/platform/secrets

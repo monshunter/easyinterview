@@ -41,9 +41,33 @@ const FIXTURES = [
   getResumeFixture,
 ];
 
-function buildClient(): EasyInterviewClient {
+function buildClient(resumeUploadBytes?: number): EasyInterviewClient {
+  const runtimeConfigFixture = {
+    ...getRuntimeConfigFixture,
+    scenarios: {
+      ...getRuntimeConfigFixture.scenarios,
+      default: {
+        ...getRuntimeConfigFixture.scenarios.default,
+        response: {
+          ...getRuntimeConfigFixture.scenarios.default.response,
+          body: {
+            ...getRuntimeConfigFixture.scenarios.default.response.body,
+            contentLimits: resumeUploadBytes === undefined
+              ? getRuntimeConfigFixture.scenarios.default.response.body.contentLimits
+              : {
+                  ...getRuntimeConfigFixture.scenarios.default.response.body.contentLimits,
+                  resumeUploadBytes,
+                },
+          },
+        },
+      },
+    },
+  };
   return new EasyInterviewClient({
-    fetch: createFixtureBackedFetch(createFixtureRegistry(FIXTURES), {
+    fetch: createFixtureBackedFetch(createFixtureRegistry([
+      runtimeConfigFixture,
+      ...FIXTURES.filter((fixture) => fixture.operationId !== "getRuntimeConfig"),
+    ]), {
       scenario: "default",
     }),
   });
@@ -69,8 +93,12 @@ function renderUploadTab(client: EasyInterviewClient) {
 }
 
 function makeFile(name: string, size: number, type: string): File {
-  const blob = new Blob([new Uint8Array(size)], { type });
-  return new File([blob], name, { type, lastModified: 1700000000000 });
+  const file = new File(["boundary-metadata-only"], name, {
+    type,
+    lastModified: 1700000000000,
+  });
+  Object.defineProperty(file, "size", { configurable: true, value: size });
+  return file;
 }
 
 describe("UploadTab pre-check + presign + register", () => {
@@ -178,37 +206,25 @@ describe("UploadTab pre-check + presign + register", () => {
     );
   });
 
-  it("rejects limit+1 before presign using the runtime 10 MiB resume upload ceiling", async () => {
-    const client = buildClient();
+  it("formats and enforces a non-MiB runtime override without rounding it", async () => {
+    const client = buildClient(1536);
     const presignSpy = vi.spyOn(client, "createUploadPresign");
-
     renderUploadTab(client);
     await waitFor(() =>
-      expect(screen.getByTestId("resume-create-upload-input")).toBeInTheDocument(),
+      expect(screen.getByTestId("resume-create-upload-dropzone")).toHaveTextContent(/1\.5 ?KiB/),
     );
-    const input = screen.getByTestId(
-      "resume-create-upload-input",
-    ) as HTMLInputElement;
-    fireEvent.change(input, {
-      target: {
-        files: [makeFile("huge.pdf", 10 * 1024 * 1024 + 1, "application/pdf")],
-      },
-    });
-    expect(
-      screen.getByTestId("resume-create-upload-error"),
-    ).toHaveTextContent(/10 MB|超出|exceeds/i);
-    expect(presignSpy).not.toHaveBeenCalled();
-  });
 
-  it("accepts a file at the exact runtime 10 MiB ceiling", async () => {
-    const client = buildClient();
-    const presignSpy = vi.spyOn(client, "createUploadPresign");
-    renderUploadTab(client);
-    await waitFor(() => expect(screen.getByTestId("resume-create-upload-input")).toBeInTheDocument());
-    fireEvent.change(screen.getByTestId("resume-create-upload-input"), {
-      target: { files: [makeFile("exact.pdf", 10 * 1024 * 1024, "application/pdf")] },
+    const input = screen.getByTestId("resume-create-upload-input");
+    fireEvent.change(input, {
+      target: { files: [makeFile("exact.txt", 1536, "text/plain")] },
     });
     await waitFor(() => expect(presignSpy).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(input, {
+      target: { files: [makeFile("over.txt", 1537, "text/plain")] },
+    });
+    expect(screen.getByTestId("resume-create-upload-error")).toHaveTextContent(/1\.5 ?KiB/);
+    expect(presignSpy).toHaveBeenCalledTimes(1);
   });
 
   it("completes presign + browser PUT + registerResume + opens the detail directly", async () => {

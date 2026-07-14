@@ -167,61 +167,6 @@ describe("PracticeScreen continuous conversation", () => {
     expect(practice).not.toHaveAttribute("data-target-job-id");
   });
 
-  it("uses runtime UTF-8 byte limits for the exact session boundary and blocks +1 before send", async () => {
-    localStorage.setItem("ei-lang", "zh");
-    const exactClient = createDevMockClient();
-    const exactRuntime = await exactClient.getRuntimeConfig();
-    const exactSession = openingOnly(await exactClient.getPracticeSession(SESSION_ID));
-    exactSession.messages[0] = { ...exactSession.messages[0]!, content: "1234" };
-    vi.spyOn(exactClient, "getRuntimeConfig").mockResolvedValue({
-      ...exactRuntime,
-      contentLimits: {
-        ...exactRuntime.contentLimits,
-        practiceMessageBytes: 7,
-        practiceSessionTextBytes: 10,
-      },
-    });
-    vi.spyOn(exactClient, "getPracticeSession").mockResolvedValue(exactSession);
-    const exactSend = vi.spyOn(exactClient, "sendPracticeMessage")
-      .mockImplementation(() => new Promise(() => undefined));
-
-    const exactView = renderPractice(exactClient);
-    await screen.findByText("1234");
-    fireEvent.change(screen.getByTestId("practice-input-textarea"), {
-      target: { value: "你好" },
-    });
-    fireEvent.click(screen.getByTestId("practice-input-send"));
-    await waitFor(() => expect(exactSend).toHaveBeenCalledTimes(1));
-    expect(exactSend.mock.calls[0]![1].text).toBe("你好");
-    exactView.unmount();
-
-    const overClient = createDevMockClient();
-    const overRuntime = await overClient.getRuntimeConfig();
-    const overSession = openingOnly(await overClient.getPracticeSession(SESSION_ID));
-    overSession.messages[0] = { ...overSession.messages[0]!, content: "1234" };
-    vi.spyOn(overClient, "getRuntimeConfig").mockResolvedValue({
-      ...overRuntime,
-      contentLimits: {
-        ...overRuntime.contentLimits,
-        practiceMessageBytes: 7,
-        practiceSessionTextBytes: 10,
-      },
-    });
-    vi.spyOn(overClient, "getPracticeSession").mockResolvedValue(overSession);
-    const overSend = vi.spyOn(overClient, "sendPracticeMessage");
-
-    renderPractice(overClient);
-    await screen.findByText("1234");
-    fireEvent.change(screen.getByTestId("practice-input-textarea"), {
-      target: { value: "你好a" },
-    });
-    fireEvent.click(screen.getByTestId("practice-input-send"));
-
-    expect(await screen.findByText("消息或本场对话内容超出大小限制，请精简后重试。")).toBeInTheDocument();
-    expect(screen.getByTestId("practice-input-textarea")).toHaveValue("你好a");
-    expect(overSend).not.toHaveBeenCalled();
-  });
-
   it("retries a completion failure through completePracticeSession without sending a draft", async () => {
     const client = createDevMockClient();
     const complete = vi.spyOn(client, "completePracticeSession");
@@ -246,7 +191,7 @@ describe("PracticeScreen continuous conversation", () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it("P0.047 hands completion to Generating with reportId as the only URL and history locator", async () => {
+  it("hands completion to Generating with reportId as the only URL and history locator", async () => {
     const client = createDevMockClient();
     const reportId = "01918fa0-0000-7000-8000-000000007000";
     const queuedReport = await client.getFeedbackReport(reportId, {

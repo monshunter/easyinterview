@@ -30,11 +30,22 @@ for rel_path in \
   test -s "$SCENARIO_DIR/$rel_path"
 done
 
-if [ -s "$DEV_STACK_ENV" ]; then
-  set -a
-  # shellcheck disable=SC1090
-  . "$DEV_STACK_ENV"
-  set +a
+if [ ! -s "$DEV_STACK_ENV" ]; then
+  echo "setup: missing deploy/dev-stack/.env" >&2
+  exit 1
+fi
+set -a
+# shellcheck disable=SC1090
+. "$DEV_STACK_ENV"
+set +a
+
+if [ "${VITE_EI_API_MODE:-}" != "real" ]; then
+  echo "setup: E2E.P0.101 requires VITE_EI_API_MODE=real" >&2
+  exit 1
+fi
+if [ "${VITE_EI_API_BASE_URL:-}" != "http://127.0.0.1:8080/api/v1" ]; then
+  echo "setup: E2E.P0.101 requires the frontend API base to match the live backend" >&2
+  exit 1
 fi
 
 PG_DSN="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}"
@@ -65,6 +76,8 @@ fi
   echo "frontend=http://127.0.0.1:5173"
   echo "backend=http://127.0.0.1:8080/api/v1"
   echo "mailpit=http://127.0.0.1:8025"
+  echo "VITE_EI_API_MODE=real"
+  echo "VITE_EI_API_BASE_URL=$VITE_EI_API_BASE_URL"
   curl -fsS --max-time 5 "http://127.0.0.1:5173/" >/dev/null
   curl -fsS --max-time 5 "http://127.0.0.1:8080/api/v1/runtime-config" >/dev/null
   curl -fsS --max-time 5 "http://127.0.0.1:8025/readyz" >/dev/null

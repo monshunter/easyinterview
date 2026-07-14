@@ -33,7 +33,7 @@
 | 数据库 | 删除 `target_jobs.latest_report_id` | db-migrations-baseline/001 |
 | 后端 | canonical catalog validation、report selection/read model、TargetJob store cleanup | backend-review/001 + backend-targetjob/001 |
 | 前端 | Workspace 只读规划详情右上报告入口、独立 target-scoped ReportsScreen、Reports Back 到 `/workspace?targetJobId=...`、Report/Generating trusted-context Back 到 Reports；Parse 只承接 import 后 queued/processing 进度，无报告入口、列表请求或 `section=reports` | frontend-workspace/001 + frontend-home/001 + frontend-report-dashboard/001 + frontend-shell/004 |
-| BDD | Workspace detail 入口、current ready/latest attempt、invalid context、Reports/workspace 与 Report/Generating/Reports 分层 Back | E2E.P0.016 + E2E.P0.018 + E2E.P0.058 + E2E.P0.059 + E2E.P0.088 |
+| Downstream behavior | Workspace detail 入口、current ready/latest attempt、invalid context、Reports/workspace 与 Report/Generating/Reports 分层 Back | backend-review + frontend-report/workspace owners |
 
 ## 4 迁移与回滚
 

@@ -16,14 +16,14 @@ import { expect, test } from "@playwright/test";
  *   - `settings` and other protected routes either require a signed-in session
  *     or arrive only after navigating through feature flows. The
  *     DOM-anchor parity for those routes is covered by the
- *     in-process scenario test
- *     `frontend/src/app/scenarios/p0-005-app-shell-visual-system-smoke.test
- *     .tsx`, which renders them with the production CSS bundle and asserts
+ *     code-level component test
+ *     `frontend/src/app/__tests__/app-shell-visual-system.test.tsx`, which
+ *     renders them with the production CSS bundle and asserts
  *     `ei-screen-shell` / `ei-screen-card` / `ei-skeleton-stripe` parity.
  *
  * This spec therefore concentrates on the auth shell parity that is
  * end-to-end reachable in a real browser. The wider DOM parity remains
- * gated by E2E.P0.005 (jsdom) at the scaffold level.
+ * covered by the frontend jsdom unit regression at the scaffold level.
  */
 
 const FRONTEND_PATH = "/";

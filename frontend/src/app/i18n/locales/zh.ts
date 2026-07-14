@@ -176,7 +176,7 @@ export const zh = {
   "resumeWorkshop.create.tabs.paste": "粘贴内容",
   "resumeWorkshop.create.upload.dropzoneTitle": "拖入 PDF / Markdown 简历",
   "resumeWorkshop.create.upload.dropzoneBody":
-    "上传成功后直接打开简历详情，原始内容保留为正文来源。",
+    "支持 PDF / Markdown / TXT，最大 {maxSize}。PDF 以页面栈展示，Markdown 和文本以 Markdown 渲染。",
   "resumeWorkshop.create.upload.choose": "选择文件",
   "resumeWorkshop.create.upload.selectedPrefix": "已选择：",
   "resumeWorkshop.create.upload.uploading": "正在上传…",
@@ -187,7 +187,7 @@ export const zh = {
   "resumeWorkshop.create.errors.extensionInvalid":
     "暂不支持该文件类型，仅支持 .pdf / .md / .markdown / .txt。",
   "resumeWorkshop.create.errors.sizeExceeded":
-    "文件超出大小限制 ({maxMb} MB)，请压缩后再试。",
+    "文件超出大小限制（{maxSize}），请压缩后再试。",
   "resumeWorkshop.create.errors.pasteSizeExceeded":
     "粘贴内容超出大小限制，请精简后重试。",
   "resumeWorkshop.create.errors.uploadFailed": "上传失败 · 请重试。",

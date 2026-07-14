@@ -201,7 +201,7 @@ Baseline checks:
 - `S-003`: description alignment
 - `S-004`: orphan judgment
 - `S-005`: test completion gates are execution-based; flag plan/checklist items that use raw code coverage percentages as completion, commit, or phase-exit criteria
-- `S-006`: TDD/BDD quality gate classification; Code plan requires TDD, Feature plan requires BDD, and internal code plans without BDD must document why BDD is not applicable plus a substitute verification gate
+- `S-006`: TDD/BDD quality gate classification; Code plan requires TDD. Feature plan requires BDD, but BDD must describe user-observable behavior and may use a domain Behavior ID with a code-level behavior test；only real HTTP/UI flows against a running frontend/backend may use `E2E.*`. Pure configuration/internal/tooling plans must declare `BDD-N/A`, name a substitute verification gate, and have no BDD files or context fields
 - `S-007`: coverage matrix adequacy; flag plan/checklist/test-plan/BDD sets that cover only the happy path, omit meaningful edge/failure/security/UX/contract/regression-negative risks, or defer edge coverage without a concrete owner phase and deployability rationale
 
 Extension review:

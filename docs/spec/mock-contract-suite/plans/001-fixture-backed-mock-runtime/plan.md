@@ -1,8 +1,8 @@
 # Fixture-backed Mock Runtime
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -25,9 +25,9 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `code-internal + tooling + contract`
-- **TDD 策略**: fixture registry、frontend mock transport、dev client factory、backend mockruntime、boundary lint 和 Make target 都有 focused tests。重进本 plan 时先运行对应 focused gate 暴露 drift，再最小修复 mock runtime 或 docs。
-- **BDD 策略**: 本 plan 不创建本地 BDD 文件；TargetJob 由 P0.015 验证，Practice recovery exact markers 必须交给 frontend-workspace-and-practice/002 与 P0.046。BDD handoff 未通过不得收口。
-- **替代验证 gate**: `make lint-mock-contract`、`make validate-fixtures`、`make lint-openapi`、`make codegen-check`、`python3 -m pytest scripts/lint/mock_runtime_boundary_test.py -q`、`go test ./backend/internal/api/mockruntime -count=1`、`pnpm --filter @easyinterview/frontend test src/api/mockTransport.test.ts src/api/devMockClient.test.ts src/api/clientFactory.test.ts`、`sync-doc-index --check`、`make docs-check`。
+- **TDD 策略**: fixture registry、frontend mock transport、dev client factory、backend mockruntime、boundary lint 和 Make target 都有 focused tests。重进本 plan 时先运行对应 focused gate 暴露 drift，再最小修复；focused 结果只作为开发反馈，阶段完成必须从仓库根目录运行 `make test`，整体回归前后端单元测试。
+- **BDD 策略**: `BDD-N/A`。本 plan 只维护 fixture registry、mock transport、mock handler 与 lint 的代码层契约，不通过真实 backend HTTP 或真实 frontend UI 驱动用户流程，因此不创建 `bdd-*.md`，也不创建或关联 E2E 场景。
+- **替代验证 gate**: 开发反馈使用 focused registry/transport/mockruntime/boundary tests；完成 gate 使用根 `make test`，并运行 `make lint-mock-contract`、`make validate-fixtures`、`make lint-openapi`、`make codegen-check`、context validation、`sync-doc-index --check`、`make docs-check` 与 `git diff --check`。
 
 ## 4 交付范围
 
@@ -70,7 +70,7 @@ Delete the unreferenced `assertJSONField` / `lookupJSONPath` helper pair from `m
 - 前端 mock transport 与 dev client 返回 generated API types，并支持 named scenario / unknown scenario / auth state / export fallback 行为。
 - Vite dev 默认 fixture-backed；dev real mode 缺少 `VITE_EI_API_BASE_URL` 时失败；production 默认 `/api/v1`。
 - 后端 mockruntime response status/body 直接跟随 fixture scenario。
-- `make lint-mock-contract`、focused frontend tests、backend mockruntime tests、codegen/docs gate 均通过。
+- focused tests 已提供开发反馈；根 `make test` 完成前后端全量代码回归，且 mock/OpenAPI/codegen/docs gates 均通过。
 
 ## 6 风险与应对
 
@@ -86,8 +86,9 @@ Delete the unreferenced `assertJSONField` / `lookupJSONPath` helper pair from `m
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
-| 2026-07-13 | 1.13 | Add Phase 9 Practice recovery fixture/runtime parity and P0.046 handoff; narrow TargetJob zero-reference semantics. | openapi-v1-contract 1.54 |
-| 2026-07-13 | 1.12 | Reopen Phase 8 for OPENAPI-002 TargetJob paste-only mock parity, P0.015 handoff and scoped zero-reference gates. | OPENAPI-002 + openapi-v1-contract 002 |
+| 2026-07-14 | 1.14 | 删除已失效的 E2E/BDD 关联，把 fixture/mock parity 收敛为代码层 gate，并以根 `make test` 作为完成回归。 | test-boundary cleanup |
+| 2026-07-13 | 1.13 | Add Phase 9 Practice recovery fixture/runtime parity; narrow TargetJob zero-reference semantics. | openapi-v1-contract 1.54 |
+| 2026-07-13 | 1.12 | Reopen Phase 8 for OPENAPI-002 TargetJob paste-only mock parity and scoped zero-reference gates. | OPENAPI-002 + openapi-v1-contract 002 |
 | 2026-07-10 | 1.11 | 删除 dev mock fixture operationId 测试观察器，parity 改查真实 registry keys。 | tech-debt pruning |
 | 2026-07-10 | 1.10 | 删除 backend mockruntime 测试中无调用的 JSON field/path helper。 | tech-debt pruning |
 | 2026-07-10 | 1.9 | 统一 mock runtime 边界 gate 的 out-of-scope 命名并同步文档版本。 | tech-debt pruning |
@@ -98,7 +99,7 @@ Delete the unreferenced `assertJSONField` / `lookupJSONPath` helper pair from `m
 | 2026-05-10 | 1.4 | 合并 named scenario truth source 与 frontend dev preview mock wiring。 | mock-contract-suite |
 | 2026-05-10 | 1.3 | 补充 frontend Vite dev preview fixture-backed wiring。 | mock-contract-suite |
 
-## 8 OPENAPI-002 TargetJob paste-only mock handoff
+## 8 OPENAPI-002 TargetJob paste-only mock parity
 
 ### 8.1 TDD red/green contract
 
@@ -106,16 +107,16 @@ After openapi-v1-contract 002 publishes the migrated fixtures and 001 publishes 
 
 Negative tests must reject old `source` wrapper, `TargetJobImportSource*`, URL, `fileObjectId`, manual-form/title/company fields, TargetJob source response fields, `purpose=target_job_attachment` and compatibility aliases. Positive tests must prove `createUploadPresign` remains registered and resume/privacy fixture scenarios still resolve. Inventory remains 37 operations / 10 tags.
 
-### 8.2 Runtime parity and P0.015 handoff
+### 8.2 Runtime parity
 
-Both `frontend/src/api/mockTransport.ts` / dev client and `backend/internal/api/mockruntime` must return the exact migrated fixture response for `importTargetJob`, `listTargetJobs`, `getTargetJob` and `createUploadPresign`. Named scenario selection remains fail-loudly. Pass the paste accepted/failure fixture names and expected status/body markers to P0.015; the scenario owner proves the user-visible paste flow and must not retain URL/file/manual_form positive steps.
+Both `frontend/src/api/mockTransport.ts` / dev client and `backend/internal/api/mockruntime` must return the exact migrated fixture response for `importTargetJob`, `listTargetJobs`, `getTargetJob` and `createUploadPresign`. Named scenario selection remains fail-loudly. This is fixture/mock code parity only; it does not claim a real TargetJob user flow and produces no E2E marker.
 
 ### 8.3 Alternative gate and zero-reference
 
-Because this phase changes an internal mock adapter rather than defining a new user workflow, local BDD assets are not applicable. Replacement gates are focused registry/transport/mockruntime/boundary tests, `make lint-mock-contract`, fixture/OpenAPI/codegen checks and P0.015 handoff evidence.
+Because this phase changes an internal mock adapter rather than defining a new user workflow, BDD is not applicable. Focused registry/transport/mockruntime/boundary tests provide development feedback; replacement completion gates are root `make test`, `make lint-mock-contract`, fixture/OpenAPI/codegen checks and document/context validation.
 
 Current positive fixture/generated/runtime mock/seed surfaces must contain zero positive/runtime `TargetJobImportSource*`, TargetJob URL/file/manual_form import branches, `sourceType`, `sourceUrl`, `target_job_attachment` or compatibility aliases. Accepted ADR/oracle and exact negative declarations may retain rejected tokens；whole-file/test-directory exclusion is forbidden.
 
-## 9 Practice durable recovery mock handoff
+## 9 Practice durable recovery mock parity
 
-Add focused registry/frontend/backend RED/GREEN tests that consume—not copy—the B2 get-session `pending|retryable_failed|terminal_failed|complete` projections and send `validation-empty-text|auth-unauthorized|session-not-found|reply-pending-conflict|client-message-mismatch|ai-timeout-retryable` scenarios. Exact fixture status/body, role-specific fields and unknown-scenario failure must match in both runtimes. A paired retry proof must load the retryable-failed user, submit the same ID/text, and yield one completed user plus one assistant with no duplicates. Hand markers to P0.046；mock parity does not replace browser/user-flow evidence.
+Add focused registry/frontend/backend RED/GREEN tests that consume—not copy—the B2 get-session `pending|retryable_failed|terminal_failed|complete` projections and send `validation-empty-text|auth-unauthorized|session-not-found|reply-pending-conflict|client-message-mismatch|ai-timeout-retryable` scenarios. Exact fixture status/body, role-specific fields and unknown-scenario failure must match in both runtimes. A paired retry proof must load the retryable-failed user, submit the same ID/text, and yield one completed user plus one assistant with no duplicates. This remains a code-level fixture/mock contract: it creates no BDD/E2E handoff, and phase completion requires root `make test` plus the contract gates in §3.

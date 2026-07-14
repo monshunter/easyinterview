@@ -44,8 +44,6 @@ spec:
     platform-config:
       plan: ./plan.md
       checklist: ./checklist.md
-      bddPlan: ./bdd-plan.md
-      bddChecklist: ./bdd-checklist.md
       spec: ../../spec.md
       discovery:
         packages:

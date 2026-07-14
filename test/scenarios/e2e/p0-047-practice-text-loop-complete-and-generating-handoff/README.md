@@ -1,3 +1,0 @@
-# E2E.P0.047 complete conversation handoff
-
-Completion remains disabled with a localized accessible reason until at least one candidate answer has a committed assistant reply. The backend rejects zero-answer and pending-reply completion without side effects, then atomically freezes `report-context.v1`, creates one report job and one persisted `session_completed` fact. Replaying completion returns the same frozen snapshot and stable owner IDs only; concurrent mutable TargetJob changes cannot mix into the snapshot. The verifier is the sole writer of redacted `completion-backend-evidence.json`; no cookie, JD, resume, message content, anchor or prompt body is retained.

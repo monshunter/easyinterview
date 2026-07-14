@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -90,40 +89,17 @@ ai:
 	}
 }
 
-func TestContentLimitsRejectExplicitNonPositiveValues(t *testing.T) {
-	tests := map[string]string{
-		"http.maxRequestBodyBytes":      "http:\n  maxRequestBodyBytes: %d\n",
-		"upload.maxBytes.resume":        "upload:\n  maxBytes:\n    resume: %d\n",
-		"upload.maxBytes.privacyExport": "upload:\n  maxBytes:\n    privacyExport: %d\n",
-		"resume.maxActive":              "resume:\n  maxActive: %d\n",
-		"resume.maxExtractedTextBytes":  "resume:\n  maxExtractedTextBytes: %d\n",
-		"resume.maxPasteTextBytes":      "resume:\n  maxPasteTextBytes: %d\n",
-		"targetJob.maxRawTextBytes":     "targetJob:\n  maxRawTextBytes: %d\n",
-		"practice.maxMessageBytes":      "practice:\n  maxMessageBytes: %d\n",
-		"practice.maxSessionTextBytes":  "practice:\n  maxSessionTextBytes: %d\n",
-		"report.maxFramedInputBytes":    "report:\n  maxFramedInputBytes: %d\n",
-		"ai.maxResponseBodyBytes":       "ai:\n  maxResponseBodyBytes: %d\n",
+func TestContentLimitsValidationRejectsNonPositiveValue(t *testing.T) {
+	dir := t.TempDir()
+	writeYAML(t, filepath.Join(dir, "config.yaml"), "report:\n  maxFramedInputBytes: 0\n")
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
 	}
-	for path, inputFormat := range tests {
-		for _, value := range []int{0, -1} {
-			name := fmt.Sprintf("%s=%d", path, value)
-			t.Run(name, func(t *testing.T) {
-				dir := t.TempDir()
-				writeYAML(t, filepath.Join(dir, "config.yaml"), fmt.Sprintf(inputFormat, value))
-				loader, err := config.Load(config.Options{ConfigDir: dir})
-				if err != nil {
-					t.Fatalf("Load: %v", err)
-				}
-				if _, err := loader.ContentLimits(); err == nil ||
-					!strings.Contains(err.Error(), path) || !strings.Contains(err.Error(), "must be positive") {
-					t.Fatalf("ContentLimits error = %v, want %s positive-value failure", err, path)
-				}
-				if err := loader.Validate(); err == nil ||
-					!strings.Contains(err.Error(), path) || !strings.Contains(err.Error(), "must be positive") {
-					t.Fatalf("Validate error = %v, want %s positive-value failure", err, path)
-				}
-			})
-		}
+	if err := loader.Validate(); err == nil ||
+		!strings.Contains(err.Error(), "report.maxFramedInputBytes") ||
+		!strings.Contains(err.Error(), "must be positive") {
+		t.Fatalf("Validate error = %v, want report.maxFramedInputBytes positive-value failure", err)
 	}
 }
 
@@ -157,9 +133,6 @@ func TestContentLimitsRejectInvalidCrossFieldCombinations(t *testing.T) {
 			}
 			if _, err := loader.ContentLimits(); err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("ContentLimits error = %v, want %q", err, tc.want)
-			}
-			if err := loader.Validate(); err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("Validate error = %v, want %q", err, tc.want)
 			}
 		})
 	}

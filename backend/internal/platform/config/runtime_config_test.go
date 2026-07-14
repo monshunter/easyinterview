@@ -101,13 +101,18 @@ func TestBuildRuntimeConfigAllowlistAndOptOut(t *testing.T) {
 	if rc.FeatureFlags["report_retry_plan_enabled"].Variant != "v1" {
 		t.Errorf("variant pass-through broken")
 	}
-	if rc.ContentLimits != (config.PublicContentLimits{
-		ResumeUploadBytes:        10 * 1024 * 1024,
-		ResumePasteTextBytes:     384 * 1024,
-		TargetJobRawTextBytes:    96 * 1024,
-		PracticeMessageBytes:     32 * 1024,
-		PracticeSessionTextBytes: 256 * 1024,
-	}) {
+	limits, err := loader.ContentLimits()
+	if err != nil {
+		t.Fatalf("ContentLimits: %v", err)
+	}
+	wantPublicLimits := config.PublicContentLimits{
+		ResumeUploadBytes:        limits.ResumeUploadBytes,
+		ResumePasteTextBytes:     limits.ResumeMaxPasteTextBytes,
+		TargetJobRawTextBytes:    limits.TargetJobMaxRawTextBytes,
+		PracticeMessageBytes:     limits.PracticeMaxMessageBytes,
+		PracticeSessionTextBytes: limits.PracticeMaxSessionTextBytes,
+	}
+	if rc.ContentLimits != wantPublicLimits {
 		t.Errorf("public content limits wrong: %+v", rc.ContentLimits)
 	}
 

@@ -907,35 +907,18 @@ const validResumeParseJSON = `{
 }`
 
 func TestParseHandlerUsesConfiguredExtractedTextByteLimitBeforeAI(t *testing.T) {
-	for _, tc := range []struct {
-		name        string
-		text        string
-		wantSuccess bool
-	}{
-		{name: "exact byte limit", text: "你好", wantSuccess: true},
-		{name: "one byte over", text: "你好a", wantSuccess: false},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
-				ID: "resume-1", UserID: "user-1", SourceType: "paste", OriginalText: tc.text,
-				Language: "zh-CN", ParseStatus: sharedtypes.TargetJobParseStatusQueued,
-			}}
-			ai := &captureAI{resp: aiclient.CompleteResponse{Content: validResumeParseJSON, FinishReason: "stop"}}
-			handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
-				Store: store, Registry: fakeRegistry{resolution: parseResolution()}, AI: ai,
-				NewID: func() string { return "event-1" }, MaxInputBytes: 10, MaxExtractedTextBytes: 6,
-			})
-			outcome := handler.Handle(context.Background(), runner.ClaimedJob{ResourceID: "resume-1"})
-			if tc.wantSuccess {
-				if !outcome.Succeeded || ai.profileName == "" || store.success == nil {
-					t.Fatalf("outcome=%+v aiProfile=%q success=%+v", outcome, ai.profileName, store.success)
-				}
-				return
-			}
-			if outcome.Succeeded || outcome.ErrorCode != sharederrors.CodeValidationFailed || ai.profileName != "" || store.failure == nil {
-				t.Fatalf("outcome=%+v aiProfile=%q failure=%+v", outcome, ai.profileName, store.failure)
-			}
-		})
+	store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
+		ID: "resume-1", UserID: "user-1", SourceType: "paste", OriginalText: "你好a",
+		Language: "zh-CN", ParseStatus: sharedtypes.TargetJobParseStatusQueued,
+	}}
+	ai := &captureAI{resp: aiclient.CompleteResponse{Content: validResumeParseJSON, FinishReason: "stop"}}
+	handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+		Store: store, Registry: fakeRegistry{resolution: parseResolution()}, AI: ai,
+		NewID: func() string { return "event-1" }, MaxInputBytes: 10, MaxExtractedTextBytes: 6,
+	})
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{ResourceID: "resume-1"})
+	if outcome.Succeeded || outcome.ErrorCode != sharederrors.CodeValidationFailed || ai.profileName != "" || store.failure == nil {
+		t.Fatalf("outcome=%+v aiProfile=%q failure=%+v", outcome, ai.profileName, store.failure)
 	}
 }
 

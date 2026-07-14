@@ -36,7 +36,7 @@ func TestCreateUploadPresignCreatesPendingFileObjectAndPresignsObject(t *testing
 		ContentType:    "application/pdf",
 		ByteSize:       1024,
 		PresignTTL:     10 * time.Minute,
-		MaxBytes:       10485760,
+		MaxBytes:       2048,
 	})
 	if err != nil {
 		t.Fatalf("CreateUploadPresign: %v", err)
@@ -86,7 +86,7 @@ func TestCreateUploadPresignRejectsResumeDOCXBeforePresign(t *testing.T) {
 		ContentType:    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 		ByteSize:       1024,
 		PresignTTL:     10 * time.Minute,
-		MaxBytes:       10485760,
+		MaxBytes:       2048,
 	})
 	if !errors.Is(err, service.ErrValidationFailed) {
 		t.Fatalf("err = %v, want ErrValidationFailed", err)
@@ -117,7 +117,7 @@ func TestCreateUploadPresignRejectsRemovedTargetJobAttachmentPurpose(t *testing.
 		ContentType:    "text/plain",
 		ByteSize:       1024,
 		PresignTTL:     10 * time.Minute,
-		MaxBytes:       10485760,
+		MaxBytes:       2048,
 	})
 	if !errors.Is(err, service.ErrValidationFailed) {
 		t.Fatalf("err = %v, want ErrValidationFailed", err)

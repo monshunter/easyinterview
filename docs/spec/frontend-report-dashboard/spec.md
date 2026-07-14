@@ -66,13 +66,13 @@
 
 ## 5 Operation Matrix
 
-| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
-|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `getTargetJob` | `TargetJobs/getTargetJob.json` | ReportsScreen 当前规划标题与 canonical round display；不作为 Report/Generating 详情补读 | backend-targetjob handler/store | `target_jobs.summary` read | read none | `E2E.P0.059` |
-| `listTargetJobReports` | `Reports/listTargetJobReports.json` | ReportsScreen 当前规划 current/latest 列表，唯一 UI consumer | backend-review reports handler/store | `feedback_reports` + current TargetJob canonical summary read | read none | `E2E.P0.059` |
-| `getFeedbackReport` | `Reports/getFeedbackReport.json`: queued/generating/ready-needs-practice/ready-well-prepared/ready-empty-focus/failed/invalid-focus/long-content | generating poll + ReportDashboard；唯一状态/上下文事实源 | backend-review reports handler/store | `feedback_reports` + frozen context | read none | `E2E.P0.056`, `E2E.P0.057`, `E2E.P0.058`, `E2E.P0.059`, `E2E.P0.099` |
-| `createPracticePlan` | `PracticePlans/createPracticePlan.json`: retry/next/mismatch | replay/next CTA；不发送 focus | backend-practice handler/store | `practice_plans` + source report projection | none | `E2E.P0.057`, `E2E.P0.070`, `E2E.P0.072` |
-| `startPracticeSession` | `PracticeSessions/startPracticeSession.json` | replay/next CTA | backend-practice handler/store | session + opening message | `practice.session.chat` | `E2E.P0.057` |
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | verification |
+|-------------|---------|-------------------|-----------------|-------------|---------------|--------------|
+| `getTargetJob` | `TargetJobs/getTargetJob.json` | ReportsScreen 当前规划标题与 canonical round display；不作为 Report/Generating 详情补读 | backend-targetjob handler/store | `target_jobs.summary` read | read none | focused generated-client/consumer tests |
+| `listTargetJobReports` | `Reports/listTargetJobReports.json` | ReportsScreen 当前规划 current/latest 列表，唯一 UI consumer | backend-review reports handler/store | `feedback_reports` + current TargetJob canonical summary read | read none | focused handler/store/consumer tests |
+| `getFeedbackReport` | `Reports/getFeedbackReport.json`: queued/generating/ready-needs-practice/ready-well-prepared/ready-empty-focus/failed/invalid-focus/long-content | generating poll + ReportDashboard；唯一状态/上下文事实源 | backend-review reports handler/store | `feedback_reports` + frozen context | read none | focused consumer tests + `E2E.P0.099` real API/UI |
+| `createPracticePlan` | `PracticePlans/createPracticePlan.json`: retry/next/mismatch | replay/next CTA；不发送 focus | backend-practice handler/store | `practice_plans` + source report projection | none | focused request/consumer tests |
+| `startPracticeSession` | `PracticeSessions/startPracticeSession.json` | replay/next CTA | backend-practice handler/store | session + opening message | `practice.session.chat` | focused request/consumer tests |
 
 Frontend Phase 7.1 必须等待 `backend-review/001 6.1` 的 generated contract；Phase 7.4 必须等待 `backend-review/001 8.1` 的 server-owned projection。`getResume` 不属于本 owner 的读取链；`getTargetJob` 只属于 ReportsScreen，不属于 Report/Generating 详情读取链。详情页冻结 label/identity 直接随 report 返回，避免深链刷新读取可变实体。
 
@@ -213,7 +213,7 @@ ReportDashboard
 | 2026-07-13 | 1.18 | 锁定maxAttempts49（约6m04s），覆盖report复用business policy的10s/20s/40s与4×60s调用；分离business async与infra投递退避，不展示内部attempt/progress。 |
 | 2026-07-13 | 1.17 | 方案 A 最终边界：schema fuse200；frontend semantic/UX 24 whitespace words / 64 Unicode code points；18/52仅为上游targeted-repair余量；desktop+390合法边界完整换行。 |
 | 2026-07-13 | 1.16 | A-200：wire fuse改200；14/40仍为frontend typed-invalid gate，desktop+390合法边界完整换行，超限不回显raw。 |
-| 2026-07-13 | 1.15 | 区分 120-char malformed fuse、P0.099 current-run canonical screenshot audit 与 deterministic 14/40 boundary parity；解除对 P0.100 output digest 的人为依赖。 |
+| 2026-07-13 | 1.15 | 区分 malformed fuse、P0.099 current-run canonical screenshot audit 与 deterministic boundary tests；provider/eval output digest 不作为 UI 前置条件。 |
 | 2026-07-12 | 1.14 | 明确空 focus 是合法通用同轮 Replay；非空 focus 才执行 needs-work + issue-backed cross-reference 校验。 |
 | 2026-07-12 | 1.13 | 将 GeneratingScreen 唯一 owner 转入本模块；补 immutable report context、route tamper、终态动作矩阵与 UI/report 双语言边界。 |
 | 2026-07-12 | 1.12 | 重新打开 001：锁定三指标四常驻区块，接入 direct semantic summary/code+label，删除 generating 伪实时语义，增加 i18n/CTA/mobile/readability 与真实截图 gate。 |

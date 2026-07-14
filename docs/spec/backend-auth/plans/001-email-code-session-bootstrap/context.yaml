@@ -53,6 +53,7 @@ spec:
         packages:
           - backend/cmd/api
           - backend/internal/api
+          - test/scenarios/e2e/p0-101-auth-email-code-profile-setup
           - backend/internal/platform/config
           - backend/internal/platform/secrets
           - backend/internal/shared/jobs

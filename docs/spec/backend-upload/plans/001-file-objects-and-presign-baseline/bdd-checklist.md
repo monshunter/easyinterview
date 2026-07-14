@@ -1,34 +1,13 @@
-# 001 BDD Checklist
+# File Objects and Presign BDD Checklist
 
-> **版本**: 1.6
-> **状态**: active
+> **版本**: 1.8
+> **状态**: completed
 > **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
-## E2E.P0.033 file presign → register → delete roundtrip
+## `BDD.UPLOAD.FILE.001` Presign、上传与登记
 
-- [x] 创建场景目录 `test/scenarios/e2e/p0-033-file-presign-register-roundtrip/`，含 `README.md`（§6 baseline + §7 离线限制）+ `data/seed-input.md` + `data/expected-outcome.md`
-- [x] 准备 B2 `createUploadPresign.default` fixture + scenario 数据：A2 dev stack MinIO 拉起；A4 config 注入；2 个测试用户（A / B）；3 个测试 file binary（小 PDF / 5MB binary / 11MB 超限）；failure / boundary 走直接断言，不声明不存在的 B2 error fixture
-- [x] 实现 `scripts/setup.sh`（A2 dev stack 拉起 + MinIO 健康检查 + 测试用户登录 + 测试文件准备）/ `scripts/trigger.sh`（依序触发 A/B/C/D/E 子场景）/ `scripts/verify.sh`（断言 DB state machine + 对象存储 key / IK replay 不变 / cross-user 隔离 / privacy delete tombstone / 隐私负向 grep）/ `scripts/cleanup.sh`（清理 file_objects / 用户 / MinIO bucket / audit_events）
-- [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
-- [x] 记录验证证据：`.test-output/e2e/p0-033-file-presign-register-roundtrip/trigger.log` + verify 输出 + `createUploadPresign.default` 201 fixture byte diff 0 + DB state machine 轨迹 + 对象存储 key list before/after + privacy delete audit tombstone 内容 + 隐私反查日志
-- [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.033 行（关联需求 `backend-upload C-1, C-2, C-3, C-4, C-6, C-7, C-8`，状态 Ready，automated）
-- [x] L2 remediation：`scripts/trigger.sh` 必须在缺少 `DATABASE_URL` / `OBJECT_STORAGE_*` 时失败，并执行 `TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip` live gate；`scripts/verify.sh` 必须在 trigger log 出现 live integration skip、focused gate no-op 或缺少 live roundtrip 证据时失败；缺 live env 或只跑离线 focused tests 不得作为 E2E.P0.033 PASS 证据（验证：`python3 test/scenarios/e2e/p0-033-file-presign-register-roundtrip/scripts/script_contract_test.py`）
-
-## Phase 7: JD attachment purpose contraction
-
-- [x] RED: 扩展 E2E.P0.033 contract test，使缺少旧 JD purpose rejection、resume roundtrip 或 privacy_export 保留任一断言时先失败。
-  <!-- verified: 2026-07-13 evidence="verify failed against the prior live trigger log because Phase 7 subtest markers were absent; script contract now rejects missing boundary evidence." -->
-- [x] GREEN: scenario 消费 OpenAPI/B4 purpose 收缩与 A4 Phase 12 maxBytes handoff；以旧 `target_job_attachment` purpose 调 presign 返回 422 `VALIDATION_FAILED`，且不创建 DB row 或对象。
-  <!-- verified: 2026-07-13 evidence="live subtest returned 422 VALIDATION_FAILED/details.field=purpose and logged row_count=0." -->
-- [x] RETAIN: resume presign → PUT → register → privacy delete roundtrip 继续通过；`privacy_export` 5MB presign 返回 201/pending，TargetJob 不调用 upload endpoint。
-  <!-- verified: 2026-07-13 evidence="live MinIO resume signed PUT/register/privacy delete passed; privacy_export 5242880-byte request returned 201 and persisted pending before the same privacy delete removed both rows." -->
-- [x] BDD-Gate: 运行 E2E.P0.033 setup → trigger → verify → cleanup，保存旧 purpose rejection、resume roundtrip、privacy_export 5MB 与 zero-side-effect 证据；live gate skip/no-op 或任一证据缺失时不得勾选。
-
-## Phase 8 exact size limits
-
-- [ ] P0.033 proves resume 10MiB and privacy_export 5MiB exact boundaries through live object size verification.
-- [ ] Each limit+1 returns validation and creates zero file_object/object; current source evidence is recorded.
-- [ ] P0.081 consumes only resume public RuntimeConfig value; privacy export limit remains internal.
-  <!-- verified: 2026-07-13 evidence="setup/trigger/verify/cleanup PASS; 6 scenario script contract tests PASS; evidence retained under .test-output/e2e/p0-033-file-presign-register-roundtrip/." -->
+- [x] Owner behavior tests 覆盖 presign、register、ownership、size mismatch 与零脏状态。
+- [x] 根 `make test` 已执行对应 Go tests；该结果是代码层行为证据，不是 E2E PASS。
+- [x] 当前无 presign/upload/register 真实 E2E owner；不创建 wrapper 场景。

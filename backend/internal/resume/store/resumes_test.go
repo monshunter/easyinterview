@@ -147,6 +147,12 @@ func TestCreateWithParseJobRejectsNewResumeWhenActiveLimitReached(t *testing.T) 
 	mock.ExpectQuery(regexp.QuoteMeta(`select resource_id, id, status, created_at, updated_at from async_jobs`)).
 		WithArgs("resume_parse", "dedupe-limit").
 		WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(regexp.QuoteMeta(`select id
+from users
+where id = $1
+for update`)).
+		WithArgs("user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("user-1"))
 	mock.ExpectQuery("select count").
 		WithArgs("user-1").
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(10))

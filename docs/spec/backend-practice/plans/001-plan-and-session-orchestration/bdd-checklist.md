@@ -1,32 +1,13 @@
-# 001 Plan and Session Orchestration BDD Checklist
+# Practice Plan and Session Orchestration BDD Checklist
 
-> **版本**: 2.3
+> **版本**: 2.5
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
-## E2E.P0.022 Plan contract
-- [x] Revise data/scripts/README, run and record evidence.
+## `BDD.PRACTICE.PLAN.001` plan/session 幂等与失败恢复
 
-## E2E.P0.023 Session opening
-- [x] Revise data/scripts/README, run and record evidence.
-
-## E2E.P0.024 AI failure retry
-- [x] Revise data/scripts/README, run and record evidence.
-
-## E2E.P0.025 Idempotency and isolation
-- [x] Revise data/scripts/README, run and record evidence.
-
-## E2E.P0.026 Privacy and stale-contract negative
-- [x] Revise data/scripts/README, run and record evidence.
-
-## Phase 6 resume grounding
-- [x] P0.023 executes and verifies complete source snapshot tail-marker grounding.<!-- verified: 2026-07-12 method=scenario -->
-- [x] P0.024 executes and verifies empty-context typed failure, zero AI, and no opening assistant message.<!-- verified: 2026-07-12 method=scenario -->
-
-## Phase 7 persisted round identity
-
-- [x] P0.022 executes create/read exact canonical round identity, equal-duration non-reuse and non-contiguous canonical successor.<!-- verified: 2026-07-12 method=scenario-run result=PASS -->
-- [x] P0.070 executes same-bound-resume retry/next source semantics plus exact idempotency replay.<!-- verified: 2026-07-12 method=scenario-run result=PASS -->
-- [x] P0.072 executes wrong-resume/provenance/type/int32/mismatched/all-complete/legacy/cross-user fail-closed paths.<!-- verified: 2026-07-12 method=unit+scenario-run result=PASS -->
+- [x] Owner behavior tests 覆盖 identity match、幂等、隔离、opening failure 与零重复事实。
+- [x] 根 `make test` 已执行对应 Go tests；该结果是代码层行为证据，不是 E2E PASS。
+- [x] 当前无 plan 创建/session start 真实 E2E owner；不创建 shell wrapper 或场景编号。

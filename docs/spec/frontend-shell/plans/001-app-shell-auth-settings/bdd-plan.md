@@ -1,32 +1,21 @@
-# Frontend Shell BDD Plan
+# Frontend Shell Auth and Settings BDD Plan
 
-> **版本**: 1.15
+> **版本**: 1.17
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
-## Phase 1: App shell and display behavior
+**关联 Plan**: [plan](./plan.md)
 
-| 场景 ID | 场景 | Given | When | Then | 验证入口 |
-|---------|------|-------|------|------|----------|
-| E2E.P0.001 | 默认首页与三入口 Shell | 用户未登录，没有保存 App route | 打开 App | 用户看到 Home、三个一级入口、单一登录入口、用户区和显示控制；unsupported route input 不产生独立页面 | `test/scenarios/e2e/p0-001-default-home-shell/` |
-| E2E.P0.004 | App Shell 中英语言切换 | 用户打开默认 App shell，浏览器 locale 可归一，TopBar 可见 | 用户通过 TopBar language dropdown 切换语言，并进入 auth / settings shell | TopBar、单一登录入口、用户菜单和 shell 静态文案立即切换；route/testid/业务 params 不变；generated client 请求携带当前 UI locale display hint；runtime locale 与登录态不覆盖前端语言设置 | `test/scenarios/e2e/p0-004-app-shell-language-switch/` |
+## 有真实 E2E owner 的行为
 
-## Phase 2: Auth interruption and dev mock state
+| 场景 | Given | When | Then | 真实 E2E |
+|---|---|---|---|---|
+| Email-code 登录与资料补全 | real frontend、backend 与 Mailpit 已运行 | 用户获取验证码、登录、补全资料并重新登录 | shell 读取真实 session 与 profile 状态，补全后展示已登录用户 | `E2E.P0.101` |
 
-| 场景 ID | 场景 | Given | When | Then | 验证入口 |
-|---------|------|-------|------|------|----------|
-| E2E.P0.002 | 登录打断后恢复原业务动作 | 用户未登录，并从当前面试规划触发受保护动作 | 用户完成 email-code mock auth | App 恢复到 `practice`，并保留 planId / targetJobId / jdId / resumeId / roundId 等 safe params | `test/scenarios/e2e/p0-002-auth-pending-action-resume/` |
-| E2E.P0.032 | Dev mock 登录态菜单与退出闭环 | 用户在 Vite dev mock App 中打开首页，初始没有 session | 用户完成 email-code mock 登录，打开头像菜单，进入 settings，再退出登录 | 默认首屏是非登录态；登录后 TopBar 显示头像 chip + dropdown；settings/logout 可从 dropdown 分流；logout 后 `/me` 回到 unauthenticated，TopBar 回到单一登录入口 | `test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/` |
+## Domain behavior
 
-## Phase 3: Real auth and protected route guard
+| Behavior ID | Given | When | Then | 验证入口 |
+|-------------|-------|------|------|----------|
+| `BDD.SHELL.AUTH.001` | 用户处于 anonymous、profile-incomplete 或 authenticated 状态 | 访问受保护页面、完成登录/profile setup、恢复 pending action 或切换 shell 设置 | shell 按 route/session 状态渲染并安全恢复；显示设置不持久化业务事实 | `frontend/src/app/AppAuthDispatch.test.tsx` + `frontend/src/app/__tests__/auth-pending-action-resume.test.tsx`，由根 `make test` 承接 |
 
-| 场景 ID | 场景 | Given | When | Then | 验证入口 |
-|---------|------|-------|------|------|----------|
-| E2E.P0.101 | Mailpit email-code single-entry login + profile setup | 本地 frontend real mode、backend 和 Mailpit 可用；邮箱是唯一账号标识；新邮箱尚未补全资料 | 用户从 `auth_login` 提交新邮箱，从 Mailpit 读取 6 位验证码，在 `auth_verify` 输入 code；随后提交 displayName + 条款确认；退出后同邮箱再次登录 | 新邮箱首次登录签发 session 但 `/me.profileCompletionRequired=true`，资料补全前不恢复 pendingAction；补全后 `/me.profileCompletionRequired=false` 且 TopBar 显示 displayName；同邮箱再次登录不再进入资料补全 | `E2E.P0.101` scenario assets |
-| E2E.P0.102 | 未登录首页与面试业务路由登录前置 | 用户未登录，Home 可公开访问，业务 route 与业务 API 均需要账号 session | 用户打开 Home、直开业务 route，或触发 Home 业务 CTA | Home 不展示账号记录、不请求 `listTargetJobs`、不显示 raw `AUTH_UNAUTHORIZED`；业务 route 在 auth loading 期间不挂载业务 screen，确认未登录后进入 `auth_login(pendingAction)`；backend gate 证明业务 API 由 session middleware 返回 B1 auth envelope | `test/scenarios/e2e/p0-102-auth-gated-interview-routes/` |
-
-## Phase 4: StrictMode request-count regression
-
-| 场景 ID | 场景 | Given | When | Then | 验证入口 |
-|---------|------|-------|------|------|----------|
-| E2E.P0.102 | Auth epoch + StrictMode safe-read single-flight | 用户已通过 auth gate，正式 App 保持 React StrictMode，受保护页面会在 mount 时读取同一资源 | 进入代表性受保护 route 并采集 generated-client request log；随后改变 locale/auth scope/`okStatuses`，或在语义写请求 dispatch 前、settle 后重新读取 | 同一 client/query/header/okStatuses/read-auth-epoch/auth scope 的同时在途 safe read 只有一次底层请求；不会出现紧邻重复 pair；locale/auth/okStatuses/epoch 变化触发独立 GET；所有语义写请求前后切断 read epoch；verify GET 不被合并且成功推进 auth/session epoch | `test/scenarios/e2e/p0-102-auth-gated-interview-routes/` |
+`E2E.P0.101` 是 email-code/profile setup 的独立 suite handoff；pending action、通用 guard 和 settings 不归入该 E2E。

@@ -81,10 +81,6 @@ spec:
       - workspace detail reuse
       - requestAuth import_jd
       - requestAuth start_practice
-      - E2E.P0.014
-      - E2E.P0.015
-      - E2E.P0.016
-      - E2E.P0.018
       - home-resume-select
       - home-recent-more
   targets:
@@ -129,10 +125,6 @@ spec:
           - openapi/fixtures/Resumes
           - openapi/fixtures/PracticePlans
           - openapi/fixtures/PracticeSessions
-          - test/scenarios/e2e/p0-014-home-default-render
-          - test/scenarios/e2e/p0-015-jd-import-and-parse
-          - test/scenarios/e2e/p0-016-parse-confirm-to-workspace
-          - test/scenarios/e2e/p0-018-workspace-default-render
         uiRoutes:
           - home
           - parse

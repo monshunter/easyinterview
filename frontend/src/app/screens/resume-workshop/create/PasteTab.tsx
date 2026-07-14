@@ -31,11 +31,11 @@ export const PasteTab: FC<PasteTabProps> = ({
   const runtime = useAppRuntimeOptional();
   const maxPasteTextBytes = resolveContentLimits(
     runtime?.runtime.status === "ready" ? runtime.runtime.config : undefined,
-  ).resumePasteTextBytes;
+  )?.resumePasteTextBytes;
 
   const trimmed = rawText.trim();
-  const overLimit = utf8ByteLength(trimmed) > maxPasteTextBytes;
-  const canSubmit = trimmed.length > 0 && !submitting;
+  const overLimit = maxPasteTextBytes !== undefined && utf8ByteLength(trimmed) > maxPasteTextBytes;
+  const canSubmit = maxPasteTextBytes !== undefined && trimmed.length > 0 && !submitting;
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;

@@ -29,9 +29,6 @@ spec:
       - OPENAPI-005
       - ResumeSummary
       - resume list summary detail split
-      - P0.034
-      - P0.036
-      - P0.037
     keywords:
       - flat resume contract
       - current resume operations
@@ -62,8 +59,6 @@ spec:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      bddPlan: ./bdd-plan.md
-      bddChecklist: ./bdd-checklist.md
       references:
         - ../../decisions/OPENAPI-005-resume-list-summary.md
         - ../../../shared-conventions-codified/spec.md

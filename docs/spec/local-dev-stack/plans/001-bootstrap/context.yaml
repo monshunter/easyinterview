@@ -57,7 +57,7 @@ spec:
       - /var/lib/postgresql
       - health check
       - dev environment
-      - local runner
+      - real API UI e2e
       - scenario environment lifecycle
       - test/scenarios/env-setup.sh
       - test/scenarios/env-verify.sh
@@ -95,7 +95,6 @@ spec:
           - backend/cmd/api
           - backend/internal/platform/config
           - config
-          - test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid
           - test/scenarios
           - test/scenarios/env-setup.sh
           - test/scenarios/env-status.sh

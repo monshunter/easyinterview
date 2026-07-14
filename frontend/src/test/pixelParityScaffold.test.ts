@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -9,16 +9,6 @@ const FRONTEND_GITIGNORE = resolve(FRONTEND_ROOT, ".gitignore");
 const PLAYWRIGHT_CONFIG = resolve(FRONTEND_ROOT, "playwright.config.ts");
 const PIXEL_PARITY_DIR = resolve(FRONTEND_ROOT, "tests", "pixel-parity");
 const SERVE_SCRIPT = resolve(FRONTEND_ROOT, "scripts", "serve-pixel-parity.mjs");
-const SCENARIO_VERIFY = resolve(
-  FRONTEND_ROOT,
-  "..",
-  "test",
-  "scenarios",
-  "e2e",
-  "p0-006-ui-design-pixel-parity-gate",
-  "scripts",
-  "verify.sh",
-);
 const SCREENSHOT_BASELINES = resolve(
   PIXEL_PARITY_DIR,
   "screenshot.spec.ts-snapshots",
@@ -74,30 +64,6 @@ describe("pixel parity scaffold (Phase 1.1 + 1.2 + 1.3)", () => {
 
   it("has the pixel-parity test directory shape", () => {
     expect(existsSync(PIXEL_PARITY_DIR)).toBe(true);
-  });
-
-  it("keeps the P0.006 verify markers equal to the 13 tracked specs", () => {
-    const specs = readdirSync(PIXEL_PARITY_DIR)
-      .filter((name) => name.endsWith(".spec.ts"))
-      .sort();
-    const markers = [
-      ...readFileSync(SCENARIO_VERIFY, "utf8").matchAll(
-        /\b[\w-]+\.spec\.ts\b/g,
-      ),
-    ]
-      .map(([name]) => name)
-      .sort();
-
-    expect(specs).toHaveLength(13);
-    expect(markers).toEqual(specs);
-  });
-
-  it("anchors the Playwright failed-summary guard away from business failed counters", () => {
-    const verify = readFileSync(SCENARIO_VERIFY, "utf8");
-    expect(verify).toContain(
-      "^[[:space:]]*[0-9]+ failed([[:space:]]|$)",
-    );
-    expect(verify).not.toContain("grep -Eq '[0-9]+ failed'");
   });
 
   it("keeps buffer-only screenshot smoke free of local baselines", () => {

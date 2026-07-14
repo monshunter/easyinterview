@@ -6,42 +6,26 @@
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
-## Phase 1-5: Historical baseline
+## Generating and report behavior
 
-- [x] Historical conversation report regression tests remain present.
+- [x] Polling schedule、pause/resume fences、single-run cap and truthful typed state tests pass.
+- [x] Direct report contract、empty/non-empty focus、CTA request and mixed UI/report language tests pass.
+- [x] Invalid/over-limit payloads fail closed without raw label, truncation or rewrite.
 
-## Phase 6: UI truth and generating
+## Layout and privacy
 
-- [x] Phase 6 ownership/source-contract and state-action truthful generating tests pass.
-  <!-- verified: 2026-07-12 evidence="ui-design 50/50; full frontend 111 files/762 tests; generating desktop/mobile parity and action matrix PASS" -->
-- [x] Phase 6 maxAttempts49/1.5×1.5/cap8 exact timing tests pass；queued/generating during action-local10s/20s/40s waits stays honest，attempt/progress is absent，async job attempts remain independent，and poll exhaustion does not fabricate terminal failed.
-  <!-- verified: 2026-07-13 evidence="seven focused frontend files/51 tests PASS; P0.058 v3 timing/reset/separation composition PASS" -->
-- [x] Phase 6 in-flight and timer pause/resume tests preserve attempt/delay，resume n+1，reject reset1/repeat-n/concurrency，and keep one run<=49. <!-- verified: 2026-07-13 method=fake-clock-vitest evidence="focused hook17/17; generating23/23; full789 PASS" -->
+- [x] Exact 24/64 deterministic fixtures wrap completely at desktop/mobile; 25/65 fail closed.
+- [x] Prototype/formal DOM/style/bbox/viewport/pixel tests pass as code-level visual regression.
+- [x] Report/session UUID sentinel DOM/a11y negatives and target/round/resume positives pass.
 
-## Phase 7: Direct dashboard and handoff
+## ReportsScreen and routing
 
-- [x] Phase 7 generated direct-contract/frozen-context/empty-generic-focus/non-empty-issue-backed-focus/route-tamper/language-split/CTA/responsive and server-owned handoff tests pass.
-  <!-- verified: 2026-07-13 evidence="P0.057 six frontend files/49 tests PASS; P0.070/P0.072 PostgreSQL focus/isolation markers PASS; P0.059 12 desktop/mobile parity tests PASS" -->
+- [x] Current-target isolation、canonical join、current/latest-only、loading/empty/error and stale-response fence tests pass.
+- [x] Trusted/untrusted Back matrix、reportId-only route and direct Workspace detail without Parse detour tests pass.
+- [x] ReportsScreen-only list consumer and no TopBar/global/history/compatibility entry negatives pass.
 
-## Phase 8: Parity and real UAT
+## E2E separation and full regression
 
-- [x] Phase8 exact-six/current-run audit plus1440x1200+390x844 parity prove legal24/64 labels fully visible；over-limit fixture is typed invalid/no raw。P0.100 output、200-code-point fuse and18/52 repair margin are excluded from UX PASS.
-  <!-- verified: 2026-07-13 evidence="P0.099 e2e-p0-099-20260713T095144Z-12381 trigger+verify PASS; exact six/three states/current DB-API digests/manual audit/raw-debug absent" -->
-
-## Phase 9: Internal locator cleanup
-
-- [x] Distinct UUID sentinel DOM/a11y negatives, internal contract/CTA positives, locale zero-reference and refreshed P0.059 parity pass；separate `/agent-browser` acceptance contains only the same ready report's exact formal 1440x1200/390x844 full-page PNGs plus manifest, with recomputed path/hash/state/viewport/fullPage and report/session sentinel-absence audit all passing.
-  <!-- verified: 2026-07-14 evidence="Context Strip acceptance 20260714-final contains exactly the two required PNGs and manifest; hashes 36b859b2.../1b0c3ed3..., state/viewport/fullPage and UUID DOM/a11y negatives validate." -->
-
-## Phase 10: Independent current-plan reports list and Back recovery
-
-- [x] ReportsScreen current-target isolation、canonical join、current/latest-only、different-ready status、loading/empty/error、stale-response fence、Phase 10 historical Back behavior and 1440/390 parity pass；Report/Generating trusted Back-to-Reports、workspace fallback、reportId-only route、single list-consumer and no-TopBar/no-section negatives remain green in P0.058/P0.059.
-  <!-- verified: 2026-07-14 evidence="Validator 40/40, ReportsScreen 15/15, final P0.058 setup/trigger/verify/cleanup PASS and P0.059 16/16 Playwright PASS cover the complete matrix." -->
-
-## Phase 11: Reports Back direct read-only workspace detail
-
-- [x] ReportsScreen exact-route and safe-query tests require `/workspace?targetJobId=<id>` for trusted Back and `/workspace` replace fallback without trusted identity; Workspace receives no query key other than `targetJobId`.
-- [x] Component/source-spy tests prove the read path mounts Workspace detail only and performs no Parse animation, JD import, or parse polling; Report/Generating trusted `/reports` and untrusted Workspace-list recovery tests remain green.
-- [x] Route/history and current-scope negative tests prove no Parse detour and zero positive Reports-to-Parse contract outside explicit revision/history evidence.
-- [x] P0.059 desktop/mobile navigation and parity pass with direct Workspace detail; P0.058 unchanged recovery matrix, focused frontend tests, typecheck/build, owner context and docs/diff gates all pass.
-  <!-- verified: 2026-07-14 evidence="P0.058/P0.059 fresh wrappers PASS; exact route/query, no-Parse component spies, history negatives and desktop/mobile parity are covered, with frontend typecheck/build and owner context green." -->
+- [x] P0.099 independently binds current real report/generating API/DB/screenshot evidence; mock/component outputs cannot satisfy it.
+- [x] Provider/eval and deterministic parity remain independent code gates, not E2E steps.
+- [x] Root `make test` runs the complete frontend/backend unit regression for phase completion.

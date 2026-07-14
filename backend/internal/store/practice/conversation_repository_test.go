@@ -198,7 +198,7 @@ func TestSQLRepositoryCompleteSessionUsesLifecycleOnlyEventColumns(t *testing.T)
 	}
 }
 
-func TestE2EP0047RejectsZeroAnswerCompletion(t *testing.T) {
+func TestCompleteSessionRejectsZeroAnswerCompletion(t *testing.T) {
 	t.Run("zero committed user messages", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		if err != nil {

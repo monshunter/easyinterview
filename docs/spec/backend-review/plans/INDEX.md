@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-report-generation-baseline](./001-report-generation-baseline/plan.md) | [plan](./001-report-generation-baseline/plan.md) / [checklist](./001-report-generation-baseline/checklist.md) / [context](./001-report-generation-baseline/context.yaml) / [test-plan](./001-report-generation-baseline/test-plan.md) / [test-checklist](./001-report-generation-baseline/test-checklist.md) / [bdd-plan](./001-report-generation-baseline/bdd-plan.md) / [bdd-checklist](./001-report-generation-baseline/bdd-checklist.md) | 2.23 | active | 2026-07-14 |
+| [001-report-generation-baseline](./001-report-generation-baseline/plan.md) | [plan](./001-report-generation-baseline/plan.md) / [checklist](./001-report-generation-baseline/checklist.md) / [context](./001-report-generation-baseline/context.yaml) / [test-plan](./001-report-generation-baseline/test-plan.md) / [test-checklist](./001-report-generation-baseline/test-checklist.md) / [bdd-plan](./001-report-generation-baseline/bdd-plan.md) / [bdd-checklist](./001-report-generation-baseline/bdd-checklist.md) | 2.25 | active | 2026-07-14 |
 
 ## 2 已完成（Completed）
 

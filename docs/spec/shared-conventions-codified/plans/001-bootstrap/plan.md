@@ -1,8 +1,8 @@
 # Shared Conventions Bootstrap
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -102,10 +102,10 @@ Phase 1-9 保留为历史完成证据；Phase 10 是本轮 current net-state own
 
 ### Phase 9: report oversized-context error contract
 
-- Add exactly one canonical entry to `shared/conventions.yaml`: `REPORT_CONTEXT_TOO_LARGE`, message `report context exceeds supported generation size`, `retryable: false`. B1 owns this cross-language literal and retryability; backend-review owns the 48,000-byte boundary and terminal behavior.
+- Add exactly one canonical entry to `shared/conventions.yaml`: `REPORT_CONTEXT_TOO_LARGE`, message `report context exceeds supported generation size`, `retryable: false`. B1 owns this cross-language literal and retryability; backend-review owns terminal behavior and consumes the A4-injected `report.maxFramedInputBytes` value. The former 48,000-byte package constant is historical bug context, not a current owner boundary.
 - Drive the change Red-Green through conventions validator/generator tests, then regenerate Go `backend/internal/shared/errors`, frontend `frontend/src/lib/conventions/errors.ts` and parity fixtures. Reject a missing/duplicate/misspelled code, changed message, or `retryable: true`.
 - Emit `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` after B1 conventions lint/codegen idempotency, Go/TS parity and owner context validation pass. The marker means only that the canonical cross-language literal and retryability are ready for downstream consumption; it does not wait for B2 and therefore cannot encode OpenAPI parity.
-- B2 consumes that marker, synchronizes `ApiErrorCode` from B1 without hand-maintaining a second error list, and independently proves through the OPENAPI-001 normalized base-ref audit that the single `enum_value_added` finding for `REPORT_CONTEXT_TOO_LARGE` is additive, outside the breaking allowset, with no unrecorded enum delta. User-visible terminal behavior and 48,000/+1 byte tests remain backend-review-owned.
+- B2 consumes that marker, synchronizes `ApiErrorCode` from B1 without hand-maintaining a second error list, and independently proves through the OPENAPI-001 normalized base-ref audit that the single `enum_value_added` finding for `REPORT_CONTEXT_TOO_LARGE` is additive, outside the breaking allowset, with no unrecorded enum delta. Backend-review owns user-visible terminal behavior through one small injected-limit provider call/no-call test；the historical 62,397-byte symptom remains diagnosis evidence only and is not reconstructed as a size test.
 
 ### Phase 10: TargetJob paste-only error vocabulary
 
@@ -130,6 +130,7 @@ Phase 1-9 保留为历史完成证据；Phase 10 是本轮 current net-state own
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.12 | Replace the stale 48,000-byte downstream boundary wording with the A4-injected report limit and minimal focused consumer evidence. |
 | 2026-07-13 | 1.11 | Reopen Phase 10 to contract TargetJob errors to the paste-only vocabulary and require generated/OpenAPI zero-reference closure. |
 | 2026-07-12 | 1.10 | Remove the B1/B2 cycle: B1 source-ready marker covers YAML/Go/TS only; B2 independently proves OpenAPI parity/oracle. |
 | 2026-07-12 | 1.9 | Reopen Phase 9 for the single-source REPORT_CONTEXT_TOO_LARGE YAML/codegen/OpenAPI enum contract. |

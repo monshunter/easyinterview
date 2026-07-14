@@ -39,6 +39,5 @@ spec:
           - frontend/src/app/interview-context
           - frontend/src/app/i18n/locales
           - frontend/tests/pixel-parity
-          - test/scenarios/e2e
         uiRoutes: [practice]
         apiNames: [getPracticeSession, sendPracticeMessage, completePracticeSession, getTargetJob]

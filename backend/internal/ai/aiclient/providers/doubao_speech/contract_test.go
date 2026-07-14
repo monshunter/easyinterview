@@ -93,34 +93,6 @@ func TestSynthesize_NormalTTSSynthesis(t *testing.T) {
 	}
 }
 
-func TestSynthesizeUsesConfiguredResponseBodyByteLimit(t *testing.T) {
-	body := mockserver.DefaultTTSSuccessBody()
-	for _, tc := range []struct {
-		name      string
-		limit     int64
-		wantError bool
-	}{
-		{name: "exact byte limit", limit: int64(len(body))},
-		{name: "one byte over", limit: int64(len(body) - 1), wantError: true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			srv := mockserver.New()
-			defer srv.Close()
-			srv.SetTTSBehavior(mockserver.Behavior{StatusCode: 200, Body: body})
-			a, err := doubaospeech.New(doubaospeech.Options{Provider: resolvedProvider(srv.URL()), MaxResponseBodyBytes: tc.limit})
-			if err != nil {
-				t.Fatalf("New: %v", err)
-			}
-			_, meta, err := a.Synthesize(context.Background(), ttsProfile(), ttsInput())
-			if tc.wantError {
-				assertCode(t, err, meta, sharederrors.CodeAiOutputInvalid)
-			} else if err != nil {
-				t.Fatalf("Synthesize: %v", err)
-			}
-		})
-	}
-}
-
 func TestSynthesize_ProviderError5xx(t *testing.T) {
 	srv := mockserver.New()
 	defer srv.Close()

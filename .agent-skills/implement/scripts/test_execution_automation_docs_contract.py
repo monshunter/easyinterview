@@ -107,4 +107,7 @@ def test_plan_context_contract_declares_conditional_test_bdd_rules_are_document_
     assert "Conditional Test/BDD Document Rules" in text
     assert "Code plan requires TDD" in text
     assert "Feature plan requires BDD" in text
+    assert "domain Behavior IDs backed by code-level behavior tests" in text
+    assert "An `E2E.*` ID requires a real running frontend/backend flow" in text
+    assert "must declare `BDD-N/A`" in text
     assert "`/design`, `/create-doc`, `/plan-review`, and `/implement` enforce these document-level rules" in text

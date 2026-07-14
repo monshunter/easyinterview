@@ -66,10 +66,6 @@ spec:
       - 面试规划列表
       - 面试规划详情
       - 一级面试入口
-      - E2E.P0.018
-      - E2E.P0.021
-      - E2E.P0.045
-      - E2E.P0.057
       - E2E.P0.098
   targets:
     frontend:
@@ -117,11 +113,7 @@ spec:
           - openapi/fixtures/Resumes
           - openapi/fixtures/PracticePlans
           - openapi/fixtures/PracticeSessions
-          - test/scenarios/e2e/p0-018-workspace-default-render
-          - test/scenarios/e2e/p0-021-workspace-handoff
-          - test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display
-          - test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b
-          - test/scenarios/e2e/p0-098-full-funnel-import-to-next-round-journey
+          - test/scenarios/e2e/p0-098-practice-completion-progress-refresh
         uiRoutes:
           - workspace
           - practice

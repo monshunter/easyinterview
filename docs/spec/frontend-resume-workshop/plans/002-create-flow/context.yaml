@@ -59,7 +59,6 @@ spec:
           - frontend/tests/pixel-parity
           - ui-design/src
           - docs/ui-design
-          - test/scenarios/e2e
         uiRoutes:
           - resume_versions
           - home

@@ -1,8 +1,8 @@
 # 003 — Remove Dedicated Assistance Modes Checklist
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -13,9 +13,8 @@
 
 ## Phase 2: Runtime/frontend/report deletion
 - [x] 2.1 RED-GREEN: delete backend hint service/store branches and frontend hint UI/hook/context/handoff.
-- [x] 2.2 RED-GREEN: ordinary help-request message uses sendPracticeMessage with no special metadata.
-- [x] 2.3 BDD-Gate: P0.051 assistance negative scenario passes.
+- [x] 2.2 RED-GREEN: delete special metadata/classification for help requests；ordinary help remains an ordinary `sendPracticeMessage` flow owned by `frontend-workspace-and-practice/002-practice-text-event-loop`.
 
 ## Phase 3: Scenario/docs closeout
-- [x] 3.1 Delete P0.048-P0.050 positive scenario assets and index rows; rewrite P0.051.
-- [x] 3.2 Run zero-reference, focused/full, config/prompt/codegen/migration/docs/diff gates.
+- [x] 3.1 BDD-N/A: this plan only deletes the dedicated assistance contract；remove `bdd-plan.md` / `bdd-checklist.md` and their context/index references, while the text-loop owner retains ordinary-help behavior.
+- [x] 3.2 仓库根 `make test` 完成前后端全量单测回归；zero-reference、config/prompt/codegen/migration/docs/diff 作为独立 gates。

@@ -1,8 +1,8 @@
 # Mock Contract Suite Spec
 
-> **版本**: 1.18
+> **版本**: 1.19
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 背景与目标
 
@@ -25,7 +25,7 @@
 - 为本地后端或开发服务器提供同源 mock handler / router。
 - 校验 fixtures 与 `openapi/openapi.yaml`、generated packages 和 `openapi/fixtures/PROTOTYPE_MAPPING.md` 的一致性。
 - 统一 mock response 中的 auth/session、target job、practice plan、practice session、report、resume、privacy 和 runtime config 基线。
-- 为后续 scenario / BDD gate 提供可重置的 seed profile；seed profile 必须表达为 `openapi/fixtures/<tag>/<operationId>.json` 内的 named scenarios，不得引入第二套 seed 数据源。
+- 为代码层 fixture consumers 与 dev preview 提供可重置的 seed profile；seed profile 必须表达为 `openapi/fixtures/<tag>/<operationId>.json` 内的 named scenarios，不得引入第二套 seed 数据源。
 - 前端 Vite dev preview 的默认 API client wiring：`pnpm --filter @easyinterview/frontend dev` 在未显式选择真实 backend 时必须使用 fixture-backed transport。
 
 ### 2.2 Out of Scope
@@ -46,8 +46,8 @@
 | D-3 | Mock 范围 | P0 happy path + 高风险错误态 | 不扩展当前范围外的空壳 |
 | D-4 | Drift gate | mock runtime 必须跑 fixture coverage、OpenAPI diff / validation 和 current-scope negative search | 后续 UI / API 改动要先更新 owner truth source |
 | D-5 | Frontend dev preview 默认行为 | Vite dev 默认 fixture-backed；`VITE_EI_API_MODE=real` 必须同时提供 `VITE_EI_API_BASE_URL` 才打真实 backend | 避免本地开发时大量真实接口报错导致页面不可见，且避免相对 `/api/v1` 隐式打到 frontend 5173 |
-| D-6 | TargetJob mock paste-only | `importTargetJob` mock request 只接受 flattened `{rawText,targetLanguage,resumeId}`；TargetJob fixture/generated mock response 不含 `sourceType` / `sourceUrl`；URL/file/manual_form 与 `target_job_attachment` 不得作为正向 mock 能力 | 保留通用 `createUploadPresign` 及 resume/privacy purpose；P0.015 只消费 paste-only fixture state，不保留兼容分支 |
-| D-7 | Practice recovery mock parity | mock runtime 原样消费 B2 role-discriminated messages 与 typed failure fixtures：user 有 `clientMessageId/replyStatus`，assistant 无；get-session 覆盖四种 durable status，send 覆盖 validation/auth/not-found/conflict/mismatch/retryable failure 与 same-ID retry success | 不复制本地 recovery DTO/错误表；unknown scenario 继续 fail loudly；frontend-workspace-and-practice/002 与 P0.046 消费 exact markers |
+| D-6 | TargetJob mock paste-only | `importTargetJob` mock request 只接受 flattened `{rawText,targetLanguage,resumeId}`；TargetJob fixture/generated mock response 不含 `sourceType` / `sourceUrl`；URL/file/manual_form 与 `target_job_attachment` 不得作为正向 mock 能力 | 保留通用 `createUploadPresign` 及 resume/privacy purpose；由 registry、frontend transport、backend mockruntime 与 boundary tests 证明代码层 parity |
+| D-7 | Practice recovery mock parity | mock runtime 原样消费 B2 role-discriminated messages 与 typed failure fixtures：user 有 `clientMessageId/replyStatus`，assistant 无；get-session 覆盖四种 durable status，send 覆盖 validation/auth/not-found/conflict/mismatch/retryable failure 与 same-ID retry success | 不复制本地 recovery DTO/错误表；unknown scenario 继续 fail loudly；由 fixture-backed frontend/backend tests 证明 exact parity 与 replay semantics |
 
 ## 4 设计约束
 
@@ -70,8 +70,8 @@
 |------|-------|------|
 | fixtures | B2 `openapi-v1-contract` | fixture 内容、schema、operation coverage 和 examples provenance |
 | frontend mock | `mock-contract-suite` + `frontend-shell` | generated client 的 mock transport 和 dev runtime wiring |
-| backend mock | `mock-contract-suite` | 本地 handler/router 或 test harness，供 API smoke 使用 |
-| scenarios | `test/scenarios/e2e` | 用户行为场景资产，不由 mock suite 直接标记 ready |
+| backend mock | `mock-contract-suite` | 本地 handler/router 或 test harness，供 package-level contract tests 使用 |
+| verification | code owners + root `Makefile` | focused tests 用于开发反馈；阶段完成由根 `make test` 承接前后端全量代码回归，mock runtime 不创建 BDD/E2E |
 
 ## 6 验收标准
 
@@ -81,9 +81,9 @@
 | C-2 | 前端 mock 同源 | 前端请求 generated client | 切到 mock transport | response shape 来自 B2 fixtures，组件不 import prototype data | 001-fixture-backed-mock-runtime |
 | C-3 | 后端 mock 同源 | 本地 API smoke 请求 mock handler | 命中任一 P0 operation | handler 返回同一 fixture registry 的 typed response | 001-fixture-backed-mock-runtime |
 | C-4 | 当前范围负向搜索 | mock runtime / fixtures / generated artifacts 已生成 | 运行 scoped negative search | 不含当前 product-scope 范围之外的 route / tag / operationId / schema key / config path；不误杀普通业务文案 | 001-fixture-backed-mock-runtime |
-| C-5 | 前端 dev preview 可见 | 没有启动真实 backend | 运行 Vite dev frontend 并打开已开发页面 | 默认 fixture-backed client 返回 runtime/auth/业务 fixtures，页面可渲染；只有显式 `VITE_EI_API_MODE=real` 且提供 `VITE_EI_API_BASE_URL` 才访问真实 backend | 001-fixture-backed-mock-runtime |
-| C-6 | TargetJob paste-only mock parity | OPENAPI-002 与 openapi-v1-contract 002 已迁移 fixtures/generated artifacts | 运行 mock registry、frontend transport、backend mockruntime 与 boundary focused gates | `importTargetJob` 只接受 `{rawText,targetLanguage,resumeId}`；TargetJob response 无 `sourceType/sourceUrl`；URL/file/manual_form/`TargetJobImportSource*`/`target_job_attachment` 正向 surface 为零；`createUploadPresign` resume/privacy 仍可解析；P0.015 获得 paste-only exact fixture marker | 001-fixture-backed-mock-runtime Phase 8 |
-| C-7 | Practice recovery mock parity | B2 001/002 发布 role-discriminated generated types 与 planned fixtures | frontend/backend mock 选择 get/send recovery scenarios | exact status/body parity；user/assistant recovery fields 合法；validation/auth/not-found/conflict/mismatch/retryable markers 可选；unknown scenario fail loudly；P0.046 可证明 reload/same-ID retry 无重复消息 | 001-fixture-backed-mock-runtime Phase 9 |
+| C-5 | 前端 dev client 选择 | Vite dev 未显式选择真实 backend | 创建 app client | 默认选择 fixture-backed client；只有显式 `VITE_EI_API_MODE=real` 且提供 `VITE_EI_API_BASE_URL` 才创建 real client | 001-fixture-backed-mock-runtime |
+| C-6 | TargetJob paste-only mock parity | OPENAPI-002 与 openapi-v1-contract 002 已迁移 fixtures/generated artifacts | 运行 mock registry、frontend transport、backend mockruntime 与 boundary focused gates | `importTargetJob` 只接受 `{rawText,targetLanguage,resumeId}`；TargetJob response 无 `sourceType/sourceUrl`；URL/file/manual_form/`TargetJobImportSource*`/`target_job_attachment` 正向 surface 为零；`createUploadPresign` resume/privacy 仍可解析 | 001-fixture-backed-mock-runtime Phase 8 |
+| C-7 | Practice recovery mock parity | B2 001/002 发布 role-discriminated generated types 与 planned fixtures | frontend/backend mock 选择 get/send recovery scenarios | exact status/body parity；user/assistant recovery fields 合法；validation/auth/not-found/conflict/mismatch/retryable markers 可选；unknown scenario fail loudly；same-ID retry 无重复消息 | 001-fixture-backed-mock-runtime Phase 9 |
 
 ## 7 关联计划
 

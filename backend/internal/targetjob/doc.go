@@ -40,9 +40,9 @@
 // target.analysis.failed and removes the incomplete TargetJob transactionally;
 // a user retry starts a new paste import.
 //
-// # BDD entry points
+// # Verification
 //
-// E2E.P0.010 covers direct paste import, idempotency, parse, and ready readback.
-// E2E.P0.012 covers retryable and non-retryable AI failures. Both scenarios use
-// the generated rawText request and the in-process runner kernel.
+// Package and HTTP-handler tests cover import, idempotency, parse, ready
+// readback, and failure mapping as code-level regression. They run through the
+// repository-wide `make test` target and are not E2E scenarios.
 package targetjob

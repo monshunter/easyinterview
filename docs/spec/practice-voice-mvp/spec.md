@@ -48,7 +48,7 @@
 
 | operationId | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticeVoiceTurn` | none while disabled | existing Practice voice handler with leading disabled guard | none | none | `E2E.P0.007` |
+| `createPracticeVoiceTurn` | none while disabled | existing Practice voice handler with leading disabled guard | none | none | handler/component contract tests + root `make test` |
 
 ## 6 验收标准
 

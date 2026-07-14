@@ -94,7 +94,7 @@ If yes, read the current execution contracts and include them in `Deep Evidence`
    generated artifacts, and the operation matrix.
 5. Local integration/scenario targets: `deploy/dev-stack/README.md` and
    `test/scenarios/README.md`, with Docker Compose external dependencies,
-   host-run app commands, and repo-tracked local scenario runner boundaries
+   host-run app commands, and repo-tracked real API/UI scenario boundaries
    checked against current docs rather than previous reports.
 
 If the reviewed plan lacks the operation matrix required by
@@ -107,7 +107,7 @@ evidence of frontend/backend closure.
 1. Main scope: checklist phases with at least one `[x]` item.
 2. Gather concrete code scope from the strongest available sources, in this order:
    - `--base-rev` git diff filtered to files relevant to the current target
-   - target-level discovery in `context.yaml` (`packages`, `uiRoutes`, `apiNames`, `commands`)
+   - target-level discovery in `context.yaml` (`packages`, `uiRoutes`, `apiNames`)
    - plan task declarations such as `**文件**:`
 3. Expand the scope from implementation files to artifact files that prove the
    behavior: generated output, fixtures, baselines, migrations/DDL, config,
@@ -199,8 +199,10 @@ For each in-scope phase:
      `VITE_EI_API_MODE=real` generated-client gate that proves base URL,
      `credentials: "include"`, absence of fixture `Prefer` headers, side-effect
      `Idempotency-Key`, and key provenance/response fields, then keep the UI
-     variants fixture-backed as a separate deterministic UI gate. Scenario
-     `verify.sh` must check a real-mode marker and the focused test filename. If
+     variants fixture-backed as a separate deterministic code-level UI gate. If
+     a real E2E handoff is required, it must drive the running frontend/backend
+     through real HTTP/UI and verify the real response, persistence, or visible
+     state; it must not wrap the focused frontend test. If
      one plan in a subspec shows this handoff drift, sweep sibling/completed
      plans in the same subspec before closing the review.
    - For `ui-design` source-level parity, computed style, bounding-box, and
@@ -215,11 +217,14 @@ For each in-scope phase:
     - Use `go test -list` or source search for `func Test...` to confirm the named test or regex exists when the command output is unavailable or ambiguous.
     - Treat `testing: warning: no tests to run`, package output ending in `[no tests to run]`, or a focused `-run` pattern with zero matching tests as a gate failure and record a finding. Do not count it as PASS even if the command exits 0.
     - In `--fix` mode, map the finding to either adding the missing executable test, correcting the focused gate name, or reopening the checklist item whose evidence was no-op.
-11. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, completed scenario asset/execution items, a passed `BDD-Gate:` verification note, and scenario coverage for the primary journey plus the highest-risk alternate or failure/recovery journey per deployable phase.
+    - Focused Go/Vitest runs are development evidence. For a completed delivery that touches frontend/backend, require a current repository-root `make test` result covering the whole worktree；代码测试不得进入 `test/scenarios/e2e/`，单 package/file PASS 也不是全量单元回归证据。
+11. For completed feature phases, verify BDD evidence exists: `bdd-plan` / `bdd-checklist` references, a passed `BDD-Gate:` verification note, and behavior coverage for the primary journey plus the highest-risk alternate or failure/recovery journey per deployable phase.
     - Treat `completed` plan/checklist/test/BDD documents that still contain unchecked BDD items, `partial`/`pending`/`next pass` comments, or "asset readiness" language as blocking evidence drift, not as PASS.
-    - Read scenario `trigger.sh` / `verify.sh` scripts directly. Scenario directory, README, or INDEX presence does not prove coverage unless the trigger executes the dedicated tests and the verifier asserts the relevant runtime/negative conditions.
-    - Treat scenario wrapper scripts as evidence artifacts in their own right, not just launchers for the test body. Do not stop after reading the Go test body; wrapper process-success proof is separate evidence. For shell wrappers around focused Go tests, verify the trigger preserves the real test process exit status (`pipefail` where the shell supports it, or explicit status capture around `tee`) and record a D-series finding if it uses `go test | tee` without preserving the `go test` status. The verifier must require the intended test to start, require a passing marker such as `--- PASS`, require package-level `ok`, and reject `--- FAIL`, package `FAIL`, and `no tests to run`.
-    - Read the dedicated test bodies named by BDD scenarios and map every material BDD checklist assertion to concrete assertions in code. A focused `go test -run '^ExactScenario$'` wrapper only proves the named test executed; it does not prove that DB side effects, replay privacy, no-op absence, task-run metadata, or negative paths listed in `bdd-checklist.md` were asserted.
+    - Classify each BDD entry by its declared evidence layer. A domain Behavior ID may map directly to a code-level owner behavior test; inspect its Given/When/Then-equivalent assertions and do not require or create an E2E directory for it.
+    - An `E2E.*` ID is valid only when its scenario drives an already running frontend/backend through real HTTP API calls or browser UI. Read `trigger.sh` / `verify.sh` and every invoked helper/browser spec directly, then require evidence from real requests, persistence, or user-visible state.
+    - Record a blocking finding when an E2E script runs `go test`, Vitest/npm test, pytest, lint, source-contract, fixture parity, build, or package smoke. Those are code gates and must stay outside E2E scripts and PASS evidence.
+    - For browser scenarios, record a blocking finding when fixture transport, dev mock, jsdom, route interception, or request mocking replaces the business backend. Browser automation counts as E2E only when it reaches the real backend.
+    - Read the dedicated domain behavior test or real E2E assertions named by each BDD entry and map every material checklist outcome to concrete evidence. Test/process start alone does not prove DB side effects, replay privacy, no-op absence, task-run metadata, or user-visible recovery.
     - In `--fix` mode, first add the missing executable test or script assertion, then update the original checklist evidence and lifecycle state only after the gate passes.
 
 Coverage rows to verify:
@@ -268,9 +273,12 @@ Output rules:
   searches, focused gates/tests run, and any gate gaps discovered or hardened.
   For every cited `go test -run` focused gate, state the matching test name(s)
   or explicitly record the no-op finding if zero tests ran.
-  For scenario wrapper evidence, state how `trigger.sh` preserves the real test
-  process exit status and how `verify.sh` proves pass/fail/no-op status rather
-  than merely grepping a test name or package path.
+  For BDD evidence, state whether the entry is a domain behavior test or real
+  API/UI E2E. For real E2E, state which HTTP/UI action reaches the running
+  backend, which response/persistence/visible result proves success, and how
+  the scripts were checked to exclude code-test wrappers and backend mocks.
+  For frontend/backend code regression, state the repository-root `make test`
+  result separately from any real E2E result.
   For lifecycle / runtime capabilities, state the production entrypoint audited
   and the production-wiring test, smoke, or scenario that proves startup and
   shutdown/drain behavior.
@@ -319,8 +327,9 @@ When the user accepts a fix proposal:
 ```
 
 5. After `/tdd` completes, run focused tests and adjacent/regression tests.
-6. Verify compilation succeeds for affected packages.
-7. Any test or compile failure means the fix is not applied.
+6. For frontend/backend changes, run repository-root `make test` as the aggregate unit-regression gate; keep real E2E execution separate.
+7. Verify compilation succeeds for affected packages.
+8. Any test or compile failure means the fix is not applied.
 
 ## Guardrails
 

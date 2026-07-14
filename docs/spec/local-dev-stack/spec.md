@@ -24,7 +24,7 @@
 10. **Host-run backend 只暴露 loopback 调试入口**：本地场景环境启动宿主机 backend 时，必须把通配监听地址收敛为 `127.0.0.1:${API_HOST_PORT:-8080}`，避免无关 Docker / Kind bridge listener 占用非 loopback 8080 时阻断本地重启。
 11. **一键重置并重部署调试入口**：开发者反复调试需要干净数据、最新迁移、重新编译并重新加载 host-run backend/frontend 时，根 Makefile 必须提供一个显式的一键 target，顺序执行共享环境数据清理、迁移、redeploy 和 verify；该入口必须复用 `test/scenarios/env-*.sh`，不得复制生命周期逻辑。
 
-本 spec 不实现业务代码、不接入 K8s / Kind / Helm，也不部署 staging。当前 P0 本地测试与 smoke 以 Docker Compose 外部依赖 + 宿主机前后端运行 + `test/scenarios/` 本地 runner 脚本为准；[E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 后续如需部署级环境，必须重新评估并显式修订。
+本 spec 不实现业务代码、不接入 K8s / Kind / Helm，也不部署 staging。当前 P0 本地验证以 Docker Compose 外部依赖 + 宿主机前后端运行作为共享环境；代码层回归由根 `make test` 统一承接，`test/scenarios/e2e/` 只承载真实 HTTP API 或连接真实 backend 的浏览器 UI 流程。[E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 后续如需部署级环境，必须重新评估并显式修订。
 
 ## 2 范围
 
@@ -37,7 +37,7 @@
 - 初始化脚本：MinIO 创建默认 bucket；Postgres 不启用未使用扩展。
 - `.env` 与 `config.yaml` / `config/dev.yaml` / `config/test.yaml` 的最小 dev/test override（连接串、bucket 名、端口、应用组件默认 host/port、auth secrets、frontend real-mode env、AI provider endpoint/key env ref、local raw output debug 默认值）；具体 secrets 抽象与 feature flag 由 [A4 `secrets-and-config`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 承接，本 spec 只锁 dev 默认值与字段名。
 - 数据卷管理：默认命名 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`；Postgres 18 卷挂载到 `/var/lib/postgresql`，由官方镜像管理 `PGDATA=/var/lib/postgresql/18/docker`；`make dev-up` 必须只读检测不兼容布局或半初始化卷并给出显式 reset 指引；提供 `make dev-reset` 用于显式清空（非默认）。
-- 文档：`deploy/dev-stack/README.md` 一屏说明 + 故障排查 + 本地 Mailpit 登录边界 + 与 `test/scenarios/` 本地 runner 场景契约的 cross-link。
+- 文档：`deploy/dev-stack/README.md` 一屏说明 + 故障排查 + 本地 Mailpit 登录边界 + 与 `test/scenarios/` 真实 API/UI 场景契约的 cross-link。
 - 场景环境入口：`test/scenarios/env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-cleanup.sh` / `env-redeploy.sh` 作为 framework-owned 环境生命周期入口；根 `Makefile` 提供 `scenario-env-*` target 委派这些脚本，供 `/scenario-env` 和 `/scenario-redeploy` skill 调用。
 - 一键调试入口：根 `Makefile` 提供 `scenario-env-reset-redeploy`，按 `env-cleanup.sh --with-volumes` → `env-setup.sh --with-migrations` → `env-redeploy.sh all` → `env-verify.sh` 顺序组合现有 framework-owned 脚本；支持 `ARGS=--dry-run` 用于无副作用预览。
 
@@ -46,7 +46,7 @@
 - OTel Collector / Grafana / Loki / Prometheus 默认本地部署：归 [F1 `observability-stack`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 或生产部署路径；A2 默认 `make dev-up` 不安装这些组件，也不以它们作为健康检查前提。
 - AI provider 本地 mock 或基础设施服务：AI provider 不是 A2 本地依赖；A2 不启动 provider mock 容器。单元测试 stub / 离线 provider mock 归 A3；非测试本地 app run 或 optional compose app service 必须把真实 AI provider / OpenAI-compatible endpoint 配置传给应用组件。
 - 自托管 PostHog：归 [F2 `analytics-funnel`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)；ADR-Q3 锁定不依赖 PostHog Cloud，但本地 dev-up 不强制启动 PostHog（资源占用大）。
-- K8s / Kind / Helm 场景集群：当前不属于 P0 本地测试、smoke 或默认部署路径；`test/scenarios/` 只维护 repo-tracked 本地 runner 场景契约。若后续 release owner 需要部署级环境，必须先修订 ADR-Q4 / E4 与本 spec 的边界。
+- K8s / Kind / Helm 场景集群：当前不属于 P0 本地测试、smoke 或默认部署路径；`test/scenarios/e2e/` 只维护真实 HTTP API 或连接真实 backend 的浏览器 UI 场景契约。若后续 release owner 需要部署级环境，必须先修订 ADR-Q4 / E4 与本 spec 的边界。
 - 数据库迁移：归 [B4 `db-migrations-baseline`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec)；A2 仅保证 Postgres 实例可用。
 - 业务种子数据：归各 C 域 mock-server plan；本 spec 只提供空实例。
 
@@ -66,7 +66,7 @@
 | D-8 | 本地观测口径 | 默认依赖容器日志与应用 `/metrics`；`make dev-logs` 汇总容器日志，`make dev-doctor` 可检查已启用 HTTP 组件的 `/metrics` | F1 可以消费这些出口，但不能要求 A2 默认安装观测栈 |
 | D-9 | 本地 AI provider 配置 | `deploy/dev-stack/.env.example` 必须列出 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml`、`AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml` 与 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` env ref；启用 AIClient 的非测试项目组件启动时缺少 catalog path 或当前 provider endpoint / key 必须 fail-fast；A2 不启动 AI provider 容器 | 本地 app run 验证真实 LLM 服务，同时保持 A2 依赖最小化 |
 | D-10 | 本地邮件 sink | 默认依赖包含 Mailpit；`deploy/dev-stack/.env.example` 必须列出 `MAILPIT_WEB_HOST_PORT` / `MAILPIT_SMTP_HOST_PORT` 与 C1/A4 邮件 env（`EMAIL_PROVIDER=mailpit`、SMTP host/port、from、verify base URL）。host-run backend 默认通过 `127.0.0.1:1025` 投递 code-only 邮件到 Mailpit，正文只包含 6 位验证码和 5 分钟过期提示，不包含 frontend `/auth/verify?token=...` 或 backend verify API 链接；`EMAIL_VERIFY_BASE_URL` 仅作为本地 frontend origin / dev CORS 推导来源保留，人工通过 `http://127.0.0.1:8025` 收信并在前端验证页输入 code | 本地测试不依赖真实外部邮箱服务或真实邮箱账号；账号验收走真实 email-code flow，不需要场景专属 backend cmd |
-| D-11 | 独立场景环境生命周期 | `test/scenarios/env-setup.sh` 调 `make dev-up` 并可选执行 migrations；`env-status.sh` / `env-verify.sh` 消费 `make dev-doctor`；`env-cleanup.sh` 默认 `make dev-down`，显式 `--with-volumes` 才走 `DEV_RESET_FORCE=1 make dev-reset`；`env-redeploy.sh` 支持 `deps` / `backend` / `frontend` / `all`，其中 `backend` / `frontend` / `all` 必须在 build artifact 刷新后重启对应 host-run 进程 | 环境管理从具体 `test/scenarios/e2e/p0-*` 场景脚本中抽离；skill 可按用户意图只管理环境、重建并重启组件，或再交给场景 runner/人工 UAT |
+| D-11 | 独立场景环境生命周期 | `test/scenarios/env-setup.sh` 调 `make dev-up` 并可选执行 migrations；`env-status.sh` / `env-verify.sh` 消费 `make dev-doctor`；`env-cleanup.sh` 默认 `make dev-down`，显式 `--with-volumes` 才走 `DEV_RESET_FORCE=1 make dev-reset`；`env-redeploy.sh` 支持 `deps` / `backend` / `frontend` / `all`，其中 `backend` / `frontend` / `all` 必须在 build artifact 刷新后重启对应 host-run 进程 | 环境管理与具体业务场景分离；skill 可按用户意图只管理环境、重建并重启组件，或再交给真实 API/UI 验收 |
 | D-12 | 单一真实 env 来源 | `deploy/dev-stack/.env.example` 必须列出真实本地联调所需的 backend auth secrets、AI provider、邮件、共享依赖、frontend real-mode env；`deploy/dev-stack/.env` 是唯一被 host-run backend/frontend 与 hybrid 场景读取的本地真实 env 文件 | 防止每个场景复制独立 `.env`，保证本地测试环境和真实联调环境通过同一配置构建 |
 | D-13 | local raw output debug 默认开启 | `config/dev.yaml`、`config/test.yaml` 与 `deploy/dev-stack/.env.example` 必须默认 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；`config/config.yaml`、staging、prod 仍默认 false；本地 hybrid 场景 preflight 必须拒绝未开启 raw debug 的真实 provider run | 支持 AI Agent 以本机 raw log 调试 schema/格式问题，同时不扩大生产或共享持久化泄露面 |
 | D-14 | 环境调试摘要 | `env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-redeploy.sh` 必须输出本地调试摘要：frontend dev URL、backend API base、Mailpit URL、MinIO Console URL、`.test-output/local-dev/{backend,frontend}.log`、`.pid` 文件和 `make dev-logs SERVICE=<name>` 容器日志入口 | 开发者能在 Agent 启动环境后直接接管浏览器和日志，不需要猜端口、查进程或追问调试入口 |
@@ -93,7 +93,7 @@
 - `make dev-up` 在启动 Postgres 前必须只读检测 `easyinterview-pg-data` 是否包含 root-level `PG_VERSION`、不兼容 `/var/lib/postgresql/data/PG_VERSION` 或半初始化 `/var/lib/postgresql/18` 布局；命中时退出非 0，提示用户确认本地数据后用 `make dev-reset` 重建，不得自动删除卷。
 - `make dev-doctor` 在容器健康基础上，对 Postgres / Redis / MinIO 必须执行端到端 probe（连接 + 读写最小操作 + 拆解延迟），不能只看容器状态。
 - 对已接入 compose 的 optional HTTP 项目组件，`make dev-doctor` 至少检查 `/healthz`；若组件已声明 `/metrics`，还必须检查 `/metrics` 可访问。P0 不接入独立 worker 进程；backend background runner 随 backend 组件观测。
-- 对已接入 compose 且启用 AIClient 的 optional 项目组件，A2 只检查必要 env 是否存在并把结果纳入 `dev-doctor`；不得在 `dev-doctor` 中发起真实 LLM 付费调用。宿主机运行组件的真实 provider smoke 由 A3 / feature owner 的本地验证负责。
+- 对已接入 compose 且启用 AIClient 的 optional 项目组件，A2 只检查必要 env 是否存在并把结果纳入 `dev-doctor`；不得在 `dev-doctor` 中发起真实 LLM 付费调用，真实 provider smoke 也不属于环境完成 gate。
 - 健康检查超时上限 60s（`dev-up` 默认等待时长），超出后输出每个 DOWN 服务的最近日志尾段（≤ 50 行）。
 
 ### 4.3 性能与资源约束
@@ -104,9 +104,9 @@
 
 ### 4.4 文档约束
 
-- `deploy/dev-stack/README.md` 必须包含：服务表（name/port/credentials default）、optional 项目组件表、`make dev-*` 命令清单、AI provider 配置说明（非测试本地 app run 走真实 provider，stub 仅用于测试）、常见故障（端口占用 / 卷不可写 / 镜像拉取失败）应对、与 `test/scenarios/` 本地 runner 场景契约的区别说明。
+- `deploy/dev-stack/README.md` 必须包含：服务表（name/port/credentials default）、optional 项目组件表、`make dev-*` 命令清单、AI provider 配置说明（非测试本地 app run 走真实 provider，stub 仅用于测试）、常见故障（端口占用 / 卷不可写 / 镜像拉取失败）应对、与 `test/scenarios/` 真实 API/UI 场景契约的区别说明。
 - AI provider 配置说明必须明确 local dev/test 与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，raw output 仅用于本机调试，不得进入持久化审计、runtime-config 或 staging/prod 默认配置。
-- `test/scenarios/README.md` 与 `test/scenarios/e2e/README.md` 必须说明独立环境入口与具体场景 `setup/trigger/verify/cleanup` 的边界：环境入口只能构建共享本地环境，不得引用固定 `p0-*` 场景目录；场景脚本只能消费环境，不得把共享环境 bootstrap 私有化。
+- `test/scenarios/README.md` 必须说明独立环境入口与真实 API/UI 场景的边界：环境入口只能构建共享本地环境，不得引用固定业务场景目录；场景脚本只能消费环境，不得把共享环境 bootstrap 私有化。
 - 本 spec 修订（新增默认依赖 / 端口变更 / 镜像 major 升级 / 默认项目组件启动语义变更）必须递增版本 + history 记录。
 
 ## 5 模块边界
@@ -122,7 +122,7 @@
 | 产品分析 / 自托管 PostHog | F2 | 不阻塞普通 `make dev-up` |
 | 观测 SDK / 指标命名 / dashboard | F1 | F1 消费应用 `/metrics` 与日志出口；生产或可选观测栈不归 A2 默认依赖 |
 | Secrets / config 抽象 | A4 | A2 仅锁 dev 默认值；Mailpit email env 字典由 A4/C1 承接 |
-| 场景 runner 契约 | `test/scenarios/` + feature owner | repo-tracked Go / Vitest / Playwright / browser runner；不默认要求 Kind / K8s |
+| 真实 E2E 场景契约 | `test/scenarios/` + feature owner | 只允许真实 HTTP API，或浏览器访问真实 frontend 且业务请求落到真实 backend；代码层测试由根 `make test` 承接，不默认要求 Kind / K8s |
 | 场景环境生命周期 | A2 + `test/scenarios/` framework | framework-owned `env-*.sh` 与根 `scenario-env-*` Make target；只管理共享本地环境、build artifact 与 cleanup，不承接具体场景断言 |
 | Release 部署环境 | E4 / release owner | 未创建；如需 staging / prod / K8s / Helm，必须单独原地设计并修订 ADR-Q4 |
 
@@ -140,10 +140,10 @@
 | C-8 | A2 executable gate handoff | 本 spec 的 contract lock 已完成，A2 `001-bootstrap` plan 完成 | C-1 + C-7 + C-9 都成立 | A2 的 `make dev-up` 可执行 gate 通过；依赖本地栈的后续 implementation 可启动；roadmap 只保留 active spec 关系，不单独冒充本项已通过 | 001-bootstrap |
 | C-9 | 本地 AI provider 配置不走 stub | 启用了需要 AIClient 的 backend 运行路径；`.env` 缺 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 或当前 profile 选中的 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` | 启动非测试 backend runtime；若该 runtime 已接入 compose，则同时通过 `make dev-up` / `make dev-doctor` 检查 | 组件启动失败或 dev-doctor 报 DOWN/DEGRADED 并说明缺真实 AI provider 配置；补齐 catalog path 与真实 provider endpoint / key 后组件健康；不启动 AI provider 容器，也不把部署切到 stub | 001 |
 | C-10 | 本地邮箱登录 | `make dev-up` 完成，backend 以 `EMAIL_PROVIDER=mailpit` 和真实 auth secrets 在宿主机运行 | 用户调用 `POST /api/v1/auth/email/start` 或前端登录/注册页提交 synthetic `.example.test` 邮箱 | Mailpit Web UI 出现 code-only 邮件；用户把 6 位 code 输入前端验证页后，前端调用 `GET /api/v1/auth/email/verify` 签发 first-party `ei_session` cookie 并回到目标页面；邮件与 URL 不包含 raw code；不依赖真实外部邮箱服务、真实邮箱账号或场景专属 backend cmd | 001 Mailpit revision + frontend-shell/001 Phase 8 + backend-auth/001 Phase 7 |
-| C-11 | 独立环境 setup / verify / cleanup | 开发者或 Agent 只想准备共享本地环境，不准备立即运行具体场景 | 通过 `/scenario-env setup` / `verify` / `status` / `cleanup`，或等价根 `make scenario-env-*` target | 调用 `test/scenarios/env-*.sh` 顶层脚本；setup 启动 dev-stack，verify/status 返回 dev-doctor JSON，cleanup 默认保留命名卷；全流程不引用任何 `test/scenarios/e2e/p0-*` 目录，也不新增 `backend/cmd` / Go helper | 001 environment lifecycle revision |
+| C-11 | 独立环境 setup / verify / cleanup | 开发者或 Agent 只想准备共享本地环境，不准备立即运行具体场景 | 通过 `/scenario-env setup` / `verify` / `status` / `cleanup`，或等价根 `make scenario-env-*` target | 调用 `test/scenarios/env-*.sh` 顶层脚本；setup 启动 dev-stack，verify/status 返回 dev-doctor JSON，cleanup 默认保留命名卷；全流程不引用任何具体业务场景目录，也不新增 `backend/cmd` / Go helper | 001 environment lifecycle revision |
 | C-12 | 独立 rebuild / redeploy | 开发者或 Agent 已有共享本地环境，希望刷新并重新加载当前 backend/frontend runtime 后再人工或自动验证 | `/scenario-redeploy backend|frontend|all` 或 `make scenario-env-redeploy TARGET=backend|frontend|all` | backend target 执行 `go build ./cmd/...` 并重启 `go run ./backend/cmd/api`；若 `.env` 的 `APP_LISTEN_ADDR` 是通配地址，host-run backend 实际监听 `127.0.0.1:${API_HOST_PORT:-8080}`；frontend target 执行 `pnpm --filter @easyinterview/frontend build` 并重启 Vite dev server；all 同时覆盖依赖环境 verify；不会运行具体 BDD 场景，也不会启动真实 provider 付费调用 | 001 environment lifecycle revision |
-| C-13 | 单一真实 env 文件 | 开发者或 Agent 准备真实前后端联调或 `E2E.P0.100` hybrid 场景 | 编辑 `deploy/dev-stack/.env` 并运行目标 backend/frontend/scenario preflight | `deploy/dev-stack/.env.example` 覆盖 auth、AI、邮件、共享依赖、frontend real-mode keys；场景脚本不得要求场景专属 `.env`；缺真实 key 时输出可解释的 `MANUAL_REQUIRED` 或 fail-fast，不降级到 stub | 001 + e2e-scenarios-p0/002 |
-| C-14 | 本地 raw output debug 默认开启 | 开发者或 Agent 准备本地测试、host-run backend/frontend 联调或 `E2E.P0.100` hybrid 场景 | 加载 `config/dev.yaml` / `config/test.yaml` 或 `deploy/dev-stack/.env`，再启动 backend / 场景 preflight | local dev/test effective config 中 `ai.debugPrintRawOutput=true`；`deploy/dev-stack/.env.example` 含 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；`E2E.P0.100` preflight 对缺失或非 true 输出 `MANUAL_REQUIRED`；staging/prod 默认仍关闭 | 001 raw debug local default revision |
+| C-13 | 单一真实 env 文件 | 开发者或 Agent 准备真实前后端联调 | 编辑 `deploy/dev-stack/.env` 并运行目标 backend/frontend/environment preflight | `deploy/dev-stack/.env.example` 覆盖 auth、AI、邮件、共享依赖、frontend real-mode keys；环境和真实链路脚本不得要求私有 `.env`；缺真实 key 时输出可解释的 `MANUAL_REQUIRED` 或 fail-fast，不降级到 stub | 001 environment lifecycle |
+| C-14 | 本地 raw output debug 默认开启 | 开发者或 Agent 准备本地测试或 host-run backend/frontend 联调 | 加载 `config/dev.yaml` / `config/test.yaml` 或 `deploy/dev-stack/.env`，再启动 backend/environment preflight | local dev/test effective config 中 `ai.debugPrintRawOutput=true`；`deploy/dev-stack/.env.example` 含 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；缺失或非 true 时真实 provider preflight 输出 `MANUAL_REQUIRED`；staging/prod 默认仍关闭 | 001 raw debug local default revision |
 | C-15 | 可接管调试信息 | 开发者或 Agent 创建、验证或重建共享本地环境 | 执行 `test/scenarios/env-setup.sh`、`env-status.sh`、`env-verify.sh` 或 `env-redeploy.sh all` | 输出 frontend/backend/Mailpit/MinIO 地址、backend/frontend 日志路径、PID 文件和容器日志命令；`env-redeploy.sh all` 后浏览器访问的 frontend origin 和 Mailpit code-only 邮件验证页入口均来自当前 `deploy/dev-stack/.env` | 001 developer debug handoff revision |
 | C-16 | Bridge listener 不阻断 backend 重启 | `.env` 仍使用 `APP_LISTEN_ADDR=:8080`，且本机存在不属于 easyinterview 的非 loopback bridge listener 占用 8080 | 执行 `test/scenarios/env-redeploy.sh backend` 或 `make scenario-env-redeploy TARGET=backend` | 脚本不杀掉无关 listener；host-run backend 用 `127.0.0.1:${API_HOST_PORT:-8080}` 成功启动并写入 PID/log；`http://127.0.0.1:${API_HOST_PORT:-8080}/api/v1/runtime-config` 可访问，首次登录用户访问简历列表不再因 stale / down backend 返回 500 | 001 developer debug handoff revision |
 | C-17 | 一键清数据重编译重部署 | 开发者需要从干净本地数据状态重新加载当前代码，避免每次手工输入多段命令 | `make scenario-env-reset-redeploy`；若只想预览则执行 `make scenario-env-reset-redeploy ARGS=--dry-run` | 实际执行时依次清空 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`、重建依赖并跑 migrations、重编译并重启 backend/frontend、执行 shared env verify；dry-run 输出 `env-cleanup --with-volumes`、`env-setup --with-migrations`、`env-redeploy all`、`env-verify` 四段命令且不改变环境 | 001 Phase 10 one-click reset/redeploy revision |
@@ -160,4 +160,4 @@ A2 `001-bootstrap` 已完成并落地本地依赖 compose、dev lifecycle Make t
 - 确保 local dev/test 与真实本地联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，并把 raw output 限定在本机 stderr / `.test-output/` 调试日志。
 - 提供 `deploy/dev-stack/README.md` 与故障排查。
 
-A2 后续如需扩展（新增默认依赖、接入 optional 项目组件、改变本地场景 runner 边界），在原 spec 上递增版本，原地修订；不创建 sibling spec。
+A2 后续如需扩展（新增默认依赖、接入 optional 项目组件、改变共享环境或真实 API/UI 场景边界），在原 spec 上递增版本，原地修订；不创建 sibling spec。

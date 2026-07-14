@@ -314,8 +314,8 @@ objectStorage:
 upload:
   presignTTLSeconds: 600
   maxBytes:
-    resume: 2097152
-    privacyExport: 5242880
+    resume: 2048
+    privacyExport: 4096
 `)
 	loader, err := config.Load(config.Options{ConfigDir: dir})
 	if err != nil {
@@ -508,7 +508,7 @@ runtime:
 	}
 }
 
-func TestResumeTailorEndpointsHTTPScenario(t *testing.T) {
+func TestResumeTailorEndpointsHTTPContract(t *testing.T) {
 	dir := t.TempDir()
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
@@ -785,8 +785,8 @@ objectStorage:
 upload:
   presignTTLSeconds: 600
   maxBytes:
-    resume: 2097152
-    privacyExport: 5242880
+    resume: 2048
+    privacyExport: 4096
 `)
 	loader, err := config.Load(config.Options{ConfigDir: dir})
 	if err != nil {

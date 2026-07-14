@@ -17,8 +17,8 @@ import (
 // TestParseExecutorRegistryAdapterCrossLayer wires a real F3 RegistryAdapter
 // (not the in-package fakeRegistry) into ParseExecutor so the
 // PromptResolution shape that flows from yaml meta on disk through the
-// adapter, the executor, and the AI metadata payload is exercised
-// end-to-end. Plan §3.4 verification gate.
+// adapter, the executor, and the AI metadata payload is exercised across the
+// in-process contract. Plan §3.4 verification gate.
 //
 // The test does not verify B4 ai_task_runs typed columns (those land in
 // Phase 4 alongside the additive migration); it only freezes the field

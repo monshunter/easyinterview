@@ -1,8 +1,8 @@
 # Shared Conventions Bootstrap Checklist
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -63,7 +63,7 @@
   <!-- verified: 2026-07-12 method=conventions-green evidence="lint reports 11 enums/23 errors; two codegen passes have identical SHA-256 manifests; owner drift checks all 10 outputs; Go shared packages, 34 TS conventions/ids tests and TypeScript noEmit pass. Aggregate B2 codegen-check is deferred until the proposed OpenAPI consumes this marker." -->
 - [x] 9.3 NEGATIVE-GATE: generated Go/TS parity rejects any missing, duplicate, misspelled, message-divergent or retryable variant; no OpenAPI-owned file is required for this B1 gate.
   <!-- verified: 2026-07-12 method=generator-linter-cross-language-parity evidence="Generator and linter mutation matrices reject all five variants; generated Go registry and TS registry assert exact code/message/retryability and match the shared parity fixture." -->
-- [x] 9.4 Emit `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` after B1 context validation and hand off to B2/openapi-v1-contract/001; the marker does not claim OpenAPI parity, the 48,000-byte runtime boundary or provider-call suppression.
+- [x] 9.4 Emit `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` after B1 context validation and hand off to B2/openapi-v1-contract/001; the marker does not claim OpenAPI parity, any runtime byte boundary or provider-call suppression.
   <!-- verified: 2026-07-12 marker=REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS method=validated-b1-owner-context scope="canonical YAML plus generated Go/TS code/message/retryability only; excludes OpenAPI parity, runtime byte boundary and provider suppression" -->
 
 ## Phase 10: TargetJob paste-only error vocabulary

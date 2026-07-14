@@ -44,7 +44,7 @@ func (s *meStore) CompleteUserProfile(_ context.Context, userID string, displayN
 	return s.user, nil
 }
 
-func (s *emailCodeScenarioStore) CompleteUserProfile(_ context.Context, userID string, displayName string, _ time.Time) (auth.UserContext, error) {
+func (s *emailCodeContractStore) CompleteUserProfile(_ context.Context, userID string, displayName string, _ time.Time) (auth.UserContext, error) {
 	user, ok := s.usersByID[userID]
 	if !ok {
 		return auth.UserContext{}, auth.ErrUserNotFound

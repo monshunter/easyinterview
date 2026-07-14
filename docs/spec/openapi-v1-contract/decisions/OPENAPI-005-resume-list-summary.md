@@ -27,7 +27,7 @@
 - `ResumeSummary` 禁止任何未列出的字段，尤其禁止 `fileObjectId`、`originalText`、`parsedTextSnapshot`、`parsedSummary`、`structuredProfile`、`createdAt`、`deletedAt`、`status` 与 provenance。
 - 当前 register/create path 始终写入合法 `source_type`。若数据库存在 NULL 或非法 legacy row，list projection 必须按数据完整性错误 fail closed；不得根据 `fileObjectId` 补猜、伪造默认值或静默隐藏该行。本 correction 不为未上线历史形态新增兼容迁移。
 - 保持 `GET /api/v1/resumes/{resumeId}`、operationId `getResume`、`200 + Resume` 全详情合同不变；详情页继续只从该 operation 读取详情字段。
-- OpenAPI source、fixture/example、Go/TS codegen、backend store/service/handler、mock、Home/Resume Workshop/其它前端消费者与 P0.034/P0.036/P0.037 必须同批迁移。不得增加旧 shape alias、可选详情字段、第二个列表 endpoint 或 frontend fallback fetch。
+- OpenAPI source、fixture/example、Go/TS codegen、backend store/service/handler、mock、Home/Resume Workshop/其它前端消费者必须同批迁移。不得增加旧 shape alias、可选详情字段、第二个列表 endpoint 或 frontend fallback fetch。
 
 ## 3 影响
 
@@ -37,12 +37,12 @@
 | Fixtures / Mock | `Resumes/listResumes.json`、fixture validator、examples、Prism/mock parity | openapi-v1-contract 002 + mock-contract-suite |
 | 后端 | list projection SQL/record/service mapper/handler；`getResume` detail mapper 保持 | backend-resume |
 | 前端 | Home 简历选择器、Resume Workshop 列表及所有 `listResumes` consumers；详情继续消费 `getResume` | frontend-home + frontend-resume-workshop + shared client consumers |
-| BDD | register/list、flat list/auth、detail read-only 分离 | E2E.P0.034 + E2E.P0.036 + E2E.P0.037 |
+| Regression | register/list、flat list/auth、detail read-only 分离 | backend/frontend owner tests + root `make test` |
 
 ## 4 迁移与回滚
 
 - **迁移路径**：先记录本 accepted decision；003 Phase 9 从 merge-base 旧 baseline 对 proposed OpenAPI 生成并 exact-match machine oracle；001/002/004 与全部 backend/frontend/mock/scenario consumer 同批切换；全部 gate 通过后才允许 re-freeze。
-- **放行条件**：37 operations/10 tags、list/get method/path/operationId/status、pagination envelope 与完整 `getResume` 保持；list item 只含九个 required 字段；backend 不读取详情列组装列表；frontend 不通过额外详情请求补列表；P0.034/P0.036/P0.037 通过。
+- **放行条件**：37 operations/10 tags、list/get method/path/operationId/status、pagination envelope 与完整 `getResume` 保持；list item 只含九个 required 字段；backend 不读取详情列组装列表；frontend 不通过额外详情请求补列表；根 `make test` 与 contract/fixture/codegen gates 通过。
 - **回滚**：任一 store projection、generated type、fixture/mock、consumer 或 BDD gate 未同批完成时整体回滚本 correction；不得恢复详情字段作为兼容可选项或由前端 N+1 请求补齐。
 - **SemVer**：v1.0.0 尚未发布，本变更作为 accepted pre-release freeze correction 原地 re-freeze；发布后同类 response narrowing 必须使用 major version。
 

@@ -12,18 +12,17 @@ package judgecompatible
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/internal/responsebody"
 	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
@@ -243,34 +242,14 @@ func errorCode(err error) string {
 }
 
 func readResponseBody(resp *http.Response, maxResponseBodyBytes int64) ([]byte, error) {
-	reader := io.Reader(resp.Body)
-	compressed := false
-	if !resp.Uncompressed {
-		switch strings.ToLower(strings.TrimSpace(resp.Header.Get("Content-Encoding"))) {
-		case "", "identity":
-		case "gzip":
-			zr, err := gzip.NewReader(resp.Body)
-			if err != nil {
-				return nil, stableError(sharederrors.CodeAiOutputInvalid)
-			}
-			defer zr.Close()
-			reader = zr
-			compressed = true
-		default:
-			return nil, stableError(sharederrors.CodeAiOutputInvalid)
-		}
+	body, err := responsebody.Read(resp, maxResponseBodyBytes)
+	if err == nil {
+		return body, nil
 	}
-	body, err := io.ReadAll(io.LimitReader(reader, maxResponseBodyBytes+1))
-	if err != nil {
-		if compressed {
-			return nil, stableError(sharederrors.CodeAiOutputInvalid)
-		}
+	if errors.Is(err, responsebody.ErrRead) {
 		return nil, stableError(sharederrors.CodeAiProviderTimeout)
 	}
-	if int64(len(body)) > maxResponseBodyBytes {
-		return nil, stableError(sharederrors.CodeAiOutputInvalid)
-	}
-	return body, nil
+	return nil, stableError(sharederrors.CodeAiOutputInvalid)
 }
 
 func stableError(code string) *sharederrors.APIError {
