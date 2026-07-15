@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-15](2026-07-15.md) | `refactor(ui-design): remove demo runtime and add pruning gate` | #refactor #ui #test #docs |
 | [2026-07-15](2026-07-15.md) | `fix(e2e): enforce real API and UI evidence` | #fix #test #docs #bdd |
 | [2026-07-14](2026-07-14.md) | `docs(runtime): close content limit delivery` | #docs #test #bdd |
 | [2026-07-14](2026-07-14.md) | `fix(runtime): centralize content size limits (BUG-0171)` | #fix #api #ui #test #docs #bdd |

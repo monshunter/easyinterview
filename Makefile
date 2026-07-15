@@ -14,7 +14,7 @@ SCENARIO_ENV_CLEANUP := $(ROOT_DIR)/test/scenarios/env-cleanup.sh
 SCENARIO_ENV_REDEPLOY := $(ROOT_DIR)/test/scenarios/env-redeploy.sh
 TARGET ?= all
 
-.PHONY: help fmt lint lint-go-mod-tidy lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-out-of-scope lint-runner-out-of-scope lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-secrets-pattern lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy scenario-env-reset-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-go-mod-tidy lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-out-of-scope lint-runner-out-of-scope lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-ui-demo-pruning lint-secrets-pattern lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy scenario-env-reset-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -22,7 +22,7 @@ help: ## List all top-level make targets with their descriptions
 fmt: ## Format Go sources with gofmt
 	@find "$(ROOT_DIR)/backend" -type f -name '*.go' -print0 | xargs -0 gofmt -w
 
-lint: lint-go-mod-tidy lint-conventions lint-config lint-ai-profile-coverage lint-backend-practice-out-of-scope lint-runner-out-of-scope lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-runtime-topology ## Lint Go and frontend sources (A1/B1/A4/A3-F3/E1/runtime-topology local gates, then backend golangci-lint + frontend pnpm lint)
+lint: lint-go-mod-tidy lint-conventions lint-config lint-ai-profile-coverage lint-backend-practice-out-of-scope lint-runner-out-of-scope lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-ui-demo-pruning lint-runtime-topology ## Lint Go and frontend sources (A1/B1/A4/A3-F3/E1/runtime-topology local gates, then backend golangci-lint + frontend pnpm lint)
 	@cd "$(ROOT_DIR)/backend" && golangci-lint run ./...
 	@pnpm --filter @easyinterview/frontend lint
 
@@ -76,6 +76,9 @@ lint-mock-contract: validate-fixtures lint-openapi ## Validate fixture coverage,
 
 lint-core-loop-pruning-surface: ## Bucket D-22 out-of-scope Debrief/Profile/JD Match runtime/generated references and fail real residuals
 	@python3 "$(ROOT_DIR)/scripts/lint/core_loop_pruning_surface.py" --repo-root "$(ROOT_DIR)"
+
+lint-ui-demo-pruning: ## Reject the removed UI Demo and active contracts that depend on it
+	@python3 "$(ROOT_DIR)/scripts/lint/ui_demo_pruning.py" --repo-root "$(ROOT_DIR)"
 
 lint-secrets-pattern: ## Scan staged + tracked files for AKIA / sk- / xox secret prefixes (defense-in-depth; pre-commit hook is the primary gate)
 	@bash "$(ROOT_DIR)/scripts/lint/gitleaks.sh" "$(ROOT_DIR)"

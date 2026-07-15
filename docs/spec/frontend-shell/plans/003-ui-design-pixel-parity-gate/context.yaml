@@ -4,34 +4,26 @@ metadata:
   subspec: frontend-shell
   name: 003-ui-design-pixel-parity-gate
   sequence: 3
+  baseBranch: main
+  branch: ui-design-source-pruning
   specVersion:
-    from: 1.7
-    to: 1.26
+    from: 1.30
+    to: 1.31
 spec:
   defaultTarget: frontend
   discovery:
     aliases:
       - frontend-shell
       - ui-design-pixel-parity-gate
-      - Playwright pixel parity gate
-      - frontend pixel parity
+      - UI Demo pruning
+      - documentation-owned UI design
     keywords:
-      - playwright
-      - chromium
-      - desktop viewport
-      - mobile viewport
-      - bounding box
-      - computed style
-      - non-empty screenshot buffer
-      - clean checkout
-      - screenshot smoke
-      - workspace initial route bootstrap
-      - server-bound workspace
-      - golden preview
-      - ui-design parity
-      - real browser visual smoke
-      - serve-pixel-parity
-      - test:pixel-parity
+      - delete ui-design demo
+      - remove pixel parity
+      - docs ui design architecture
+      - UI design process
+      - prototype fixture sync removal
+      - source traceability removal
   targets:
     frontend:
       plan: ./plan.md
@@ -47,12 +39,15 @@ spec:
         - ../002-app-shell-visual-system/bdd-checklist.md
       discovery:
         packages:
-          - frontend/playwright.config.ts
+          - AGENTS.md
+          - docs/ui-design
+          - docs/development.md
+          - frontend/README.md
           - frontend/src/main.tsx
           - frontend/scripts
-          - frontend/tests/pixel-parity
-          - frontend/dist
-          - ui-design
+          - scripts/codegen
+          - scripts/lint
+          - Makefile
         uiRoutes:
           - home
           - workspace

@@ -1,47 +1,38 @@
-# UI-Design Pixel Parity Gate Checklist
+# UI Demo Pruning and Documentation-Owned Design Checklist
 
-> **版本**: 1.7
-> **状态**: completed
-> **更新日期**: 2026-07-07
+> **版本**: 2.0
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
-## Phase 1: Playwright infrastructure
+## Phase 1: 建立删除合同并移除 Demo 实体
 
-- [x] 1.1 `@playwright/test` and npm scripts are available（验证：`frontend/package.json` includes `test:pixel-parity` and `test:pixel-parity:install`）
-- [x] 1.2 `frontend/playwright.config.ts` declares desktop and mobile projects, pixel testDir, outputDir and static webServer（验证：scaffold tests and `pnpm exec playwright test --list`）
+- [x] 1.1 新增 `scripts/lint/ui_demo_pruning.py`、`scripts/lint/ui_demo_pruning_test.py` 与 `make lint-ui-demo-pruning`，建立 `ui-design/` 零目录与 active-reference allowlist 合同（验证：`python3 -m pytest scripts/lint/ui_demo_pruning_test.py -q` Red=`ModuleNotFoundError`，Green=`6 passed`）
+- [x] 1.2 删除 `ui-design/` 全部实体资产（验证：`test ! -d ui-design`；`python3 -m pytest scripts/lint/ui_demo_pruning_test.py -q`=`6 passed`；完整 pruning lint 保持后续 active-reference Red）
 
-## Phase 2: Shell parity
+## Phase 2: 让 `docs/ui-design/` 成为纯设计文档
 
-- [x] 2.1 TopBar real-browser parity covers current three entries, language menu, display controls and computed style（验证：`frontend/tests/pixel-parity/topbar.spec.ts`）
-- [x] 2.2 Auth/login shell and settings shell parity cover source-level DOM anchors and geometry（验证：`frontend/tests/pixel-parity/screens.spec.ts`）
-- [x] 2.3 Desktop/mobile layout checks prove TopBar, auth shell and user area stay in viewport without overlap（验证：`frontend/tests/pixel-parity/layout.spec.ts`）
+- [ ] 2.1 改写 `docs/ui-design/README.md`、`INDEX.md` 与 `TEMPLATES.md`，移除 Demo 运行/同步合同并明确文档 owner（验证：`make docs-check` + Demo path negative scan）
+- [ ] 2.2 修订 `docs/ui-design/*.md` 中的原型源码、hash route、source replication 和 parity 口径，保留 UI 架构/流程/交互语义（验证：`make docs-check` + focused `rg` negative scan）
 
-## Phase 3: Screenshot and theme parity
+## Phase 3: 删除双源工具链
 
-- [x] 3.1 Screenshot smoke uses non-empty browser buffers alongside DOM/style/geometry assertions（验证：`frontend/tests/pixel-parity/screenshot.spec.ts`）
-- [x] 3.2 Dark mode and customAccent mutate expected root tokens and visible paint（验证：`screenshot.spec.ts` plus per-screen specs）
+- [ ] 3.1 删除 Playwright Demo parity config/server/spec/package 入口与 scaffold tests（验证：frontend package tests + package script/dependency negative scan）
+- [ ] 3.2 删除 prototype fixture sync script/test/mapping/Make target，保持 OpenAPI fixture owner 独立（验证：相关 Python/Make tests + `make codegen-check`）
+- [ ] 3.3 从根 `make test`、lint 与辅助脚本移除 Demo 合同测试和扫描路径并接入删除合同（验证：Makefile dry-run tests + Demo pruning lint）
 
-## Phase 4: Current screen parity expansion
+## Phase 4: 解耦正式前端测试与源码注释
 
-- [x] 4.1 Home, Parse and Workspace parity specs cover current DOM anchors, responsive geometry, theme and screenshot smoke（验证：`home.spec.ts`, `parse.spec.ts`, `workspace.spec.ts`）
-- [x] 4.2 Resume Workshop parity specs cover flat list, create flow, read-only detail and out-of-scope tree/branch/guided/rewrites/edit negative gates（验证：resume-workshop pixel specs）
-- [x] 4.3 Practice, Generating and Report parity specs cover current DOM anchors, layout, theme and screenshot smoke（验证：`practice.spec.ts`, `generating.spec.ts`, `report.spec.ts`）
-- [x] 4.4 Workspace full-state uses server-bound initial route bootstrap rather than synthetic route params（验证：`workspace.spec.ts`）
-- [x] 4.5 Authenticated user-menu browser parity covers avatar chip, dropdown geometry, mobile viewport containment and logout flow（验证：`topbar.spec.ts`）
+- [ ] 4.1 删除或改写读取 `ui-design/src` 的 source-traceability tests，保留正式 token/DOM/control/route/responsive/a11y 断言（验证：相关 focused Vitest；Phase 结束执行根 `make test`）
+- [ ] 4.2 清理 `frontend/` 源码注释、模块 README 和失去价值的 Demo import 负向断言（验证：frontend focused tests + active-reference negative scan；Phase 结束执行根 `make test`）
 
-## Phase 5: Tooling and docs handoff
+## Phase 5: 修订当前治理与 owner 文档
 
-- [x] 5.3 `frontend/README.md` documents Playwright install, frontend build, parity run, screenshot smoke and offline CDN limits（验证：docs-check）
-- [x] 5.4 Out-of-scope route/module entries are negative-only and do not materialize as live parity surfaces（验证：pixel specs）
+- [ ] 5.1 修订 `AGENTS.md`、`docs/development.md`、`docs/README.md`、`design` / `implement` / `plan-code-review` / `tdd` skills 和仍被当前 context 使用的 spec/plan/checklist/context，确立 `docs/ui-design/` 设计文档 → `frontend/` 直接实施流程（验证：skill tests + context validation + `make docs-check`）
+- [ ] 5.2 清理非历史 active 资产中的 Demo-first、pixel parity、source-level replication、golden preview 和“UI 真理源”合同（验证：Demo pruning lint + allowlisted historical-only repository scan）
 
-## Phase 6: closeout
+## Phase 6: 验证与生命周期收口
 
-- [x] 6.1 `pnpm --filter @easyinterview/frontend build` passes before pixel parity（验证：owner closeout）
-- [x] 6.2 `pnpm --filter @easyinterview/frontend test:pixel-parity` passes for the current parity suite（验证：owner closeout）
-- [x] 6.3 Owner context and docs/index are current（验证：`validate_context.py frontend-shell/003 frontend`; `sync-doc-index --check`; `make docs-check`）
-
-## Phase 7: Current inventory hardening
-
-- [x] 7.1 Pixel parity remains a dedicated real-browser visual gate and is not represented as BDD/E2E.
-- [x] 7.2 Frontend unit-test completion is reported only by repository-root `make test`; focused tests remain development feedback.
+- [ ] 6.1 执行 Demo pruning lint、`make test`、`make build`、`make docs-check`、`make codegen-check` 与 `git diff --check` 并记录当前 PASS
+- [ ] 6.2 完成 post-pass doc reconcile、INDEX 同步和 retrospective 后恢复 spec/plan/checklist `completed` 生命周期（验证：context validator + sync-doc-index check + checklist zero-open）
