@@ -1,7 +1,7 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.27
-> **状态**: active
+> **版本**: 1.28
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 ## 1 背景与目标
@@ -17,7 +17,7 @@
 - `reports`：受保护的独立页面，唯一上下文参数为 `targetJobId`；读取当前 TargetJob 与 `listTargetJobReports(targetJobId)`，只展示该规划 canonical rounds 的 `currentReport/latestAttempt`，不做全局中心或完整版本历史。
 - `reports` 的 loading / empty / error / ready 状态彼此完备；target/round identity 漂移、跨规划响应和 stale request 均 fail closed，不渲染其他规划 sentinel 或错链。
 - `generating`：轮询真实 report status，展示诚实的异步等待说明；不伪造百分比、实时观察或通知订阅。
-- `report`：Header、三项 Context Strip、两项 Summary Metrics、两行各两个常驻内容区（Dimensions / Strength Evidence / Risks / Next Actions），以及底部一个全宽 Overall Summary。
+- `report`：Header、四项 Context Strip（目标岗位 / 轮次 / 可链接简历副本 / 面试记录）、两项 Summary Metrics、两行各两个常驻内容区（Dimensions / Strength Evidence / Risks / Next Actions），以及底部一个全宽 Overall Summary。
 - `report-conversation`：仅以 `reportId` 读取报告附属的 ordered user/assistant transcript，安全渲染 Markdown/GFM，并返回同一报告状态页；queued/generating/ready/failed 都可访问。
 - Overall Summary 使用“面试总评”标题，同时展示 localized readiness tier 与服务端 `summary`；二者不得继续出现在顶部指标区，`summary` 全页只展示一次。
 - Dimension 使用动态 `label`，status/confidence 走完整 zh/en i18n，不泄漏 raw enum/code。
@@ -41,7 +41,7 @@
 | ID | 决策 | 当前结论 |
 |----|------|----------|
 | D-1 | 报告粒度 | 整场 conversation，不按题目/turn |
-| D-2 | 页面骨架 | 无 tab；desktop 自上而下严格采用 `3/2/2/2/1`：Context Strip 三项、数量指标两项、两行各两个常驻区块、底部全宽面试总评；mobile 保持同一 DOM 顺序并收敛为单列 |
+| D-2 | 页面骨架 | 无 tab；desktop 自上而下严格采用 `4/2/2/2/1`：Context Strip 四项、数量指标两项、两行各两个常驻区块、底部全宽面试总评；mobile 保持同一 DOM 顺序并收敛为单列；desktop 同一双列行的两个 panel 必须等高，短内容侧在卡片内部留白 |
 | D-3 | 报告语义 | LLM direct semantic API；前端只展示 summary、label/status/confidence、evidence、actions |
 | D-4 | CTA 推荐 | first next action 只切换两枚既有 CTA 主次，用户仍可自主选择 |
 | D-5 | Replay focus | 后端 source report 是唯一事实源，客户端不透传 focus |
@@ -55,7 +55,8 @@
 | D-13 | Back 恢复目标 | trusted `getFeedbackReport` / poll response 提供 `targetJobId` 时，ready、failed 与 recoverable generating 均返回 `/reports?targetJobId=...`；missing reportId、404/首读网络失败或 invalid payload 无可信 TargetJob identity 时返回 `workspace` | Report/Generating route 保持 reportId-only，不把 targetJobId 复制进其 URL，也不让 route identity 覆盖 API |
 | D-14 | 当前规划报告列表 | 页面级 `/reports?targetJobId=...` 只展示该 TargetJob canonical rounds 的当前可用报告与最新生成状态；不跨规划、不展示完整历史、也不加入全局 TopBar | `getTargetJob` 提供当前规划/轮次展示事实，`listTargetJobReports` 只提供 report locator 与 attempt 状态；两者 identity 必须闭合 |
 | D-15 | Reports Back 与解析职责分离 | ReportsScreen 的可信目标返回 `/workspace?targetJobId=...` 只读详情；Workspace query 只携带 `targetJobId`，不得增加 `resumeId`、`planId`、`reportId` 或 `section` | `parse` 命令/进度路由只承接新 JD 解析；读取既有规划不得展示解析动画，也不得触发 import 或 polling |
-| D-16 | 报告附属会话记录 | Report Context Strip 下方是主入口，ReportsScreen 当轮 current report 行可提供快捷入口；canonical route 为 `/report-conversation?reportId=...` | 只消费 generated `getReportConversation`；不增加会话列表、第三个 Header CTA、新关系表或浏览器业务存储 |
+| D-16 | 报告附属会话记录 | Report Context Strip 第四个同级子项是主入口，ReportsScreen 当轮 current report 行可提供快捷入口；canonical route 为 `/report-conversation?reportId=...` | 只消费 generated `getReportConversation`；不增加会话列表、第三个 Header CTA、新关系表或浏览器业务存储 |
+| D-17 | 报告上下文链接 | 面试记录并入 Context Strip 第四项；简历显示冻结 `resumeDisplayName` 并链接 frozen `resumeId` 的 canonical `/resume-versions?resumeId=...` | Report 不额外调用 `getResume`；URL 可复制、可新标签页打开，目标页复用既有简历详情读取链 |
 
 ## 4 UI 设计与正式实现
 
@@ -136,7 +137,8 @@ ReportDashboard
 ├─ ContextStrip
 │  ├─ target
 │  ├─ round
-│  └─ resume
+│  ├─ resume link
+│  └─ interview record link
 ├─ SummaryMetrics
 │  ├─ dimension count
 │  └─ evidence count
@@ -152,12 +154,13 @@ ReportDashboard
 
 ### 6.4 可读性与响应式
 
-- target/round/resume 只读 frozen report context，可换行或通过 title/accessible description 查看完整值。session/report UUID 等内部 locator 不渲染为用户字段，也不通过 title、tooltip 或 accessible description 暴露。
-- Desktop ready 内容严格按 `3/2/2/2/1`：Context Strip 三列、Summary Metrics 两列、Dimensions/Strength Evidence 两列、Risks/Next Actions 两列、Overall Summary 跨两列全宽。Mobile 390px 保持相同 DOM 顺序并全部单列，长 label/evidence/action/summary 不横向溢出。
+- target/round/resume/interview record 是同一 Context Strip 的四个同级子项；target/round/resume 来自只读 frozen report context，resume 名称以 frozen `resumeId` canonical URL 打开副本，interview record 通过不携带 reportId DOM 属性的站内 action 打开。session/report UUID 等内部 locator 不渲染为用户字段，也不通过 title、tooltip 或 accessible description 暴露。
+- Desktop ready 内容严格按 `4/2/2/2/1`：Context Strip 四列、Summary Metrics 两列、Dimensions/Strength Evidence 两列、Risks/Next Actions 两列、Overall Summary 跨两列全宽。Mobile 390px 保持相同 DOM 顺序并全部单列，长 label/evidence/action/summary 不横向溢出。
+- Desktop 两个 detail row 都以较高 panel 决定行高，同行较短 panel 的可见卡片边框填满该行并在内部留白；不得只拉伸无边框 wrapper，导致卡片本体仍一高一低。
 - Frontend consumer 在 render 前执行 24/64 semantic boundary；English 按 ECMAScript `/\s/u` whitespace words（U+FEFF 是 delimiter，U+0085 不是）、zh-CN 按 Unicode code points 计数。超界 payload 不进入 ReportDashboard，不得利用 CSS 截断把 invalid 内容伪装为可用。
 - Deterministic frontend/OpenAPI fixture 使用恰好 24-word/64-code-point actions；正式 frontend 的 1440x1200 与 390x844 full-page responsive/geometry gate 必须覆盖 action 区域和底部 Overall Summary，证明完整换行、顺序稳定且 `summary` 只出现一次。200-code-point malformed fixture只证明 typed invalid/no-raw-output，不得替代 UX gate；18/52 targeted-repair margin 也不得替代边界 fixture。
 - Context Strip 用户验收固定写入 `.test-output/acceptance/report-context-strip/<run-id>/`，且成功目录只包含 `report-context-strip-desktop-1440x1200.png`、`report-context-strip-mobile-390x844.png` 与 `manifest.json`。两图必须来自同一正式 frontend 的真实 backend ready report，分别使用 exact viewport 1440x1200 / 390x844 和 `fullPage: true`；不得用 fixture-only 页面、裁剪图或额外 loading/error 图冒充。
-- `manifest.json` 必须逐图记录相对路径、SHA-256、`state=ready`、viewport width/height、`fullPage=true`、同一 report 的脱敏 locator/digest，以及 `reportSentinelAbsent=true`、`sessionSentinelAbsent=true`；同时绑定该页面的 DOM/a11y negative audit，证明 report/session sentinel 在 text、title/tooltip、任意 `aria-*` 与 accessible name 中均不存在。截图中 target/round/resume 必须可见，且 report/session sentinel 不能以用户文案、调试标记或可访问名称出现。
+- `manifest.json` 必须逐图记录相对路径、SHA-256、`state=ready`、viewport width/height、`fullPage=true`、同一 report 的脱敏 locator/digest，以及 `reportSentinelAbsent=true`、`sessionSentinelAbsent=true`；同时绑定该页面的 DOM/a11y negative audit，证明 report/session sentinel 在 text、title/tooltip、任意 `aria-*` 与 accessible name 中均不存在。截图中 target/round/resume/interview record 必须可见，resume link 与 conversation action 必须通过当前行为审计，且 report/session sentinel 不能以用户文案、调试标记或可访问名称出现。
 - status/confidence、readiness、CTA chrome、empty/error/loading 随 UI locale 本地化；summary、dimension label、evidence 与 action label 按 report language 原样展示。未知 enum fail closed 到 typed error，不回显 raw token。
 
 ### 6.5 CTA
@@ -205,17 +208,17 @@ ReportConversation(reportId)
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | honest generating | report queued/generating | 页面轮询 | 无假百分比、假观察、假通知 | 001 |
-| C-2 | ready dashboard | direct semantic report | 打开 report | desktop 为 `3/2/2/2/1`；顶部只有两个数量指标，四个内容区之后是全宽面试总评，localized readiness 与唯一 `summary` 完整 | 001 |
+| C-2 | ready dashboard | direct semantic report | 打开 report | desktop 为 `4/2/2/2/1`；四项上下文同属一个 block，简历具有 canonical URL、面试记录使用不暴露 reportId 的 action，两组 detail panel 同行等高；顶部只有两个数量指标，四个内容区之后是全宽面试总评，localized readiness 与唯一 `summary` 完整 | 001 |
 | C-3 | recommended action | retry/next/review first action | 查看 Header | 仅切换现有 CTA 主次且功能可用 | 001 |
 | C-4 | server-owned replay | report 含 retry focus | 点击复练 | request 不传 focus，服务端 plan/session 得到 focus | 001 |
 | C-5 | long/mobile | 长 target/round/resume/evidence | desktop/mobile 打开 | 完整可读、mobile 单列、无横向溢出 | 001 |
-| C-6 | deterministic responsive contract | frontend/OpenAPI fixtures 含恰好 24-whitespace-word / 64-Unicode-code-point actions | 运行正式 frontend component/browser gate | DOM 顺序、style、bbox 与 viewport 证明 desktop `3/2/2/2/1`、mobile 同序单列、底部总评全宽/可读、边界 label 完整换行且无截断/省略/横溢 | 001 |
+| C-6 | deterministic responsive contract | frontend/OpenAPI fixtures 含恰好 24-whitespace-word / 64-Unicode-code-point actions | 运行正式 frontend component/browser gate | DOM 顺序、style、bbox 与 viewport 证明 desktop `4/2/2/2/1`、两组 detail panel 同行等高、mobile 同序单列、底部总评全宽/可读、边界 label 完整换行且无截断/省略/横溢 | 001 |
 | C-7 | current-run canonical mobile UAT | P0.099 当前 run 的 en/zh ready rows | exact six images | 每个 row 绑定 DB/API `canonical_report_content_digest`、`action_length_audit`、`content_audit`、`screenshot_sha256` 与 report/session/context digest；390x844 report 图覆盖 action 区域与其后的面试总评，实际 `<=24-word` / `<=64-code-point` label 与唯一 summary 完整可见且无截断/省略/横溢 | 001 |
 | C-8 | stale negative | 全仓 active assets | 扫描 | 无 raw enum UI、fake-live copy、客户端 focus 与旧 question fields | 001 |
 | C-9 | route tamper / deep link | 只有 reportId，或 route 带冲突 status/target/resume/round | 刷新/读取/点击 CTA | API frozen context/status 获胜，route 不能改变展示与动作 | 001 |
 | C-10 | language split | UI locale 与 report language 不同 | 查看报告 | chrome 随 UI locale；模型语义原文不翻译、不改写 | 001 |
 | C-11 | empty / issue-backed focus | ready report 的 focus 为空，或非空 focus 引用 needs-work/issue | 点击 Replay / 校验 direct contract | 空 focus 合法创建通用同轮复练；非空 focus 必须逐项 issue-backed，非法引用 fail closed | 001 |
-| C-12 | internal locator cleanup + formal acceptance | 同一真实 backend ready report 含 distinct frozen session/report sentinel | 以 formal frontend 分别在 exact 1440x1200 / 390x844 执行 `fullPage: true` 捕获并生成固定 manifest | Context Strip 只显示 target/round/resume；成功目录只有固定两图+manifest；逐图 path/hash/state/viewport/fullPage 与 DOM/a11y sentinel absence 闭合，API 事实源与 CTA 行为不变 | 001 |
+| C-12 | internal locator cleanup + formal acceptance | 同一真实 backend ready report 含 distinct frozen session/report sentinel | 以 Chrome 分别在 exact 1440x1200 / 390x844 执行 `fullPage: true` 捕获并生成固定 manifest | Context Strip 显示 target/round/resume/interview record 四项；resume URL 与 conversation action 可用；成功目录只有固定两图+manifest；逐图 path/hash/state/viewport/fullPage、responsive geometry 与 DOM/a11y sentinel absence 闭合，API 事实源与 CTA 行为不变 | 001 |
 | C-13 | 当前规划报告列表 | `/reports` 有合法且可访问的 `targetJobId`，overview 覆盖 both-null、prior-ready+newer-failed、generating-only、latest-ready | 直开/刷新/切换状态并查看轮次 | 只显示当前 TargetJob canonical rounds 的 current report 与 latest attempt；无其他规划或完整历史；loading/empty/error/identity mismatch/stale response fail closed；ready/generating 链接正确；1440/390 正式 frontend 响应式 gate 通过 | 001 |
 | C-14 | Back to current reports | ready/failed/recoverable generating response 有 trusted targetJobId，或首读失败无可信 identity | 点击 Back | 前者到 `/reports?targetJobId=...`；后者到 `/workspace` 列表；report/generating route 仍是 reportId-only，不调用 list operation、不信任 route target identity | 001 |
 | C-15 | Reports Back 直达只读规划详情 | ReportsScreen 已闭合可信 `targetJobId` | 点击 Back | 直接到 `/workspace?targetJobId=...`，query 只有 `targetJobId`；不进入 Parse、不展示解析动画、不触发 import/polling；无可信 identity 时回 `/workspace` 列表 | 001 |

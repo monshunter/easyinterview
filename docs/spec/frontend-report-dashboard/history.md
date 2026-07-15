@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 1.28 | ready 报告修订为 `4/2/2/2/1`：面试记录并入 Context Strip，冻结简历增加 canonical URL，desktop 两个 detail 行要求同排等高。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-15 | 1.27 | 将遗漏分支的 report-owned 只读会话记录并回当前 main：新增 `getReportConversation`、reportId-only 路由及 Report / ReportsScreen 单一形态入口；保留 1.26 的 `3/2/2/2/1` Phase 12 为独立未实施 owner，不恢复已删除的 UI Demo 或 prototype 同步合同。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-15 | 1.26 | 用户确认 report ready 信息层级改为 `3/2/2/2/1`：准备度与既有服务端 summary 移到四个内容区之后的全宽面试总评，顶部只保留维度/证据数量；mobile 同序单列，不改后端/API。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-14 | 1.25 | 用户确认读写职责分离：Reports Back 直接进入 targetJobId-only `/workspace` 只读规划详情，不再经过 Parse 动画/import/poll；Report/Generating trusted Back 仍回当前 `/reports`，无可信 identity 回 Workspace 列表。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |

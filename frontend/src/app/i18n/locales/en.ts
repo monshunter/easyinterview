@@ -333,6 +333,7 @@ export const en: LocaleMessages = {
   "report.context.job": "TARGET",
   "report.context.round": "ROUND",
   "report.context.resume": "RESUME",
+  "report.context.conversation": "INTERVIEW RECORD",
   "report.summary.dimensions": "CAPABILITY DIMENSIONS",
   "report.summary.evidence": "CONVERSATION EVIDENCE",
   "report.summary.overall": "INTERVIEW SUMMARY",

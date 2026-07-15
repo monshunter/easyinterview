@@ -1,6 +1,6 @@
 # 报告仪表盘目标结构
 
-> **版本**: 1.37
+> **版本**: 1.38
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -29,7 +29,8 @@ ReportDashboard(reportId)
 ├─ ContextStrip
 │  ├─ target
 │  ├─ round
-│  └─ resume
+│  ├─ resume -> /resume-versions?resumeId=<frozen resumeId>
+│  └─ interview record action -> report-conversation route
 ├─ SummaryMetrics
 │  ├─ 能力维度数量
 │  └─ 会话证据数量
@@ -49,7 +50,7 @@ ReportConversation(reportId)
 └─ ordered readonly Markdown transcript
 ```
 
-ReportsScreen 是规划范围的导航/索引页，不是第二种报告内容形态。ReportDashboard 的当前设计合同是 desktop 自上而下 `3/2/2/2/1`：三项冻结上下文、两项数量指标、两行各两个内容区，最后一个全宽“面试总评”大卡片；无 tab。Mobile 保持相同 DOM 与阅读顺序，每组收敛为单列。不得根据旧文档恢复顶部“准备度 + summary”指标、四卡或四 tab。
+ReportsScreen 是规划范围的导航/索引页，不是第二种报告内容形态。ReportDashboard 的当前设计合同是 desktop 自上而下 `4/2/2/2/1`：同一个 Context Strip block 内包含目标岗位、轮次、简历、面试记录四个同级子项；其后是两项数量指标、两行各两个内容区，最后一个全宽“面试总评”大卡片；无 tab。Mobile 保持相同 DOM 与阅读顺序，每组收敛为单列。不得根据旧文档恢复顶部“准备度 + summary”指标、四卡或四 tab。
 
 ### 2.1 当前规划报告列表
 
@@ -122,16 +123,18 @@ Summary Metrics 只承载两个可扫描数量，不展示 readiness 或 `summar
 
 ### 6.3 报告附属的只读面试记录
 
-- Report Context Strip 下方提供“查看本次面试记录”主入口，ReportsScreen 的 current report 行提供“查看面试记录”快捷入口；两者都进入 `/report-conversation?reportId=...`。
+- Report Context Strip 把“面试记录”作为目标岗位、轮次、简历之后的第四个同级子项，值为“查看本次面试记录”；不再在 strip 下方保留游离入口。ReportsScreen 的 current report 行仍可提供“查看面试记录”快捷入口；两者都进入 `/report-conversation?reportId=...`。
+- 简历子项使用冻结 `resumeId` 构造 canonical `/resume-versions?resumeId=...` URL，显示冻结 `resumeDisplayName`，支持点击、复制链接与新标签页打开本次面试使用的简历副本；Report 不额外调用 `getResume`，不把可变简历正文复制进报告响应。
 - 页面只消费 `getReportConversation`，按 `sequence` 显示 user/assistant 安全 Markdown/GFM；不展示 Composer、thinking、retry、pause、计时、电话或 session/message/client IDs。
 - ready 返回 ReportDashboard，queued/generating/failed 返回 ReportGenerating；missing/跨用户/乱序/非法 role/stale response 整体 fail closed，不显示 partial transcript。
 - 不设立 session history 列表、`sessionId` 用户路由或新关系表；已删除的并行 Demo runtime 不作为实现/验收来源。
 
 ## 7 可读性与响应式
 
-- frozen target / round / resume 允许换行或通过 title/accessible description 读取完整值。
+- frozen target / round / resume 允许换行或通过 title/accessible description 读取完整值；简历以 link、面试记录以 button action semantics 暴露，均可键盘访问且具有明确 accessible name；只有简历 URL 可复制/新标签页打开，reportId 不写入 DOM 属性。
 - session/report UUID 等内部 locator 不渲染为用户字段，也不进入 title、tooltip 或 accessible description；它们只保留在 API/动作内部关联中。
-- Desktop 的 ready 内容严格按 `3/2/2/2/1` 排列：Context Strip 三列、Summary Metrics 两列、Dimensions/Strength Evidence 两列、Risks/Next Actions 两列、Overall Summary 全宽一列。390px mobile 保持相同 DOM 顺序并全部收敛为单列。
+- Desktop 的 ready 内容严格按 `4/2/2/2/1` 排列：Context Strip 四列、Summary Metrics 两列、Dimensions/Strength Evidence 两列、Risks/Next Actions 两列、Overall Summary 全宽一列。390px mobile 保持相同 DOM 顺序并全部收敛为单列。
+- Desktop 同一双列行的两个 panel 外边界必须上下对齐并等高；内容较少的一侧在卡片内部自然留白，不得让内层边框提前结束形成“一高一低”。该规则同时覆盖 Dimensions/Strength Evidence 与 Risks/Next Actions 两行。
 - 长 dimension/evidence/action 必须换行，不横向溢出、不被不可恢复截断。
 - 1440x1200 desktop 与 390x844 mobile full-page 都必须覆盖 action 区域，并证明合法 24/64 label 完整换行、无截断/ellipsis/隐藏/横溢。恰好 24/64 由 deterministic fixture-backed responsive test 证明；200-code-point malformed fixture只用于 typed invalid/no-raw-output 测试，不能充当 UX PASS。18/52 只用于 targeted repair 内部生成，不替代边界 fixture。
 - 能力维度行在宽度足够时保持 `label` 与本地化 status/confidence 左右对齐；空间不足时整项换为两段可读行。英文长 label 优先按单词换行，禁止为了保留右侧状态而压缩成逐字符竖排。
@@ -167,7 +170,7 @@ Summary Metrics 只承载两个可扫描数量，不展示 readiness 或 `summar
 | ID | Given | When | Then |
 |----|-------|------|------|
 | R-1 | queued/generating | 打开生成页 | 无假进度、假观察、假通知 |
-| R-2 | ready direct report | 打开报告 | desktop 按 `3/2/2/2/1` 展示；顶部只有两个数量指标，四个常驻区块之后是全宽面试总评，localized readiness 与唯一 `summary` 完整 |
+| R-2 | ready direct report | 打开报告 | desktop 按 `4/2/2/2/1` 展示；四项上下文同属一个 block，顶部只有两个数量指标，四个常驻区块之后是全宽面试总评，localized readiness 与唯一 `summary` 完整 |
 | R-3 | retry/next/review first action | 查看 Header | 现有 CTA 主次与建议一致 |
 | R-4 | needs-work / well-prepared report | 点击复练 | source report 服务端投影 issue-backed focus，或在无可支持 focus 时创建空 focus 的通用同轮复练；客户端不携带 focus |
 | R-5 | 长内容 desktop/mobile | 打开报告 | 完整可读、mobile 单列、无横向溢出 |
@@ -175,15 +178,18 @@ Summary Metrics 只承载两个可扫描数量，不展示 readiness 或 `summar
 | R-7 | real provider zh/en | P0.099 当前 run 的 en/zh ready rows | 六图 manifest 对每个 row 绑定 DB/API `canonical_report_content_digest`、`action_length_audit`、`content_audit`、`screenshot_sha256` 与 report/session/context digest；两张 390x844 report full-page 截图完整覆盖 action 区域，实际 label 分别满足 `<=24 whitespace words` / `<=64 Unicode code points` 且完整可见、无截断/省略/横溢 |
 | R-8 | reportId-only / conflicting route | 深链刷新/点击 CTA | API frozen status/context 获胜 |
 | R-9 | UI locale != report language | 打开报告 | chrome 本地化，模型语义保持报告原文 |
-| R-10 | ready report has internal IDs | 打开 desktop/mobile 报告 | Context Strip 只显示 target/round/resume；可见 DOM、可访问名称与截图都不暴露 session/report UUID |
+| R-10 | ready report has internal IDs | 打开 desktop/mobile 报告 | Context Strip 显示 target/round/resume/interview record 四项；resume 使用 frozen resumeId URL，conversation 使用无 reportId DOM 属性的 action；可见 DOM、可访问名称与截图都不暴露 session/report UUID |
 | R-11 | trusted target context / no trusted identity | 从 ready/pending/failed/recoverable generating 点击 Back，或在 missing/first-load failure 点击 Back | 有 trusted target 时进入 `/reports?targetJobId=...`；否则进入 workspace；report/generating route 仍只含 reportId |
 | R-12 | 当前 TargetJob overview populated/empty/loading/error | 直开或刷新 `/reports?targetJobId=...` | 只展示当前规划 canonical rounds 的 current/latest，不展示其他规划或完整历史；mismatch/stale fail closed，desktop/mobile responsive/state tests 通过 |
-| R-13 | owned report 为 queued/generating/ready/failed | 从 Report 或 ReportsScreen 打开面试记录 | 同一 reportId-only 页显示严格有序的只读 Markdown transcript，返回正确父页，无会话列表/live controls/internal IDs |
+| R-13 | owned report 为 queued/generating/ready/failed | 从 Report Context Strip 第四项或 ReportsScreen 打开面试记录 | 同一 reportId-only 页显示严格有序的只读 Markdown transcript，返回正确父页，无会话列表/live controls/internal IDs |
+| R-14 | ready report 有冻结 resumeId | 点击或复制简历子项 URL | canonical `/resume-versions?resumeId=...` 打开本次面试使用的简历副本；Report 不额外读取简历正文 |
+| R-15 | desktop 双列内容长度不同 | 打开报告 | 同一行两个 panel 上下边界对齐且等高，短内容侧仅在卡片内部留白 |
 
 ## 11 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.38 | 将 ready 报告修订为 `4/2/2/2/1`：面试记录并入 Context Strip 第四项，简历增加 frozen-resume canonical URL；desktop 两个 detail 行锁定同排等高与内部留白。 |
 | 2026-07-15 | 1.37 | 对齐方案 A 的 TopBar 响应式合同：已登录账号区为设置按钮，不再按用户名 chip 计算换行。 |
 | 2026-07-15 | 1.36 | 合并 report-owned 只读面试记录：Report 主入口 + ReportsScreen 快捷入口、reportId-only route、安全 Markdown、四状态父页 Back；保留 `3/2/2/2/1` 和正式 frontend 单实现原则。 |
 | 2026-07-15 | 1.35 | 将 Workspace 详情的报告入口从标题右上角移到标题下方左对齐首行动作行，与“立即面试”同排。 |

@@ -322,6 +322,7 @@ export const zh = {
   "report.context.job": "目标岗位",
   "report.context.round": "轮次",
   "report.context.resume": "简历",
+  "report.context.conversation": "面试记录",
   "report.summary.dimensions": "能力维度",
   "report.summary.evidence": "会话证据",
   "report.summary.overall": "面试总评",
