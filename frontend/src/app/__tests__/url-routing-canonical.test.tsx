@@ -312,16 +312,16 @@ describe("canonical path deep-link, reload, and browser history", () => {
     expect(window.location.search).toBe("?targetJobId=tj-ok");
   });
 
-  it("hash `#route=workspace&targetJobId=...` boot rewrites to target-scoped workspace", () => {
+  it("fragment route data is ignored during canonical bootstrap", () => {
     window.history.replaceState(
       null,
       "",
       `/#route=workspace&targetJobId=${TARGET_JOB_ID}`,
     );
     render(<App />);
-    expect(window.location.pathname).toBe("/workspace");
+    expect(window.location.pathname).toBe("/");
     expect(window.location.hash).toBe("");
-    expect(window.location.search).toBe(`?targetJobId=${TARGET_JOB_ID}`);
-    expect(screen.getByTestId("workspace-detail-loading")).toBeInTheDocument();
+    expect(window.location.search).toBe("");
+    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
   });
 });

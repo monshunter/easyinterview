@@ -24,7 +24,7 @@
 
 ## 2 背景
 
-当前产品已采用 flat Resume IA：简历是平铺资产，创建流程只需要 upload / paste 输入和注册成功后的直接详情跳转。正式前端必须源级复刻 `ui-design/src/screen-resume-workshop.jsx` 的当前 CreateFlow 构图，同时通过 generated client 与 backend-resume / backend-upload 合同集成。
+当前产品已采用 flat Resume IA：简历是平铺资产，创建流程只需要 upload / paste 输入和注册成功后的直接详情跳转。正式前端必须按设计合同实现 `frontend/src` 的当前 CreateFlow 构图，同时通过 generated client 与 backend-resume / backend-upload 合同集成。
 
 当前实现事实：
 
@@ -72,7 +72,7 @@ Home CTA paths enter `resume_versions?flow=create`. CreateFlow keeps current i18
 
 ### Phase 6: Create page simplification
 
-`ResumeCreateFlow` removes the right-side “会保存什么 / 接下来” sidebar from both static UI truth source and formal frontend implementation. The input card becomes the only main content surface.
+`ResumeCreateFlow` removes the right-side “会保存什么 / 接下来” sidebar from both static UI design document and formal frontend implementation. The input card becomes the only main content surface.
 
 ### Phase 7: Resume upload source format support
 
@@ -118,7 +118,7 @@ ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基
 |------|------|
 | Generated client drift | Keep fixture parity and real-mode frontend owner tests before changing hook payloads |
 | CreateFlow privacy regression | Preserve URL / pendingAction / storage / console tests for raw resume content |
-| UI parity drift | Keep CreateFlow DOM anchors, tab roles and screenshot smoke coverage aligned with `ui-design/` |
+| UI parity drift | Keep CreateFlow DOM anchors, tab roles and screenshot smoke coverage aligned with `frontend/` |
 
 ## 7 修订记录
 

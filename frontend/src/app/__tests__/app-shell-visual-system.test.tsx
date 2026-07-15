@@ -73,7 +73,7 @@ afterEach(() => {
 });
 
 describe("app shell visual system", () => {
-  it("renders the D2 ei-shell-topbar / ei-screen-shell scaffold with ui-design native classNames", async () => {
+  it("renders the D2 ei-shell-topbar / ei-screen-shell scaffold with semantic classNames", async () => {
     const client = buildClient();
     const { unmount } = render(
       <App
@@ -131,7 +131,7 @@ describe("app shell visual system", () => {
     expect(root.getAttribute("data-theme")).toBe("ocean");
     expect(root.getAttribute("data-mode")).toBe("light");
 
-    // ocean/light → bg-canvas resolves to ui-design EI_THEMES.ocean.light.bg.
+    // ocean/light resolves the current formal frontend canvas token.
     expect(
       getComputedStyle(root).getPropertyValue("--ei-color-bg-canvas").trim(),
     ).toBe("#f8fafd");
@@ -293,25 +293,4 @@ describe("app shell visual system", () => {
     unmount();
   });
 
-  it("ui-design source files (app.jsx + screen-auth.jsx) carry the literal values transcribed into D2 CSS", () => {
-    const repoRoot = resolve(HERE, "..", "..", "..", "..");
-    const appJsx = readFileSync(
-      resolve(repoRoot, "ui-design", "src", "app.jsx"),
-      "utf8",
-    );
-    const authJsx = readFileSync(
-      resolve(repoRoot, "ui-design", "src", "screen-auth.jsx"),
-      "utf8",
-    );
-    // TopBar literals
-    expect(appJsx).toContain("height: 58");
-    expect(appJsx).toContain('padding: "0 32px"');
-    expect(appJsx).toContain("gap: 28");
-    expect(appJsx).toContain("zIndex: 30");
-    // Auth shell literals
-    expect(authJsx).toContain("maxWidth: 1160");
-    expect(authJsx).toContain('padding: "54px 48px 96px"');
-    expect(authJsx).toContain('gridTemplateColumns: "0.88fr 1.12fr"');
-    expect(authJsx).toContain("gap: 44");
-  });
 });

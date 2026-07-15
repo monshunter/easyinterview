@@ -1,6 +1,6 @@
 /**
  * Custom accent override helper. Mirrors the `customAccent` formula in
- * `ui-design/src/app.jsx`:
+ * `formal frontend implementation`:
  *
  *   accentL = isDark ? 68 : 58
  *   softL   = isDark ? 28 : 92

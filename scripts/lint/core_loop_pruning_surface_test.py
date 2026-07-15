@@ -300,16 +300,16 @@ def test_model_profile_paths_are_not_candidate_profile_surface(tmp_path: Path) -
     assert all(not findings for findings in report.buckets.values())
 
 
-def test_mjs_contract_tests_are_negative_test_bucket(tmp_path: Path) -> None:
+def test_frontend_contract_tests_are_negative_test_bucket(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     write(
-        repo / "ui-design" / "ui-design-contract.test.mjs",
+        repo / "frontend" / "src" / "app" / "scope.test.ts",
         'assert.doesNotMatch(app, /nav\\("profile"\\)|nav\\("debrief"\\)/);\n',
     )
 
     report = audit.scan_repo(repo)
 
     assert bucket_paths(report, "negative_tests") == [
-        "ui-design/ui-design-contract.test.mjs"
+        "frontend/src/app/scope.test.ts"
     ]
     assert report.buckets["real_residuals"] == []

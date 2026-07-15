@@ -67,7 +67,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - **BDD 策略**: `BDD.WORKSPACE.CONTEXT.001` 由代码层 owner tests 验证 list/detail、后端 progress 投影、exact-plan reuse 与 fail-closed 行为，并由仓库根 `make test` 统一回归；`E2E.P0.098` 仅作为 completion/progress refresh 的独立真实环境 handoff，只有显式运行后才产生 PASS，且不承接 quick-start/session start/next-round。
 - **替代验证 gate**:
   - `pnpm --filter @easyinterview/frontend test src/app/screens/workspace src/app/screens/parse/ParseResumeBinding.test.tsx src/app/screens/report/__tests__/ReplayCta.test.tsx src/app/App.test.tsx`
-  - `pnpm --filter @easyinterview/frontend test:pixel-parity`
+  - `pnpm --filter @easyinterview/frontend test`
   - `make validate-fixtures`
   - `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/001-workspace-and-interview-context/context.yaml --target frontend`
   - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`
@@ -78,7 +78,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 ### Phase 0: Contract preflight
 
 - Confirmed `docs/development.md` §2 frontend/backend contract workflow.
-- Confirmed UI truth source: `docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`, `ui-design/src/app.jsx`, `ui-design/src/primitives.jsx`.
+- Confirmed UI design document: `docs/ui-design/module-job-workspace.md`, `frontend/src`.
 - Confirmed generated client operations and fixtures listed in §2.1.
 
 ### Phase 1: Workspace shell and InterviewContext
@@ -113,19 +113,19 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 ### Phase 6: Verification closeout
 
-- Focused tests remain development feedback；phase completion uses repository-root `make test`, with workspace pixel parity, fixture validation, docs/index checks and negative grep as separate gates. Only `E2E.P0.098` owns the real completion/progress-refresh flow described in the BDD plan.
+- Focused tests remain development feedback；phase completion uses repository-root `make test`, with workspace responsive browser verification, fixture validation, docs/index checks and negative grep as separate gates. Only `E2E.P0.098` owns the real completion/progress-refresh flow described in the BDD plan.
 
 ### Phase 7: Interview nav and plan-list landing revision
 
-- Update product/UI truth sources and static prototype so TopBar uses `面试` / `Interview` and `workspace` separates plan-list landing from current-plan detail.
+- Update product/UI design documents and static prototype so TopBar uses `面试` / `Interview` and `workspace` separates plan-list landing from current-plan detail.
 - Add `WorkspacePlanList` backed by generated `listTargetJobs`; v1.19 changes plan-card navigation to `parse?targetJobId=...` without fabricating resume or report data.
 - Detail, not-found and missing-resume states are parse owner responsibilities, not workspace list states.
-- Update source-structure, i18n, route, scenario and pixel-parity tests so TopBar click proves the list landing and hydrated route still proves the current-plan detail.
+- Update source-structure, i18n, route, scenario and responsive-browser tests so TopBar click proves the list landing and hydrated route still proves the current-plan detail.
 
 ### Phase 8: Plan-list card visual hardening
 
 - Reopen the completed owner after screenshot review because Phase 7 verified list presence but did not assert visual card affordance.
-- Update `docs/ui-design/module-job-workspace.md` and `ui-design/src/screen-workspace.jsx` so the plan list card contract includes visible card background, 1px border, subtle elevation, internal body/footer sections and responsive card grid.
+- Update `docs/ui-design/module-job-workspace.md` and `frontend/src` so the plan list card contract includes visible card background, 1px border, subtle elevation, internal body/footer sections and responsive card grid.
 
 ### Phase 10: Plan-list bound resume navigation remediation
 
@@ -140,7 +140,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - Require `importTargetJob` to persist the selected `resumeId` to `target_jobs.resume_id`; `TargetJob.resumeId` must expose this target job binding even before a practice plan exists.
 - Update `WorkspacePlanList` tests so a list item with `resumeId` but no `currentPracticePlanId` opens current-plan detail with the real resume binding and does not show the missing-resume state.
 - Update formal `WorkspacePlanList` to source-level mirror that card treatment while keeping generated `listTargetJobs` data flow and safe plan navigation unchanged.
-- Add jsdom and Playwright pixel-parity assertions that fail when plan items render as loose text columns or lose card elevation/sectioning.
+- Add jsdom and Playwright responsive-browser assertions that fail when plan items render as loose text columns or lose card elevation/sectioning.
 
 ### Phase 12: Unified detail route remediation
 
@@ -153,34 +153,34 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 - Reopen the completed owner because runtime evidence showed parse-failed / blank TargetJob rows could appear as interview-plan cards, and TopBar `面试` from a detail page reused stale context.
 - Require `useWorkspaceTargetJobs` consumers to request `analysisStatus=ready` and require `WorkspacePlanList` to ignore non-ready or blank-title records if stale data still appears.
-- Align route split with `ui-design/src/screen-workspace.jsx`: workspace ignores stale `InterviewContext` and out-of-scope route params, so it cannot produce “缺少目标岗位 ID”.
+- Align route split with `frontend/src`: workspace ignores stale `InterviewContext` and out-of-scope route params, so it cannot produce “缺少目标岗位 ID”.
 
 ### Phase 14: Workspace route purity remediation
 
 - Reopen the completed owner because `workspace` is a REST list page, but historical detail/start hooks left it acting as a parameterized context route.
 - Remove workspace detail/start/modal runtime files and tests from the current owner; keep only `WorkspacePlanList` + `useWorkspaceTargetJobs`.
-- Change plan-card navigation and static UI truth source to open `parse`, not `workspace?targetJobId=...`.
+- Change plan-card navigation and static UI design document to open `parse`, not `workspace?targetJobId=...`.
 - Remove `workspace` from `INTERVIEW_CONTEXT_ROUTES`; App route sync clears context whenever route name is `workspace`.
 - Move start-practice side effects to parse/report handoff owners through generated `getPracticePlan` / `createPracticePlan` / `startPracticeSession`, with `Idempotency-Key` on side effects and no `autoStartPractice` workspace hop.
 
 ### Phase 15: Plan-list card size stability
 
 - Reopen the completed owner because screenshot review showed the desktop list grid stretched a single plan card across the full content width.
-- Update `docs/ui-design/module-job-workspace.md` and `ui-design/src/screen-workspace.jsx` so the plan-list grid uses `auto-fill` with a fixed maximum column width instead of `auto-fit + 1fr`.
+- Update `docs/ui-design/module-job-workspace.md` and `frontend/src` so the plan-list grid uses `auto-fill` with a fixed maximum column width instead of `auto-fit + 1fr`.
 - Update formal `WorkspacePlanList` and focused tests so the grid contract rejects `1fr` desktop stretching while keeping compact mobile single-column behavior.
-- Verify with focused Vitest, source/UI design contract tests, typecheck, build, and browser screenshots.
+- Verify with focused Vitest, source/UI design document tests, typecheck, build, and browser screenshots.
 
 ### Phase 16: Home recent card / workspace list card fusion
 
 - Reopen the completed owner because user review asked the Home "最近模拟面试" card and Interview list card to become one visual object instead of two separate card systems.
-- Update `docs/ui-design/module-job-workspace.md` and `ui-design/src/screen-workspace.jsx` so workspace plan cards use the Home recent card body, including mini round rail driven by `TargetJob.summary.interviewRounds[]`.
+- Update `docs/ui-design/module-job-workspace.md` and `frontend/src` so workspace plan cards use the Home recent card body, including mini round rail driven by `TargetJob.summary.interviewRounds[]`.
 - Update formal `WorkspacePlanList` to reuse the Home recent card component/body while appending the workspace-specific footer CTA; the card grid keeps the fixed `360px` desktop max width from Phase 15.
 - Add focused regression coverage that fails when workspace cards lose the home recent mini rail or reintroduce a separate workspace-only body.
 
 ### Phase 17: Plan-list action row and card-click planning
 
 - Reopen the completed owner because user review asks the visible `进入规划` footer CTA to become invisible and be replaced by clicking the card itself.
-- Update `docs/ui-design/module-job-workspace.md` and `ui-design/src/screen-workspace.jsx` so workspace cards append `立即面试` and a top-right trash icon delete action; the card root remains the planning-detail navigation control.
+- Update `docs/ui-design/module-job-workspace.md` and `frontend/src` so workspace cards append `立即面试` and a top-right trash icon delete action; the card root remains the planning-detail navigation control.
 - Update formal `WorkspacePlanList` to start practice directly through shared generated practice handoff with structured `roundId/roundName` when `立即面试` is clicked, keep delete isolated from card navigation, and let Phase 18 own backend-persistent archive behavior.
 - Add focused regression coverage that fails when `进入规划` appears as a visible footer button, when Home recent shows a delete action, when delete triggers navigation/backend deletion, or when `立即面试` opens the planning detail instead of starting practice.
 
@@ -218,7 +218,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 ### Phase 9: Plan-list card simplification and theme consistency
 
 - Reopen the completed owner after screenshot review because Phase 8 still rendered low-value source/language metadata and a secondary CTA that visually competed with the theme.
-- Update `docs/ui-design/module-job-workspace.md` and `ui-design/src/screen-workspace.jsx` so no-context plan cards are concise: status + updated date, title, company/location, and a theme accent `进入规划` / `Open plan` CTA only.
+- Update `docs/ui-design/module-job-workspace.md` and `frontend/src` so no-context plan cards are concise: status + updated date, title, company/location, and a theme accent `进入规划` / `Open plan` CTA only.
 - Update formal `WorkspacePlanList` to remove source/language display, keep footer as a minimal action row, and strengthen separation from page background via existing card/rule/elevation tokens.
 
 ### Phase 23: Remove unreachable static Workspace detail branch
@@ -230,7 +230,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 ### Phase 24: Structured round runtime consistency
 
-- Update the Practice/report UI truth source so the visible budget comes from the selected structured round and next-round behavior uses the same ordered list.
+- Update the Practice/report UI design document so the visible budget comes from the selected structured round and next-round behavior uses the same ordered list.
 - Add RED tests proving the current hard-coded `25:00`, fixed `ROUND_ORDER`, unknown-round fallback and repeated-click behavior are incorrect.
 - Resolve the selected round once through the shared round assumptions; write its `durationMinutes` into `CreatePracticePlanRequest.timeBudgetMinutes`, and display the persisted plan budget in Practice. Phase 25 supersedes the old duration-only reuse predicate with exact persisted round-pair reuse.
 - Resolve next round as the immediate existing successor in the fetched TargetJob round list. Sequence must be positive int32, unique and strictly increasing, but gaps such as `1,2,4` are valid: round `2` advances to round `4`, never a fabricated `3`. Disable next-round while round data is loading, when derived round IDs are duplicated, when the current round is missing/unknown, at the final/single round, or while a start is in flight; never fall back to the first or a fabricated default round.
@@ -239,7 +239,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 ### Phase 25: Backend-persisted round progress and exact plan reuse
 
-- Update `ui-design/src/data.jsx` and shared round helpers so Home/Workspace use `practiceProgress.completedRounds/currentRound`; delete `nextRound` and lifecycle-status/text fallbacks. Keep `MiniRoundRail` DOM, style tokens, bounding boxes and responsive geometry unchanged. All completed renders every node done and disables quick-start; invalid/missing projection renders no false current state and fails closed.
+- Update `frontend/src` and shared round helpers so Home/Workspace use `practiceProgress.completedRounds/currentRound`; delete `nextRound` and lifecycle-status/text fallbacks. Keep `MiniRoundRail` DOM, style tokens, bounding boxes and responsive geometry unchanged. All completed renders every node done and disables quick-start; invalid/missing projection renders no false current state and fails closed.
 - Replace `roundIndexFromTargetJobStatus` with a strict progress mapper. It validates exact round pair, positive int32 strictly increasing/unique canonical sequences without requiring contiguity, completed prefix, current first-incomplete and final completed/null state. Navigation derives `roundId/roundName` only from valid current progress; changing `TargetJob.status` cannot change the result.
 - `buildCreatePlanRequest` sends `roundId` only; the backend derives sequence. Shared start reuses a plan only when ready target/resume/roundId/roundSequence exactly match, with duration as an integrity check. Equal-duration adjacent rounds and legacy null identity must create/validate a new plan. A new response with a mismatched pair cannot start a session.
 - Home/Workspace/Parse quick-start must target `practiceProgress.currentRound`; final/invalid progress disables start with zero plan/session calls. Report next-round is enabled only when the next existing canonical array item exactly equals the backend current round; it must not compare with `sequence + 1`. Retry-current-round remains allowed and server-validated.
@@ -254,7 +254,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 ### Phase 27: Workspace detail round-state affordance
 
-- Prototype-first: `ui-design/src/screens-p0-complete.jsx::ParseScreen` consumes the already-validated `eiResolvePracticeProgress` result and renders round-assumption cards as `done/current/pending`; Workspace target detail starts in preview state and never runs the Parse animation.
+- Prototype-first: `frontend/src` consumes the already-validated `eiResolvePracticeProgress` result and renders round-assumption cards as `done/current/pending`; Workspace target detail starts in preview state and never runs the Parse animation.
 - Formal frontend uses only `resolveTargetJobPracticeProgress(targetJob)`. Indexes before `completedCount` are done, the exact valid `currentIndex` is current, and later indexes are pending. Each valid card exposes a localized visible label plus `data-round-state`; invalid/missing projections keep neutral cards with no fabricated state and disable Start.
 - Reuse existing palette tokens: done uses `okSoft/ok`, current uses `accentSoft/accent`, pending uses `bgSoft/rule-strong`. Do not add API/schema/store fields, theme tokens, lifecycle-status fallbacks, URL state or browser persistence.
 

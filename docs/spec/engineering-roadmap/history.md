@@ -38,10 +38,10 @@
 | 2026-05-05 | 3.3 | 增加已迁移技术草稿删除前 gate：旧名称不得再作为 Markdown 链接或外部真理源，当前替代必须由 product-scope §1.5、owner spec 与编码 truth source 独立承载。 | 001-decompose-subspecs |
 | 2026-05-05 | 3.2 | 将技术契约替代表述指向 product-scope §1.5 owner matrix，roadmap 只消费统一 truth-source 映射，不复制第二套口径。 | docs-only |
 | 2026-05-05 | 3.1 | 同步 A3 subject/ADR 重命名与 AI provider 口径：roadmap 只保留 provider endpoint 契约，不再把独立转发层作为项目关心的应用层事实。 | ai-provider-and-model-routing/001 remediation |
-| 2026-05-03 | 3.0 | 根据 product-scope v1.5、当前 `docs/ui-design/` 与 `ui-design/` 重新规划 roadmap：删除 `docs/spec/INDEX.md` 的 pending child 占位模型，保留已存在 active spec 与编码 truth source，后续 child spec / plan 仅在进入设计或实现时按当前 P0 workstream 原地创建。 | 001-decompose-subspecs |
+| 2026-05-03 | 3.0 | 根据 product-scope v1.5、当前 `docs/ui-design/` 与 `frontend/` 重新规划 roadmap：删除 `docs/spec/INDEX.md` 的 pending child 占位模型，保留已存在 active spec 与编码 truth source，后续 child spec / plan 仅在进入设计或实现时按当前 P0 workstream 原地创建。 | 001-decompose-subspecs |
 | 2026-05-03 | 2.4 | 当前技术契约改由 B1/B2/B3/B4/F1/F2/F3 active spec 与已编码 truth source 决定，禁止后续 child 绕过 Layer B/F owner。 | docs-only |
 | 2026-05-03 | 2.3 | 对齐 product-scope v1.2 后的可执行契约口径：B2 改为 34 endpoint / 12 tag，B3 internal events 改为 16 个，B4 baseline 改为当时的应用表 + auth 支撑表 + 迁移元数据表，E1 mock gate 改为当前 B2 全量 operation。 | product-contract alignment review |
-| 2026-05-03 | 2.2 | 对齐 product-scope v1.1 与当前 UI 真理源：P0 前端 child 改为 Home / Practice / Report / Resume 等核心域；C10 改为嵌入式 readiness signals。 | 001-decompose-subspecs |
+| 2026-05-03 | 2.2 | 对齐 product-scope v1.1 与当前 UI 设计文档：P0 前端 child 改为 Home / Practice / Report / Resume 等核心域；C10 改为嵌入式 readiness signals。 | 001-decompose-subspecs |
 | 2026-05-03 | 2.1 | 同步产品真理源迁移：将 parent roadmap 的产品输入改为 `docs/spec/product-scope/spec.md`，并明确旧输入实体不再作为当前真理源。 | docs-only |
 | 2026-04-29 | 2.0 | 收口 A/B spec 全面审查 remediation：A1 根目录契约纳入 `shared/` / `config/`；Q2/B3/B4 接入 internal-only `email_dispatch`；Q6 以 ADR-Q6 为准重新锁定 AIClient 连接参数与 gateway fallback 边界；C9 真实面试复现升格为 P0 后端范围；B4 增补 AI call meta 字段与隐私删除表矩阵。 | plan-review remediation |
 | 2026-04-29 | 1.9 | 同步 B4 `db-migrations-baseline` v1.4：parent roadmap 摘要从旧「29 表初始迁移」口径更新为 30 张应用 / auth 支撑表 + 迁移元数据表 + backfill ledger，并吸收 B3 outbox retry 字段承载，与 ADR-Q1 auth/session 表归属和 B4 migration 真理源一致。 | db-migrations-baseline plan-review remediation |

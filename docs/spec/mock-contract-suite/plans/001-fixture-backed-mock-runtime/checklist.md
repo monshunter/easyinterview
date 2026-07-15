@@ -27,7 +27,7 @@
 
 ## 4 Boundary lint
 
-- [x] 4.1 Frontend runtime code cannot import `ui-design/src/data.jsx`.
+- [x] 4.1 Frontend runtime code cannot import `frontend/src`.
 - [x] 4.2 Fixture response bodies cannot contain prototype-only display fields.
 - [x] 4.3 `openapi/fixtures/` tag directories must exactly match current OpenAPI tags.
 - [x] 4.4 Current mock/API token scan rejects out-of-scope routes, tags, schema keys and config paths while allowing practice-voice owner operation names and fixtures.

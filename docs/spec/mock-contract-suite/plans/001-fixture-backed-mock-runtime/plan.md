@@ -9,7 +9,7 @@
 
 ## 1 目标
 
-维护 `mock-contract-suite` 的当前可执行 mock runtime：前端 dev preview、generated-client mock transport、后端 mockruntime 和 lint gate 都从 B2 `openapi/fixtures/` 读取同一批 37-operation fixture，不复制第二套 mock 数据，也不直接使用 `ui-design/src/data.jsx` 作为运行时数据源。
+维护 `mock-contract-suite` 的当前可执行 mock runtime：前端 dev preview、generated-client mock transport、后端 mockruntime 和 lint gate 都从 B2 `openapi/fixtures/` 读取同一批 37-operation fixture，不复制第二套 mock 数据，也不直接使用 `frontend/src` 作为运行时数据源。
 
 本 plan 不拥有 OpenAPI schema、fixture 内容、业务 handler、真实 backend store、AI 调用或用户可见 BDD 场景；这些由各自 owner 维护。这里负责让 mock runtime 按当前 fixture truth source 工作，并用 gate 阻止范围外 route / tag / schema / config token 回流。当前原地重开以承接 OPENAPI-002 paste-only fixture/generated handoff。
 
@@ -19,7 +19,7 @@
 - `frontend/src/api/mockTransport.ts` 与 `frontend/src/api/devMockClient.ts` 返回 generated API types。Vite dev 默认使用 fixture-backed client；`VITE_EI_API_MODE=real` 必须显式提供 `VITE_EI_API_BASE_URL` 才访问真实 backend；production 默认 same-origin `/api/v1`。
 - `backend/internal/api/mockruntime` 使用同一 fixture registry 响应 HTTP request。named scenario 选择读取 fixture 中对应 scenario 的 status/body；未知 scenario 返回明确错误。
 - `make lint-mock-contract` 串联 `make validate-fixtures`、`make lint-openapi`、fixture registry tests 和 `scripts/lint/mock_runtime_boundary.py`。
-- boundary lint 禁止前端运行时代码 import `ui-design/src/data.jsx`，禁止 fixture response 泄漏 prototype-only display field，校验 `openapi/fixtures/` tag 目录严格等于当前 OpenAPI tag 集合，并拦截当前范围外的 mock/API token。
+- boundary lint 禁止前端运行时代码 import `frontend/src`，禁止 fixture response 泄漏 prototype-only display field，校验 `openapi/fixtures/` tag 目录严格等于当前 OpenAPI tag 集合，并拦截当前范围外的 mock/API token。
 - `createPracticeVoiceTurn`、`/practice/sessions/{sessionId}/voice-turns` 与 `PracticeVoiceTurn*` 属于当前 practice-voice owner 合同；独立 `/voice` route 与 `Voice` tag 仍由 boundary lint 拦截。
 
 ## 3 质量门禁分类

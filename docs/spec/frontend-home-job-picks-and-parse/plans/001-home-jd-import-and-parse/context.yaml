@@ -97,7 +97,7 @@ spec:
         - ../../../frontend-shell/spec.md
         - ../../../frontend-shell/plans/001-app-shell-auth-settings/plan.md
         - ../../../frontend-shell/plans/002-app-shell-visual-system/plan.md
-        - ../../../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md
+        - ../../../frontend-shell/plans/003-ui-design-responsive-browser-gate/plan.md
         - ../../../openapi-v1-contract/spec.md
         - ../../../mock-contract-suite/spec.md
         - ../../../product-scope/spec.md
@@ -117,8 +117,8 @@ spec:
           - backend/internal/targetjob
           - backend/internal/api/generated
           - config/prompts/target.import.parse
-          - frontend/tests/pixel-parity
-          - ui-design/src
+          - frontend/tests/responsive-browser
+          - frontend/src
           - ui-design
           - openapi
           - openapi/fixtures/TargetJobs

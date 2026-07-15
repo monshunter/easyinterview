@@ -60,8 +60,8 @@ spec:
           - frontend/src/app/i18n
           - frontend/src/api/generated
           - frontend/src/lib/conventions
-          - frontend/tests/pixel-parity
-          - ui-design/src
+          - frontend/tests/responsive-browser
+          - frontend/src
           - docs/ui-design
         uiRoutes:
           - resume_versions

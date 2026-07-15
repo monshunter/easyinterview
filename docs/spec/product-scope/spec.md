@@ -8,7 +8,7 @@
 
 ### 1.1 当前背景
 
-EasyInterview 当前产品形态由 `docs/spec/product-scope/spec.md`、`docs/ui-design/`、`ui-design/` 和各工程 owner spec 共同约束。产品工作台只围绕 `首页 / 面试 / 简历` 三个一级入口组织；`/parse?targetJobId=...` 只承接首页 import 之后的 queued / processing 命令进度，ready 后立即以 history replace 进入 `/workspace?targetJobId=...` 只读规划详情。规划详情内容区可进入 target-scoped ReportsScreen 索引当前规划轮次报告，但它不属于全局导航或第二种报告内容形态。报告内容只有 `Report Dashboard(reportId)` 一种形态，并且必须区分 `复练当前轮` 与 `进入下一轮`。
+EasyInterview 当前产品形态由 `docs/spec/product-scope/spec.md`、`docs/ui-design/`、`frontend/` 和各工程 owner spec 共同约束。产品工作台只围绕 `首页 / 面试 / 简历` 三个一级入口组织；`/parse?targetJobId=...` 只承接首页 import 之后的 queued / processing 命令进度，ready 后立即以 history replace 进入 `/workspace?targetJobId=...` 只读规划详情。规划详情内容区可进入 target-scoped ReportsScreen 索引当前规划轮次报告，但它不属于全局导航或第二种报告内容形态。报告内容只有 `Report Dashboard(reportId)` 一种形态，并且必须区分 `复练当前轮` 与 `进入下一轮`。
 
 本 spec 是 EasyInterview 当前产品范围、阶段边界、非目标、质量红线和文档真理源关系的正式入口。所有开发、评审、plan 设计和 owner handoff 都以当前 active truth source 为准。
 
@@ -23,7 +23,7 @@ EasyInterview 当前产品形态由 `docs/spec/product-scope/spec.md`、`docs/ui
 本 spec 的目标不是重新扩张产品愿景，而是把当前已经收敛的产品事实固定下来：
 
 1. **固定产品真理源**：将当前产品范围固定在 `docs/spec/product-scope/spec.md`，纳入 spec-centric 文档治理。
-2. **对齐当前 UI 真理源**：把 `ui-design/` 和 `docs/ui-design/` 已确认的导航、路由和模块边界纳入产品层判断。
+2. **对齐当前 UI 设计文档**：把 `frontend/` 和 `docs/ui-design/` 已确认的导航、路由和模块边界纳入产品层判断。
 3. **保留必要产品水准**：继续覆盖目标用户、JTBD、产品原则、阶段路线、质量评估、隐私伦理和工程治理要求，而不是只写 UI 清单。
 4. **约束后续实施**：后续 child spec、plan、OpenAPI、DB、前端实现和场景测试不得绕过当前产品边界创造平行流程。
 
@@ -32,7 +32,7 @@ EasyInterview 当前产品形态由 `docs/spec/product-scope/spec.md`、`docs/ui
 | 层级 | 当前真理源 | 负责内容 |
 |------|------------|----------|
 | 产品范围 | 本文档 | 用户、JTBD、P0/P1/P2/P3 边界、非目标、质量和伦理红线 |
-| UI / 交互 | `docs/ui-design/` + `ui-design/` | 当前静态 UI、一级导航、页面职责、目标路由、视觉和交互目标 |
+| UI / 交互 | `docs/ui-design/` + `frontend/` | 当前静态 UI、一级导航、页面职责、目标路由、视觉和交互目标 |
 | 工程拆分 | `docs/spec/engineering-roadmap/spec.md` | child subspec、wave、依赖 DAG、mock-first 集成策略 |
 | 技术契约 | Layer A/B/F active spec + 已编码 truth source（`openapi/`、`shared/`、`migrations/`、`config/`） | API、DB、事件、共享枚举、AI provider / model routing、配置、可观测性等工程约束；owner matrix 见 §1.5 |
 
@@ -51,7 +51,7 @@ EasyInterview 当前产品形态由 `docs/spec/product-scope/spec.md`、`docs/ui
 | 本地运行、基础架构约束、配置、secret、feature flag、runtime-config | [engineering-roadmap](../engineering-roadmap/spec.md)、[local-dev-stack](../local-dev-stack/spec.md)、[secrets-and-config](../secrets-and-config/spec.md) | `config/`、`config/feature-flags.yaml`、A2/A4 runtime code 与 deploy assets | 运行时、配置字典、secret 归属、feature flag 和公开配置 allowlist 由 A2/A4 决定 |
 | AI provider、model profile、fallback、调用观测字段、prompt / rubric 坐标 | [ai-provider-and-model-routing](../ai-provider-and-model-routing/spec.md)、[prompt-rubric-registry](../prompt-rubric-registry/spec.md) | `config/ai-providers.yaml`、`config/ai-profiles.yaml`、F3 plan-defined prompt / rubric runtime assets | 业务代码只依赖 provider capability、model profile、feature key 和 prompt/rubric 坐标；模型、fallback 和 prompt/rubric 版本必须可审计 |
 | metrics、logging、trace、dashboard、alerting、敏感字段红线 | [observability-stack](../observability-stack/spec.md) | F1 spec、后续 logger / metric / alert rule 编码 truth source | metric / label / log 字段 / trace attribute / dashboard / alert 和明文红线以 F1 与实现 gate 为准 |
-| 产品模块、一级入口、route、UI 画板标签和用户行为流 | 本文档、`docs/ui-design/`、`ui-design/` | UI 文档、静态原型、后续 BDD / E2E 场景 | 产品和 UI 范围先于技术契约；未进入当前产品 / UI 范围的模块不得由技术层私自引入 |
+| 产品模块、一级入口、route、UI 画板标签和用户行为流 | 本文档、`docs/ui-design/`、`frontend/` | UI 文档、静态原型、后续 BDD / E2E 场景 | 产品和 UI 范围先于技术契约；未进入当前产品 / UI 范围的模块不得由技术层私自引入 |
 
 ## 2 范围
 
@@ -104,7 +104,7 @@ EasyInterview 当前产品形态由 `docs/spec/product-scope/spec.md`、`docs/ui
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | 产品真理源 | `docs/spec/product-scope/spec.md` 是当前产品范围入口 | 后续产品评审、plan 设计、scope 判断只能引用当前 active truth source |
-| D-2 | UI 真理源 | `docs/ui-design/` + `ui-design/` 是当前 UI / 交互真理源 | 产品 spec 不复述每个控件细节；交互冲突以 UI 文档为准 |
+| D-2 | UI 设计文档 | `docs/ui-design/` + `frontend/` 是当前 UI / 交互真理源 | 产品 spec 不复述每个控件细节；交互冲突以 UI 文档为准 |
 | D-3 | 默认入口 | App 默认进入首页，用户通过唯一文本框粘贴 JD | 不设置未登录欢迎页或登录前置页，不保留 JD 文件、岗位链接或结构化表单等平行导入入口 |
 | D-4 | 一级导航 | `首页 / 面试 / 简历` | `复盘`、`岗位推荐`、`当前岗位`、`面试报告`、`成长` 等不作为一级导航；`面试` 是面试规划列表和统一面试规划详情入口，不改变完整模拟面试 session 语义 |
 | D-5 | 模拟面试语义 | 面试是一场连续 conversation session；opening、追问、话题转换都是普通 assistant message | 不提供题号、题目预算、当前题、问题/回答/追问分类、热身或单题深钻 |
@@ -154,7 +154,7 @@ EasyInterview 当前产品形态由 `docs/spec/product-scope/spec.md`、`docs/ui
 
 ### 4.2 UI 约束
 
-- 顶部导航只能出现当前 UI 真理源确认的三个一级入口。
+- 顶部导航只能出现当前 UI 设计文档确认的三个一级入口。
 - “面试报告”只允许作为 Workspace 规划详情内容区的页面级入口和 target-scoped 上下文页面；不得进入 Parse、TopBar 或成为无上下文全局中心。
 - `/parse` 的产品语义是 import 后的命令进度页，只允许 `targetJobId`；queued / processing 可轮询，ready 必须 replace 到 Workspace 详情，failed 显示受控失败与恢复路径。
 - `workspace` 的产品语义是 `面试 / 面试规划列表 / 当前面试规划`，不是一级岗位资产管理模块；`/workspace` 展示列表，`/workspace?targetJobId=...` 只读展示详情，query 只保留 `targetJobId`，缺数据时给出导入 JD 的友好空态。
@@ -586,13 +586,13 @@ P3 仍然不做：
 | C-8 | 复练不依赖题目 | 用户查看报告 | 点击复练当前轮 | 能力缺口进入新 plan，不存在题目选择或 turn ID | `docs/ui-design/module-practice-review.md` |
 | C-9 | 简历资产可绑定 | 用户已有 ready 简历 | 在 Home 提交 JD 前打开简历下拉框 | 可以选择列表中的任意一份 ready 简历，并由 `importTargetJob` 持久化到新 TargetJob；Workspace 详情只读展示绑定结果 | `docs/ui-design/resume-module.md` |
 | C-12 | 证据化和版本化 | 任一 AI 生成结果产生 | 保存或展示结果 | 结果可追踪 prompt / rubric / model / language / feature flag / data source | 后续 backend / quality child |
-| C-13 | 默认范围规则 | 某能力没有进入当前 product-scope 和 UI truth source | 评审后续需求或 plan | 该能力默认不进入当前范围，除非先修订本 spec 和对应 UI 文档 | docs-only |
+| C-13 | 默认范围规则 | 某能力没有进入当前 product-scope 和 UI design document | 评审后续需求或 plan | 该能力默认不进入当前范围，除非先修订本 spec 和对应 UI 文档 | docs-only |
 | C-15 | 无密码认证唯一流 | 产品只有邮箱验证码登录 | 查看认证页面流 | 不存在独立重置登录页；验证码重发与更换邮箱在 `auth_verify` 内完成 | `docs/ui-design/auth-and-entry.md` |
 | C-16 | 岗位推荐与情报独立页零入口 | 岗位推荐模块与公司情报独立页不属于当前范围 | 走查导航、首页与静态原型路由 | 不存在 `jd_match` / `company_intel` 目标 route、岗位推荐入口或独立情报详情页；公司情报只出现在模拟面试规划页嵌入卡片 | `docs/ui-design/module-map.md` |
 | C-17 | 简历平铺与采纳收口 | 用户在简历模块管理资产并接受改写 | 查看简历列表并采纳改写建议 | 列表是单层平铺、无树 / 主版本 / 定制版本概念；改写建议仅有`采纳`，采纳后确认前预览可选覆盖原简历或保存为新简历 | `docs/ui-design/resume-module.md` |
 | C-18 | 报告 CTA 单点 | 报告已生成 | 走查报告页全部区块 | 只有 Header 一对 `复练当前轮 / 进入下一轮` CTA；详情不出现重复开练按钮或 per-question toggle | `docs/ui-design/report-dashboard.md` |
 | C-20 | 题目模型零残留 | D-24 已生效 | 检查 UI/API/DB/Prompt/report/scenarios | 无 questionBudget/PracticeTurn/QuestionCard/question assessment/hint positive contract；voice 当前 fail-closed | backend/frontend/report owners |
-| C-21 | JD intake 单一合同 | D-25 已生效 | 检查 UI 真理源、Home、OpenAPI、generated artifacts、backend 与 active scenarios | 唯一正向请求是 `{ rawText, targetLanguage, resumeId }`；JD 文件、岗位链接、结构化表单及其专属 handler、fixture、场景和 UI 锚点为零；Resume 上传仍可用 | `frontend-home-job-picks-and-parse/001` + contract/backend owners |
+| C-21 | JD intake 单一合同 | D-25 已生效 | 检查 UI 设计文档、Home、OpenAPI、generated artifacts、backend 与 active scenarios | 唯一正向请求是 `{ rawText, targetLanguage, resumeId }`；JD 文件、岗位链接、结构化表单及其专属 handler、fixture、场景和 UI 锚点为零；Resume 上传仍可用 | `frontend-home-job-picks-and-parse/001` + contract/backend owners |
 | C-22 | Practice 发送与刷新恢复 | D-26 已生效，AI 首次成功、可重试失败或终态失败 | 提交、等待、失败、刷新并按需重试 | user row 立即出现；pending 锁输入并显示 thinking；retry 只在可重试失败 row 下；刷新恢复原 `clientMessageId/replyStatus`；同 ID 成功后 user/reply 各唯一一条 | backend-practice/002 + frontend-workspace-and-practice/002 + openapi-v1-contract/001 |
 | C-23 | 当前规划报告隔离 | D-27 已生效，用户从 Workspace 详情进入报告列表或从 Report/Generating 返回 | 打开 `/reports?targetJobId=...` | 只显示当前规划 current/latest；Reports Back 返回同一 Workspace 详情；TopBar 与 Parse 无报告入口/嵌入列表；跨 target/mismatch/stale fail closed，无完整历史 | frontend-workspace 001 + frontend-report 001 + frontend-shell 004 |
 | C-24 | JD 命令与只读详情分路 | 用户刚完成 import，或点击既有 ready 规划卡片 | 进入相应 route | 仅刚 import 的 queued/processing 工作进入 `/parse?targetJobId=...`；ready 初读/轮询用 replace 进入 `/workspace?targetJobId=...`；ready 卡片、Reports Back、Practice terminal recovery 直达 Workspace，且 Workspace query 只有 `targetJobId` | frontend-home 001 + frontend-workspace 001/002 + frontend-report 001 + frontend-shell 004 |
@@ -655,7 +655,7 @@ P0 质量评估必须覆盖三类指标：
 
 ## 10 关联文档
 
-- UI 真理源：[docs/ui-design/README.md](../../ui-design/README.md)、[docs/ui-design/ui-architecture.md](../../ui-design/ui-architecture.md)、[docs/ui-design/module-map.md](../../ui-design/module-map.md)。
+- UI 设计文档：[docs/ui-design/README.md](../../ui-design/README.md)、[docs/ui-design/ui-architecture.md](../../ui-design/ui-architecture.md)、[docs/ui-design/module-map.md](../../ui-design/module-map.md)。
 - 工程 roadmap：[docs/spec/engineering-roadmap/spec.md](../engineering-roadmap/spec.md)。
 - 当前技术契约 owner matrix：本文档 §1.5。
 - OpenAPI 契约：[docs/spec/openapi-v1-contract/spec.md](../openapi-v1-contract/spec.md)。

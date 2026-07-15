@@ -64,7 +64,7 @@
 | D-9 | Cross-user 隔离 | 所有 read / write SQL 必须按 `user_id` 过滤；越权访问 `getTargetJob` / `updateTargetJob` 返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND` 而不是 `FORBIDDEN`，避免泄露存在性 | 与 [backend-auth `DELETE /me` 同 key 用户隔离](../backend-auth/spec.md) 一致 |
 | D-10 | 解析失败可重试 | A3 retryable 错误令 `target.analysis.failed.retryable=true`；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` 为 `retryable=false`；空白 `rawText` 在入队前返回 `VALIDATION_FAILED` | 删除来源专属错误码，保留与真实失败阶段一致的最小错误词汇 |
 | D-11 | 单一路径 | 所有有效 JD 粘贴请求都写入 queued TargetJob 并派发 `target_import`；不存在同步 ready 兼容分支 | 响应、幂等、事件和失败处理只有一套语义 |
-| D-12 | 重新解析 owner 边界 | `ui-design/src/screens-p0-complete.jsx::ParseScreen` 已提供前端 `Re-parse / 重新解析` 体验；后端 P0 不新增 rerun endpoint 或 rerun job，前端重新解析需要落地真实数据时通过现有 `importTargetJob` 创建新的 import / TargetJob，或在后续 frontend plan 内消费既有 generated client | 避免后端 plan 把前端交互按钮误列为后端待确认事项 |
+| D-12 | 重新解析 owner 边界 | `frontend/src` 已提供前端 `Re-parse / 重新解析` 体验；后端 P0 不新增 rerun endpoint 或 rerun job，前端重新解析需要落地真实数据时通过现有 `importTargetJob` 创建新的 import / TargetJob，或在后续 frontend plan 内消费既有 generated client | 避免后端 plan 把前端交互按钮误列为后端待确认事项 |
 | D-13 | Import event payload | `target.import.requested` 不携带常量化的 `sourceType`；只保留定位异步请求所需 ID 与 `targetLanguage` | 删除没有区分度的字段，避免 UI、事件与 metric 继续传播调试来源信息 |
 
 ### 3.2 非后端 owner 决策

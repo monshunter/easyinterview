@@ -20,13 +20,13 @@
 - 列表与详情不展示通用“上传的简历 / 粘贴的简历 / Uploaded resume / Pasted resume”名称；完成态名称优先使用 backend generated `displayName` 或 LLM structured headline；前端不得把 raw resume 第一行、上传文件名或与来源 `title` 相同的文件名 `displayName` 当作名称。
 - 未登录态不触发 Resume API，请求登录时 pending action 只保存安全 route params。
 - React StrictMode 下，相同 request identity 的并发 `listResumes` / ready `getResume` 初始读取必须共享一次实际 transport；失败后 registry 清理且用户重试会发出新 transport；queued/processing 详情轮询保持 settle 后串行推进。
-- 可见 UI 继续追溯 `ui-design/src/screen-resume-workshop.jsx`、`ui-design/src/primitives.jsx`、`ui-design/src/app.jsx` 和 `docs/ui-design/`。
+- 可见 UI 继续追溯 `frontend/src` 和 `docs/ui-design/`。
 
 本计划不拥有 CreateFlow 输入提交链路、tailor polling、duplicate/save-as-new 或 backend parse 业务规则；本计划消费 `archiveResume`、`getResume`、`listResumes` generated-client 合同，并固化详情页不提供 Rewrites/Edit/export/copy/original modal/preview-confirm 等二次操作。
 
 ## 2 背景
 
-当前产品已经收敛为 flat Resume Workshop。001 作为首个前端 owner，只保留当前仍被运行时、场景和 UI 真理源共同承接的 list / preview detail 合同。旧树形列表、版本集合、分叉参数、逐版本导出和 fallback 页面接管说明不再作为计划语义存在。
+当前产品已经收敛为 flat Resume Workshop。001 作为首个前端 owner，只保留当前仍被运行时、场景和 UI 设计文档共同承接的 list / preview detail 合同。旧树形列表、版本集合、分叉参数、逐版本导出和 fallback 页面接管说明不再作为计划语义存在。
 
 ## 3 质量门禁分类
 
@@ -38,7 +38,7 @@
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `listResumes` | current list fixtures | list hook + flat list + Home selector | backend-resume summary handler | summary projection | none | 当前无真实 E2E owner；root `make test` |
 | `getResume` | current detail fixtures | detail hook + readonly detail | backend-resume full-detail handler | full resume projection | parse produces snapshot | 当前无真实 E2E owner；root `make test` |
-| `getResumeSource` | current source fixtures | PDF page-stack renderer | backend-resume source handler | file object + object storage | none | 当前无真实 E2E owner；root `make test` + pixel parity |
+| `getResumeSource` | current source fixtures | PDF page-stack renderer | backend-resume source handler | file object + object storage | none | 当前无真实 E2E owner；root `make test` + responsive browser verification |
 | `archiveResume` | current archive fixture | list-row delete | backend-resume archive handler | `resumes.deleted_at` | none | 当前无真实 E2E owner；root `make test` |
 
 ## 4 实施步骤
@@ -101,7 +101,7 @@ raw resume text、parsedTextSnapshot、parsedSummary、structuredProfile 和 rew
 
 #### 4.3 UI parity
 
-DOM anchor、computed style、bounding box、mobile / desktop layout 和 screenshot smoke 追溯 UI 真理源；截图 diff 只在 baseline 稳定时作为补充 gate。
+DOM anchor、computed style、bounding box、mobile / desktop layout 和 screenshot smoke 追溯 UI 设计文档；截图 diff 只在 baseline 稳定时作为补充 gate。
 
 ### Phase 5: BDD / Negative Gate / Closeout
 
@@ -137,7 +137,7 @@ paste、Markdown upload 和 TXT upload 继续使用 Markdown engine，并保留 
 
 #### 9.2 UI truth and screenshot smoke
 
-`ui-design/src/screen-resume-workshop.jsx`、`docs/ui-design/resume-module.md`、`docs/ui-design/resume-onboarding.md` 和正式 CSS 统一描述 PDF 页面栈，不再描述原生 viewer。Pixel parity smoke 覆盖 desktop/mobile PDF 详情，并断言页面栈可见且没有 native viewer shell。
+`frontend/src`、`docs/ui-design/resume-module.md`、`docs/ui-design/resume-onboarding.md` 和正式 CSS 统一描述 PDF 页面栈，不再描述原生 viewer。Responsive browser verification smoke 覆盖 desktop/mobile PDF 详情，并断言页面栈可见且没有 native viewer shell。
 
 ### Phase 10: Source-format Reading Surface Alignment
 

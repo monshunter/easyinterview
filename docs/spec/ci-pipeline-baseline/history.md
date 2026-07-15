@@ -8,7 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-07-10 | 1.10 | 将唯一根级 Node test `ui-design/ui-design-contract.test.mjs` 纳入根 `make test`。 | tech-debt pruning |
+| 2026-07-10 | 1.10 | 将唯一根级 Node test `scripts/lint/ui_demo_pruning.py` 纳入根 `make test`。 | tech-debt pruning |
 | 2026-07-10 | 1.9 | 将 Python tooling/skill contracts 与显式 dev dependencies 纳入根 `make test`，修复未聚合测试长期不可见的问题。 | tech-debt pruning |
 | 2026-07-10 | 1.8 | 将 A5 当前 spec / plan / checklist 的旧 scaffold 口径收敛为 exit-zero 假 target / 真实 gate 术语，不改变本地门禁行为。 | tech-debt pruning |
 | 2026-07-10 | 1.7 | 同步 A1 根 Make target 口径：A5 基于 A1 锁定的 target 名称与 owner 委托组织本地质量门禁，不再称为 scaffold target。 | tech-debt pruning |

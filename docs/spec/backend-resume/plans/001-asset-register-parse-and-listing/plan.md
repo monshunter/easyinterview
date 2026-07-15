@@ -73,7 +73,7 @@
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `registerResume` | current upload/paste fixtures | Resume CreateFlow | backend-resume register handler + real API route | `resumes` + optional file object + parse job | `resume.parse.default` after registration | 当前无真实 E2E owner；root `make test` |
 | `getResume` | current detail fixtures | Resume readonly detail | backend-resume get handler | full resume projection | none | 当前无真实 E2E owner；root `make test` |
-| `getResumeSource` | current source fixtures | PDF page-stack source | backend-resume source handler | file object + object storage | none | 当前无真实 E2E owner；root `make test` + pixel parity |
+| `getResumeSource` | current source fixtures | PDF page-stack source | backend-resume source handler | file object + object storage | none | 当前无真实 E2E owner；root `make test` + responsive browser verification |
 | `listResumes` | current list fixtures | Resume list / Home selector | backend-resume summary handler | explicit summary projection | none | 当前无真实 E2E owner；root `make test` |
 
 ## 4 实施步骤

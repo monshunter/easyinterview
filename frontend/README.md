@@ -2,7 +2,7 @@
 
 TypeScript / React 前端工程根目录：应用壳层、模拟面试规划、简历工坊、模拟面试、证据化报告与设置等当前 UI 主屏幕落点。
 
-Current truth sources: [product-scope](../docs/spec/product-scope/spec.md)、[docs/ui-design](../docs/ui-design/INDEX.md)、[ui-design](../ui-design/) 与 [openapi-v1-contract](../docs/spec/openapi-v1-contract/spec.md)。前端 implementation workstream 进入实现时按 [engineering-roadmap S1/S2](../docs/spec/engineering-roadmap/spec.md#62-s1--contract-backed-mock-runway) 创建对应 child spec / plan；包管理与 workspace 由 [shared-conventions-codified](../docs/spec/shared-conventions-codified/spec.md) 与 [local-dev-stack](../docs/spec/local-dev-stack/spec.md) 协同锁定。
+Current design and contract sources: [product-scope](../docs/spec/product-scope/spec.md)、[docs/ui-design](../docs/ui-design/INDEX.md) 与 [openapi-v1-contract](../docs/spec/openapi-v1-contract/spec.md)。正式 UI 只在 `frontend/` 实现与验证。前端 implementation workstream 进入实现时按 [engineering-roadmap S1/S2](../docs/spec/engineering-roadmap/spec.md#62-s1--contract-backed-mock-runway) 创建对应 child spec / plan；包管理与 workspace 由 [shared-conventions-codified](../docs/spec/shared-conventions-codified/spec.md) 与 [local-dev-stack](../docs/spec/local-dev-stack/spec.md) 协同锁定。
 
 Frontend / backend split workflow is governed by [docs/development.md](../docs/development.md#2-frontend--backend-contract-workflow). Frontend work may proceed independently only when the plan records the `operationId` / fixture / frontend consumer / backend handler / persistence / AI dependency / scenario matrix, and any backend gap is explicitly marked `mock-only` or `not-yet-implemented`.
 
@@ -63,7 +63,7 @@ requestAuth({
 
 ### 2.4 Mock 数据源边界
 
-- 生产入口与测试均以 `openapi/fixtures/<tag>/<operationId>.json` 为唯一 mock 来源；`src/app/scope.test.ts` 阻止 `frontend/src` 直接 import `ui-design/src/data*`。
+- 生产入口与测试均以 `openapi/fixtures/<tag>/<operationId>.json` 为唯一 mock 来源；不得复制第二套页面展示数据。
 - Vite dev 默认也以 `openapi/fixtures/<tag>/<operationId>.json` 为 mock 来源，确保未启动真实 backend 时仍能看到已开发页面；真实 backend 联调必须显式切 `VITE_EI_API_MODE=real`。
 - 缺失 scenario 必须先在 fixtures 仓库补，再消费；`createFixtureBackedFetch` 在未知 scenario 上 fail loudly。
 - 新增或改动业务数据消费时，前端 owner 必须同步维护 [development operation matrix](../docs/development.md#21-operation-matrix-requirement)，不得把 fixture-backed UI 误标为真实 backend 闭环。
@@ -75,7 +75,7 @@ requestAuth({
 - 每种 UI 语言必须有独立 locale 文件：[`src/app/i18n/locales/zh.ts`](./src/app/i18n/locales/zh.ts)、[`src/app/i18n/locales/en.ts`](./src/app/i18n/locales/en.ts)。不要把多语言 message map 糅合回 `messages.ts` 或组件文件。
 - UI 语言优先级为用户显式选择 > 浏览器 locale > English fallback；显式选择写入 `localStorage["ei-lang"]`，未知、缺失或不支持时 fallback English。语言选择只关联前端显示偏好，不由 runtime config 或登录态覆盖。
 - 新增语言时新增 locale 文件，并在 `src/app/i18n/localeCatalog.ts` 追加 `SUPPORTED_LOCALES` 元数据（`code` / `label` / `shortLabel` / `aliases`）；TypeScript 必须通过 `LocaleMessages` 校验 key 完整性，同时扩展 `localeFiles.test.ts` 和 i18n component test。只有真实运行环境中的完整用户流程需要覆盖新语言时才新增 E2E。
-- TopBar 语言选择必须保持为与 `ui-design/src/app.jsx` 一致的可访问 icon dropdown：`button[data-testid="topbar-lang-toggle"]` 显示 globe icon + 当前语言标签（如 `中文` / `English`）并打开 `topbar-lang-menu`，语言项使用 `topbar-lang-option-{locale}`，方便后续新增 locale；不要改成 native select、按钮组或只切状态的静态控件。
+- TopBar 语言选择保持为可访问 icon dropdown：`button[data-testid="topbar-lang-toggle"]` 显示 globe icon + 当前语言标签（如 `中文` / `English`）并打开 `topbar-lang-menu`，语言项使用 `topbar-lang-option-{locale}`，方便后续新增 locale；不要改成按钮组或只切状态的静态控件。
 - RouteName、testid、URL/hash 和业务语言字段不本地化；`Accept-Language` 只作为 generated client 的 UI display hint，不覆盖 `targetLanguage` / practice language 等业务字段。
 
 ### 2.6 Frontend owner 边界
@@ -91,16 +91,16 @@ requestAuth({
 
 ### 2.7 视觉骨架接入点
 
-`frontend-shell/002-app-shell-visual-system` 把 ui-design 静态原型整体迁移到正式前端，建立了统一的视觉 token、字体、TopBar 节奏、auth 卡片骨架与通用 screen shell。后续 frontend owner 在以下接入点内扩展业务内容，不要绕过 token 体系或重写视觉骨架。
+`frontend-shell/002-app-shell-visual-system` 建立了统一的视觉 token、字体、TopBar 节奏、auth 卡片骨架与通用 screen shell。后续 frontend owner 在以下接入点内扩展业务内容，不要绕过 token 体系或重写视觉骨架。
 
 #### Design tokens 入口
 
 - 语义 token：[`src/app/theme/tokens.ts`](./src/app/theme/tokens.ts) — 仅导出 CSS variable 名（`--ei-color-*` / `--ei-radius-*` / `--ei-shadow-*` / `--ei-space-*` / `--ei-text-*` / `--ei-font-*`），不导出 hex 字面量。
-- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（内部）— `ocean` / `plum` 2 主题 × 2 模式 × 21 个颜色角色、3 个 serif/sans 字体预设和固定 mono family，逐项转写自 `ui-design/src/primitives.jsx::EI_THEMES` / `EI_FONT_PRESETS` / `EI_THEME_LIST`；色板/字体由 traceability test 校验，`THEME_METADATA` 供 TopBar 使用，TopBar 另保留 custom accent。
+- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（内部）— `ocean` / `plum` 2 主题 × 2 模式 × 21 个颜色角色、3 个 serif/sans 字体预设和固定 mono family；色板/字体由正式前端测试校验，`THEME_METADATA` 供 TopBar 使用，TopBar 另保留 custom accent。
 - 主题 CSS：[`src/app/theme/themes.css`](./src/app/theme/themes.css) — `:root[data-theme=X][data-mode=Y]` 8 组合声明所有色板。
-- Custom accent helper：[`src/app/theme/customAccent.ts`](./src/app/theme/customAccent.ts) — 镜像 `app.jsx` oklch 公式（light=58 / dark=68 / soft 92/28，chroma clamp [0,0.28]，hue normalize [0,360)），仅覆盖 `--ei-color-accent` / `--ei-color-accent-soft`。
+- Custom accent helper：[`src/app/theme/customAccent.ts`](./src/app/theme/customAccent.ts) — 维护 oklch 公式（light=58 / dark=68 / soft 92/28，chroma clamp [0,0.28]，hue normalize [0,360)），仅覆盖 `--ei-color-accent` / `--ei-color-accent-soft`。
 
-新增 token 必须按 `tokens.test.ts` / `themes.css` / `themes.data.ts` 三处同步追加，并在测试中固化追溯到 `ui-design` 源。
+新增 token 必须按 `tokens.test.ts` / `themes.css` / `themes.data.ts` 三处同步追加，并在测试中固化正式前端内部契约。
 
 #### 主题 / 暗色 / customAccent 根级 wiring
 
@@ -125,56 +125,23 @@ requestAuth({
 
 Frontend owner 替换 fallback shell 时应保留 `ei-screen-shell` 外壳与 `ei-screen-card` 节奏；新分区只在 card 内部展开内容，不在 shell 外加自定义 wrapper。
 
-#### 代码层 visual smoke 与 parity gate 重跑
+#### 代码层 visual smoke 与浏览器验证
 
-D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
+D2 视觉系统由正式前端自身的可执行 gate 守住：
 
-1. **jsdom unit smoke（毫秒级）**：覆盖 DOM 锚点 / className / `:root[data-theme][data-mode]` selector resolution / customAccent inline overlay / out-of-scope module 负向 / `ui-design` 源字面量追溯。开发中可 focused 运行，阶段完成与 CI 统一执行根 `make test` 全量回归。
+1. **jsdom unit smoke（毫秒级）**：覆盖 DOM 锚点 / className / `:root[data-theme][data-mode]` selector resolution / customAccent inline overlay / out-of-scope module 负向。开发中可 focused 运行，阶段完成统一执行根 `make test` 全量回归。
 
    ```bash
    pnpm --filter @easyinterview/frontend test src/app/__tests__/app-shell-visual-system.test.tsx
    make test
    ```
 
-2. **Playwright + chromium pixel parity gate（秒级）**：在 desktop (1440×900) 与 mobile (390×844) 两个 chromium project 下加载 `frontend/dist/index.html` 与 `ui-design/index.html` golden preview，断言 DOM 锚点 + computed style + bounding box + screenshot smoke / 必要截图差异。它是 fixture-backed UI parity gate，不是 E2E；需要 UI 变更时单独运行。
+2. **真实浏览器验证**：只有需要验证运行态交互、响应式布局或前后端业务链路时才使用 repository-defined browser scenario；场景必须访问真实 frontend，且业务请求落到真实 backend。截图是针对正式 UI 的辅助证据，不建立第二套参考页面或快照基线。
 
-   ```bash
-   # 0. 一次性预装 chromium 二进制（首次或新机器）
-   pnpm --filter @easyinterview/frontend test:pixel-parity:install
+## 3 UI 设计文档与正式实现
 
-   # 1. 构建 frontend dist（serve-pixel-parity.mjs 依赖）
-   pnpm --filter @easyinterview/frontend build
-
-   # 2. 跑当前 pixel parity spec 集合（desktop / mobile viewport 项按 spec 声明）
-   pnpm --filter @easyinterview/frontend test:pixel-parity
-
-   ```
-
-   规约入口：
-
-   - Playwright config：[`frontend/playwright.config.ts`](./playwright.config.ts) 声明 desktop / mobile 两个 chromium project + `webServer` 指向 `serve-pixel-parity.mjs`。
-   - 静态 server fixture：[`frontend/scripts/serve-pixel-parity.mjs`](./scripts/serve-pixel-parity.mjs) 同时挂载 `frontend/dist`（`/`）与 `ui-design/`（`/ui-design/`），并暴露 `/health` 探活。
-   - 13 个 spec：[`tests/pixel-parity/topbar.spec.ts`](./tests/pixel-parity/topbar.spec.ts)（含 authenticated 头像菜单 dropdown + logout flow）、[`screens.spec.ts`](./tests/pixel-parity/screens.spec.ts)、[`layout.spec.ts`](./tests/pixel-parity/layout.spec.ts)、[`screenshot.spec.ts`](./tests/pixel-parity/screenshot.spec.ts)、[`home.spec.ts`](./tests/pixel-parity/home.spec.ts)、[`parse.spec.ts`](./tests/pixel-parity/parse.spec.ts)、[`reports.spec.ts`](./tests/pixel-parity/reports.spec.ts)、[`workspace.spec.ts`](./tests/pixel-parity/workspace.spec.ts)、[`practice.spec.ts`](./tests/pixel-parity/practice.spec.ts)、[`generating.spec.ts`](./tests/pixel-parity/generating.spec.ts)、[`report.spec.ts`](./tests/pixel-parity/report.spec.ts)、[`resume-workshop.spec.ts`](./tests/pixel-parity/resume-workshop.spec.ts)、[`resume-workshop-create.spec.ts`](./tests/pixel-parity/resume-workshop-create.spec.ts)。
-
-   当前截图 gate 只使用非空 screenshot buffer，并与 DOM anchor、computed style、bounding box 和 responsive geometry 断言组合；仓库不维护 snapshot baseline 或对应更新流程。
-
-   `workspace.spec.ts` 的 full-state pixel path 通过测试注入的 initial route 使用 server-bound `targetJobId` / `resumeId` / `planId` 进入完整规划态；不要把它改回 Home recent card 路径，后者按产品语义会携带 `resume-unbound` 并触发 missing-resume 状态。
-
-   修改 frontend bundle 后重跑 Playwright parity 时，先确认 4173 端口没有复用非当前 `dist` 的 server；若存在 stale server，停止后重新运行 gate，避免 `reuseExistingServer` 读取非当前构建产物。
-
-   离线 / 无外网时的局限：`ui-design/index.html` 通过 unpkg.com 加载 React + Babel，并通过 Google Fonts 加载字体；离线运行 ui-design 对照断言会失败，需要先提供等价的本地 vendor 资源。
-
-#### `ui-design` 原生迁移规则
-
-- 新组件 / 新视觉先在 `ui-design/src/*.jsx` 落原型，再在正式前端原生迁移；不允许 AI 自由发挥或外部品牌设计系统补全。
-- 每条样式 / token / className 必须能追溯到 `ui-design/src/*.jsx`、`ui-design/src/primitives.jsx` 或 `ui-design/src/app.jsx`；test 文件已固化 hex / fontSize / 布局值 → ui-design 源的 lint 关系。
-- 任何视觉偏差不得以「风格接近」收口；要么修到与原型一致，要么先修改 `ui-design/` 真理源（更新 `docs/ui-design/` + 静态原型 + 代码层测试 / parity gate），再回到正式前端做迁移。
-
-## 3 UI 真理源与原生迁移
-
-- `docs/ui-design/` 与 `ui-design/` 源码是前端 UI 验收的唯一真理源。新页面或大幅视觉修订必须先在 `ui-design/` 完成静态原型，并同步 `docs/ui-design/` 说明。
-- 正式 `frontend/` 只做 100% 源级复刻：DOM 构图、布局、间距、字号、字体层级、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏必须来自对应 `ui-design/src/*.jsx` 与文档。真实路由、鉴权、数据、可访问性和工程约束可以适配，但不得重新设计、重新解释或重新组合视觉。
-- 每个正式组件的样式、token、className 和布局规则必须能追溯到对应 `ui-design/src/*.jsx`、[`ui-design/src/primitives.jsx`](../ui-design/src/primitives.jsx)、[`ui-design/src/app.jsx`](../ui-design/src/app.jsx) 或 `docs/ui-design/`；不得凭 AI 判断补齐未在原型中出现的视觉值。
-- 视觉 plan / checklist 必须带 parity gate：至少验证 DOM 锚点、关键 computed style、bounding box、viewport 布局和必要截图差异。只断言“组件存在”“不重叠”不足以证明符合 UI 原型；任何可见偏差必须修正或先回到 `ui-design/` 更新真理源。
-- [`ui-design/src/primitives.jsx`](../ui-design/src/primitives.jsx) 的 `EI_THEMES` / `EI_FONT_PRESETS` 和 [`ui-design/src/app.jsx`](../ui-design/src/app.jsx) 的 runtime 交互模型是正式 token / theme / display controls 的抽取来源。
-- 不引入外部品牌设计系统作为替代参考；后续如果需要新的视觉方向，先改 `ui-design/`，再迁移到正式前端。
+- `docs/ui-design/` 定义信息架构、页面职责、流程、状态、响应式约束和视觉原则；正式 `frontend/` 是唯一可运行实现。
+- 新页面或大幅交互修订先更新对应设计文档，再实施组件、路由、数据与样式。
+- DOM、token、className 和具体样式值由正式前端代码维护，并通过组件测试、响应式断言、可访问性检查、构建以及必要的真实浏览器场景验证。
+- 不为展示目的建立平行运行时、重复组件、重复 fixture 或专用预览路由；设计文档与实现偏离时，修订错误的一方。
+- 不引入外部品牌设计系统作为替代参考；新的视觉方向先在 `docs/ui-design/` 收敛，再由正式前端实现。

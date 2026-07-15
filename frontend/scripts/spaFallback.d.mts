@@ -1,6 +1,6 @@
 /**
  * Type declarations for the host fallback resolver consumed by both
- * `serve-pixel-parity.mjs` (Node) and the focused code-level tests
+ * the host runtime and the focused code-level tests
  * (`frontend/src/app/spaFallback.test.ts` + `outOfScopeRouteNegative.test.ts`
  * + `url-routing-negative.test.tsx`). The .mjs source
  * stays Node-only; this .d.mts gives TypeScript-aware tooling type info

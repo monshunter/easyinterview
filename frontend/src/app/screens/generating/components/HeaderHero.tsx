@@ -3,7 +3,7 @@ import type { FC } from "react";
 import { useI18n } from "../../../i18n/messages";
 
 /**
- * Source-level mirror of ui-design/src/screens-p0-complete.jsx
+ * Source-level mirror of formal frontend implementation
  * lines 323-331 (eyebrow + serif headline + sub line).
  */
 export const HeaderHero: FC<{ status: "queued" | "generating" }> = ({ status }) => {

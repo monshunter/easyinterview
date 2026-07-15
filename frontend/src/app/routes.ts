@@ -2,7 +2,7 @@
  * Route catalog and chrome behavior for the formal frontend App shell.
  *
  * Truth source: docs/spec/frontend-shell/spec.md §2.1, docs/ui-design/auth-and-entry.md,
- * docs/ui-design/ui-architecture.md, ui-design/src/app.jsx.
+ * docs/ui-design/ui-architecture.md, and this formal route catalog.
  *
  * Three primary nav entries: home / workspace / resume_versions
  * (out-of-scope product entries are outside the current route catalog).

@@ -1053,7 +1053,6 @@ class FixtureContentTest(unittest.TestCase):
         scenarios = _load_fixture("getFeedbackReport", "Reports")["scenarios"]
         expected = {
             "default",
-            "prototype-baseline",
             "ready-needs-practice",
             "queued",
             "generating",

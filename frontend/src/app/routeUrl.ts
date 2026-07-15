@@ -3,7 +3,7 @@
  *
  * Truth source: docs/spec/frontend-shell/spec.md §4 / C-11..C-13,
  * docs/spec/frontend-shell/plans/004-url-addressable-routing/plan.md §4 + §5,
- * docs/ui-design/auth-and-entry.md, ui-design/src/app.jsx ROUTE_ALIASES.
+ * docs/ui-design/auth-and-entry.md and docs/ui-design/module-map.md.
  *
  * Browser History canonical URL contract — turns a `LooseRoute` into a
  * canonical path + sorted query string, and a canonical URL back into a
@@ -11,8 +11,8 @@
  * and never lets raw payload / AI prompt / auth secret keys reach the URL,
  * pendingAction, history.state or storage.
  *
- * `#route=...` static-preview parsing remains in `bootstrapRoute.ts` so
- * pixel parity harnesses keep working through the migration.
+ * URL fragments are not a routing input; canonical addresses use path and
+ * query only.
  */
 
 import { normalizeRouteName, type LooseRoute } from "./normalizeRoute";
@@ -212,8 +212,7 @@ export function formatRouteUrl(input: LooseRoute): string {
  * Parses a canonical URL (path + optional query, with or without leading
  * slash) into a normalized `Route`. Unknown paths fall back to `home`.
  * Unsafe params are silently dropped — they never enter App state. Fragment
- * (`#...`) is ignored here so the canonical parser stays orthogonal to the
- * out-of-scope `#route=...` hash adapter.
+ * (`#...`) is ignored because fragments are not part of the route contract.
  */
 export function parseUrlToRoute(rawUrl: string): Route {
   const trimmed = (rawUrl ?? "").trim();

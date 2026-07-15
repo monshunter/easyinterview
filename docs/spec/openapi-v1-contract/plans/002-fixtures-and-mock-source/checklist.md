@@ -15,7 +15,7 @@
 
 ## 2 Prototype baseline sync
 
-- [x] 2.1 `openapi/fixtures/PROTOTYPE_MAPPING.md` 声明 `ui-design/src/data.jsx` 到 operationId 的映射。
+- [x] 2.1 `openapi/fixtures/PROTOTYPE_MAPPING.md` 声明 `frontend/src` 到 operationId 的映射。
 - [x] 2.2 `make sync-fixtures-from-prototype` 只写入受支持 fixture 的 `prototype-baseline` scenario，并在写入后执行 fixture validation。
 - [x] 2.3 同步命令幂等；重复运行不产生新的 `openapi/fixtures` diff。
 - [x] 2.4 P0 closed-loop endpoints 的 `prototype-baseline` scenario 非空且 schema-valid。
@@ -46,7 +46,7 @@
 
 - [x] 6.1 RED: fixture validation/consumer tests reject missing paired round identity on current practice plans and missing progress projection on structured TargetJobs.<!-- verified: 2026-07-12 method=validator-red -->
 - [x] 6.2 Add plan fixtures for baseline/current round and legacy null identity, plus TargetJob fixtures for zero/partial/all completed round states.<!-- verified: 2026-07-12 method=fixture-validation count=37 variants="not-started,partial,completed,legacy-null,mismatch" -->
-- [x] 6.3 Update prototype mapping/data and prove `make sync-fixtures-from-prototype` idempotency without lifecycle-status round inference.<!-- verified: 2026-07-12 method=prototype-sync-twice+4-unit-tests+37-fixture-validation evidence="ui-design/src/data.jsx is the practiceProgress source; sync does not read TargetJob lifecycle status" -->
+- [x] 6.3 Update prototype mapping/data and prove `make sync-fixtures-from-prototype` idempotency without lifecycle-status round inference.<!-- verified: 2026-07-12 method=prototype-sync-twice+4-unit-tests+37-fixture-validation evidence="frontend/src is the practiceProgress source; sync does not read TargetJob lifecycle status" -->
 - [x] 6.4 Run `make validate-fixtures`, example rendering, mock consumer tests, and scenario-owner handoff gates.<!-- verified: 2026-07-12 method=57-python-tests+validate-fixtures+render-examples+generated-consumers -->
 
 ## 7 OPENAPI-001 report fixtures

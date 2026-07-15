@@ -11,25 +11,25 @@
 
 ## 1 目标
 
-本 owner 固化正式前端 App shell 的视觉系统合同：把 `ui-design/` 当前原型中的 token、主题、暗色、`customAccent`、字体、TopBar、认证页、设置页与通用 screen shell 原生迁移到 `frontend/`，并保持路由、认证、pendingAction、i18n 和 mock runtime 行为不变。
+本 owner 固化正式前端 App shell 的视觉系统合同：把 `frontend/` 当前原型中的 token、主题、暗色、`customAccent`、字体、TopBar、认证页、设置页与通用 screen shell 原生迁移到 `frontend/`，并保持路由、认证、pendingAction、i18n 和 mock runtime 行为不变。
 
-正式前端的可见样式只能来自 `ui-design/src/primitives.jsx`、`ui-design/src/app.jsx`、对应 `ui-design/src/screen-*.jsx` 和 `docs/ui-design/`。本 owner 不创建业务页面细节、不扩大 route catalog、不引入外部设计系统、不复制 prototype data。
+正式前端的可见样式只能来自 `frontend/src`、对应 `frontend/src` 和 `docs/ui-design/`。本 owner 不创建业务页面细节、不扩大 route catalog、不引入外部设计系统、不复制 prototype data。
 
 ## 2 当前真理源
 
 | 范围 | 当前来源 | 正式前端落点 |
 |------|----------|--------------|
-| 色板与字体预设 | `ui-design/src/primitives.jsx` 的 `EI_THEMES`、`EI_THEME_LIST`、`EI_FONT_PRESETS` | `frontend/src/app/theme/themes.data.ts`、`themes.css`、`fonts.css`、`typography.css` |
-| `customAccent` | `ui-design/src/app.jsx` 的 hue / chroma 模型与 `TWEAK_DEFAULTS.theme = "ocean"` | `frontend/src/app/theme/customAccent.ts`、`DisplayPreferencesProvider` |
-| TopBar | `ui-design/src/app.jsx::TopBar` | `frontend/src/app/topbar/TopBar.tsx`、`topbar.css` |
-| Auth shell | `ui-design/src/screen-auth.jsx` 与 `docs/ui-design/auth-and-entry.md` | `frontend/src/app/auth/*`、`auth.css` |
+| 色板与字体预设 | `frontend/src` 的 `EI_THEMES`、`EI_THEME_LIST`、`EI_FONT_PRESETS` | `frontend/src/app/theme/themes.data.ts`、`themes.css`、`fonts.css`、`typography.css` |
+| `customAccent` | `frontend/src` 的 hue / chroma 模型与 `TWEAK_DEFAULTS.theme = "ocean"` | `frontend/src/app/theme/customAccent.ts`、`DisplayPreferencesProvider` |
+| TopBar | `frontend/src` | `frontend/src/app/topbar/TopBar.tsx`、`topbar.css` |
+| Auth shell | `frontend/src` 与 `docs/ui-design/auth-and-entry.md` | `frontend/src/app/auth/*`、`auth.css` |
 | Settings / screen shell | `docs/ui-design/module-map.md`、`ui-architecture.md` 和 current screen primitives | `frontend/src/app/screens/*`、`screens.css` |
 
 ## 3 质量门禁
 
 - **Plan 类型**: `feature-behavior` + `frontend`
 - **TDD 策略**: 通过 `/implement frontend-shell/002-app-shell-visual-system frontend` 进入 `/tdd`。每个可见视觉 surface 必须先有 focused token、component、structural 或 visual-smoke 断言，再写实现。
-- **契约边界**: browser-level pixel parity 由 `frontend-shell/003-ui-design-pixel-parity-gate` 承接；本 owner 保持 jsdom fast smoke 与 source-to-target 映射，不用截图基线替代 source-level parity。
+- **契约边界**: browser-level responsive browser verification 由 `frontend-shell/003-ui-design-responsive-browser-gate` 承接；本 owner 保持 jsdom fast smoke 与 source-to-target 映射，不用截图基线替代 formal implementation contract。
 
 ## 4 当前合同
 
@@ -47,7 +47,7 @@
 
 ### 4.4 TopBar
 
-TopBar 保持三入口 nav、主题菜单、最小 custom accent row、暗色 icon toggle、语言 dropdown、登录入口和用户菜单。`CustomAccentPicker` 只保留色相与饱和度控件；不渲染 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean / Plum 是退出 custom accent 的唯一清晰路径。`data-testid`、`aria-current`、`aria-pressed`、i18n 文案与 route behavior 必须保持稳定；显示控件的 DOM 构图、间距、圆角、字号和状态来自 `ui-design/src/app.jsx`。
+TopBar 保持三入口 nav、主题菜单、最小 custom accent row、暗色 icon toggle、语言 dropdown、登录入口和用户菜单。`CustomAccentPicker` 只保留色相与饱和度控件；不渲染 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean / Plum 是退出 custom accent 的唯一清晰路径。`data-testid`、`aria-current`、`aria-pressed`、i18n 文案与 route behavior 必须保持稳定；显示控件的 DOM 构图、间距、圆角、字号和状态来自 `frontend/src`。
 
 ### 4.5 Auth / Settings / Screen shell
 

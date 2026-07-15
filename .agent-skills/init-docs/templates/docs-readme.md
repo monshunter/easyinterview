@@ -87,7 +87,6 @@ Spec-centric plan 补充约定：
 | `scripts/` | codegen、lint、git hook 和工程辅助脚本 |
 | `shared/` | 前后端共享契约、事件、job 和 fixture |
 | `test/scenarios/` | BDD / E2E 场景资产与本地场景环境脚本 |
-| `ui-design/` | 静态 UI 原型、UI token 源和 UI 契约测试 |
 
 ## 5 关联文档
 

@@ -1,6 +1,6 @@
 /*
  * D2 TopBar visual rhythm. Every literal value is transcribed from
- * ui-design/src/app.jsx::TopBar so the production frontend's chrome matches
+ * formal frontend implementation so the production frontend's chrome matches
  * the static prototype DOM/style/density (height 58, padding 0 32, gap 28,
  * sticky top, z-index 30, etc.).
  *

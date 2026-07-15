@@ -13,13 +13,13 @@
 
 本计划交付当前正式前端 App shell：默认 Home、三入口 TopBar、全局显示控制、email-code 认证页、资料补全 gate、`requestAuth(pendingAction)` 恢复、用户菜单、settings 双 tab、runtime / generated client bootstrap，以及面试业务 route 的登录前置保护。
 
-当前完成态文档只描述现行合同。任何新增可见页面、route、auth flow 或设置页能力，必须先更新 `ui-design/` 静态原型、`docs/ui-design/` 和 `frontend-shell` spec，再修订本 owner 或派生明确边界的新 plan。
+当前完成态文档只描述现行合同。任何新增可见页面、route、auth flow 或设置页能力，必须先更新 `frontend/` 静态原型、`docs/ui-design/` 和 `frontend-shell` spec，再修订本 owner 或派生明确边界的新 plan。
 
 ## 2 当前合同
 
 ### 2.1 UI 与 route catalog
 
-- UI 真理源：`docs/ui-design/`、`ui-design/src/app.jsx`、`ui-design/src/screen-auth.jsx`、`ui-design/src/screens-p0-complete.jsx`。
+- UI 设计文档：`docs/ui-design/`、`frontend/src`。
 - 一级 TopBar 入口：`home`、`workspace`、`resume_versions`。
 - 上下文 route：`parse`、`practice`、`generating`、`report`。
 - 用户菜单 route：`settings`、`auth_logout`。
@@ -72,7 +72,7 @@
 - Vite dev mock 从 unauthenticated 开始，verify 后 `/me` 变为 authenticated 或 profileIncomplete，logout 后回到 unauthenticated。
 - Auth verify 成功后的 `/me` refresh failure 不被渲染为验证码错误；App 离开 verify 页并在 route gate 中表达 auth/profile loading 或 error。
 - StrictMode 下同 key safe-read GET 同时在途只发出一个底层 request；settle 后可重新读取。不同 client/query/header/epoch/auth、带 signal、非 GET 与 `/auth/email/verify` 保持独立；verify 成功推进 auth epoch，auth/locale 变化不会被旧 key 吞并。
-- UI 结构、文案、密度、主题和交互节奏可追溯到 `ui-design/` 与 `docs/ui-design/`。
+- UI 结构、文案、密度、主题和交互节奏可追溯到 `frontend/` 与 `docs/ui-design/`。
 
 ## 6 当前验证面
 
@@ -93,7 +93,7 @@
 
 ### Phase 10: auth prototype call-surface pruning
 
-`ui-design/src/app.jsx` 只向 auth 原型 screen 传递真实消费的参数：登录页保留 `nav` 以进入验证码页，验证码页保留 `onSignIn` 以完成登录，资料补全页保留 `onCompleteProfile` 以恢复 pendingAction。删除登录页从未读取的 `onSignIn` 与资料补全页从未读取的 `nav`，同时删除调用方对应传参，不增加兼容参数或空转 wrapper。
+`frontend/src` 只向 auth 原型 screen 传递真实消费的参数：登录页保留 `nav` 以进入验证码页，验证码页保留 `onSignIn` 以完成登录，资料补全页保留 `onCompleteProfile` 以恢复 pendingAction。删除登录页从未读取的 `onSignIn` 与资料补全页从未读取的 `nav`，同时删除调用方对应传参，不增加兼容参数或空转 wrapper。
 
 门禁：UI contract 先对当前冗余签名和调用方传参失败，删除后以 AST 证明 auth 原型参数全部有读取点；focused UI/auth gates、静态浏览器 auth route smoke、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates 通过。BDD 不适用，因为本批不改变 email-code、profile setup 或 pendingAction 用户行为。
 
@@ -117,7 +117,7 @@
 | Auth flow 绕过 generated client/session cookie | Operation matrix 固化 generated auth operations；focused tests 阻止自定义 session wire |
 | PendingAction 泄露敏感正文 | Safe-param allowlist 与 URL/privacy tests 只允许稳定 ID 和 display hint |
 | Route catalog 漂移 | `normalizeRoute` / `routeUrl` focused tests 与 BDD gates 共同验证 unsupported input 不 materialize 独立页面 |
-| UI 与原型偏离 | `ui-design/` 源码和 `docs/ui-design/` 是唯一 UI 真理源；可见变更必须先更新原型再迁移正式前端 |
+| UI 与原型偏离 | `frontend/` 源码和 `docs/ui-design/` 是唯一 UI 设计文档；可见变更必须先更新原型再迁移正式前端 |
 
 ## 8 修订记录
 

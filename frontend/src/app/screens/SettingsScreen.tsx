@@ -5,7 +5,7 @@ import type { Route } from "../routes";
 
 /**
  * Settings & Privacy route. Mirrors docs/ui-design/auth-and-entry.md §4 / §8 and
- * ui-design/src/screens-p0-complete.jsx::SettingsScreen.
+ * formal frontend implementation
  *
  * product-scope D-21: settings keeps exactly two tabs — profile and
  * privacy & data. The profile tab holds account basics, sign-in & security

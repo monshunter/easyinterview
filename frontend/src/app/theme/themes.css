@@ -1,6 +1,6 @@
 /*
- * D2 theme CSS variables. Derived from ui-design/src/primitives.jsx
- * (EI_THEMES) and ui-design/src/app.jsx. Every hex value is transcribed
+ * D2 theme CSS variables. Derived from formal frontend implementation
+ * (EI_THEMES) and formal frontend implementation Every hex value is transcribed
  * verbatim; the matching focused tests in `tokens.test.ts` assert traceability.
  *
  * Selector contract: `[data-theme=<ocean|plum>]` × `[data-mode=
@@ -35,7 +35,7 @@
   --ei-space-8: 32px;
 
   /* font families — Phase 2.1 will enrich these with fontsource imports.
-     Initial fallback chain matches ui-design/src/primitives.jsx ei-global
+     Initial fallback chain matches formal frontend implementation ei-global
      <style> block so Phase 1 already renders correctly. */
   --ei-font-serif: "Noto Serif SC", "Source Serif Pro", Georgia, serif;
   --ei-font-sans: "Inter", "PingFang SC", -apple-system, BlinkMacSystemFont,

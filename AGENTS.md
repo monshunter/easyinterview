@@ -4,25 +4,24 @@
 
 easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面试复盘设计的 AI 面试训练产品。项目主张是把用户从“拿到一份 JD”到“完成一场有上下文的模拟面试、获得证据化报告、决定复练当前轮或进入下一轮，并在真实面试后复盘”的准备过程做成可执行、可追踪、可反复改进的训练工作台。
 
-当前项目仍处于开发阶段，尚未上线，不需要保留线上兼容性或历史 route / 旧模块兼容层。实现和文档应以当前 active spec、`docs/ui-design/` 与 `ui-design/` 静态原型为准；发现旧 spec、旧 route、旧画板标签或 dead code 与当前设计冲突时，优先删除或原地修订旧内容，而不是为了兼容历史形态保留平行入口。
+当前项目仍处于开发阶段，尚未上线，不需要保留线上兼容性或历史 route / 旧模块兼容层。实现和文档应以当前 active spec、`docs/ui-design/` 与正式代码为准；发现旧 spec、旧 route、旧画板标签或 dead code 与当前设计冲突时，优先删除或原地修订旧内容，而不是为了兼容历史形态保留平行入口。
 
 当前仓库的主要目录结构如下：
 
 - `docs/`：产品范围、工程 spec、plan、UI 设计文档、工作日志、Bug 知识库和报告。
-- `ui-design/`：当前静态 UI 原型与 UI 契约测试，是前端交互设计的直接参照。
 - `openapi/`、`shared/`、`backend/`、`frontend/`、`migrations/`、`config/`、`scripts/`：API、共享契约、后端、前端、数据库、配置和工程脚本资产。
 - `.agent-skills/`：仓库内自定义 Skill、模板和共享校验脚本。
 - `test/scenarios/`：场景测试框架、环境说明和 BDD / E2E 场景资产。
 
-### 1.1 前端实施 UI 真理源
+### 1.1 前端设计与实施边界
 
-前端创建新页面、新组件、新 token 时必须以 `ui-design/` 静态原型源码和 `docs/ui-design/` 文档作为唯一 UI 真理源。正式前端的视觉目标是 100% 源级复刻 `ui-design/`；AI 不得基于自身审美自由生成正式前端视觉，也不得引入外部品牌设计系统作为参考替代。
+`docs/ui-design/` 负责定义 UI 信息架构、页面职责、用户流程、交互状态、响应式约束和视觉原则；仓库不维护并行的可运行 UI Demo。正式 `frontend/` 是实现与可执行验证的唯一代码落点。
 
-- **先设计后实现**：新页面或大幅视觉修订必须先在 `ui-design/` 落地静态原型，并同步 `docs/ui-design/` 说明，再进入正式 `frontend/` 实施。
-- **源级复刻，不做二次设计**：正式前端必须逐项复刻 `ui-design/` 中的 DOM 构图、布局、间距、字号、字体层级、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏；只允许为真实数据、路由、鉴权、可访问性和工程约束做必要适配，不允许重新设计、重新解释、重新组合视觉。
-- **样式来源必须可追溯**：每个正式组件的样式、token、className 和布局规则必须能追溯到对应 `ui-design/src/*.jsx`、`ui-design/src/primitives.jsx`、`ui-design/src/app.jsx` 或 `docs/ui-design/`；不得凭 AI 判断补齐未在原型中出现的视觉值。
-- **Parity gate 必须可执行**：涉及用户可见 UI 的 plan/checklist 必须包含对 `ui-design/` 的 100% 复刻验证，至少覆盖 DOM 锚点、关键 computed style、bounding box、viewport 布局和必要截图差异；“语义相似”“风格接近”“视觉大致一致”不能作为完成依据。
-- **删除外部设计参考口径**：仓库不再保留独立外部品牌设计系统参考文件；后续若需要新的视觉方向，由用户先更新 `ui-design/` 原型，Agent 再做原生迁移。
+- **先设计后实现**：新页面或大幅交互修订必须先更新 `docs/ui-design/` 对应设计，再进入正式 `frontend/` 实施。
+- **设计约束可追溯**：页面职责、流程、状态、布局原则与关键视觉约束必须能追溯到 `docs/ui-design/` 和对应 active spec；具体 DOM、token 与样式值由正式前端代码维护。
+- **正式前端直接验证**：用户可见变更必须由组件测试、响应式布局断言、可访问性检查以及必要的真实浏览器 UI 场景验证；不以第二套 Demo 或逐像素复制作为验收前提。
+- **单实现原则**：不得为设计展示再建立独立前端运行时、重复组件树、重复 fixture 或并行路由；设计文档与正式实现发生偏差时，修订文档或正式代码中的错误一方。
+- **外部参考边界**：仓库不保留独立外部品牌设计系统参考文件；新的视觉方向先在 `docs/ui-design/` 收敛，再由正式前端实现。
 
 ---
 
@@ -90,7 +89,7 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 
 - **历史状态不算证据**：既有 `completed`、checklist 勾选、历史 PASS、历史测试结果和 diff 大小只能作为线索，不能作为当前完成依据。
 - **Artifact-level 反查**：必须直接读取或解析当前真理源、实现代码、生成物、fixtures、baseline、DDL、runtime config、scripts、README、测试断言和 Make target；不得只读 plan/checklist 就进入下一项。
-- **新版语义反向审计**：必须从当前 `docs/spec/product-scope/spec.md`、`docs/ui-design/`、`ui-design/` 和 active spec 中提取不变量，反向审查实现是否仍符合当前产品与交互范围。
+- **新版语义反向审计**：必须从当前 `docs/spec/product-scope/spec.md`、`docs/ui-design/`、active spec 和正式代码中提取不变量，反向审查实现是否仍符合当前产品与交互范围。
 - **旧口径负向搜索**：必须搜索旧 route、旧 tag/schema/table/event/job/config flag、旧 feature flag、旧 AI model/provider 假设、旧 `feature_key` / `featureKey` 路由口径，以及 Mistakes / Growth / Drill / 独立 Voice 等被当前设计丢弃的模块口径。
 - **历史包删除零残留**：当用户要求删除已迁移文档包、旧目录或旧模块时，不得只改链接；必须删除实体目录 / 文件，并在 owner spec / plan gate 中固化目录名、文件名和旧 shorthand 的 zero-reference 搜索，确认当前 owner spec / coded truth source 可独立承接字段、事件、指标、日志、schema 与验证 gate。
 - **无争议旧文档直接删除**：当模块、计划、设计文档或历史包已与当前 active spec 冲突且没有继续承接当前合同的价值时，不得用旧模块生命周期说明、英文旧状态 banner 或归档说明继续保留实体文件；应删除实体目录 / 文件，并同步修订 INDEX、context、引用和验证 gate。只有 work-journal、bug、report、migration 历史、明确法律/审计证据或仍被当前 owner spec 必需引用的材料可作为历史证据保留。
@@ -103,7 +102,7 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 
 1. `docs/development.md` §2 Frontend / Backend Contract Workflow
 2. 相关模块 README：至少包括命中目录的 `README.md`，例如 `frontend/README.md`、`backend/README.md`、`openapi/README.md`、`deploy/dev-stack/README.md`、`test/scenarios/README.md`
-3. 若涉及用户可见 UI：同时读取 `docs/ui-design/` 对应文档与 `ui-design/src/*.jsx` / `ui-design/src/primitives.jsx` / `ui-design/src/app.jsx` 的相关源码
+3. 若涉及用户可见 UI：同时读取 `docs/ui-design/` 对应文档、相关 active spec 与正式 `frontend/` 实现
 4. 若涉及 API / fixture / generated client / handler：读取 `openapi/openapi.yaml`、相关 `openapi/fixtures/<tag>/<operationId>.json`、generated client/server artifacts，以及计划中的 operation matrix
 5. 若涉及本地依赖或场景验证：区分 Docker Compose 外部依赖、宿主机前后端运行入口、根 `make test` 代码回归与 `test/scenarios/e2e/` 真实 API/UI 场景契约，按 `deploy/dev-stack/README.md` 和 `test/scenarios/README.md` 执行；不得凭历史印象默认引入 Kind / K8s / Helm 环境
 

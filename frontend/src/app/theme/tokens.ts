@@ -5,8 +5,8 @@
  * `:root[data-theme][data-mode]` selectors in `themes.css`.
  *
  * Sources of truth:
- *   - ui-design/src/primitives.jsx (EI_THEMES, EI_FONT_PRESETS, ei-global vars)
- *   - ui-design/src/app.jsx (customAccent oklch formula)
+ *   - formal frontend implementation (EI_THEMES, EI_FONT_PRESETS, ei-global vars)
+ *   - formal frontend implementation (customAccent oklch formula)
  *
  * Adding a new token requires updating: this registry, themes.data.ts (when
  * it is a per-theme color), themes.css (variable declaration on every base

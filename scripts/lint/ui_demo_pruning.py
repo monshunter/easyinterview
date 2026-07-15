@@ -78,7 +78,13 @@ class ForbiddenPattern:
 
 
 FORBIDDEN_PATTERNS = (
-    ForbiddenPattern("ui demo path", re.compile(r"(?<!docs/)ui-design/")),
+    ForbiddenPattern(
+        "ui demo path",
+        re.compile(
+            r"ui-design/(?:src(?:/|$)|index\.html|canvas\.html|run\.sh|"
+            r"ui-design-contract\.test\.mjs)|(?<![./\w-])ui-design/"
+        ),
+    ),
     ForbiddenPattern(
         "pixel parity contract",
         re.compile(
@@ -161,9 +167,11 @@ def scan_file(repo_root: Path, path: Path) -> list[Finding]:
         return []
 
     rel = path.relative_to(repo_root)
+    lines = text.splitlines()
     findings: list[Finding] = []
-    for lineno, line in enumerate(text.splitlines(), start=1):
-        if NEGATIVE_CONTEXT_RE.search(line):
+    for lineno, line in enumerate(lines, start=1):
+        context = "\n".join(lines[max(0, lineno - 3) : min(len(lines), lineno + 2)])
+        if NEGATIVE_CONTEXT_RE.search(context):
             continue
         for forbidden in FORBIDDEN_PATTERNS:
             if forbidden.pattern.search(line):

@@ -10,7 +10,7 @@
 
 本 subject 的目标是：
 
-1. 让前端开发只消费 B2 fixtures 投影出的 API shape，不再直接读取 `ui-design/src/data.jsx` 作为实现数据源。
+1. 让前端开发只消费 B2 fixtures 投影出的 API shape，不再直接读取 `frontend/src` 作为实现数据源。
 2. 让后端或本地 dev 环境可以用同一批 fixtures 提供稳定 mock response。
 3. 为后续 `frontend-shell`、D2-D6 前端 workstream 和后端切真 API 提供一致的 fixture-backed backend mock runtime。
 4. 把 fixture drift、operation coverage 和当前范围负向搜索纳入可执行 gate。
@@ -33,7 +33,7 @@
 - 不新增或修改 OpenAPI operation；破坏性 API 变更归 B2 `openapi-v1-contract`。
 - 不实现真实业务 store、AI 调用、文件上传、邮箱发送或 backend internal runner。
 - 不新增 product-scope 当前范围之外的 route、tag、operation、schema key 或 runtime config 口径。
-- 不把 `ui-design/src/data.jsx` 作为运行时真理源；它只保留为 prototype-baseline 对照输入。
+- 不把 `frontend/src` 作为运行时真理源；它只保留为 prototype-baseline 对照输入。
 - 不替代后续 `e2e-scenarios-p0` 的真实端到端验证。
 - 不在 production build 默认启用 fixture-backed mock；真实部署仍通过 same-origin `/api/v1` 访问 backend。
 
@@ -42,7 +42,7 @@
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | Mock 数据真理源 | B2 `openapi/fixtures/` | 前端和后端 mock 必须从 fixtures 投影，不私造业务数据 |
-| D-2 | Prototype 数据定位 | `ui-design/src/data.jsx` 只做 baseline 映射参考 | 实现不能直接 import prototype data |
+| D-2 | Prototype 数据定位 | `frontend/src` 只做 baseline 映射参考 | 实现不能直接 import prototype data |
 | D-3 | Mock 范围 | P0 happy path + 高风险错误态 | 不扩展当前范围外的空壳 |
 | D-4 | Drift gate | mock runtime 必须跑 fixture coverage、OpenAPI diff / validation 和 current-scope negative search | 后续 UI / API 改动要先更新 owner truth source |
 | D-5 | Frontend dev preview 默认行为 | Vite dev 默认 fixture-backed；`VITE_EI_API_MODE=real` 必须同时提供 `VITE_EI_API_BASE_URL` 才打真实 backend | 避免本地开发时大量真实接口报错导致页面不可见，且避免相对 `/api/v1` 隐式打到 frontend 5173 |

@@ -61,7 +61,7 @@ spec:
         - ../../../../ui-design/auth-and-entry.md
         - ../../../../ui-design/module-map.md
         - ../001-app-shell-auth-settings/plan.md
-        - ../003-ui-design-pixel-parity-gate/plan.md
+        - ../003-ui-design-responsive-browser-gate/plan.md
       discovery:
         packages:
           - frontend/src/app/routes.ts
@@ -72,7 +72,7 @@ spec:
           - frontend/src/main.tsx
           - frontend/src/app/screens/parse
           - frontend/src/app/screens/workspace
-          - frontend/tests/pixel-parity
+          - frontend/tests/responsive-browser
         uiRoutes:
           - home
           - workspace

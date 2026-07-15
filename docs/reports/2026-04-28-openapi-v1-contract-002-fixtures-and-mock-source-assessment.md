@@ -17,7 +17,7 @@
   - `make sync-fixtures-from-prototype` + `make render-openapi-fixture-examples` 二次幂等，`git diff --exit-code -- openapi/fixtures openapi/.generated` 干净。
   - Prism 5.14.2 + Node v23.10.0 拉起 mock，`scripts/codegen/prism_fixture_smoke.py` 5 op byte-equal vs fixture（含 spec C-7 P0 `501 + error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`）。
   - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` zero drift；plans/INDEX.md 中本 plan 已迁到「已完成」组。
-- 关联资产：[plan](../spec/openapi-v1-contract/plans/002-fixtures-and-mock-source/plan.md) / [checklist](../spec/openapi-v1-contract/plans/002-fixtures-and-mock-source/checklist.md) / [PROTOTYPE_MAPPING](../../openapi/fixtures/PROTOTYPE_MAPPING.md) / [openapi/fixtures/README](../../openapi/fixtures/README.md) / [render_openapi_fixture_examples.py](../../scripts/codegen/render_openapi_fixture_examples.py) / [prism_fixture_smoke.py](../../scripts/codegen/prism_fixture_smoke.py)。
+- 关联资产：[plan](../spec/openapi-v1-contract/plans/002-fixtures-and-mock-source/plan.md) / [checklist](../spec/openapi-v1-contract/plans/002-fixtures-and-mock-source/checklist.md) / 已删除的历史 `PROTOTYPE_MAPPING.md` / [openapi/fixtures/README](../../openapi/fixtures/README.md) / [render_openapi_fixture_examples.py](../../scripts/codegen/render_openapi_fixture_examples.py) / [prism_fixture_smoke.py](../../scripts/codegen/prism_fixture_smoke.py)。
 
 ## 2 会话中的主要阻点/痛点
 

@@ -2,7 +2,7 @@
  * D2 fontsource imports for ui-design EI_FONT_PRESETS.
  *
  * Sources of truth:
- *   - ui-design/src/primitives.jsx::EI_FONT_PRESETS
+ *   - formal frontend implementation
  *
  * Each preset declared in primitives.jsx must be loadable at runtime so the
  * settings page (Phase 5.1) can switch presets atomically without flashing

@@ -1,13 +1,12 @@
 // @vitest-environment jsdom
 /**
- * Code-level hash routing and out-of-scope route regression.
+ * Code-level canonical routing and out-of-scope route regression.
  *
  * Truth source: docs/spec/frontend-shell/plans/004-url-addressable-routing/
  * This Vitest/jsdom suite is part of the frontend unit regression, not E2E.
  *
  * Validates that:
- *   - `#route=...` static-preview / pixel-parity entries still bootstrap
- *     through `normalizeRoute` and produce equivalent canonical paths.
+ *   - URL fragments never act as a parallel routing input.
  *   - Out-of-scope aliases (`welcome`, `growth`, `plan`, `mistakes`, `drill`,
  *     `followup`, `experiences`, `star`, `onboarding`, standalone `voice`,
  *     `debrief`, `debrief_full`, `profile`)
@@ -18,7 +17,7 @@
  *     `/assets/*` or scenario script paths.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 import { App } from "../App";
 import { formatRouteUrl, ROUTE_TO_PATH } from "../routeUrl";
@@ -37,127 +36,14 @@ function resetWindow(): void {
 beforeEach(resetWindow);
 afterEach(resetWindow);
 
-describe("hash routing and out-of-scope route negative regression", () => {
-  it("`#route=home` bootstrap renders home and rewrites URL to `/`", () => {
-    window.history.replaceState(null, "", "/#route=home");
+describe("canonical and out-of-scope route negative regression", () => {
+  it("ignores fragment route data and strips the fragment", () => {
+    window.history.replaceState(null, "", "/#route=workspace&targetJobId=tj-1");
     render(<App />);
     expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/");
+    expect(window.location.search).toBe("");
     expect(window.location.hash).toBe("");
-  });
-
-  it("`#route=workspace&targetJobId=...` bootstrap rewrites to target-scoped detail", () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/#route=workspace&targetJobId=tj-1",
-    );
-    render(<App />);
-    expect(window.location.pathname).toBe("/workspace");
-    expect(window.location.search).toBe("?targetJobId=tj-1");
-    expect(window.location.hash).toBe("");
-    expect(screen.getByTestId("workspace-detail-loading")).toBeInTheDocument();
-  });
-
-  it("Reports hash bootstrap keeps targetJobId only and never adds a TopBar entry", async () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/#route=reports&targetJobId=01918fa0-0000-7000-8000-000000002000&section=reports&reportId=rpt-hostile&status=ready&roundId=round-hostile",
-    );
-    render(<App />);
-    await waitFor(() => screen.getByTestId("reports-screen"));
-    expect(window.location.pathname + window.location.search).toBe(
-      "/reports?targetJobId=01918fa0-0000-7000-8000-000000002000",
-    );
-    expect(window.location.hash).toBe("");
-    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
-    expect(screen.queryByTestId("topbar-nav-reports")).not.toBeInTheDocument();
-  });
-
-  it("legacy Parse report params are stripped instead of restoring an embedded report section", async () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/#route=parse&targetJobId=tj-1&section=reports&reportId=rpt-hostile&status=ready&roundId=round-hostile",
-    );
-    render(<App />);
-    await waitFor(() => expect(window.location.pathname).toBe("/parse"));
-    expect(window.location.search).toBe("?targetJobId=tj-1");
-    expect(window.location.hash).toBe("");
-    for (const forbidden of ["section", "reportId", "status", "roundId"]) {
-      expect(window.location.search).not.toContain(`${forbidden}=`);
-    }
-  });
-
-  it("legacy phone hash values are dropped and voice stays disabled", () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/#route=practice&mode=phone&modality=phone&sessionId=01918fa0-0000-7000-8000-000000005000",
-    );
-    render(<App />);
-    expect(window.location.pathname).toBe("/practice");
-    expect(window.location.search).not.toContain("mode=phone");
-    expect(window.location.search).not.toContain("modality=phone");
-    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
-    expect(screen.getByTestId("practice-conversation")).toBeInTheDocument();
-    expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
-  });
-
-  it("out-of-scope voice mode hash values are dropped without mounting phone surface", () => {
-    window.history.replaceState(
-      null,
-      "",
-      "/#route=practice&mode=voice&modality=voice&sessionId=01918fa0-0000-7000-8000-000000005000",
-    );
-    render(<App />);
-    expect(window.location.pathname).toBe("/practice");
-    expect(window.location.search).toContain(
-      "sessionId=01918fa0-0000-7000-8000-000000005000",
-    );
-    expect(window.location.search).not.toContain("mode=voice");
-    expect(window.location.search).not.toContain("modality=voice");
-    expect(screen.getByTestId("practice-input")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("practice-phone-waveform"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("`#route=voice` normalizes to home (standalone voice route never materializes)", () => {
-    window.history.replaceState(null, "", "/#route=voice");
-    render(<App />);
-    expect(window.location.pathname).toBe("/");
-    expect(window.location.hash).toBe("");
-    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
-  });
-
-  it("out-of-scope aliases via hash all normalize to retained routes (welcome / growth / plan / mistakes / drill / followup / experiences / star / onboarding / debrief / debrief_full / profile)", () => {
-    const cases: Array<[string, string]> = [
-      ["#route=welcome", "/"],
-      ["#route=growth", "/"],
-      ["#route=plan", "/workspace"],
-      ["#route=mistakes", "/report"],
-      ["#route=drill", "/practice"],
-      ["#route=followup", "/practice"],
-      ["#route=experiences", "/resume-versions"],
-      ["#route=star", "/resume-versions"],
-      ["#route=onboarding", "/resume-versions"],
-      ["#route=debrief", "/"],
-      ["#route=debrief_full", "/"],
-      ["#route=profile", "/"],
-    ];
-    for (const [hash, expectedPath] of cases) {
-      resetWindow();
-      window.history.replaceState(null, "", `/${hash}`);
-      const { unmount } = render(<App />);
-      expect(
-        window.location.pathname,
-        `${hash} must rewrite to ${expectedPath}`,
-      ).toBe(expectedPath);
-      expect(window.location.hash).toBe("");
-      unmount();
-    }
   });
 
   it("unknown / malformed canonical path falls back to home without crashing", () => {

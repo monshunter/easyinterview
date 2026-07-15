@@ -34,7 +34,7 @@
 - 不实现 `privacy_export` handler 或 producer；P0 privacy export API 仍按 B2 fixture 返回 501，直到 privacy export owner plan 启用真实导出链路。
 - 不实现独立 outbox 重放工具 / Schema Registry（沿用 B3 §3.2 默认决策）。
 - 不接入 Prometheus / Grafana / OTel Collector 默认运行；指标只暴露在应用 `/metrics` 端点，由 F1 / 生产部署可选 profile 消费（[backend-runtime-topology D-4](../backend-runtime-topology/spec.md)）。
-- 不修改 frontend；本 subject 无 UI 真理源。
+- 不修改 frontend；本 subject 无 UI 设计文档。
 
 ## 3 用户决策 / 待确认事项
 

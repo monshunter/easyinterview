@@ -49,7 +49,7 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | UI 真理源 | `ui-design/src/screen-resume-workshop.jsx` + primitives + app shell + `docs/ui-design/` | 不从外部设计系统或 AI 审美生成正式前端视觉 |
+| D-1 | UI 设计文档 | `frontend/src` + primitives + app shell + `docs/ui-design/` | 不从外部设计系统或 AI 审美生成正式前端视觉 |
 | D-2 | Data adapter | 列表、Home selector 等集合消费者只消费 closed `ResumeSummary`；详情 route 才消费完整 `Resume`；两者都以 `resumeId` 关联，adapter 只做 display projection 和 fallback | 组件不直接拼 API response shape，也不以完整详情对象充当列表项 |
 | D-3 | Route params | `flow=create|list`、`resumeId`、`createMode=upload|paste`；out-of-scope `tab` / `tailorRunId` 不属于当前 route state | Route state 只表达当前 list/create/detail 三态 |
 | D-4 | Client mode | generated client 是唯一 API client；fixture-backed dev path 与 real backend mode 都保留测试 | 避免 mock-only drift |
@@ -67,10 +67,10 @@
 
 ## 4 设计约束
 
-### 4.1 UI 真理源约束
+### 4.1 UI 设计文档约束
 
-- 视觉、DOM、spacing、typography、color、shadow、radius、density、state 和 responsive behavior 必须追溯到 `ui-design/` 或 `docs/ui-design/`。
-- 正式 frontend 不 import `ui-design/src/*` 作为 runtime component/data source。
+- 视觉、DOM、spacing、typography、color、shadow、radius、density、state 和 responsive behavior 必须追溯到 `frontend/` 或 `docs/ui-design/`。
+- 正式 frontend 不 import `frontend/src` 作为 runtime component/data source。
 
 ### 4.2 数据约束
 
@@ -92,7 +92,7 @@
 - 请求去重测试必须区分 hook/client method 调用次数与底层实际 transport 次数；StrictMode 双 effect 允许共享同一 in-flight Promise，但同一 request identity 的底层 transport 必须为 1。
 - reject / abort / settle 后 registry 必须清理；失败后的显式重试必须产生新的 transport，且 queued/processing 详情轮询不得被永久缓存或吞掉。
 - Route, auth, privacy and integration flows use focused scenario tests.
-- Visual parity follows frontend-shell pixel parity owner patterns.
+- Visual parity follows frontend-shell responsive browser verification owner patterns.
 - Formal Resume Workshop CSS must not retain breadcrumb, structured-preview, modal or action selectors without a current DOM or prototype consumer.
 - Header / INDEX drift uses `/sync-doc-index`.
 
@@ -101,7 +101,7 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | `resume_versions` route | frontend-resume-workshop | Resume Workshop shell, list, create, detail |
-| UI truth source | `ui-design/` + `docs/ui-design/` | Visual and interaction source |
+| UI design document | `frontend/` + `docs/ui-design/` | Visual and interaction source |
 | Generated client | openapi-v1-contract + frontend adapters | API surface and TS types |
 | Upload backend | backend-upload | Presign and object file lifecycle |
 | Resume backend | backend-resume | Register, parse, update, duplicate, tailor |
@@ -121,7 +121,7 @@
 | C-7 | Home handoff | Home create CTA or Home existing-resume selector | Click / select | Create CTA lands on CreateFlow and auth pending action is safe; Home existing-resume selector shows non-archived readable `listResumes` records and carries the selected `resumeId` into JD import / parse handoff | [002](./plans/002-create-flow/plan.md) |
 | C-8 | Delete resume | User deletes a row from Resume list | Archive succeeds or fails | Success hides the row and can free backend count limit; failure shows retryable feedback without removing data | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-10 | Privacy | User browses or creates resumes | App logs/routes/stores update | Raw resume content stays out of passive channels | 001 / 002 |
-| C-11 | UI parity | Desktop and mobile viewports | Run owner gates | DOM/style/layout/screenshot smoke remain aligned with UI truth source | 001 / 002 |
+| C-11 | UI parity | Desktop and mobile viewports | Run owner gates | DOM/style/layout/screenshot smoke remain aligned with UI design document | 001 / 002 |
 | C-12 | StrictMode list read | Authenticated list mounts under React StrictMode | `listResumes` effects overlap | Identical concurrent reads produce exactly one underlying transport; a rejected read is evicted, and retry produces a new transport and can succeed | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-13 | StrictMode detail read | Authenticated ready detail mounts under React StrictMode | `getResume(resumeId)` effects overlap | Initial identical read produces exactly one underlying transport; rejected reads remain retryable; queued/processing polling may issue a later request only after the previous request settles | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 

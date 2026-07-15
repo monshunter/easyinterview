@@ -38,7 +38,7 @@
 
 ## 4 设计约束
 
-- disabled UI 必须先在 `ui-design/src/screen-practice.jsx` 落地，再由正式前端源级复刻。
+- disabled UI 必须先在 `frontend/src` 落地，再由正式前端按设计合同实现。
 - disabled icon 不注册 click handler，不改变 route/context，不请求 voice API。
 - backend fail-closed 必须发生在音频 decode、profile resolution、provider call 与 store mutation之前。
 - 禁用期间删除/改写所有把 voice happy path 当作当前 P0 完成条件的正向文档与场景；保留一个 disabled negative scenario。

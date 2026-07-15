@@ -17,18 +17,6 @@ function* walk(dir: string): Generator<string> {
 }
 
 describe("frontend D1 scope guards", () => {
-  it("never imports ui-design/src/data.jsx into the active frontend bundle", () => {
-    const importPattern = /from\s+["'][^"']*ui-design\/src\/data/;
-    const offenders: string[] = [];
-    for (const file of walk(FRONTEND_SRC)) {
-      const content = readFileSync(file, "utf8");
-      if (importPattern.test(content)) {
-        offenders.push(file);
-      }
-    }
-    expect(offenders).toEqual([]);
-  });
-
   it("keeps browser persistence limited to frontend display preferences", () => {
     const DISPLAY_PREFERENCES_OWNER = "/app/display/DisplayPreferencesProvider.tsx";
     const browserPersistence = /(?:localStorage|sessionStorage)\?*\.(?:getItem|setItem|removeItem|clear)|indexedDB\?*\.(?:open|deleteDatabase)/;

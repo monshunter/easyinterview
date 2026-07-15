@@ -15,7 +15,7 @@ interface ReportFailureStateProps {
 }
 
 /**
- * Source-level mirror of ui-design/src/screen-report.jsx::ReportFailureState.
+ * Source-level mirror of formal frontend implementation
  * Internal provider/config error codes select no visible copy. REPORT_NOT_FOUND
  * uses dedicated user-safe state text so cross-user 404s never leak existence.
  */

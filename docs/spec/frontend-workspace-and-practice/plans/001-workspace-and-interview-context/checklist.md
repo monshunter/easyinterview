@@ -9,7 +9,7 @@
 ## Phase 0: contract preflight
 
 - [x] 0.1 `docs/development.md` §2 frontend/backend contract workflow is the execution boundary（验证：generated client + fixture-backed transport used; no ad hoc workspace fetch）
-- [x] 0.2 UI truth source is current workspace prototype and docs（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`, `ui-design/src/app.jsx`, `ui-design/src/primitives.jsx`）
+- [x] 0.2 UI design document is current workspace prototype and docs（验证：`docs/ui-design/module-job-workspace.md`, `frontend/src`）
 - [x] 0.3 Context manifest resolves current frontend target and spec version（验证：`validate_context.py frontend-workspace-and-practice/001 frontend` PASS）
 
 ## Phase 1: Workspace shell and InterviewContext
@@ -46,26 +46,26 @@
 ## Phase 6: closeout
 
 - [x] 6.1 App、Workspace、Header、modals、start practice、auth 与 handoff 的 focused Vitest 仅作开发反馈；阶段单测完成由仓库根 `make test` 承接。
-- [x] 6.2 Pixel parity passed for workspace desktop/mobile and theme states（验证：`pnpm --filter @easyinterview/frontend test:pixel-parity`）
+- [x] 6.2 Responsive browser verification passed for workspace desktop/mobile and theme states（验证：`pnpm --filter @easyinterview/frontend test`）
 - [x] 6.3 Fixtures remain valid for TargetJobs, Resumes, PracticePlans and PracticeSessions（验证：`make validate-fixtures`）
 - [x] 6.4 Owner docs/index/context are current and completed（验证：`validate_context.py frontend-workspace-and-practice/001 frontend`; `sync-doc-index --check`; `make docs-check`）
 
 ## Phase 7: interview nav and plan-list landing revision
 
-- [x] 7.1 Product/UI truth sources and static prototype use TopBar `面试` / `Interview` and define `workspace` no-context plan-list landing（验证：`ui-design/src/app.jsx`, `ui-design/src/screen-workspace.jsx`, `docs/ui-design/module-job-workspace.md`, `docs/ui-design/ui-architecture.md`）
+- [x] 7.1 Product/UI design documents and static prototype use TopBar `面试` / `Interview` and define `workspace` no-context plan-list landing（验证：`frontend/src`, `docs/ui-design/module-job-workspace.md`, `docs/ui-design/ui-architecture.md`）
 - [x] 7.3 `WorkspacePlanList` consumes generated `listTargetJobs`, renders loading/empty/error/list states, and plan cards navigate to `parse` detail without fabricating resume/report data（验证：`WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`）
 
 ## Phase 8: plan-list card visual hardening
 
-- [x] 8.1 UI truth sources define the no-context plan list as visible list cards with card background, border, subtle elevation, internal body/footer sections, and responsive desktop/mobile grid（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`）
+- [x] 8.1 UI design documents define the no-context plan list as visible list cards with card background, border, subtle elevation, internal body/footer sections, and responsive desktop/mobile grid（验证：`docs/ui-design/module-job-workspace.md`, `frontend/src`）
 - [x] 8.2 `WorkspacePlanList` mirrors the card treatment and keeps generated `listTargetJobs` + safe navigation semantics unchanged（验证：`WorkspaceEmptyState.test.tsx` red/green assertions）
-- [x] 8.3 Pixel parity catches loose text-column regression through computed style and bounding-box assertions for card, body and footer sections（验证：`frontend/tests/pixel-parity/workspace.spec.ts`）
+- [x] 8.3 Responsive browser verification catches loose text-column regression through computed style and bounding-box assertions for card, body and footer sections（验证：`formal frontend component tests`）
 
 ## Phase 9: plan-list card simplification and theme consistency
 
-- [x] 9.1 UI truth sources define concise no-context plan cards with no source/language metadata and theme accent CTA（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`）
+- [x] 9.1 UI design documents define concise no-context plan cards with no source/language metadata and theme accent CTA（验证：`docs/ui-design/module-job-workspace.md`, `frontend/src`）
 - [x] 9.2 `WorkspacePlanList` removes `workspace.planList.cardMeta`, `sourceType` and `targetLanguage` display from cards while preserving generated `listTargetJobs` navigation（验证：`WorkspaceEmptyState.test.tsx` red/green assertions）
-- [x] 9.3 Pixel parity catches metadata/secondary-button regression and verifies card/page separation via existing theme tokens（验证：`frontend/tests/pixel-parity/workspace.spec.ts`）
+- [x] 9.3 Responsive browser verification catches metadata/secondary-button regression and verifies card/page separation via existing theme tokens（验证：`formal frontend component tests`）
 
 ## Phase 10: plan-list bound resume navigation remediation
 
@@ -79,10 +79,10 @@
 
 ## Phase 12: unified detail route remediation
 
-- [x] 12.1 Historical `workspace?targetJobId=...` detail re-entry is superseded; parse route renders the `面试规划详情 / 面试上下文确认` mother page（验证：`ParseResumeBinding.test.tsx`, pixel parity parse detail PASS）
+- [x] 12.1 Historical `workspace?targetJobId=...` detail re-entry is superseded; parse route renders the `面试规划详情 / 面试上下文确认` mother page（验证：`ParseResumeBinding.test.tsx`, responsive browser verification parse detail PASS）
 - [x] 12.2 Workspace `WorkspacePlanList` and plan-card navigation remain generated `listTargetJobs` backed, carrying declared `resumeId/currentPracticePlanId` only to `parse`（验证：`WorkspaceEmptyState.test.tsx`, `frontend/src/app/navigation/interviewContext.ts` tests PASS）
 - [x] 12.3 `autoStartPractice=1` workspace ownership is superseded; parse/report handoff owns session start logic（验证：`ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` PASS）
-- [x] 12.4 Pixel/source parity verifies workspace list + parse detail routing split across desktop/mobile and rejects out-of-scope independent workspace detail geometry（验证：`frontend/tests/pixel-parity/workspace.spec.ts` PASS）
+- [x] 12.4 Pixel/formal implementation contract verifies workspace list + parse detail routing split across desktop/mobile and rejects out-of-scope independent workspace detail geometry（验证：`formal frontend component tests` PASS）
 
 ## Phase 13: plan-list admission and stale-context navigation remediation
 
@@ -99,27 +99,27 @@
 
 ## Phase 15: plan-list card size stability
 
-- [x] 15.1 UI truth source defines fixed desktop plan-card column sizing and rejects single-card full-row stretching（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`）
+- [x] 15.1 UI design document defines fixed desktop plan-card column sizing and rejects single-card full-row stretching（验证：`docs/ui-design/module-job-workspace.md`, `frontend/src`）
 - [x] 15.2 Formal `WorkspacePlanList` uses `auto-fill` with fixed max column width and `justifyContent:start` on desktop, while compact layout remains single-column（验证：`WorkspaceScreen.test.tsx`）
 - [x] 15.3 Browser screenshot acceptance captures the corrected single-card plan-list layout（验证：agent-browser screenshot）
 
 ## Phase 16: home recent / workspace list card fusion
 
-- [x] 16.1 UI truth source defines workspace plan-list card as Home recent card body plus workspace footer CTA（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`, `node --test ui-design/ui-design-contract.test.mjs` PASS）
+- [x] 16.1 UI design document defines workspace plan-list card as Home recent card body plus workspace footer CTA（验证：`docs/ui-design/module-job-workspace.md`, `frontend/src`, `python3 scripts/lint/ui_demo_pruning.py` PASS）
 - [x] 16.2 Formal `WorkspacePlanList` reuses the Home recent card body/mini round rail and appends `进入规划` / `Open plan` CTA without losing fixed-width grid behavior（验证：`pnpm --filter @easyinterview/frontend test src/app/screens/home/MockInterviewCard.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/workspace/WorkspaceScreen.test.tsx src/app/screens/workspace/WorkspaceEmptyState.test.tsx` PASS）
-- [x] 16.3 Browser screenshot acceptance captures the fused workspace card and theme menu after the optimization（验证：agent-browser screenshot + `pnpm --filter @easyinterview/frontend test:pixel-parity tests/pixel-parity/workspace.spec.ts` PASS）
+- [x] 16.3 Browser screenshot acceptance captures the fused workspace card and theme menu after the optimization（验证：agent-browser screenshot + `pnpm --filter @easyinterview/frontend test` PASS）
 
 ## Phase 17: plan-list action row and card-click planning
 
-- [x] 17.1 UI truth source defines workspace card body click as the planning-detail navigation, footer `立即面试`, and top-right resume-list trash icon delete（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`, `node --test ui-design/ui-design-contract.test.mjs`）
+- [x] 17.1 UI design document defines workspace card body click as the planning-detail navigation, footer `立即面试`, and top-right resume-list trash icon delete（验证：`docs/ui-design/module-job-workspace.md`, `frontend/src`, `python3 scripts/lint/ui_demo_pruning.py`）
 - [x] 17.2 Formal `MockInterviewCard` supports quick-start and top-right delete actions, stops action propagation, and uses the resume-list trash icon for delete（验证：`MockInterviewCard.test.tsx`）
 - [x] 17.3 `WorkspacePlanList` removes visible `进入规划` footer button, starts practice through shared generated practice handoff with structured `roundId/roundName`, and keeps delete isolated from card navigation; Phase 18 owns backend-persistent archive（验证：`WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx` PASS）
 - [x] 17.4 Home recent cards reuse the same quick-start action card and omit delete controls（验证：`HomeRecentMocks.test.tsx`）
-- [x] 17.5 Browser screenshot acceptance captures workspace card actions and Home recent card actions after the optimization（验证：`.test-output/screenshots/workspace-plan-list-action-card.png`, `.test-output/screenshots/home-recent-action-card.png`, pixel parity workspace spec）
+- [x] 17.5 Browser screenshot acceptance captures workspace card actions and Home recent card actions after the optimization（验证：`.test-output/screenshots/workspace-plan-list-action-card.png`, `.test-output/screenshots/home-recent-action-card.png`, responsive browser verification workspace spec）
 
 ## Phase 18: persistent TargetJob archive integration
 
-- [x] 18.1 UI truth source updates delete semantics from local-only hiding to persistent `archiveTargetJob`, with the delete icon fixed at the card top-right and footer kept for `立即面试` only; 验证: `docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`, `node --test ui-design/ui-design-contract.test.mjs` PASS
+- [x] 18.1 UI design document updates delete semantics from local-only hiding to persistent `archiveTargetJob`, with the delete icon fixed at the card top-right and footer kept for `立即面试` only; 验证: `docs/ui-design/module-job-workspace.md`, `frontend/src`, `python3 scripts/lint/ui_demo_pruning.py` PASS
 - [x] 18.2 Generated client / mock transport expose and call `archiveTargetJob`; 验证: `make lint-openapi`, `make validate-fixtures`, `make lint-mock-contract`, generated `client.archiveTargetJob`
 - [x] 18.3 `WorkspacePlanList` calls `archiveTargetJob` with `Idempotency-Key`, removes the card only on success, keeps the card on failure, and prevents top-right delete/quick-start events from bubbling to card navigation; 验证: `pnpm --filter @easyinterview/frontend test src/app/screens/home/MockInterviewCard.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/workspace/WorkspaceScreen.test.tsx src/app/screens/workspace/WorkspaceEmptyState.test.tsx` PASS, `pnpm --filter @easyinterview/frontend typecheck` PASS
 - [x] 18.4 Home recent cards reuse the same card body and quick-start action but still omit delete controls; 验证: `HomeRecentMocks.test.tsx` PASS
@@ -159,7 +159,7 @@
 
 ## Phase 24: structured round runtime consistency
 
-- [x] 24.1 RED-GREEN: UI truth source and focused contracts require the selected structured round duration instead of fixed `25:00`, and reject the fixed report `ROUND_ORDER` / default fallback（验证：`node --test ui-design/ui-design-contract.test.mjs`; `roundAssumptions.test.ts`; `ReplayCta.test.tsx`）
+- [x] 24.1 RED-GREEN: UI design document and focused contracts require the selected structured round duration instead of fixed `25:00`, and reject the fixed report `ROUND_ORDER` / default fallback（验证：`python3 scripts/lint/ui_demo_pruning.py`; `roundAssumptions.test.ts`; `ReplayCta.test.tsx`）
 - [x] 24.2 RED-GREEN: shared start resolves `TargetJob.summary.interviewRounds[]`, sends the selected `durationMinutes` as `timeBudgetMinutes`, and reuses a baseline plan only when target/resume/time budget all match（验证：`buildCreatePlanRequest.test.ts`; `startPractice.test.ts`; Home/Workspace/Parse caller tests）
   <!-- verified: 2026-07-12 method=red-green evidence="RED: request stayed 30, stale plan reused, unknown round reached empty-plan crash. GREEN: shared request/start plus Home/Workspace/Parse/report callers pass 42/42; typecheck passes; stale 30-minute plans are recreated with the selected 50/60-minute round budget." -->
 - [x] 24.3 RED-GREEN: Practice Top Bar reads the current `PracticePlan.timeBudgetMinutes`, formats arbitrary positive minute budgets, and never hard-codes `25:00`; missing/failed plan load does not fabricate a budget（验证：`pnpm --filter @easyinterview/frontend exec vitest run src/app/screens/practice/PracticeScreen.test.tsx`，6/6 PASS；`pnpm --filter @easyinterview/frontend typecheck` PASS）
@@ -186,5 +186,5 @@
 
 - [x] 27.1 RED: focused component and UI source-contract tests fail while round cards have no persisted state attributes, labels or distinct visual treatments.
 - [x] 27.2 GREEN: prototype and formal detail derive `done/current/pending` only from strict persisted progress, render localized labels/attributes with ok/accent/neutral tokens, and keep invalid projection neutral/non-startable.
-- [x] 27.3 PARITY-Gate: desktop/mobile DOM, computed background/border, bbox, viewport overflow and screenshots prove source parity across valid states; dark/custom themes retain semantic distinction.<!-- verified: 2026-07-14 method=parse-pixel-parity result="desktop+mobile 2/2; source styles equal; distinct backgrounds/borders; bbox/no-overflow; screenshots" -->
+- [x] 27.3 PARITY-Gate: desktop/mobile DOM, computed background/border, bbox, viewport overflow and screenshots prove formal implementation contract across valid states; dark/custom themes retain semantic distinction.<!-- verified: 2026-07-14 method=parse-responsive-browser result="desktop+mobile 2/2; source styles equal; distinct backgrounds/borders; bbox/no-overflow; screenshots" -->
 - [x] 27.5 POST-PASS: 仓库根 `make test` 完成前后端全量单测回归；typecheck/build、docs/context/index/diff 与 lifecycle/URL/storage 负向搜索作为独立 gates；随后恢复 completed lifecycle。

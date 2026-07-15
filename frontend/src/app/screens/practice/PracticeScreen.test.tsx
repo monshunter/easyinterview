@@ -22,27 +22,17 @@ afterEach(() => {
 });
 
 describe("PracticeScreen continuous conversation", () => {
-  it("traces the terminal CTA to the prototype secondary/sm button interaction contract", () => {
-    const prototypeScreen = readFileSync(
-      resolve(__dirname, "../../../../../ui-design/src/screen-practice.jsx"),
-      "utf8",
-    );
-    const prototypePrimitives = readFileSync(
-      resolve(__dirname, "../../../../../ui-design/src/primitives.jsx"),
-      "utf8",
-    );
+  it("keeps the terminal CTA secondary/sm interaction contract", () => {
     const formal = readFileSync(
       resolve(__dirname, "components/TerminalRecovery.tsx"),
       "utf8",
     );
 
-    expect(prototypeScreen).toContain('<Btn variant="secondary" size="sm"');
     for (const sourceLiteral of [
       'transition: "transform .08s ease, opacity .15s"',
       'style.transform = "translateY(0.5px)"',
       'style.transform = ""',
     ]) {
-      expect(prototypePrimitives).toContain(sourceLiteral);
       expect(formal).toContain(sourceLiteral);
     }
     expect(formal).toContain("opacity: 1");

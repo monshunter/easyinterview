@@ -9,7 +9,7 @@
 
 ## 1 目标
 
-维护 `openapi/fixtures/` 作为当前 HTTP mock 数据的唯一真理源：当前 10 个 tag / 37 个 operationId 必须各有一份 fixture，`default` scenario 覆盖规范响应，`prototype-baseline` scenario 由 `ui-design/src/data.jsx` 同步，fixtures 再投影为 Prism / 文档站消费的 OpenAPI named examples。
+维护 `openapi/fixtures/` 作为当前 HTTP mock 数据的唯一真理源：当前 10 个 tag / 37 个 operationId 必须各有一份 fixture，`default` scenario 覆盖规范响应，`prototype-baseline` scenario 由 `frontend/src` 同步，fixtures 再投影为 Prism / 文档站消费的 OpenAPI named examples。
 
 本 plan 只拥有 fixture 数据、fixture validator、prototype sync、fixture example render、Prism byte-equal smoke 和对应文档。正式 mock server 运行壳、前端 MSW runtime、后端 handler、OpenAPI schema 变更与 breaking-change policy 分别归对应 owner；它们只能消费这里的 fixture truth source，不在这里重建第二份 example。
 
@@ -19,7 +19,7 @@
 - 每个 fixture 必须包含 `scenarios.default`，并且该 key 是 `scenarios` 的第一项。声明 requestBody 的 operation 必须给出 `request.body`；header-only idempotent operation 可只给 `request.headers`。
 - `response.status` 必须是 operation 声明的状态码，或被 `default` error response 覆盖。`requestPrivacyExport` 固定返回 `501 + PRIVACY_EXPORT_NOT_AVAILABLE`；`exportResume` 固定返回 `501 + RESUME_EXPORT_NOT_AVAILABLE`。
 - 所有 scenario 的 request/response body 必须按 `openapi/openapi.yaml` schema 校验通过。AI 生成相关 schema 必须带非空 `provenance`；隐私字段只能使用保留域名、保留电话号码和通用公司名；所有 UUID 字段使用 UUIDv7 字面量；`tmp_` id 直接失败。
-- `prototype-baseline` 只由 `make sync-fixtures-from-prototype` 写入。源数据来自 `ui-design/src/data.jsx`，映射关系写在 `openapi/fixtures/PROTOTYPE_MAPPING.md`；手工改该 scenario 会被下一次同步覆盖。
+- `prototype-baseline` 只由 `make sync-fixtures-from-prototype` 写入。源数据来自 `frontend/src`，映射关系写在 `openapi/fixtures/PROTOTYPE_MAPPING.md`；手工改该 scenario 会被下一次同步覆盖。
 - `make render-openapi-fixture-examples` 从 fixtures 生成 `openapi/.generated/openapi-with-fixtures.yaml`。OpenAPI 主文件不得手写 response examples；Prism smoke 只使用生成物。
 
 ## 3 质量门禁分类
@@ -44,7 +44,7 @@
 
 ### 4.2 Prototype sync
 
-`openapi/fixtures/PROTOTYPE_MAPPING.md` 声明 `ui-design/src/data.jsx` 到 operationId 的映射。`make sync-fixtures-from-prototype` 只更新受支持 fixture 的 `prototype-baseline` scenario，并在写入后执行 fixture validation。该命令必须幂等：重复运行不会制造新的 fixture diff。
+`openapi/fixtures/PROTOTYPE_MAPPING.md` 声明 `frontend/src` 到 operationId 的映射。`make sync-fixtures-from-prototype` 只更新受支持 fixture 的 `prototype-baseline` scenario，并在写入后执行 fixture validation。该命令必须幂等：重复运行不会制造新的 fixture diff。
 
 ### 4.3 Example projection and Prism smoke
 
@@ -80,7 +80,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 风险 | 应对措施 |
 |------|----------|
-| Prototype data 与 OpenAPI schema 字段不同步 | sync 工具 fail-fast，并要求先修正 `PROTOTYPE_MAPPING.md` 或 `ui-design/src/data.jsx`；不在脚本里静默改名 |
+| Prototype data 与 OpenAPI schema 字段不同步 | sync 工具 fail-fast，并要求先修正 `PROTOTYPE_MAPPING.md` 或 `frontend/src`；不在脚本里静默改名 |
 | fixture 手写 response 漂出 schema | `make validate-fixtures` 校验所有 scenario，fixture edit 必须伴随 validator 通过 |
 | privacy export 被误写成成功响应 | validator 对 `requestPrivacyExport` 固定检查 `501 + PRIVACY_EXPORT_NOT_AVAILABLE` |
 | AI provenance 被写成空值 | validator 强制 provenance 字段存在且非空 |
@@ -90,7 +90,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 - `createPracticePlan` / `getPracticePlan` fixtures must include paired `roundId + roundSequence` for current records and a legacy-null negative scenario that is never reusable.
 - `listTargetJobs` / `getTargetJob` fixtures must include `practiceProgress` for not-started, partially completed, and all-completed rounds; `completedRounds` is ordered/deduplicated and final `currentRound` is null.
-- `prototype-baseline` must project the same current/completed round semantics from `ui-design/src/data.jsx`; it must not derive a round from TargetJob lifecycle `status`.
+- `prototype-baseline` must project the same current/completed round semantics from `frontend/src`; it must not derive a round from TargetJob lifecycle `status`.
 
 | operationId | fixture scenarios | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|-------------------|-------------------|-----------------|-------------|---------------|-------------------|
@@ -123,7 +123,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 ## 8 OPENAPI-001 report fixture migration
 
-Replace every `getFeedbackReport` scenario with queued/generating/ready-needs-practice/ready-well-prepared/failed/failed-context-too-large/invalid-contract/long-content current-shape variants. Every body includes frozen minimal context; ready variants include summary, code+label dimensions, dimensionCode evidence, actions and report-local focus. The oversized-context failed variant uses exactly B1 `REPORT_CONTEXT_TOO_LARGE`; no local alias is permitted. Replace `listTargetJobReports` and `createPracticePlan` focus-input scenarios, and update `ui-design/src/data.jsx` + `PROTOTYPE_MAPPING.md` before running sync twice.
+Replace every `getFeedbackReport` scenario with queued/generating/ready-needs-practice/ready-well-prepared/failed/failed-context-too-large/invalid-contract/long-content current-shape variants. Every body includes frozen minimal context; ready variants include summary, code+label dimensions, dimensionCode evidence, actions and report-local focus. The oversized-context failed variant uses exactly B1 `REPORT_CONTEXT_TOO_LARGE`; no local alias is permitted. Replace `listTargetJobReports` and `createPracticePlan` focus-input scenarios, and update `frontend/src` + `PROTOTYPE_MAPPING.md` before running sync twice.
 
 Fixture/schema negative tests must prove old `dimension`, `retryFocusCompetencyCodes`, question fields and arbitrary additional properties fail. Render examples and run Prism byte-equal smoke for both Reports operations plus createPracticePlan.
 
@@ -143,7 +143,7 @@ Focused validator tests must first fail on current fixtures, then prove old `sou
 
 ### 10.3 Prototype, examples and runtime handoff
 
-Update `ui-design/src/data.jsx` mapping inputs and `PROTOTYPE_MAPPING.md` so prototype sync can only emit paste-only TargetJob requests/responses. Run sync twice and require byte idempotency. Render examples and run Prism byte-equal smoke for `importTargetJob`, `listTargetJobs`, `getTargetJob` and `createUploadPresign`; hand the exact fixture markers to mock-contract-suite/001 and frontend/backend consumers.
+Update `frontend/src` mapping inputs and `PROTOTYPE_MAPPING.md` so prototype sync can only emit paste-only TargetJob requests/responses. Run sync twice and require byte idempotency. Render examples and run Prism byte-equal smoke for `importTargetJob`, `listTargetJobs`, `getTargetJob` and `createUploadPresign`; hand the exact fixture markers to mock-contract-suite/001 and frontend/backend consumers.
 
 ### 10.4 BDD and zero-reference gates
 
@@ -187,7 +187,7 @@ Replace `Reports/listTargetJobReports.json` flat full-report pages with canonica
 
 ### 12.2 TargetJob/prototype sync
 
-Remove `latestReportId` from all TargetJob fixtures and prototype sync logic. Map `ui-design/src/data.jsx` to the plan-detail report section without recreating a TargetJob pointer; canonical display names remain sourced from TargetJob summary while the overview supplies only round identity/current/latest state. Run sync twice and require byte-idempotency.
+Remove `latestReportId` from all TargetJob fixtures and prototype sync logic. Map `frontend/src` to the plan-detail report section without recreating a TargetJob pointer; canonical display names remain sourced from TargetJob summary while the overview supplies only round identity/current/latest state. Run sync twice and require byte-idempotency.
 
 ### 12.3 Parity and handoff
 

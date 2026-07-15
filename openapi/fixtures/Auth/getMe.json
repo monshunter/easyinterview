@@ -17,22 +17,6 @@
         }
       }
     },
-    "prototype-baseline": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-prototype"
-        },
-        "body": {
-          "id": "01918fa0-6fdf-7caf-8404-397c534936aa",
-          "emailMasked": "lin***@example.com",
-          "displayName": "Alice Example",
-          "uiLanguage": "zh-CN",
-          "preferredPracticeLanguage": "zh-CN",
-          "profileCompletionRequired": false
-        }
-      }
-    },
     "authenticated": {
       "response": {
         "status": 200,

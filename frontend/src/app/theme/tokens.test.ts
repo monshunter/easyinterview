@@ -17,10 +17,6 @@ import { THEME_PALETTE, FONT_PRESETS } from "./themes.data";
 import { computeCustomAccentOverrides } from "./customAccent";
 
 const HERE = resolve(__dirname);
-// HERE = frontend/src/app/theme; repo root is 4 levels up.
-const REPO_ROOT = resolve(HERE, "..", "..", "..", "..");
-const PRIMITIVES_PATH = resolve(REPO_ROOT, "ui-design/src/primitives.jsx");
-const APP_JSX_PATH = resolve(REPO_ROOT, "ui-design/src/app.jsx");
 const TOKENS_TS_PATH = resolve(HERE, "tokens.ts");
 const THEMES_CSS_PATH = resolve(HERE, "themes.css");
 
@@ -100,9 +96,7 @@ describe("design token module (Phase 1.1)", () => {
 });
 
 describe("theme palette data (Phase 1.1)", () => {
-  const primitives = readFileSync(PRIMITIVES_PATH, "utf8");
-
-  it("transcribes EI_THEMES from ui-design/src/primitives.jsx", () => {
+  it("defines complete ocean and plum palettes for both display modes", () => {
     expect(Object.keys(THEME_PALETTE)).toEqual([
       "ocean",
       "plum",
@@ -114,30 +108,23 @@ describe("theme palette data (Phase 1.1)", () => {
         expect(palette.ink, `${theme}/${mode} missing ink`).toBeTruthy();
         expect(palette.accent, `${theme}/${mode} missing accent`).toBeTruthy();
         for (const [key, value] of Object.entries(palette)) {
-          expect(
-            primitives.includes(value),
-            `${theme}/${mode}.${key}=${value} not present in ui-design/src/primitives.jsx`,
-          ).toBe(true);
+          expect(value, `${theme}/${mode}.${key} must be a hex color`).toMatch(
+            /^#[0-9a-f]{6}$/i,
+          );
         }
       }
     }
   });
 
-  it("transcribes EI_FONT_PRESETS from primitives.jsx", () => {
+  it("defines the supported font presets with non-empty families", () => {
     expect(FONT_PRESETS.map((p) => p.key)).toEqual([
       "editorial",
       "modern",
       "magazine",
     ]);
     for (const preset of FONT_PRESETS) {
-      expect(
-        primitives.includes(preset.serif),
-        `font preset ${preset.key}.serif=${preset.serif} not in primitives.jsx`,
-      ).toBe(true);
-      expect(
-        primitives.includes(preset.sans),
-        `font preset ${preset.key}.sans=${preset.sans} not in primitives.jsx`,
-      ).toBe(true);
+      expect(preset.serif).not.toBe("");
+      expect(preset.sans).not.toBe("");
     }
   });
 });
@@ -256,8 +243,6 @@ describe("themes.css CSS variable wiring (Phase 1.1)", () => {
 });
 
 describe("customAccent helper (Phase 1.1)", () => {
-  const appJsx = readFileSync(APP_JSX_PATH, "utf8");
-
   it("only overrides accent / accent-soft variables, not the rest of the palette", () => {
     const overrides = computeCustomAccentOverrides({
       h: 30,
@@ -278,27 +263,24 @@ describe("customAccent helper (Phase 1.1)", () => {
     expect(computeCustomAccentOverrides(null)).toBeNull();
   });
 
-  it("matches the ui-design oklch formula (light=58 / dark=68 lightness)", () => {
+  it("uses the current oklch formula (light=58 / dark=68 lightness)", () => {
     const light = computeCustomAccentOverrides({ h: 30, c: 0.16, dark: false })!;
     const dark = computeCustomAccentOverrides({ h: 30, c: 0.16, dark: true })!;
     expect(light["--ei-color-accent"]).toContain("58%");
     expect(dark["--ei-color-accent"]).toContain("68%");
-    // Soft lightness: light=92, dark=28 (per app.jsx softL constant)
+    // Soft lightness: light=92, dark=28.
     expect(light["--ei-color-accent-soft"]).toContain("92%");
     expect(dark["--ei-color-accent-soft"]).toContain("28%");
-    // Helper formula must match the literal expressions in app.jsx
-    expect(appJsx).toContain("accentL = isDark ? 68 : 58");
-    expect(appJsx).toContain("softL = isDark ? 28 : 92");
   });
 
-  it("clamps chroma to the ui-design [0, 0.28] range", () => {
+  it("clamps chroma to the supported [0, 0.28] range", () => {
     const big = computeCustomAccentOverrides({ h: 30, c: 5, dark: false })!;
     expect(big["--ei-color-accent"]).toContain("0.280");
     const tiny = computeCustomAccentOverrides({ h: 30, c: -1, dark: false })!;
     expect(tiny["--ei-color-accent"]).toContain("0.000");
   });
 
-  it("normalizes hue into [0, 360) like the ui-design helper", () => {
+  it("normalizes hue into [0, 360)", () => {
     const wrap = computeCustomAccentOverrides({ h: 720, c: 0.1, dark: false })!;
     expect(wrap["--ei-color-accent"]).toMatch(/0(\.0)?\)/);
     const negative = computeCustomAccentOverrides({

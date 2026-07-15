@@ -35,4 +35,4 @@
 | 2026-05-03 | 1.3 | 明确语音面试只通过 `practice` 显式携带 `mode=voice` / `modality=voice` 进入。 | docs-only |
 | 2026-05-03 | 1.2 | 记录 engineering-roadmap v2.2 产品范围对齐：P0 前端 child 改为当前 UI 五入口相关拆分。 | engineering-roadmap/001-decompose-subspecs |
 | 2026-05-03 | 1.1 | 修正范围语义：当前 UI / UI 文档和本 spec 是正向范围清单；仅保留 `全球多平台搜岗` 作为规划例外。 | docs-only |
-| 2026-05-03 | 1.0 | 初始创建：将产品范围真理源迁入 spec-centric 文档体系，吸收当前 `ui-design/` 与 `docs/ui-design/` 已确认的导航、模块边界、报告、简历和当前范围，并保留目标用户、阶段路线、隐私伦理与质量评估水准。 | docs-only |
+| 2026-05-03 | 1.0 | 初始创建：将产品范围真理源迁入 spec-centric 文档体系，吸收当前 `frontend/` 与 `docs/ui-design/` 已确认的导航、模块边界、报告、简历和当前范围，并保留目标用户、阶段路线、隐私伦理与质量评估水准。 | docs-only |

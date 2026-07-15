@@ -6,7 +6,7 @@ interface PhoneIconProps {
   style?: CSSProperties;
 }
 
-/** Shared handset glyph mirrored from `ui-design/src/primitives.jsx`. */
+/** Shared handset glyph mirrored from `formal frontend implementation`. */
 export const PhoneIcon: FC<PhoneIconProps> = ({
   size = 18,
   strokeWidth = 1.8,

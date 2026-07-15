@@ -56,7 +56,7 @@ spec:
         - ../../../../ui-design/auth-and-entry.md
         - ../001-app-shell-auth-settings/plan.md
         - ../001-app-shell-auth-settings/checklist.md
-        - ../003-ui-design-pixel-parity-gate/plan.md
+        - ../003-ui-design-responsive-browser-gate/plan.md
       discovery:
         packages:
           - frontend/src/app/theme
@@ -65,7 +65,7 @@ spec:
           - frontend/src/app/screens
           - frontend/src/app/display
           - frontend/src/main.tsx
-          - ui-design/src
+          - frontend/src
         uiRoutes:
           - home
           - workspace

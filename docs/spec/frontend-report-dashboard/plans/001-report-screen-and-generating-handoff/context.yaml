@@ -36,14 +36,14 @@ spec:
       discovery:
         packages:
           - frontend/README.md
-          - ui-design/src/data.jsx
-          - ui-design/src/screen-report.jsx
-          - ui-design/src/screens-p0-complete.jsx
+          - frontend/src
+          - frontend/src
+          - frontend/src
           - frontend/src/app/screens/reports
           - frontend/src/app/screens/report
           - frontend/src/app/screens/generating
           - frontend/src/app/i18n/locales
-          - frontend/tests/pixel-parity
+          - frontend/tests/responsive-browser
           - test/scenarios/e2e
         uiRoutes: [reports, generating, report, parse, workspace]
         apiNames: [getTargetJob, listTargetJobReports, getFeedbackReport, createPracticePlan, startPracticeSession]

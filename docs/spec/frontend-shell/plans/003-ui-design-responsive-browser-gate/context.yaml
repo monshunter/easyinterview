@@ -2,7 +2,7 @@ apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
   subspec: frontend-shell
-  name: 003-ui-design-pixel-parity-gate
+  name: 003-ui-design-responsive-browser-gate
   sequence: 3
   baseBranch: main
   branch: ui-design-source-pruning
@@ -14,12 +14,12 @@ spec:
   discovery:
     aliases:
       - frontend-shell
-      - ui-design-pixel-parity-gate
+      - ui-design-responsive-browser-gate
       - UI Demo pruning
       - documentation-owned UI design
     keywords:
       - delete ui-design demo
-      - remove pixel parity
+      - remove responsive browser verification
       - docs ui design architecture
       - UI design process
       - prototype fixture sync removal

@@ -73,16 +73,8 @@ describe("resolveInitialRoute priority", () => {
     });
   });
 
-  it("falls back to hash adapter when path is bare `/` and hash carries #route=", () => {
+  it("ignores fragment route data when the canonical path is bare `/`", () => {
     setLocation("/#route=workspace&targetJobId=tj-1");
-    expect(resolveInitialRoute()).toEqual({
-      name: "workspace",
-      params: { targetJobId: "tj-1" },
-    });
-  });
-
-  it("normalizes out-of-scope hash aliases through normalizeRoute", () => {
-    setLocation("/#route=voice");
     expect(resolveInitialRoute()).toEqual({ name: "home", params: {} });
   });
 

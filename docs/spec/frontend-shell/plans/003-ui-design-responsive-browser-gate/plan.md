@@ -11,13 +11,13 @@
 
 删除 `ui-design/` 可运行前端 Demo 及所有只为 Demo 与正式前端双向同步而存在的代码、测试、脚本和合同；保留 `docs/ui-design/` 作为 UI 信息架构、页面流程、交互约束和设计决策的文档 owner。
 
-正式 `frontend/` 不再执行源码复刻、像素对照或 Demo-first 流程。现有组件、样式和行为由对应 spec、`docs/ui-design/`、正式前端测试、构建和真实业务场景共同验证。
+正式 `frontend/` 不再执行源级复制、像素对照或 Demo-first 流程。现有组件、样式和行为由对应 spec、`docs/ui-design/`、正式前端测试、构建和真实业务场景共同验证。
 
 ## 2 背景
 
 原计划用 `ui-design/` golden preview 与 Playwright parity suite 约束正式前端。随着正式前端持续演进，Demo 已成为第二套需要同步校正的实现：它不承载真实数据、路由、鉴权或业务状态，却要求页面、fixture、样式和测试重复维护。
 
-用户于 2026-07-15 确认：项目不再需要 UI Demo，也不再使用“UI 真理源”概念；`docs/ui-design/` 继续定义 UI 架构和流程。该变更属于原 003 计划合同的反向修订，因此在原目录原地实施，不创建 sibling plan。
+用户于 2026-07-15 确认：项目不再需要 UI Demo，也不再把任何可运行原型视作 UI 的单一权威来源；`docs/ui-design/` 继续定义 UI 架构和流程。该变更属于原 003 计划合同的反向修订，因此在原目录原地实施，不创建 sibling plan。
 
 ## 3 质量门禁分类
 
@@ -31,11 +31,11 @@
 
 | Source | 类别 | Plan phase | 验证 | 负向范围 |
 |--------|------|------------|------|----------|
-| 删除重复 Demo 实现 | Primary path | Phase 1 | `scripts/lint/ui_demo_pruning_test.py` + `make lint-ui-demo-pruning` | `ui-design/` 实体目录不得存在 |
+| 删除重复 Demo 实现 | Primary path | Phase 1 | `scripts/lint/ui_demo_pruning_test.py` + `make lint-ui-demo-pruning` | `frontend/` 实体目录不得存在 |
 | 保留 UI 架构与流程文档 | Cross-layer contract | Phase 2 | `make docs-check` + active-doc reference scan | `docs/ui-design/` 不得被误删；不得链接 Demo 源文件或运行入口 |
-| 删除双源工具链 | Regression / non-current-negative | Phase 3 | Make/package/script tests + repo search | `test:pixel-parity`、`serve-pixel-parity`、prototype fixture sync、golden preview 不得残留为 active gate |
+| 删除双源工具链 | Regression / non-current-negative | Phase 3 | Make/package/script tests + repo search | `test:responsive-browser`、`serve-responsive-browser`、prototype fixture sync、golden preview 不得残留为 active gate |
 | 保留独立有价值的正式前端测试 | UX quality | Phase 4 | focused Vitest + 根 `make test` | 不以删除 Demo 为理由删除行为、a11y、responsive 或 route 正确性覆盖 |
-| 清理治理和 owner 合同 | Cross-layer contract | Phase 5 | context validation + docs/index sync | 不再要求先做 Demo、源码复刻、像素 parity 或“UI 真理源” |
+| 清理治理和 owner 合同 | Cross-layer contract | Phase 5 | context validation + docs/index sync | 不再要求先做 Demo、源级复制、像素 parity 或可运行原型权威来源 |
 | 完整回归 | Failure / recovery | Phase 6 | `make test`、`make build`、`make docs-check`、`make codegen-check` | clean checkout 不依赖已删除目录、CDN 或 Demo server |
 
 隐私、安全、持久化和 API 错误路径不适用：本计划不改变用户数据、鉴权、网络协议、后端或运行时业务流程；由现有 owner tests 保持回归。
@@ -56,7 +56,7 @@
 
 #### 2.1 改写目录合同
 
-保留 `docs/ui-design/` 的 README、INDEX、模板与模块文档，删除所有 Demo 运行、源文件锚点、hash 原型路由、源码复刻和 parity 前置要求；明确其只定义信息架构、页面流程、交互约束和设计决策。
+保留 `docs/ui-design/` 的 README、INDEX、模板与模块文档，删除所有 Demo 运行、源文件锚点、hash 原型路由、按设计合同实现和 parity 前置要求；明确其只定义信息架构、页面流程、交互约束和设计决策。
 
 #### 2.2 修订当前 UI 文档
 
@@ -66,7 +66,7 @@
 
 #### 3.1 删除浏览器 parity 工具
 
-删除只为挂载 Demo/正式前端对照而存在的 Playwright config、static server、pixel-parity specs、package scripts/dependencies 和 scaffold tests。
+删除只为挂载 Demo/正式前端对照而存在的 Playwright config、static server、responsive-browser specs、package scripts/dependencies 和 scaffold tests。
 
 #### 3.2 删除 prototype fixture/codegen 依赖
 
@@ -80,7 +80,7 @@
 
 #### 4.1 改写 source-traceability tests
 
-删除读取 `ui-design/src/*.jsx` 字面量的断言；保留直接验证正式 token、DOM、control、route、responsive 与 accessibility 合同的测试。
+删除读取 `frontend/src` 字面量的断言；保留直接验证正式 token、DOM、control、route、responsive 与 accessibility 合同的测试。
 
 #### 4.2 清理正式源码和 README
 
@@ -94,7 +94,7 @@
 
 #### 5.2 清理 active 引用
 
-扫描非历史 active docs、代码、脚本、配置与测试，删除 `ui-design/`、pixel parity、source-level replication、golden preview 和“UI 真理源”残留；保留明确标记为历史事实的 work journal、Bug、report 与 history。
+扫描非历史 active docs、代码、脚本、配置与测试，删除 `ui-design/`、旧 parity、source-level replication、golden preview 和可运行原型权威来源残留；保留明确标记为历史事实的 work journal、Bug、report 与 history。
 
 ### Phase 6: 验证与生命周期收口
 
@@ -108,9 +108,9 @@
 
 ## 6 验收标准
 
-- `ui-design/` 实体目录不存在，clean checkout 的 test/build/docs/codegen gate 不依赖它。
+- `frontend/` 实体目录不存在，clean checkout 的 test/build/docs/codegen gate 不依赖它。
 - `docs/ui-design/` 保留，并只表达 UI 信息架构、流程、交互约束和设计决策。
-- active 代码和文档不再定义“UI 真理源”、Demo-first、源码复刻、golden preview 或 pixel parity 合同。
+- active 代码和文档不再定义可运行原型权威来源、Demo-first、源级复制、golden preview 或旧 parity 合同。
 - 只为 Demo 对照存在的 Playwright、fixture sync、scaffold 和 traceability 资产被删除。
 - 正式前端的独立行为、响应式、可访问性、route 和业务状态回归测试继续通过。
 - 历史 work journal、Bug、report 和 history 文档不被改写为当前事实，也不作为 active contract 使用。
@@ -129,4 +129,4 @@
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-07-15 | 2.0 | 用户确认删除 `ui-design/` Demo，保留 `docs/ui-design/` 作为 UI 架构与流程设计文档；原 parity owner 原地重开为降熵删除计划。 |
-| 2026-07-10 | 1.6 | 完成当时的 12-spec UI Demo pixel parity gate。 |
+| 2026-07-10 | 1.6 | 完成当时的 12-spec UI Demo responsive browser verification gate。 |

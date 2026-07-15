@@ -6,7 +6,7 @@
 
 ## 1 背景与目标
 
-`engineering-roadmap` 的当前职责是维护产品、UI、契约和编码 truth source 之间的实施地图。当前执行入口以 `docs/spec/product-scope/spec.md`、`docs/ui-design/`、`ui-design/`、各 active owner spec 和编码 truth source 为准：
+`engineering-roadmap` 的当前职责是维护产品、UI、契约和编码 truth source 之间的实施地图。当前执行入口以 `docs/spec/product-scope/spec.md`、`docs/ui-design/`、`frontend/`、各 active owner spec 和编码 truth source 为准：
 
 - 当前产品真理源明确：未被当前 UI / UI 文档保留、重定义或列为规划例外的能力默认不进入当前范围。
 - 当前 UI 一级入口只保留 `首页 / 模拟面试 / 简历`，报告、语音和公司情报都是上下文 / 嵌入能力，不是一级模块。
@@ -45,7 +45,7 @@
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | 产品真理源 | `docs/spec/product-scope/spec.md` | child spec / plan 不能绕过当前产品范围 |
-| D-2 | UI 真理源 | `docs/ui-design/` + `ui-design/` | 前端与端到端流程以当前静态 UI 和 UI 文档为准 |
+| D-2 | UI 设计文档 | `docs/ui-design/` + `frontend/` | 前端与端到端流程以当前静态 UI 和 UI 文档为准 |
 | D-3 | 技术契约真理源 | [product-scope §1.5](../product-scope/spec.md#15-技术契约-owner-matrix) 定义的 Layer A/B/F owner spec + 已编码 truth source（`openapi/`、`shared/`、`migrations/`、`config/`） | 后续实现必须复用现有契约；技术契约 owner matrix 由 product-scope 持有 |
 | D-4 | INDEX 语义 | `docs/spec/INDEX.md` 只记录真实存在的 spec | 不维护 pending backlog 条目；未 spawn 的 subject 只能在 roadmap 正文中作为候选 workstream 描述 |
 | D-5 | child 创建策略 | 只在进入设计或实现时创建 child spec / plan / checklist / context | 避免空 spec、僵尸 plan 和未审清的 P1/P2 空壳 |
@@ -77,7 +77,7 @@
 ### 4.1 产品与 UI 约束
 
 - P0 闭环必须围绕 `JD / 简历导入 -> 当前面试规划 -> 完整模拟面试 -> Report Dashboard -> 复练当前轮 / 进入下一轮`。
-- 顶部导航只能出现当前 UI 真理源确认的三个一级入口。
+- 顶部导航只能出现当前 UI 设计文档确认的三个一级入口。
 - `workspace` 的产品语义是当前模拟面试规划，不是 `当前岗位` 一级模块。
 - `practice` 是文本和电话模式共享的会话页面；电话模式只能通过 `practice?mode=phone&modality=phone` 或等价显式 phone 参数进入。
 - `report` 必须带 `sessionId` 或等价会话上下文；报告不作为一级导航或无上下文记录中心。
@@ -97,7 +97,7 @@
 ### 4.3 契约与 mock-first 约束
 
 - 前端 mock 数据来源必须是 B2 OpenAPI fixtures（当前 10 tag / 37 operation；Resume Workshop 使用 D-20 后的扁平 Resume contract 与 PDF source preview，TargetJob archive 属于当前 fixture coverage），禁止前端重新 hardcode product data truth source。
-- `ui-design/src/data.jsx` 只能作为 prototype-baseline 场景输入，不能越过 OpenAPI fixtures 直接驱动实现。
+- `frontend/src` 只能作为 prototype-baseline 场景输入，不能越过 OpenAPI fixtures 直接驱动实现。
 - 后端 AI 调用必须通过 A3 `AIClient` 和 F3 prompt/rubric/model profile 契约。
 - 业务 spec 不得 hardcode prompt 正文、rubric 文本、模型名、厂商 SDK 或 feature flag 绕过 A3/A4/F3。
 - OpenAPI、events、migrations、feature flags 和 runtime config 的破坏性变更必须先修订对应 Layer B/A/F spec 与 drift gate。
@@ -163,7 +163,7 @@
 
 1. 创建或修订 `mock-contract-suite`，把当前 37 operation fixtures 提供给前端和后端 mock。
 2. 创建或修订 `frontend-shell`，锁 TopBar、用户菜单、display controls、auth pendingAction、settings 入口，并确保 profile 不作为正向入口。
-3. 创建或修订 D2-D6 前端 workstream，严格按 `docs/ui-design/` 和 `ui-design/src/app.jsx` 目标路由实现。
+3. 创建或修订 D2-D6 前端 workstream，严格按 `docs/ui-design/` 和 `frontend/src` 目标路由实现。
 4. 在每个用户可见 workstream 的 plan 中维护 BDD gate。
 
 ### 6.3 S2 · Backend domain implementation

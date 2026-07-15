@@ -91,9 +91,8 @@ checklist/references and intended write scope. If the work involves `frontend/`,
 
 1. `docs/development.md` §2 Frontend / Backend Contract Workflow.
 2. The relevant root README files for the touched modules.
-3. UI-visible work: relevant `docs/ui-design/` document plus
-   `ui-design/src/*.jsx` / `ui-design/src/primitives.jsx` /
-   `ui-design/src/app.jsx` sources.
+3. UI-visible work: relevant `docs/ui-design/` documents, active spec, and
+   formal `frontend/` implementation and test surfaces.
 4. API/fixture/handler work: `openapi/openapi.yaml`, related fixture files,
    generated artifacts, and the operation matrix.
 5. Local integration or scenario work: `deploy/dev-stack/README.md` and

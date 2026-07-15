@@ -16,10 +16,8 @@ import { TopBar } from "./TopBar";
 
 const HERE = resolve(__dirname);
 const FRONTEND_ROOT = resolve(HERE, "..", "..", "..");
-const REPO_ROOT = resolve(HERE, "..", "..", "..", "..");
 const TOPBAR_CSS = resolve(HERE, "topbar.css");
 const TOPBAR_TSX = resolve(HERE, "TopBar.tsx");
-const APP_JSX = resolve(REPO_ROOT, "ui-design", "src", "app.jsx");
 
 interface RenderOpts {
   signedIn?: boolean;
@@ -72,7 +70,7 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
     );
   });
 
-  it("topbar.css defines the ui-design TopBar rhythm (height 58, padding 32, gap 28)", () => {
+  it("topbar.css defines the current TopBar rhythm (height 58, padding 32, gap 28)", () => {
     const css = readFileSync(TOPBAR_CSS, "utf8");
     expect(css).toMatch(/\.ei-shell-topbar\s*\{[^}]*height:\s*58px/);
     expect(css).toMatch(
@@ -90,17 +88,6 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
     expect(css).toMatch(/\.ei-shell-topbar\s*\{[^}]*z-index:\s*30/);
     expect(css).toMatch(/\.ei-shell-topbar\s*\{[^}]*display:\s*flex/);
     expect(css).toMatch(/\.ei-shell-topbar\s*\{[^}]*align-items:\s*center/);
-  });
-
-  it("topbar.css values can be traced back to ui-design/src/app.jsx TopBar literal", () => {
-    const app = readFileSync(APP_JSX, "utf8");
-    // Extract the TopBar wrapper inline style block from app.jsx.
-    expect(app).toContain('borderBottom: `1px solid ${T.rule}`');
-    expect(app).toContain("position: \"sticky\"");
-    expect(app).toContain("height: 58");
-    expect(app).toContain('padding: "0 32px"');
-    expect(app).toContain("gap: 28");
-    expect(app).toContain("zIndex: 30");
   });
 
   it("mobile theme menu opens inward from the theme button", () => {
@@ -179,7 +166,7 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
     );
   });
 
-  it("display controls replicate ui-design dropdown controls instead of native selects", async () => {
+  it("display controls use accessible dropdown controls instead of native selects", async () => {
     renderTopBar();
     const user = userEvent.setup();
 
@@ -234,7 +221,7 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
     expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
   });
 
-  it("custom accent picker is nested in the ui-design theme menu", async () => {
+  it("custom accent picker is nested in the theme menu", async () => {
     renderTopBar();
     const user = userEvent.setup();
     await user.click(screen.getByTestId("topbar-theme-button"));
@@ -294,7 +281,7 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
         customAccent: { h: 200, c: 0.18 },
       },
     });
-    // ui-design only renders the custom row while the theme menu is open.
+    // The custom row only renders while the theme menu is open.
     const user = userEvent.setup();
     await user.click(screen.getByTestId("topbar-theme-button"));
     const swatch = screen.getByTestId("topbar-custom-accent-swatch");

@@ -1,6 +1,6 @@
 /*
  * D2 screen shell visual rhythm. Transcribed from
- * ui-design/src/screens-p0-complete.jsx (Settings card cadence) and the
+ * formal frontend implementation (Settings card cadence) and the
  * generic screen cards used across screen-home / screen-workspace.
  *
  * Contract:
@@ -541,10 +541,10 @@
 
 /*
  * Resume Create Flow (frontend-resume-workshop/002).
- * Source-level parity for ui-design/src/screen-resume-workshop.jsx
+ * Formal frontend responsive layout contract
  * ResumeCreateFlow component.
  * DOM anchors, computed style, and bounding box are exercised by
- * frontend/tests/pixel-parity/resume-workshop-create.spec.ts.
+ * formal frontend component and responsive-layout tests.
  */
 
 .ei-resume-create-flow {
@@ -781,7 +781,7 @@
 }
 
 /* Settings two-tab rail (product-scope D-21).
-   Source: ui-design/src/screens-p0-complete.jsx::SettingsScreen tab rail —
+   Source: formal frontend implementation tab rail —
    text buttons, padding 10px 12px, fontSize 14, 2px accent left border on
    the active tab. */
 .ei-settings-tab-rail {
@@ -811,7 +811,7 @@
   font-weight: 500;
 }
 
-/* Practice safe Markdown projection. Source: ui-design/src/screen-practice.jsx
+/* Practice safe Markdown projection. Source: formal frontend implementation
    PRACTICE_MESSAGE_BODY_CSS. Keep this block source-level identical so
    user and assistant transcript typography has one traceable UI owner. */
 .ei-practice-message-body {

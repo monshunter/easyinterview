@@ -43,8 +43,8 @@ spec:
           - docs/spec/product-scope
           - docs/spec/engineering-roadmap
           - docs/ui-design
-          - ui-design/src
-          - ui-design/ui-design-contract.test.mjs
+          - frontend/src
+          - scripts/lint/ui_demo_pruning.py
           - frontend/src
           - frontend/tests
           - openapi

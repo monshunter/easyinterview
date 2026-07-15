@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [003-ui-design-pixel-parity-gate](./003-ui-design-pixel-parity-gate/plan.md) | [plan](./003-ui-design-pixel-parity-gate/plan.md) / [checklist](./003-ui-design-pixel-parity-gate/checklist.md) / [context](./003-ui-design-pixel-parity-gate/context.yaml) | 2.0 | active | 2026-07-15 |
+| [003-ui-design-responsive-browser-gate](./003-ui-design-responsive-browser-gate/plan.md) | [plan](./003-ui-design-responsive-browser-gate/plan.md) / [checklist](./003-ui-design-responsive-browser-gate/checklist.md) / [context](./003-ui-design-responsive-browser-gate/context.yaml) | 2.0 | active | 2026-07-15 |
 
 ## 2 已完成（Completed）
 

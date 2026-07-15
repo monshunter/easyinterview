@@ -6,7 +6,7 @@
  *   1. Every canonical Route path returned by the App codec is served by
  *      the SPA fallback (otherwise a deep-link reload returns 404).
  *   2. Unsafe / non-frontend paths are rejected by the fallback so
- *      `/api/*`, `/openapi/*`, `/ui-design/*`, `/health`, scenario script
+ *      `/api/*`, `/openapi/*`, `/health`, scenario script
  *      paths and asset 404s remain transparent.
  *   3. Static asset requests (with a file extension) are never routed
  *      through the SPA fallback.
@@ -73,10 +73,9 @@ describe("isCanonicalFrontendPath", () => {
     expect(isCanonicalFrontendPath("/auth/login/?next=/workspace")).toBe(true);
   });
 
-  it("returns false for /api/*, /openapi/*, /ui-design/*, /health, /assets/*", () => {
+  it("returns false for /api/*, /openapi/*, /health, /assets/*", () => {
     expect(isCanonicalFrontendPath("/api/health")).toBe(false);
     expect(isCanonicalFrontendPath("/openapi/openapi.yaml")).toBe(false);
-    expect(isCanonicalFrontendPath("/ui-design/index.html")).toBe(false);
     expect(isCanonicalFrontendPath("/health")).toBe(false);
     expect(isCanonicalFrontendPath("/assets/index.js")).toBe(false);
   });
@@ -129,10 +128,9 @@ describe("resolveSpaFallback", () => {
 });
 
 describe("FALLBACK_DENY_PREFIXES contract", () => {
-  it("denies API / openapi / ui-design / health / assets / __vite", () => {
+  it("denies API / openapi / health / assets / __vite", () => {
     expect(FALLBACK_DENY_PREFIXES).toContain("/api/");
     expect(FALLBACK_DENY_PREFIXES).toContain("/openapi/");
-    expect(FALLBACK_DENY_PREFIXES).toContain("/ui-design/");
     expect(FALLBACK_DENY_PREFIXES).toContain("/health");
     expect(FALLBACK_DENY_PREFIXES).toContain("/assets/");
     expect(FALLBACK_DENY_PREFIXES).toContain("/__vite");

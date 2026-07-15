@@ -200,12 +200,11 @@ describe("App browser-aware routing — Phase 2.2 navigate via History", () => {
     ).toBe(null);
   });
 
-  it("canonicalizes #route=workspace bootstrap into target-scoped /workspace URL on mount", () => {
+  it("ignores fragment route data and strips it on mount", () => {
     window.history.replaceState(null, "", "/#route=workspace&targetJobId=tj-1");
     render(<App />);
-    // The route-store mount effect must rewrite the URL to canonical form.
-    expect(window.location.pathname).toBe("/workspace");
-    expect(window.location.search).toBe("?targetJobId=tj-1");
+    expect(window.location.pathname).toBe("/");
+    expect(window.location.search).toBe("");
     expect(window.location.hash).toBe("");
   });
 });

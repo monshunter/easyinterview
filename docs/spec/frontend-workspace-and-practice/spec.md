@@ -83,17 +83,17 @@
 | D-14 | Workspace detail round-state affordance | 详情卡片与列表 mini rail 消费同一 `practiceProgress`：`done/已进行`、`current/即将进行`、`pending/未进行` 使用三种背景、边框、可见标签与 `data-round-state`；无效投影中性 fail closed | 不新增 API/schema/前端状态机，不从 TargetJob lifecycle、URL 或 storage 猜测 |
 | D-15 | Practice text limits | `AppRuntimeProvider.contentLimits.practiceMessageBytes/practiceSessionTextBytes` 是唯一前端数据源，缺字段用 A4 同值 code default 32768/262144；`TextEncoder` 计算 bytes；backend error 可覆盖前端估算 | 删除 8,000-rune 本地真理源，保持 composer DOM/视觉不变并防止正常长回答误拒 |
 
-## 4 UI 真理源与 parity
+## 4 UI 设计文档与 parity
 
-- Workspace：`ui-design/src/screen-workspace.jsx`
-- Practice：`ui-design/src/screen-practice.jsx::PracticeScreen`
+- Workspace：`frontend/src`
+- Practice：`frontend/src`
 - Generating：由 `frontend-report-dashboard` 独占；本 spec 仅引用 completion handoff，不修改其原型或正式屏幕。
-- Shared：`ui-design/src/app.jsx`、`ui-design/src/primitives.jsx`
+- Shared：`frontend/src`
 - Docs：`docs/ui-design/module-job-workspace.md`、`module-practice-review.md`、`report-dashboard.md`
 
-用户可见改动必须先更新 `ui-design/`，再源级迁移到 frontend。验证必须拆分：
+用户可见改动必须先更新 `frontend/`，再源级迁移到 frontend。验证必须拆分：
 
-1. DOM/control/a11y source parity。
+1. DOM/control/a11y formal implementation contract。
 2. computed style/bounding box/responsive/screenshot geometry parity。
 3. stale question/hint/phone positive-contract negative search。
 

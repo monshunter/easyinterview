@@ -14,7 +14,7 @@ Install Python gate dependencies once in an isolated environment with `python3 -
 | Command | Purpose | Owner |
 |---------|---------|-------|
 | `make lint` | B1 conventions + A4 config + A3/F3/E1/runtime-topology local gates + Go lint + frontend typecheck-backed lint | A5 aggregator → B1 / A4 / A3 / F3 / E1 / backend / frontend |
-| `make test` | Canonical full regression: UI prototype Node contract + Python tooling/skill contracts + all backend Go unit tests + all frontend TypeScript unit tests; AI tests via stub/fixture only | A5 aggregator → product/UI / scripts / skills / backend / frontend owners |
+| `make test` | Canonical full regression: Python tooling/skill contracts + all backend Go unit tests + all frontend TypeScript unit tests; AI tests via stub/fixture only | A5 aggregator → scripts / skills / backend / frontend owners |
 | `make build` | Backend `go build ./cmd/...` + frontend bundle | A5 aggregator → backend / frontend owners |
 | `make docs-check` | `sync-doc-index --check` (Header / INDEX drift) + relative-link sanity for `docs/` | A5 aggregator → `/sync-doc-index` skill + A5 `scripts/lint/check_md_links.py` |
 | `make codegen-check` | B1 conventions generator + B2 OpenAPI generator + `git diff --exit-code` on generated outputs | A5 aggregator → B1 + B2 |
@@ -27,7 +27,7 @@ Frontend and backend workstreams are split by contract, not by informal agreemen
 
 | Step | Source / Gate | Owner Boundary |
 |------|---------------|----------------|
-| 1. UI truth source | `ui-design/` + `docs/ui-design/`; formal frontend must source-level mirror DOM shape, controls, layout, tokens, and interactions | Frontend design / frontend implementation |
+| 1. UI design contract | `docs/ui-design/` defines information architecture, page responsibilities, user flows, interaction states, responsive constraints, and visual principles; formal implementation lives only in `frontend/` | Frontend design / frontend implementation |
 | 2. API contract | `openapi/openapi.yaml`; every frontend/backend API change starts here before generated client/server artifacts are consumed | B2 OpenAPI owner + feature owner |
 | 3. Fixture data | `openapi/fixtures/<tag>/<operationId>.json`; mock data is fixture-backed and selected with `Prefer: example=<scenario>` | Contract owner + feature owner |
 | 4. Codegen | `make codegen && make codegen-check`; generated Go/TS artifacts are not hand-edited | B1/B2/B3 owners |
@@ -56,11 +56,11 @@ This matrix is the handoff proof that frontend mock progress and backend real im
 
 Use this path when the UI and interaction shape can be developed before real backend implementation:
 
-1. Update `ui-design/` and `docs/ui-design/` first.
+1. Update the relevant `docs/ui-design/` design contract first.
 2. Update OpenAPI/fixtures if the UI consumes new or changed data.
 3. Run `make codegen && make codegen-check` after contract changes.
 4. Implement frontend against generated client + fixture-backed fetch.
-5. Use focused frontend tests only for development feedback; when the phase closes, run root `make test` for the full frontend/backend unit regression, plus visual parity gates and `make build` as appropriate.
+5. Use focused frontend tests only for development feedback; when the phase closes, run root `make test` for the full frontend/backend unit regression, plus responsive/accessibility checks, any applicable real-browser scenario, and `make build` as appropriate.
 6. Keep the operation matrix marking backend status as `mock-only` or `not-yet-implemented` until a backend owner lands the real handler.
 
 ### 2.3 Backend-First Path
@@ -140,7 +140,7 @@ When remote CI eventually lands, any new workflow that needs a runner secret **m
 
 - [A5 spec](./spec/ci-pipeline-baseline/spec.md) — local quality gate scope, D-5 deferral conditions
 - [A5 plan 001-local-quality-gates](./spec/ci-pipeline-baseline/plans/001-local-quality-gates/plan.md) — implementation detail
-- [Frontend README](../frontend/README.md) — frontend implementation boundaries, UI truth source, generated client, mock transport
+- [Frontend README](../frontend/README.md) — frontend implementation boundaries, UI design contract, generated client, mock transport
 - [Backend README](../backend/README.md) — backend implementation boundaries and operation status expectations
 - [Local dev stack](../deploy/dev-stack/README.md) — Docker Compose dependency stack, host-run app boundary, and scenario-runner boundary
 - [Scenario framework](../test/scenarios/README.md) — BDD/E2E scenario environment and script contract

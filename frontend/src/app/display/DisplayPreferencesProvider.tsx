@@ -37,7 +37,7 @@ export type { Theme } from "../theme/tokens";
  * `data-mode` / `data-custom-accent`. The CSS palette in
  * `src/app/theme/themes.css` keys off those attributes; custom accent only
  * overrides `--ei-color-accent` and `--ei-color-accent-soft`, leaving the
- * rest of the EI_THEMES base palette untouched (matches ui-design/src/app.jsx
+ * rest of the EI_THEMES base palette untouched (matches formal frontend implementation
  * customAccent overlay model).
  *
  * `fontPreset` is owned by the settings page (Phase 4.2), not by TopBar; it is

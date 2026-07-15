@@ -29,7 +29,7 @@ spec:
         - ../../../frontend-report-dashboard/spec.md
       discovery:
         packages:
-          - ui-design/src/screen-practice.jsx
+          - frontend/src
           - frontend/src/app/screens/practice
           - frontend/src/app/components
           - frontend/src/api/generated
@@ -38,6 +38,6 @@ spec:
           - openapi/fixtures/PracticeSessions/sendPracticeMessage.json
           - frontend/src/app/interview-context
           - frontend/src/app/i18n/locales
-          - frontend/tests/pixel-parity
+          - frontend/tests/responsive-browser
         uiRoutes: [practice]
         apiNames: [getPracticeSession, sendPracticeMessage, completePracticeSession, getTargetJob]

@@ -28,7 +28,7 @@
 - **Plan 类型**: user-visible UI + API consumer + refactor。
 - **TDD 策略**: focused source/client/DOM/hook tests provide development feedback；阶段完成由根 `make test` 承接，禁止用 `Error.message` 或浏览器 storage 绕过合同。
 - **BDD 策略**: text chat、session start 与 recovery 保留行为合同但当前无真实 E2E owner；`E2E.P0.098` 不覆盖这些行为。
-- **替代验证 gate**: source parity, computed style/bounding box, desktop/mobile screenshot, typecheck/build, stale-contract grep.
+- **替代验证 gate**: formal implementation contract, computed style/bounding box, desktop/mobile screenshot, typecheck/build, stale-contract grep.
 
 ## 4 Coverage Matrix
 
@@ -40,8 +40,8 @@
 
 ## 5 实施步骤
 
-### Phase 1: UI truth source
-- Rewrite `ui-design/src/screen-practice.jsx` and data to TopBar + full-width Conversation.
+### Phase 1: UI design document
+- Rewrite `frontend/src` and data to TopBar + full-width Conversation.
 - Remove all question/hint/phone-positive prototype state/components/copy.
 - Update docs/ui-design and prototype contract/parity expectations.
 
@@ -60,7 +60,7 @@
 - 本阶段只拥有 completion handoff；GeneratingScreen 的状态、文案与动作自 2026-07-12 起由 `frontend-report-dashboard/001` 唯一承接。
 
 ### Phase 5: Parity and real scenario
-- Run Vitest/typecheck/build/UI contract/pixel parity.
+- Run Vitest/typecheck/build/UI contract/responsive browser verification.
 - Run the Practice owner scenarios and capture redacted desktop/mobile conversation screenshots; report-page real screenshot ownership remains in `frontend-report-dashboard`.
 
 ### Phase 6: Review remediation
@@ -70,7 +70,7 @@
 ### Phase 7: Zero-answer finish eligibility and backend authority
 
 - Derive frontend eligibility only from server-loaded `messages`: at least one committed candidate `user` message, no pending assistant reply, and the existing mutable/not-loading/not-sending/not-completing guards must all hold. Opening assistant content, composer drafts and route state never count.
-- In `ui-design/src/screen-practice.jsx` first, then formal PracticeScreen, render Finish as native disabled for zero answers and expose a nearby zh/en reason with stable `aria-describedby`; the reason disappears when the first committed user message makes the action eligible.
+- In `frontend/src` first, then formal PracticeScreen, render Finish as native disabled for zero answers and expose a nearby zh/en reason with stable `aria-describedby`; the reason disappears when the first committed user message makes the action eligible.
 - Keep backend authoritative: direct zero-answer `completePracticeSession` returns typed `VALIDATION_FAILED`, leaves the session mutable and writes no report/job/outbox/idempotency success. Frontend tests prove UX; backend-practice/002 Phase 9 supplies service/store/API/PostgreSQL evidence.
 
 ### Phase 8: reportId-only completion handoff
@@ -81,7 +81,7 @@
 ### Phase 9: Immediate user message, thinking state and row-local retry
 
 - Dependency: execute and close the pre-existing Phase 7.3/7.4 and 8.3 checklist gates first; Phase 9 must not bypass the active owner plan's original order.
-- Update `ui-design/src/screen-practice.jsx` first: submit immediately appends one user row and clears composer；pending/retrying disables composer and renders an assistant-style accessible thinking animation；failure removes thinking and renders one retry icon only beneath that failed user row.
+- Update `frontend/src` first: submit immediately appends one user row and clears composer；pending/retrying disables composer and renders an assistant-style accessible thinking animation；failure removes thinking and renders one retry icon only beneath that failed user row.
 - **Contract dependency gate**: OpenAPI owner must generate user-message `clientMessageId + replyStatus=pending|retryable_failed|terminal_failed|complete` and typed `ApiClientError.apiError.retryable` while preserving HTTP status, `code/requestId/retryable/details` and transport cause；backend owner must durably project reply status. The planned fixture variants in the matrix are missing current work, not historical PASS.
 - Formal Practice keeps `{text, clientMessageId, status}` only as in-memory submit-to-first-response/read feedback. Reload/remount reconstructs every unresolved state from `getPracticeSession`; retry identity must never enter URL, `localStorage`, `sessionStorage` or IndexedDB.
 - A reloaded `pending` row keeps composer/Finish disabled, shows thinking, performs bounded single-flight re-read and never sends again. Reloaded `retryable_failed` restores exactly one icon under the server row；`terminal_failed` has no icon and enters fact recovery；`complete` renders the unique user/reply pair.

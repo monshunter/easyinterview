@@ -4,7 +4,7 @@ import { normalizeRoute, normalizeRouteName } from "./normalizeRoute";
 
 describe("normalizeRouteName", () => {
   it("maps every retained out-of-scope alias documented in ui-design to a current route", () => {
-    // Sourced from ui-design/src/app.jsx ROUTE_ALIASES + auth-and-entry.md §9.1.
+    // Sourced from formal frontend implementation ROUTE_ALIASES + auth-and-entry.md §9.1.
     // `voice` is intentionally excluded: current product-scope keeps it only
     // as a backend/API engineering name, not as a route alias.
     expect(normalizeRouteName("welcome")).toBe("home");

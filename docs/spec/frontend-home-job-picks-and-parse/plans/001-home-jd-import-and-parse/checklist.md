@@ -32,20 +32,20 @@
 
 ## Phase 5: Unified plan detail remediation
 
-- [x] 5.1 Historical UI work renamed the Parse-derived ready visual to `面试规划详情 / 面试上下文确认` while preserving first-import loading；Phase 20 keeps the visual only under Workspace detail（历史验证：`ui-design/src/screens-p0-complete.jsx`, docs/locales/parity PASS）
+- [x] 5.1 Historical UI work renamed the Parse-derived ready visual to `面试规划详情 / 面试上下文确认` while preserving first-import loading；Phase 20 keeps the visual only under Workspace detail（历史验证：`frontend/src`, docs/locales/parity PASS）
 - [x] 5.2 Historical parse/workspace routes rendered the same detail DOM；Phase 20 supersedes this so Parse ready replace-navigates and only `route=workspace` with `targetJobId` renders readonly resume binding and Start, while query-free workspace renders `WorkspacePlanList`。历史 focused tests 仅作开发反馈，当前阶段单测完成由根 `make test` 承接。
-- [x] 5.3 Shared detail navigation uses declared `TargetJob.currentPracticePlanId` / `TargetJob.resumeId` without fabricating `plan-${targetJobId}` or `resume-unbound`, and out-of-scope independent workspace detail anchors are covered by negative tests（验证：`frontend/src/app/navigation/interviewContext.ts`, `interviewContext.test.ts`, `frontend/src/app/screens/workspace/WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts` PASS）
+- [x] 5.3 Shared detail navigation uses declared `TargetJob.currentPracticePlanId` / `TargetJob.resumeId` without fabricating `plan-${targetJobId}` or `resume-unbound`, and out-of-scope independent workspace detail anchors are covered by negative tests（验证：`frontend/src/app/navigation/interviewContext.ts`, `interviewContext.test.ts`, `frontend/src/app/screens/workspace/WorkspaceEmptyState.test.tsx`, `formal frontend component tests` PASS）
 
 ## Phase 6: Readonly plan detail simplification
 
-- [x] 6.1 UI truth source and formal copy make the shared success detail a readonly context receipt with only Start interview as the footer action；Phase 20 locates it only at Workspace detail。UI contract/parity 是独立 gate，单测完成由根 `make test` 承接。
+- [x] 6.1 UI design document and formal copy make the shared success detail a readonly context receipt with only Start interview as the footer action；Phase 20 locates it only at Workspace detail。UI contract/parity 是独立 gate，单测完成由根 `make test` 承接。
 - [x] 6.2 Workspace success detail removes field edit state, requirement toggles, hidden-signal remove controls, resume picker / create fallback, success Re-parse, Save plan and Cancel controls（历史 Parse-derived component tests PASS）
 - [x] 6.3 Start interview uses the saved `targetJobId/resumeId/roundId/currentPracticePlanId` snapshot and must not call `updateTargetJob`; missing bound resume blocks Start without offering in-place binding。Focused Parse/client-spy tests 仅作开发反馈，阶段单测完成由根 `make test` 承接。
 - [x] 6.5 Repo gates pass after doc/code/test changes（验证：context validation, sync-doc-index, docs-check, diff whitespace check, touched frontend tests/typecheck PASS）
 
 ## Phase 7: LLM-derived round assumptions shared data binding
 
-- [x] 7.1 Historical UI truth source and owner docs first moved TargetJob round assumptions off local-only copy; Phase 8/20 use `TargetJob.summary.interviewRounds[]` across Workspace detail, Home recent cards and shared navigation context（当前验证见 Phase 8.1-8.5).
+- [x] 7.1 Historical UI design document and owner docs first moved TargetJob round assumptions off local-only copy; Phase 8/20 use `TargetJob.summary.interviewRounds[]` across Workspace detail, Home recent cards and shared navigation context（当前验证见 Phase 8.1-8.5).
 - [x] 7.2 Focused shared-detail tests prove round cards render backend-provided structured rounds and do not show static locale focus when structured rounds exist（当前验证见 8.3).
 - [x] 7.3 Focused Home/navigation tests prove `home-recent-mock-rail-*` and `interviewContextFromTargetJob` consume the same backend-provided structured rounds instead of a local `DEFAULT_ROUNDS` / static round name（当前验证见 8.3).
 - [x] 7.4 Frontend implementation uses a shared TargetJob round assumption mapper without changing the Parse layout, Home card layout, Workspace list layout or Start handoff。Focused frontend tests 仅作开发反馈，阶段单测完成由根 `make test` 承接；typecheck 为独立 gate。
@@ -55,18 +55,18 @@
 - [x] 8.1 OpenAPI / prompt / fixture contract defines `TargetJob.summary.interviewRounds[]` with 2~5 LLM-derived rounds, each carrying `sequence`, `type`, `name`, `durationMinutes` and `focus`; prompt explicitly instructs inference from JD, role seniority, company/industry nature, team/business context, hiring-process hints and common interview practices, and generated Go/TS artifacts are refreshed（验证：`make lint-prompts`, `cd backend && go test ./internal/targetjob -run TestTargetImportPromptMatchesParseResponseSchema -count=1`, `make codegen-openapi`, `make lint-openapi`, `make validate-fixtures` PASS).
 - [x] 8.2 Backend parser validates and persists 2~5 structured `interviewRounds[]` from `target.import.parse` without fabricating fixed 4-round defaults。Focused targetjob tests 仅作开发反馈，阶段单测完成由根 `make test` 承接。
 - [x] 8.3 Frontend Workspace detail/Home/navigation consume structured rounds with variable count, type/name and duration from `summary.interviewRounds[]`; fixed strings such as `HR 初筛 · 20m` / `技术一面 · 45m` are not used when structured rounds exist（历史 Parse-derived component tests + current Workspace gate）.
-- [x] 8.4 UI truth source and docs define structured LLM rounds across Workspace detail and Home recent rail（验证：UI contract/fixtures PASS）.
+- [x] 8.4 UI design document and docs define structured LLM rounds across Workspace detail and Home recent rail（验证：UI contract/fixtures PASS）.
 - [x] 8.6 Repo gates pass after structured round contract changes（验证：`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-home-job-picks-and-parse/plans/001-home-jd-import-and-parse/context.yaml --docs-root docs --target frontend`; `cd frontend && pnpm typecheck`; focused frontend tests; backend targetjob focused tests; `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`; `make docs-check`; `git diff --check`; `make lint-core-loop-pruning-surface` PASS).
 
 ## Phase 9: Recent card fixed grid and workspace fusion
 
-- [x] 9.1 UI truth source defines Home recent cards and workspace plan-list cards as one shared card body with fixed max-width grid（验证：`docs/ui-design/jd-resume-management.md`, `docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-home.jsx`, `ui-design/src/screen-workspace.jsx`, `node --test ui-design/ui-design-contract.test.mjs` PASS）
+- [x] 9.1 UI design document defines Home recent cards and workspace plan-list cards as one shared card body with fixed max-width grid（验证：`docs/ui-design/jd-resume-management.md`, `docs/ui-design/module-job-workspace.md`, `frontend/src`, `python3 scripts/lint/ui_demo_pruning.py` PASS）
 - [x] 9.2 Formal `MockInterviewCard` supports Home default testids plus workspace-owned card/body/rail/footer testids and optional footer CTA（验证：`pnpm --filter @easyinterview/frontend test src/app/screens/home/MockInterviewCard.test.tsx` PASS）
 - [x] 9.3 Home recent and workspace list focused tests reject `1fr` stretching and verify workspace mini round rail + footer CTA（验证：`pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/workspace/WorkspaceScreen.test.tsx src/app/screens/workspace/WorkspaceEmptyState.test.tsx` PASS）
 
 ## Phase 10: Home recent shared action card
 
-- [x] 10.1 UI truth source defines Home recent cards as the shared Interview list action card with `立即面试` and without delete controls（验证：`docs/ui-design/jd-resume-management.md`, `docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-home.jsx`）
+- [x] 10.1 UI design document defines Home recent cards as the shared Interview list action card with `立即面试` and without delete controls（验证：`docs/ui-design/jd-resume-management.md`, `docs/ui-design/module-job-workspace.md`, `frontend/src`）
 - [x] 10.2 Formal `MockInterviewCard` supports quick-start action props and Home passes no delete action（验证：`MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`）
 - [x] 10.3 Home recent quick-start calls shared generated practice handoff with structured `roundId/roundName`, and card-body click remains planning-detail navigation（验证：`HomeRecentMocks.test.tsx` PASS）
 - [x] 10.4 Browser screenshot acceptance captures Home recent card with `立即面试` and no delete icon（验证：`.test-output/screenshots/home-recent-action-card.png`）
@@ -104,7 +104,7 @@
 
 ## Phase 18: Paste-only Home JD intake
 
-- [x] 18.1 RED-GREEN: prototype-first 更新 `ui-design/src/screen-home.jsx` 与 UI source contract，使 Home intake 仅渲染 textarea、ready Resume select 和 CTA；旧 source controls、辅助弹窗、触发 testid 与多入口 copy 必须先红后删，且 Resume 上传入口保持可用。
+- [x] 18.1 RED-GREEN: prototype-first 更新 `frontend/src` 与 UI source contract，使 Home intake 仅渲染 textarea、ready Resume select 和 CTA；旧 source controls、辅助弹窗、触发 testid 与多入口 copy 必须先红后删，且 Resume 上传入口保持可用。
 - [x] 18.2 RED-GREEN: OpenAPI、fixtures 与 generated Go/TS 将 `importTargetJob` public request 收敛为 exact flattened wire `{ rawText, targetLanguage, resumeId }`，拒绝 source discriminator、嵌套 source payload 和非文本 JD intake；Resume upload operation/fixture 不受影响。
   <!-- verified: 2026-07-13 evidence="OpenAPI inventory 24 tests, generator tests, lint-openapi, fixture validator 37 operations and isolated-index codegen-check PASS; generated Go/TS request is flattened; upload fixture retains resume/privacy only." -->
 - [x] 18.3 RED-GREEN: formal Home layout/import/i18n tests 证明只存在一个 paste submit path；删除 source controls/modal、source-specific branches、额外 locale keys 和 JD upload-client 调用，不新增 mode enum、compatibility adapter 或不可达 branch。
@@ -133,7 +133,7 @@
 
 - [x] 21.1 RED-GREEN: prototype round-assumption cards derive `done/current/pending` only from `eiResolvePracticeProgress`, expose state labels/attributes and use success-soft/accent-soft/neutral-soft background+border treatments.<!-- verified: 2026-07-14 method=ui-contract red-green result="new contract RED; 65/65 GREEN" -->
 - [x] 21.2 RED-GREEN: formal Workspace detail derives the same exact states from `resolveTargetJobPracticeProgress`; focused tests cover in-progress, all-completed and invalid projections without lifecycle/URL/storage fallback.
-- [x] 21.3 PARITY-GATE: UI contract plus desktop/mobile DOM/computed-style/bbox/viewport checks prove the formal three-state cards source-match `ui-design/` and remain visually distinct in light/dark/custom themes.<!-- verified: 2026-07-14 method=parse-pixel-parity result="desktop+mobile 2/2; 3 backgrounds; 3 borders; no overflow; screenshots attached" -->
+- [x] 21.3 PARITY-GATE: UI contract plus desktop/mobile DOM/computed-style/bbox/viewport checks prove the formal three-state cards source-match `frontend/` and remain visually distinct in light/dark/custom themes.<!-- verified: 2026-07-14 method=parse-responsive-browser result="desktop+mobile 2/2; 3 backgrounds; 3 borders; no overflow; screenshots attached" -->
 
 ## Phase 22: Required runtime JD guard
 

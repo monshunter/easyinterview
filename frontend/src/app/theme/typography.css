@@ -5,12 +5,12 @@
  * hardcoding inline `style={{ fontSize: NN }}` literals.
  *
  * Source mapping (tracked by `typography.test.tsx`):
- *   - display:  ui-design/src/screen-home.jsx  hero h1 (48 / 1.1 / 500 / -0.025em)
- *   - title:    ui-design/src/primitives.jsx   SectionHeader title (22 / 1.25 / 500 / -0.02em)
- *   - subtitle: ui-design/src/app.jsx          TopBar logo (16 / 1 / 500 / -0.01em)
- *   - body:     ui-design/src/screen-auth.jsx  paragraph copy (14 / 1.5 / 400)
- *   - caption:  ui-design/src/screen-home.jsx  card location (12.5 / 1.4 / 400)
- *   - label:    ui-design/src/primitives.jsx   ei-label (11 / 1.4 / 500 / 0.08em mono uppercase)
+ *   - display:  formal frontend implementation  hero h1 (48 / 1.1 / 500 / -0.025em)
+ *   - title:    formal frontend implementation   SectionHeader title (22 / 1.25 / 500 / -0.02em)
+ *   - subtitle: formal frontend implementation          TopBar logo (16 / 1 / 500 / -0.01em)
+ *   - body:     formal frontend implementation  paragraph copy (14 / 1.5 / 400)
+ *   - caption:  formal frontend implementation  card location (12.5 / 1.4 / 400)
+ *   - label:    formal frontend implementation   ei-label (11 / 1.4 / 500 / 0.08em mono uppercase)
  */
 
 :root {

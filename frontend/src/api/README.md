@@ -18,7 +18,7 @@ Fixture-backed API entrypoint for frontend workstreams.
 
 ## Blockers
 
-- Do not import `ui-design/src/data.jsx` from `frontend/src`; prototype data is only an upstream source for B2 fixture projection.
+- Do not copy a second mock dataset into `frontend/src`; B2 fixtures are the only mock response source.
 - If a flow needs a new mock state, add a named scenario under `openapi/fixtures/` and run `make lint-mock-contract`.
 - If an operation is missing, fix the B2 OpenAPI/fixture truth source first; do not hardcode response data in frontend code.
 - Do not rely on relative `/api/v1` for local real-backend dev. In the browser it resolves to the Vite frontend origin, not the Go backend configured through `VITE_EI_API_BASE_URL`.

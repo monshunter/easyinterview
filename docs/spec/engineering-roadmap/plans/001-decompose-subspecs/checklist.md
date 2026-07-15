@@ -17,8 +17,8 @@
 
 ## Phase 2: Roadmap 当前实施地图
 
-- [x] 2.1 对齐 `product-scope`、`docs/ui-design/` 与 `ui-design/src/app.jsx` 当前模块、route、上下文和范围外边界。
-  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 2.1 names product-scope, docs/ui-design, and ui-design/src/app.jsx as the current truth sources." -->
+- [x] 2.1 对齐 `product-scope`、`docs/ui-design/` 与 `frontend/src` 当前模块、route、上下文和范围外边界。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 2.1 names product-scope, docs/ui-design, and frontend/src as the current truth sources." -->
 - [x] 2.2 `engineering-roadmap/spec.md` 只描述当前 truth source 关系、active owner、P0 workstream、future candidates、实施顺序和验收标准。
   <!-- verified: 2026-07-06 method=engineering-roadmap-current-map-wording-reconcile evidence="engineering-roadmap spec v3.29 updated background, scope, decisions, constraints, workstreams, implementation sequence, and acceptance criteria to current execution-map wording." -->
 - [x] 2.3 修订本 plan、checklist、context 和 plans/INDEX 为 roadmap rebaseline、按需 child 创建和 no-pending INDEX 合同。
@@ -30,7 +30,7 @@
 
 ## Phase 3: 后续 child 创建规则
 
-- [x] 3.1 创建 child spec / plan 前必须确认 `product-scope` 与 UI 真理源已明确保留对应用户行为或工程能力。
+- [x] 3.1 创建 child spec / plan 前必须确认 `product-scope` 与 UI 设计文档已明确保留对应用户行为或工程能力。
   <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 3.1 records current behavior / engineering capability as the first creation precondition." -->
 - [x] 3.2 创建 child plan 时必须同步 `context.yaml`、`plan.md`、`checklist.md`，涉及用户行为时同步 BDD plan / checklist。
   <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 3.1 records paired context, plan, checklist, TDD, and BDD requirements." -->

@@ -1,6 +1,6 @@
 /*
  * D2 global stylesheet entry. Transcribed from the `ei-global` <style> block
- * in ui-design/src/primitives.jsx so the static prototype's reset, focus,
+ * in formal frontend implementation so the static prototype's reset, focus,
  * scrollbar and animation rules apply identically in the production frontend.
  *
  * `main.tsx` imports this file exactly once. We use the vite default CSS

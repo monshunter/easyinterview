@@ -19,7 +19,7 @@
 
 2026-07-10 三次追加修订范围：根 `make test` 补入当前已存在但未聚合的 `scripts/` 与 `.agent-skills/` Python contracts，并新增根 `requirements-dev.txt` 显式声明 `pytest` / `PyYAML`。本修订同时修正全量 Python suite 暴露的一条 work-journal 陈旧断言，不改变 skill 当前 commit message 规则。
 
-2026-07-10 四次追加修订范围：把唯一根级 Node test `ui-design/ui-design-contract.test.mjs` 纳入 `make test` 首段，使 UI 真理源的 45 项静态契约不再只由单个场景显式触发。场景专用 tests 继续由各场景 owner 运行。
+2026-07-10 四次追加修订范围：把唯一根级 Node test `scripts/lint/ui_demo_pruning.py` 纳入 `make test` 首段，使 UI 设计文档的 45 项静态契约不再只由单个场景显式触发。场景专用 tests 继续由各场景 owner 运行。
 
 本 plan 是 `ci-pipeline-baseline` 当前唯一的 active plan，只负责本地质量门禁聚合。当 D-5 触发条件出现（第二位长期贡献者、公开 release、付费用户上线、自动发版、回归频率过高）时，在本 spec 原地修订并新增 `002-remote-ci` 或等价 plan；远端 CI workflow、branch protection、artifact、runner secret 不得塞回本 plan。
 
@@ -61,7 +61,7 @@
 
 `test` target 调用：
 
-1. UI prototype contract：`node --test ui-design/ui-design-contract.test.mjs`。
+1. UI prototype contract：`python3 scripts/lint/ui_demo_pruning.py`。
 2. Python tooling / skill contracts：`python3 -m pytest scripts .agent-skills -q`。
 3. Go 单元测试：`cd backend && go test ./...`。
 4. TS 单元测试：`pnpm --filter @easyinterview/frontend test`。
@@ -246,7 +246,7 @@ F1 metrics / log lint helper 当前未暴露本地命令，因此不进入根 `M
 
 #### 10.1 Wire the existing prototype contract
 
-扩展 Makefile contract，先证明 `make test` 未执行 `ui-design/ui-design-contract.test.mjs`，再把 `node --test` 命令加到现有 test target 首段。保留 Python → Go → frontend 后续顺序，不创建新 target。
+扩展 Makefile contract，先证明 `make test` 未执行 `scripts/lint/ui_demo_pruning.py`，再把 `node --test` 命令加到现有 test target 首段。保留 Python → Go → frontend 后续顺序，不创建新 target。
 
 #### 10.2 Verification and docs sync
 

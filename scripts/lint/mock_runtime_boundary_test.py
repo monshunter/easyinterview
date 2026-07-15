@@ -39,24 +39,6 @@ class MockRuntimeBoundaryTest(unittest.TestCase):
         out = _run_lint(self.repo)
         self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
 
-    def test_frontend_runtime_importing_ui_design_data_fails(self) -> None:
-        leak = self.repo / "frontend/src/api/leak.ts"
-        leak.write_text(
-            textwrap.dedent(
-                """\
-                import { mockData } from "../../../ui-design/src/data.jsx";
-                export const leaked = mockData;
-                """
-            ),
-            encoding="utf-8",
-        )
-
-        out = _run_lint(self.repo)
-
-        self.assertNotEqual(out.returncode, 0)
-        self.assertIn("ui-design/src/data.jsx", out.stderr + out.stdout)
-        self.assertIn("frontend/src/api/leak.ts", out.stderr + out.stdout)
-
     def test_fixture_response_prototype_only_display_field_fails(self) -> None:
         rel = "openapi/fixtures/Auth/getMe.json"
         path = self.repo / rel

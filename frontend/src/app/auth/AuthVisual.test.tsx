@@ -15,9 +15,7 @@ import {
 import type { Route } from "../routes";
 
 const HERE = resolve(__dirname);
-const REPO_ROOT = resolve(HERE, "..", "..", "..", "..");
 const AUTH_CSS = resolve(HERE, "auth.css");
-const AUTH_SCREEN_JSX = resolve(REPO_ROOT, "ui-design", "src", "screen-auth.jsx");
 
 const noop = () => {};
 
@@ -102,7 +100,7 @@ describe("auth screen card visual contract (Phase 4.1)", () => {
     expect(heading!.className).toMatch(/\bei-text-display\b/);
   });
 
-  it("auth.css transcribes the screen-auth.jsx AuthShell rhythm (max-width 1160, padding, gap, grid 0.88fr 1.12fr)", () => {
+  it("auth.css defines the AuthShell rhythm (max-width 1160, padding, gap, grid 0.88fr 1.12fr)", () => {
     const css = readFileSync(AUTH_CSS, "utf8");
     expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*max-width:\s*1160px/);
     expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*padding:\s*54px\s+48px\s+96px/);
@@ -118,16 +116,6 @@ describe("auth screen card visual contract (Phase 4.1)", () => {
     expect(css).toMatch(/\.ei-auth-side-panel\s*\{[^}]*background:\s*var\(--ei-color-bg-soft\)/);
   });
 
-  it("auth.css values can be traced back to ui-design/src/screen-auth.jsx", () => {
-    const src = readFileSync(AUTH_SCREEN_JSX, "utf8");
-    expect(src).toContain("maxWidth: 1160");
-    expect(src).toContain('padding: "54px 48px 96px"');
-    expect(src).toContain('gridTemplateColumns: "0.88fr 1.12fr"');
-    expect(src).toContain("gap: 44");
-    expect(src).toContain("padding: 18");
-    expect(src).toContain("padding: 28");
-  });
-
   it("global.css imports the auth.css module", () => {
     const global = readFileSync(
       resolve(HERE, "..", "theme", "global.css"),
@@ -136,7 +124,7 @@ describe("auth screen card visual contract (Phase 4.1)", () => {
     expect(global).toMatch(/@import\s+["']\.\.\/auth\/auth\.css["'];/);
   });
 
-  it("does not keep a link-row wrapper without a DOM or prototype consumer", () => {
+  it("does not keep a link-row wrapper without a DOM consumer", () => {
     const css = readFileSync(AUTH_CSS, "utf8");
     expect(css).not.toMatch(/\.ei-auth-link-row\s*\{/);
   });

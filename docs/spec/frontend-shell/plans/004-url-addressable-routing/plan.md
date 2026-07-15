@@ -20,7 +20,7 @@
 - App 初始 route 优先级：test harness route > canonical path > hash adapter > default `home`。
 - `NavigationProvider.navigate(next)` 继续作为屏幕层 API；内部统一 normalize、safe-param filter、serialize、`pushState` / `replaceState` and React state update。
 - `popstate` 必须恢复 route params、TopBar active state、chrome hidden state and InterviewContext hydration，并清理 hostile `history.state`。
-- `#route=...` adapter 继续服务 static preview、pixel parity and scenario harness；正常浏览器模式下替换为 canonical path。
+- `#route=...` adapter 继续服务 static preview、responsive browser verification and scenario harness；正常浏览器模式下替换为 canonical path。
 
 ### 2.2 Canonical route table
 
@@ -75,7 +75,7 @@ Blocked payload categories:
 - `routeStore.ts` owns initial route resolution, `pushState`, `replaceState`, `popstate` and URL equality checks.
 - `NavigationProvider` keeps screen-level `navigate(next)` stable while routing through Browser History.
 - Auth pendingAction serialization shares the safe-param allowlist with URL serialization.
-- `spaFallback.mjs`, Vite SPA config and pixel parity server tests separate known frontend paths from API/static/script paths.
+- `spaFallback.mjs`, Vite SPA config and responsive browser verification server tests separate known frontend paths from API/static/script paths.
 
 ### 6.1 Phase 8 route-table evidence reconciliation
 
@@ -111,7 +111,7 @@ Blocked payload categories:
 - `reports` is protected and chrome-visible, accepts only `targetJobId`, survives direct/reload/history/auth restore, and never appears in TopBar.
 - `/workspace` without target is the list and `/workspace?targetJobId` is read-only detail; only `targetJobId` survives normalization. `/parse?targetJobId` is command/progress only and ready state replace-navigates to workspace detail.
 - Parse strips legacy `section=reports`; report/generating preserve only reportId and cannot use query state as trusted report context.
-- Hash adapter inputs continue to work for static preview and pixel parity harness.
+- Hash adapter inputs continue to work for static preview and responsive browser verification harness.
 - Auth pendingAction restore returns to the original canonical route using safe params only.
 - Hostile URL / hash / history state input is scrubbed into canonical safe state.
 - Host fallback returns `index.html` for known frontend paths and does not swallow API/static/script paths.

@@ -40,14 +40,13 @@ FORBIDDEN_PATTERNS: tuple[str, ...] = (
     r"VoiceSessionSurface",
     r"PracticeWaveformBars",
     r"window\.EI_DATA",
-    r"ui-design/src/data",
     r"reportHistory",
     r"report_history",
     r"reportVersions",
     r"report_versions",
     r"Report Center",
     r"报告中心",
-    # Prototype-only short CSS variables are not defined by the formal D2
+    # Presentation-only short CSS variables are not defined by the formal D2
     # token system. Report/generating implementation must use --ei-color-* and
     # --ei-font-* tokens so theme / dark / customAccent changes are real gates.
     r"--ei-bg(?:-[a-z]+)?\b",

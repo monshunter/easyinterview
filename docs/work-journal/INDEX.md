@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-15](2026-07-15.md) | `refactor(ui-design): remove demo toolchain and active coupling` | #refactor #ui #test #docs |
 | [2026-07-15](2026-07-15.md) | `docs(ui-design): remove demo coupling from design docs` | #docs #ui #test |
 | [2026-07-15](2026-07-15.md) | `refactor(ui-design): remove demo runtime and add pruning gate` | #refactor #ui #test #docs |
 | [2026-07-15](2026-07-15.md) | `fix(e2e): enforce real API and UI evidence` | #fix #test #docs #bdd |

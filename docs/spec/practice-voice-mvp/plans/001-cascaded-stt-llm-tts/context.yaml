@@ -32,7 +32,7 @@ spec:
       spec: ../../spec.md
       discovery:
         packages:
-          - ui-design/src/screen-practice.jsx
+          - frontend/src
           - frontend/src/app/screens/practice
           - frontend/src/app/navigation
         uiRoutes: [practice]

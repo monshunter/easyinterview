@@ -71,7 +71,7 @@
 - `AppRuntimeProvider`、Home / `useRecentTargetJobs`、Parse、`useWorkspaceTargetJobs`、Reports 和 Practice 等 screen loader effect 只依赖稳定 client/auth/request-option/route identity 输入，不依赖每次 render 都变化的整体 runtime object；locale、auth scope 或 epoch 变化仍必须产生新的 request key 和真实 refresh。
 - Demo-only `#route=...` adapter 不属于正式 route contract；真实开发和场景验证使用 canonical Browser History URL。
 - TopBar language dropdown 从 locale catalog 渲染；locale priority 为用户显式选择 > browser locale > `en` fallback，并通过 `Accept-Language` 作为 display hint。
-- UI implementation 必须符合对应产品 spec 与 `docs/ui-design/` 的信息架构、流程、交互和响应式约束；具体实现由正式组件、token、可访问性、component/browser tests 与真实业务场景验证，不要求源码复刻或像素对照。
+- UI implementation 必须符合对应产品 spec 与 `docs/ui-design/` 的信息架构、流程、交互和响应式约束；具体实现由正式组件、token、可访问性、component/browser tests 与真实业务场景验证，不要求按设计合同实现或像素对照。
 
 ## 5 模块边界
 
@@ -96,7 +96,7 @@
 | C-7 | Protected route guard | 用户未登录并打开业务 route | runtime auth loading / unauthenticated | 不挂载业务 screen，不调用受保护 API，进入 `auth_login(pendingAction)` | 001-app-shell-auth-settings |
 | C-8 | Email-code profile setup | 新邮箱完成验证码验证 | `/me.profileCompletionRequired=true` | 先进入 `auth_profile_setup`，资料补全成功后再恢复 pendingAction 或 Home | 001-app-shell-auth-settings |
 | C-9 | Canonical URL | 用户打开、刷新或复制 frontend URL | Browser History parse / back / forward | Route、safe params、chrome behavior 和 auth gate 保持一致 | 004-url-addressable-routing |
-| C-10 | UI 设计一致性 | Shell / TopBar / Auth / Settings 可见 UI 变更 | 对照 `docs/ui-design/` 实施并运行 component、responsive、a11y 与必要 browser smoke | 正式前端满足当前架构、流程和交互约束，不依赖第二套 Demo | 002-app-shell-visual-system / 003-ui-design-pixel-parity-gate |
+| C-10 | UI 设计一致性 | Shell / TopBar / Auth / Settings 可见 UI 变更 | 对照 `docs/ui-design/` 实施并运行 component、responsive、a11y 与必要 browser smoke | 正式前端满足当前架构、流程和交互约束，不依赖第二套 Demo | 002-app-shell-visual-system / 003-ui-design-responsive-browser-gate |
 | C-11 | Reports deep link | 用户直开/刷新 `/reports?targetJobId=<uuid>`，或未登录后完成鉴权 | route normalize / history / pendingAction restore | 仅合法 targetJobId 被保留并进入受保护 ReportsScreen；缺失/非法 target 以 replace-only 回 workspace 且不形成 Back 循环；chrome visible、TopBar 无报告入口；旧 `section` 与 report/status/round 等 query 被剔除 | 004-url-addressable-routing |
 | C-12 | StrictMode safe-read 去重 | AppRuntimeProvider 或 Home/Parse/Workspace/Reports/Practice loader 在 StrictMode mount cycle 内发出同 key safe-read GET | 两个 caller 同时等待、settle 后重试、使用不同 `okStatuses`，或在任一语义写请求前/期间/settle 后读取 | 同时在途只产生一次底层 GET；settle 后重试产生新 GET；不同 client/query/header/okStatuses/epoch/auth、带 signal、非 GET 与 verify GET 均不合并；所有语义写请求 dispatch 前和 settle 后推进 read epoch，verify 成功另推进 auth/session epoch并真实刷新 | 001-app-shell-auth-settings |
 | C-13 | Parse/workspace route 分工 | TargetJob 为 queued/processing 或 ready | 打开 `/parse?targetJobId`、轮询转 ready、或打开 ready 卡片 | Parse 只在处理中展示进度；ready 使用 replace 进入 `/workspace?targetJobId`；无 target 的 workspace 仍为列表，详情不显示 Parse 动画 | 004-url-addressable-routing |
@@ -106,14 +106,14 @@
 
 - [001-app-shell-auth-settings](./plans/001-app-shell-auth-settings/plan.md)
 - [002-app-shell-visual-system](./plans/002-app-shell-visual-system/plan.md)
-- [003-ui-design-pixel-parity-gate](./plans/003-ui-design-pixel-parity-gate/plan.md)
+- [003-ui-design-responsive-browser-gate](./plans/003-ui-design-responsive-browser-gate/plan.md)
 - [004-url-addressable-routing](./plans/004-url-addressable-routing/plan.md)
 
 ## 8 修订记录
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| 1.31 | 2026-07-15 | 删除 UI Demo 与“UI 真理源”双源合同；保留 `docs/ui-design/` 作为 UI 架构、流程、交互约束和设计决策 owner，正式前端直接实施和验证。 |
+| 1.31 | 2026-07-15 | 删除 UI Demo 与可运行原型权威来源合同；保留 `docs/ui-design/` 作为 UI 架构、流程、交互约束和设计决策 owner，正式前端直接实施和验证。 |
 | 1.30 | 2026-07-14 | Add normalized `okStatuses` to safe-read identity and require every semantic mutation to advance read epoch before dispatch and after settle. |
 | 1.29 | 2026-07-14 | Add StrictMode-safe GET single-flight, command-only Parse versus query-addressed Workspace detail, and the minimal hue/saturation custom-accent picker. |
 | 1.28 | 2026-07-14 | Add protected target-scoped `/reports` with targetJobId-only routing, no TopBar entry, no Parse section compatibility, and reportId-only detail/generating locators. |

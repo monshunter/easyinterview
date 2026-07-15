@@ -8,7 +8,7 @@
 
 [engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A3 `ai-provider-and-model-routing` 保留为当前 active Foundation spec。它把 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md) 的 AI provider 抽象落到代码层，决定业务域如何以 provider-neutral 方式使用 LLM / speech / judge 等 AI 能力。
 
-基于当前 [product-scope](../product-scope/spec.md) 与 `docs/ui-design/` / `ui-design/` 交互，easyinterview 的 AI 使用面已经超过“单一文本 LLM endpoint”：
+基于当前 [product-scope](../product-scope/spec.md) 与 `docs/ui-design/` / `frontend/` 交互，easyinterview 的 AI 使用面已经超过“单一文本 LLM endpoint”：
 
 - JD 导入解析、workspace 内嵌公司轻情报摘要；
 - 模拟面试首题、追问、轻量观察 / hint、电话模式底层 STT / chat / TTS 编排；

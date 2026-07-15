@@ -2,8 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 // D2 visual system: a single global stylesheet imports themes.css and the
-// transcribed `ei-global` reset / scrollbar / fadein rules from
-// ui-design/src/primitives.jsx.
+// shared reset / scrollbar / fade-in rules.
 import "./app/theme/global.css";
 
 import { createAppClient } from "./api/clientFactory";
@@ -13,11 +12,9 @@ import { App } from "./app/App";
 // Bootstrap priority:
 //   1. window.__EASYINTERVIEW_INITIAL_ROUTE__ (test harness override).
 //   2. window.location pathname + search (Browser History canonical URL).
-//   3. `#route=...` adapter (preserved for static preview / pixel parity).
-//   4. DEFAULT_ROUTE (home).
+//   3. DEFAULT_ROUTE (home).
 // `<App />` reads window directly via `useBrowserRoute`; we no longer
-// re-derive the initial route here so production parity matches the
-// jsdom integration tests.
+// re-derive the initial route here so production matches the jsdom tests.
 
 const root = document.getElementById("root");
 

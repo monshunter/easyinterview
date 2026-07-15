@@ -181,14 +181,12 @@ class MakefileDryRunTest(unittest.TestCase):
 
     def test_test_wires_all_declared_contract_suites_before_language_suites(self):
         makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
-        node_command = "node --test ui-design/ui-design-contract.test.mjs"
         python_command = "python3 -m pytest scripts .agent-skills -q"
         go_command = 'cd "$(ROOT_DIR)/backend" && go test ./...'
         frontend_command = "pnpm --filter @easyinterview/frontend test"
 
-        self.assertIn(node_command, makefile)
+        self.assertNotIn("ui-design-contract.test.mjs", makefile)
         self.assertIn(python_command, makefile)
-        self.assertLess(makefile.index(node_command), makefile.index(python_command))
         self.assertLess(makefile.index(python_command), makefile.index(go_command))
         self.assertLess(makefile.index(go_command), makefile.index(frontend_command))
 

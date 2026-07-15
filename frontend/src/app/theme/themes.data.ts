@@ -1,6 +1,6 @@
 /**
  * Theme palette data. Every value here is transcribed verbatim from
- * ui-design/src/primitives.jsx (EI_THEMES) and ui-design/src/app.jsx (font
+ * formal frontend implementation (EI_THEMES) and formal frontend implementation (font
  * presets). The matching focused tests in `tokens.test.ts` assert that every
  * hex appears in primitives.jsx so AI cannot invent values.
  *

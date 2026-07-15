@@ -14,13 +14,10 @@
  *      App.test.tsx that pre-stage a route without touching window.location).
  *   2. `window.__EASYINTERVIEW_INITIAL_ROUTE__` test harness override.
  *   3. Canonical path + query parsed via {@link parseUrlToRoute}.
- *   4. Out-of-scope `#route=...` hash adapter (preserved for static preview /
- *      pixel parity / scenario harness).
- *   5. `DEFAULT_ROUTE` (home).
+ *   4. `DEFAULT_ROUTE` (home).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { parseInitialRouteHash } from "./bootstrapRoute";
 import { normalizeRoute, type LooseRoute } from "./normalizeRoute";
 import { DEFAULT_ROUTE, type Route } from "./routes";
 import { formatRouteUrl, parseUrlToRoute } from "./routeUrl";
@@ -60,10 +57,6 @@ export function resolveInitialRoute(
   const loc = w.location;
   if (loc && isMeaningfulCanonicalLocation(loc)) {
     return parseUrlToRoute(`${loc.pathname || "/"}${loc.search || ""}`);
-  }
-  if (loc && loc.hash) {
-    const hashLoose = parseInitialRouteHash(loc.hash);
-    if (hashLoose) return normalizeRoute(hashLoose);
   }
   return DEFAULT_ROUTE;
 }
@@ -128,9 +121,8 @@ export function useBrowserRoute(
   }
 
   // On mount, write canonical URL back to the browser when sync is enabled.
-  // This turns `#route=...` hash bootstraps into canonical paths, removes
-  // unsafe params that survived the initial GET, and strips any leftover
-  // fragment (canonical addresses are path + query only).
+  // This removes unsafe params that survived the initial GET and strips any
+  // leftover fragment (canonical addresses are path + query only).
   useEffect(() => {
     if (!syncUrl) return;
     if (!windowRef?.history || !windowRef?.location) return;

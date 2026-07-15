@@ -24,7 +24,7 @@
 
 - [x] 4.1 raw resume text、parsed snapshot、structured profile、rewrite text 不进入 URL / pending action / localStorage / console / generic logs；验证: `ResumeWorkshopPrivacy.test.ts`。
 - [x] 4.2 中英文案、Accept-Language、只读详情和 aria 语义可测试；验证: `ResumeWorkshopI18nA11y.test.tsx`。
-- [x] 4.3 UI parity 锚点、computed style、bounding box、viewport 和 screenshot smoke 由 owner gates 承接；验证: `ResumeWorkshopCssParity.test.ts` 与 pixel parity owner。
+- [x] 4.3 UI parity 锚点、computed style、bounding box、viewport 和 screenshot smoke 由 owner gates 承接；验证: `ResumeWorkshopCssParity.test.ts` 与 responsive browser verification owner。
 
 
 
@@ -47,12 +47,12 @@
 ## Phase 9: PDF page-stack refinement
 
 - [x] 9.1 `ResumePreviewTab` 对 upload-backed PDF 简历渲染从上到下平铺的 PDF 页面栈，source URL 仍指向 generated client baseUrl 下的 `/resumes/{resumeId}/source`；不得渲染 `<object>` / `<iframe>` / `<embed>`、browser PDF viewer toolbar、Markdown fallback、copy/export/original-modal 或新 tab；验证: `ResumePreviewTab.test.tsx` focused red/green。
-- [x] 9.2 PDF 页面栈样式与 UI truth source 同步，desktop/mobile pixel smoke 断言 `resume-detail-pdf-preview-stack` 与 page anchors 可见且没有 native viewer shell；验证: `ResumeWorkshopCssParity.test.ts` + `frontend/tests/pixel-parity/resume-workshop.spec.ts` focused smoke。
+- [x] 9.2 PDF 页面栈样式与 UI design document 同步，desktop/mobile pixel smoke 断言 `resume-detail-pdf-preview-stack` 与 page anchors 可见且没有 native viewer shell；验证: `ResumeWorkshopCssParity.test.ts` + `formal frontend component tests` focused smoke。
 
 ## Phase 10: Source-format reading surface alignment
 
 - [x] 10.1 `ResumePreviewTab` Markdown renderer 只渲染 `buildResumeBodyMarkdown(resume)` body，不在 body card 内额外注入 `displayName` / `uiResume.name` / summary / source metadata；验证: `ResumePreviewTab.test.tsx` focused red/green。
-- [x] 10.2 PDF 与 Markdown renderer 使用统一阅读背景板；Markdown 也渲染白色 page surface，CSS parity 与 pixel smoke 覆盖 Markdown page anchor / PDF page-stack anchor / shared background；验证: `ResumePreviewTab.test.tsx`、`ResumeWorkshopCssParity.test.ts`、`frontend/tests/pixel-parity/resume-workshop.spec.ts` focused smoke。
+- [x] 10.2 PDF 与 Markdown renderer 使用统一阅读背景板；Markdown 也渲染白色 page surface，CSS parity 与 pixel smoke 覆盖 Markdown page anchor / PDF page-stack anchor / shared background；验证: `ResumePreviewTab.test.tsx`、`ResumeWorkshopCssParity.test.ts`、`formal frontend component tests` focused smoke。
 
 
 

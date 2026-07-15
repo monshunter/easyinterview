@@ -43,7 +43,7 @@ spec:
       - PracticeDisplayContext
       - stable practice route IDs
       - continuous conversation handoff
-      - workspace pixel parity
+      - workspace responsive browser verification
       - WorkspacePlanList
       - interview plan list landing
       - plan-list metadata trimming
@@ -82,7 +82,7 @@ spec:
         - ../../../frontend-shell/spec.md
         - ../../../frontend-shell/plans/001-app-shell-auth-settings/plan.md
         - ../../../frontend-shell/plans/002-app-shell-visual-system/plan.md
-        - ../../../frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md
+        - ../../../frontend-shell/plans/003-ui-design-responsive-browser-gate/plan.md
         - ../../../frontend-home-job-picks-and-parse/spec.md
         - ../../../frontend-home-job-picks-and-parse/plans/001-home-jd-import-and-parse/plan.md
         - ../../../backend-practice/spec.md
@@ -105,8 +105,8 @@ spec:
           - frontend/src/api
           - frontend/src/api/generated
           - frontend/src/lib/conventions
-          - frontend/tests/pixel-parity
-          - ui-design/src
+          - frontend/tests/responsive-browser
+          - frontend/src
           - ui-design
           - openapi
           - openapi/fixtures/TargetJobs

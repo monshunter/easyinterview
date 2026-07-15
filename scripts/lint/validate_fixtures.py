@@ -109,7 +109,6 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
     "getFeedbackReport": frozenset(
         {
             "default",
-            "prototype-baseline",
             "ready-needs-practice",
             "queued",
             "generating",
@@ -1080,7 +1079,6 @@ def _check_practice_plan_round_pair(
 def check_feedback_report_semantics(scenarios: dict, errors: List[str]) -> None:
     expected_status = {
         "default": "ready",
-        "prototype-baseline": "ready",
         "ready-needs-practice": "ready",
         "queued": "queued",
         "generating": "generating",
@@ -1702,9 +1700,6 @@ def validate(repo_root: Path) -> List[str]:
         check_structural(opid, data, fixture_path, op, errors)
         scenarios = data.get("scenarios", {}) or {}
         for scenario_name, scenario in scenarios.items():
-            if scenario_name not in {"default", "prototype-baseline"}:
-                # other scenarios accepted; still validated for status + schema.
-                pass
             check_status_declared(opid, op, scenario_name, scenario, errors)
             check_schema(opid, op, scenario_name, scenario, spec, errors)
         check_required_named_scenarios(opid, scenarios, errors)

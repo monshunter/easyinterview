@@ -1,6 +1,6 @@
 /*
  * D2 auth screen card visual. Transcribed from
- * ui-design/src/screen-auth.jsx::AuthShell + AuthField + PendingActionPanel.
+ * formal frontend implementation + AuthField + PendingActionPanel.
  *
  * Layout contract:
  *   - max-width 1160, padding 54 48 96
@@ -162,7 +162,7 @@
 }
 
 /* Static email-code help copy under the login CTA.
-   Source: ui-design/src/screen-auth.jsx login footer (marginTop 16,
+   Source: formal frontend implementation login footer (marginTop 16,
    fontSize 12.5, color T.ink3, lineHeight 1.6; second line marginTop 4). */
 .ei-auth-help {
   margin-top: 16px;

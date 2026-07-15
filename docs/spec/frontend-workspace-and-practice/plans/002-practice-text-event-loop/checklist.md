@@ -6,7 +6,7 @@
 
 **关联计划**: [plan](./plan.md)
 
-## Phase 1: UI truth source
+## Phase 1: UI design document
 - [x] 1.1 RED-GREEN: update prototype tests/source to TopBar + full-width Conversation and delete question/hint/phone-positive source.
 - [x] 1.2 RED-GREEN: update desktop/mobile source geometry expectations and stale-contract negative checks.
 
@@ -26,7 +26,7 @@
 > Ownership note (2026-07-12): the completed evidence above is historical. Current work stops at stable `reportId` handoff; GeneratingScreen is exclusively owned by `frontend-report-dashboard/001`.
 
 ## Phase 5: Parity and real scenario
-- [x] 5.1 仓库根 `make test` 完成前后端全量单测回归；typecheck/build、UI contract 与 desktop/mobile pixel parity 作为独立 gates。
+- [x] 5.1 仓库根 `make test` 完成前后端全量单测回归；typecheck/build、UI contract 与 desktop/mobile responsive browser verification 作为独立 gates。
 - [x] 5.2 Run the then-current real backend/frontend path and capture redacted conversation/report screenshots.
 
 ## Phase 6: Review remediation
@@ -69,7 +69,7 @@
 - [x] 10.6 HISTORICAL RED-GREEN: Phase 10 terminal state showed safe zh/en copy and routed “返回当前面试规划” to `parse(targetJobId)`；Phase 11 supersedes only this route target while retaining the verified no-retry/no-composer-submit/no-technical-copy behavior.
   <!-- reopened: 2026-07-14 reason="Independent review found that later authoritative terminal/complete truth can leave an earlier local ErrorState visible, producing duplicate failure UI." -->
 - [x] 10.7 PARITY-GATE: prototype/formal immediate pending, persisted pending, retryable failure and terminal CTA match DOM/a11y/computed-style/bbox/viewport/screenshot at desktop 1440 and mobile 390.
-  <!-- verified: 2026-07-14 method=playwright-pixel-parity+ui-contract evidence="practice.spec.ts passed 16/16 across desktop 1440 and mobile 390 with DOM, a11y, computed-style, bbox, viewport and screenshot comparison; ui-design contract passed 60/60." -->
+  <!-- verified: 2026-07-14 method=playwright-responsive-browser+ui-contract evidence="practice.spec.ts passed 16/16 across desktop 1440 and mobile 390 with DOM, a11y, computed-style, bbox, viewport and screenshot comparison; ui-design contract passed 60/60." -->
 
 ## Phase 11: Safe Markdown/GFM projection and current-plan recovery
 

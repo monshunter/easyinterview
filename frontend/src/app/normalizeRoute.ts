@@ -1,7 +1,7 @@
 /**
  * Route normalization for the formal frontend App shell.
  *
- * Truth source: ui-design/src/app.jsx ROUTE_ALIASES, docs/ui-design/auth-and-entry.md §9,
+ * Contract: this module's ROUTE_ALIASES, docs/ui-design/auth-and-entry.md §9,
  * docs/ui-design/module-map.md §5.2,
  * docs/spec/frontend-shell/spec.md §2.2 / §4.
  *

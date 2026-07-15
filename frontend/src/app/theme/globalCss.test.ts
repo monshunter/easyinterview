@@ -5,12 +5,10 @@ import { describe, expect, it } from "vitest";
 
 const HERE = resolve(__dirname);
 const FRONTEND_ROOT = resolve(HERE, "..", "..", "..");
-const REPO_ROOT = resolve(HERE, "..", "..", "..", "..");
 const MAIN_TSX = resolve(FRONTEND_ROOT, "src", "main.tsx");
 const GLOBAL_CSS = resolve(HERE, "global.css");
 const THEMES_CSS = resolve(HERE, "themes.css");
 const PACKAGE_JSON = resolve(FRONTEND_ROOT, "package.json");
-const PRIMITIVES_PATH = resolve(REPO_ROOT, "ui-design/src/primitives.jsx");
 
 describe("global.css entry (Phase 1.3)", () => {
   it("main.tsx imports the colocated global.css entry once", () => {
@@ -24,10 +22,8 @@ describe("global.css entry (Phase 1.3)", () => {
     expect(css).toMatch(/@import\s+["']\.\/themes\.css["'];/);
   });
 
-  it("global.css transcribes ei-global reset / scrollbar / fadein from primitives.jsx", () => {
+  it("global.css defines the reset / scrollbar / fadein contract", () => {
     const css = readFileSync(GLOBAL_CSS, "utf8");
-    const primitives = readFileSync(PRIMITIVES_PATH, "utf8");
-    expect(primitives).toContain("box-sizing: border-box");
     expect(css).toContain("box-sizing: border-box");
     expect(css).toMatch(/body\s*\{[^}]*font-family:\s*var\(--ei-font-sans\)/);
     expect(css).toMatch(/\.ei-serif\s*\{[^}]*font-family:\s*var\(--ei-font-serif\)/);

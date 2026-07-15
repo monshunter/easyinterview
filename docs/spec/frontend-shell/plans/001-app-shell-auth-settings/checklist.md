@@ -26,7 +26,7 @@
 
 ## Phase 4: User menu and settings
 
-- [x] 4.1 用户菜单按 `ui-design/src/app.jsx` 呈现头像 chip + dropdown；验证: TopBar component tests 和 browser parity owner 覆盖 menu open/close、settings/logout 分流、desktop right alignment 和 mobile viewport containment。
+- [x] 4.1 用户菜单按 `frontend/src` 呈现头像 chip + dropdown；验证: TopBar component tests 和 browser parity owner 覆盖 menu open/close、settings/logout 分流、desktop right alignment 和 mobile viewport containment。
 - [x] 4.2 Settings shell 只保留 `个人资料` / `隐私与数据` 双 tab；验证: Settings visual tests 覆盖账号基础信息、登录与安全 email-code 展示、字体预设、产品信息和隐私数据区。
 
 ## Phase 5: Protected route guard and Home auth visibility
@@ -46,7 +46,7 @@
 
 ## Phase 7: UX simplification and closeout gates
 
-- [x] 7.1 登录页静态帮助说明、settings 双 tab 和 `ocean` 默认主题对齐 `ui-design/`；验证: focused Vitest、visual tests、typecheck and build gates 通过。
+- [x] 7.1 登录页静态帮助说明、settings 双 tab 和 `ocean` 默认主题对齐 `frontend/`；验证: focused Vitest、visual tests、typecheck and build gates 通过。
 - [x] 7.2 Operation matrix 与 context manifest 对齐当前 generated-client and route catalog；验证: `validate_context.py frontend-shell/001 frontend` 通过。
 - [x] 7.3 当前清理回归 gate 通过；验证: owner residual grep、frontend focused tests、product-scope context validation、`sync-doc-index --check`、`make docs-check`、`git diff --check`、`make lint-core-loop-pruning-surface`。
 

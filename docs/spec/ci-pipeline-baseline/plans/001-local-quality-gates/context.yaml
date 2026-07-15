@@ -38,7 +38,7 @@ spec:
           - requirements-dev.txt
           - scripts
           - .agent-skills
-          - ui-design/ui-design-contract.test.mjs
+          - scripts/lint/ui_demo_pruning.py
           - scripts/lint/check_md_links.py
           - scripts/lint/check_md_links_test.py
           - .agent-skills/sync-doc-index/scripts/sync-doc-index.py

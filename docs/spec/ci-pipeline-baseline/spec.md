@@ -73,7 +73,7 @@
 
 - 所有本地 gate 必须可在仓库根执行，不要求开发者手动 `cd backend` / `cd frontend`。
 - 任一 target 失败时必须返回非 0；A5 只调用已落地的本地 sub-target，不为尚未落地的 future owner 创建 exit-zero 假 target。
-- `make test` 必须先执行 `ui-design/ui-design-contract.test.mjs`，再覆盖 `scripts/` 与 `.agent-skills/` 的全部 pytest contracts，最后执行 backend Go 与 frontend TypeScript tests；Python 外部依赖必须在根 `requirements-dev.txt` 中显式声明。
+- `make test` 必须先执行 `scripts/lint/ui_demo_pruning.py`，再覆盖 `scripts/` 与 `.agent-skills/` 的全部 pytest contracts，最后执行 backend Go 与 frontend TypeScript tests；Python 外部依赖必须在根 `requirements-dev.txt` 中显式声明。
 - `make docs-check` 必须至少包含可执行的 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`；Header / INDEX drift 不能靠人工记忆或只写 slash skill 文本。
 - `make codegen-check` 只能检查已经存在的 generator；B2 OpenAPI generator 未落地前不得制造失败 gate。
 
@@ -95,7 +95,7 @@
 |------|-------|------|
 | 根 `make lint` / `make test` / `make build` / `make docs-check` / `make codegen-check` 编排 | A5 + A1 | A1 提供 Makefile 结构，A5 约定本地质量入口 |
 | Python tooling / skill contract tests | A5 + scripts/skills owners | A5 聚合 `scripts/` 与 `.agent-skills/` tests；各 owner 维护自身断言，根 `requirements-dev.txt` 声明执行依赖 |
-| UI prototype contract test | A5 + product/UI owner | A5 聚合唯一根级 Node contract；测试规则继续由 `ui-design/` 当前真理源维护 |
+| UI prototype contract test | A5 + product/UI owner | A5 聚合唯一根级 Node contract；测试规则继续由 `frontend/` 当前真理源维护 |
 | 错误码 lint / 共享类型 codegen drift | B1 | A5 只聚合命令，不重写规则 |
 | OpenAPI codegen drift | B2 | B2 generator 落地后再接入 `make codegen-check` |
 | Config lint | A4 | A5 聚合 `make lint-config` 或等价入口 |

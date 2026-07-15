@@ -1,7 +1,7 @@
 # generating screen
 
 Source: `docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/`.
-UI truth: `ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen` (lines 269-399).
+UI truth: `formal frontend implementation` (lines 269-399).
 
 ## Composition
 
@@ -26,8 +26,8 @@ On success the screen navigates to `report` with only the resolved `reportId`; t
 
 ## Negative red lines
 
-- No imports from `ui-design/src/data*` or `window.EI_DATA`.
-- No imports from `ui-design/src/screen-practice`.
+- No imports from `formal frontend implementation` or `window.EI_DATA`.
+- No imports from `formal frontend implementation`.
 - No practice operation calls (`getPracticeSession`, `sendPracticeMessage`, etc.).
 - No `listTargetJobReports` invocation; that operation belongs only to the target-scoped `ReportsScreen` current/latest overview.
 

@@ -78,7 +78,7 @@ spec:
           - openapi/fixtures
           - scripts/lint
           - scripts/codegen
-          - ui-design/src
+          - frontend/src
           - Makefile
         uiRoutes: []
         apiNames:

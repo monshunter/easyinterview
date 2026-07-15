@@ -29,7 +29,7 @@ Home pasted JD + ready Resume
 
 `frontend-shell` 提供 App 壳、route normalization、auth pending action、runtime config、generated client bootstrap 与 fixture-backed transport。本 owner 负责 `home`、`parse` loading 和统一详情母版。Workspace 无上下文列表仍归 `frontend-workspace-and-practice`；详情页 Start action 直接调用 practice handoff helper，不再通过 workspace auto-start route 制造副作用。
 
-UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-design/src/screens-p0-complete.jsx::ParseScreen` 与 `ui-design/src/primitives.jsx`。正式前端只允许为真实数据、generated client、鉴权接续和可访问性做工程适配。
+UI 必须源级追溯到 `frontend/src` 与 `frontend/src`。正式前端只允许为真实数据、generated client、鉴权接续和可访问性做工程适配。
 
 当前 API 合同来自 `openapi/openapi.yaml` 与 fixtures：
 
@@ -83,9 +83,9 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 
 ### Phase 1: Home 当前入口
 
-#### 1.1 UI source parity
+#### 1.1 UI formal implementation contract
 
-Home DOM、布局、控件密度、主题、i18n 与响应式行为对齐 `ui-design/src/screen-home.jsx::HomeScreen`。
+Home DOM、布局、控件密度、主题、i18n 与响应式行为对齐 `frontend/src`。
 
 #### 1.2 Generated client contract
 
@@ -95,9 +95,9 @@ Home 使用 `listResumes`、`listTargetJobs` 和 `importTargetJob`。所有 requ
 
 ### Phase 2: Parse progress 与 Workspace detail handoff
 
-#### 2.1 UI source parity
+#### 2.1 UI formal implementation contract
 
-Parse loading/failed state 与 Workspace detail 的只读 resume binding/footer actions/响应式行为对齐 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 的共享视觉；ready DOM 只由 Workspace route 渲染。
+Parse loading/failed state 与 Workspace detail 的只读 resume binding/footer actions/响应式行为对齐 `frontend/src` 的共享视觉；ready DOM 只由 Workspace route 渲染。
 
 #### 2.2 Generated client contract
 
@@ -131,9 +131,9 @@ Successful import navigates to Parse with only `targetJobId`; route params never
 
 ### Phase 5: Unified plan detail remediation
 
-#### 5.1 UI truth source and copy
+#### 5.1 UI design document and copy
 
-Rename the shared ready-detail visual from "JD parse result" to "Interview Plan Detail / Context Confirm" in `ui-design/src/screens-p0-complete.jsx`, `docs/ui-design/`, formal locales and pixel parity expectations；render it only under Workspace while keeping the 4-step Parse loading state for first import only.
+Rename the shared ready-detail visual from "JD parse result" to "Interview Plan Detail / Context Confirm" in `frontend/src`, `docs/ui-design/`, formal locales and responsive browser verification expectations；render it only under Workspace while keeping the 4-step Parse loading state for first import only.
 
 #### 5.2 Shared route implementation
 
@@ -147,9 +147,9 @@ Stop fabricating `plan-${targetJobId}` or `resume-unbound` from shared detail na
 
 ### Phase 6: Readonly plan detail simplification
 
-#### 6.1 UI truth source and copy
+#### 6.1 UI design document and copy
 
-Update `ui-design/src/screens-p0-complete.jsx`, `docs/ui-design/` and locales so the Workspace success detail is a readonly context receipt: API-derived fields, requirement evidence, hidden signals, round assumptions and bound resume are display-only. The only success footer action is Start interview.
+Update `frontend/src`, `docs/ui-design/` and locales so the Workspace success detail is a readonly context receipt: API-derived fields, requirement evidence, hidden signals, round assumptions and bound resume are display-only. The only success footer action is Start interview.
 
 #### 6.2 Generated client contract
 
@@ -157,13 +157,13 @@ Remove ready-detail PATCH behavior. Focused tests must prove Workspace Start doe
 
 #### 6.3 Removed controls negative gate
 
-Vitest, pixel parity and scenario gates must assert the absence of editable inputs, requirements toggles, hidden-signal remove controls, resume picker / create-resume fallback, success-state Re-parse, Save plan and Cancel controls.
+Vitest, responsive browser verification and scenario gates must assert the absence of editable inputs, requirements toggles, hidden-signal remove controls, resume picker / create-resume fallback, success-state Re-parse, Save plan and Cancel controls.
 
 
 
 ### Phase 7: LLM-derived round assumptions shared data binding
 
-#### 7.1 UI truth source and formal contract
+#### 7.1 UI design document and formal contract
 
 Historical note: this phase first moved Parse/Home/navigation off purely local copy and onto backend-provided round-assumption data. Phase 8 supersedes the string-only shape with structured `TargetJob.summary.interviewRounds[]`; current UI truth no longer uses `TargetJob.summary.interviewHypotheses`, fixed four-card assumptions, or missing-slot static fallback.
 
@@ -195,9 +195,9 @@ Update Workspace detail, Home recent card rail and `interviewContextFromTargetJo
 
 ### Phase 9: Recent card fixed grid and workspace fusion
 
-#### 9.1 UI truth source
+#### 9.1 UI design document
 
-Update `ui-design/src/screen-home.jsx` and `docs/ui-design/` so Home recent mock cards use the same fixed maximum column width as the workspace plan list. A single recent card must not stretch to fill the row.
+Update `frontend/src` and `docs/ui-design/` so Home recent mock cards use the same fixed maximum column width as the workspace plan list. A single recent card must not stretch to fill the row.
 
 #### 9.2 Shared implementation
 
@@ -209,9 +209,9 @@ Focused tests must prove `home-recent-mock-grid` and `workspace-plan-list-grid` 
 
 ### Phase 10: Home recent shared action card
 
-#### 10.1 UI truth source
+#### 10.1 UI design document
 
-Update `ui-design/src/screen-home.jsx` and `docs/ui-design/` so Home recent cards reuse the Interview list card action model: card body click opens the unified plan detail, footer shows `立即面试 / Start interview now`, and the delete icon is absent on Home.
+Update `frontend/src` and `docs/ui-design/` so Home recent cards reuse the Interview list card action model: card body click opens the unified plan detail, footer shows `立即面试 / Start interview now`, and the delete icon is absent on Home.
 
 #### 10.2 Shared implementation
 
@@ -233,7 +233,7 @@ Align the BDD closeout checklist with the current B2 truth source: `make validat
 
 ### Phase 14: Home copy-table orphan cleanup
 
-删除 `ui-design/src/screen-home.jsx` 中定义但未渲染的 `uploadSourceSub` 双语属性，以及正式 locale catalog / 自证测试中的同名孤儿 key；Home DOM、可见 copy 与交互保持不变。
+删除 `frontend/src` 中定义但未渲染的 `uploadSourceSub` 双语属性，以及正式 locale catalog / 自证测试中的同名孤儿 key；Home DOM、可见 copy 与交互保持不变。
 
 ### Phase 15: MiniRoundRail prototype call-surface pruning
 
@@ -245,14 +245,14 @@ Align the BDD closeout checklist with the current B2 truth source: `make validat
 
 ### Phase 17: Parse loading internal-metadata removal
 
-先更新 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 与对应 UI 文档，删除 loading footer 中的 model/provider、rubric/prompt/version/hash、provenance 与 typical latency；保留当前四步进度、等待说明、布局和响应式节奏。随后用 RED-GREEN 同步正式 `ParseScreen`，删除同类硬编码与可见 DOM，不改 `getTargetJob` 轮询、ready/failed 分支或 API 合同。
+先更新 `frontend/src` 与对应 UI 文档，删除 loading footer 中的 model/provider、rubric/prompt/version/hash、provenance 与 typical latency；保留当前四步进度、等待说明、布局和响应式节奏。随后用 RED-GREEN 同步正式 `ParseScreen`，删除同类硬编码与可见 DOM，不改 `getTargetJob` 轮询、ready/failed 分支或 API 合同。
 
 
 ### Phase 18: Paste-only Home JD intake
 
-#### 18.1 UI truth source and documentation
+#### 18.1 UI design document and documentation
 
-先更新 `ui-design/src/screen-home.jsx` 与 `docs/ui-design/`：Home 输入卡只保留 textarea，ready Resume 下拉框与「立即面试」CTA 保持当前布局；删除平行 intake 控件、弹窗、双语 copy 和空态中的多入口提示。`ui-design/ui-design-contract.test.mjs` 先红后绿，并固定旧 DOM/testid/copy 为负向。
+先更新 `frontend/src` 与 `docs/ui-design/`：Home 输入卡只保留 textarea，ready Resume 下拉框与「立即面试」CTA 保持当前布局；删除平行 intake 控件、弹窗、双语 copy 和空态中的多入口提示。`scripts/lint/ui_demo_pruning.py` 先红后绿，并固定旧 DOM/testid/copy 为负向。
 
 #### 18.2 OpenAPI and persistence contract
 
@@ -304,9 +304,9 @@ Home `listTargetJobs` / `listResumes` 与 Parse 每个 `getTargetJob` 分类/调
 
 #### 21.1 Prototype-first state contract
 
-在 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 的 Workspace ready-detail 母版中，复用既有 `eiResolvePracticeProgress` 结果，为每张 round assumption 卡派生 `done/current/pending`。三态分别使用现有 success-soft、accent-soft、neutral-soft token，并显示本地化“已进行 / 即将进行 / 未进行”；不得新增生命周期状态推断或独立 round cursor。
+在 `frontend/src` 的 Workspace ready-detail 母版中，复用既有 `eiResolvePracticeProgress` 结果，为每张 round assumption 卡派生 `done/current/pending`。三态分别使用现有 success-soft、accent-soft、neutral-soft token，并显示本地化“已进行 / 即将进行 / 未进行”；不得新增生命周期状态推断或独立 round cursor。
 
-#### 21.2 Formal source-level parity
+#### 21.2 Formal formal implementation contract
 
 正式 `ParseScreen` 继续只读取 `resolveTargetJobPracticeProgress(targetJob)`：index 小于 `completedCount` 为 done，等于合法 `currentIndex` 为 current，其余为 pending。每张卡必须提供 `data-round-state`、状态文案、不同 background/border；全完成全部 done，无效投影不显示伪造 done/current。DOM、样式与 prototype 一一可追溯。
 

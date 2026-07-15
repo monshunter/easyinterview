@@ -6,7 +6,7 @@ interface ReportMissingStateProps {
   onBackToWorkspace: () => void;
 }
 
-/** Source-level mirror of ui-design/src/screen-report.jsx::ReportMissingState. */
+/** Source-level mirror of formal frontend implementation */
 export const ReportMissingState: FC<ReportMissingStateProps> = ({
   onBackToWorkspace,
 }) => {

@@ -14,7 +14,7 @@ SCENARIO_ENV_CLEANUP := $(ROOT_DIR)/test/scenarios/env-cleanup.sh
 SCENARIO_ENV_REDEPLOY := $(ROOT_DIR)/test/scenarios/env-redeploy.sh
 TARGET ?= all
 
-.PHONY: help fmt lint lint-go-mod-tidy lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-out-of-scope lint-runner-out-of-scope lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-ui-demo-pruning lint-secrets-pattern lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy scenario-env-reset-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-go-mod-tidy lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-out-of-scope lint-runner-out-of-scope lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-ui-demo-pruning lint-secrets-pattern lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy scenario-env-reset-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -89,8 +89,7 @@ lint-events: ## Validate event/job baselines and local B3 contract drift
 lint-runtime-topology: ## Reject out-of-scope standalone backend worker process terminology in active code/docs
 	@python3 "$(ROOT_DIR)/scripts/lint/runtime_topology.py" --repo-root "$(ROOT_DIR)"
 
-test: ## A5 test aggregator: UI prototype + Python tooling/skill + backend Go + frontend tests; AI uses stub/fixture only
-	@node --test ui-design/ui-design-contract.test.mjs
+test: ## A5 test aggregator: Python tooling/skill + backend Go + frontend tests; AI uses stub/fixture only
 	@python3 -m pytest scripts .agent-skills -q
 	@cd "$(ROOT_DIR)/backend" && go test ./...
 	@pnpm --filter @easyinterview/frontend test
@@ -205,9 +204,6 @@ openapi-diff: ## Compare openapi/openapi.yaml against the latest baseline under 
 
 validate-fixtures: ## Validate openapi/fixtures/*.json against openapi.yaml (B2 002 — schema, provenance, privacy, UUIDv7, operation coverage)
 	@python3 "$(ROOT_DIR)/scripts/lint/validate_fixtures.py" --repo-root "$(ROOT_DIR)"
-
-sync-fixtures-from-prototype: ## Refresh `scenarios.prototype-baseline` of every P0 fixture from ui-design/src/data.jsx (B2 002, idempotent — fail-fast on mapping gaps)
-	@python3 "$(ROOT_DIR)/scripts/codegen/sync_fixtures_from_prototype.py" --repo-root "$(ROOT_DIR)"
 
 render-openapi-fixture-examples: ## Project openapi/fixtures/<tag>/<operationId>.json default scenario into openapi/.generated/openapi-with-fixtures.yaml (B2 002 — Prism / docs-site source; idempotent)
 	@python3 "$(ROOT_DIR)/scripts/codegen/render_openapi_fixture_examples.py" --repo-root "$(ROOT_DIR)"

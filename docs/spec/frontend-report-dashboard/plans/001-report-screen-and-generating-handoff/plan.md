@@ -48,7 +48,7 @@
 | spec C-3 | interaction | 7 | CTA variant/a11y tests | ReportHeader | fixed replay-primary styling |
 | spec C-4 | business truth | 7 | request/server-projection contract tests | buildReplayPayload/startPractice | URL/client focus authority |
 | spec C-5 | UX boundary | 7 | 1440/390 bbox/overflow/full-content tests | ContextStrip/DetailGrid | unrecoverable ellipsis/two-column mobile |
-| spec C-6 | source parity | 8 | formal-vs-prototype DOM/style/bbox/screenshot diff | screen-report.jsx | non-empty-buffer-only gate |
+| spec C-6 | formal implementation contract | 8 | formal-vs-prototype DOM/style/bbox/screenshot diff | screen-report.jsx | non-empty-buffer-only gate |
 | spec C-7 | real integration | 8 | P0.099 full-page screenshots | real ReportDashboard | cropped top-half-only evidence |
 | spec C-8 | regression | 8 | repo-wide active negative scan | report/generating/scenarios/fixtures | stale question fields/fake-live/raw enum |
 | spec C-9 | business truth | 7 | deep-link/route-tamper tests | ReportScreen/ContextStrip/CTA | route status/identity authority |
@@ -64,7 +64,7 @@
 
 既有 prototype/formal data states、replay/next 与基础 parity 保留为历史；Phase 6 起修订真实性和 direct semantic contract。
 
-### Phase 6: UI truth source and honest generating
+### Phase 6: UI design document and honest generating
 
 #### 6.1 Reconcile report truth sources
 
@@ -112,9 +112,9 @@ Playwright 使用同一 deterministic fixture 同时加载 prototype/formal：lo
 
 ### Phase 9: User-visible internal locator removal
 
-先更新 `ui-design/src/screen-report.jsx` 与 UI 文档，把 Context Strip 从 session/target/round/resume 收敛为 target/round/resume。随后 RED-GREEN 同步 `ReportContextStrip` 与 direct tests；session/report IDs 继续作为 generated API/内部动作关联事实，但不进入可见 DOM、title、tooltip 或 accessible name。
+先更新 `frontend/src` 与 UI 文档，把 Context Strip 从 session/target/round/resume 收敛为 target/round/resume。随后 RED-GREEN 同步 `ReportContextStrip` 与 direct tests；session/report IDs 继续作为 generated API/内部动作关联事实，但不进入可见 DOM、title、tooltip 或 accessible name。
 
-门禁：fixture 使用彼此不同的 `report.id` / `sessionId` sentinel，focused tests 逐值拒绝它们出现在 textContent、title/tooltip、`aria-*` 或 accessible name，同时正向证明 OpenAPI/report contract 仍要求合法 UUID、CTA 仍使用 `sourceReportId`。删除孤儿 `report.context.session` locale key 并做 zero-reference。Deterministic 1440/390 DOM/style/bbox/viewport/pixel parity 作为 frontend code gate 执行，不登记为 E2E。
+门禁：fixture 使用彼此不同的 `report.id` / `sessionId` sentinel，focused tests 逐值拒绝它们出现在 textContent、title/tooltip、`aria-*` 或 accessible name，同时正向证明 OpenAPI/report contract 仍要求合法 UUID、CTA 仍使用 `sourceReportId`。删除孤儿 `report.context.session` locale key 并做 zero-reference。Deterministic 1440/390 DOM/style/bbox/viewport/responsive browser verification 作为 frontend code gate 执行，不登记为 E2E。
 
 面向用户的成功证据必须由 `/agent-browser` 从同一真实 backend ready report 的 formal frontend 另存到 `.test-output/acceptance/report-context-strip/<run-id>/`，不依赖场景临时输出。目录只允许三项：`report-context-strip-desktop-1440x1200.png`（exact 1440x1200）、`report-context-strip-mobile-390x844.png`（exact 390x844）与 `manifest.json`；两图都必须 `fullPage: true`，不得使用 prototype、fixture-only、裁剪图或额外状态图。manifest 逐图记录 relative path、SHA-256、`state=ready`、viewport、`fullPage=true`、同一 report 的脱敏 locator/digest、`reportSentinelAbsent=true`、`sessionSentinelAbsent=true`，并链接 DOM/a11y negative audit；截图正向显示 target/round/resume，负向不存在 report/session sentinel。
 

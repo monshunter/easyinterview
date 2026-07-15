@@ -54,15 +54,15 @@
 | D-14 | 当前规划报告列表 | 页面级 `/reports?targetJobId=...` 只展示该 TargetJob canonical rounds 的当前可用报告与最新生成状态；不跨规划、不展示完整历史、也不加入全局 TopBar | `getTargetJob` 提供当前规划/轮次展示事实，`listTargetJobReports` 只提供 report locator 与 attempt 状态；两者 identity 必须闭合 |
 | D-15 | Reports Back 与解析职责分离 | ReportsScreen 的可信目标返回 `/workspace?targetJobId=...` 只读详情；Workspace query 只携带 `targetJobId`，不得增加 `resumeId`、`planId`、`reportId` 或 `section` | `parse` 命令/进度路由只承接新 JD 解析；读取既有规划不得展示解析动画，也不得触发 import 或 polling |
 
-## 4 UI 真理源
+## 4 UI 设计文档
 
-- `ui-design/src/screen-report.jsx::ReportScreen`
-- `ui-design/src/screens-p0-complete.jsx::ReportsScreen`
-- `ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen`
+- `frontend/src`
+- `frontend/src`
+- `frontend/src`
 - `docs/ui-design/report-dashboard.md`
 - `docs/ui-design/module-practice-review.md`
 
-正式前端必须源级复刻修订后的 prototype。验收拆为 DOM/control/a11y、computed style/bounding box/responsive、formal-vs-prototype screenshot difference 和真实 full-page UAT；非空 screenshot buffer 不再作为 parity 完成依据。
+正式前端必须按设计合同实现修订后的 prototype。验收拆为 DOM/control/a11y、computed style/bounding box/responsive、formal-vs-prototype screenshot difference 和真实 full-page UAT；非空 screenshot buffer 不再作为 parity 完成依据。
 
 ## 5 Operation Matrix
 
@@ -145,7 +145,7 @@ ReportDashboard
 - target/round/resume 只读 frozen report context，可换行或通过 title/accessible description 查看完整值。session/report UUID 等内部 locator 不渲染为用户字段，也不通过 title、tooltip 或 accessible description 暴露。
 - Desktop detail 使用双列；mobile 390px 明确单列，长 label/evidence/action 不横向溢出。
 - Frontend consumer 在 render 前执行 24/64 semantic boundary；English 按 ECMAScript `/\s/u` whitespace words（U+FEFF 是 delimiter，U+0085 不是）、zh-CN 按 Unicode code points 计数。超界 payload 不进入 ReportDashboard，不得利用 CSS 截断把 invalid 内容伪装为可用。
-- Deterministic ui-design/OpenAPI fixture 使用恰好 24-word/64-code-point actions；prototype/formal 1440x1200 与 390x844 full-page parity 均覆盖 action 区域并证明完整换行。200-code-point malformed fixture只证明 typed invalid/no-raw-output，不得替代 UX gate；18/52 targeted-repair margin 也不得替代边界 fixture。
+- Deterministic frontend/OpenAPI fixture 使用恰好 24-word/64-code-point actions；prototype/formal 1440x1200 与 390x844 full-page parity 均覆盖 action 区域并证明完整换行。200-code-point malformed fixture只证明 typed invalid/no-raw-output，不得替代 UX gate；18/52 targeted-repair margin 也不得替代边界 fixture。
 - Context Strip 用户验收固定写入 `.test-output/acceptance/report-context-strip/<run-id>/`，且成功目录只包含 `report-context-strip-desktop-1440x1200.png`、`report-context-strip-mobile-390x844.png` 与 `manifest.json`。两图必须来自同一 formal frontend 的真实 backend ready report，分别使用 exact viewport 1440x1200 / 390x844 和 `fullPage: true`；不得用 `ui-design` prototype、fixture-only 页面、裁剪图或额外 loading/error 图冒充。
 - `manifest.json` 必须逐图记录相对路径、SHA-256、`state=ready`、viewport width/height、`fullPage=true`、同一 report 的脱敏 locator/digest，以及 `reportSentinelAbsent=true`、`sessionSentinelAbsent=true`；同时绑定该页面的 DOM/a11y negative audit，证明 report/session sentinel 在 text、title/tooltip、任意 `aria-*` 与 accessible name 中均不存在。截图中 target/round/resume 必须可见，且 report/session sentinel 不能以用户文案、调试标记或可访问名称出现。
 - status/confidence、readiness、CTA chrome、empty/error/loading 随 UI locale 本地化；summary、dimension label、evidence 与 action label 按 report language 原样展示。未知 enum fail closed 到 typed error，不回显 raw token。
@@ -184,7 +184,7 @@ ReportDashboard
 | C-3 | recommended action | retry/next/review first action | 查看 Header | 仅切换现有 CTA 主次且功能可用 | 001 |
 | C-4 | server-owned replay | report 含 retry focus | 点击复练 | request 不传 focus，服务端 plan/session 得到 focus | 001 |
 | C-5 | long/mobile | 长 target/round/resume/evidence | desktop/mobile 打开 | 完整可读、mobile 单列、无横向溢出 | 001 |
-| C-6 | deterministic boundary parity | ui-design/OpenAPI fixtures 含恰好 24-whitespace-word / 64-Unicode-code-point actions | 运行 browser gate | prototype/formal DOM/style/bbox/viewport/pixel difference 通过，边界 label 完整换行且无截断/省略/横溢 | 001 |
+| C-6 | deterministic boundary parity | frontend/OpenAPI fixtures 含恰好 24-whitespace-word / 64-Unicode-code-point actions | 运行 browser gate | prototype/formal DOM/style/bbox/viewport/pixel difference 通过，边界 label 完整换行且无截断/省略/横溢 | 001 |
 | C-7 | current-run canonical mobile UAT | P0.099 当前 run 的 en/zh ready rows | exact six images | 每个 row 绑定 DB/API `canonical_report_content_digest`、`action_length_audit`、`content_audit`、`screenshot_sha256` 与 report/session/context digest；390x844 report 图覆盖 action 区域，实际 `<=24-word` / `<=64-code-point` label 完整可见且无截断/省略/横溢 | 001 |
 | C-8 | stale negative | 全仓 active assets | 扫描 | 无 raw enum UI、fake-live copy、客户端 focus 与旧 question fields | 001 |
 | C-9 | route tamper / deep link | 只有 reportId，或 route 带冲突 status/target/resume/round | 刷新/读取/点击 CTA | API frozen context/status 获胜，route 不能改变展示与动作 | 001 |

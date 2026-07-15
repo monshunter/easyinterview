@@ -182,8 +182,8 @@ If yes, read and summarize the applicable execution contracts:
 2. Every relevant module README, at minimum the README for each touched root
    directory (`frontend/README.md`, `backend/README.md`, `openapi/README.md`,
    `deploy/dev-stack/README.md`, `test/scenarios/README.md`, etc.).
-3. For UI-visible work, the relevant `docs/ui-design/` document and
-   `ui-design/src/*.jsx` source files.
+3. For UI-visible work, the relevant `docs/ui-design/` documents, active spec,
+   and formal `frontend/` implementation and test surfaces.
 4. For API/fixture/handler work, `openapi/openapi.yaml`, related
    `openapi/fixtures/<tag>/<operationId>.json`, generated artifacts, and the
    plan's operation matrix.

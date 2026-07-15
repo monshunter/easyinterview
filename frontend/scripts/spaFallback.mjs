@@ -4,8 +4,8 @@
  * Truth source: docs/spec/frontend-shell/plans/004-url-addressable-routing/
  * plan.md §6 Phase 4.1.
  *
- * Static hosts (`vite preview`, the pixel-parity Playwright server, any
- * production CDN configured by deployment) must return `index.html` when
+ * Static hosts (`vite preview` or any production CDN configured by deployment)
+ * must return `index.html` when
  * the request path is a canonical frontend route — otherwise reload /
  * direct-open of `/workspace?targetJobId=...` returns 404 and the
  * URL-addressable routing contract breaks.
@@ -49,7 +49,6 @@ export const FRONTEND_OUT_OF_SCOPE_PATHS = Object.freeze([
 export const FALLBACK_DENY_PREFIXES = Object.freeze([
   "/api/",
   "/openapi/",
-  "/ui-design/",
   "/health",
   "/assets/",
   "/__vite",
@@ -65,7 +64,7 @@ export const FALLBACK_DENY_PREFIXES = Object.freeze([
  *  - `/totally-unknown`                             → false (semantic fallback
  *    is handled in the App, not in the host)
  *  - `/workspace.json` (any file extension)         → false
- *  - `/api/...`, `/health`, `/ui-design/...`        → false
+ *  - `/api/...`, `/health`                          → false
  */
 export function isCanonicalFrontendPath(path) {
   if (typeof path !== "string" || path === "") return false;

@@ -24,7 +24,7 @@ import type { UserContext } from "../../api/generated/types";
  * D2 visual contract: every text node uses `ei-text-*` className, every layout
  * literal (height 58, padding 0 32, gap 28, etc.) is sourced from
  * `topbar.css`, and the custom-accent control surfaces hue / chroma sliders
- * mirroring `ui-design/src/app.jsx` `AccentPicker`. Language selection is a
+ * mirroring `formal frontend implementation` `AccentPicker`. Language selection is a
  * TopBar dropdown, not a binary toggle, so future locale options can be added
  * without changing the control shape. D1 testids and the
  * `aria-current` / `aria-pressed` contract remain unchanged.
@@ -58,7 +58,7 @@ export interface TopBarProps {
    * Whether the current user is authenticated. Defaults to `false`. The
    * unauthenticated branch surfaces the single login entry; the authenticated
    * branch surfaces the avatar chip + dropdown from
-   * ui-design/src/app.jsx::TopBar.
+   * formal frontend implementation
    */
   signedIn?: boolean;
   user?: Pick<UserContext, "displayName" | "emailMasked">;

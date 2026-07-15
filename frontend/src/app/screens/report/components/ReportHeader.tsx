@@ -16,7 +16,7 @@ interface ReportHeaderProps {
 }
 
 /**
- * Source-level mirror of ui-design/src/screen-report.jsx ReportDashboard
+ * Source-level mirror of formal frontend implementation ReportDashboard
  * header block (lines 121-143). Carries breadcrumb + title + subtitle + the
  * paired Replay / Next Round CTAs.
  */

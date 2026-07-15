@@ -67,7 +67,7 @@
 
 ## Phase 10: UI prototype Node contract aggregation
 
-- [x] 10.1 把 `node --test ui-design/ui-design-contract.test.mjs` 接入既有 `make test` 首段，不新增 target；验证: Makefile contract RED/GREEN 与 UI contract 45 tests
+- [x] 10.1 把 `python3 scripts/lint/ui_demo_pruning.py` 接入既有 `make test` 首段，不新增 target；验证: Makefile contract RED/GREEN 与 UI contract 45 tests
 - [x] 10.2 完整收口；验证: `make test` 保留 Python/backend/frontend 全量 gate，A5/product contexts、README/development、docs/index/diff/pruning gates
   <!-- red: 2026-07-10 method=root-node-test-aggregation-contract evidence="The extended Makefile contract failed only because the repository's sole root Node test was absent from the test recipe; the UI contract itself already passed 45/45." -->
   <!-- verified: 2026-07-10 method=ui-prototype-node-contract-aggregation evidence="Focused Makefile contract passes 1/1 and UI contract passes 45/45. Root make test then runs UI, Python 464 tests plus 4269 subtests, all backend packages and frontend 136 files/836 tests. A5/product contexts, onboarding docs, docs/index/diff/pruning gates pass. Scenario-only contracts remain outside the unit aggregator. No new Bug or retrospective report was needed." -->

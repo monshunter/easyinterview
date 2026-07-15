@@ -27,7 +27,7 @@ export interface AuthShellProps {
 }
 
 /**
- * Two-column auth shell transcribed from `ui-design/src/screen-auth.jsx`.
+ * Two-column auth shell transcribed from `formal frontend implementation`.
  * The shell never owns form state or pendingAction wiring; it only handles
  * the visual rhythm (max-width 1160 / padding 54 48 96 / grid 0.88fr 1.12fr /
  * gap 44) and the optional side panel. Per-screen testid stays on the outer

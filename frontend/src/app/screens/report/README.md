@@ -1,7 +1,7 @@
 # report screen
 
 Source: `docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/`.
-UI truth: `ui-design/src/screen-report.jsx` + `docs/ui-design/report-dashboard.md`.
+UI design contract: `docs/ui-design/report-dashboard.md`; executable behavior lives in this module.
 
 ## Composition
 

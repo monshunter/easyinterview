@@ -117,9 +117,9 @@
 | R-4 | `git ls-files backend/internal/auth` 不含 `BackgroundMailDispatcher` 引用 | 4 | `backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher` | unit |
 | R-5 | review store不持有重复lease/reaper owner | 5 | `backend/internal/store/review/structure_test.go::TestReviewStoreDoesNotOwnAsyncJobLeaseFinalizeOrReaper` | structure-negative |
 
-### 2.9 UI source parity
+### 2.9 UI formal implementation contract
 
-不适用。本计划是纯后端基建，无 UI 真理源；`ui-design/` 没有对应 prototype。N/A 理由记录在 spec §2.2 与本节。
+不适用。本计划是纯后端基建，无 UI 设计文档；`frontend/` 没有对应 prototype。N/A 理由记录在 spec §2.2 与本节。
 
 ### 2.10 高风险 N/A
 

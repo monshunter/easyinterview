@@ -46,7 +46,7 @@ piece of discussion content to the Brief fields below.
 | `coverage_matrix` | Primary flows, alternate flows, failure paths, edge conditions, regressions, and out-of-scope boundaries | plan/checklist/test-plan/bdd coverage |
 | `test_surface` | Unit / contract / integration / scenario / lint / drift / smoke verification needed for each coverage row | test-plan + checklist + BDD-Gate |
 | `risks` | Risks and mitigations | plan Risks |
-| `ui_truth_source` | `docs/ui-design/`, `ui-design/src/*.jsx`, `ui-design/src/app.jsx`, `ui-design/src/primitives.jsx`, or another explicitly named UI source when user-visible UI is in scope | UI source parity rows in coverage matrix |
+| `ui_design_contract` | Relevant `docs/ui-design/` documents, active spec constraints, and formal `frontend/` implementation boundaries when user-visible UI is in scope | UI behavior, responsive, accessibility, and browser-verification rows in coverage matrix |
 | `open_questions` | Unresolved items | spec Open Questions |
 | `inferred_outputs` | Recommended document set (see Step 3) | Output scope |
 | `bdd_scenarios` | User-observable behaviors, verification layers, domain Behavior IDs, and any justified real E2E ID reservations | bdd-plan + bdd-checklist + checklist BDD-Gate |

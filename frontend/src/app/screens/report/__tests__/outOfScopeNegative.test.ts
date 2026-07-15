@@ -3,7 +3,7 @@
  *
  * Asserts:
  *   - Implementation files under frontend/src/app/screens/report/ do NOT
- *     import ui-design/src/data*, window.EI_DATA, prototype helpers,
+ *     import window.EI_DATA, presentation helpers,
  *     practice DOM, or out-of-scope report tab vocabulary.
  *   - Implementation does not call practice operations, voice operations, or workspace insight APIs
  *     operations.
@@ -41,9 +41,7 @@ const FORBIDDEN = [
   /createPracticeVoiceTurn/,
   /getCompany[A-Za-z]*Insight/,
   /getDebrief/,
-  /from\s+["'][^"']*ui-design\/src\/screen-practice/,
   /window\.EI_DATA/,
-  /ui-design\/src\/data/,
   /useReportContextData/,
   /getTargetJob\b/,
   /getResume\b/,

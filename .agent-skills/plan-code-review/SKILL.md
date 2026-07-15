@@ -45,8 +45,8 @@ Reviewer rule:
   and small git diffs are never sufficient evidence. Treat them as leads to
   verify against current artifacts.
 - When product or UI scope may have changed, derive current semantic invariants
-  from active spec, `docs/ui-design/`, and `ui-design/`, then audit the code and
-  generated artifacts against those invariants.
+  from active spec and `docs/ui-design/`, then audit the formal frontend code,
+  tests, and generated artifacts against those invariants.
 
 ## Workflow
 
@@ -88,8 +88,8 @@ If yes, read the current execution contracts and include them in `Deep Evidence`
 
 1. `docs/development.md` §2 Frontend / Backend Contract Workflow.
 2. Relevant module README files for the touched roots.
-3. UI-visible targets: `docs/ui-design/` plus relevant `ui-design/src/*.jsx`,
-   `ui-design/src/primitives.jsx`, or `ui-design/src/app.jsx` source.
+3. UI-visible targets: relevant `docs/ui-design/` documents, active spec, and
+   formal `frontend/` implementation and test surfaces.
 4. API/fixture/handler targets: `openapi/openapi.yaml`, related fixtures,
    generated artifacts, and the operation matrix.
 5. Local integration/scenario targets: `deploy/dev-stack/README.md` and
@@ -164,7 +164,7 @@ For each in-scope phase:
      pre-handler and post-handler time.
 7. Reconstruct the expected coverage matrix from the validated spec/plan/checklist,
    test-plan/test-checklist, bdd-plan/bdd-checklist, quality-gate classification,
-   non-goals, risks, and active product/UI truth sources. For each completed
+   non-goals, risks, and active product/UI design contracts. For each completed
    checklist item, verify the artifact map proves the relevant primary,
    alternate, failure/recovery, boundary, cross-layer contract, privacy/security/
    observability, UX, and regression/non-current-negative rows.
@@ -205,13 +205,11 @@ For each in-scope phase:
      state; it must not wrap the focused frontend test. If
      one plan in a subspec shows this handoff drift, sweep sibling/completed
      plans in the same subspec before closing the review.
-   - For `ui-design` source-level parity, computed style, bounding-box, and
-     screenshot checks are necessary but not sufficient. Also reverse-audit
-     `ui-design/src/*.jsx`, `ui-design/src/app.jsx`, and
-     `ui-design/src/primitives.jsx` for DOM shape, control type, menu/popup
-     hierarchy, icons, labels, aria state, and primary interaction paths; then
-     verify official frontend tests fail if any of those source-level structures
-     drift.
+   - For UI-visible targets, reverse-audit the formal frontend DOM shape,
+     control type, menu/popup hierarchy, icons, labels, aria state, primary
+     interactions, and responsive constraints against `docs/ui-design/` and the
+     active spec. Require component or browser-level tests that fail when these
+     current contracts regress; do not introduce a parallel Demo as evidence.
 10. For completed code phases, verify actual test evidence exists for the implemented checklist scope, including meaningful negative/boundary assertions where the coverage matrix marks them in scope.
     - When a checklist, plan, report, or previous handoff cites a focused `go test ... -run TestX` gate, verify that the command executed at least one intended test before treating it as evidence.
     - Use `go test -list` or source search for `func Test...` to confirm the named test or regex exists when the command output is unavailable or ambiguous.

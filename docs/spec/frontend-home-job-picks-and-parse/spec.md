@@ -27,7 +27,7 @@ Home 粘贴 JD
 ### 2.1 In Scope
 
 - Home 屏（`route=home`）：
-  - 源级复刻 `ui-design/src/screen-home.jsx::HomeScreen` 当前结构。
+  - 按设计合同实现 `frontend/src` 当前结构。
   - Hero 只保留 label + title。
   - JD 输入卡只承载 textarea；不展示或挂载其他 JD intake 控件、弹窗或隐藏分支。
   - `listResumes` 读取 ready 且未归档的简历；用户必须显式选择一份简历后才能点击「立即面试」。
@@ -37,7 +37,7 @@ Home 粘贴 JD
   - 未登录 import 的 `pendingAction` 只携带 `opaquePendingImportId`；`rawText`、`targetLanguage`、`resumeId` 与同一次 import 的 idempotency key 只存在于当前进程的一次性内存 vault，不进入 route 或任何浏览器持久化介质。
   - i18n 支持 zh/en，所有文案通过 typed locale helper。
 - Parse command progress / Unified Plan Detail component（`route=parse` 仅首次导入处理中；`route=workspace&targetJobId` 独占 ready 详情）：
-  - 源级复刻 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 当前结构。
+  - 按设计合同实现 `frontend/src` 当前结构。
   - Loading 阶段只渲染 4 步进度与面向用户的等待说明；不得展示 model/provider、rubric/prompt/version/hash、provenance、典型耗时等内部调试或实现元数据。
   - 通过 generated `getTargetJob(targetJobId)` 分类/轮询 `analysisStatus`；仅 queued/processing 留在 Parse。首读 ready 或轮询转 ready 必须 replace 到 `/workspace?targetJobId=...`，不在 Parse 渲染 preview。
   - Workspace detail 用户可见名称为“面试规划详情 / 面试上下文确认”，只读展示 Basic fields、requirements evidence、hidden signals、round assumptions 和 TargetJob 已绑定 ready 简历摘要；详情初载只执行同 key `getTargetJob`，不调用 `listResumes`。
@@ -47,7 +47,7 @@ Home 粘贴 JD
   - Footer actions 只保留「立即面试」，并从受保护 TargetJob 事实读取真实 `targetJobId`、`resumeId`、可选 `currentPracticePlanId` 和 `roundId` 进入 practice handoff；route 仍只携带 `targetJobId`。
   - 未登录启动通过 auth continuation 接续到 practice。
 - Parity 与验证：
-  - Home / Parse / Workspace detail 的前后端单测完成由根 `make test` 统一承接；Playwright pixel parity 独立执行。JD import/parse 当前没有真实 E2E owner。
+  - Home / Parse / Workspace detail 的前后端单测完成由根 `make test` 统一承接；Playwright responsive browser verification 独立执行。JD import/parse 当前没有真实 E2E owner。
 
 ### 2.2 Out of Scope
 
@@ -63,7 +63,7 @@ Home 粘贴 JD
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | Owner 范围 | 本 subspec 接管 Home、Parse command progress 和被 Workspace targetJobId route 复用的统一详情组件 | Workspace 列表、Practice / Report / Resume 管理仍由各自 owner 承接 |
-| D-2 | UI 真理源 | `ui-design/src/screen-home.jsx`、`ui-design/src/screens-p0-complete.jsx::ParseScreen`、`ui-design/src/primitives.jsx` | 正式前端必须源级复刻，不做二次设计 |
+| D-2 | UI 设计文档 | `frontend/src` | 正式前端必须按设计合同实现，不做二次设计 |
 | D-3 | Home 提交流程 | 用户在唯一 textarea 粘贴 JD，并显式选择 ready 简历后提交 | POST 成功只进入 `/parse?targetJobId=...`；route 不携带 `resumeId` 或原文 |
 | D-4 | Workspace detail handoff | Workspace targetJobId detail 是只读上下文收据；解析成功即已保存规划，唯一 footer CTA 是「立即面试」，直接使用已绑定上下文进入 practice handoff，不先 PATCH `updateTargetJob` 或经由 route-side auto start | Practice session 创建使用已保存 TargetJob / Resume / Round 快照 |
 | D-5 | Parse 状态机 | `getTargetJob.analysisStatus` 驱动 queued/processing progress 与 failed；ready 必须 replace 到 workspace detail | Parse 是命令进度，不是 ready 详情回访页 |
@@ -83,7 +83,7 @@ Home 粘贴 JD
 
 ## 4 设计约束
 
-- DOM 构图、控件类型、间距、字体层级、状态、响应式行为和交互节奏必须可追溯到 `ui-design/` 当前源码。
+- DOM 构图、控件类型、间距、字体层级、状态、响应式行为和交互节奏必须可追溯到 `frontend/` 当前源码。
 - Home `home-jd-input-card` 只承载 `home-jd-textarea`；`home-resume-row` 与 `home-submit-row` 位于输入卡下方。旧 source controls、trigger 和 modal 锚点必须为零。
 - Home resume select 使用紧凑下拉框；不得平铺所有简历。
 - 未登录提交时先创建不可逆推原文的 `opaquePendingImportId`，再把 exact import intent 写入一次性内存 vault；认证路由的 `pendingAction` 不得复制 `rawText`、`targetLanguage`、`resumeId`、intake source 或业务 route params。登录成功后必须原子 consume 一次并使用 vault 中原 idempotency key 提交 exact request；成功、失败、过期和重复 consume 后均不得让同一 entry 再次可读。
@@ -92,7 +92,7 @@ Home 粘贴 JD
 - Home `listResumes` / `listTargetJobs` 与 Parse `getTargetJob` 使用 shell safe-read single-flight + 稳定 loader dependencies；同 key 初载底层 request count 必须为 1，轮询后续请求必须有 scheduler tick 证据。
 - Parse loading 的 DOM、截图和文案负向 gate 必须拒绝 `model`、`provider`、`rubric`、`prompt@`、版本/hash、`provenance`、`typical` 等内部实现标记；不能以折叠、弱化颜色或移动到底部代替删除。
 - Workspace detail requirements evidence 只读展示 API 返回的 `evidenceLevel`；前端不得在详情页维护临时 hit toggle 或把确认状态写回后端。
-- Workspace detail round assumptions 的卡片布局仍追溯 UI 真理源，但卡片数量必须来自 2~5 条 `TargetJob.summary.interviewRounds[]`；R 序号、标题、轮次类型、时长和 focus 也必须来自该数组。这些轮次由后端 LLM 根据 JD、行业/公司性质、岗位级别、团队/业务上下文和招聘流程线索推断，前端不得用 locale 或本地常量补齐轮数、HR/技术/经理面类型或分钟数。
+- Workspace detail round assumptions 的卡片布局仍追溯 UI 设计文档，但卡片数量必须来自 2~5 条 `TargetJob.summary.interviewRounds[]`；R 序号、标题、轮次类型、时长和 focus 也必须来自该数组。这些轮次由后端 LLM 根据 JD、行业/公司性质、岗位级别、团队/业务上下文和招聘流程线索推断，前端不得用 locale 或本地常量补齐轮数、HR/技术/经理面类型或分钟数。
 - Workspace detail round assumptions 必须复用 `resolveTargetJobPracticeProgress` 的 completed-prefix/current-first-incomplete 事实，不另建状态机：`done` 使用成功色 soft 背景与边框，`current` 使用主题 accent soft 背景与边框，`pending` 使用中性 soft 背景与规则线；每张卡同时暴露 `data-round-state` 和本地化的“已进行 / 即将进行 / 未进行”文本。全完成时全部为 done；无效投影不得制造 current/done。
 - Workspace detail 的“面试报告”入口只在可信 ready TargetJob 上下文存在时可用，导航参数精确为 `{ targetJobId }`；入口不得复制 reportId/status/round 等业务事实，也不得写入全局 TopBar。
 - Parse 与 Workspace detail DOM/effect/generated-client spy/route gate 必须证明报告列表、列表 loading/error/empty state、`listTargetJobReports` 请求和 `section=reports` 兼容逻辑全部不存在。未知 `section` 与报告相关 query 由路由层剔除，不能切换 TargetJob、report identity 或业务状态。
@@ -105,7 +105,7 @@ Home 粘贴 JD
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| Home / Parse progress / Unified Workspace Detail UI | `frontend-home-job-picks-and-parse` | React 组件、route 业务内容、i18n、source parity、pixel parity；ready 详情只由 Workspace targetJobId route 复用 |
+| Home / Parse progress / Unified Workspace Detail UI | `frontend-home-job-picks-and-parse` | React 组件、route 业务内容、i18n、formal implementation contract、responsive browser verification；ready 详情只由 Workspace targetJobId route 复用 |
 | App shell / auth / runtime | `frontend-shell` | TopBar、route normalization、auth continuation、generated client bootstrap |
 | TargetJobs API | `openapi-v1-contract` + `backend-targetjob` | `importTargetJob` / `listTargetJobs` / `getTargetJob` schema、fixtures、handler；`updateTargetJob` 仍属后端 TargetJobs 合同但不是 Parse preview 成功态 consumer |
 | Resume upload | `backend-upload` + `backend-resume` | Resume 文件上传与 file object persistence 继续保留；Home JD intake 不消费该能力 |
@@ -131,7 +131,7 @@ Home 粘贴 JD
 | C-1 | Home 默认渲染 | 用户进入 App | 打开 `home` | Hero、唯一 JD textarea、resume select、create resume CTA、recent mocks/empty state 正常渲染；旧 source controls / trigger / modal 锚点不存在；TopBar 高亮首页 | 001 |
 | C-2 | Home resume gate | `listResumes` 返回 ready 简历 | 用户尚未选择简历 | 「立即面试」disabled，不调用 import；选择 ready 简历后才允许提交 | 001 |
 | C-3 | Paste JD import | 用户选择 ready 简历并粘贴 JD | 点击「立即面试」 | 调用 `importTargetJob({ rawText, targetLanguage, resumeId })` 并携带 `Idempotency-Key`；POST 成功只进入 `/parse?targetJobId=...` | 001 |
-| C-4 | 非当前 JD intake 零残留 | paste-only 合同已生效 | 扫描 UI 真理源、formal frontend、OpenAPI/generated、backend、active fixtures/scenarios | 不存在平行 JD intake UI、source discriminator、专属 handler/persistence/job/scenario；Resume 上传路径仍通过原 owner gate | 001 |
+| C-4 | 非当前 JD intake 零残留 | paste-only 合同已生效 | 扫描 UI 设计文档、formal frontend、OpenAPI/generated、backend、active fixtures/scenarios | 不存在平行 JD intake UI、source discriminator、专属 handler/persistence/job/scenario；Resume 上传路径仍通过原 owner gate | 001 |
 | C-5 | Recent mocks | `listTargetJobs` 返回多条 ready 记录 | Home 加载完成 | Home `listTargetJobs`/`listResumes` 同 key 初载底层请求各 1 次；只展示最近 3 张；卡片主体直达 `/workspace?targetJobId=...`，不经过 Parse/动画；quick-start 与 More 保持 | 001 |
 | C-6 | Parse ready replace | `getTargetJob` 首读 ready 或 queued/processing 轮询转 ready | 用户进入 `/parse?targetJobId=...` | 每个分类/调度 tick 同 key底层 GET 恰好 1；ready 立即 replace 到 `/workspace?targetJobId=...`，Back 不返回动画；Parse 不渲染 ready detail | 001 |
 | C-7 | Parse failed flow | `analysisStatus=failed` 或轮询超时 | Parse polling | 渲染失败态、重新解析和返回首页；不伪造 preview 数据 | 001 |
@@ -151,7 +151,7 @@ Home 粘贴 JD
 ## 9 关联文档
 
 - 上游 spec：[`product-scope`](../product-scope/spec.md)、[`engineering-roadmap`](../engineering-roadmap/spec.md)、[`frontend-shell`](../frontend-shell/spec.md)、[`frontend-workspace-and-practice`](../frontend-workspace-and-practice/spec.md)、[`openapi-v1-contract`](../openapi-v1-contract/spec.md)、[`mock-contract-suite`](../mock-contract-suite/spec.md)
-- UI 真理源：`ui-design/src/screen-home.jsx`、`ui-design/src/screens-p0-complete.jsx::ParseScreen`、`ui-design/src/primitives.jsx`、[`docs/ui-design/jd-resume-management.md`](../../ui-design/jd-resume-management.md)、[`docs/ui-design/ui-architecture.md`](../../ui-design/ui-architecture.md)、[`docs/ui-design/module-job-workspace.md`](../../ui-design/module-job-workspace.md)、[`docs/ui-design/module-map.md`](../../ui-design/module-map.md)
+- UI 设计文档：`frontend/src`、[`docs/ui-design/jd-resume-management.md`](../../ui-design/jd-resume-management.md)、[`docs/ui-design/ui-architecture.md`](../../ui-design/ui-architecture.md)、[`docs/ui-design/module-job-workspace.md`](../../ui-design/module-job-workspace.md)、[`docs/ui-design/module-map.md`](../../ui-design/module-map.md)
 - 当前正式前端入口：`frontend/src/app/screens/home/`、`frontend/src/app/screens/parse/`、`frontend/src/app/navigation/interviewContext.ts`、`frontend/src/api/generated/`
 - 变更记录：[history.md](./history.md)
 

@@ -35,9 +35,9 @@
 
 ## 4 实施范围
 
-### Phase 1: 产品与 UI 真理源
+### Phase 1: 产品与 UI 设计文档
 
-修订 product scope、engineering roadmap、`docs/ui-design/` 与 `ui-design/`，只描述当前核心闭环；正式前端按静态原型复刻，不保留范围外导航、菜单、screen 或 route。
+修订 product scope、engineering roadmap、`docs/ui-design/` 与 `frontend/`，只描述当前核心闭环；正式前端按静态原型复刻，不保留范围外导航、菜单、screen 或 route。
 
 ### Phase 2: 前端与 API 合同
 

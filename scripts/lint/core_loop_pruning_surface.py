@@ -27,7 +27,6 @@ SCAN_ROOTS = (
     "scripts",
     "migrations",
     "test/scenarios",
-    "ui-design",
 )
 
 TEXT_SUFFIXES = {
@@ -79,7 +78,6 @@ OUT_OF_SCOPE_NORMALIZATION_PATHS = {
     Path("frontend/src/app/routeUrl.ts"),
     Path("frontend/src/app/auth/pendingAction.ts"),
     Path("frontend/scripts/spaFallback.mjs"),
-    Path("ui-design/src/app.jsx"),
 }
 
 NEGATIVE_PATH_PREFIXES = (
