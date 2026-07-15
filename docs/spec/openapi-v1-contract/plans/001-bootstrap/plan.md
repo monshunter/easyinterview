@@ -1,6 +1,6 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -18,7 +18,7 @@
 - B1 shared conventions are referenced through generated/shared types and error envelope rules.
 - Fixtures and breaking-change gates consume this bootstrap output through sibling B2 plans.
 
-This owner plan remains the executable contract/codegen evidence index; Phase 18 is the current report-owned conversation replacement handoff.
+This owner plan remains the executable contract/codegen evidence index；Phase 18 retains the in-flight report-conversation handoff，and Phase 19 adds the approved OPENAPI-007 minimal `UserContext` correction without replacing or weakening Phase 18 gates。
 
 ## 2 Current Contract
 
@@ -35,7 +35,7 @@ This owner plan remains the executable contract/codegen evidence index; Phase 18
 
 - **Plan 类型**: `contract + tooling + feature-behavior handoff`
 - **TDD 策略**: schema inventory、semantic lint、Go/TS generator structure、codegen idempotency 与 negative surface tests 必须按 Red-Green-Refactor 执行；每个 correction Phase 的 checklist 明确对应断言与命令入口。
-- **BDD 策略**: 本 plan 不复制场景资产；用户可见 contract correction 必须引用下游 owner BDD。Phase 18 的 API 用户行为由 backend-review、frontend-report-dashboard 与 `E2E.P0.099` 承接，本 plan 只拥有 schema/codegen correction，因此不新建 BDD 文件。
+- **BDD 策略**: 本 plan 不复制场景资产；用户可见 contract correction 必须引用下游 owner BDD。Phase 18 由 report owners / `E2E.P0.099` 承接；Phase 19 由 frontend-shell settings BDD 与原地扩展的 `E2E.P0.101` 承接。本 plan 只拥有 schema/codegen correction，因此不新建 BDD 文件。
 - **替代验证 gate**: `make lint-openapi`、generator tests、`make codegen-check`、`make openapi-diff`、scoped zero-reference 与 downstream compile/consumer gates。
 
 ### 3.1 Current Operation Inventory
@@ -93,6 +93,7 @@ BDD 不适用：本 plan 只拥有 API schema、codegen 与 contract gate，不�
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-07-15 | 1.30 | Add Phase 19 for OPENAPI-007 four-field UserContext, Auth fixture/codegen migration and old-language-field zero-reference gates. |
 | 2026-07-15 | 1.29 | Reopen Phase 18 for the approved one-for-one replacement of public listPracticeSessions with report-owned getReportConversation while preserving 37/10. |
 | 2026-07-14 | 1.28 | Reopen Phase 17 for closed RuntimeConfig ContentLimits public projection and generated consumer handoff. |
 | 2026-07-14 | 1.27 | Reopen Phase 16 for OPENAPI-005 closed ResumeSummary list projection, full getResume detail and all-consumer handoff. |
@@ -308,3 +309,23 @@ Add closed `ReportConversation{reportId,reportStatus,context,messages}` and clos
 | `getReportConversation` | `Reports/getReportConversation.json` with ready/non-ready/empty/hidden/fail-closed scenarios | `ReportConversationScreen` via generated client; report detail and safe ReportsScreen shortcut | backend-review owned-report lookup and strict mapper | existing `feedback_reports.session_id` + `practice_messages.seq_no`; no migration | none | `BDD.REPORT.CONVERSATION.001`, `BDD.REPORT.CONVERSATION.API.001`, extended `E2E.P0.099` |
 
 Delete `PracticeSessions/listPracticeSessions.json` and every generated/runtime/consumer positive reference. 002 Phase 12 must prove fixture/example/Prism parity; 003 Phase 11 must generate and exact-match the OPENAPI-001 v1.7 oracle from the merge-base old baseline before re-freeze. Backend-practice owns deletion of list runtime surface; backend-review owns the replacement read model; frontend-report owns the reportId-only UI. BDD is downstream-owned; this contract phase closes with schema/inventory/codegen/zero-reference gates plus root `make test`.
+
+## 19 OPENAPI-007 Settings UserContext pruning
+
+### 19.1 RED and invariants
+
+Require accepted [OPENAPI-007](../../decisions/OPENAPI-007-settings-user-context-pruning.md), spec D-39 and history 1.63 before source mutation. Focused schema/generated tests must fail while `UserContext.required/properties` or generated Go/TS types expose `uiLanguage` / `preferredPracticeLanguage`. Lock unchanged 37 operations / 10 tags and exact `getMe` / `completeMyProfile` / `deleteMe` method, path, operationId, status and security semantics.
+
+### 19.2 GREEN minimal projection
+
+Set `UserContext.additionalProperties: false` and make it a required four-field object: `id`, `emailMasked`, `displayName`, `profileCompletionRequired`. Update `openapi/openapi.yaml`, generated Go/TS, embedded backend schema and all typed builders in one batch. Do not make old fields optional, inject defaults, add aliases or weaken email masking/profile completion requirements.
+
+### 19.3 Operation matrix and handoff
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `getMe` | `Auth/getMe.json` authenticated/profileIncomplete/unauthenticated | AppRuntimeProvider + Settings real account fields | backend-auth current-user handler | users/session；analytics opt-in remains internal runtime-config input | none | `BDD.SHELL.SETTINGS.001/.002` + extended `E2E.P0.101` |
+| `completeMyProfile` | `Auth/completeMyProfile.json` | AuthProfileSetup + runtime refresh | backend-auth profile completion handler | users display/profile/terms fields | none | existing auth BDD + `E2E.P0.101` |
+| `deleteMe` | unchanged `Auth/deleteMe.json` | Settings destructive action | backend-auth delete handoff | user soft delete/session revoke/privacy job | none | `BDD.SHELL.SETTINGS.DELETE.001` + backend contract |
+
+002 Phase 13 updates Auth fixtures and mock parity；003 Phase 12 owns exact old-baseline findings and guarded re-freeze；backend-auth/001 Phase 10 removes old mapper/store fields；frontend-shell/001 consumes runtime user without a second `getMe`；B4 001 Phase 13 drops the four obsolete `user_settings` columns while retaining `analytics_opt_in`。Production OpenAPI/generated/backend/frontend/mock must have zero positive old-field references；accepted ADR/history/plans and explicit negative tests are allowed。

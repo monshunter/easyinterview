@@ -5,10 +5,10 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   baseBranch: main
-  branch: design/report-conversation-record
+  branch: settings-simplification
   specVersion:
-    from: 1.60
-    to: 1.62
+    from: 1.62
+    to: 1.63
 spec:
   defaultTarget: contract
   discovery:
@@ -93,6 +93,11 @@ spec:
       - completed rounds
       - current round
       - deferred CI
+      - OPENAPI-007 settings UserContext pruning
+      - four field UserContext
+      - remove uiLanguage preferredPracticeLanguage
+      - preserve getMe completeMyProfile deleteMe
+      - settings runtime user
   targets:
     contract:
       plan: ./plan.md
@@ -103,6 +108,7 @@ spec:
         - ../../decisions/OPENAPI-002-targetjob-paste-only.md
         - ../../decisions/OPENAPI-004-targetjob-report-overview.md
         - ../../decisions/OPENAPI-005-resume-list-summary.md
+        - ../../decisions/OPENAPI-007-settings-user-context-pruning.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
         - ../../../backend-review/spec.md
         - ../../../backend-practice/spec.md
@@ -124,6 +130,9 @@ spec:
           - getTargetJob
           - getFeedbackReport
           - getReportConversation
+          - getMe
+          - completeMyProfile
+          - deleteMe
           - listTargetJobReports
           - createPracticePlan
           - getPracticeSession

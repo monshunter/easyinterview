@@ -1,6 +1,6 @@
 # 001 Real API/UI Journeys BDD Checklist
 
-> **版本**: 4.2
+> **版本**: 4.3
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -29,6 +29,8 @@
 
 - [x] The tracked flow requires real frontend/backend/Mailpit and drives email-code, first profile setup and logout/relogin without request interception.
 - [x] Business behavior remains owned by backend-auth/frontend-shell; this suite records only the executable asset and current-run result.
+- [ ] The tracked flow opens Settings through the sole gear, verifies current-run displayName and masked email from the real backend, and rejects the old account dropdown/settings tab surface.
+- [ ] Logout is entered from Settings and relogin skips profile setup；the flow never calls deleteMe and stores no full email/code/cookie evidence.
 
 ## 当前真实环境运行证据
 

@@ -4,9 +4,11 @@ metadata:
   subspec: backend-auth
   name: 001-email-code-session-bootstrap
   sequence: 1
+  baseBranch: main
+  branch: settings-simplification
   specVersion:
-    from: null
-    to: 2.1
+    from: 2.1
+    to: 2.2
 spec:
   defaultTarget: backend
   discovery:
@@ -31,6 +33,10 @@ spec:
       - profileCompletionRequired
       - completeMyProfile
       - first-login profile setup
+      - OPENAPI-007 minimal UserContext
+      - remove uiLanguage preferredPracticeLanguage
+      - keep analytics opt in runtime resolver
+      - settings real account fields
   targets:
     backend:
       plan: ./plan.md
@@ -49,6 +55,7 @@ spec:
         - ../../../secrets-and-config/spec.md
         - ../../../shared-conventions-codified/spec.md
         - ../../../observability-stack/spec.md
+        - ../../../openapi-v1-contract/decisions/OPENAPI-007-settings-user-context-pruning.md
       discovery:
         packages:
           - backend/cmd/api

@@ -1,13 +1,14 @@
 # DB Migrations Baseline Change Log
 
-> **版本**: 1.37
+> **版本**: 1.38
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 1.38 | 新增 000020 cleanup，删除 user_settings 的 UI/practice language、region、timezone，保留 analytics opt-in 与表级 privacy cascade，支撑 OPENAPI-007 与 Settings 方案 A。 | db-migrations-baseline/001 Phase 13 + backend-auth/001 + frontend-shell/001 |
 | 2026-07-14 | 1.37 | Practice reply recovery 增加内部 generation + 90 秒 pending lease fence；删除 `target_jobs.latest_report_id` 去规范化指针，报告当前态改由 backend-review 按冻结轮次事实投影。 | db-migrations-baseline/001 Phase 11-12 |
 | 2026-07-13 | 1.36 | Practice user message 增加 durable reply status，支持刷新后按原 clientMessageId 恢复 pending/retryable/terminal/complete 状态。 | db-migrations-baseline/001 Phase 11 + backend-practice/002 |
 | 2026-07-13 | 1.34 | Supersede 1.31/1.33中的durable report-attempt存储：`000018`只保留summary、generation context与dimension focus，显式删除/拒绝`llm_attempt_count`及同义产品retry列；动作内retry归backend-review内存上下文。 | db-migrations-baseline/001 Phase 9 + backend-review/001 |

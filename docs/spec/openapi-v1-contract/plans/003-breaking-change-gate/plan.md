@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.22
+> **版本**: 1.23
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -9,7 +9,7 @@
 
 ## 1 目标
 
-本 plan 承接 [openapi-v1-contract spec](../../spec.md) 的 v1.0.0 freeze gate；Phase 10 是当前 OPENAPI-006 RuntimeConfig content-limits correction owner：
+本 plan 承接 [openapi-v1-contract spec](../../spec.md) 的 v1.0.0 freeze gate；Phase 11 保留 report-conversation correction 的未完成 handoff，Phase 12 追加 OPENAPI-007 Settings `UserContext` pruning exact audit，二者必须各自满足 guarded re-freeze：
 
 - `openapi/baseline/openapi-v1.0.0.yaml` 是当前 37 operation / 10 tag contract 的 baseline snapshot。
 - `make openapi-diff` 比对 baseline 与 `openapi/openapi.yaml`，并按 B2 additive-only rules 拦截 breaking changes。
@@ -120,6 +120,7 @@ The wrapper must verify the exact path, method and statuses. Any other status tr
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.23 | Add Phase 12 for OPENAPI-007 exact UserContext two-field removal audit and guarded all-consumer re-freeze. |
 | 2026-07-15 | 1.22 | Add Phase 11 for OPENAPI-001 v1.7 exact one-for-one session-list to report-conversation correction. |
 | 2026-07-14 | 1.20 | Add Phase 9 for OPENAPI-005 exact Resume list-summary audit and all-consumer guarded re-freeze. |
 | 2026-07-14 | 1.14 | Add OPENAPI-004 exact old-baseline audit and guarded report-overview re-freeze phase. |
@@ -218,3 +219,15 @@ The oracle exact-matches deletion of list path/query/response/schema and additio
 ### 11.2 Invariants and guarded re-freeze
 
 Audit separately locks 37 operations/10 tags; unchanged `startPracticeSession` and `getPracticeSession`; and exact protected `GET /api/v1/reports/{reportId}/conversation`, operationId `getReportConversation`, 200 response. Preserve the deterministic old-baseline artifact. Do not re-freeze until 001 Phase 18, 002 Phase 12, backend-practice deletion, backend-review read model, frontend report UI, mock parity and downstream BDD gates pass with zero public session-list runtime references. Final proof requires preserved audit + clean current diff + independent lint/fixture/codegen/consumer/root-test gates.
+
+## 14 Phase 12: OPENAPI-007 Settings UserContext pruning
+
+### 12.1 Accepted authority and generated exact oracle
+
+Require accepted [OPENAPI-007](../../decisions/OPENAPI-007-settings-user-context-pruning.md), spec D-39 and history 1.63 before proposed mutation. Snapshot the merge-base old baseline and keep the worktree baseline unchanged. After focused RED proves both old required properties, generate the OPENAPI-007 expected-findings JSON from old baseline → proposed OpenAPI；this design revision intentionally does not hand-author that JSON.
+
+The oracle exact-matches removal of `UserContext.uiLanguage` and `UserContext.preferredPracticeLanguage` from both required and properties, plus the object closure introduced by `additionalProperties: false`, by `severity + path + kind + before + after`. Missing/extra finding, wildcard, placeholder, edited old baseline, optional compatibility fields or constant-filled aliases fail.
+
+### 12.2 Invariants and guarded re-freeze
+
+Audit locks 37 operations/10 tags；exact `getMe` / `completeMyProfile` / `deleteMe` method/path/operationId/status/security；four-field closed required `UserContext`；email masking and profile-completion semantics. Do not re-freeze until 001 Phase 19, 002 Phase 13, backend-auth/001 Phase 10, frontend-shell/001 Phase 14, B4 001 Phase 13 and mock/BDD handoffs pass. Preserve deterministic old-baseline audit before mutation；final proof requires clean current diff plus independent lint/fixture/codegen/consumer/migration/root-test gates.

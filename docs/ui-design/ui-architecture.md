@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.32
+> **版本**: 2.33
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 文档目的
 
@@ -14,14 +14,14 @@
 
 1. App 默认进入首页；未登录状态由当前页面内的登录入口和业务前置登录处理。
 2. 顶部导航为：`首页`、`面试`、`简历`。
-3. 用户菜单为：`设置与隐私`、`退出登录`；未登录时只显示登录入口。
-4. `复盘` 和 `用户画像` 不属于当前 UI 范围，不是一级导航、用户菜单入口、目标 route、正式页面或后续默认 workstream。
+3. 未登录时 TopBar 显示登录入口；已登录时账号区只显示一个直接进入 `settings` 的设置齿轮，不显示账号 chip 或 dropdown。退出登录位于设置页。
+4. `复盘` 和 `用户画像` 不属于当前 UI 范围，不是一级导航、账号设置入口、目标 route、正式页面或后续默认 workstream。
 5. `debrief`、`debrief_full`、`profile` 等范围外 route 输入归一到 `home`，不得 materialize 范围外页面。
 6. `auth_profile_setup` 仍保留为首次登录资料补全页；这是账号资料补全，不是用户画像。
 7. 报告内容只有 session-scoped Dashboard；允许从规划详情内容区进入 target-scoped ReportsScreen 索引当前轮次报告，但不加入 TopBar、不形成全局中心或第二种报告内容形态。报告后续开练动作只有 `复练当前轮` 与 `进入下一轮`。
 8. 简历是一级模块：平铺列表、上传 / 粘贴创建、注册后直接详情、只读原始正文。
 9. 当前只开放连续文本面试；电话入口置灰，不产生 `phone` / `voice` route state，通用 speech 基础设施留待后续重新评审。
-10. 顶栏主题色、暗色模式、语言下拉和设置页字体预设是全局显示控制，不属于业务模块。
+10. 顶栏主题色、暗色模式和语言下拉是全部全局显示控制；产品字体采用固定默认栈，不提供字体预设。
 11. Desktop TopBar 保持 58px 单行节奏；`<=720px` 使用内容驱动的响应式换行，primary nav 独占下一行，`<=460px` 收起品牌文字并限制语言标签宽度。移动端页面内容必须从 TopBar 实际底部开始，所有控件与导航都留在 viewport 内，不允许用固定 58px 或横向页面溢出来伪造对齐。
 12. Custom accent picker 只保留色相与饱和度两个调整维度；不展示额外 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean 或 Plum 是退出自定义色的唯一清晰路径。
 13. `/workspace` 是无参规划列表，`/workspace?targetJobId=...` 是统一只读规划详情；ready 卡片直接进入详情。`/parse?targetJobId=...` 只承接新导入 queued/processing 命令进度，ready 后 replace 到 Workspace 详情。
@@ -36,7 +36,7 @@
 │  ├─ Primary nav: 首页 / 面试 / 简历
 │  ├─ Theme: Ocean / Plum / Custom hue + saturation
 │  ├─ Dark / language
-│  └─ User menu: 设置与隐私 / 退出登录
+│  └─ Account: 已登录设置齿轮 / 未登录登录入口
 ├─ Home / 首页
 │  ├─ 粘贴 JD 输入框（唯一 JD intake）
 │  ├─ 选择已有简历（适度宽度下拉框）
@@ -73,8 +73,7 @@
 └─ Settings / Auth
    ├─ 邮箱验证码登录
    ├─ 首次账号资料补全
-   ├─ 设置与隐私
-   └─ 退出登录
+   └─ 设置与隐私（账号真实字段 / 退出 / 导出不可用 / 删除账号）
 ```
 
 ## 4 顶部导航
@@ -92,12 +91,10 @@
 ├─ 语言下拉
 └─ 用户区
    ├─ 未登录: 登录
-   └─ 已登录:
-      ├─ 设置与隐私
-      └─ 退出登录
+   └─ 已登录: 设置齿轮 -> settings
 ```
 
-顶部导航或用户菜单范围外能力：
+顶部导航或设置入口范围外能力：
 
 - `复盘 / Debrief`
 - `用户画像 / User Profile`
@@ -112,7 +109,7 @@
 响应式约束：
 
 - Desktop：TopBar 单行、58px 高、左右 32px padding。
-- Mobile：TopBar 可按当前语言和已登录用户名称换行，左右 14px padding；primary nav 独占一行并可在自身容器内横向滚动，但不得扩大 document 宽度。
+- Mobile：TopBar 可按当前语言和已登录设置按钮换行，左右 14px padding；primary nav 独占一行并可在自身容器内横向滚动，但不得扩大 document 宽度。
 - 报告等带 App Shell 的页面从 TopBar 实际 `getBoundingClientRect().bottom` 开始；中英文或登录态引起的合法高度差不能用页面局部 offset 抹平。
 
 ## 5 目标模块关系
@@ -177,7 +174,7 @@ ReportGenerating(reportId)
 ReportDashboard(reportId)
 ```
 
-### 6.3 用户菜单和认证页面
+### 6.3 账号设置和认证页面
 
 ```text
 SettingsPrivacy
@@ -225,11 +222,15 @@ ROUTE_ALIASES
 10. Theme menu 的 1440 desktop 与 390 mobile tests 必须覆盖 DOM、computed style、viewport containment 与必要 screenshot smoke；删除旧区域后不得留下空白占位或横向溢出。
 11. Route/component gate 必须证明 query-free Workspace 列表、targetJobId Workspace 详情和 Parse command-progress 三态互斥；ready 卡片详情执行一次同 key `getTargetJob`，不得 import、poll、播放 Parse animation 或在 route side 启动 session。
 12. Practice message renderer 必须同时覆盖 user/assistant GFM、raw HTML/remote image/unsafe URI 负向、安全 link、exact raw same-ID retry，以及 390px pre/code/table 局部滚动且 document 无横向溢出。
+13. TopBar 已登录态只渲染设置齿轮；component/responsive/a11y gate 必须证明头像、姓名、caret、backdrop、dropdown 与 TopBar logout 零引用，且 desktop/mobile 点击区域和 focus ring 可用。
+14. Settings 为无 tab 单页：Account 只读展示 runtime `/me.displayName` / `emailMasked` 并进入既有 logout 确认；Privacy 只展示导出暂不可用与账号删除。删除流程覆盖确认、pending、失败重试；`202` 后调用现有 `refreshAuth()` 重探测 `/me`（预期 401），提交 unauthenticated 状态并 replace Home；不得重复实现清 session 方法、挂载时重复调用 `/me` 或保留伪静态字段。
+15. 字体固定为 Noto Serif SC（标题）、Inter（正文）与 JetBrains Mono（标签/代码）；删除其它 font preset 数据、包、CSS imports、locale 文案和兼容状态。
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 2.33 | 采用设置简化方案 A：TopBar 已登录账号区收敛为设置齿轮；设置页改为无 tab 的真实账号/隐私单页；字体收敛为固定默认栈。 |
 | 2026-07-14 | 2.32 | 将 Workspace 拆为无参列表与 targetJobId 只读详情，Parse 收窄为新导入命令进度；Reports/terminal 返回详情，并加入 Practice 安全 Markdown/GFM 投影边界。 |
 | 2026-07-14 | 2.31 | 将 CustomAccentPicker 收敛为色相与饱和度，并以 Ocean / Plum 作为退出自定义色的唯一清晰路径。 |
 | 2026-07-14 | 2.30 | 增加 target-scoped ReportsScreen 上下文层级；Parse 仅保留内容区入口，TopBar 仍三入口，报告详情仍是唯一内容形态。 |

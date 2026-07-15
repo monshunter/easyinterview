@@ -1,6 +1,6 @@
 # 报告仪表盘目标结构
 
-> **版本**: 1.36
+> **版本**: 1.37
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -135,7 +135,7 @@ Summary Metrics 只承载两个可扫描数量，不展示 readiness 或 `summar
 - 长 dimension/evidence/action 必须换行，不横向溢出、不被不可恢复截断。
 - 1440x1200 desktop 与 390x844 mobile full-page 都必须覆盖 action 区域，并证明合法 24/64 label 完整换行、无截断/ellipsis/隐藏/横溢。恰好 24/64 由 deterministic fixture-backed responsive test 证明；200-code-point malformed fixture只用于 typed invalid/no-raw-output 测试，不能充当 UX PASS。18/52 只用于 targeted repair 内部生成，不替代边界 fixture。
 - 能力维度行在宽度足够时保持 `label` 与本地化 status/confidence 左右对齐；空间不足时整项换为两段可读行。英文长 label 优先按单词换行，禁止为了保留右侧状态而压缩成逐字符竖排。
-- Report 保留 App Shell TopBar：desktop 内容从 58px TopBar 后开始；390px mobile 内容从响应式 TopBar 的实际底部开始。TopBar 可因 UI locale 与已登录用户名称产生合法换行，但 document `scrollWidth` 不得超过 viewport，报告局部布局也不得用相对坐标掩盖共享 TopBar 的绝对纵向偏差。
+- Report 保留 App Shell TopBar：desktop 内容从 58px TopBar 后开始；390px mobile 内容从响应式 TopBar 的实际底部开始。TopBar 可因 UI locale 与已登录设置按钮产生合法换行，但 document `scrollWidth` 不得超过 viewport，报告局部布局也不得用相对坐标掩盖共享 TopBar 的绝对纵向偏差。
 
 ## 8 状态
 
@@ -184,6 +184,7 @@ Summary Metrics 只承载两个可扫描数量，不展示 readiness 或 `summar
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.37 | 对齐方案 A 的 TopBar 响应式合同：已登录账号区为设置按钮，不再按用户名 chip 计算换行。 |
 | 2026-07-15 | 1.36 | 合并 report-owned 只读面试记录：Report 主入口 + ReportsScreen 快捷入口、reportId-only route、安全 Markdown、四状态父页 Back；保留 `3/2/2/2/1` 和正式 frontend 单实现原则。 |
 | 2026-07-15 | 1.35 | 将 Workspace 详情的报告入口从标题右上角移到标题下方左对齐首行动作行，与“立即面试”同排。 |
 | 2026-07-15 | 1.34 | 用户确认报告信息层级改为 `3/2/2/2/1`：顶部准备度卡片下移为底部全宽“面试总评”，与服务端 `summary` 只在该处展示；mobile 保持同序单列。 |

@@ -1,8 +1,8 @@
 # DB Migrations Baseline Bootstrap
 
-> **版本**: 1.23
+> **版本**: 1.24
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 把 [db-migrations-baseline spec](../../spec.md) 当前锁定的迁移工具、20 张应用表、3 张 auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。TargetJob 当前 net-state 只保留 `raw_jd_text`，不保留来源列/表、JD attachment purpose 或 JD source refresh jobType；独立 `source_records` 与 resume/privacy purpose 保留。
 
-Phase 1-10 保留为既有交付证据；当前待执行 schema 合同由 Phase 11（Practice generation/lease recovery）与 Phase 12（TargetJob report pointer removal）覆盖。
+Phase 1-10 保留为既有交付证据；当前未完成的 Phase 11/12 保持原 gate，Phase 13 追加 Settings display-preference column pruning，不替代前两项。
 
 本 plan 不实现业务 repository、不实现 C8 dispatcher、不实现 privacy_delete runner；只提供 schema baseline、迁移可执行入口、lint/check gate 与下游 handoff。
 
@@ -208,6 +208,12 @@ Migration lint与SQL contract必须要求nullable-until-ready `feedback_reports.
 
 运行 migration lint、clean/populated PostgreSQL up/down/up、TargetJob store/review integration 与 privacy cascade；精确搜索 production/generated/OpenAPI/fixtures/migrations 中旧列/字段为零，同时正向证明报告行、冻结 context、用户隔离与 `generated_at/created_at/id` 排序所需列仍存在。
 
+### Phase 13: Settings display-preference column pruning
+
+Create `000020_drop_user_settings_display_preferences` through the repository migration entrypoint. The up migration drops `ui_language`, `preferred_practice_language`, `region` and `timezone` from `user_settings`; it retains the table, `user_id` PK/FK cascade, `analytics_opt_in`, `created_at` and `updated_at`. The down migration restores the four columns with their prior nullability/default structure but documents that deleted values are not recoverable and must not be synthesized from current locale or practice data.
+
+Start with SQL contract RED against the post-chain net-state and explicit preserved-column inventory. Add populated PostgreSQL up/down/up probes proving analytics values survive up, all four obsolete columns disappear, the user_settings row still cascades on account hard delete, and down/up remains structurally valid. Coordinate backend-auth store changes before current up state is consumed；no dual-read, shadow columns, compatibility view or second preference table. This is an internal migration/contract phase, so BDD is not applicable；frontend Settings behavior remains in frontend-shell/001.
+
 ## 5 验收标准
 
 - spec §6 C-1..C-16 全部具备本 plan 或下游 handoff 证据；C8/F1/C11 等运行时验证由各自 owner 后续关闭。
@@ -228,6 +234,7 @@ Migration lint与SQL contract必须要求nullable-until-ready `feedback_reports.
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-15 | 1.24 | Add Phase 13 for migration 000020 removing obsolete user_settings display/practice preference columns while retaining analytics opt-in. | OPENAPI-007 + frontend-shell/001 + backend-auth/001 |
 | 2026-07-14 | 1.23 | Reopen Phase 11 for generation/90s lease fencing and Phase 12 to remove the TargetJob latest-report pointer. | backend-practice/002 + backend-review/001 |
 | 2026-07-13 | 1.21 | Reopen Phase 11 for durable Practice reply status and refresh-safe same-ID recovery. | backend-practice/002 + frontend-workspace-and-practice/002 |
 | 2026-07-13 | 1.20 | Reopen Phase 10 to converge the TargetJob baseline to paste-only schema, 20+3+2 inventory, and migration zero-reference gates. | TargetJob paste-only current net-state |

@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -125,3 +125,11 @@
   <!-- verified: 2026-07-15 method=owner-handoff+negative-search evidence="formal consumers use getReportConversation; session list and compatibility fixture remain absent" -->
 - [x] 12.5 REGRESSION-GATE: 37 fixtures / 37 operations, named-scenario validation, root `make test`, contexts/docs/diff all pass.
   <!-- verified: 2026-07-15 method=validate-fixtures+codegen-check+make-test+docs-check evidence="37/37; generated artifacts current; all root gates PASS" -->
+
+## Phase 13: OPENAPI-007 Settings UserContext fixtures
+
+- [ ] 13.1 RED: fixture/schema tests fail while authenticated/profileIncomplete `getMe` or `completeMyProfile` responses contain `uiLanguage/preferredPracticeLanguage`, omit a required four-field value, expose raw email or accept any extra field under the source `additionalProperties: false` contract.
+- [ ] 13.2 GREEN: Auth fixtures use exact four-field `UserContext`; unauthenticated error and profile-completion semantics remain unchanged；no compatibility scenario/default language constant.
+- [ ] 13.3 PARITY-GATE: fixture validation, rendered examples, live Prism and dev-mock byte parity pass for getMe/completeMyProfile with 37 fixtures/operations unchanged.
+- [ ] 13.4 HANDOFF/BDD-N/A: frontend runtime/settings typed builders and backend mapping consume exact fixtures；user behavior remains in frontend-shell Settings BDD + `E2E.P0.101`, not a fixture E2E.
+- [ ] 13.5 REGRESSION-GATE: root `make test`, lint/fixture/codegen/diff, contexts/docs/diff and production fixture/mock old-field zero-reference gates pass.

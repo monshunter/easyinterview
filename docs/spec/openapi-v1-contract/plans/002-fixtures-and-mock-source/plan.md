@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -12,6 +12,8 @@
 维护 `openapi/fixtures/` 作为当前 HTTP mock 数据的唯一真理源：当前 10 个 tag / 37 个 operationId 必须各有一份 fixture，`default` scenario 覆盖规范响应，其它 named scenario 由对应 consumer owner 在同一 fixture 中维护，fixtures 再投影为 Prism / 文档站消费的 OpenAPI named examples。
 
 本 plan 只拥有 fixture 数据、fixture validator、prototype sync、fixture example render、Prism byte-equal smoke 和对应文档。正式 mock server 运行壳、前端 MSW runtime、后端 handler、OpenAPI schema 变更与 breaking-change policy 分别归对应 owner；它们只能消费这里的 fixture truth source，不在这里重建第二份 example。
+
+当前 Phase 13 在不改变 37/37 inventory 的前提下承接 OPENAPI-007 Auth fixtures 的四字段 `UserContext` 投影；既有 Phase 12 report-conversation gates 保持有效，不因本次追加而跳过。
 
 ## 2 当前合同
 
@@ -103,6 +105,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-15 | 1.21 | Add Phase 13 for OPENAPI-007 four-field UserContext Auth fixtures, dev-mock parity and old-language-field negative gates. | OPENAPI-007 |
 | 2026-07-15 | 1.20 | Add Phase 12 for report-owned conversation fixtures and removal of the public PracticeSessions list fixture while keeping 37/37 parity. | OPENAPI-001 v1.7 |
 | 2026-07-14 | 1.19 | Add Phase 11 for OPENAPI-005 summary-only list fixture, full detail fixture and Prism/mock consumer handoff. | OPENAPI-005 |
 | 2026-07-14 | 1.16 | Reopen for OPENAPI-004 canonical-round report overview fixtures, prototype projection, Prism parity and latest-report-pointer removal. | OPENAPI-004 |
@@ -221,3 +224,9 @@ Cover ready, queued/generating/failed with an existing owned report row, empty m
 ### 12.3 Example, Prism, mock and downstream handoff
 
 Render examples and run live byte-equal Prism/mock parity for `getReportConversation`; prove the deleted list operation cannot be selected by path or scenario. Hand exact markers to backend-review, frontend-report-dashboard, mock-contract-suite and extended `E2E.P0.099`. BDD behavior remains downstream-owned; this fixture phase closes with validation, rendering, Prism parity, zero-reference and root `make test`.
+
+## 15 Phase 13: OPENAPI-007 Settings UserContext fixtures
+
+Update `Auth/getMe.json` authenticated/profileIncomplete responses and `Auth/completeMyProfile.json` success to exact `{id,emailMasked,displayName,profileCompletionRequired}`. Keep unauthenticated error scenarios unchanged and preserve masked, non-raw email examples. Validator mutations must exercise the source `additionalProperties: false` closure and reject either old language field, any arbitrary extra field, or a missing required field.
+
+Regenerate OpenAPI examples and prove Prism/dev-mock byte parity for `getMe` and `completeMyProfile`. Frontend dev mock and typed builders must consume the same fixture projection；no fallback constants or compatibility scenarios. This phase has no independent BDD: it hands real account values to frontend-shell settings BDD and the existing `E2E.P0.101` extension.

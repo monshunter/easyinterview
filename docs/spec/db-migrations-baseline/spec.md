@@ -1,8 +1,8 @@
 # DB Migrations Baseline Spec
 
-> **版本**: 1.37
+> **版本**: 1.38
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 背景与目标
 
@@ -49,6 +49,7 @@
   18. `outbox_events`
   19. `privacy_requests`
   20. `audit_events`
+- **Minimal user settings net-state**：`user_settings` 只保留 `user_id`、仍被 runtime-config 消费的 `analytics_opt_in` 与审计时间列；不存在 `ui_language`、`preferred_practice_language`、`region`、`timezone`。TopBar display language 与 Practice language 不由该表持久化。
 - **TargetJob paste-only net-state**：`target_jobs.raw_jd_text` 是唯一 JD 原文列；`source_type` / `source_url` / `source_file_object_id` 不存在，`target_job_sources` 表不存在。独立 `source_records` 表保留，不作为 TargetJob 导入来源。
 - **上传 purpose net-state**：`file_objects` 保留 `resume` / `privacy_export` 与仍有 owner 的 DB-local purpose；不存在 JD attachment purpose。Resume 的 `source_type IN ('upload','paste')` 是简历域合同，不得因 TargetJob paste-only 被误删。
 - **Async job net-state**：`async_jobs.job_type` 不包含 JD source refresh；其它 canonical job 由 B3 owner 驱动。
@@ -104,6 +105,7 @@
 | D-24 | TargetJob paste-only schema | 保留 `target_jobs.raw_jd_text`；删除 TargetJob 来源列、来源表、JD attachment purpose 与 JD source refresh jobType；保留独立 `source_records`、resume/privacy purposes | 项目未上线，原地修订 baseline 与 enum/check source，不增加兼容 migration 或影子列 |
 | D-25 | Practice reply recovery | `practice_messages.reply_status` 对 user 必填且只允许 `pending/retryable_failed/terminal_failed/complete`；user 同时持久化内部 `reply_generation >= 1`，且仅 `pending` 持有 `reply_lease_expires_at`。assistant 的三项恢复字段均为 NULL；`client_message_id` 仍是 session 内唯一 replay key | 每次同 ID reserve 递增 generation，固定 90 秒 lease；GET 与同 ID reserve 惰性收敛过期 pending，commit/fail 以 generation CAS 隔离迟到 worker。generation/lease 不进入 OpenAPI |
 | D-26 | TargetJob report pointer removal | `target_jobs` 不保存 `latest_report_id` 或其他可变“当前报告”指针；报告当前态从 `feedback_reports` 与冻结 round context 按 backend-review 规则投影 | 避免一份易漂移的去规范化事实；项目未上线，原地修订 baseline/up/down、store 与 contract，不保留兼容列 |
+| D-27 | Settings display-preference column pruning | 新增 `000020_drop_user_settings_display_preferences` 删除 `user_settings.ui_language/preferred_practice_language/region/timezone`，保留 `analytics_opt_in`、user FK 与 timestamps | OPENAPI-007 + product-scope D-21；现有 dev DB 与 clean chain 都收敛到同一 net-state。down 只恢复结构/默认值，不伪造已删除历史偏好；不新增兼容列或第二张 preference 表 |
 
 #### 3.1.1 Field-Level Enum / Check 来源矩阵
 
@@ -211,6 +213,7 @@
 | C-14 | TargetJob paste-only schema migration | baseline 仍含旧 TargetJob source/attachment/refresh 结构 | 执行 001 Phase 10 的 clean/populated up/down/up 与 zero-ref probes | `raw_jd_text`、独立 `source_records`、resume/privacy purpose 保留；旧来源列/表、JD attachment purpose 与 JD source refresh jobType 不存在 | [001](./plans/001-bootstrap/plan.md) |
 | C-15 | Practice reply recovery migration | baseline 含既有 completed message pairs、pending user row 与 assistant rows | 执行 001 Phase 11 的 clean/populated up/down/up | user row 状态/generation/lease 联合约束正确；pending 有 90 秒 lease，非 pending 清 lease，assistant 三项均为 NULL；原 client/reply 唯一约束与 privacy cascade 保持 | [001](./plans/001-bootstrap/plan.md) + backend-practice/002 |
 | C-16 | TargetJob report pointer removal | baseline 仍含 `target_jobs.latest_report_id` | 执行 001 Phase 12 的 clean/populated up/down/up | 该列及 store/generated/public response 引用不存在；`feedback_reports`、冻结 report context 与用户隔离索引保持可用 | [001](./plans/001-bootstrap/plan.md) + backend-review/001 |
+| C-17 | Settings preference column pruning | DB 含旧 user_settings display/practice preference 值 | 执行 001 Phase 13 的 clean/populated up/down/up | 四个 obsolete columns 在 current up net-state 不存在；analytics opt-in、FK、timestamps 与 privacy cascade 保持；down 结构可恢复但不伪造旧值 | [001](./plans/001-bootstrap/plan.md) + backend-auth/001 + OPENAPI-007 |
 
 ## 7 关联计划
 

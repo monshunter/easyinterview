@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.62
+> **版本**: 1.63
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -30,6 +30,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 1.63 | 接受 OPENAPI-007：`UserContext` 删除无正式消费者的 required `uiLanguage/preferredPracticeLanguage`，保留四字段 closed current-user 投影；Auth method/path/status 与 session/profile/delete 语义不变，全部 consumer/migration 同批迁移后才 re-freeze。 | OPENAPI-007 + openapi-v1-contract/001/002/003 + backend-auth/001 + frontend-shell/001 + db-migrations-baseline/001 |
 | 2026-07-15 | 1.62 | 收紧 `ReportConversationMessage.content` 为 `minLength: 1` + `pattern: \S`，使 OpenAPI、后端投影、前端 fail-closed 和 fixture validator 一致；仍只影响 D-21 的 report-owned conversation additive schema finding。 | openapi-v1-contract/001 + 002 + 003 |
 | 2026-07-15 | 1.61 | 经产品确认，以 `GET /api/v1/reports/{reportId}/conversation getReportConversation` 一对一替换无入口价值的 `GET /api/v1/practice/sessions listPracticeSessions`；新增 closed report conversation schemas，删除无引用 `PaginatedPracticeSession` 与全部公共列表 fixture/generated/runtime consumer，保留 start/get live-session operations，inventory 仍为 37 operations / 10 tags；不保留兼容层。 | OPENAPI-001 v1.7 + 001 Phase 18 + 002 Phase 12 + 003 Phase 11 |
 | 2026-07-14 | 1.60 | 接受 OPENAPI-006：`RuntimeConfig.contentLimits` 改为 required closed 五字段 public projection；用户批准方案 A 与修订默认值，全部 generated/backend/frontend consumer 同批迁移且内部限制不公开。 | OPENAPI-006 + openapi-v1-contract/001/003 + secrets-and-config/001 + Resume/Home/Practice owners |

@@ -5,10 +5,10 @@ metadata:
   name: 001-app-shell-auth-settings
   sequence: 1
   baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
+  branch: settings-simplification
   specVersion:
-    from: 1.28
-    to: 1.30
+    from: 1.31
+    to: 1.32
 spec:
   defaultTarget: frontend
   discovery:
@@ -16,6 +16,7 @@ spec:
       - frontend-shell
       - app-shell-auth-settings
       - app shell auth settings
+      - settings simplification
     keywords:
       - TopBar
       - three entry navigation
@@ -42,6 +43,17 @@ spec:
       - dev mock session state
       - logout unauthenticated
       - user avatar dropdown
+      - single settings gear
+      - no user avatar dropdown
+      - settings runtime user context
+      - displayName emailMasked
+      - no duplicate getMe
+      - settings logout route
+      - privacy export unavailable
+      - delete account confirmation pending recovery
+      - deleteMe idempotency key
+      - no settings tabs security font product info
+      - no mobile interface language timezone rows
       - protected route guard
       - Recent mock interviews
       - listTargetJobs auth gate
@@ -77,6 +89,8 @@ spec:
         packages:
           - frontend/src
           - frontend/src/api
+          - frontend/src/app/topbar
+          - frontend/src/app/screens/SettingsScreen.tsx
           - test/scenarios/e2e/p0-101-auth-email-code-profile-setup
           - frontend/src/app/runtime
           - frontend/src/api/generated
@@ -100,6 +114,8 @@ spec:
           - startAuthEmailChallenge
           - verifyAuthEmailChallenge
           - completeMyProfile
+          - deleteMe
+          - requestPrivacyExport
           - logout
           - listTargetJobs
           - importTargetJob

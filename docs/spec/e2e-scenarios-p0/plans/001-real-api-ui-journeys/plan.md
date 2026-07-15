@@ -1,6 +1,6 @@
 # 001 Real API/UI Journeys
 
-> **版本**: 3.9
+> **版本**: 3.10
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -10,14 +10,14 @@
 
 ## 1 目标
 
-保留三个必须依赖真实运行环境的最小 P0 流程：P0.098 验证 completion 后持久化 round progress，P0.099 验证 report/generating 的真实 UI/API/DB 证据，P0.101 登记由 backend-auth/frontend-shell 持有业务合同的 Mailpit email-code/profile-setup 流程。代码层测试和 provider 可靠性评估由各自 owner 承接，不在场景 shell 中聚合。
+保留三个必须依赖真实运行环境的最小 P0 流程：P0.098 验证 completion 后持久化 round progress，P0.099 验证 report/generating 的真实 UI/API/DB 证据，P0.101 登记由 backend-auth/frontend-shell 持有业务合同的 Mailpit email-code/profile-setup/Settings/logout 流程。代码层测试和 provider 可靠性评估由各自 owner 承接，不在场景 shell 中聚合。
 
 ## 2 范围
 
 - P0.098：Mailpit 登录、真实 completion API、刷新 Home/Workspace/TargetJob 后的 round progress 一致性。
 - P0.098 不拦截或 fulfill session route，不创建 round-2 plan，也不把预置数据或数据库查询本身作为 E2E PASS。
 - P0.099：真实 frontend/backend/provider 下的 en/zh ready report、generating 与 report-owned conversation 页面，authenticated report APIs、只读 PostgreSQL 投影和精确六图 + 有界非图片证据。
-- P0.101：真实 frontend/backend/Mailpit 下的 email-code、首次 profile setup、logout/relogin；suite 只维护运行资产与 current-run 状态，不复制 auth 业务合同。
+- P0.101：真实 frontend/backend/Mailpit 下的 email-code、首次 profile setup、唯一设置齿轮、真实账号字段、Settings-owned logout/relogin；suite 只维护运行资产与 current-run 状态，不复制 auth/settings 业务合同，不执行 deleteMe。
 - 删除没有真实应用 API/UI 链路的 provider CLI/eval 场景 plan；相关可靠性验证保留为 code/eval gate。
 
 ## 3 质量门禁分类
@@ -35,7 +35,7 @@
 | progress after reload | persistence | P0.098 | Home/Workspace/TargetJob 投影不一致或仅内存更新 |
 | generating → report UI → conversation → back | primary | P0.099 | fixture-only 页面、sessionId route、公共 session list、伪 ready、跨 run evidence |
 | ready report desktop/mobile | responsive/privacy | P0.099 | 少于/多于六图、裁剪、用户数据/secret 泄露、digest 未绑定；普通 PNG 技术元数据不是隐私失败 |
-| email-code → profile setup → relogin | auth/session persistence | P0.101 | fixture transport、mock backend、跳过 Mailpit、完成账号重复补全 |
+| email-code → profile setup → Settings → logout/relogin | auth/session persistence | P0.101 | fixture transport、mock backend、跳过 Mailpit、完成账号重复补全、旧账号 dropdown/tab、静态账号值、破坏性 deleteMe |
 
 ## 5 实施步骤
 
@@ -57,7 +57,7 @@
 
 ### Phase 3: 分层回归与收口
 
-- 保持 P0.101 目录、auth owner 引用与 `Ready` 状态同步，不在 suite plan 复制 email-code 业务断言。
+- 原地扩展 P0.101 Playwright flow：profile setup 后点击唯一设置齿轮，以当前登录时提交的 displayName 和 `/me` 脱敏邮箱格式核对真实 Settings；断言旧账号 dropdown/tab 不存在；从 Settings 进入既有 logout 确认，再完成同邮箱 relogin。不得调用 deleteMe，也不得保存完整邮箱、验证码或 cookie 到证据。
 - 开发中运行必要 focused tests；完成时从根执行 `make test`。
 - 只在相应 owner 发生变化时独立运行 OpenAPI/codegen、migration、lint、build、prompt/eval gate；不把结果写成 E2E marker。
 - 静态校验场景目录、shell 语法、真实 Playwright 请求边界、docs/index/diff 与旧场景引用。真实环境运行由显式 `/scenario-run` 单独触发；未运行时场景保持 `Ready`，不记录 PASS。
@@ -67,7 +67,7 @@
 - P0.098 脚本通过真实 completion 后读取 Home、Workspace 与 TargetJob API，并要求 reload 后下一轮一致为 current；没有 route interception 或 round-2 plan creation。
 - P0.099 runbook 要求 exact-six evidence 绑定当前 run 的 DB/API/report/session/context/screenshot digest，且真实 desktop/390 页面完整显示 report/generating 状态；同一 run 的 bounded evidence 另证明 Report → Conversation → Back、strict message ordering 与零公共 session-list 请求，不增加截图。
 - P0.099 的隐私 gate 必须按项目用户数据与 secret 的可泄露性判定，不能因 PNG 色彩配置等开发过程元数据单独失败。
-- P0.101 通过真实 Mailpit code 完成首次 profile setup，并证明完成账号 logout/relogin 后不重复补全。
+- P0.101 通过真实 Mailpit code 完成首次 profile setup，证明唯一设置齿轮/真实账号字段/Settings logout，并证明完成账号 relogin 后不重复补全；不执行账号删除。
 - 场景脚本不调用 `go test`、Vitest/npm test、pytest、lint、build 或 provider CLI/eval。
 - 根 `make test` 作为独立全量单测回归通过后才能阶段收口。
 - 场景资产的 `Ready` 状态与 current-run 结果分开记录；只有显式 `/scenario-run` 的真实 API/UI 证据可以写入 PASS checklist。
@@ -76,6 +76,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 3.10 | Extend P0.101 in place with Settings gear, real account fields and Settings-owned logout while excluding destructive account deletion. |
 | 2026-07-15 | 3.9 | Scope P0.099 privacy rejection to project user data and secrets while retaining independent PNG integrity and digest checks. |
 | 2026-07-15 | 3.8 | Extend P0.099 with report-owned Conversation navigation and API/DB binding while preserving the exact-six screenshot contract through bounded non-image evidence. |
 | 2026-07-14 | 3.7 | Register P0.101 as the independent auth-owned real E2E asset and keep all three current-run gates explicitly pending until scenario execution. |

@@ -5,10 +5,10 @@ metadata:
   name: 001-real-api-ui-journeys
   sequence: 1
   baseBranch: main
-  branch: design/report-conversation-record
+  branch: settings-simplification
   specVersion:
-    from: 2.13
-    to: 2.14
+    from: 2.15
+    to: 2.16
 spec:
   defaultTarget: scenario
   discovery:
@@ -29,6 +29,8 @@ spec:
       - bounded non image conversation evidence
       - no public session list request
       - Mailpit email code profile setup
+      - P0.101 settings gear real account logout
+      - no deleteMe shared scenario
       - current-run evidence
   targets:
     scenario:
@@ -54,4 +56,5 @@ spec:
           - startAuthEmailChallenge
           - verifyAuthEmailChallenge
           - completeMyProfile
+          - getMe
           - logout

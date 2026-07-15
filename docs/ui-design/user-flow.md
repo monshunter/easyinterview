@@ -1,6 +1,6 @@
 # EasyInterview 目标用户流程
 
-> **版本**: 2.28
+> **版本**: 2.29
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -139,9 +139,14 @@ Auth
 ├─ auth_verify
 ├─ auth_profile_setup
 └─ auth_logout
+
+已登录 TopBar
+└─ 设置齿轮 -> Settings & privacy
+   ├─ Account: 姓名 / 脱敏邮箱 / 退出登录
+   └─ Privacy: 导出暂不可用 / 删除账号二次确认
 ```
 
-`auth_profile_setup` 是首次账号资料补全，用于登录后接续 pendingAction 前的账号基础信息确认，不是用户画像。
+`auth_profile_setup` 是首次账号资料补全，用于登录后接续 pendingAction 前的账号基础信息确认，不是用户画像。Settings 为无 tab 的受保护单页，复用 runtime `/me` 字段，不为手机号、界面语言、时区、登录安全、字体预设或产品信息制造静态占位。
 
 ## 9 范围外流程
 
@@ -173,6 +178,7 @@ Auth
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 2.29 | 采用设置简化方案 A：已登录 TopBar 只保留设置齿轮，Settings 只承接真实账号字段、退出、导出不可用与账号删除。 |
 | 2026-07-15 | 2.28 | Workspace 详情将绑定简历改为标题旁详情链接，并把立即面试/面试报告合并为左对齐首行动作行。 |
 | 2026-07-14 | 2.27 | 将 Parse 收窄为新导入 queued/processing 进度；ready replace 与既有规划、Reports Back 均进入 targetJobId-only Workspace 详情。 |
 | 2026-07-14 | 2.26 | 增加从规划详情进入 target-scoped Reports 的流程，并锁定 current/latest-only、Back 路径、鉴权与非全局入口边界。 |

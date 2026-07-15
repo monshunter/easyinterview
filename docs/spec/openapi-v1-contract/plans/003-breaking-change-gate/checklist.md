@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
-> **版本**: 1.22
+> **版本**: 1.23
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -105,3 +105,11 @@
   <!-- verified: 2026-07-15 method=base-ref-audit evidence="OPENAPI-001 v1.7 audit PASS: 37 operations, 10 tags, unchanged start/get Practice operations, protected Reports GET, 2 breaking + 13 additive findings, errors=[]" -->
 - [ ] 11.4 HANDOFF-GATE: 001/002, backend-practice, backend-review, frontend-report, mock and downstream BDD gates pass before baseline edit with zero positive/runtime list surface.
 - [ ] 11.5 RE-FREEZE: preserve deterministic old-baseline artifact, re-freeze, then independently run current diff/lint/fixture/codegen/downstream/root-test/docs gates；clean current diff alone is insufficient.
+
+## Phase 12: OPENAPI-007 Settings UserContext pruning
+
+- [ ] 12.1 GOVERNANCE/RED: accepted OPENAPI-007 + spec/history 1.63 exist；merge-base baseline remains byte-stable and focused diff proves the two old UserContext required properties before any baseline edit.
+- [ ] 12.2 ORACLE-GATE: generate exact five-key findings from old baseline → proposed source for both old fields leaving required/properties plus `additionalProperties: false` closure；reject missing/extra/wildcard/placeholder, edited baseline, optional aliases or constant-filled compatibility fields.
+- [ ] 12.3 INVARIANT-GATE: preserve 37/10 and exact getMe/completeMyProfile/deleteMe method/path/operationId/status/security；lock four-field closed required UserContext, email masking and profile completion.
+- [ ] 12.4 HANDOFF-GATE: 001/002, backend-auth, frontend-shell, B4 migration, mock and downstream Settings BDD pass before baseline edit with production old-field references at zero.
+- [ ] 12.5 RE-FREEZE/REGRESSION: preserve audit, re-freeze, then independently run diff/lint/fixture/codegen/consumer/migration/root-test/contexts/docs gates；clean current diff alone is insufficient.

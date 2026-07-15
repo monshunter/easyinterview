@@ -1,8 +1,8 @@
 # EasyInterview UI 目标模块地图
 
-> **版本**: 2.19
+> **版本**: 2.20
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 文档目的
 
@@ -18,9 +18,9 @@
 | Reports / 当前规划报告 | 查看一个面试规划各轮当前报告与最新生成状态 | target-scoped canonical round list、loading/empty/error、进入 report/generating | 规划上下文页面，不是 TopBar 一级导航或全局中心 |
 | Report Dashboard | 查看一次已完成模拟面试的报告 | 仪表盘、上下文条、准备度、维度、证据、下一步；Header 唯一一对复练 / 下一轮 CTA | 隶属于 session，不是一级导航 |
 | Resume / 简历 | 管理简历资产 | 平铺简历列表、上传/粘贴创建后直接打开详情、只读原始正文、LLM-derived displayName、禁止 raw 第一行/文件名命名 | 一级导航 |
-| Account & Settings / 设置与隐私 | 管理账号基础信息、登录安全、界面偏好和隐私 | 个人基础信息、登录方式、字体预设、导出、删除 | 用户菜单入口 |
+| Account & Settings / 设置与隐私 | 查看真实账号信息并执行账号与隐私动作 | 只读姓名/脱敏邮箱、退出登录、导出暂不可用、删除账号 | 已登录 TopBar 设置齿轮入口 |
 | Auth / 认证 | 登录和退出 | 邮箱验证码登录、邮箱验证、首次账号资料补全、退出登录 | 操作级触发，不是默认入口 |
-| Global Display Controls / 全局显示控制 | 调整 UI 呈现 | 顶栏 Ocean / Plum / custom accent（仅色相、饱和度）、暗色模式、语言下拉，设置页字体预设 | 横切能力；custom accent 无 preview/value/reset，选择 Ocean / Plum 即退出自定义色 |
+| Global Display Controls / 全局显示控制 | 调整 UI 呈现 | 顶栏 Ocean / Plum / custom accent（仅色相、饱和度）、暗色模式、语言下拉 | 横切能力；custom accent 无 preview/value/reset，选择 Ocean / Plum 即退出自定义色；字体采用固定产品栈 |
 
 ## 3 当前归属与合并入口
 
@@ -33,7 +33,7 @@
 | `reports` | Reports / 当前规划报告 | 只接受 targetJobId 的规划范围索引；不作为顶部导航 |
 | `generating` | Interview / Report 过渡态 | 报告生成状态，不作为顶部导航 |
 | `report` | Report Dashboard | 会话级报告详情，不作为顶部导航 |
-| `settings` | Account & Settings | 用户菜单入口 |
+| `settings` | Account & Settings | 已登录 TopBar 设置齿轮入口；退出登录位于页面内 |
 | `auth_*` | Auth | 认证流程页面 |
 
 ## 4 当前范围外模块和流程
@@ -62,7 +62,7 @@
 | `generating` | ReportGenerating | 报告生成过渡态 |
 | `report` | Report Dashboard(reportId) | 会话级详情 |
 | `resume_versions` | Resume / 简历 | 一级导航 |
-| `settings` | Account & Settings | 用户菜单入口 |
+| `settings` | Account & Settings | 已登录设置齿轮直达的受保护单页 |
 | `auth_login` | Auth | 登录页 |
 | `auth_verify` | Auth | 邮箱验证页 |
 | `auth_profile_setup` | Auth | 首次账号资料补全页 |
@@ -110,7 +110,7 @@ User
 ## 7 一致性约束
 
 1. 顶部导航只出现 `首页 / 面试 / 简历`。
-2. 用户菜单只出现 `设置与隐私 / 退出登录`。
+2. 已登录 TopBar 账号区只出现一个设置齿轮；退出登录只从 Settings 进入既有确认页。
 3. `debrief`、`debrief_full`、`profile` 不得作为目标 route、screen key、data-testid 正向锚点或场景正向入口。
 4. `auth_profile_setup` 是账号资料补全，不是用户画像。
 5. 复盘和用户画像不得作为静态源码、设计文档、正式前端、OpenAPI、backend、migrations、shared、config、scenario 正向资产。
@@ -119,3 +119,10 @@ User
 8. Custom accent picker 只保留 hue/saturation；preview/value 区、“恢复主题默认色 / Reset to theme accent”与 `onClear` / `active` 冗余 props 必须零引用。Ocean / Plum 是退出自定义色的唯一预定义主题动作。
 9. ready Home/Workspace 卡片只进入 `/workspace?targetJobId`，不得 import、poll、播放 Parse animation 或使用 `planId/resumeId` 做详情 locator；只有 Home POST import 进入 `/parse?targetJobId` 命令进度。
 10. Practice user/assistant Markdown 投影启用 `skipHtml` 且不使用 `rehypeRaw`；remote image/unsafe URI 不执行，安全 link hardened，same-ID retry 使用原始 text/clientMessageId，mobile code/table 不造成 document overflow。
+11. Settings 不保留 tab、登录安全、字体预设、产品信息或手机号/界面语言/时区等无当前数据源字段；Account 只读展示 runtime `/me` 姓名与脱敏邮箱，Privacy 只展示导出不可用和删除账号。
+
+## 8 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-15 | 2.20 | 采用设置简化方案 A：账号入口收敛为设置齿轮，Settings 只保留真实账号/隐私动作，全局字体改为固定产品栈。 |

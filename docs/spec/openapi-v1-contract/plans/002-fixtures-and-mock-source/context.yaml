@@ -5,10 +5,10 @@ metadata:
   name: 002-fixtures-and-mock-source
   sequence: 2
   baseBranch: main
-  branch: feat/report-conversation-record-0715
+  branch: settings-simplification
   specVersion:
-    from: 1.60
-    to: 1.62
+    from: 1.62
+    to: 1.63
 spec:
   defaultTarget: contract
   discovery:
@@ -60,6 +60,10 @@ spec:
       - delete listPracticeSessions fixture
       - getReportConversation Prism parity
       - 37 fixture one for one replacement
+      - OPENAPI-007 settings UserContext fixtures
+      - getMe four fields
+      - completeMyProfile four fields
+      - remove uiLanguage preferredPracticeLanguage fixtures
   targets:
     contract:
       plan: ./plan.md
@@ -70,6 +74,7 @@ spec:
         - ../../decisions/OPENAPI-002-targetjob-paste-only.md
         - ../../decisions/OPENAPI-004-targetjob-report-overview.md
         - ../../decisions/OPENAPI-005-resume-list-summary.md
+        - ../../decisions/OPENAPI-007-settings-user-context-pruning.md
         - ../001-bootstrap/plan.md
         - ../003-breaking-change-gate/plan.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
@@ -94,3 +99,5 @@ spec:
           - sendPracticeMessage
           - listResumes
           - getResume
+          - getMe
+          - completeMyProfile

@@ -1,8 +1,8 @@
 # DB Migrations Baseline Bootstrap Checklist
 
-> **版本**: 1.23
+> **版本**: 1.24
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -119,3 +119,11 @@
   <!-- verified: 2026-07-14 method=migration+store+consumer-green evidence="The baseline and every TargetJob record/SQL/scan/service consumer are pointer-free; focused migration, full TargetJob and frontend real-API tests pass, and six current production surface scans are clean." -->
 - [ ] 12.3 REGRESSION-GATE: clean/populated PostgreSQL up/down/up plus TargetJob/review integrations preserve report rows, frozen context, user isolation and canonical overview ordering inputs.
 - [ ] 12.4 ZERO-REF: exact production/generated/OpenAPI/fixture/migration scan has no old field/column; backend-review current-report projection remains the sole owner.
+
+## Phase 13: Settings display-preference column pruning
+
+- [ ] 13.1 RED: migration SQL contract fails while post-chain `user_settings` still exposes ui_language/preferred_practice_language/region/timezone or fails to preserve user_id/analytics_opt_in/timestamps/FK cascade.
+- [ ] 13.2 GREEN: create reversible 000020 up/down；up drops exact four columns and no others，down restores prior structure/defaults without claiming deleted value recovery；no shadow/view/compatibility table.
+- [ ] 13.3 POPULATED-GATE: isolated PostgreSQL up/down/up proves analytics opt-in value survives current up, obsolete values are removed, down/up is structurally valid and account hard-delete cascade still removes user_settings.
+- [ ] 13.4 HANDOFF-GATE: backend-auth current-user store no longer selects/scans old fields；OpenAPI/generated/frontend/mock consumers are migrated before B2 re-freeze；production zero-reference scan is clean.
+- [ ] 13.5 BDD-N/A/REGRESSION: migration contract/lint, clean+populated `make migrate-check`, privacy matrix, root `make test`, contexts/docs/diff pass；no E2E is added for internal column removal.

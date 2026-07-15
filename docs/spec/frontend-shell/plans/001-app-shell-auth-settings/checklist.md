@@ -1,10 +1,12 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.28
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.29
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
+
+> Phase 1-13 的勾选项是历史证据；Phase 14 取代其中账号 chip/dropdown、Settings tab 与 font preset 的旧正向口径。
 
 ## Phase 1: App shell and route contract
 
@@ -88,3 +90,12 @@
 - [x] 13.3 Prove the separation/bypass matrix: different client/query/header/okStatuses/epoch/auth never merge；caller `AbortSignal`、every non-GET and semantic-write GET bypass coalescing；every semantic mutation advances read epoch before dispatch and after resolve/reject settle；`/auth/email/verify` also advances auth/session epoch on success；settle then retry creates a new underlying request.
 - [x] 13.4 Narrow `AppRuntimeProvider`、Home/`useRecentTargetJobs`、Parse、`useWorkspaceTargetJobs`、Reports and Practice loader dependencies to stable client/auth/request-option/route identity inputs without suppressing real locale/auth/epoch refreshes; keep React StrictMode enabled.
 - [x] 13.6 Run focused single-flight/runtime/each-loader tests, auth verify epoch tests, full frontend typecheck/build, owner contexts, `make docs-check`, `git diff --check` and broad-runtime-object dependency negative searches before restoring `completed`.
+
+## Phase 14: settings simplification and real account actions
+
+- [ ] 14.1 RED-GATE: focused TopBar/Settings/source tests fail while the signed-in avatar/name chip, dropdown/backdrop/TopBar logout, settings tab rail, sign-in/security, font preset, product info, static privacy list, mobile/interface-language/time-zone fields or their locale/CSS/testid residues remain positive surfaces.
+- [ ] 14.2 TOPBAR-GATE: replace the signed-in account chip/menu with one localized settings icon button that navigates directly to `settings`; retain signed-out login, desktop/mobile viewport containment, >=40px hit area, keyboard focus and accessible name; remove obsolete state/helpers/selectors without aliases.
+- [ ] 14.3 ACCOUNT-GATE: render read-only `displayName/emailMasked` from authenticated `AppRuntimeContext` and route sign-out through existing `auth_logout`; tests prove Settings mount performs zero additional `getMe` calls and unauthenticated deep links preserve safe pendingAction.
+- [ ] 14.4 PRIVACY-GATE: render export as typed P0 unavailable with a readable reason and no trigger；wire generated `deleteMe` behind an accessible destructive dialog (description, initial/trapped/returned focus, Escape/cancel), one confirmation-lifecycle idempotency key, pending close/submit lock, recoverable failure/retry and typed `401` auth re-probe；after `202`, reuse existing `refreshAuth()` to re-probe `/me` (expected 401), commit unauthenticated state and replace Home without a new session-clearing method；probe network/server errors remain honest auth errors.
+- [ ] 14.5 BDD-Gate: complete `BDD.SHELL.SETTINGS.001`, `BDD.SHELL.SETTINGS.002` and `BDD.SHELL.SETTINGS.DELETE.001`; extend `E2E.P0.101` only for real settings entry/account fields/logout and keep account deletion in domain/contract tests.
+- [ ] 14.6 REGRESSION-GATE: run focused component/domain tests, root `make test`, frontend typecheck/build, B2 fixture/codegen/migration negative gates, owner contexts, `sync-doc-index --check`, `make docs-check`, `git diff --check` and old-surface zero-reference scans before restoring `completed`.

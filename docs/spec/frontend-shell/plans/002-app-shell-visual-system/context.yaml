@@ -5,10 +5,10 @@ metadata:
   name: 002-app-shell-visual-system
   sequence: 2
   baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
+  branch: settings-simplification
   specVersion:
-    from: 1.28
-    to: 1.29
+    from: 1.31
+    to: 1.32
 spec:
   defaultTarget: frontend
   discovery:
@@ -29,6 +29,10 @@ spec:
       - Ocean Plum custom exit
       - typography scale
       - fontsource
+      - fixed font stack
+      - Noto Serif SC Inter JetBrains Mono only
+      - remove font presets
+      - remove Source Serif Pro Cormorant Garamond IBM Plex Sans Geist
       - CSS variables
       - data-theme attribute
       - data-mode attribute
@@ -38,6 +42,10 @@ spec:
       - TopBar visual contract
       - Auth visual contract
       - Settings visual contract
+      - single settings gear visual
+      - no account chip dropdown
+      - Account Privacy settings page
+      - unavailable destructive pending error states
       - visual smoke
       - no external design system
       - no private fonts

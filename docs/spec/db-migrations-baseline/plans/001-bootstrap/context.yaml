@@ -5,10 +5,10 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   baseBranch: main
-  branch: fix/interview-turn-ux-0713
+  branch: settings-simplification
   specVersion:
-    from: 1.36
-    to: 1.37
+    from: 1.37
+    to: 1.38
 spec:
   defaultTarget: backend
   discovery:
@@ -54,6 +54,10 @@ spec:
       - reply lease expires at
       - target jobs latest report id removed
       - no report pointer column
+      - user settings display preference pruning
+      - 000020 drop user settings display preferences
+      - remove ui language preferred practice language region timezone
+      - retain analytics opt in
   targets:
     backend:
       plan: ./plan.md
@@ -62,6 +66,8 @@ spec:
       references:
         - ../../../backend-review/spec.md
         - ../../../backend-review/plans/001-report-generation-baseline/plan.md
+        - ../../../backend-auth/spec.md
+        - ../../../openapi-v1-contract/decisions/OPENAPI-007-settings-user-context-pruning.md
       discovery:
         packages:
           - migrations

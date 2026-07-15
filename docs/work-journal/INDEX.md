@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-15](2026-07-15.md) | `docs(settings): formalize account settings simplification` | #docs #ui #api #test #bdd |
 | [2026-07-15](2026-07-15.md) | `feat(frontend): implement responsive interview layouts` | #feat #ui #test #docs #bdd #i18n |
 | [2026-07-15](2026-07-15.md) | `feat(report): integrate readonly conversation record (BUG-0173, BUG-0174)` | #feat #api #ui #test #docs #bdd |
 | [2026-07-15](2026-07-15.md) | `docs(ui): revise resume interview and report layouts` | #docs #ui #test #bdd |

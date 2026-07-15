@@ -1,12 +1,12 @@
 # 认证与默认入口
 
-> **版本**: 1.24
+> **版本**: 1.25
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 文档目的
 
-本文档定义当前默认入口、认证触发点、pendingAction 接续和用户菜单边界。当前用户菜单只包含设置与隐私、退出登录和未登录入口。
+本文档定义当前默认入口、认证触发点、pendingAction 接续和账号设置边界。未登录时显示登录入口；已登录时不再显示账号 chip 或用户菜单，只显示一个设置齿轮。
 
 ## 2 已确认决策
 
@@ -15,8 +15,8 @@
 3. 登录是操作级拦截，不是默认前置页。
 4. 登录成功后若 `profileCompletionRequired=true`，进入 `auth_profile_setup`；完成账号资料补全后接续 pendingAction。
 5. `auth_profile_setup` 是账号资料补全，不是用户画像。
-6. 已登录用户菜单只显示 `设置与隐私` 和 `退出登录`。
-7. `用户画像` 不是用户菜单入口。
+6. 已登录 TopBar 账号区只显示一个带可访问名称的设置齿轮，直接进入 `settings`；退出登录迁入设置页。
+7. `用户画像` 不是 TopBar 或设置页入口。
 8. `复盘` 不是业务入口或登录触发点。
 9. `/reports?targetJobId=...` 是受保护的规划上下文页面；鉴权接续只保留合法 `targetJobId`，但它不进入 TopBar 一级导航。
 10. `/workspace?targetJobId=...` 是受保护的只读规划详情；`/workspace` 是列表。`/parse?targetJobId=...` 只允许接续已创建的新导入 queued/processing 命令，ready 后 replace 到 Workspace 详情。
@@ -31,16 +31,17 @@
    └─ 创建简历入口
 ```
 
-## 4 用户菜单
+## 4 TopBar 账号区
 
 ```text
 未登录
 └─ 登录
 
 已登录
-├─ 设置与隐私 -> settings
-└─ 退出登录 -> auth_logout
+└─ 设置齿轮 -> settings
 ```
+
+设置齿轮必须是标准 button，具备 `aria-label="设置与隐私 / Settings & privacy"`、清晰 focus ring 和至少 40×40px 点击区域。desktop 与 mobile 都不得再出现头像、姓名、caret、backdrop 或账号 dropdown。
 
 ## 5 认证页面
 
@@ -70,7 +71,7 @@ auth_logout
 | 复练当前轮 | `practice` | 从 report header 发起 |
 | 进入下一轮 | `practice` | 从 report header 发起 |
 | 保存简历 | `resume_versions` | 创建或编辑简历 |
-| 打开设置 | `settings` | 账号和隐私设置 |
+| 打开设置 | `settings` | 已登录用户通过设置齿轮或受保护深链进入账号和隐私设置；route 不携带用户字段 |
 
 不得创建 pendingAction 到 `debrief`、`debrief_full` 或 `profile`。
 
@@ -85,10 +86,35 @@ auth_logout
 
 ## 8 后续实现输入
 
-1. TopBar 用户菜单不得包含 `用户画像`。
+1. TopBar 已登录账号区只能有设置齿轮；不得包含头像/姓名 chip、dropdown、退出按钮或 `用户画像`。
 2. 未登录保护路由不得把 `debrief` 或 `profile` 当业务目标。
 3. 正式前端、URL fallback 和 scenario 都必须覆盖范围外入口负向。
-4. 设置页只承载账号、界面偏好和隐私数据控制。
+4. 设置页为无 tab 单页，只承载真实账号字段、退出登录和当前可执行的隐私状态/动作；界面语言、主题和暗色继续由 TopBar 控制，字体不再可配置。
 5. `import_jd` pendingAction 只接续粘贴文本入口；路由只携带 opaque pending id 与业务 ID，不携带 JD 原文或导入类型。
 6. `reports` pendingAction 只允许 `targetJobId`；`section`、report/status/round、原文和其他业务状态必须剔除。登录恢复后仍由受保护 API 校验规划归属。
 7. `workspace` / `parse` pendingAction 只允许合法 `targetJobId`；不得接续 `planId`、`resumeId`、analysis status、动画步数或 auto-start 等业务事实。恢复后分别由受保护 API 判定只读详情或命令进度，ready Parse 必须 replace 到 Workspace detail。
+
+## 9 设置页单页合同
+
+```text
+Settings & privacy
+├─ Account
+│  ├─ Display name: /me.displayName（只读）
+│  ├─ Login email: /me.emailMasked（只读）
+│  └─ Sign out -> auth_logout
+└─ Privacy & data
+   ├─ Export data: 暂不可用（不可触发伪成功）
+   └─ Delete account -> destructive confirmation
+```
+
+- `SettingsScreen` 复用 runtime 已取得的 authenticated user，不为页面挂载重复调用 `getMe`；loading/error/unauthenticated 仍由统一 route guard 处理。
+- 不渲染 tab rail、手机号、界面语言行、时区、登录与安全、字体预设、产品信息、数据留存开关、数据概览、删除单次会话或删除所有练习数据等没有当前数据源/operation 的静态条目。
+- 数据导出沿用 P0 `501 PRIVACY_EXPORT_NOT_AVAILABLE` 契约，默认显示禁用态和可读的“暂不可用”原因；不得展示为可触发按钮，也不得把静态文案或未发请求状态显示成已受理。
+- 删除账号点击后打开二次确认；确认前无副作用。对话框使用 destructive title/description、初始焦点、焦点约束、Escape/取消和关闭后焦点归还；pending 时禁止关闭和重复提交。失败保留对话框、显示可恢复错误并允许重试；`401` 进入统一认证重探测，不继续展示可重试删除；成功收到 `202` 后调用现有 `refreshAuth()` 重探测 `/me`（预期 401），提交 unauthenticated 状态并 replace Home。一次确认生命周期内的网络重试复用同一 idempotency key，不新增第二套清 session 方法；重探测若遇网络/服务错误，诚实保留 auth error，不伪装成已确认退出。
+- 退出登录继续进入既有 `auth_logout` 确认页，不在设置页复制第二套 logout mutation 或确认文案。
+
+## 10 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-15 | 1.25 | 采用设置简化方案 A：已登录 TopBar 仅保留设置齿轮，设置页改为无 tab 的真实账号/隐私单页，并明确退出、导出不可用与账号删除状态机。 |

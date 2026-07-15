@@ -1,6 +1,6 @@
 # 001 Real API/UI Journeys Checklist
 
-> **版本**: 4.1
+> **版本**: 4.2
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -41,3 +41,10 @@
 - [x] 4.5 BDD-Gate: run `E2E.P0.099` against the current real environment, complete exact-six no-OCR audit plus bounded conversation navigation/API/DB evidence, and record current-run PASS.
   <!-- verified: 2026-07-15 run_id="e2e-p0-099-20260715T021319Z-57232" result="PASS" evidence="exact six Chrome full-page screenshots; live API/PostgreSQL/conversation/back binding; manual-visual-audit.json; bounded redaction" -->
 - [ ] 4.6 BDD-Gate: run `E2E.P0.101` against the current real environment and record current-run PASS.
+
+## Phase 5: P0.101 Settings extension
+
+- [ ] 5.1 ASSET-RED: tracked P0.101 test fails until the post-profile flow can click the sole settings gear and rejects the old account chip/dropdown/settings tabs.
+- [ ] 5.2 REAL-DATA-GATE: Settings assertions use the current run's submitted displayName plus masked-email format from real `/me`；network evidence proves real backend and no duplicate Settings-mounted `getMe`.
+- [ ] 5.3 LOGOUT-GATE: enter existing auth_logout from Settings, confirm session clears, then relogin with the same email without repeating profile setup；never call deleteMe.
+- [ ] 5.4 PRIVACY/STATIC-GATE: evidence excludes full email/code/cookie and remains `Ready` until explicit scenario run；syntax/interception/docs/index checks pass without wrapping code tests.
