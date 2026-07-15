@@ -1,7 +1,7 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 3.7
-> **状态**: active
+> **版本**: 3.8
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-在既有 report UI owner 内交付规划范围的独立 ReportsScreen、grounded direct semantic report、诚实 generating 与 report-owned 只读 conversation：列表只展示当前 TargetJob canonical rounds 的 current report 与 latest attempt，不做全局中心或完整历史；ready 详情保留 `3/2/2/2/1` 当前设计合同；会话记录以 reportId-only 附属页复用安全 Markdown message renderer，不建立 session 列表或实时控制。
+在既有 report UI owner 内交付规划范围的独立 ReportsScreen、grounded direct semantic report、诚实 generating 与 report-owned 只读 conversation：列表只展示当前 TargetJob canonical rounds 的 current report 与 latest attempt，不做全局中心或完整历史；ready 详情采用 `4/2/2/2/1` 当前设计合同；会话记录以 reportId-only 附属页复用安全 Markdown message renderer，不建立 session 列表或实时控制。
 
 ## 2 Operation Matrix
 
@@ -33,13 +33,13 @@
 | Phase 7.4 | `backend-practice/004 Phase 3` server-derived request/focus PASS | frontend removes all derived settings/identity/focus route authority |
 | Phase 8 | backend 6-8 + frontend 6-7 PASS | code gates close deterministic behavior；P0.099 is reserved for an explicitly run real report/generating UI acceptance |
 | Phase 13 | OpenAPI 001/002/003 + backend-review report-owned read PASS | formal frontend 只消费 generated `getReportConversation`；不恢复 `listPracticeSessions` 或已删除 Demo runtime |
-| Phase 12 | current OpenAPI `FeedbackReport.summary` + `preparednessLevel` and frontend report owner | layout-only change；do not modify API、backend、persistence or model prompt |
+| Phase 12 | current OpenAPI `FeedbackReport.context.resumeId`、`summary` + `preparednessLevel` and frontend report owner | layout/navigation-only change；do not modify API、backend、persistence or model prompt |
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: user-visible UI + API consumer + contract migration + UX truthfulness。
-- **TDD 策略**: `/implement` → `/tdd`；先在当前正式 frontend component/responsive tests 建立 `3/2/2/2/1`、唯一 summary 与 bottom full-width Overall Summary 的 RED，再做最小 UI/i18n 实现。
-- **BDD 策略**: `BDD.REPORT.UI.001` 由代码层 owner tests 验证 generating/ready/failed、ready `3/2/2/2/1`、replay/next/back 与 fail-closed 行为，并由仓库根 `make test` 统一回归；P0.099 仅作为真实 full-stack report/generating UI/API 与 exact-six screenshots 的独立 handoff，只有显式真实运行后才产生 PASS。
+- **TDD 策略**: `/implement` → `/tdd`；先在当前正式 frontend component/responsive tests 建立 `4/2/2/2/1`、上下文 link semantics、双列等高、唯一 summary 与 bottom full-width Overall Summary 的 RED，再做最小 UI/i18n/CSS 实现。
+- **BDD 策略**: `BDD.REPORT.UI.001` 由代码层 owner tests 验证 generating/ready/failed、ready `4/2/2/2/1`、上下文链接、同行等高、replay/next/back 与 fail-closed 行为，并由仓库根 `make test` 统一回归；P0.099 仅作为真实 full-stack report/generating UI/API 与 exact-six screenshots 的独立 handoff，只有显式真实运行后才产生 PASS。
 - **替代验证 gate**: source traceability、i18n exact set、typecheck/build、DOM order、computed-style/bbox/responsive/accessibility 与正式 frontend deterministic visual artifacts 作为独立 code/UI gates，不包装为 E2E。
 
 ## 4 Coverage Matrix
@@ -47,7 +47,7 @@
 | Source | Category | Phase | Verification | UI anchor | Negative |
 |--------|----------|-------|--------------|-----------|----------|
 | spec C-1 | UX truthfulness | 6 | generating component/polling tests | screens-p0-complete::ReportGeneratingScreen | fake progress/live observation/notify |
-| spec C-2 | primary/layout | 12 | component/DOM-order/responsive tests | ReportDashboard `3/2/2/2/1` | top readiness/summary、duplicate summary、bottom card not full width |
+| spec C-2 | primary/layout | 12 | component/DOM-order/responsive tests | ReportDashboard `4/2/2/2/1` | detached conversation entry、missing resume URL、unequal same-row panels、top readiness/summary、duplicate summary、bottom card not full width |
 | spec C-3 | interaction | 7 | CTA variant/a11y tests | ReportHeader | fixed replay-primary styling |
 | spec C-4 | business truth | 7 | request/server-projection contract tests | buildReplayPayload/startPractice | URL/client focus authority |
 | spec C-5 | UX boundary | 12 | 1440/390 bbox/overflow/full-content tests | ContextStrip/DetailGrid/OverallSummary | unrecoverable ellipsis、wrong mobile order、two-column mobile |
@@ -57,7 +57,7 @@
 | spec C-9 | business truth | 7 | deep-link/route-tamper tests | ReportScreen/ContextStrip/CTA | route status/identity authority |
 | spec C-10 | i18n boundary | 7 | mixed UI/report language tests | chrome vs semantic content | client translation of model labels/evidence/actions |
 | spec C-11 | replay boundary | 7 | empty/non-empty focus table tests | Replay CTA/direct contract | empty-focus rejection、unsupported non-empty focus normalization |
-| spec C-12 | privacy/UX negative | 9 | sentinel-ID DOM/a11y tests + real-backend browser acceptance manifest | ContextStrip target/round/resume | visible session/report UUID; deleted internal API/CTA identity |
+| spec C-12 | privacy/UX negative | 12 | sentinel-ID DOM/a11y tests + real-backend Chrome acceptance manifest | ContextStrip target/round/resume/interview record; frozen resume URL; privacy-preserving conversation action | visible session/report UUID; detached entry; missing resume URL; deleted internal API/CTA identity |
 | spec C-13 | current-plan list | 10 | ReportsScreen target/overview table tests | ReportsScreen canonical round list | cross-target rows / full history / Parse list consumer |
 | spec C-14 | navigation recovery | 10 | Report/Generating Back table tests | Back control | workspace-only back / route target authority / detail-screen list consumer |
 | spec C-15 | command/read separation | 11 | ReportsScreen Back route tests + current-scope route negative | Reports Back control | Parse navigation/animation/import/poll; extra Workspace query params |
@@ -121,7 +121,7 @@ Replay/Next URL/request 删除 settings/identity/focus/evidence gaps；closed de
 
 门禁：fixture 使用彼此不同的 `report.id` / `sessionId` sentinel，focused tests 逐值拒绝它们出现在 textContent、title/tooltip、`aria-*` 或 accessible name，同时正向证明 OpenAPI/report contract 仍要求合法 UUID、CTA 仍使用 `sourceReportId`。删除孤儿 `report.context.session` locale key 并做 zero-reference。Deterministic 1440/390 DOM/style/viewport component assertions 作为 frontend code gate 执行，不登记为 E2E。
 
-面向用户的成功证据必须由 `/agent-browser` 从同一真实 backend ready report 的正式 frontend 另存到 `.test-output/acceptance/report-context-strip/<run-id>/`，不依赖场景临时输出。目录只允许三项：`report-context-strip-desktop-1440x1200.png`（exact 1440x1200）、`report-context-strip-mobile-390x844.png`（exact 390x844）与 `manifest.json`；两图都必须 `fullPage: true`，不得使用 fixture-only 页面、裁剪图或额外状态图。manifest 逐图记录 relative path、SHA-256、`state=ready`、viewport、`fullPage=true`、同一 report 的脱敏 locator/digest、`reportSentinelAbsent=true`、`sessionSentinelAbsent=true`，并链接 DOM/a11y negative audit；截图正向显示 target/round/resume，负向不存在 report/session sentinel。
+面向用户的成功证据必须由 Chrome 从同一真实 backend ready report 的正式 frontend 另存到 `.test-output/acceptance/report-context-grid/`，不依赖场景临时输出。目录只允许三项：`report-desktop-1440x1200-full.png`（exact 1440x1200 viewport）、`report-mobile-390x844-full.png`（exact 390x844 viewport）与 `manifest.json`；两图都必须 `fullPage: true`，不得使用 fixture-only 页面、裁剪图或额外状态图。manifest 逐图记录 relative path、SHA-256、`state=ready`、viewport、`fullPage=true`、同一 report 的脱敏 locator digest、`reportSentinelAbsent=true`、`sessionSentinelAbsent=true`，并绑定 DOM/a11y/geometry audit；截图正向显示 target/round/resume/interview record，简历 URL 与 conversation action 行为通过，负向不存在 report/session sentinel。
 
 ### Phase 10: Independent current-plan reports list and Back recovery
 
@@ -153,21 +153,21 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 
 #### 12.1 RED: lock semantic ownership and order
 
-在 `ConversationReport` owner tests 中先证明当前实现仍把 readiness + `summary` 放在顶部第三张指标卡而失败。新增断言锁定 ready DOM 顺序：Context Strip 三项、两个数量指标、Dimensions/Strength Evidence、Risks/Next Actions、最后一个 Overall Summary；`summary` 全页只出现一次，readiness 不在 Summary Metrics，Overall Summary 标题使用本地化“面试总评”。
+在 `ConversationReport` owner tests 中锁定 ready DOM 顺序：Context Strip 四项、两个数量指标、Dimensions/Strength Evidence、Risks/Next Actions、最后一个 Overall Summary；`summary` 全页只出现一次，readiness 不在 Summary Metrics，Overall Summary 标题使用本地化“面试总评”。新增 RED 证明游离的 conversation entry、无 canonical resume URL 与未填满行高的 panel card 违反当前合同。
 
-#### 12.2 GREEN: implement `3/2/2/2/1`
+#### 12.2 GREEN: implement `4/2/2/2/1`
 
-只修改正式 `ReportDashboard`、必要样式与 zh/en locale：desktop 按 `3/2/2/2/1` 分组，Overall Summary 位于最低端并跨满内容网格；mobile 保持相同 DOM 顺序且各组单列。Overall Summary 展示 localized readiness tier 与服务端 `summary` 原文，不改写、不生成第二份摘要。现有 OpenAPI `summary` / `preparednessLevel` 足够，本阶段禁止修改 backend、schema、fixture contract、persistence 或 prompt。
+只修改正式 `ReportDashboard` / `ReportContextStrip`、必要样式与 zh/en locale：desktop 按 `4/2/2/2/1` 分组，把 conversation entry 并入 Context Strip 第四项；resume 使用 frozen `resumeId` 生成 canonical URL；两个 detail row 的 panel card 填满各自行高。Overall Summary 位于最低端并跨满内容网格；mobile 保持相同 DOM 顺序且各组单列。Overall Summary 展示 localized readiness tier 与服务端 `summary` 原文，不改写、不生成第二份摘要。现有 OpenAPI context/summary/preparedness 足够，本阶段禁止修改 backend、schema、fixture contract、persistence 或 prompt。
 
 #### 12.3 Responsive, accessibility and current evidence
 
-正式 frontend component/browser tests 在 1440 与 390 宽度验证卡片数量、DOM 顺序、desktop 全宽跨度、mobile 单列、完整换行与无横向溢出；标题、readiness 与 summary 均可访问。`BDD.REPORT.UI.001` 的 ready 分支必须覆盖新层级。实现阶段先对齐 P0.099 README/manual visual audit 与 capture/verification contract，使其明确检查行动区之后的底部面试总评；完成根 `make test` 后，显式运行 P0.099 才能产生当前真实环境 PASS。历史六图 PASS 不作为本阶段证据。
+正式 frontend component/browser tests 在 1440 与 390 宽度验证卡片数量、DOM 顺序、desktop 全宽跨度、两组 detail panel 同行等高、mobile 单列、完整换行与无横向溢出；简历 URL、面试记录 action、标题、readiness 与 summary 均可访问，且 reportId 不进入 DOM 属性。`BDD.REPORT.UI.001` 的 ready 分支必须覆盖新层级。实现阶段同步对齐 P0.099 README/manual visual audit 与 capture/verification contract，使其后续完整矩阵明确检查四项上下文、两组响应式 panel、行动区之后的底部面试总评；本阶段的当前行为验收由一个真实 backend 持久化 ready report 的 Chrome desktop/mobile 截图、几何测量和两条导航实测闭环。由于本次不改变 generating/failure、语言状态或报告生成语义，不为 CSS/入口层级修订重复制造三套 provider 资源，也不把历史六图 PASS 当作当前截图证据。
 
 ### Phase 13: Integrate report-owned readonly conversation
 
 #### 13.1 Contract and route
 
-将 generated `getReportConversation` 与 `/report-conversation?reportId=...` 接入正式 frontend，路由只允许 `reportId`。报告 Context Strip 下方保留主入口，ReportsScreen 的 current report 行保留快捷入口；不改 Header 两 CTA 和 Phase 12 的 `3/2/2/2/1` 目标布局。
+将 generated `getReportConversation` 与 `/report-conversation?reportId=...` 接入正式 frontend，路由只允许 `reportId`。报告 Context Strip 的第四个同级子项保留主入口，ReportsScreen 的 current report 行保留快捷入口；不改 Header 两 CTA 和 Phase 12 的 `4/2/2/2/1` 目标布局。
 
 #### 13.2 Readonly projection and failure boundary
 
@@ -180,13 +180,13 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
-- Report desktop 按 `3/2/2/2/1` 展示：顶部两个数量指标、两行四个内容区、最低端全宽面试总评；readiness 与服务端 `summary` 仅在总评出现，用户看不到 raw enum/code。
+- Report desktop 按 `4/2/2/2/1` 展示：同一个 Context Strip 内有四个同级子项，简历具有 canonical URL，面试记录为 privacy-preserving SPA action；顶部两个数量指标、两行四个等高配对内容区、最低端全宽面试总评；readiness 与服务端 `summary` 仅在总评出现，用户看不到 raw enum/code。
 - 推荐 action 与 CTA 主次一致，功能仍允许用户选择；retry focus 由服务端投影。
 - 空 retry focus 不阻塞通用同轮 Replay；非空 focus 必须与 needs-work dimension 和 issue 一一闭合。
 - Desktop/mobile 长内容完整可读；正式 frontend DOM/style/bbox/responsive visual gate 通过，mobile 保持同序单列。
-- P0.099 desktop+390 截图与 current-run audit 闭环真实合法内容的可读性；200-code-point fuse、exact 24/64 code test、18/52 repair margin 或 provider eval 都不能替代真实 UI。
-- Report Context Strip 只显示 target/round/resume；session/report UUID 不出现在用户可见或可访问 UI，既有 API frozen context 与 CTA 行为保持不变。
-- Context Strip 正式验收只有同一 ready report 的 exact 1440x1200 / 390x844 两张 formal real UI full-page 图与固定 manifest；path/hash/state/viewport/fullPage、target/round/resume 可见和 report/session DOM/a11y/screenshot sentinel absence 全部可校验。
+- 当前 Chrome desktop+390 截图与几何/导航 audit 闭环真实合法 ready 内容的可读性；P0.099 完整矩阵合同同步承接相同检查，200-code-point fuse、exact 24/64 code test、18/52 repair margin 或 provider eval 都不能替代真实 UI。
+- Report Context Strip 显示 target/round/resume/interview record 四项；resume 仅携带 frozen resumeId canonical URL，session/report UUID 不出现在用户可见或可访问 DOM 属性，既有 API frozen context 与 CTA 行为保持不变。
+- Context Strip 当前正式验收使用同一 ready report 的 Chrome desktop / exact 390x844 两张 real UI full-page 图；四项上下文、resume URL、conversation action、report/session DOM sentinel absence 与响应式几何全部可校验。
 - ReportsScreen 只展示当前 target 的 canonical rounds、current report 与 latest attempt，覆盖 loading/empty/error/identity mismatch/stale response；不展示其他规划或完整历史，desktop/mobile 响应式合同一致。
 - ReportsScreen Back 直接进入 `/workspace?targetJobId=...` 只读规划详情，query 只有 `targetJobId`，不经过 Parse、不展示解析动画、不触发 import/poll；Report/Generating Back 在 trusted target context 存在时进入 `/reports?targetJobId=...`，缺失可信 identity 时进入 `/workspace` 列表；detail/generating route 保持 reportId-only，且列表 operation 只有 ReportsScreen 消费。
 - Report 主入口与 ReportsScreen 快捷入口都打开同一 reportId-only 只读记录；queued/generating/ready/failed 可返回正确父页，失败/隐私边界不泄露 partial transcript 或内部 ID。
@@ -211,6 +211,7 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 3.8 | Revise Phase 12 to `4/2/2/2/1`: integrate conversation into Context Strip, link the frozen resume copy, and require equal-height desktop detail pairs with internal whitespace. |
 | 2026-07-15 | 3.7 | Integrate the previously isolated report-owned readonly conversation implementation as Phase 13, preserving the active Phase 12 `3/2/2/2/1` layout contract and deleted Demo boundary. |
 | 2026-07-15 | 3.6 | Reopen Phase 12 for the confirmed `3/2/2/2/1` report hierarchy: move readiness and the existing server summary into one bottom full-width interview-summary card, keep mobile order, replace stale prototype parity wording, and make no API/backend change. |
 | 2026-07-14 | 3.5 | Separate code-owned report UI BDD from the explicitly run Ready-only P0.099 real acceptance handoff. |

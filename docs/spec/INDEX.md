@@ -57,5 +57,5 @@
 | [backend-upload](./backend-upload/spec.md) | 1.7 | active | 2026-07-14 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 2.9 | active | 2026-07-14 | [plans](./backend-resume/plans/) |
 | [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.17 | completed | 2026-07-15 | [plans](./frontend-resume-workshop/plans/) |
-| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.27 | active | 2026-07-15 | [plans](./frontend-report-dashboard/plans/) |
+| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.28 | completed | 2026-07-15 | [plans](./frontend-report-dashboard/plans/) |
 | [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 2.17 | active | 2026-07-15 | [plans](./e2e-scenarios-p0/plans/) |

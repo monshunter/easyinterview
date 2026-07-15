@@ -242,12 +242,24 @@ For each ready row, the exact checks are all `true`:
 report_page_visible
 expected_state_visible
 preparedness_visible
+four_peer_context_items_visible
+frozen_resume_copy_link_visible
 dimension_and_evidence_content_visible
+responsive_detail_pair_alignment_visible
 action_region_visible
 bottom_interview_summary_visible_after_actions
 action_labels_complete_without_clipping_or_ellipsis
 horizontal_overflow_absent
 ```
+
+`four_peer_context_items_visible` means target job, round, frozen resume, and
+interview record are four peers inside one Context Strip, with no detached
+conversation entry. `frozen_resume_copy_link_visible` requires the resume name
+to be visibly actionable as the frozen-copy destination. For desktop ready
+rows, `responsive_detail_pair_alignment_visible` means both detail pairs share
+the same top and bottom bounds while the shorter card keeps internal whitespace;
+for mobile ready rows it means the same DOM order becomes one natural-height
+column without a forced desktop row height.
 
 For each generating row, the exact checks are all `true`:
 

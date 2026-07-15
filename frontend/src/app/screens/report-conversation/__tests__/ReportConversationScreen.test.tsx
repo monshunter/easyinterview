@@ -332,7 +332,7 @@ describe("report-owned readonly conversation", () => {
     }
   });
 
-  it("places the dashboard entry below the frozen Context Strip instead of the report Header", async () => {
+  it("places the dashboard entry inside the frozen Context Strip instead of the report Header", async () => {
     const client = {
       getFeedbackReport: vi.fn(async () => feedbackReport()),
     } as unknown as EasyInterviewClient;
@@ -349,8 +349,8 @@ describe("report-owned readonly conversation", () => {
 
     await screen.findByTestId("report-dashboard");
     const strip = screen.getByTestId("report-context-strip");
-    const entry = screen.getByTestId("report-conversation-entry");
-    expect(strip.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    const entry = screen.getByTestId("report-context-conversation-action");
+    expect(strip).toContainElement(entry);
     expect(screen.getByTestId("report-header")).not.toContainElement(entry);
     fireEvent.click(entry);
     expect(navigate).toHaveBeenCalledWith({

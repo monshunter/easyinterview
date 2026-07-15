@@ -164,11 +164,14 @@ def png_with_metadata(kind: bytes, payload: bytes) -> bytes:
 
 
 class ReportConversationEvidenceTests(unittest.TestCase):
-    def test_ready_visual_audit_requires_bottom_summary_after_actions(self) -> None:
-        self.assertIn(
+    def test_ready_visual_audit_requires_current_report_layout_contract(self) -> None:
+        for check in (
+            "four_peer_context_items_visible",
+            "frozen_resume_copy_link_visible",
+            "responsive_detail_pair_alignment_visible",
             "bottom_interview_summary_visible_after_actions",
-            validator.READY_VISUAL_CHECKS,
-        )
+        ):
+            self.assertIn(check, validator.READY_VISUAL_CHECKS)
 
     def test_db_and_authenticated_api_projection_share_redacted_strict_digests(self) -> None:
         api_projection = capture.project_conversation(api_conversation(), REPORT_ID)

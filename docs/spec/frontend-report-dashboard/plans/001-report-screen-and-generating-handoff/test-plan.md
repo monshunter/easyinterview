@@ -1,7 +1,7 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.6
-> **状态**: active
+> **版本**: 3.7
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 ## 1 Unit-test ownership
@@ -24,11 +24,13 @@
 ## 4 Layout, privacy and parity
 
 - Deterministic tests cover wire fuse、English 24/25 whitespace words、zh-CN 64/65 code points、U+FEFF/U+0085 delimiter parity and typed invalid/no raw over-limit output.
-- Formal frontend component/browser tests assert the ready DOM order and exact group counts `3/2/2/2/1`: Context Strip 3、Summary Metrics 2、two detail rows of 2、one bottom Overall Summary.
+- Formal frontend component/browser tests assert the ready DOM order and exact group counts `4/2/2/2/1`: Context Strip 4、Summary Metrics 2、two detail rows of 2、one bottom Overall Summary.
+- Link/action contract tests prove the frozen resume child exposes canonical `/resume-versions?resumeId=...` href with SPA/copy/new-tab semantics；the interview-record child uses an in-strip button action so reportId remains absent from DOM attributes.
+- Desktop geometry tests prove each detail pair has matching top/bottom bounds and the shorter card fills its row with internal whitespace；mobile returns each panel to content height in one column.
 - Source/semantic assertions prove readiness and `summary` are absent from the top metrics, the localized Overall Summary contains both, and the server `summary` renders exactly once without client rewrite.
 - At 1440 the Overall Summary spans the full content grid after Next Actions；at 390 every group is single-column in the same DOM order. Computed style、bbox、viewport、wrapping、scroll width and accessible names are code-level gates, not E2E.
 - Formal frontend deterministic visual regression uses fixed locale/time/DPR/fonts/motion and controlled actual/expected/diff artifacts; no parallel prototype runtime is an acceptance source.
-- UUID sentinel tests reject report/session IDs from visible text、tooltip、ARIA and accessible names while keeping target/round/resume visible.
+- UUID sentinel tests reject report/session IDs from visible text、tooltip、ARIA and accessible names while keeping target/round/resume/interview record visible, the frozen-resume canonical URL usable, and conversation navigation free of reportId DOM attributes.
 
 ## 5 ReportsScreen and route recovery
 

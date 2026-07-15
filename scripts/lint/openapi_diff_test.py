@@ -1064,11 +1064,18 @@ class OpenAPI001OracleTests(unittest.TestCase):
 class OpenAPI001V17ConversationTests(unittest.TestCase):
     @staticmethod
     def _baseline() -> dict:
-        baseline_text = od._git_show(
-            REPO_ROOT, "main", REPO_ROOT / "openapi/baseline/openapi-v1.0.0.yaml"
+        audit = json.loads(
+            (
+                REPO_ROOT
+                / "openapi/baseline/audits/OPENAPI-001-report-conversation.json"
+            ).read_text(encoding="utf-8")
         )
+        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
+        if source_kind != "git":
+            raise AssertionError("OPENAPI-001 preserved baseline must use a git source")
+        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
         if baseline_text is None:
-            raise AssertionError("main baseline must remain available for the v1.7 audit")
+            raise AssertionError("OPENAPI-001 preserved pre-refreeze baseline must remain available")
         return yaml.safe_load(baseline_text)
 
     @staticmethod

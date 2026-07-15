@@ -207,7 +207,7 @@ describe("grounded direct-semantic feedback report", () => {
     });
   });
 
-  it("renders a three-field UUID-free Context Strip from frozen API context and preserves model prose under a different UI locale", async () => {
+  it("renders four peer frozen context items with canonical resume and interview-record URLs", async () => {
     localStorage.setItem("ei-lang", "en");
     const { client, getTargetJob, getResume } = clientFor(report());
     render(<App client={client} initialRoute={{
@@ -226,7 +226,15 @@ describe("grounded direct-semantic feedback report", () => {
     expect(screen.getByTestId("report-header-title")).toHaveTextContent("星环科技 · 很长的高级前端工程师岗位名称");
     expect(screen.queryByTestId("report-context-session")).not.toBeInTheDocument();
     const contextStrip = screen.getByTestId("report-context-strip");
-    expect(contextStrip.children).toHaveLength(3);
+    expect(contextStrip.children).toHaveLength(4);
+    expect(screen.getByTestId("report-context-resume-link")).toHaveAttribute(
+      "href",
+      "/resume-versions?resumeId=01918fa0-0000-7000-8000-000000001000",
+    );
+    expect(screen.getByTestId("report-context-strip")).toContainElement(
+      screen.getByTestId("report-context-conversation-action"),
+    );
+    expect(screen.queryByTestId("report-conversation-entry")).not.toBeInTheDocument();
     const dashboard = screen.getByTestId("report-dashboard");
     const dashboardAttributes = [dashboard, ...dashboard.querySelectorAll("*")]
       .flatMap((element) =>
@@ -254,14 +262,14 @@ describe("grounded direct-semantic feedback report", () => {
     expect(getResume).not.toHaveBeenCalled();
   });
 
-  it("renders the ready report in 3/2/2/2/1 order with one bottom full-width interview summary", async () => {
+  it("renders the ready report in 4/2/2/2/1 order with one bottom full-width interview summary", async () => {
     localStorage.setItem("ei-lang", "zh");
     const value = report();
     const { client } = clientFor(value);
     render(<App client={client} initialRoute={{ name: "report", params: { reportId: REPORT_ID } }} />);
 
     const dashboard = await screen.findByTestId("report-dashboard");
-    expect(screen.getByTestId("report-context-strip").children).toHaveLength(3);
+    expect(screen.getByTestId("report-context-strip").children).toHaveLength(4);
     expect(screen.getByTestId("report-summary-cards").children).toHaveLength(2);
     expect(screen.getByTestId("report-detail-grid").children).toHaveLength(5);
 

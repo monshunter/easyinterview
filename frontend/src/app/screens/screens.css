@@ -130,10 +130,14 @@
 
 .ei-report-context-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
   border: 1px solid var(--ei-color-rule-strong);
   background: var(--ei-color-rule-strong);
+}
+
+.ei-report-context-grid[data-columns="3"] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .ei-report-summary-grid {
@@ -147,6 +151,16 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+}
+
+.ei-report-panel {
+  display: flex;
+  min-height: 100%;
+}
+
+.ei-report-panel-card {
+  flex: 1;
+  box-sizing: border-box;
 }
 
 .ei-resume-workshop-list {
@@ -574,6 +588,10 @@
   .ei-report-summary-grid,
   .ei-report-detail-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ei-report-panel {
+    min-height: auto;
   }
 
   .ei-screen-shell[data-testid="resume-workshop-screen"] {

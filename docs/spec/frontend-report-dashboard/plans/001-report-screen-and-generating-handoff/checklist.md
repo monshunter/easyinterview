@@ -1,7 +1,7 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 3.7
-> **状态**: active
+> **版本**: 3.8
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
@@ -53,8 +53,18 @@
   <!-- verified: 2026-07-15 method=vitest evidence="report owners 10 files 100 tests PASS; focused layout 21 PASS" -->
 - [x] 12.3 RESPONSIVE/A11Y: formal frontend 1440/390 gates prove desktop `3/2/2/2/1`、bottom full-width span、mobile same-order single column、complete wrapping、no horizontal overflow and accessible title/readiness/summary.（验证：Chrome desktop counts=3/2/2/2/1、Overall Summary `1 / -1`；390 三组单列、summary 在 actions 后、无横溢）
 - [x] 12.4 BDD-Gate: `BDD.REPORT.UI.001` ready branch and [BDD checklist](./bdd-checklist.md) cover the revised hierarchy; historical Phase 1-11 PASS is not current Phase 12 evidence.
-- [ ] 12.5 E2E-HANDOFF: align the existing P0.099 README/manual-audit/capture-verification contract with the bottom interview summary, then explicitly run it on the current real environment so ready full-page images include actions and the following summary；historical exact-six evidence is not reused.
-- [ ] 12.6 CLOSEOUT: root `make test`、typecheck/build/lint/docs/index/diff gates pass independently, current evidence is recorded, and plan/spec/test/BDD lifecycle returns to `completed` only after all required Phase 12 checks finish.
+- [x] 12.5 RED: `ConversationReport` and responsive contract tests reject the detached conversation button, three-column Context Strip, missing canonical resume-copy URL and detail panel cards whose visible borders do not fill the same grid row.
+  <!-- verified: 2026-07-15 method=vitest-red expected-failures="context children 3 not 4; desktop repeat(3) not repeat(4); equal-height panel classes absent" -->
+- [x] 12.6 GREEN: Context Strip renders target/round/resume/interview-record as four peer children；resume exposes canonical `/resume-versions?resumeId=<frozen id>` with SPA plus copy/new-tab semantics；interview record uses an in-strip SPA action without exposing reportId in DOM attributes.
+  <!-- verified: 2026-07-15 method=vitest evidence="126 files / 1003 tests PASS; report/session sentinel privacy preserved" -->
+- [x] 12.7 RESPONSIVE/A11Y: desktop `4/2/2/2/1` geometry proves both detail pairs have equal top/bottom bounds with internal whitespace on the shorter side；390 keeps the same order as a single column, links remain keyboard accessible and no horizontal overflow appears.
+  <!-- verified: 2026-07-15 method=chrome desktop="context=4; columns=4; dimensions/highlights top=488 bottom=856; issues/actions top=874 bottom=998; scrollWidth=viewportWidth; reportIdInDom=false" mobile="390x844; columns=1; scrollWidth=390; natural panel heights" navigation="resume canonical href PASS; report conversation action/back PASS" screenshots=".test-output/acceptance/report-context-grid/report-{desktop-1440x1200,mobile-390x844}-full.png" -->
+- [x] 12.8 BDD-Gate: `BDD.REPORT.UI.001` ready branch and [BDD checklist](./bdd-checklist.md) cover the four-item Context Strip、resume-copy navigation、conversation navigation and equal-height desktop pairs.
+  <!-- Behavior-Verify: BDD.REPORT.UI.001 owner assertions and current Chrome observations cover the four peers, canonical frozen-resume navigation, privacy-preserving conversation navigation, desktop equal-height pairs, and mobile natural-height single-column flow. -->
+- [x] 12.9 E2E-HANDOFF: align the existing P0.099 README/manual-audit/capture-verification contract with the four-item context、responsive detail-pair alignment and bottom interview summary；use the current real-backend ready report for focused Chrome desktop/mobile screenshot and navigation acceptance, without duplicating unchanged generating/language provider resources.
+  <!-- verified: 2026-07-15 method="scenario-contract-red-green+real-chrome-focused-acceptance" evidence="P0.099 evidence tests 8 PASS; exact current desktop/mobile PNGs saved; resume-copy and conversation/back routes PASS; historical exact-six images not reused" -->
+- [x] 12.10 CLOSEOUT: root `make test`、typecheck/build/lint/docs/index/diff gates pass independently, current Chrome screenshot evidence is recorded, and plan/spec/test/BDD lifecycle returns to `completed` only after all required Phase 12 checks finish.
+  <!-- verified: 2026-07-15 evidence="make test: 559 Python / 4481 subtests, Go all packages, frontend 126/1003 PASS; make lint PASS; build PASS; typecheck PASS; docs/index PASS; diff-check PASS; Chrome acceptance manifest hash PASS" -->
 
 ## Phase 13: Report-owned readonly conversation integration
 
