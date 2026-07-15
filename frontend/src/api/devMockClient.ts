@@ -127,6 +127,9 @@ export function createDevMockClient(
 		if (response.ok && request.method === "POST" && request.path === "/auth/logout") {
 			authState.signedIn = false;
 		}
+		if (response.ok && request.method === "DELETE" && request.path === "/me") {
+			authState.signedIn = false;
+		}
 		return response;
 	};
 	return new EasyInterviewClient({

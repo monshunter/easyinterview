@@ -380,7 +380,7 @@ async function assertSettingsAndLogout(
   },
   meGetRequests: string[],
 ): Promise<void> {
-  expect(currentUser.email).toBe(AUTH_EMAIL);
+  expect(currentUser.email === AUTH_EMAIL).toBe(true);
   const meCountBeforeSettings = meGetRequests.length;
   await expect(page.getByTestId("topbar-settings")).toHaveCount(1);
   await expect(page.getByTestId("topbar-user-chip")).toHaveCount(0);
@@ -389,9 +389,13 @@ async function assertSettingsAndLogout(
   await expect(page.getByTestId("settings-account")).toContainText(
     currentUser.displayName ?? "",
   );
-  await expect(page.getByTestId("settings-account")).toContainText(
-    currentUser.email ?? "",
-  );
+  const settingsAccountText = await page
+    .getByTestId("settings-account")
+    .textContent();
+  expect(
+    typeof currentUser.email === "string" &&
+      (settingsAccountText?.includes(currentUser.email) ?? false),
+  ).toBe(true);
   await expect(page.getByTestId("settings-tabs")).toHaveCount(0);
   await expect(page.getByTestId("settings-login-security")).toHaveCount(0);
   await expect(page.getByTestId("settings-font-preset")).toHaveCount(0);

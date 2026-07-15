@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-15](2026-07-15.md) | `fix(settings): close review regressions (BUG-0176)` | #fix #ui #test #docs #bdd |
 | [2026-07-15](2026-07-15.md) | `feat(settings): simplify account settings and harden evidence privacy (BUG-0175)` | #feat #ui #api #test #docs #bdd |
 | [2026-07-15](2026-07-15.md) | `refactor(practice): close public session list removal` | #refactor #api #test #docs #bdd |
 | [2026-07-15](2026-07-15.md) | `feat(openapi): close report conversation replacement` | #feat #api #test #docs #bdd |

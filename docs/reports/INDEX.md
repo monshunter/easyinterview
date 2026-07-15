@@ -8,7 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
-| [2026-07-15](./2026-07-15-settings-simplification-assessment.md) | Settings Simplification 交付复盘 | #assessment #BUG-0175 |
+| [2026-07-15](./2026-07-15-settings-simplification-assessment.md) | Settings Simplification 交付复盘 | #assessment #BUG-0175 #BUG-0176 |
 | [2026-07-15](./2026-07-15-resume-workspace-report-layout-assessment.md) | Resume、Workspace 与 Report 布局交付复盘 | #assessment #ui |
 | [2026-07-15](./2026-07-15-report-conversation-record-assessment.md) | Report Conversation Record 交付复盘 | #assessment #BUG-0173 #BUG-0174 |
 | [2026-07-15](./2026-07-15-ui-demo-pruning-assessment.md) | UI Demo Pruning 交付复盘 | #assessment #ui #refactor |

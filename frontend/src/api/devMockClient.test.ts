@@ -125,4 +125,22 @@ describe("frontend dev fixture-backed mock client", () => {
 		await expect(client.getMe()).rejects.toThrow(/HTTP 401/);
 	});
 
+	it("models account deletion as an authenticated session termination", async () => {
+		const client = createDevMockClient();
+
+		await client.verifyAuthEmailChallenge({
+			query: { token: "654321" },
+		});
+		await client.completeMyProfile({
+			displayName: "Alice Example",
+			acceptedTerms: true,
+		});
+
+		await client.deleteMe({
+			idempotencyKey: "01918fa0-0000-7000-8000-00000000d001",
+		});
+
+		await expect(client.getMe()).rejects.toThrow(/HTTP 401/);
+	});
+
 });

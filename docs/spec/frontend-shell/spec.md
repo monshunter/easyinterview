@@ -1,6 +1,6 @@
 # Frontend Shell Spec
 
-> **版本**: 1.33
+> **版本**: 1.34
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -73,7 +73,8 @@
 - Demo-only `#route=...` adapter 不属于正式 route contract；真实开发和场景验证使用 canonical Browser History URL。
 - TopBar language dropdown 从 locale catalog 渲染；locale priority 为用户显式选择 > browser locale > `en` fallback，并通过 `Accept-Language` 作为 display hint。
 - TopBar 已登录账号区只渲染设置齿轮，必须具备本地化 accessible name、focus ring 与不小于 40×40px 的点击区域；头像、姓名、caret、backdrop、dropdown 与 TopBar logout 不属于当前 DOM/CSS/i18n 合同。
-- Settings 只消费 `AppRuntimeContext.auth.user` 与 generated `deleteMe`；页面挂载不得再次调用 `getMe`。账号删除一次确认生命周期内复用同一 idempotency key，失败可重试；`202` 后调用现有 `refreshAuth()` 重探测 `/me`（预期 401），提交 unauthenticated 状态并 replace Home，不新增清 session 方法。
+- Settings 只消费 `AppRuntimeContext.auth.user` 与 generated `deleteMe`；页面挂载不得再次调用 `getMe`。账号删除一次确认生命周期内复用同一 idempotency key，失败可重试；`202` 后调用现有 `refreshAuth()` 重探测 `/me`（预期 401），提交 unauthenticated 状态并 replace Home，不新增清 session 方法。默认 fixture-backed dev client 必须复现相同 auth transition：成功 `deleteMe` 后下一次无 `Prefer` 的 `getMe` 返回 401，不得继续投影 authenticated 用户。
+- `E2E.P0.101` 的完整账号邮箱只用于真实页面/API 断言；PASS 与 FAIL reporter、`trigger.log` 和 result artifact 均不得包含原文或 URL percent-encoded 等价值。失败断言不得把完整邮箱作为 matcher expected/received 文本直接交给 reporter，场景落盘前还必须执行流式脱敏作为纵深防御。
 - UI implementation 必须符合对应产品 spec 与 `docs/ui-design/` 的信息架构、流程、交互和响应式约束；具体实现由正式组件、token、可访问性、component/browser tests 与真实业务场景验证，不要求按设计合同实现或像素对照。
 
 ## 5 模块边界
@@ -104,7 +105,7 @@
 | C-12 | StrictMode safe-read 去重 | AppRuntimeProvider 或 Home/Parse/Workspace/Reports/Practice loader 在 StrictMode mount cycle 内发出同 key safe-read GET | 两个 caller 同时等待、settle 后重试、使用不同 `okStatuses`，或在任一语义写请求前/期间/settle 后读取 | 同时在途只产生一次底层 GET；settle 后重试产生新 GET；不同 client/query/header/okStatuses/epoch/auth、带 signal、非 GET 与 verify GET 均不合并；所有语义写请求 dispatch 前和 settle 后推进 read epoch，verify 成功另推进 auth/session epoch并真实刷新 | 001-app-shell-auth-settings |
 | C-13 | Parse/workspace route 分工 | TargetJob 为 queued/processing 或 ready | 打开 `/parse?targetJobId`、轮询转 ready、或打开 ready 卡片 | Parse 只在处理中展示进度；ready 使用 replace 进入 `/workspace?targetJobId`；无 target 的 workspace 仍为列表，详情不显示 Parse 动画 | 004-url-addressable-routing |
 | C-14 | Custom accent 最小选择器 | TopBar 主题菜单打开 | 用户调整自定义色或选择 Ocean / Plum | 只显示色相、饱和度；不显示 preview/value、恢复主题默认色按钮；选择预定义主题清晰退出 custom accent | 002-app-shell-visual-system |
-| C-15 | Settings 真实数据与隐私动作 | authenticated runtime 已取得 `/me` | 打开设置、查看导出状态、退出或删除账号 | 只显示真实 `displayName/email`，其中 email 完整显示但不进入日志/证据；不重复 `getMe`；导出显示暂不可用；删除流程具备确认/pending/failure/202 success，且旧 tab/block/字段零引用 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
+| C-15 | Settings 真实数据与隐私动作 | authenticated runtime 已取得 `/me` | 打开设置、查看导出状态、退出或删除账号 | 只显示真实 `displayName/email`，其中 email 完整显示但不进入 PASS/FAIL 日志或证据；不重复 `getMe`；导出显示暂不可用；删除流程具备确认/pending/failure/202 success；默认 fixture client 在删除后也返回 unauthenticated，且旧 tab/block/字段零引用 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
 
 ## 7 关联计划
 
@@ -117,6 +118,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.34 | 2026-07-15 | 补齐 settings review remediation：fixture-backed deleteMe 后必须转 unauthenticated，并要求 P0.101 的失败 reporter 与落盘证据同样脱敏。 |
 | 1.32 | 2026-07-15 | 采用设置简化方案 A：TopBar 已登录态收敛为设置齿轮，Settings 改为真实账号/隐私单页，删除字体预设与静态冗余字段，并接入 logout/deleteMe 合同。 |
 | 1.31 | 2026-07-15 | 删除 UI Demo 与可运行原型权威来源合同；保留 `docs/ui-design/` 作为 UI 架构、流程、交互约束和设计决策 owner，正式前端直接实施和验证。 |
 | 1.30 | 2026-07-14 | Add normalized `okStatuses` to safe-read identity and require every semantic mutation to advance read epoch before dispatch and after settle. |

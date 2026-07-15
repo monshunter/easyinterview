@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.30
+> **版本**: 1.31
 > **状态**: completed
 > **更新日期**: 2026-07-15
 
@@ -102,3 +102,7 @@
   <!-- verified: 2026-07-15 method=settings-delete-state-machine evidence="Settings 8/8 and AppRuntimeProvider 8/8 PASS; focus trap/return, pending lock, retry same key, typed 401, 202 probe-before-replace and honest probe error covered" -->
 - [x] 14.5 BDD-Gate: complete `BDD.SHELL.SETTINGS.001`, `BDD.SHELL.SETTINGS.002` and `BDD.SHELL.SETTINGS.DELETE.001`; extend `E2E.P0.101` only for real settings entry/account fields/logout and keep account deletion in domain/contract tests.
 - [x] 14.6 REGRESSION-GATE: run focused component/domain tests, root `make test`, frontend typecheck/build, B2 fixture/codegen/migration negative gates, owner contexts, `sync-doc-index --check`, `make docs-check`, `git diff --check` and old-surface zero-reference scans before restoring `completed`.
+- [x] 14.7 REVIEW-FIX-DEV-MOCK: add a RED default `createDevMockClient` regression for verify/profile/deleteMe/getMe, then make successful `DELETE /me` transition the fixture auth state to signed-out so the post-delete `getMe` returns 401 and the mounted Settings flow reaches Home.
+  <!-- verified: 2026-07-15 method=focused-dev-mock-delete evidence="Red: client getMe resolved and mounted App remained on Settings after deleteMe. Green: devMockClient plus mounted App focused tests pass 10/10; deleteMe transitions signedIn=false, post-delete getMe returns 401 and Settings replaces Home." -->
+- [x] 14.8 REVIEW-FIX-EVIDENCE: add a RED code-level regression proving a failed P0.101 email assertion and reporter stream cannot persist the raw or URL-encoded current-run email; replace raw-value matcher output and redact the stream before `trigger.log`, while retaining the real UI/API equality check and existing PASS markers.
+  <!-- verified: 2026-07-15 method=p0101-failure-output-redaction evidence="Red: scenario contract test failed because no pre-log redactor existed. Green: scenario contract tests pass 7/7; synthetic raw and percent-encoded email are replaced before tee, boolean Playwright assertions retain UI/API equality without value-bearing matcher output, and a pipefail probe preserves exit code 23." -->

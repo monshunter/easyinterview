@@ -33,16 +33,7 @@ describe("dev mock auth state and settings entry", () => {
     expect(screen.queryByTestId("topbar-settings")).not.toBeInTheDocument();
 
     const user = userEvent.setup();
-    await user.click(screen.getByTestId("topbar-login"));
-    await user.type(screen.getByTestId("auth-login-email"), "alice@example.com");
-    await user.click(screen.getByTestId("auth-login-submit-email"));
-    await screen.findByTestId("route-auth_verify");
-    await user.type(screen.getByTestId("auth-verify-code"), "654321");
-    await user.click(screen.getByTestId("auth-verify-submit"));
-    await screen.findByTestId("route-auth_profile_setup");
-    await user.type(screen.getByTestId("auth-profile-name"), "Alice Example");
-    await user.click(screen.getByTestId("auth-profile-terms"));
-    await user.click(screen.getByTestId("auth-profile-submit"));
+    await signInAndCompleteProfile(user);
 
     await waitFor(() =>
       expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
@@ -80,7 +71,52 @@ describe("dev mock auth state and settings entry", () => {
       "dev mock regression: unauthenticated login settings logout Alice Example email=<redacted> topbar-settings",
     );
   });
+
+  it("returns Home signed out after account deletion", async () => {
+    setNavigatorLanguages("zh-CN", ["zh-CN", "en-US"]);
+    const client = createDevMockClient();
+    render(<App client={client} />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
+        "data-signed-in",
+        "false",
+      ),
+    );
+
+    const user = userEvent.setup();
+    await signInAndCompleteProfile(user);
+
+    await screen.findByTestId("topbar-settings");
+    await user.click(screen.getByTestId("topbar-settings"));
+    await user.click(screen.getByRole("button", { name: "注销账号" }));
+    await user.click(screen.getByRole("button", { name: "确认注销" }));
+
+    await screen.findByTestId("route-home");
+    await waitFor(() =>
+      expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
+        "data-signed-in",
+        "false",
+      ),
+    );
+    await expect(client.getMe()).rejects.toThrow(/HTTP 401/);
+  });
 });
+
+async function signInAndCompleteProfile(
+  user: ReturnType<typeof userEvent.setup>,
+): Promise<void> {
+  await user.click(screen.getByTestId("topbar-login"));
+  await user.type(screen.getByTestId("auth-login-email"), "alice@example.com");
+  await user.click(screen.getByTestId("auth-login-submit-email"));
+  await screen.findByTestId("route-auth_verify");
+  await user.type(screen.getByTestId("auth-verify-code"), "654321");
+  await user.click(screen.getByTestId("auth-verify-submit"));
+  await screen.findByTestId("route-auth_profile_setup");
+  await user.type(screen.getByTestId("auth-profile-name"), "Alice Example");
+  await user.click(screen.getByTestId("auth-profile-terms"));
+  await user.click(screen.getByTestId("auth-profile-submit"));
+}
 
 function setNavigatorLanguages(language: string, languages = [language]) {
   Object.defineProperty(window.navigator, "language", {

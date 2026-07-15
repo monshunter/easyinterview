@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.30
+> **版本**: 1.31
 > **状态**: completed
 > **更新日期**: 2026-07-15
 
@@ -120,6 +120,8 @@ Account 区用只读语义行展示真实值并进入既有 `auth_logout`；Priv
 
 本 Phase 与 `frontend-shell/002` Phase 20、`backend-auth/001` Phase 10、B2 001/002/003 settings correction 和 B4 001 Phase 13 同批交接；不保留旧 testid、CSS selector、locale key、font package 或兼容状态。
 
+Review remediation 继续由本 Phase owning：默认 fixture-backed client 在 `deleteMe` 202 后必须把 auth state 切到 signed-out，使随后的 `refreshAuth()` / `getMe` 得到 401；`E2E.P0.101` 的邮箱断言不得把完整值写入 Playwright failure reporter，并在 reporter 输出进入 `trigger.log` 前同时过滤原文与 URL percent-encoded 表示。两项均先补当前可失败的 focused/code-level gate，再做最小实现；真实 E2E 主路径仍只覆盖 settings account/logout，不执行账号删除。
+
 
 ## 7 风险与应对
 
@@ -136,6 +138,7 @@ Account 区用只读语义行展示真实值并进入既有 `auth_logout`；Priv
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.31 | Complete Phase 14 review remediation for fixture delete auth state and failure-path evidence redaction. |
 | 2026-07-15 | 1.29 | Reopen Phase 14 for the approved single settings icon, real account/privacy page, logout relocation, deleteMe state machine and removal of static/font-preset surfaces. |
 | 2026-07-14 | 1.28 | Separate code-owned shell/auth BDD from the Ready-only P0.101 real API/UI handoff. |
 | 2026-07-14 | 1.27 | Complete the single-flight identity with normalized okStatuses and fence every semantic mutation before dispatch and after settle. |

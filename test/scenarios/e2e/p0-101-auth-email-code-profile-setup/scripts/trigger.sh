@@ -42,7 +42,7 @@ export EI_PLAYWRIGHT_OUTPUT_DIR="$OUTPUT_DIR/playwright"
     --reporter=list \
     --workers=1 \
     auth-email-code.spec.ts
-} 2>&1 | tee "$LOG"
+} 2>&1 | python3 "$SCRIPT_DIR/redact_stream.py" "$AUTH_EMAIL" | tee "$LOG"
 
 python3 - "$RESULT_FILE" "$RUN_ID" "$OUTPUT_DIR" <<'PY'
 import json

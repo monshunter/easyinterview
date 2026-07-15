@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from pathlib import Path
+from urllib.parse import quote
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -68,6 +70,51 @@ def test_e2e_playwright_specs_do_not_intercept_application_requests() -> None:
     for spec in referenced_specs:
         assert spec.is_file(), f"missing Playwright spec: {spec}"
         assert PLAYWRIGHT_INTERCEPTION.search(spec.read_text(encoding="utf-8")) is None, spec
+
+
+def test_p0101_failure_output_redacts_synthetic_email_before_logging(
+    tmp_path: Path,
+) -> None:
+    scenario = E2E_ROOT / "p0-101-auth-email-code-profile-setup"
+    redactor = scenario / "scripts" / "redact_stream.py"
+    trigger = (scenario / "scripts" / "trigger.sh").read_text(encoding="utf-8")
+    email = "auth-email-code-red@example.test"
+    encoded_email = quote(email, safe="")
+    failure_output = (
+        f'Error: expect(received).toBe(expected)\nExpected: "{email}"\n'
+        f'Received: "wrong@example.test"\nattachment={encoded_email}\n'
+    )
+    log = tmp_path / "trigger.log"
+    pipeline = (
+        "set -o pipefail; "
+        "{ printf '%s' \"$1\"; exit 23; } | "
+        "\"$2\" \"$3\" \"$4\" | tee \"$5\""
+    )
+
+    assert redactor.is_file()
+    assert 'redact_stream.py" "$AUTH_EMAIL" | tee "$LOG"' in trigger
+    result = subprocess.run(
+        [
+            "bash",
+            "-c",
+            pipeline,
+            "p0101-redaction-probe",
+            failure_output,
+            sys.executable,
+            str(redactor),
+            email,
+            str(log),
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 23
+    for output in (result.stdout, log.read_text(encoding="utf-8")):
+        assert email not in output
+        assert encoded_email not in output
+        assert output.count("<redacted-synthetic-email>") == 2
 
 
 def test_scenario_shell_scripts_are_syntax_valid() -> None:

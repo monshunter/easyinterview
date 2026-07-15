@@ -1,12 +1,12 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
-> 既有已勾选静态 handoff 是历史证据；下方 Settings 行为与 `E2E.P0.101` 原地扩展是当前未完成合同。
+> 既有已勾选静态 handoff 是历史证据；下方 Settings 行为与 `E2E.P0.101` 原地扩展记录当前完成合同。
 
 ## `BDD.SHELL.AUTH.001` Shell auth 与安全恢复
 
@@ -24,6 +24,7 @@
 
 - [x] TopBar/Settings domain tests 证明设置齿轮直达、无账号 dropdown/tab、runtime `displayName/email` 完整回填、`emailMasked` 零引用、零额外 `getMe` 和既有 logout 路由。
 - [x] `E2E.P0.101` 静态资产原地扩展设置入口、真实账号字段和 logout；当前真实环境 run `e2e-p0-101-20260715114513-19516` PASS。
+- [x] P0.101 code-level evidence gate 证明 raw-value equality 失败与 reporter 输出落盘都不会包含当前 run 邮箱原文或 URL-encoded 等价值。
 
 ## `BDD.SHELL.SETTINGS.002` 未登录保护
 
@@ -32,3 +33,4 @@
 ## `BDD.SHELL.SETTINGS.DELETE.001` 账号删除状态机
 
 - [x] Component/backend contract tests 覆盖 dialog focus/Escape/取消零副作用、pending 禁止关闭/去重、recoverable 失败恢复/同 key 重试、`401` auth probe、`202` 后 `refreshAuth()` 重探测 `/me` 并提交 unauthenticated，以及 probe 网络错误的 honest auth error；不把该破坏性路径加入共享登录 E2E。
+- [x] Default `createDevMockClient` regression 覆盖 verify/profile/deleteMe 后的 `getMe` 401，证明 fixture preview 与真实 backend 的删除后 auth transition 一致。
