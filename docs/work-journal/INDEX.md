@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-15](2026-07-15.md) | `test(mock): close report conversation parity` | #test #api #docs |
 | [2026-07-15](2026-07-15.md) | `test(mock): close practice recovery parity` | #test #api #docs |
 | [2026-07-15](2026-07-15.md) | `test(mock): close target job paste-only parity` | #test #api #docs |
 | [2026-07-15](2026-07-15.md) | `docs(settings): formalize account settings simplification` | #docs #ui #api #test #bdd |

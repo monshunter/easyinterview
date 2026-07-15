@@ -75,7 +75,11 @@
 
 ## 10 Report-owned conversation mock parity
 
-- [ ] 10.1 RED/GREEN: registry/frontend/backend tests reject the removed list operation/path/scenario and consume `getReportConversation` generated types plus fixture without local DTO or fallback.
-- [ ] 10.2 PARITY-GATE: exact status/body parity passes for ready/non-ready/empty/Markdown/hidden/fail-closed scenarios；closed fields and source sequence remain unchanged.
-- [ ] 10.3 ZERO-REFERENCE-GATE: positive/runtime mock registry, frontend transport, backend handler and seed surfaces contain zero public session-list operation/path/query/schema references；decision and explicit negative tests only are allowed.
-- [ ] 10.4 COMPLETION-GATE: root `make test`, `make lint-mock-contract`, fixture/OpenAPI/codegen, context/docs/diff gates pass with 37 operations；BDD-N/A because no real API/UI flow is driven.
+- [x] 10.1 RED/GREEN: registry/frontend/backend tests reject the removed list operation/path/scenario and consume `getReportConversation` generated types plus fixture without local DTO or fallback.
+  <!-- verified: 2026-07-15 method=inventory+registry+frontend+backend evidence="4 Python, focused Go and 29 frontend tests reject removed list and consume generated report operation" -->
+- [x] 10.2 PARITY-GATE: exact status/body parity passes for ready/non-ready/empty/Markdown/hidden/fail-closed scenarios；closed fields and source sequence remain unchanged.
+  <!-- verified: 2026-07-15 method=fixture-semantic+transport+ui evidence="all declared conversation scenarios pass exact fixture semantics, backend transport and ReportConversationScreen tests" -->
+- [x] 10.3 ZERO-REFERENCE-GATE: positive/runtime mock registry, frontend transport, backend handler and seed surfaces contain zero public session-list operation/path/query/schema references；decision and explicit negative tests only are allowed.
+  <!-- verified: 2026-07-15 method=structured-openapi+scoped-production-search evidence="collection GET/schema/fixture removed; backend/frontend/mock/scenario positive runtime identifiers zero; explicit tests classified separately" -->
+- [x] 10.4 COMPLETION-GATE: root `make test`, `make lint-mock-contract`, fixture/OpenAPI/codegen, context/docs/diff gates pass with 37 operations；BDD-N/A because no real API/UI flow is driven.
+  <!-- verified: 2026-07-15 method=root+contract+context+docs evidence="make test PASS (Python 551/4493 subtests, Go all packages, frontend 125 files/993 tests); mock/OpenAPI/fixture/codegen/context/docs/diff PASS at 37/10; no E2E claimed" -->
