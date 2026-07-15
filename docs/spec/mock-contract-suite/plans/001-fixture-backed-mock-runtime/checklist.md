@@ -64,10 +64,14 @@
 
 ## 9 Practice durable recovery mock parity
 
-- [ ] 9.1 RED/GREEN: registry/frontend/backend tests consume role-discriminated get-session fixtures for all four reply statuses and reject illegal user/assistant recovery fields.
-- [ ] 9.2 FAILURE-MATRIX: exact status/body parity passes for validation/auth/not-found/conflict/mismatch/retryable send scenarios; unknown scenario remains fail-loudly.
-- [ ] 9.3 REPLAY-GATE: retryable failure → reload → same-ID/same-text success yields exactly one user and one assistant; terminal/mismatch paths never retry.
-- [ ] 9.4 COMPLETION-GATE: use focused mock parity tests only for development feedback；before restoring completed status, run root `make test`, mock/fixture/OpenAPI/codegen gates, context/docs checks and `git diff --check`. `BDD-N/A` because this phase does not drive a real API/UI user flow.
+- [x] 9.1 RED/GREEN: registry/frontend/backend tests consume role-discriminated get-session fixtures for all four reply statuses and reject illegal user/assistant recovery fields.
+  <!-- verified: 2026-07-15 method=fixture+generated+frontend+backend evidence="role-typed fixture mutation tests, mockruntime and frontend generated/practice tests PASS" -->
+- [x] 9.2 FAILURE-MATRIX: exact status/body parity passes for validation/auth/not-found/conflict/mismatch/retryable send scenarios; unknown scenario remains fail-loudly.
+  <!-- verified: 2026-07-15 method=fixture-registry+mockruntime+transport evidence="5 Python, focused Go and frontend mock transport matrix PASS" -->
+- [x] 9.3 REPLAY-GATE: retryable failure → reload → same-ID/same-text success yields exactly one user and one assistant; terminal/mismatch paths never retry.
+  <!-- verified: 2026-07-15 method=frontend-behavior evidence="PracticeScreen/usePracticeMessages replay suite PASS within 71 frontend focused tests" -->
+- [x] 9.4 COMPLETION-GATE: use focused mock parity tests only for development feedback；before restoring completed status, run root `make test`, mock/fixture/OpenAPI/codegen gates, context/docs checks and `git diff --check`. `BDD-N/A` because this phase does not drive a real API/UI user flow.
+  <!-- verified: 2026-07-15 method=root+contract+context+docs evidence="make test PASS (Python 551/4493 subtests, Go all packages, frontend 125 files/993 tests); mock/fixture/OpenAPI/codegen/context/docs/diff PASS; no E2E claimed" -->
 
 ## 10 Report-owned conversation mock parity
 
