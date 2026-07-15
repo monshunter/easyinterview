@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.5
+> **版本**: 3.6
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -42,3 +42,11 @@
 
 - [ ] Root `make test`、typecheck/build/lint and document gates pass on the revised implementation.
 - [ ] P0.099 README/manual-audit/capture-verification assertions are aligned, then an explicitly run current scenario produces ready full-page evidence covering actions and the following bottom interview summary；historical exact-six PASS is not reused.
+
+## Phase 13 report conversation integration
+
+- [x] Focused ReportConversation/ReportsScreen/Report route and safe-Markdown tests pass.
+- [x] Focused backend report conversation service/store/handler tests pass with malformed-ID no-read and hidden-404 boundaries.
+- [x] OpenAPI fixture/codegen/inventory/diff gates pass and `listPracticeSessions` has no active fixture/generated/runtime consumer.
+- [x] Root `make test` passes while deleted Demo/prototype-sync assets remain absent.
+  <!-- verified: 2026-07-15 method=focused+root-regression evidence="frontend 989; Python 551+4493 subtests; Go all packages; build/docs/codegen/pruning PASS" -->

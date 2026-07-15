@@ -151,6 +151,92 @@ func TestHandlerSelectsNamedSeedScenariosAndFailsUnknown(t *testing.T) {
 	}
 }
 
+func TestHandlerReturnsReportConversationFixtureScenarios(t *testing.T) {
+	repoRoot := findRepoRoot(t)
+	registry, err := LoadRegistry(filepath.Join(repoRoot, "openapi", "fixtures"))
+	if err != nil {
+		t.Fatalf("load registry: %v", err)
+	}
+	handler := NewHandler(registry)
+	fixturePath := filepath.Join(repoRoot, "openapi", "fixtures", "Reports", "getReportConversation.json")
+
+	for _, scenario := range []string{
+		"default",
+		"queued",
+		"generating",
+		"failed",
+		"empty-messages",
+		"markdown-gfm",
+		"cross-user-not-found",
+		"report-not-found",
+		"invalid-report-identity",
+		"invalid-message-role",
+		"invalid-message-sequence",
+		"invalid-report-session-binding",
+	} {
+		t.Run(scenario, func(t *testing.T) {
+			request := httptest.NewRequest(
+				http.MethodGet,
+				"/api/v1/reports/01918fa0-0070-7000-8000-000000000070/conversation",
+				nil,
+			)
+			request.Header.Set("Prefer", "example="+scenario)
+			response := httptest.NewRecorder()
+
+			handler.ServeHTTP(response, request)
+
+			wantStatus, wantBody := fixtureScenarioResponse(t, fixturePath, scenario)
+			if response.Code != wantStatus {
+				t.Fatalf("status = %d, want %d; body=%s", response.Code, wantStatus, response.Body.String())
+			}
+			assertJSONEqual(t, response.Body.Bytes(), wantBody)
+		})
+	}
+}
+
+func TestHandlerRejectsRemovedPracticeSessionListAndKeepsScopedRead(t *testing.T) {
+	repoRoot := findRepoRoot(t)
+	registry, err := LoadRegistry(filepath.Join(repoRoot, "openapi", "fixtures"))
+	if err != nil {
+		t.Fatalf("load registry: %v", err)
+	}
+	if _, exists := registry.fixtures["listPracticeSessions"]; exists {
+		t.Fatal("removed listPracticeSessions fixture remains registered")
+	}
+	if route, found := matchRoute(http.MethodGet, "/practice/sessions"); found {
+		t.Fatalf("removed list route still matches operationId %q", route.OperationID)
+	}
+
+	handler := NewHandler(registry)
+	removedRequest := httptest.NewRequest(http.MethodGet, "/api/v1/practice/sessions?limit=25", nil)
+	removedRequest.Header.Set("Prefer", "example=default")
+	removedResponse := httptest.NewRecorder()
+
+	handler.ServeHTTP(removedResponse, removedRequest)
+
+	if removedResponse.Code != http.StatusNotFound {
+		t.Fatalf("removed list status = %d, want 404; body=%s", removedResponse.Code, removedResponse.Body.String())
+	}
+
+	scopedRequest := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/practice/sessions/01918fa0-0000-7000-8000-000000005000",
+		nil,
+	)
+	scopedResponse := httptest.NewRecorder()
+
+	handler.ServeHTTP(scopedResponse, scopedRequest)
+
+	wantStatus, wantBody := fixtureDefaultResponse(
+		t,
+		filepath.Join(repoRoot, "openapi", "fixtures", "PracticeSessions", "getPracticeSession.json"),
+	)
+	if scopedResponse.Code != wantStatus {
+		t.Fatalf("scoped read status = %d, want %d; body=%s", scopedResponse.Code, wantStatus, scopedResponse.Body.String())
+	}
+	assertJSONEqual(t, scopedResponse.Body.Bytes(), wantBody)
+}
+
 func fixtureDefaultResponse(t *testing.T, path string) (int, []byte) {
 	t.Helper()
 	return fixtureScenarioResponse(t, path, "default")

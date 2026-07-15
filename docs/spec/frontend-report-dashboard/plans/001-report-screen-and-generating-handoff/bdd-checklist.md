@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.7
+> **版本**: 3.8
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -39,3 +39,11 @@
 
 - [ ] Align P0.099 README/manual-audit/capture-verification assertions, then explicitly run it against the current real environment after implementation；ready full-page images include actions and the following bottom interview summary.
 - [ ] Record only current-run exact-six/manual audit evidence；the prior static asset audit and historical PASS state do not satisfy Phase 12.
+
+## Phase 13 `BDD.REPORT.CONVERSATION.001` integration
+
+- [x] Code-owner behavior tests prove Report and ReportsScreen entries open the same reportId-only readonly transcript.
+- [x] Ready/non-ready Back, reportId switch stale fence, safe Markdown and strict role/sequence/closed-projection failures are covered.
+- [x] Backend owner tests prove report-to-session authorization/binding, malformed locator no-read and hidden-404 semantics.
+- [x] Root `make test` is rerun after conflict resolution; P0.099 remains a separate real API/UI handoff and is not claimed by these code tests.
+  <!-- verified: 2026-07-15 method=domain-behavior+root-regression evidence="code-owner behavior PASS; no real E2E run claimed" -->

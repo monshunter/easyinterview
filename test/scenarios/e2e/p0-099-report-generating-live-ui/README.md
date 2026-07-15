@@ -15,13 +15,17 @@
   `deploy/dev-stack/.env`.
 - **When** a browser agent captures the exact desktop/mobile matrix with
   `fullPage: true`, records one provisional redacted `manifest.json` containing
-  screenshot/ref/semantic-audit facts, and passes the current synthetic session
-  cookie through temporary `P0_099_SESSION_COOKIE`.
+  screenshot/ref/semantic-audit facts, opens one ready Report's Conversation
+  entry through the real browser, returns with Back, writes its bounded
+  navigation artifact, and passes the current synthetic session cookie through
+  temporary `P0_099_SESSION_COOKIE`.
 - **Then** exactly six canonical PNGs exist, every row binds locale, state,
   viewport, fixture, report/session references, DB/API state, and a redacted
   fact-to-judgment-to-action audit; trigger independently captures the same
   three resources through authenticated live HTTP plus `read-only-postgres`,
-  and a no-OCR review binds visible semantics to the exact six PNG digests.
+  binds the selected ready report's ordered conversation without retaining its
+  prose, and a no-OCR review binds visible semantics to the exact six PNG
+  digests.
 
 This scenario no longer accepts the historical four practice/report images.
 P0.099 is the minimal real report/generating visual acceptance required by
@@ -44,10 +48,11 @@ is accepted. Desktop/mobile rows for one state must share one report/session;
 the three states must use isolated resources.
 
 Every PNG is parsed as a complete chunk stream: signature, chunk boundaries,
-CRC, one terminal `IEND`, no trailing bytes, and no textual/EXIF/profile/time
-metadata. Each manifest row carries `screenshot_sha256`, which must equal the
-current file digest. The validator reconstructs PNG filters and rejects blank
-or near-solid images. For each ready mobile report it additionally samples the
+CRC, one terminal `IEND`, and no trailing bytes. Benign development metadata
+such as color profiles is accepted; metadata carrying project user data,
+authentication material, or runtime secrets is rejected. Each manifest row
+carries `screenshot_sha256`, which must equal the current file digest. The
+validator reconstructs PNG filters and rejects blank or near-solid images. For each ready mobile report it additionally samples the
 last 844-pixel viewport and rejects a blank bottom region, so a top-only or
 truncated capture cannot satisfy the full-page action-region gate. These pixel
 checks prove file integrity and nonblank layout only; they do not infer report
@@ -70,6 +75,55 @@ Repeat for the three rows in the matrix. Capture `generating` immediately after
 the real completion handoff while the API still returns `generating`; do not use
 a fixture transport, route status override, or hidden mock server. Close the
 named session after capture.
+
+### Bounded Report → Conversation → Back artifact
+
+Before `trigger.sh`, use the same real browser session on one of the two ready
+reports. Starting at `/report?reportId=<ready-report-ref>`, click the low-emphasis
+Conversation entry, observe `/report-conversation?reportId=<same-ready-report-ref>`
+and the real `GET /api/v1/reports/{reportId}/conversation`, then click Back and
+observe the original `/report?reportId=<same-ready-report-ref>`. Inspect the
+scoped application request log for that navigation; do not intercept, fulfill,
+mock, export a HAR, or write request/response bodies.
+
+The browser agent writes exactly one bounded
+`.test-output/e2e/p0-099-report-generating-live-ui/conversation-navigation.json`:
+
+```json
+{
+  "schema_version": "p0-099-conversation-navigation.v1",
+  "scenario_id": "E2E.P0.099",
+  "run_id": "<setup.env RUN_ID>",
+  "method": "real-browser-report-conversation-back",
+  "report_ref": "<ready-report-id>",
+  "urls": {
+    "report": "/report?reportId=<same-ready-report-id>",
+    "conversation": "/report-conversation?reportId=<same-ready-report-id>",
+    "back": "/report?reportId=<same-ready-report-id>"
+  },
+  "request_audit": {
+    "report_get_path": "/api/v1/reports/<same-ready-report-id>",
+    "report_get_count": 1,
+    "conversation_get_path": "/api/v1/reports/<same-ready-report-id>/conversation",
+    "conversation_get_count": 1,
+    "public_session_list_request_count": 0,
+    "route_interception_used": false
+  },
+  "privacy": {
+    "transcript_prose_written": false,
+    "internal_locator_written": false,
+    "browser_state_written": false
+  }
+}
+```
+
+The counters are a bounded observation window for the two report APIs (each
+between 1 and 4). `public_session_list_request_count: 0` records the complete
+navigation window, not merely a selected subset. Relative URLs permit exactly
+one query key, `reportId`; the artifact never contains a session ID, message
+ID, body, transcript, cookie, browser state, or extra screenshot. The validator
+requires this artifact to select one current ready manifest resource and binds
+it to the current DB/API conversation capture.
 
 ## Redacted manifest
 
@@ -113,13 +167,19 @@ assertions for those labels. This acceptance evidence does not add a product
 API field.
 
 Manifest self-consistency is not live-binding evidence. On every trigger run,
-`capture_live_evidence.py` writes a `p0-099-live-capture.v2`
+`capture_live_evidence.py` writes a `p0-099-live-capture.v3`
 `live-capture.json` projection for the exact three manifest resources. It joins
 `feedback_reports` to `practice_sessions` through one read-only PostgreSQL
-`SELECT`, then calls `GET /api/v1/reports/{reportId}`. Trigger performs both
-captures immediately after setup/run identity checks and before the environment
-readiness recheck, so an honest generating state cannot advance during the
-runner and then be described from stale state.
+`SELECT`, calls `GET /api/v1/reports/{reportId}`, and for the browser-selected
+ready report uses a second read-only PostgreSQL `practice_messages` projection
+ordered by `seq_no ASC` plus authenticated
+`GET /api/v1/reports/{reportId}/conversation`. Trigger retains only report and
+session references, status, frozen/public context digests, message count,
+strict-sequence digest, ordered-message digest, and API/DB binding booleans;
+conversation bodies remain in process only long enough to hash and are never
+written. Trigger performs all captures immediately after setup/run identity
+checks and before the environment readiness recheck, so an honest generating
+state cannot advance during the runner and then be described from stale state.
 
 The `read-only-postgres` projection proves the report/session relation, DB
 status, preparedness, frozen-context digest, canonical report-content digest,
@@ -147,7 +207,9 @@ scoped `PG*` variables and sends the fixed `SELECT` over stdin.
 
 This single trigger-time bind removes any bootstrap/backfill cycle: there is no
 pre-capture command and no interval in which `generating` can be copied from an
-older projection. A capture/bind failure leaves no trusted final manifest.
+older projection. It does not add a seventh screenshot or change the exact-six
+manifest/manual-audit row count. A capture/bind failure leaves no trusted final
+manifest.
 
 `P0_099_SESSION_COOKIE` contains only the current synthetic session cookie
 value, without the `ei_session=` name. It is read from the process environment,
@@ -222,6 +284,7 @@ After the top-level scenario environment preflight:
 ```bash
 bash test/scenarios/e2e/p0-099-report-generating-live-ui/scripts/setup.sh
 # browser captures six images and writes provisional manifest.json for setup.env RUN_ID
+# same browser writes bounded conversation-navigation.json after Report -> Conversation -> Back
 read -r -s P0_099_SESSION_COOKIE && export P0_099_SESSION_COOKIE
 # trigger captures DB/API and atomically binds all machine evidence into manifest.json
 bash test/scenarios/e2e/p0-099-report-generating-live-ui/scripts/trigger.sh
@@ -231,13 +294,13 @@ bash test/scenarios/e2e/p0-099-report-generating-live-ui/scripts/verify.sh
 bash test/scenarios/e2e/p0-099-report-generating-live-ui/scripts/cleanup.sh
 ```
 
-Missing browser/live-capture prerequisites yield `MANUAL_REQUIRED` and remove
-untrusted primary evidence. A completed automated gate retains its bounded six
-images only while awaiting the exact manual audit. Present but malformed, stale,
-non-redacted, non-full-page, non-visual, or non-exact evidence yields `FAIL` and
-is deleted. Files containing forbidden raw keys or secret markers are deleted
-regardless of filename. Full validator-confirmed `PASS` retains the redacted
-evidence set.
+Missing browser/live-capture prerequisites (including the bounded conversation
+navigation artifact) yield `MANUAL_REQUIRED` and remove untrusted primary
+evidence. A completed automated gate retains its bounded six images only while
+awaiting the exact manual audit. Present but malformed, stale, non-redacted,
+non-full-page, non-visual, or non-exact evidence yields `FAIL` and is deleted.
+Files containing forbidden raw keys or secret markers are deleted regardless of
+filename. Full validator-confirmed `PASS` retains the redacted evidence set.
 
 Output stays under:
 

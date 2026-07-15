@@ -16,7 +16,6 @@ for Prism / docs-site consumption.
 ```
 openapi/fixtures/
 ├── README.md
-├── PROTOTYPE_MAPPING.md          # data.jsx ↔ operationId mapping table
 └── <Tag>/
     └── <operationId>.json        # one fixture per operation (37 in the current contract)
 ```
@@ -36,9 +35,6 @@ Each fixture is JSON with the following structure:
   "scenarios": {
     "default": {
       "request": { "headers": {}, "body": {} },
-      "response": { "status": 200, "headers": {}, "body": {} }
-    },
-    "prototype-baseline": {
       "response": { "status": 200, "headers": {}, "body": {} }
     }
   }
@@ -95,11 +91,8 @@ mock to pick it up.
 | Target | Purpose |
 |--------|---------|
 | `make validate-fixtures` | Schema-validates every scenario against `openapi.yaml`, enforces AI-schema provenance, runs the privacy allowlist + UUIDv7 + `tmp_` scans, and verifies all 37 operationIds are present. |
-| `make sync-fixtures-from-prototype` | Re-renders the `prototype-baseline` scenario of every supported fixture from `data.jsx`. Idempotent — `git diff --exit-code -- openapi/fixtures` stays clean across re-runs. |
-
-The two are independent; the sync tool calls `validate-fixtures` internally as
-its final gate but the validate gate also runs standalone for hand-edited
-fixtures.
+Fixtures and consumer-owned scenarios are maintained directly in this directory.
+`make validate-fixtures` is the authoritative schema, inventory and privacy gate.
 
 ## Privacy posture
 
@@ -142,7 +135,7 @@ hard gate, but it returns `401 Unauthorized` with the documented error
 envelope when a cookie is missing — the smoke calls below therefore include
 `Cookie: ei_session=fake` to exercise the success branch.
 
-### Live smoke matrix (13 fixed operations)
+### Live smoke matrix (14 fixed operations)
 
 The repeatable smoke matches all selected defaults byte-for-byte. It retains
 the original read/handoff checks and also covers the Resume summary-list/full-detail
@@ -162,6 +155,7 @@ the declared response.
 | `archiveTargetJob` | `POST /targets/{targetJobId}/archive` | 202 |
 | `getPracticeSession` | `GET /practice/sessions/{sessionId}` | 200 |
 | `getFeedbackReport` | `GET /reports/{reportId}` | 200 |
+| `getReportConversation` | `GET /reports/{reportId}/conversation` | 200 |
 | `listTargetJobReports` | `GET /targets/{targetJobId}/reports` | 200 |
 | `createPracticePlan` | `POST /practice/plans` | 201 |
 | `requestPrivacyExport` | `POST /privacy/exports` | 501 |

@@ -1,13 +1,14 @@
 # Backend Practice History
 
-> **版本**: 1.33
+> **版本**: 1.35
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 1.35 | 用户确认删除无产品入口的 `listPracticeSessions`；保留 live `getPracticeSession`，完成会话复盘改由 report-owned `getReportConversation` 承接，无兼容 route/handler/fixture。 | [001](./plans/001-plan-and-session-orchestration/plan.md) + backend-review/001 + openapi/001/002/003 |
 | 2026-07-14 | 1.33 | 用户确认 T-B/P-A：pending 使用 90 秒服务端 lease 与内部 generation fence；GET / 同 ID reserve 惰性收敛；客户端 95 秒超时后按同 ID 对账；terminal 恢复返回当前面试规划。 | [002](./plans/002-event-loop-and-completion/plan.md) + frontend-workspace-and-practice/002 |
 | 2026-07-13 | 1.32 | 用户确认方案 A：Practice user message 持久化 reply status，并在会话读模型返回原 `clientMessageId/replyStatus`，支持刷新后同 ID 恢复且不以浏览器存储为事实源。 | [002](./plans/002-event-loop-and-completion/plan.md) + openapi-v1-contract/001 + frontend-workspace-and-practice/002 |
 | 2026-07-12 | 1.31 | 完成 004：active v0.2 semantic focus 限定为 code+label+issues，空 focus 不伪造，raw/anchor/code-only fail closed；P0.070/P0.072 PostgreSQL v19、IK/isolation/privacy 与 legacy-negative markers 闭环。 | [004](./plans/004-report-derived-practice-plans/plan.md) + F3/002 |

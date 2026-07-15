@@ -1,6 +1,6 @@
 # Product Scope History
 
-> **版本**: 2.23
+> **版本**: 2.24
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 2.24 | D-29：合并 reportId-only 只读 Markdown 面试记录，报告存在即可查看，无会话列表、sessionId 用户路由或新关系表。 | frontend-report 001 + backend-review 001 + openapi 001/002/003 + E2E.P0.099 |
 | 2026-07-15 | 2.23 | 用户确认报告 ready 页改为 `3/2/2/2/1`；顶部准备度卡片下移为底部全宽面试总评，准备度与服务端 summary 只在该处展示，mobile 同序单列。 | frontend-report-dashboard/001 |
 | 2026-07-14 | 2.22 | Parse 收敛为 import 后 queued/processing 命令进度，ready replace 到 targetJobId-only Workspace 只读详情；ready 卡片、Reports Back、Practice terminal recovery 统一回 Workspace，报告入口迁至 Workspace；主题收敛为 Ocean/Plum 与 hue/saturation-only custom accent，无 preview/value/reset。 | product-scope/001 + frontend owner plans |
 | 2026-07-14 | 2.21 | D-27：面试规划详情内容区右上进入 target-scoped ReportsScreen；只展示当前规划 current/latest，Parse 无嵌入列表，TopBar 无报告入口，trusted Back 返回 Reports。 | frontend-home 001 + frontend-report 001 + frontend-shell 004 |

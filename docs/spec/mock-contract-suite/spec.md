@@ -1,8 +1,8 @@
 # Mock Contract Suite Spec
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 背景与目标
 
@@ -20,10 +20,10 @@
 
 ### 2.1 In Scope
 
-- 读取 `openapi/fixtures/` 当前 10 tag / 37 operation fixtures；Auth `completeMyProfile`、扁平 `Resumes`、`getResumeSource` PDF 原件预览、TargetJob paste-only import/archive、PracticeSessions listing、PracticeVoiceTurn 与 runtime config 均属于当前 fixture coverage。TargetJob paste-only contract 由 accepted [OPENAPI-002](../openapi-v1-contract/decisions/OPENAPI-002-targetjob-paste-only.md) 与 openapi-v1-contract 001/002/003 承接；其它落地路径由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)、[backend-resume](../backend-resume/spec.md)、[backend-auth/001](../backend-auth/plans/001-email-code-session-bootstrap/plan.md) 与 [frontend-shell/001](../frontend-shell/plans/001-app-shell-auth-settings/plan.md) 承接。
+- 读取 `openapi/fixtures/` 当前 10 tag / 37 operation fixtures；Auth `completeMyProfile`、扁平 `Resumes`、`getResumeSource` PDF 原件预览、TargetJob paste-only import/archive、report-owned conversation、PracticeVoiceTurn 与 runtime config 均属于当前 fixture coverage。公共 PracticeSessions listing 已按 OPENAPI-001 v1.7 删除。TargetJob paste-only contract 由 accepted [OPENAPI-002](../openapi-v1-contract/decisions/OPENAPI-002-targetjob-paste-only.md) 与 openapi-v1-contract 001/002/003 承接；其它落地路径由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)、[backend-resume](../backend-resume/spec.md)、[backend-auth/001](../backend-auth/plans/001-email-code-session-bootstrap/plan.md) 与 [frontend-shell/001](../frontend-shell/plans/001-app-shell-auth-settings/plan.md) 承接。
 - 基于 generated OpenAPI types 为前端提供 fixture-backed API client 或 mock transport。
 - 为本地后端或开发服务器提供同源 mock handler / router。
-- 校验 fixtures 与 `openapi/openapi.yaml`、generated packages 和 `openapi/fixtures/PROTOTYPE_MAPPING.md` 的一致性。
+- 校验 fixtures 与 `openapi/openapi.yaml`、generated packages 和 fixture consumer registry 的一致性。
 - 统一 mock response 中的 auth/session、target job、practice plan、practice session、report、resume、privacy 和 runtime config 基线。
 - 为代码层 fixture consumers 与 dev preview 提供可重置的 seed profile；seed profile 必须表达为 `openapi/fixtures/<tag>/<operationId>.json` 内的 named scenarios，不得引入第二套 seed 数据源。
 - 前端 Vite dev preview 的默认 API client wiring：`pnpm --filter @easyinterview/frontend dev` 在未显式选择真实 backend 时必须使用 fixture-backed transport。
@@ -33,7 +33,7 @@
 - 不新增或修改 OpenAPI operation；破坏性 API 变更归 B2 `openapi-v1-contract`。
 - 不实现真实业务 store、AI 调用、文件上传、邮箱发送或 backend internal runner。
 - 不新增 product-scope 当前范围之外的 route、tag、operation、schema key 或 runtime config 口径。
-- 不把 `frontend/src` 作为运行时真理源；它只保留为 prototype-baseline 对照输入。
+- 不把 `frontend/src` 作为 mock 数据真理源；正式前端只通过 generated client 与 fixture-backed transport 消费合同。
 - 不替代后续 `e2e-scenarios-p0` 的真实端到端验证。
 - 不在 production build 默认启用 fixture-backed mock；真实部署仍通过 same-origin `/api/v1` 访问 backend。
 
@@ -48,6 +48,7 @@
 | D-5 | Frontend dev preview 默认行为 | Vite dev 默认 fixture-backed；`VITE_EI_API_MODE=real` 必须同时提供 `VITE_EI_API_BASE_URL` 才打真实 backend | 避免本地开发时大量真实接口报错导致页面不可见，且避免相对 `/api/v1` 隐式打到 frontend 5173 |
 | D-6 | TargetJob mock paste-only | `importTargetJob` mock request 只接受 flattened `{rawText,targetLanguage,resumeId}`；TargetJob fixture/generated mock response 不含 `sourceType` / `sourceUrl`；URL/file/manual_form 与 `target_job_attachment` 不得作为正向 mock 能力 | 保留通用 `createUploadPresign` 及 resume/privacy purpose；由 registry、frontend transport、backend mockruntime 与 boundary tests 证明代码层 parity |
 | D-7 | Practice recovery mock parity | mock runtime 原样消费 B2 role-discriminated messages 与 typed failure fixtures：user 有 `clientMessageId/replyStatus`，assistant 无；get-session 覆盖四种 durable status，send 覆盖 validation/auth/not-found/conflict/mismatch/retryable failure 与 same-ID retry success | 不复制本地 recovery DTO/错误表；unknown scenario 继续 fail loudly；由 fixture-backed frontend/backend tests 证明 exact parity 与 replay semantics |
+| D-8 | Report conversation mock replacement | registry 删除 `listPracticeSessions` 并原样消费 `getReportConversation` fixture；只返回 reportId/status/frozen context/ordered messages，不暴露内部 locator | frontend/backend mock 选择同一 Reports fixture；old operation/path/scenario unknown 并 fail loudly；总 coverage 仍为 37/37，不复制本地 transcript DTO |
 
 ## 4 设计约束
 
@@ -63,6 +64,7 @@
 - TargetJob mock 必须原样消费 OPENAPI-002 迁移后的 fixture/generated types：`importTargetJob` request 精确为 `rawText` / `targetLanguage` / `resumeId`，read response 不含 `sourceType` / `sourceUrl`。旧能力在 positive/runtime mock surface 中必须 zero-reference；accepted ADR/oracle 与 exact negative declarations 可保留 rejected token，禁止 whole-file/directory exclusion。
 - `createUploadPresign` operation 必须继续存在，mock coverage 只保留 resume/privacy purpose。TargetJob 收敛不得误删简历原件或隐私导出仍依赖的通用上传合同。
 - Practice mock 只投影 B2 fixtures/generated types：四种 get-session reply status 与 send exact failure matrix 的 status/body 必须字节一致；retryable failure → reload → same-ID success 不得新增第二条 user/assistant。Mock adapter 不解析 `Error.message`，也不自行推断 retryability。
+- Report conversation mock 只投影 B2 `Reports/getReportConversation.json` 与 generated types；registry 不得保留 `listPracticeSessions` key、path matcher、scenario alias 或 fallback。Success body 与 message row 必须 closed 且 sequence 严格递增；unknown/hidden/fail-closed scenario 原样透传 fixture status/body。
 
 ## 5 模块边界
 
@@ -77,13 +79,14 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Fixture coverage | B2 当前 37 operation fixtures 已落地（含 Auth `completeMyProfile`、扁平 `Resumes` operation、`getResumeSource` PDF 原件预览、`archiveTargetJob`、PracticeSessions listing、PracticeVoiceTurn 与 runtime config） | 运行 mock coverage gate | 每个当前 operationId 都能被 registry 解析且 schema 校验通过；`completeMyProfile`、`listResumes` / `getResumeSource` / `duplicateResume` / `exportResume` / `archiveTargetJob` 等当前 operation 也必须可被同一 registry 解析；范围外 operation 不得作为正向 fixture coverage 目标 | 001-fixture-backed-mock-runtime（C-1 数字随 openapi-v1-contract 与 backend-auth/backend-resume contract 升级） |
+| C-1 | Fixture coverage | B2 当前 37 operation fixtures 已落地（含 Auth `completeMyProfile`、扁平 `Resumes` operation、`getResumeSource` PDF 原件预览、`archiveTargetJob`、report-owned conversation、PracticeVoiceTurn 与 runtime config） | 运行 mock coverage gate | 每个当前 operationId 都能被 registry 解析且 schema 校验通过；`getReportConversation` 与其它当前 operation 必须可由同一 registry 解析，`listPracticeSessions` 不得解析；范围外 operation 不得作为正向 fixture coverage 目标 | 001-fixture-backed-mock-runtime（C-1 数字随 openapi-v1-contract 与 backend-auth/backend-resume contract 升级） |
 | C-2 | 前端 mock 同源 | 前端请求 generated client | 切到 mock transport | response shape 来自 B2 fixtures，组件不 import prototype data | 001-fixture-backed-mock-runtime |
 | C-3 | 后端 mock 同源 | 本地 API smoke 请求 mock handler | 命中任一 P0 operation | handler 返回同一 fixture registry 的 typed response | 001-fixture-backed-mock-runtime |
 | C-4 | 当前范围负向搜索 | mock runtime / fixtures / generated artifacts 已生成 | 运行 scoped negative search | 不含当前 product-scope 范围之外的 route / tag / operationId / schema key / config path；不误杀普通业务文案 | 001-fixture-backed-mock-runtime |
 | C-5 | 前端 dev client 选择 | Vite dev 未显式选择真实 backend | 创建 app client | 默认选择 fixture-backed client；只有显式 `VITE_EI_API_MODE=real` 且提供 `VITE_EI_API_BASE_URL` 才创建 real client | 001-fixture-backed-mock-runtime |
 | C-6 | TargetJob paste-only mock parity | OPENAPI-002 与 openapi-v1-contract 002 已迁移 fixtures/generated artifacts | 运行 mock registry、frontend transport、backend mockruntime 与 boundary focused gates | `importTargetJob` 只接受 `{rawText,targetLanguage,resumeId}`；TargetJob response 无 `sourceType/sourceUrl`；URL/file/manual_form/`TargetJobImportSource*`/`target_job_attachment` 正向 surface 为零；`createUploadPresign` resume/privacy 仍可解析 | 001-fixture-backed-mock-runtime Phase 8 |
 | C-7 | Practice recovery mock parity | B2 001/002 发布 role-discriminated generated types 与 planned fixtures | frontend/backend mock 选择 get/send recovery scenarios | exact status/body parity；user/assistant recovery fields 合法；validation/auth/not-found/conflict/mismatch/retryable markers 可选；unknown scenario fail loudly；same-ID retry 无重复消息 | 001-fixture-backed-mock-runtime Phase 9 |
+| C-8 | Report conversation mock parity | B2 001/002 一对一替换 operation 与 fixture | frontend/backend mock 选择 ready/non-ready/empty/hidden/fail-closed conversation scenarios | `getReportConversation` exact status/body parity；closed message fields与顺序保持；deleted list operation/path/scenario fail loudly；registry 始终 37 operations | 001-fixture-backed-mock-runtime Phase 10 |
 
 ## 7 关联计划
 

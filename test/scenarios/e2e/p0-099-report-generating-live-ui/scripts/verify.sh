@@ -60,8 +60,9 @@ case "$RESULT_STATE" in
     python3 "$VALIDATOR" --output-dir "$OUT" --run-id "$RUN_ID" >/dev/null
     grep -Fq -- "P0_099_SIX_SCREENSHOT_PASS" "$LOG"
     grep -Fq -- "P0_099_CURRENT_RUN_RAW_DEBUG_ABSENT_PASS" "$LOG"
-    grep -Fq -- "P0_099_LIVE_CAPTURE_PASS reports=3 privacy=redacted" "$LOG"
+    grep -Fq -- "P0_099_LIVE_CAPTURE_PASS reports=3 conversation=1 privacy=redacted" "$LOG"
     grep -Fq -- "P0_099_LIVE_CAPTURE_BOUND_PASS" "$LOG"
+    grep -Fq -- "P0_099_CONVERSATION_NAVIGATION_BOUND_PASS" "$LOG"
     grep -Fq -- "P0_099_MANUAL_VISUAL_AUDIT_BOUND_PASS" "$LOG"
     EVIDENCE_RETAINABLE=1
     ;;

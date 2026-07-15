@@ -499,7 +499,7 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {item.currentReport ? (
-                      <span data-testid="reports-current">
+                      <span data-testid="reports-current" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                         <SecondaryButton
                           size="sm"
                           icon
@@ -512,6 +512,19 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
                         >
                           {t("reports.openCurrent")}
                         </SecondaryButton>
+                        <button
+                          data-testid="reports-conversation-entry"
+                          type="button"
+                          onClick={() =>
+                            navigate({
+                              name: "report_conversation",
+                              params: { reportId: item.currentReport!.id },
+                            })
+                          }
+                          style={{ border: 0, padding: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", fontSize: 12, fontFamily: "var(--ei-font-sans)", cursor: "pointer" }}
+                        >
+                          {t("reports.viewConversation")}
+                        </button>
                       </span>
                     ) : null}
                     {showGenerating && item.latestAttempt ? (

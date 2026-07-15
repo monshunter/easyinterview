@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import getMeFixture from "../../../openapi/fixtures/Auth/getMe.json";
 import getRuntimeConfigFixture from "../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/getPracticeSession.json";
+import getReportConversationFixture from "../../../openapi/fixtures/Reports/getReportConversation.json";
 import listTargetJobsFixture from "../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 import { EasyInterviewClient } from "./generated/client";
 import type { PaginatedTargetJob, PracticeSession, RuntimeConfig, UserContext } from "./generated/types";
@@ -51,6 +52,42 @@ describe("fixture-backed generated client transport", () => {
 		await expect(
 			client.getMe({ headers: { Prefer: "example=does-not-exist" } }),
 		).rejects.toThrow("unknown fixture scenario does-not-exist for operationId: getMe");
+	});
+
+	it("returns every report conversation fixture scenario without a legacy list fallback", async () => {
+		const fetch = createFixtureBackedFetch(
+			createFixtureRegistry([getReportConversationFixture]),
+		);
+		const reportId = "01918fa0-0070-7000-8000-000000000070";
+		const scenarios = [
+			"default",
+			"queued",
+			"generating",
+			"failed",
+			"empty-messages",
+			"markdown-gfm",
+			"cross-user-not-found",
+			"report-not-found",
+			"invalid-report-identity",
+			"invalid-message-role",
+			"invalid-message-sequence",
+			"invalid-report-session-binding",
+		] as const;
+
+		for (const scenario of scenarios) {
+			const response = await fetch(
+				`http://fixture.local/api/v1/reports/${reportId}/conversation`,
+				{ headers: { Prefer: `example=${scenario}` } },
+			);
+			const expected = getReportConversationFixture.scenarios[scenario].response;
+
+			expect(response.status).toBe(expected.status);
+			expect(await response.json()).toEqual(expected.body);
+		}
+
+		await expect(
+			fetch("http://fixture.local/api/v1/practice/sessions"),
+		).rejects.toThrow("no fixture route matched GET http://fixture.local/api/v1/practice/sessions");
 	});
 
 	it("honors fixture X-Mock-Delay-Ms before resolving responses", async () => {

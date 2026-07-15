@@ -55,7 +55,7 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("TargetJobs", "post", "/targets/{targetJobId}/archive", "archiveTargetJob"),
     ("PracticePlans", "post", "/practice/plans", "createPracticePlan"),
     ("PracticePlans", "get", "/practice/plans/{planId}", "getPracticePlan"),
-    ("PracticeSessions", "get", "/practice/sessions", "listPracticeSessions"),
+    ("Reports", "get", "/reports/{reportId}/conversation", "getReportConversation"),
     ("PracticeSessions", "post", "/practice/sessions", "startPracticeSession"),
     ("PracticeSessions", "get", "/practice/sessions/{sessionId}", "getPracticeSession"),
     ("PracticeSessions", "post", "/practice/sessions/{sessionId}/voice-turns", "createPracticeVoiceTurn"),
@@ -606,6 +606,135 @@ def validate_targetjob_report_overview_contract(
             )
 
 
+def validate_report_conversation_contract(data: dict[str, Any], errors: list[str]) -> None:
+    """Lock OPENAPI-001's report-owned, locator-free conversation projection."""
+    paths = data.get("paths") or {}
+    practice_sessions = paths.get("/practice/sessions") or {}
+    if "get" in practice_sessions:
+        errors.append("public GET /practice/sessions must be removed")
+
+    operation = ((paths.get("/reports/{reportId}/conversation") or {}).get("get")) or {}
+    if operation.get("operationId") != "getReportConversation":
+        errors.append(
+            "GET /reports/{reportId}/conversation operationId must be getReportConversation"
+        )
+    if operation.get("tags") != ["Reports"]:
+        errors.append("getReportConversation must be owned by the Reports tag")
+
+    named_parameters = [
+        parameter.get("name")
+        for parameter in (operation.get("parameters") or [])
+        if isinstance(parameter, dict) and "name" in parameter
+    ]
+    if named_parameters != ["reportId"]:
+        errors.append(
+            "getReportConversation named parameters must exactly equal ['reportId']; "
+            f"got {named_parameters!r}"
+        )
+    parameter_refs = [
+        parameter.get("$ref")
+        for parameter in (operation.get("parameters") or [])
+        if isinstance(parameter, dict) and "$ref" in parameter
+    ]
+    expected_parameter_refs = [
+        "#/components/parameters/XRequestID",
+        "#/components/parameters/Traceparent",
+        "#/components/parameters/AcceptLanguage",
+        "#/components/parameters/XClientVersion",
+    ]
+    if parameter_refs != expected_parameter_refs:
+        errors.append(
+            "getReportConversation shared header refs must remain unchanged; "
+            f"got {parameter_refs!r}"
+        )
+    response_ref = (
+        (((((operation.get("responses") or {}).get("200") or {}).get("content") or {}).get("application/json") or {}).get("schema") or {}).get("$ref")
+    )
+    if response_ref != "#/components/schemas/ReportConversation":
+        errors.append(
+            "getReportConversation 200 response must reference ReportConversation; "
+            f"got {response_ref!r}"
+        )
+
+    schemas = ((data.get("components") or {}).get("schemas") or {})
+    if "PaginatedPracticeSession" in schemas:
+        errors.append("removed PaginatedPracticeSession schema must not be present")
+    expected_shapes: dict[str, tuple[list[str], list[str]]] = {
+        "ReportConversation": (
+            ["reportId", "reportStatus", "context", "messages"],
+            ["reportId", "reportStatus", "context", "messages"],
+        ),
+        "ReportConversationMessage": (
+            ["sequence", "role", "content", "createdAt"],
+            ["sequence", "role", "content", "createdAt"],
+        ),
+    }
+    for schema_name, (required, properties) in expected_shapes.items():
+        schema = schemas.get(schema_name)
+        if not isinstance(schema, dict):
+            errors.append(f"missing components.schemas.{schema_name}")
+            continue
+        if schema.get("type") != "object":
+            errors.append(f"{schema_name}.type must be object")
+        if schema.get("additionalProperties") is not False:
+            errors.append(f"{schema_name} must set additionalProperties=false")
+        if schema.get("required") != required:
+            errors.append(
+                f"{schema_name}.required must exactly equal {required}; got {schema.get('required')!r}"
+            )
+        actual_properties = list((schema.get("properties") or {}).keys())
+        if actual_properties != properties:
+            errors.append(
+                f"{schema_name}.properties must exactly equal {properties}; got {actual_properties!r}"
+            )
+
+    conversation_properties = _schema_properties(schemas, "ReportConversation")
+    if (conversation_properties.get("reportId") or {}).get("format") != "uuid":
+        errors.append("ReportConversation.reportId must be a UUID")
+    if (conversation_properties.get("reportStatus") or {}).get("$ref") != "#/components/schemas/ReportStatus":
+        errors.append("ReportConversation.reportStatus must reference ReportStatus")
+    if (conversation_properties.get("context") or {}).get("$ref") != "#/components/schemas/ReportContextSnapshot":
+        errors.append("ReportConversation.context must reference ReportContextSnapshot")
+    if (
+        ((conversation_properties.get("messages") or {}).get("items") or {}).get("$ref")
+        != "#/components/schemas/ReportConversationMessage"
+    ):
+        errors.append("ReportConversation.messages must reference ReportConversationMessage")
+
+    message_properties = _schema_properties(schemas, "ReportConversationMessage")
+    sequence = message_properties.get("sequence") or {}
+    if (
+        sequence.get("type") != "integer"
+        or sequence.get("format") != "int32"
+        or sequence.get("minimum") != 1
+    ):
+        errors.append("ReportConversationMessage.sequence must be a positive int32")
+    role = message_properties.get("role") or {}
+    if role.get("type") != "string" or role.get("enum") != ["user", "assistant"]:
+        errors.append("ReportConversationMessage.role must exactly be user|assistant")
+    content = message_properties.get("content") or {}
+    if content != {"type": "string", "minLength": 1, "pattern": r"\S"}:
+        errors.append(
+            "ReportConversationMessage.content must be a nonblank string with exact minLength/pattern"
+        )
+    created_at = message_properties.get("createdAt") or {}
+    if created_at.get("type") != "string" or created_at.get("format") != "date-time":
+        errors.append("ReportConversationMessage.createdAt must be a date-time string")
+    for forbidden_property in (
+        "sessionId",
+        "id",
+        "clientMessageId",
+        "replyStatus",
+        "replyGeneration",
+        "anchor",
+    ):
+        if forbidden_property in message_properties:
+            errors.append(
+                "ReportConversationMessage must not expose internal locator "
+                f"{forbidden_property!r}"
+            )
+
+
 def validate_product_scope_contract(data: dict[str, Any], errors: list[str]) -> None:
     """Enforce product-scope v1.2 / current UI semantic invariants that are
     stronger than structural OpenAPI validity."""
@@ -866,6 +995,7 @@ def main(argv: list[str]) -> int:
     validate_product_scope_contract(data, errors)
     validate_targetjob_paste_only_contract(data, errors)
     validate_targetjob_report_overview_contract(data, errors)
+    validate_report_conversation_contract(data, errors)
     validate_resume_summary_contract(data, errors)
 
     # Sync against B1 truth source (spec C-8 partial).

@@ -5,15 +5,15 @@ metadata:
   name: 001-report-generation-baseline
   sequence: 1
   baseBranch: main
-  branch: fix/runtime-size-limits-0714
+  branch: design/report-conversation-record
   specVersion:
-    from: 1.20
-    to: 1.28
+    from: 1.28
+    to: 1.30
 spec:
   defaultTarget: backend
   discovery:
-    aliases: [conversation report, session-level evidence, grounded interview report]
-    keywords: [summary, immutableReportContext, dimensionCode, dimensionLabel, generationContext, sourceMessageSeqNos, retryFocusDimensionCodes, targetJobReportsOverview, canonicalRoundReportOverview, practiceRoundRef, currentReportIdGeneratedAt, latestAttemptIdStatusErrorCodeCreatedAt, currentReportGeneratedAtCreatedAtIdOrder, latestAttemptCreatedAtIdOrder, independentCurrentAndLatestPointers, everyCanonicalRoundIncluded, invalidReportContextWholeResponseFailClosed, noPaginatedFullReportList, noTargetJobLatestReportPointer, reportsScreenOnlyConsumer, noParseReportGeneratingListConsumer, action200MalformedFuse, actionLabelLanguageBounds24WhitespaceWords64UnicodeCodePoints, targetedActionLabelsLLMRepairInternalMargin18Words52CodePoints, evalkitReusesProductFullSemanticValidator, actionScopedGenerationInitialPlusThree, actionRetryWaits10s20s40s, retryContextDestroyedOnReturn, newGenerationActionResetsToZero, asyncJobAttemptsInfrastructureOnly, noReportRetryPersistenceColumn, claimedAttemptsLeaseGenerationFencing, staleWorkerZeroReportOutboxAuditJobSideEffects, dynamicViolationScopePerAttempt, retryableProviderProtocolActionLocalRetry, nonRetryableImmediateTerminal, attempt4EndsCurrentAction, independentJudgeAttemptBudget4, judgeProtocolInvalidRetry, judgeValidNegativeTerminalNoResample, judgeProtocolInvalidVsContentRejectedTypedOutcome, redactedAttemptCountRetryCountReasonScopeManifest, aggregateUsageLatency, reportMaxFramedInputBytes917504, smallInjectedReportInputGuard, noHistoricalPayloadReconstruction, activeProfileMaxTokensAtLeast16384, reportContextWindowTokens1000000, noByteTokenCapacityFormula, typedInvalidNoRawLabel, desktopAnd390CompleteWrapping, p0099CurrentRunCanonicalAudit, report-context.v1]
+    aliases: [conversation report, session-level evidence, grounded interview report, report owned conversation, readonly transcript]
+    keywords: [summary, immutableReportContext, dimensionCode, dimensionLabel, generationContext, sourceMessageSeqNos, retryFocusDimensionCodes, getReportConversation, reportOwnedTranscript, feedbackReportsSessionUnique, practiceMessagesSeqAsc, reportFourStatusesReadable, closedConversationMessageProjection, noSessionIdMessageIdClientMessageId, hidden404, conversationCorruptionFailClosed, noAIWriteMigration, removeListPracticeSessions, noSessionListCompatibility, targetJobReportsOverview, canonicalRoundReportOverview, practiceRoundRef, currentReportIdGeneratedAt, latestAttemptIdStatusErrorCodeCreatedAt, currentReportGeneratedAtCreatedAtIdOrder, latestAttemptCreatedAtIdOrder, independentCurrentAndLatestPointers, everyCanonicalRoundIncluded, invalidReportContextWholeResponseFailClosed, noPaginatedFullReportList, noTargetJobLatestReportPointer, reportsScreenOnlyConsumer, noParseReportGeneratingListConsumer, action200MalformedFuse, actionLabelLanguageBounds24WhitespaceWords64UnicodeCodePoints, targetedActionLabelsLLMRepairInternalMargin18Words52CodePoints, evalkitReusesProductFullSemanticValidator, actionScopedGenerationInitialPlusThree, actionRetryWaits10s20s40s, retryContextDestroyedOnReturn, newGenerationActionResetsToZero, asyncJobAttemptsInfrastructureOnly, noReportRetryPersistenceColumn, claimedAttemptsLeaseGenerationFencing, staleWorkerZeroReportOutboxAuditJobSideEffects, dynamicViolationScopePerAttempt, retryableProviderProtocolActionLocalRetry, nonRetryableImmediateTerminal, attempt4EndsCurrentAction, independentJudgeAttemptBudget4, judgeProtocolInvalidRetry, judgeValidNegativeTerminalNoResample, judgeProtocolInvalidVsContentRejectedTypedOutcome, redactedAttemptCountRetryCountReasonScopeManifest, aggregateUsageLatency, reportMaxFramedInputBytes917504, smallInjectedReportInputGuard, noHistoricalPayloadReconstruction, activeProfileMaxTokensAtLeast16384, reportContextWindowTokens1000000, noByteTokenCapacityFormula, typedInvalidNoRawLabel, desktopAnd390CompleteWrapping, p0099CurrentRunCanonicalAudit, report-context.v1]
   targets:
     backend:
       plan: ./plan.md
@@ -49,4 +49,4 @@ spec:
           - backend/internal/api/reports
           - backend/internal/review
           - backend/internal/store/review
-        apiNames: [getFeedbackReport, listTargetJobReports]
+        apiNames: [getFeedbackReport, getReportConversation, listTargetJobReports]

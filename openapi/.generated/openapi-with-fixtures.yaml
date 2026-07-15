@@ -1422,76 +1422,6 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /practice/sessions:
-    get:
-      tags:
-      - PracticeSessions
-      operationId: listPracticeSessions
-      summary: List practice sessions (cursor-paginated)
-      description: 'List practice sessions for the authenticated user, optionally filtered
-
-        by `targetJobId` and `status`. Powers target-job session history and
-
-        report replay entry points.
-
-        '
-      parameters:
-      - name: targetJobId
-        in: query
-        required: false
-        schema:
-          type: string
-          format: uuid
-      - name: status
-        in: query
-        required: false
-        schema:
-          $ref: '#/components/schemas/SessionStatus'
-      - name: cursor
-        in: query
-        required: false
-        schema:
-          type: string
-      - name: pageSize
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 1
-          maximum: 100
-      - $ref: '#/components/parameters/XRequestID'
-      - $ref: '#/components/parameters/Traceparent'
-      - $ref: '#/components/parameters/AcceptLanguage'
-      - $ref: '#/components/parameters/XClientVersion'
-      responses:
-        '200':
-          description: Paginated practice sessions.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedPracticeSession'
-              examples:
-                default:
-                  summary: Default fixture for listPracticeSessions
-                  value:
-                    items:
-                    - id: 01918fa0-0000-7000-8000-000000005000
-                      planId: 01918fa0-0000-7000-8000-000000004000
-                      targetJobId: 01918fa0-0000-7000-8000-000000002000
-                      status: completed
-                      language: zh-CN
-                      messages: []
-                      createdAt: '2026-07-12T08:02:00Z'
-                      updatedAt: '2026-07-12T08:30:00Z'
-                    pageInfo:
-                      nextCursor: null
-                      pageSize: 20
-                      hasMore: false
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
     post:
       tags:
       - PracticeSessions
@@ -1890,6 +1820,79 @@ paths:
                       retryable: false
         default:
           $ref: '#/components/responses/ApiErrorResponse'
+  /reports/{reportId}/conversation:
+    get:
+      tags:
+      - Reports
+      operationId: getReportConversation
+      summary: Get the read-only conversation record for a feedback report
+      parameters:
+      - name: reportId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Ordered read-only conversation projection for the owned report.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportConversation'
+              examples:
+                default:
+                  summary: Default fixture for getReportConversation
+                  value:
+                    reportId: 01918fa0-0070-7000-8000-000000000070
+                    reportStatus: ready
+                    context:
+                      sourcePlanId: 01918fa0-0040-7000-8000-000000000040
+                      targetJobTitle: Senior Platform Engineer
+                      targetJobCompany: Acme
+                      resumeId: 01918fa0-0010-7000-8000-000000000010
+                      resumeDisplayName: Platform Engineering Resume
+                      roundId: round-1-technical
+                      roundSequence: 1
+                      roundName: Technical Interview
+                      roundType: technical
+                      language: zh-CN
+                      hasNextRound: true
+                    messages:
+                    - sequence: 1
+                      role: user
+                      content: 请介绍一次你主导技术取舍的经历。
+                      createdAt: '2026-07-15T08:00:00Z'
+                    - sequence: 2
+                      role: assistant
+                      content: 请说明候选方案、选择依据，以及你如何验证结果。
+                      createdAt: '2026-07-15T08:00:12Z'
+        '404':
+          description: Feedback report not found or not accessible (`REPORT_NOT_FOUND`).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                reportNotFound:
+                  summary: Report not found
+                  value:
+                    error:
+                      code: REPORT_NOT_FOUND
+                      message: feedback report not found or not accessible
+                      retryable: false
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
   /targets/{targetJobId}/reports:
     get:
       tags:
@@ -2244,6 +2247,12 @@ paths:
                     appVersion: 1.0.0+dev.0428
                     analyticsEnabled: true
                     postHogPublicKey: phc_local_dev_public_key
+                    contentLimits:
+                      resumeUploadBytes: 10485760
+                      resumePasteTextBytes: 393216
+                      targetJobRawTextBytes: 98304
+                      practiceMessageBytes: 32768
+                      practiceSessionTextBytes: 262144
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 components:
@@ -2707,6 +2716,7 @@ components:
       - featureFlags
       - appVersion
       - analyticsEnabled
+      - contentLimits
       description: 'Public runtime configuration returned by `GET /runtime-config`.
 
         Contains only the allowlisted public fields per A4 D-2; secret /
@@ -2733,6 +2743,39 @@ components:
         postHogPublicKey:
           type: string
           description: Optional; omitted when `analyticsEnabled == false`.
+        contentLimits:
+          $ref: '#/components/schemas/ContentLimits'
+    ContentLimits:
+      type: object
+      additionalProperties: false
+      required:
+      - resumeUploadBytes
+      - resumePasteTextBytes
+      - targetJobRawTextBytes
+      - practiceMessageBytes
+      - practiceSessionTextBytes
+      description: Public UTF-8 byte limits used for client-side preflight; backend validation remains authoritative.
+      properties:
+        resumeUploadBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        resumePasteTextBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        targetJobRawTextBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        practiceMessageBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        practiceSessionTextBytes:
+          type: integer
+          format: int64
+          minimum: 1
     UploadPresignRequest:
       type: object
       required:
@@ -3566,15 +3609,6 @@ components:
         updatedAt:
           type: string
           format: date-time
-    PaginatedPracticeSession:
-      allOf:
-      - $ref: '#/components/schemas/PaginatedEnvelope'
-      - type: object
-        properties:
-          items:
-            type: array
-            items:
-              $ref: '#/components/schemas/PracticeSession'
     CreatePracticeVoiceTurnRequest:
       type: object
       required:
@@ -3928,6 +3962,51 @@ components:
           type: string
         hasNextRound:
           type: boolean
+    ReportConversation:
+      type: object
+      required:
+      - reportId
+      - reportStatus
+      - context
+      - messages
+      additionalProperties: false
+      properties:
+        reportId:
+          type: string
+          format: uuid
+        reportStatus:
+          $ref: '#/components/schemas/ReportStatus'
+        context:
+          $ref: '#/components/schemas/ReportContextSnapshot'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportConversationMessage'
+    ReportConversationMessage:
+      type: object
+      required:
+      - sequence
+      - role
+      - content
+      - createdAt
+      additionalProperties: false
+      properties:
+        sequence:
+          type: integer
+          format: int32
+          minimum: 1
+        role:
+          type: string
+          enum:
+          - user
+          - assistant
+        content:
+          type: string
+          minLength: 1
+          pattern: \S
+        createdAt:
+          type: string
+          format: date-time
     FeedbackReport:
       type: object
       required:

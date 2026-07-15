@@ -1,13 +1,17 @@
 package review
 
 import (
+	"errors"
 	"time"
 
 	practicedomain "github.com/monshunter/easyinterview/backend/internal/practice"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
-var ErrReportNotFound = errReportNotFound{}
+var (
+	ErrReportNotFound            = errReportNotFound{}
+	ErrReportConversationInvalid = errors.New("review: report conversation projection is invalid")
+)
 
 type errReportNotFound struct{}
 
@@ -88,6 +92,20 @@ type FeedbackReportRecord struct {
 	Provenance               *GenerationProvenanceRecord
 	CreatedAt                time.Time
 	UpdatedAt                time.Time
+}
+
+type ReportConversationMessageRecord struct {
+	Sequence  int32
+	Role      string
+	Content   string
+	CreatedAt time.Time
+}
+
+type ReportConversationRecord struct {
+	ReportID string
+	Status   sharedtypes.ReportStatus
+	Context  ReportContextProjection
+	Messages []ReportConversationMessageRecord
 }
 
 type ListTargetJobReportsRequest struct {

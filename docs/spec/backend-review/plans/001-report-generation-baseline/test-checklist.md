@@ -1,8 +1,8 @@
 # Grounded Conversation Report Test Checklist
 
-> **版本**: 2.22
+> **版本**: 2.26
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -27,7 +27,7 @@
 ## Canonical-round overview
 
 - [x] Minimal wire、canonical order、independent current/latest selection、tie-break、nullable/error enum and whole-response fail-closed tests pass.
-- [ ] Generated/fixture handoff、ReportsScreen-only consumer negative and scoped stale-pointer/pagination searches pass.
+- [x] Generated/fixture handoff、ReportsScreen-only consumer negative and scoped stale-pointer/pagination searches pass.
 
 ## Injected report input guard
 
@@ -36,6 +36,18 @@
 - [x] A3 loader/coverage gates require six active profiles at 16K or above and report context at 1M without a byte/token capacity formula.
 - [x] Configuration guard is not represented as BDD/E2E.
 
+## Report conversation read
+
+- [x] Four-status owned report, owned empty `messages` 200, strict ordered closed projection and zero AI/write/new-table tests pass.
+  <!-- verified: 2026-07-15 method=go-test files=backend/internal/store/review/report_conversation_test.go,backend/internal/api/reports/report_conversation_test.go -->
+- [x] Missing/cross-user/identity/empty-identity/blank-content/missing-createdAt/order/role/additional-field failures are hidden or fail closed without partial response; success, business-error and session-middleware rejection responses are all `private, no-store`.
+  <!-- verified: 2026-07-15 method=go-test cases=hidden-404-identity-malformed-reportId-no-read-blank-content-role-sequence-closed-json,mux-auth-no-store bug=BUG-0173 -->
+- [x] Session/message/client IDs and transcript body are absent from non-content response/error/log/audit/metric/task surfaces.
+  <!-- verified: 2026-07-15 method=go-test source-negative=read-only-no-raw-error-no-locators -->
+- [x] Current positive surface contains no `listPracticeSessions`; generated/fixture/mock/frontend handoff and no-migration audit pass.
+
 ## Full regression
 
 - [x] Development uses focused tests for feedback; phase completion runs root `make test` for the complete backend/frontend unit regression.
+- [x] After Phase 12, root `make test` and contract/docs/context gates pass again before completion.
+  <!-- verified: 2026-07-15 method=root-test+docs-context evidence="make test, make docs-check, both owner context validators, git diff --check PASS" -->

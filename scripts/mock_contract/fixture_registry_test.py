@@ -46,6 +46,29 @@ class FixtureRegistryTest(unittest.TestCase):
         with self.assertRaisesRegex(FixtureRegistryError, "unknown operationId: noSuchOperation"):
             registry.lookup("noSuchOperation")
 
+    def test_report_conversation_uses_reports_fixture_and_removed_list_fails_loudly(self) -> None:
+        registry = build_fixture_registry(REPO_ROOT)
+
+        conversation = registry.lookup("getReportConversation")
+        self.assertEqual("Reports", conversation.tag)
+        self.assertEqual("get", conversation.method)
+        self.assertEqual("/reports/{reportId}/conversation", conversation.path)
+        self.assertEqual(200, conversation.default_status)
+        self.assertEqual("#/components/schemas/ReportConversation", conversation.response_schema_ref)
+        self.assertEqual(
+            REPO_ROOT / "openapi" / "fixtures" / "Reports" / "getReportConversation.json",
+            conversation.fixture_path,
+        )
+        self.assertIn("default", conversation.scenarios)
+
+        operation_ids = {entry.operation_id for entry in registry.entries()}
+        self.assertNotIn("listPracticeSessions", operation_ids)
+        with self.assertRaisesRegex(
+            FixtureRegistryError,
+            "unknown operationId: listPracticeSessions",
+        ):
+            registry.lookup("listPracticeSessions")
+
 
 if __name__ == "__main__":
     unittest.main()

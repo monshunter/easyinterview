@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 
-SCHEMA_VERSION = "p0-099-live-capture.v2"
+SCHEMA_VERSION = "p0-099-live-capture.v3"
 MAX_RESPONSE_BYTES = 1024 * 1024
 MAX_DATABASE_BYTES = 4 * 1024 * 1024
 CONTENT_KEYS = (
@@ -33,6 +33,21 @@ CONTENT_KEYS = (
     "retryFocusDimensionCodes",
     "provenance",
 )
+CONVERSATION_CONTEXT_KEYS = {
+    "sourcePlanId",
+    "targetJobTitle",
+    "targetJobCompany",
+    "resumeId",
+    "resumeDisplayName",
+    "roundId",
+    "roundSequence",
+    "roundName",
+    "roundType",
+    "language",
+    "hasNextRound",
+}
+CONVERSATION_MESSAGE_KEYS = {"sequence", "role", "content", "createdAt"}
+DATABASE_CONVERSATION_MESSAGE_KEYS = {"sequence", "role", "content", "created_at"}
 
 
 class CaptureError(ValueError):
@@ -52,7 +67,14 @@ def fail(message: str) -> None:
     raise CaptureError(message)
 
 
-def write_artifact(path: Path, run_id: str, result: str, reason_code: str, reports: list[dict[str, Any]]) -> None:
+def write_artifact(
+    path: Path,
+    run_id: str,
+    result: str,
+    reason_code: str,
+    reports: list[dict[str, Any]],
+    conversation: dict[str, Any] | None = None,
+) -> None:
     artifact = {
         "schema_version": SCHEMA_VERSION,
         "scenario_id": "E2E.P0.099",
@@ -62,12 +84,14 @@ def write_artifact(path: Path, run_id: str, result: str, reason_code: str, repor
         "result": result,
         "reason_code": reason_code,
         "reports": reports,
+        "conversation": conversation,
         "privacy": {
             "cookie_written": False,
             "database_url_written": False,
             "raw_api_written": False,
             "raw_db_written": False,
             "raw_frozen_context_written": False,
+            "raw_conversation_content_written": False,
             "prose_written": False,
         },
     }
@@ -116,6 +140,193 @@ def load_refs(path: Path, run_id: str) -> list[str]:
 def canonical_json_digest(value: Any) -> str:
     canonical = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def require_uuid(value: Any, path: str) -> str:
+    if not isinstance(value, str) or not value or value != value.strip():
+        fail(f"{path}_invalid")
+    try:
+        uuid.UUID(value)
+    except ValueError:
+        fail(f"{path}_invalid")
+    return value
+
+
+def normalize_utc_timestamp(value: Any, path: str) -> str:
+    if not isinstance(value, str) or not value or value != value.strip():
+        fail(f"{path}_invalid")
+    normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        fail(f"{path}_invalid")
+    if parsed.utcoffset() is None:
+        fail(f"{path}_invalid")
+    return parsed.astimezone(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+
+def project_conversation_context(value: Any, path: str) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != CONVERSATION_CONTEXT_KEYS:
+        fail(f"{path}_shape_invalid")
+    for key in (
+        "sourcePlanId",
+        "targetJobTitle",
+        "resumeId",
+        "resumeDisplayName",
+        "roundId",
+        "roundName",
+        "roundType",
+        "language",
+    ):
+        if not isinstance(value[key], str) or not value[key].strip():
+            fail(f"{path}_{key}_invalid")
+    if not isinstance(value["targetJobCompany"], str):
+        fail(f"{path}_targetJobCompany_invalid")
+    if (
+        not isinstance(value["roundSequence"], int)
+        or isinstance(value["roundSequence"], bool)
+        or value["roundSequence"] < 1
+    ):
+        fail(f"{path}_roundSequence_invalid")
+    if not isinstance(value["hasNextRound"], bool):
+        fail(f"{path}_hasNextRound_invalid")
+    return {key: value[key] for key in sorted(CONVERSATION_CONTEXT_KEYS)}
+
+
+def project_ordered_messages(
+    value: Any,
+    path: str,
+    message_keys: set[str],
+    timestamp_key: str,
+) -> dict[str, Any]:
+    if not isinstance(value, list):
+        fail(f"{path}_not_array")
+    projection: list[dict[str, Any]] = []
+    previous_sequence = 0
+    for index, message in enumerate(value):
+        if not isinstance(message, dict) or set(message) != message_keys:
+            fail(f"{path}_{index}_shape_invalid")
+        sequence = message["sequence"]
+        role = message["role"]
+        content = message["content"]
+        if (
+            not isinstance(sequence, int)
+            or isinstance(sequence, bool)
+            or sequence < 1
+            or sequence <= previous_sequence
+        ):
+            fail(f"{path}_{index}_sequence_invalid")
+        if role not in {"user", "assistant"}:
+            fail(f"{path}_{index}_role_invalid")
+        if not isinstance(content, str) or not content.strip():
+            fail(f"{path}_{index}_content_invalid")
+        projection.append(
+            {
+                "sequence": sequence,
+                "role": role,
+                "content_digest": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+                "created_at": normalize_utc_timestamp(message[timestamp_key], f"{path}_{index}_{timestamp_key}"),
+            }
+        )
+        previous_sequence = sequence
+    return {
+        "message_count": len(projection),
+        "strict_sequence_digest": canonical_json_digest([message["sequence"] for message in projection]),
+        "ordered_message_digest": canonical_json_digest(projection),
+    }
+
+
+def project_conversation(value: Any, requested_ref: str) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != {"reportId", "reportStatus", "context", "messages"}:
+        fail("conversation_api_shape_invalid")
+    report_ref = require_uuid(value["reportId"], "conversation_api_report_ref")
+    if report_ref != requested_ref:
+        fail("conversation_api_report_ref_mismatch")
+    report_status = value["reportStatus"]
+    if report_status not in {"queued", "generating", "ready", "failed"}:
+        fail("conversation_api_report_status_invalid")
+    context = project_conversation_context(value["context"], "conversation_api_context")
+    messages = project_ordered_messages(
+        value["messages"],
+        "conversation_api_messages",
+        CONVERSATION_MESSAGE_KEYS,
+        "createdAt",
+    )
+    return {
+        "report_ref": report_ref,
+        "report_status": report_status,
+        "context_digest": canonical_json_digest(context),
+        "internal_locator_exposed": False,
+        **messages,
+    }
+
+
+def project_database_conversation_context(value: Any, session_ref: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    if not isinstance(value, dict):
+        fail("database_conversation_frozen_context_invalid")
+    try:
+        public_context = {
+            "sourcePlanId": value["plan"]["id"],
+            "targetJobTitle": value["targetJob"]["title"],
+            "targetJobCompany": value["targetJob"]["company"],
+            "resumeId": value["resume"]["id"],
+            "resumeDisplayName": value["resume"]["displayName"],
+            "roundId": value["round"]["id"],
+            "roundSequence": value["round"]["sequence"],
+            "roundName": value["round"]["name"],
+            "roundType": value["round"]["type"],
+            "language": value["conversation"]["language"],
+            "hasNextRound": value["hasNextRound"],
+        }
+        coordinate = value["conversation"]
+    except (KeyError, TypeError):
+        fail("database_conversation_frozen_context_invalid")
+    context = project_conversation_context(public_context, "database_conversation_context")
+    if not isinstance(coordinate, dict):
+        fail("database_conversation_coordinate_invalid")
+    if coordinate.get("sessionId") != session_ref:
+        fail("database_conversation_session_binding_invalid")
+    return context, coordinate
+
+
+def project_database_conversation(value: Any, requested_ref: str) -> dict[str, Any]:
+    expected_keys = {"report_ref", "session_ref", "status", "generation_context", "messages"}
+    if not isinstance(value, dict) or set(value) != expected_keys:
+        fail("database_conversation_shape_invalid")
+    report_ref = require_uuid(value["report_ref"], "database_conversation_report_ref")
+    session_ref = require_uuid(value["session_ref"], "database_conversation_session_ref")
+    if report_ref != requested_ref:
+        fail("database_conversation_report_ref_mismatch")
+    report_status = value["status"]
+    if report_status not in {"queued", "generating", "ready", "failed"}:
+        fail("database_conversation_report_status_invalid")
+    context, coordinate = project_database_conversation_context(value["generation_context"], session_ref)
+    messages = project_ordered_messages(
+        value["messages"],
+        "database_conversation_messages",
+        DATABASE_CONVERSATION_MESSAGE_KEYS,
+        "created_at",
+    )
+    message_count = coordinate.get("messageCount")
+    last_sequence = coordinate.get("lastMessageSeqNo")
+    if (
+        not isinstance(message_count, int)
+        or isinstance(message_count, bool)
+        or message_count != messages["message_count"]
+        or not isinstance(last_sequence, int)
+        or isinstance(last_sequence, bool)
+        or (messages["message_count"] == 0 and last_sequence != 0)
+        or (messages["message_count"] > 0 and last_sequence != value["messages"][-1]["sequence"])
+    ):
+        fail("database_conversation_coordinate_invalid")
+    return {
+        "report_ref": report_ref,
+        "session_ref": session_ref,
+        "report_status": report_status,
+        "frozen_context_digest": canonical_json_digest(value["generation_context"]),
+        "context_digest": canonical_json_digest(context),
+        **messages,
+    }
 
 
 def project_public_evidence(value: Any, path: str) -> list[dict[str, Any]]:
@@ -214,6 +425,31 @@ from feedback_reports fr
 join practice_sessions ps on ps.id = fr.session_id
 where fr.id in ({quoted_refs})
 order by fr.id;
+"""
+
+
+def database_conversation_query(report_ref: str) -> str:
+    report_ref = require_uuid(report_ref, "database_conversation_query_report_ref")
+    return f"""
+select json_build_object(
+  'report_ref', fr.id::text,
+  'session_ref', fr.session_id::text,
+  'status', fr.status,
+  'generation_context', fr.generation_context,
+  'messages', coalesce((
+    select json_agg(json_build_object(
+      'sequence', pm.seq_no,
+      'role', pm.role,
+      'content', pm.content,
+      'created_at', to_char(pm.created_at at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"')
+    ) order by pm.seq_no asc)
+    from practice_messages pm
+    where pm.session_id = fr.session_id
+  ), '[]'::json)
+)::text
+from feedback_reports fr
+join practice_sessions ps on ps.id = fr.session_id
+where fr.id = '{report_ref}'::uuid;
 """
 
 
@@ -362,6 +598,42 @@ def capture_database_reports(refs: list[str], database_url: str) -> dict[str, di
     return projected
 
 
+def capture_database_conversation(report_ref: str, database_url: str) -> dict[str, Any]:
+    psql = shutil.which("psql", path=os.environ.get("PATH", ""))
+    if psql is None:
+        raise ManualRequired("psql_missing")
+    try:
+        result = subprocess.run(
+            [
+                psql,
+                "--no-psqlrc",
+                "--quiet",
+                "--tuples-only",
+                "--no-align",
+                "--set=ON_ERROR_STOP=1",
+            ],
+            input=database_conversation_query(report_ref),
+            env=postgres_environment(database_url),
+            text=True,
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        raise ManualRequired("database_unavailable") from None
+    if result.returncode != 0:
+        raise ManualRequired("database_unavailable")
+    if len(result.stdout.encode("utf-8")) > MAX_DATABASE_BYTES:
+        fail("database_conversation_projection_too_large")
+    lines = [line for line in result.stdout.splitlines() if line.strip()]
+    if len(lines) != 1:
+        fail("database_conversation_projection_row_count_invalid")
+    try:
+        return project_database_conversation(json.loads(lines[0]), report_ref)
+    except json.JSONDecodeError:
+        fail("database_conversation_projection_json_invalid")
+
+
 def contains_source_anchors(value: Any) -> bool:
     if isinstance(value, dict):
         return any(
@@ -489,6 +761,99 @@ def fetch_report(api_base_url: str, report_ref: str, cookie_value: str) -> dict[
     return project_report(decoded, report_ref)
 
 
+def fetch_report_conversation(api_base_url: str, report_ref: str, cookie_value: str) -> dict[str, Any]:
+    url = f"{api_base_url.rstrip('/')}/reports/{urllib.parse.quote(report_ref, safe='')}/conversation"
+    request = urllib.request.Request(
+        url,
+        headers={"Accept": "application/json", "Cookie": f"ei_session={cookie_value}"},
+        method="GET",
+    )
+    try:
+        opener = urllib.request.build_opener(NoRedirect)
+        with opener.open(request, timeout=10) as response:
+            body = response.read(MAX_RESPONSE_BYTES + 1)
+    except urllib.error.HTTPError as exc:
+        if exc.code in {401, 403}:
+            raise ManualRequired("session_cookie_rejected") from None
+        fail(f"conversation_live_http_status_{exc.code}")
+    except (urllib.error.URLError, TimeoutError, OSError):
+        raise ManualRequired("live_http_unavailable") from None
+    if len(body) > MAX_RESPONSE_BYTES:
+        fail("conversation_live_response_too_large")
+    try:
+        decoded = json.loads(body)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        fail("conversation_live_response_json_invalid")
+    return project_conversation(decoded, report_ref)
+
+
+def load_navigation_report_ref(path: Path, run_id: str) -> str:
+    if not path.is_file():
+        raise ManualRequired("conversation_navigation_missing")
+    try:
+        navigation = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        fail("conversation_navigation_invalid")
+    if not isinstance(navigation, dict):
+        fail("conversation_navigation_invalid")
+    if (
+        navigation.get("schema_version") != "p0-099-conversation-navigation.v1"
+        or navigation.get("scenario_id") != "E2E.P0.099"
+        or navigation.get("run_id") != run_id
+        or navigation.get("method") != "real-browser-report-conversation-back"
+    ):
+        fail("conversation_navigation_identity_invalid")
+    return require_uuid(navigation.get("report_ref"), "conversation_navigation_report_ref")
+
+
+def bind_conversation_capture(
+    database: dict[str, Any],
+    api: dict[str, Any],
+    report_binding: dict[str, Any],
+) -> dict[str, Any]:
+    comparable = (
+        "report_ref",
+        "report_status",
+        "context_digest",
+        "message_count",
+        "strict_sequence_digest",
+        "ordered_message_digest",
+    )
+    if any(database[key] != api[key] for key in comparable):
+        fail("conversation_database_api_projection_mismatch")
+    if database["report_status"] != "ready" or database["message_count"] < 1:
+        fail("conversation_ready_ordered_messages_required")
+    if (
+        database["session_ref"] != report_binding["session_ref"]
+        or database["report_status"] != report_binding["status"]
+        or database["frozen_context_digest"] != report_binding["frozen_context_digest"]
+    ):
+        fail("conversation_report_session_context_binding_mismatch")
+    return {
+        "report_ref": database["report_ref"],
+        "session_ref": database["session_ref"],
+        "db": {
+            "report_status": database["report_status"],
+            "frozen_context_digest": database["frozen_context_digest"],
+            "context_digest": database["context_digest"],
+            "message_count": database["message_count"],
+            "strict_sequence_digest": database["strict_sequence_digest"],
+            "ordered_message_digest": database["ordered_message_digest"],
+            "read_only": True,
+            "ordered_by": "seq_no ASC",
+        },
+        "api": {
+            "report_status": api["report_status"],
+            "context_digest": api["context_digest"],
+            "message_count": api["message_count"],
+            "strict_sequence_digest": api["strict_sequence_digest"],
+            "ordered_message_digest": api["ordered_message_digest"],
+            "authenticated": True,
+            "internal_locator_exposed": api["internal_locator_exposed"],
+        },
+    }
+
+
 def bind_manifest(path: Path, run_id: str, reports: list[dict[str, Any]]) -> None:
     try:
         manifest = json.loads(path.read_text(encoding="utf-8"))
@@ -579,6 +944,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--api-base-url", required=True)
+    parser.add_argument("--navigation", type=Path, required=True)
     parser.add_argument("--bind-manifest", action="store_true")
     args = parser.parse_args()
 
@@ -607,6 +973,9 @@ def main() -> int:
 
     try:
         refs = load_refs(args.manifest, args.run_id)
+        navigation_report_ref = load_navigation_report_ref(args.navigation, args.run_id)
+        if navigation_report_ref not in refs:
+            fail("conversation_navigation_report_not_in_manifest")
         database_reports = capture_database_reports(
             refs, os.environ.get("P0_099_DATABASE_URL", "")
         )
@@ -628,6 +997,17 @@ def main() -> int:
                 if key != "session_ref"
             }
             reports.append(report)
+        database_conversation = capture_database_conversation(
+            navigation_report_ref, os.environ.get("P0_099_DATABASE_URL", "")
+        )
+        api_conversation = fetch_report_conversation(
+            args.api_base_url, navigation_report_ref, cookie_value
+        )
+        conversation = bind_conversation_capture(
+            database_conversation,
+            api_conversation,
+            database_reports[navigation_report_ref],
+        )
         if args.bind_manifest:
             bind_manifest(args.manifest, args.run_id, reports)
     except ManualRequired as exc:
@@ -639,8 +1019,8 @@ def main() -> int:
         print(f"P0.099 live capture failed: {exc}", file=sys.stderr)
         return 1
 
-    write_artifact(args.output, args.run_id, "PASS", "captured", reports)
-    print("P0_099_LIVE_CAPTURE_PASS reports=3 privacy=redacted")
+    write_artifact(args.output, args.run_id, "PASS", "captured", reports, conversation)
+    print("P0_099_LIVE_CAPTURE_PASS reports=3 conversation=1 privacy=redacted")
     return 0
 
 

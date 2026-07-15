@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
-> **版本**: 1.21
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.22
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -94,3 +94,14 @@
   <!-- verified: 2026-07-14 evidence="Preserved OPENAPI-006 audit has 9 exact findings/errors=[]; current diff 0 and 52 wrapper tests pass." -->
 - [x] 10.4 RE-FREEZE: preserve the audit artifact, re-freeze, then independently run current diff/lint/fixture/codegen/consumer/docs gates.
   <!-- verified: 2026-07-14 evidence="OPENAPI-006 preserved audit contains 9 exact findings/errors=[]; re-frozen current diff is 0 and independent lint/fixture/wrapper/consumer/docs plus post-commit codegen-check pass." -->
+
+## Phase 11: OPENAPI-001 v1.7 report conversation correction
+
+- [x] 11.1 GOVERNANCE/RED: accepted OPENAPI-001 v1.7 + spec/history 1.61 exist；snapshot merge-base old baseline and fail while public `listPracticeSessions` remains or the report-owned replacement is absent/non-closed.
+  <!-- verified: 2026-07-15 method=tdd-red evidence="v1.7 normalizer/oracle entrypoint was absent; focused contract tests reject restored public GET and internal message locator; merge-base baseline b5f99de3 remains byte-stable" -->
+- [x] 11.2 ORACLE-GATE: generate the expanded OPENAPI-001 expected-findings JSON during implementation after RED；exact-match every five-key deletion/addition finding and reject placeholder, wildcard, missing/extra/drift or edited old baseline.
+  <!-- verified: 2026-07-15 method=generated-oracle evidence="--emit-openapi-001-v17-oracle generated 15 five-key findings; OPENAPI-001-report-conversation.expected-findings.json exact-matches; wrapper test rejects edited worktree baseline" -->
+- [x] 11.3 INVARIANT-GATE: preserve 37/10 and exact start/get live-session operations；lock protected getReportConversation method/path/operationId/200 while rejecting public list compatibility.
+  <!-- verified: 2026-07-15 method=base-ref-audit evidence="OPENAPI-001 v1.7 audit PASS: 37 operations, 10 tags, unchanged start/get Practice operations, protected Reports GET, 2 breaking + 13 additive findings, errors=[]" -->
+- [ ] 11.4 HANDOFF-GATE: 001/002, backend-practice, backend-review, frontend-report, mock and downstream BDD gates pass before baseline edit with zero positive/runtime list surface.
+- [ ] 11.5 RE-FREEZE: preserve deterministic old-baseline artifact, re-freeze, then independently run current diff/lint/fixture/codegen/downstream/root-test/docs gates；clean current diff alone is insufficient.

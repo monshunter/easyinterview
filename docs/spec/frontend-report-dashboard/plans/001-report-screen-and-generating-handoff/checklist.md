@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 3.6
+> **版本**: 3.7
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -53,6 +53,19 @@
 - [ ] 12.4 BDD-Gate: `BDD.REPORT.UI.001` ready branch and [BDD checklist](./bdd-checklist.md) cover the revised hierarchy; historical Phase 1-11 PASS is not current Phase 12 evidence.
 - [ ] 12.5 E2E-HANDOFF: align the existing P0.099 README/manual-audit/capture-verification contract with the bottom interview summary, then explicitly run it on the current real environment so ready full-page images include actions and the following summary；historical exact-six evidence is not reused.
 - [ ] 12.6 CLOSEOUT: root `make test`、typecheck/build/lint/docs/index/diff gates pass independently, current evidence is recorded, and plan/spec/test/BDD lifecycle returns to `completed` only after all required Phase 12 checks finish.
+
+## Phase 13: Report-owned readonly conversation integration
+
+- [x] 13.1 RED/GREEN: current main has no `report_conversation` route or entry; merge generated `getReportConversation`, backend read projection, formal route/screen and Report + ReportsScreen entries while preserving Phase 12 layout ownership.
+  <!-- verified: 2026-07-15 method=merge-conflict-reconcile+frontend-backend-focused-tests -->
+- [x] 13.2 CONTRACT/FAILURE: focused frontend/backend tests prove reportId-only, strict ordered user/assistant Markdown, correct report/generating Back, hidden-404/stale/invalid projection fail-closed and no internal IDs/live controls/session list.
+  <!-- verified: 2026-07-15 method=vitest+go-test+fixture-validator evidence="frontend full suite 989 PASS; report backend owner packages PASS; 37/37 fixtures validate" -->
+- [x] 13.3 REGRESSION: OpenAPI/fixture/codegen/negative gates and root `make test` pass; deleted `ui-design/` Demo/prototype sync assets remain absent.
+  <!-- verified: 2026-07-15 method=make-test+codegen-check+ui-demo-pruning evidence="551 Python tests and 4493 subtests PASS; Go all packages PASS; frontend 989 PASS; active residuals=0" -->
+- [x] 13.4 BDD-Gate: `BDD.REPORT.CONVERSATION.001` 由 [BDD checklist](./bdd-checklist.md) 的 code-owner behavior tests 验证。
+  <!-- verified: 2026-07-15 method=domain-behavior bddChecklist=complete -->
+- [x] 13.5 E2E-HANDOFF: P0.099 remains the real API/UI owner; this merge does not claim a new scenario PASS unless explicitly run.
+  <!-- verified: 2026-07-15 method=static-handoff-only evidence="scenario evidence unit tests 7 PASS; no E2E run claimed" -->
 
 ## Historical Closeout through Phase 11
 

@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.21
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.22
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -120,6 +120,7 @@ The wrapper must verify the exact path, method and statuses. Any other status tr
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.22 | Add Phase 11 for OPENAPI-001 v1.7 exact one-for-one session-list to report-conversation correction. |
 | 2026-07-14 | 1.20 | Add Phase 9 for OPENAPI-005 exact Resume list-summary audit and all-consumer guarded re-freeze. |
 | 2026-07-14 | 1.14 | Add OPENAPI-004 exact old-baseline audit and guarded report-overview re-freeze phase. |
 | 2026-07-14 | 1.13 | Correct OPENAPI-002 from 15 to 17 exact findings and define the separate Practice machine oracle as a non-ADR projection of D-35/history 1.54/方案 A. |
@@ -205,3 +206,15 @@ Require accepted [OPENAPI-006](../../decisions/OPENAPI-006-runtime-content-limit
 ### 10.2 Invariants and guarded re-freeze
 
 Audit preserves 37 operations/10 tags and unchanged `GET /runtime-config`, operationId `getRuntimeConfig`, 200 `RuntimeConfig`. Do not re-freeze until fixture/generated/backend builder, Resume/Home/Practice consumers and focused/full gates pass with report/HTTP/provider/profile limits absent from the public schema. Preserve the audit artifact before baseline mutation; final proof requires clean current diff plus independent lint/fixture/codegen/consumer gates.
+
+## 13 Phase 11: OPENAPI-001 v1.7 report conversation correction
+
+### 11.1 Accepted authority and generated exact oracle
+
+Require accepted OPENAPI-001 v1.7 plus spec/history 1.61 before proposed source mutation. Snapshot the merge-base old baseline and keep the worktree baseline unchanged. After focused RED proves the legacy public list operation, Phase 11 generates the expanded OPENAPI-001 expected-findings JSON from old baseline → proposed OpenAPI；this design revision intentionally does not hand-author or edit that JSON.
+
+The oracle exact-matches deletion of list path/query/response/schema and addition of report conversation path/response/closed schemas by `severity + path + kind + before + after`. Missing/extra finding, wildcard authorization, placeholder, edited old baseline, or simultaneous current/baseline replacement fails.
+
+### 11.2 Invariants and guarded re-freeze
+
+Audit separately locks 37 operations/10 tags; unchanged `startPracticeSession` and `getPracticeSession`; and exact protected `GET /api/v1/reports/{reportId}/conversation`, operationId `getReportConversation`, 200 response. Preserve the deterministic old-baseline artifact. Do not re-freeze until 001 Phase 18, 002 Phase 12, backend-practice deletion, backend-review read model, frontend report UI, mock parity and downstream BDD gates pass with zero public session-list runtime references. Final proof requires preserved audit + clean current diff + independent lint/fixture/codegen/consumer/root-test gates.

@@ -11,10 +11,10 @@ Fixture-backed HTTP mock runtime for local backend tests and dev harnesses.
 
 ## Seed Profiles
 
-- `getMe`: `default`, `authenticated`, `unauthenticated`, `prototype-baseline`
-- `getPracticeSession`: `default`, `missing-session`, `prototype-baseline`
+- `getMe`: `default`, `authenticated`, `profileIncomplete`, `unauthenticated`
+- `getPracticeSession`: `default`, durable reply-state scenarios, `missing-session`
 - `createPracticePlan`: `default`, `missing-resume`
-- `getFeedbackReport`: `default`, `generating`, `prototype-baseline`
+- `getFeedbackReport`: `default`, report lifecycle and validation scenarios
 - `requestPrivacyDelete`: `default`, `privacy-delete-requested`
 
 ## Blockers

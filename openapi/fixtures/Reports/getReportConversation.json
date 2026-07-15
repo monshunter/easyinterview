@@ -1,0 +1,322 @@
+{
+  "operationId": "getReportConversation",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-ready"
+        },
+        "body": {
+          "reportId": "01918fa0-0070-7000-8000-000000000070",
+          "reportStatus": "ready",
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "messages": [
+            {
+              "sequence": 1,
+              "role": "user",
+              "content": "请介绍一次你主导技术取舍的经历。",
+              "createdAt": "2026-07-15T08:00:00Z"
+            },
+            {
+              "sequence": 2,
+              "role": "assistant",
+              "content": "请说明候选方案、选择依据，以及你如何验证结果。",
+              "createdAt": "2026-07-15T08:00:12Z"
+            }
+          ]
+        }
+      }
+    },
+    "queued": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-queued"
+        },
+        "body": {
+          "reportId": "01918fa0-0070-7000-8000-000000000070",
+          "reportStatus": "queued",
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "messages": [
+            {
+              "sequence": 1,
+              "role": "user",
+              "content": "请介绍一次你主导技术取舍的经历。",
+              "createdAt": "2026-07-15T08:00:00Z"
+            },
+            {
+              "sequence": 2,
+              "role": "assistant",
+              "content": "请说明候选方案、选择依据，以及你如何验证结果。",
+              "createdAt": "2026-07-15T08:00:12Z"
+            }
+          ]
+        }
+      }
+    },
+    "generating": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-generating"
+        },
+        "body": {
+          "reportId": "01918fa0-0070-7000-8000-000000000070",
+          "reportStatus": "generating",
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "messages": [
+            {
+              "sequence": 1,
+              "role": "user",
+              "content": "请介绍一次你主导技术取舍的经历。",
+              "createdAt": "2026-07-15T08:00:00Z"
+            },
+            {
+              "sequence": 2,
+              "role": "assistant",
+              "content": "请说明候选方案、选择依据，以及你如何验证结果。",
+              "createdAt": "2026-07-15T08:00:12Z"
+            }
+          ]
+        }
+      }
+    },
+    "failed": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-failed"
+        },
+        "body": {
+          "reportId": "01918fa0-0070-7000-8000-000000000070",
+          "reportStatus": "failed",
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "messages": [
+            {
+              "sequence": 1,
+              "role": "user",
+              "content": "请介绍一次你主导技术取舍的经历。",
+              "createdAt": "2026-07-15T08:00:00Z"
+            },
+            {
+              "sequence": 2,
+              "role": "assistant",
+              "content": "请说明候选方案、选择依据，以及你如何验证结果。",
+              "createdAt": "2026-07-15T08:00:12Z"
+            }
+          ]
+        }
+      }
+    },
+    "empty-messages": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-empty"
+        },
+        "body": {
+          "reportId": "01918fa0-0070-7000-8000-000000000070",
+          "reportStatus": "ready",
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "messages": []
+        }
+      }
+    },
+    "markdown-gfm": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-markdown"
+        },
+        "body": {
+          "reportId": "01918fa0-0070-7000-8000-000000000070",
+          "reportStatus": "ready",
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "messages": [
+            {
+              "sequence": 1,
+              "role": "user",
+              "content": "我会按 **STAR** 结构回答。\n\n| 维度 | 证据 |\n| --- | --- |\n| 取舍 | 延迟与成本 |",
+              "createdAt": "2026-07-15T08:03:00Z"
+            },
+            {
+              "sequence": 2,
+              "role": "assistant",
+              "content": "请补充代码层面的权衡：\n\n```ts\nconst latencyBudget = 120;\n```",
+              "createdAt": "2026-07-15T08:03:15Z"
+            }
+          ]
+        }
+      }
+    },
+    "cross-user-not-found": {
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-cross-user"
+        },
+        "body": {
+          "error": {
+            "code": "REPORT_NOT_FOUND",
+            "message": "feedback report not found or not accessible",
+            "requestId": "req-report-conversation-cross-user",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "report-not-found": {
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-missing"
+        },
+        "body": {
+          "error": {
+            "code": "REPORT_NOT_FOUND",
+            "message": "feedback report not found or not accessible",
+            "requestId": "req-report-conversation-missing",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "invalid-report-identity": {
+      "response": {
+        "status": 500,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-invalid-identity"
+        },
+        "body": {
+          "error": {
+            "code": "AI_OUTPUT_INVALID",
+            "message": "report conversation projection is invalid",
+            "requestId": "req-report-conversation-invalid-identity",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "invalid-message-role": {
+      "response": {
+        "status": 500,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-invalid-role"
+        },
+        "body": {
+          "error": {
+            "code": "AI_OUTPUT_INVALID",
+            "message": "report conversation projection is invalid",
+            "requestId": "req-report-conversation-invalid-role",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "invalid-message-sequence": {
+      "response": {
+        "status": 500,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-invalid-sequence"
+        },
+        "body": {
+          "error": {
+            "code": "AI_OUTPUT_INVALID",
+            "message": "report conversation projection is invalid",
+            "requestId": "req-report-conversation-invalid-sequence",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "invalid-report-session-binding": {
+      "response": {
+        "status": 500,
+        "headers": {
+          "X-Request-ID": "req-report-conversation-invalid-binding"
+        },
+        "body": {
+          "error": {
+            "code": "AI_OUTPUT_INVALID",
+            "message": "report conversation projection is invalid",
+            "requestId": "req-report-conversation-invalid-binding",
+            "retryable": false
+          }
+        }
+      }
+    }
+  }
+}

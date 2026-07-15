@@ -5,10 +5,10 @@ metadata:
   name: 001-real-api-ui-journeys
   sequence: 1
   baseBranch: main
-  branch: fix/runtime-size-limits-0714
+  branch: design/report-conversation-record
   specVersion:
-    from: 2.8
-    to: 2.13
+    from: 2.13
+    to: 2.14
 spec:
   defaultTarget: scenario
   discovery:
@@ -24,6 +24,10 @@ spec:
       - E2E.P0.101
       - real API and browser UI
       - report generating UI
+      - report conversation real UI API DB
+      - exact six screenshots unchanged
+      - bounded non image conversation evidence
+      - no public session list request
       - Mailpit email code profile setup
       - current-run evidence
   targets:
@@ -46,6 +50,7 @@ spec:
         apiNames:
           - completePracticeSession
           - getFeedbackReport
+          - getReportConversation
           - startAuthEmailChallenge
           - verifyAuthEmailChallenge
           - completeMyProfile

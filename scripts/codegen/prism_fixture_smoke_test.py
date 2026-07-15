@@ -34,12 +34,22 @@ class PrismFixtureSmokeTest(unittest.TestCase):
             rows["getResume"],
         )
 
-    def test_report_handoff_matrix_includes_both_reports_and_create_plan(self) -> None:
-        operation_ids = {row[0] for row in smoke.SMOKE_MATRIX}
+    def test_report_handoff_matrix_includes_the_report_owned_conversation(self) -> None:
+        rows = {row[0]: row for row in smoke.SMOKE_MATRIX}
 
         self.assertTrue(
-            {"getFeedbackReport", "listTargetJobReports", "createPracticePlan"}
-            <= operation_ids
+            {"getFeedbackReport", "getReportConversation", "listTargetJobReports", "createPracticePlan"}
+            <= set(rows)
+        )
+        self.assertEqual(
+            (
+                "getReportConversation",
+                "GET",
+                "/reports/01918fa0-0070-7000-8000-000000000070/conversation",
+                200,
+                "openapi/fixtures/Reports/getReportConversation.json",
+            ),
+            rows["getReportConversation"],
         )
 
     def test_target_job_report_pointer_removal_matrix_covers_all_affected_defaults(self) -> None:

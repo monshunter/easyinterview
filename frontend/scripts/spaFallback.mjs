@@ -25,6 +25,7 @@ export const FRONTEND_CANONICAL_PATHS = Object.freeze([
   "/reports",
   "/generating",
   "/report",
+  "/report-conversation",
   "/settings",
   "/auth/login",
   "/auth/verify",

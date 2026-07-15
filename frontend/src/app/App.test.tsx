@@ -60,6 +60,13 @@ describe("App shell", () => {
     expect(screen.getByTestId("report-missing-report")).toBeInTheDocument();
     expect(screen.queryByTestId("route-report")).not.toBeInTheDocument();
     unmountReport();
+
+    const { unmount: unmountConversation } = render(
+      <App initialRoute={{ name: "report_conversation", params: {} }} />,
+    );
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+    expect(screen.getByTestId("report-conversation-unavailable")).toBeInTheDocument();
+    unmountConversation();
   });
 
   it("renders the target-scoped Reports screen with chrome and no global nav entry", () => {

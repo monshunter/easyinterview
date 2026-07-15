@@ -301,6 +301,7 @@ runtime:
 			}
 		})
 	}
+
 }
 
 func TestBuildAPIHandlerMountsUploadPresignBehindSessionMiddleware(t *testing.T) {
@@ -435,7 +436,6 @@ runtime:
 	}{
 		{http.MethodPost, "/api/v1/practice/plans", `{}`},
 		{http.MethodGet, "/api/v1/practice/plans/018f2a40-0000-7000-9000-0000000000a1", ""},
-		{http.MethodGet, "/api/v1/practice/sessions", ""},
 		{http.MethodPost, "/api/v1/practice/sessions", `{}`},
 		{http.MethodGet, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1", ""},
 		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/messages", `{}`},
@@ -455,6 +455,12 @@ runtime:
 				t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
 			}
 		})
+	}
+
+	retired := httptest.NewRecorder()
+	handler.ServeHTTP(retired, httptest.NewRequest(http.MethodGet, "/api/v1/practice/sessions", nil))
+	if retired.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("retired practice session collection status=%d body=%s", retired.Code, retired.Body.String())
 	}
 }
 
@@ -506,6 +512,7 @@ runtime:
 			t.Fatalf("%s %s status = %d body=%s; out-of-scope route must not be mounted", tc.method, tc.path, rec.Code, rec.Body.String())
 		}
 	}
+
 }
 
 func TestResumeTailorEndpointsHTTPContract(t *testing.T) {
@@ -715,11 +722,13 @@ runtime:
 	)
 
 	cases := []struct {
-		method string
-		path   string
+		method           string
+		path             string
+		wantPrivateCache bool
 	}{
-		{http.MethodGet, "/api/v1/reports/018f2a40-0000-7000-9000-0000000000a1"},
-		{http.MethodGet, "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a2/reports"},
+		{method: http.MethodGet, path: "/api/v1/reports/018f2a40-0000-7000-9000-0000000000a1"},
+		{method: http.MethodGet, path: "/api/v1/reports/018f2a40-0000-7000-9000-0000000000a1/conversation", wantPrivateCache: true},
+		{method: http.MethodGet, path: "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a2/reports"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
@@ -731,6 +740,14 @@ runtime:
 			}
 			if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
 				t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
+			}
+			if tc.wantPrivateCache {
+				if got := rec.Header().Get("Cache-Control"); got != "private, no-store" {
+					t.Fatalf("Cache-Control=%q, want private, no-store", got)
+				}
+				if got := rec.Header().Get("Pragma"); got != "no-cache" {
+					t.Fatalf("Pragma=%q, want no-cache", got)
+				}
 			}
 		})
 	}

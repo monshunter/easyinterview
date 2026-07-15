@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-15](./2026-07-15-report-conversation-record-assessment.md) | Report Conversation Record 交付复盘 | #assessment #BUG-0173 #BUG-0174 |
 | [2026-07-15](./2026-07-15-ui-demo-pruning-assessment.md) | UI Demo Pruning 交付复盘 | #assessment #ui #refactor |
 | [2026-07-14](./2026-07-14-runtime-content-limits-assessment.md) | Runtime Content Limits 交付复盘 | #assessment #BUG-0171 |
 | [2026-07-14](./2026-07-14-request-dedup-and-read-flow-separation-assessment.md) | Request Dedup and Read Flow Separation 交付复盘 | #assessment #BUG-0170 |

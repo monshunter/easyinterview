@@ -1,6 +1,6 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.31
+> **版本**: 1.32
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -88,6 +88,8 @@ Ready 报告只展示：
 
 报告不得展示题目回顾、逐题评分、题数、raw enum/code、turn-based retry 或 session UUID 等内部 locator。`reportId` 是唯一路由 locator，但不得作为用户界面字段；Context Strip/status/CTA identity 来自 frozen report context，Context Strip 只显示目标岗位、轮次和简历。复练/下一轮只提交 goal + sourceReportId，由后端从 source report/plan 派生 settings/round；复练有可靠 issue-backed dimension 时投影 focus，否则使用空 focus 开始通用同轮复练。
 
+每份已创建报告附属一份只读会话记录。`/report-conversation?reportId=...` 复用本页 user/assistant Markdown/GFM message body 和 role visual language，但只消费 report-owned projection，不调用 `getPracticeSession`，也不呈现 Composer、thinking、retry、结束、暂停、计时、电话或任何实时状态控件。报告 queued / generating / ready / failed 都共享该访问边界；产品不提供 `listPracticeSessions`、会话历史列表或 `sessionId` 用户路由。
+
 ## 7 UI 实施与验证
 
 - Practice：由本文档连续对话、回复状态、结束条件和 phone mode 约束承接。
@@ -117,11 +119,13 @@ Ready 报告只展示：
 | U-10 | send POST 持续无响应 | 等待 95 秒 | abort 后按同一 ID 对账；pending/failed/complete 采用 server truth；对账失败时原 row/ID 保留且不能提交新消息；迟到 response 被忽略 |
 | U-11 | server message 为 `terminal_failed` | 查看并点击恢复动作 | 无 row retry；显示通用安全说明；唯一 CTA 返回 `/workspace?targetJobId` 当前面试规划只读详情；无 current-scope `parse(targetJobId)` 恢复路径 |
 | U-12 | persisted user/assistant text 含 GFM 与恶意 HTML/image/link/code/table | 渲染、retry 并在 390px 查看 | 两种角色安全渲染 GFM；HTML/remote image/unsafe URI 不执行；safe link hardened；retry exact raw text/ID；code/table 不撑破 document |
+| U-13 | 报告资源已创建且 Practice 已结束 | 从报告打开会话记录 | 只读页按 sequence 显示同一安全 Markdown transcript；无 live controls、无 sessionId、无会话列表，并返回同一报告状态页 |
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.32 | 合并 report-owned 只读会话记录，复用正式 Practice 安全 Markdown message renderer，不恢复会话列表、sessionId route 或已删 Demo runtime。 |
 | 2026-07-15 | 1.31 | 对齐报告 `3/2/2/2/1` 信息层级：准备度与服务端 summary 下移为底部全宽面试总评，顶部只保留两个数量指标。 |
 | 2026-07-14 | 1.30 | Practice user/assistant 增加安全 Markdown/GFM view projection 与 mobile overflow 边界；terminal CTA 改为 Workspace targetJobId 只读详情。 |
 | 2026-07-14 | 1.29 | T-B/P-A：90 秒服务端 lease 对应 95 秒前端 timeout + 同 ID 对账；terminal failure 增加精确返回当前 `parse(targetJobId)` 规划的通用 CTA。 |

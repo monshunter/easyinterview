@@ -301,10 +301,16 @@ describe("ReportsScreen", () => {
     const differentReady = screen.getByTestId("reports-round-1");
     expect(differentReady).toHaveTextContent("Architecture · 50m");
     expect(differentReady).toHaveTextContent("The latest generation is ready");
-    expect(within(differentReady).getAllByRole("button")).toHaveLength(1);
-    fireEvent.click(within(differentReady).getByRole("button"));
+    expect(within(differentReady).getAllByRole("button")).toHaveLength(2);
+    fireEvent.click(within(differentReady).getByTestId("reports-current").querySelector("button")!);
     expect(navigate).toHaveBeenLastCalledWith({
       name: "report",
+      params: { reportId: REPORT_IDS.a.current },
+    });
+
+    fireEvent.click(within(differentReady).getByTestId("reports-conversation-entry"));
+    expect(navigate).toHaveBeenLastCalledWith({
+      name: "report_conversation",
       params: { reportId: REPORT_IDS.a.current },
     });
 
@@ -326,7 +332,7 @@ describe("ReportsScreen", () => {
     });
 
     const sameReady = screen.getByTestId("reports-round-4");
-    expect(within(sameReady).getAllByRole("button")).toHaveLength(1);
+    expect(within(sameReady).getAllByRole("button")).toHaveLength(2);
     expect(sameReady).not.toHaveTextContent("Latest generation completed");
 
     const page = screen.getByTestId("reports-screen");

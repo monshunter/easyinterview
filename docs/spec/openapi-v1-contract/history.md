@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.60
+> **版本**: 1.62
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 修订规则
 
@@ -30,6 +30,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 1.62 | 收紧 `ReportConversationMessage.content` 为 `minLength: 1` + `pattern: \S`，使 OpenAPI、后端投影、前端 fail-closed 和 fixture validator 一致；仍只影响 D-21 的 report-owned conversation additive schema finding。 | openapi-v1-contract/001 + 002 + 003 |
+| 2026-07-15 | 1.61 | 经产品确认，以 `GET /api/v1/reports/{reportId}/conversation getReportConversation` 一对一替换无入口价值的 `GET /api/v1/practice/sessions listPracticeSessions`；新增 closed report conversation schemas，删除无引用 `PaginatedPracticeSession` 与全部公共列表 fixture/generated/runtime consumer，保留 start/get live-session operations，inventory 仍为 37 operations / 10 tags；不保留兼容层。 | OPENAPI-001 v1.7 + 001 Phase 18 + 002 Phase 12 + 003 Phase 11 |
 | 2026-07-14 | 1.60 | 接受 OPENAPI-006：`RuntimeConfig.contentLimits` 改为 required closed 五字段 public projection；用户批准方案 A 与修订默认值，全部 generated/backend/frontend consumer 同批迁移且内部限制不公开。 | OPENAPI-006 + openapi-v1-contract/001/003 + secrets-and-config/001 + Resume/Home/Practice owners |
 | 2026-07-14 | 1.59 | 接受 OPENAPI-005：`listResumes` 外层 method/path/operationId/200/pagination 不变，`PaginatedResume.items` 改为九字段 closed `ResumeSummary`；`getResume` 保持 full `Resume`，全部 consumer 同批迁移且无兼容层。 | OPENAPI-005 + openapi-v1-contract/001/002/003/004 + backend/frontend Resume owners |
 | 2026-07-14 | 1.58 | OPENAPI-004 wire/fixture/generated contracts remain unchanged；consumer handoff moves from Parse/P0.016 to target-scoped ReportsScreen/P0.059，with Parse/Report/Generating list-consumer negatives. | B2 001/002/003 + frontend-report/001 |

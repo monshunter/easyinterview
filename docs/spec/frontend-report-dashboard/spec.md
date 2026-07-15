@@ -1,6 +1,6 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.26
+> **版本**: 1.27
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -18,6 +18,7 @@
 - `reports` 的 loading / empty / error / ready 状态彼此完备；target/round identity 漂移、跨规划响应和 stale request 均 fail closed，不渲染其他规划 sentinel 或错链。
 - `generating`：轮询真实 report status，展示诚实的异步等待说明；不伪造百分比、实时观察或通知订阅。
 - `report`：Header、三项 Context Strip、两项 Summary Metrics、两行各两个常驻内容区（Dimensions / Strength Evidence / Risks / Next Actions），以及底部一个全宽 Overall Summary。
+- `report-conversation`：仅以 `reportId` 读取报告附属的 ordered user/assistant transcript，安全渲染 Markdown/GFM，并返回同一报告状态页；queued/generating/ready/failed 都可访问。
 - Overall Summary 使用“面试总评”标题，同时展示 localized readiness tier 与服务端 `summary`；二者不得继续出现在顶部指标区，`summary` 全页只展示一次。
 - Dimension 使用动态 `label`，status/confidence 走完整 zh/en i18n，不泄漏 raw enum/code。
 - Header 保留唯一一对 CTA；`nextActions[0].type` 决定现有按钮主次，不新增 CTA。
@@ -33,6 +34,7 @@
 - 前端推导报告语义或在客户端持久化报告业务状态。
 - 真正的通知订阅；若未来需要，必须由独立后端通知合同承接。
 - 全局/跨规划 Report Center、报告 timeline、完整历史版本列表，或由 Parse/Report/Generating 消费 `listTargetJobReports`。
+- 独立会话历史列表、`sessionId` 用户路由、`listPracticeSessions` / `getPracticeSession` 记录入口，或 Composer/retry/thinking 等实时控件。
 
 ## 3 用户决策
 
@@ -53,12 +55,14 @@
 | D-13 | Back 恢复目标 | trusted `getFeedbackReport` / poll response 提供 `targetJobId` 时，ready、failed 与 recoverable generating 均返回 `/reports?targetJobId=...`；missing reportId、404/首读网络失败或 invalid payload 无可信 TargetJob identity 时返回 `workspace` | Report/Generating route 保持 reportId-only，不把 targetJobId 复制进其 URL，也不让 route identity 覆盖 API |
 | D-14 | 当前规划报告列表 | 页面级 `/reports?targetJobId=...` 只展示该 TargetJob canonical rounds 的当前可用报告与最新生成状态；不跨规划、不展示完整历史、也不加入全局 TopBar | `getTargetJob` 提供当前规划/轮次展示事实，`listTargetJobReports` 只提供 report locator 与 attempt 状态；两者 identity 必须闭合 |
 | D-15 | Reports Back 与解析职责分离 | ReportsScreen 的可信目标返回 `/workspace?targetJobId=...` 只读详情；Workspace query 只携带 `targetJobId`，不得增加 `resumeId`、`planId`、`reportId` 或 `section` | `parse` 命令/进度路由只承接新 JD 解析；读取既有规划不得展示解析动画，也不得触发 import 或 polling |
+| D-16 | 报告附属会话记录 | Report Context Strip 下方是主入口，ReportsScreen 当轮 current report 行可提供快捷入口；canonical route 为 `/report-conversation?reportId=...` | 只消费 generated `getReportConversation`；不增加会话列表、第三个 Header CTA、新关系表或浏览器业务存储 |
 
 ## 4 UI 设计与正式实现
 
 - `docs/ui-design/report-dashboard.md`
 - `docs/ui-design/module-practice-review.md`
 - `frontend/src/app/screens/report/components/ReportDashboard.tsx`
+- `frontend/src/app/screens/report-conversation/ReportConversationScreen.tsx`
 - `frontend/src/app/screens/report/__tests__/ConversationReport.test.tsx`
 - `frontend/src/app/i18n/locales/`
 
@@ -71,12 +75,15 @@
 | `getTargetJob` | `TargetJobs/getTargetJob.json` | ReportsScreen 当前规划标题与 canonical round display；不作为 Report/Generating 详情补读 | backend-targetjob handler/store | `target_jobs.summary` read | read none | focused generated-client/consumer tests |
 | `listTargetJobReports` | `Reports/listTargetJobReports.json` | ReportsScreen 当前规划 current/latest 列表，唯一 UI consumer | backend-review reports handler/store | `feedback_reports` + current TargetJob canonical summary read | read none | focused handler/store/consumer tests |
 | `getFeedbackReport` | `Reports/getFeedbackReport.json`: queued/generating/ready-needs-practice/ready-well-prepared/ready-empty-focus/failed/invalid-focus/long-content | generating poll + ReportDashboard；唯一状态/上下文事实源 | backend-review reports handler/store | `feedback_reports` + frozen context | read none | focused consumer tests + `E2E.P0.099` real API/UI |
+| `getReportConversation` | `Reports/getReportConversation.json`: ready/queued/generating/failed/missing/invalid-order/unsafe-markdown | ReportConversation + ReportsScreen current-report shortcut locator | backend-review reports handler/store | `feedback_reports.session_id` -> `practice_messages ORDER BY seq_no` | none | focused generated-client/component tests + `BDD.REPORT.CONVERSATION.001` + `E2E.P0.099` click/load/back |
 | `createPracticePlan` | `PracticePlans/createPracticePlan.json`: retry/next/mismatch | replay/next CTA；不发送 focus | backend-practice handler/store | `practice_plans` + source report projection | none | focused request/consumer tests |
 | `startPracticeSession` | `PracticeSessions/startPracticeSession.json` | replay/next CTA | backend-practice handler/store | session + opening message | `practice.session.chat` | focused request/consumer tests |
 
 Frontend Phase 7.1 必须等待 `backend-review/001 6.1` 的 generated contract；Phase 7.4 必须等待 `backend-review/001 8.1` 的 server-owned projection。`getResume` 不属于本 owner 的读取链；`getTargetJob` 只属于 ReportsScreen，不属于 Report/Generating 详情读取链。详情页冻结 label/identity 直接随 report 返回，避免深链刷新读取可变实体。
 
 `listTargetJobReports` 只属于本 owner 的 ReportsScreen，不属于 Parse、Report 或 Generating 读取链。ReportsScreen 以同一个 `targetJobId` 并行读取 `getTargetJob` 与 overview，先以当前 TargetJob canonical rounds 建 display，再验证 overview target/round identity；Report/Generating 仅根据当前/最后可信 `getFeedbackReport` response 的 `targetJobId` 构造 Back destination。
+
+`listPracticeSessions` 不属于当前产品入口。ReportConversation 不通过 TargetJob 或 session 列表定位；它只使用 `reportId` 调用 `getReportConversation`，由后端反查唯一 session。
 
 ## 6 页面结构
 
@@ -89,6 +96,7 @@ ReportsScreen
 ├─ loading / empty / error
 └─ CanonicalRoundList
    ├─ currentReport -> report?reportId=...
+   │  └─ conversation shortcut -> report-conversation?reportId=...
    └─ latestAttempt -> generating?reportId=... / typed failed state
 ```
 
@@ -168,6 +176,20 @@ ReportDashboard
 - missing reportId、404、首读网络失败或 invalid payload 无可信 `targetJobId` 时，Back 回 `/workspace` 列表。不得从 route、旧状态、target title 或 reportId 推导 TargetJob identity。
 - Report/Generating route 继续只使用 `reportId`；不得为了 Back 在其 URL 增加 `targetJobId`，也不得调用 `listTargetJobReports`。ReportsScreen 是唯一列表 consumer。
 
+### 6.7 Report Conversation
+
+```text
+ReportConversation(reportId)
+├─ Back -> /report or /generating with the same reportId
+├─ Frozen target / round / resume summary
+└─ Ordered readonly Markdown messages
+```
+
+- `reportId` 变化的首帧清空旧 transcript；只有 closed `ReportConversation` payload 校验通过后才渲染。
+- `reportStatus=ready` 返回 `/report?reportId=...`；queued/generating/failed 返回 `/generating?reportId=...`。缺失/无权/首读失败且无可信父状态时回 `/workspace`。
+- 消息的 `sequence` 必须严格升序且唯一，role 只允许 user/assistant；正文复用 Practice 的安全 Markdown/GFM 策略，不读取 live `replyStatus/clientMessageId`。
+- loading/error/empty-corruption/hidden-404 状态不展示 partial transcript；desktop/mobile 均为单列，390px code/table 只在消息容器内滚动。
+
 ## 7 状态与错误
 
 - 缺 session/report：专用空态，不展示假报告。
@@ -176,6 +198,7 @@ ReportDashboard
 - timeout/network：typed recoverable error、继续检查/back；failed/not found/unknown enum/invalid contract/`REPORT_CONTEXT_TOO_LARGE`：typed terminal error、back，不显示虚假 Retry；若当前/最后可信 response 已给出 `targetJobId`，Back 返回当前 Reports 列表，否则回 `/workspace` 列表。超限文案保持本地化且给出返回规划后的可执行方向。
 - empty dimensions/evidence 或缺 summary：视为后端合同失败，不由前端补假数据。
 - 空 `retryFocusDimensionCodes` 单独不构成合同失败；非法非空 focus cross-reference 才进入 typed invalid-contract 终态。
+- ReportConversation 对 queued/generating/ready/failed 使用同一只读合同；report 不存在、跨用户、消息空内容/乱序/非法 role 或 unsafe contract 时整体 fail closed。
 
 ## 8 验收标准
 

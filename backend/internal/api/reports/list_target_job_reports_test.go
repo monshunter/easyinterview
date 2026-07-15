@@ -165,6 +165,10 @@ func (s *targetJobReportsHandlerService) GetFeedbackReport(context.Context, stri
 	return reviewdomain.FeedbackReportRecord{}, s.err
 }
 
+func (s *targetJobReportsHandlerService) GetReportConversation(context.Context, string, string) (reviewdomain.ReportConversationRecord, error) {
+	return reviewdomain.ReportConversationRecord{}, s.err
+}
+
 func (s *targetJobReportsHandlerService) ListTargetJobReports(_ context.Context, request reviewdomain.ListTargetJobReportsRequest) (reviewdomain.TargetJobReportsOverviewRecord, error) {
 	s.request = request
 	return s.overview, s.err

@@ -1,6 +1,6 @@
 # 报告仪表盘目标结构
 
-> **版本**: 1.35
+> **版本**: 1.36
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -17,6 +17,7 @@ ReportsScreen(targetJobId)
 ├─ loading / empty / error
 └─ Canonical round rows
    ├─ currentReport -> ReportDashboard(reportId)
+   │  └─ 查看面试记录 -> ReportConversation(reportId)
    └─ latestAttempt -> ReportGenerating(reportId) / typed status
 
 ReportDashboard(reportId)
@@ -41,6 +42,11 @@ ReportDashboard(reportId)
    ├─ 面试总评
    ├─ localized readiness tier
    └─ LLM summary
+
+ReportConversation(reportId)
+├─ Back -> ReportDashboard / ReportGenerating
+├─ frozen target / round / resume
+└─ ordered readonly Markdown transcript
 ```
 
 ReportsScreen 是规划范围的导航/索引页，不是第二种报告内容形态。ReportDashboard 的当前设计合同是 desktop 自上而下 `3/2/2/2/1`：三项冻结上下文、两项数量指标、两行各两个内容区，最后一个全宽“面试总评”大卡片；无 tab。Mobile 保持相同 DOM 与阅读顺序，每组收敛为单列。不得根据旧文档恢复顶部“准备度 + summary”指标、四卡或四 tab。
@@ -114,6 +120,13 @@ Summary Metrics 只承载两个可扫描数量，不展示 readiness 或 `summar
 - missing reportId、首读 404/网络失败、invalid payload 且没有可信 TargetJob identity 时，Back 导航到 `workspace`。
 - Report / Generating route 始终只携带 `reportId`；不得把 targetJobId 写入当前 route、从 URL/标题反推 identity，或调用 `listTargetJobReports`。该 operation 的唯一 UI consumer 是 ReportsScreen。
 
+### 6.3 报告附属的只读面试记录
+
+- Report Context Strip 下方提供“查看本次面试记录”主入口，ReportsScreen 的 current report 行提供“查看面试记录”快捷入口；两者都进入 `/report-conversation?reportId=...`。
+- 页面只消费 `getReportConversation`，按 `sequence` 显示 user/assistant 安全 Markdown/GFM；不展示 Composer、thinking、retry、pause、计时、电话或 session/message/client IDs。
+- ready 返回 ReportDashboard，queued/generating/failed 返回 ReportGenerating；missing/跨用户/乱序/非法 role/stale response 整体 fail closed，不显示 partial transcript。
+- 不设立 session history 列表、`sessionId` 用户路由或新关系表；已删除的并行 Demo runtime 不作为实现/验收来源。
+
 ## 7 可读性与响应式
 
 - frozen target / round / resume 允许换行或通过 title/accessible description 读取完整值。
@@ -147,6 +160,7 @@ Summary Metrics 只承载两个可扫描数量，不展示 readiness 或 `summar
 - readiness/summary 继续位于顶部 Summary Metrics、`summary` 重复渲染，或 Overall Summary 未位于四个内容区之后。
 - user-visible or accessibility-exposed session/report UUID/internal locator。
 - global/cross-target Report Center、完整历史版本列表、Parse/Report/Generating reports-list consumer 或 route-provided targetJobId authority。
+- `listPracticeSessions` / `getPracticeSession` 记录入口、会话历史列表、`sessionId` 用户路由或只对 ready report 显示记录。
 
 ## 10 验收标准
 
@@ -164,11 +178,13 @@ Summary Metrics 只承载两个可扫描数量，不展示 readiness 或 `summar
 | R-10 | ready report has internal IDs | 打开 desktop/mobile 报告 | Context Strip 只显示 target/round/resume；可见 DOM、可访问名称与截图都不暴露 session/report UUID |
 | R-11 | trusted target context / no trusted identity | 从 ready/pending/failed/recoverable generating 点击 Back，或在 missing/first-load failure 点击 Back | 有 trusted target 时进入 `/reports?targetJobId=...`；否则进入 workspace；report/generating route 仍只含 reportId |
 | R-12 | 当前 TargetJob overview populated/empty/loading/error | 直开或刷新 `/reports?targetJobId=...` | 只展示当前规划 canonical rounds 的 current/latest，不展示其他规划或完整历史；mismatch/stale fail closed，desktop/mobile responsive/state tests 通过 |
+| R-13 | owned report 为 queued/generating/ready/failed | 从 Report 或 ReportsScreen 打开面试记录 | 同一 reportId-only 页显示严格有序的只读 Markdown transcript，返回正确父页，无会话列表/live controls/internal IDs |
 
 ## 11 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.36 | 合并 report-owned 只读面试记录：Report 主入口 + ReportsScreen 快捷入口、reportId-only route、安全 Markdown、四状态父页 Back；保留 `3/2/2/2/1` 和正式 frontend 单实现原则。 |
 | 2026-07-15 | 1.35 | 将 Workspace 详情的报告入口从标题右上角移到标题下方左对齐首行动作行，与“立即面试”同排。 |
 | 2026-07-15 | 1.34 | 用户确认报告信息层级改为 `3/2/2/2/1`：顶部准备度卡片下移为底部全宽“面试总评”，与服务端 `summary` 只在该处展示；mobile 保持同序单列。 |
 | 2026-07-14 | 1.33 | 将 ReportsScreen 入口与 Back 锚定到 Workspace targetJobId 只读详情；Parse 只保留新导入命令进度。 |

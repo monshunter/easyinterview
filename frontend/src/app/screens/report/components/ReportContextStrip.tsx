@@ -1,9 +1,12 @@
 import type { FC } from "react";
 
-import type { FeedbackReport } from "../../../../api/generated/types";
+import type { ReportContextSnapshot } from "../../../../api/generated/types";
 import { useI18n, type MessageKey } from "../../../i18n/messages";
 
-export const ReportContextStrip: FC<{ report: FeedbackReport }> = ({ report }) => {
+export const ReportContextStrip: FC<{
+  report: { context: ReportContextSnapshot };
+  marginBottom?: number;
+}> = ({ report, marginBottom = 22 }) => {
   const { t } = useI18n();
   const context = report.context;
   const fields: Array<{ id: string; label: MessageKey; value: string }> = [
@@ -12,7 +15,7 @@ export const ReportContextStrip: FC<{ report: FeedbackReport }> = ({ report }) =
     { id: "resume", label: "report.context.resume", value: context.resumeDisplayName },
   ];
   return (
-    <section data-testid="report-context-strip" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 1, border: "1px solid var(--ei-color-rule-strong)", background: "var(--ei-color-rule-strong)", marginBottom: 22 }}>
+    <section data-testid="report-context-strip" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 1, border: "1px solid var(--ei-color-rule-strong)", background: "var(--ei-color-rule-strong)", marginBottom }}>
       {fields.map((field) => (
         <div key={field.id} data-testid={`report-context-${field.id}`} style={{ padding: "12px 14px", minWidth: 0, background: "var(--ei-color-bg-card)" }}>
           <div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 5 }}>{t(field.label)}</div>

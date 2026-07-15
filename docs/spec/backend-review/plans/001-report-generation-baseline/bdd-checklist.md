@@ -1,8 +1,8 @@
 # Grounded Conversation Report BDD Checklist
 
-> **版本**: 2.21
+> **版本**: 2.25
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -18,9 +18,17 @@
 - [x] The evidence contract binds authenticated live report API、read-only PostgreSQL state、canonical report/session/context digests and current screenshot SHA-256, with bounded redacted cleanup.
 - [x] The manual contract requires a no-OCR review of ready/generating state、complete action region、clipping/ellipsis/hiding/overflow and false-ready claims.
 
+## `BDD.REPORT.CONVERSATION.API.001` Report-owned transcript API
+
+- [x] Owner tests cover four report statuses, owned empty `messages` 200, existing unique relation, strict ordered/non-blank projection, hidden 404, corruption fail-closed, zero internal IDs and zero AI/write/new-table behavior.
+- [x] Scoped removal gate proves `listPracticeSessions` is absent from current positive OpenAPI/generated/router/handler/fixture/mock/frontend surfaces.
+- [x] 根 `make test` 执行对应 Go tests；该结果是代码层行为证据，不是 E2E PASS。
+- [x] P0.099 contract adds real conversation API/DB binding and browser click/load/back while preserving exact-six screenshots and bounded redaction.
+
 ## E2E.P0.099 真实环境证据
 
-- [ ] 在当前真实环境显式运行场景并记录 exact-six current-run PASS；本轮仅完成静态资产审计，未执行该场景。
+- [x] 在当前真实环境显式运行场景并记录 exact-six current-run PASS。
+  <!-- verified: 2026-07-15 run_id="e2e-p0-099-20260715T021319Z-57232" result="PASS" evidence="live report/conversation API and PostgreSQL binding; exact six Chrome screenshots; manual visual audit" -->
 
 ## Independent gates
 

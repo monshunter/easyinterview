@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.34
+> **版本**: 1.35
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 背景与目标
 
@@ -26,12 +26,13 @@
 |-------------|-----------|-----------------|-------------|---------------------|-------------------|
 | `createPracticePlan` | `POST /practice/plans`，要求 `Idempotency-Key`；请求不包含 question/mode/hint/focus，可携带 `roundId` 与 report-derived `sourceReportId` | `backend/internal/api/practice.CreatePracticePlan` + `backend/internal/practice.CreatePracticePlan` | `practice_plans.round_id/round_sequence/focus_dimension_codes`, `idempotency_records`, `audit_events` | none；服务端从 TargetJob/source report 推导 sequence/focus | 当前无真实 E2E owner；root `make test` |
 | `getPracticePlan` | `GET /practice/plans/{planId}`，用户隔离读取 | `backend/internal/api/practice.GetPracticePlan` | `practice_plans` | none | 当前无真实 E2E owner；root `make test` |
-| `listPracticeSessions` | `GET /practice/sessions`，按 cursor / targetJob / status 列表 | `backend/internal/api/practice.ListPracticeSessions` | `practice_sessions` | none | workspace / report owner gates |
 | `startPracticeSession` | `POST /practice/sessions`，要求 `Idempotency-Key`；同步返回 session 与 opening assistant message | `backend/internal/api/practice.StartPracticeSession` + `backend/internal/practice.StartPracticeSession` | `practice_sessions`, `practice_messages`, lifecycle event, outbox, `idempotency_records`, `ai_task_runs` | `practice.session.chat` + `AIClient.Complete` | 当前无真实 E2E owner；root `make test` |
 | `getPracticeSession` | `GET /practice/sessions/{sessionId}`，返回 session 与有序 messages；user message 含原 `clientMessageId/replyStatus`；读取前惰性收敛已过期 pending lease | `backend/internal/api/practice.GetPracticeSession` + `backend/internal/practice.GetPracticeSession` | `practice_sessions`, `practice_messages.client_message_id/reply_status/reply_generation/reply_lease_expires_at` | none | 当前无真实 E2E owner；root `make test` |
 | `sendPracticeMessage` | `POST /practice/sessions/{sessionId}/messages`；body `clientMessageId` 幂等，成功返回唯一 user/assistant pair；失败持久化 user reply status；同 ID reserve 可接管已过期 lease | `backend/internal/api/practice.SendPracticeMessage` + `backend/internal/practice.SendPracticeMessage` + SQL reserve/fail/commit | `practice_messages.client_message_id/reply_status/reply_generation/reply_lease_expires_at`, `ai_task_runs` | `practice.session.chat`; recent ordered messages + plan/session context | 当前无真实 E2E owner；root `make test` |
 | `completePracticeSession` | `POST /practice/sessions/{sessionId}/complete`，要求 `Idempotency-Key`；零回答或 pending assistant reply 拒绝，成功返回 `202 ReportWithJob` | `backend-practice/002` 的 practice handler/service/store（唯一 completion owner） | `practice_sessions`, terminal `practice_messages`, `feedback_reports.generation_context`, async job/outbox/idempotency | transaction 内无 AI；随后 `report_generate` | `E2E.P0.098` 仅真实登录、completion API 与进度刷新；其余由 root `make test` |
 | `createPracticeVoiceTurn` | 当前禁用；任何请求 fail-closed 为 typed `AI_UNSUPPORTED_CAPABILITY`，不得读取音频后调用 provider | existing voice handler boundary | none | none while disabled | 当前无真实 E2E owner；root `make test` |
+
+`listPracticeSessions` 已从当前产品与公共合同删除：没有 Workspace/Report/Practice 用户入口需要按 session 分页，保留公共列表只会制造第二套历史模型。进行中会话恢复仍由 scoped `getPracticeSession(sessionId)` 承担；完成后的复盘读取由 backend-review 的 `getReportConversation(reportId)` 通过 report-owned 唯一关系承担。项目未上线，不保留 route、fixture、generated method、handler 或 compatibility alias。
 
 ### 2.2 数据模型
 
@@ -180,6 +181,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 | C-14 | 刷新可恢复消息 | user message 已持久化为 pending/retryable/terminal 状态，页面刷新或重挂载 | `getPracticeSession` 后按需用同一 ID 重试 | 读模型返回原 `clientMessageId/replyStatus`；pending 继续 thinking，retryable failure 原 row 可重试，terminal failure 无 retry；成功后仅一个 assistant reply，浏览器存储不参与 | 002 |
 | C-16 | 消息与会话文本边界 | owner config 提供单条与累计 UTF-8 byte limit | `sendPracticeMessage` | 注入小型边界验证 overflow 返回 `VALIDATION_FAILED`、零持久化与零 AI；默认/override/invalid 只由 typed config owner 覆盖，不分配默认大小字符串或建立配置 E2E | 002 Phase 12 |
 | C-15 | pending lease 与 generation fence | G1 worker 在写 reply 前失联或迟到，90 秒 lease 已过期，随后发生 GET 或两个同 ID 并发 retry | 读取会话并 reserve G2，再释放 G1 Commit/Fail | GET 或同 ID reserve 惰性收敛过期 pending；只一个调用取得 G2；G1 Commit/Fail 均 typed conflict 且零写入；G2 最终只写一个 assistant reply | 002 |
+| C-17 | 无会话列表公共入口 | 当前 UI 只需要 live session 恢复与 report-owned 复盘 | 检查 OpenAPI/generated/router/handler/fixture/mock/frontend | `listPracticeSessions` current positive surface 为零；`getPracticeSession` 保留 live recovery，完成记录只由 `getReportConversation(reportId)` 读取；无 compatibility route 或新关系表 | 001 + openapi 001/002/003 + backend-review 001 |
 
 ## 5 关联计划
 
@@ -192,6 +194,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.35 | 删除无产品入口的 listPracticeSessions 公共列表；保留 getPracticeSession 进行中恢复，并把完成 transcript 读取交给 report-owned getReportConversation，不保留兼容层。 |
 | 2026-07-14 | 1.34 | 新增单条与会话累计文本 typed config，并将默认值测试收敛到 typed config owner。 |
 | 2026-07-14 | 1.33 | Confirm T-B/P-A recovery contract: 90-second server lease, internal reply-generation fence, GET/same-ID-reserve lazy convergence, 95-second client timeout reconciliation and terminal return-to-current-plan handoff. |
 | 2026-07-13 | 1.32 | Reopen 002 for server-persisted reply status and same-client-message recovery across refresh, plus typed frontend error consumption handoff. |

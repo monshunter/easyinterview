@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.5
+> **版本**: 3.6
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -41,3 +41,10 @@
 - P0.099 alone captures current real report/generating desktop/mobile UI and binds authenticated API/read-only DB evidence；Phase 12 first aligns its README/manual visual audit and capture/verification contract so ready full-page images explicitly include the action region and following bottom Overall Summary.
 - Code-level exact boundary/parity and provider/eval results are independent; neither is copied into E2E PASS markers.
 - Historical exact-six evidence cannot satisfy the revised hierarchy；only an explicitly run current environment produces the Phase 12 E2E result.
+
+## 7 Report conversation integration
+
+- `ReportConversationScreen` tests cover loading/empty/ready/unavailable states, reportId switch stale fences, strict closed projection, safe Markdown/GFM and ready/non-ready Back destinations.
+- `ReportsScreen` and `ReportDashboard` tests prove both entry points navigate to the same reportId-only route without adding a Header CTA.
+- Backend service/store/handler tests cover owner authorization, malformed locator no-read, report-to-session binding, strict ordered projection and `Cache-Control: no-store`.
+- OpenAPI/fixture/codegen and deleted-session-list negatives prove `getReportConversation` is the only public read surface; root `make test` is the aggregate code regression.

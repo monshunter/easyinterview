@@ -23,6 +23,10 @@ func (s projectionReportService) GetFeedbackReport(context.Context, string, stri
 	return s.report, s.err
 }
 
+func (s projectionReportService) GetReportConversation(context.Context, string, string) (reviewdomain.ReportConversationRecord, error) {
+	return reviewdomain.ReportConversationRecord{}, s.err
+}
+
 func (s projectionReportService) ListTargetJobReports(context.Context, reviewdomain.ListTargetJobReportsRequest) (reviewdomain.TargetJobReportsOverviewRecord, error) {
 	return reviewdomain.TargetJobReportsOverviewRecord{}, s.err
 }

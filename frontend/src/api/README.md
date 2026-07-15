@@ -10,10 +10,10 @@ Fixture-backed API entrypoint for frontend workstreams.
 - Build the registry with `createFixtureRegistry([...])`, using JSON files from `openapi/fixtures/<tag>/<operationId>.json`.
 - Scenario selection is explicit: pass `Prefer: example=<scenario>` through request headers. Missing scenarios fail loudly instead of falling back to `default`.
 - Seed profiles currently available for frontend shell and follow-on product workstreams:
-  - `getMe`: `default`, `authenticated`, `unauthenticated`, `prototype-baseline`
-  - `getPracticeSession`: `default`, `missing-session`, `prototype-baseline`
+  - `getMe`: `default`, `authenticated`, `profileIncomplete`, `unauthenticated`
+  - `getPracticeSession`: `default`, durable reply-state scenarios, `missing-session`
   - `createPracticePlan`: `default`, `missing-resume`
-  - `getFeedbackReport`: `default`, `generating`, `prototype-baseline`
+  - `getFeedbackReport`: `default`, report lifecycle and validation scenarios
   - `requestPrivacyDelete`: `default`, `privacy-delete-requested`
 
 ## Blockers

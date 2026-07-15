@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.19
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.20
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -13,12 +13,12 @@
 - [x] 1.3 `scripts/lint/validate_fixtures.py` 校验 operation coverage、request/response schema、response status、AI provenance、privacy allowlist / blacklist、UUIDv7 和 `tmp_` id rule。
 - [x] 1.4 P0 export exceptions 固定：`requestPrivacyExport` 返回 `501 + PRIVACY_EXPORT_NOT_AVAILABLE`，`exportResume` 返回 `501 + RESUME_EXPORT_NOT_AVAILABLE`。
 
-## 2 Prototype baseline sync
+## 2 Named scenario ownership
 
-- [x] 2.1 `openapi/fixtures/PROTOTYPE_MAPPING.md` 声明 `frontend/src` 到 operationId 的映射。
-- [x] 2.2 `make sync-fixtures-from-prototype` 只写入受支持 fixture 的 `prototype-baseline` scenario，并在写入后执行 fixture validation。
-- [x] 2.3 同步命令幂等；重复运行不产生新的 `openapi/fixtures` diff。
-- [x] 2.4 P0 closed-loop endpoints 的 `prototype-baseline` scenario 非空且 schema-valid。
+- [x] 2.1 consumer-owned named scenarios 与 `default` 共同维护在 operation fixture 中。
+- [x] 2.2 `make validate-fixtures` 校验每个 named scenario，不从前端源码或 UI Demo 反向生成 fixture。
+- [x] 2.3 fixture tree 是唯一 mock 数据真理源，consumer 不得引入平行数据集。
+- [x] 2.4 P0 closed-loop endpoints 的 consumer-owned scenarios 非空且 schema-valid。
 
 ## 3 Example projection and Prism smoke
 
@@ -46,7 +46,7 @@
 
 - [x] 6.1 RED: fixture validation/consumer tests reject missing paired round identity on current practice plans and missing progress projection on structured TargetJobs.<!-- verified: 2026-07-12 method=validator-red -->
 - [x] 6.2 Add plan fixtures for baseline/current round and legacy null identity, plus TargetJob fixtures for zero/partial/all completed round states.<!-- verified: 2026-07-12 method=fixture-validation count=37 variants="not-started,partial,completed,legacy-null,mismatch" -->
-- [x] 6.3 Update prototype mapping/data and prove `make sync-fixtures-from-prototype` idempotency without lifecycle-status round inference.<!-- verified: 2026-07-12 method=prototype-sync-twice+4-unit-tests+37-fixture-validation evidence="frontend/src is the practiceProgress source; sync does not read TargetJob lifecycle status" -->
+- [x] 6.3 Validate round scenarios without lifecycle-status round inference.<!-- verified: 2026-07-12 method=4-unit-tests+37-fixture-validation evidence="fixture scenarios are the practiceProgress source; consumers do not read TargetJob lifecycle status" -->
 - [x] 6.4 Run `make validate-fixtures`, example rendering, mock consumer tests, and scenario-owner handoff gates.<!-- verified: 2026-07-12 method=57-python-tests+validate-fixtures+render-examples+generated-consumers -->
 
 ## 7 OPENAPI-001 report fixtures
@@ -55,7 +55,7 @@
   <!-- verified: 2026-07-12 method=tdd-red-green evidence="Initial fixture validation failed 60 current-schema errors. Focused RED also proved bare const predicates incorrectly selected the ready branch and old prototype projection restored dimension/question fields. GREEN passes the 12-case request matrix, status-conditional branch test, closed-object/bounds negatives and canonical oversize alias rejection." -->
 - [x] 7.2 Replace get/list report and create-plan scenarios with current direct shape, frozen context and no client focus input; include queued/generating/two ready/failed/failed-context-too-large/invalid/long-content variants plus valid baseline and minimal retry/next `{goal,sourceReportId}` requests. The oversized variant uses canonical B1 `REPORT_CONTEXT_TOO_LARGE` and fixture validation rejects aliases.
   <!-- verified: 2026-07-12 method=fixture-status-and-derived-matrix evidence="getFeedbackReport includes queued, generating, ready-needs-practice, ready-well-prepared, ready-empty-focus, failed, failed-context-too-large, invalid-contract and long-content direct bodies; list reports is direct; retry-derived/next-derived requests contain only goal+sourceReportId; all 37 fixtures validate." -->
-- [x] 7.3 Update prototype data/mapping and run `make sync-fixtures-from-prototype` twice; the second run is byte-idempotent and cannot restore old fields.
+- [x] 7.3 Update report fixtures directly and prove validation/rendering cannot restore old fields.
   <!-- verified: 2026-07-12 method=prototype-sync-twice+unit-tests evidence="Two full fixture-tree SHA-256 manifests are identical; 6 sync tests pass including direct FeedbackReport projection and negative old-field assertions." -->
 - [x] 7.4 Run `make validate-fixtures`, example rendering and Prism byte-equal smoke for `getFeedbackReport`, `listTargetJobReports` and `createPracticePlan`; pass exact response markers to backend/frontend owners.
   <!-- verified: 2026-07-12 method=fixture-example-prism evidence="validate-fixtures passes 37; renderer passes 5 tests and emits e4017fcf5a3a...; live Prism 5.14.2 passes 7/7 byte-equal checks including exact getFeedbackReport=200, listTargetJobReports=200 and createPracticePlan=201 defaults." -->
@@ -68,7 +68,7 @@
   <!-- verified: 2026-07-13 method=fixture-validator evidence="default/paste-primary are exact flattened success bodies; canonical whitespace-only 422 validates its response while failing request only at /rawText; 37 operation fixtures PASS." -->
 - [x] 8.3 GREEN: remove only TargetJob attachment purpose/scenarios from `createUploadPresign`; keep resume/privacy purpose coverage and the generic upload operation.
   <!-- verified: 2026-07-13 method=fixture+schema evidence="target_job_attachment is rejected; resume/privacy_export remain positive; createUploadPresign remains present and Prism returns the exact 201 default fixture." -->
-- [x] 8.4 Update prototype data/mapping and run `make sync-fixtures-from-prototype` twice; second run is byte-identical and cannot restore old source fields or import variants.
+- [x] 8.4 Update TargetJob fixtures directly and prove validation/rendering cannot restore old source fields or import variants.
   <!-- verified: 2026-07-13 method=prototype-sync-twice evidence="Two consecutive syncs populated five prototype fixtures; SHA-256 manifests for all 44 fixture JSON files were identical after run one and run two; TargetJob paste-primary remained canonical." -->
 - [x] 8.5 Run `make validate-fixtures`, example rendering and Prism byte parity for import/list/get TargetJob plus upload presign; hand exact markers to mock/frontend/backend owners.
   <!-- verified: 2026-07-13 method=validate+render+live-prism evidence="37 fixtures validate; 53 sync/render/validator tests PASS; rendered example sha256=e4ddbd14c5b4...; live Prism import=202, list/get=200 and upload=201 bodies are byte-equal to defaults." -->
@@ -112,3 +112,16 @@
   <!-- verified: 2026-07-14 evidence="validate-fixtures=37; rendered examples current; Prism unit=5 PASS and live matrix=13/13 byte-equal including listResumes/getResume" -->
 - [x] 11.5 BDD-N/A/HANDOFF: exact markers are consumed by downstream backend/frontend focused tests；no compatibility fixture or N+1 detail-fetch fallback remains。
 - [x] 11.6 REGRESSION-GATE: 阶段收口从仓库根执行 `make test`。
+
+## Phase 12: Report-owned conversation fixtures
+
+- [x] 12.1 RED: fixture/inventory tests fail until the old `PracticeSessions/listPracticeSessions.json` is absent and `Reports/getReportConversation.json` exists one-for-one with 37/37 unchanged.
+  <!-- verified: 2026-07-15 evidence="make validate-fixtures and the focused fixture test both failed while the old fixture existed and the replacement was absent." -->
+- [x] 12.2 GREEN: add ready/non-ready/empty/Markdown/hidden/fail-closed scenarios using exact closed response/message fields and strictly increasing sequence；reject all internal locators and partial/reordered success.
+  <!-- verified: 2026-07-15 evidence="51 focused fixture/Prism-matrix tests pass; report conversation fixture covers all four report states, empty/GFM, hidden 404 and fail-closed invalid projections." -->
+- [x] 12.3 PARITY-GATE: validate fixtures, render examples and run live Prism/mock byte parity for `getReportConversation`; the deleted path/operation/scenario fails closed.
+  <!-- verified: 2026-07-15 method=validate+render+live-prism+mock evidence="37 fixtures validate; generated example projection refreshed; Prism 5.14.2 matrix 14/14 byte-equal including getReportConversation=200; frontend devMock/auth focused suite 15 tests PASS with no listPracticeSessions operation." -->
+- [x] 12.4 HANDOFF-GATE: backend-review, frontend-report-dashboard, mock-contract-suite and `E2E.P0.099` consume exact markers without a public session-list consumer or compatibility fixture.
+  <!-- verified: 2026-07-15 method=owner-handoff+negative-search evidence="formal consumers use getReportConversation; session list and compatibility fixture remain absent" -->
+- [x] 12.5 REGRESSION-GATE: 37 fixtures / 37 operations, named-scenario validation, root `make test`, contexts/docs/diff all pass.
+  <!-- verified: 2026-07-15 method=validate-fixtures+codegen-check+make-test+docs-check evidence="37/37; generated artifacts current; all root gates PASS" -->

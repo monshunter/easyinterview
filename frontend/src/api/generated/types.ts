@@ -347,11 +347,6 @@ export interface PracticeSession {
 	updatedAt: string;
 }
 
-export interface PaginatedPracticeSession {
-	items: PracticeSession[];
-	pageInfo: PageInfo;
-}
-
 export interface CreatePracticeVoiceTurnRequest {
 	audio: PracticeVoiceAudioInput;
 	clientVoiceTurnId: string;
@@ -460,6 +455,20 @@ export interface ReportContextSnapshot {
 	sourcePlanId: string;
 	targetJobCompany: string;
 	targetJobTitle: string;
+}
+
+export interface ReportConversation {
+	context: ReportContextSnapshot;
+	messages: ReportConversationMessage[];
+	reportId: string;
+	reportStatus: ReportStatus;
+}
+
+export interface ReportConversationMessage {
+	content: string;
+	createdAt: string;
+	role: "user" | "assistant";
+	sequence: number;
 }
 
 export interface FeedbackReport {

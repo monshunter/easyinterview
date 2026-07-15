@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 2.6
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 2.7
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -51,10 +51,20 @@
 - [x] 7.3 RED-GREEN: canonical summary requires non-empty provenance, positive int32 strictly increasing/unique sequence and lowercase allowlisted type; `1,2,4` is valid and selects existing successor `4`; overflow/case drift, same-duration ambiguity, mismatched round/budget, all-complete, missing/legacy source identity and IK mismatch fail closed without inserting a plan.<!-- verified: 2026-07-12 method=unit+real-postgres markers="canonical-round-type-case-sensitive,non-contiguous-successor,equal-duration-next-round,stale-source-and-round-budget-mismatch,all-rounds-complete-fail-closed" -->
 - [x] 7.5 Repository-root `make test` provides frontend/backend unit regression；OpenAPI/generated, migration, `DATABASE_URL` integration, context/docs/index/diff and business-persistence negative checks remain separate gates.
 
+## Phase 8: Remove public session listing
+
+- [ ] 8.1 RED: OpenAPI inventory/generated/router/handler/fixture/mock/source tests fail while `GET /practice/sessions` / `listPracticeSessions` remains a current positive surface.
+- [ ] 8.2 GREEN: remove list operation, generated method/server interface, mux route, handler/service/store path, fixture and mock registry entry without redirect/deprecated/empty compatibility.
+- [ ] 8.3 PRESERVATION-GATE: `POST /practice/sessions` start and `GET /practice/sessions/{sessionId}` live recovery remain generated, routed, fixture-backed and behavior-tested.
+- [ ] 8.4 HANDOFF-GATE: completed transcript is reachable only through backend-review `getReportConversation(reportId)` over the existing relation; Workspace/Reports/Practice have no session-list consumer and no migration/table is introduced.
+- [ ] 8.5 BDD-N/A: no current user-visible session-list flow exists; substitute gates are OpenAPI exact inventory/diff, fixture/codegen/mock parity, focused handler/source negatives and root `make test`.
+- [ ] 8.6 COMPLETION-GATE: root `make test`, build, OpenAPI/fixture/codegen/mock, docs/context/index/diff and scoped zero-reference gates pass before restoring completed status.
+
 ## 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 2.7 | 新增 Phase 8：删除 listPracticeSessions 全部正向 surface，保留 start/get live operations，并交接 report-owned conversation read。 |
 | 2026-07-12 | 2.5 | 补齐 assistant history 不得成为候选人事实的 RED/GREEN prompt 与负向 eval gate。 |
 | 2026-07-12 | 2.4 | 补齐 TargetJob 绑定 resume/provenance/type/int32 目录约束，并增加 system policy 与 JSON 不可信上下文分层 gate。 |
 | 2026-07-12 | 2.3 | 原地重开 Phase 7，按方案 A 持久化规范化轮次身份并由完成台账校验当前/复练/下一轮。 |
@@ -63,3 +73,4 @@
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.PRACTICE.PLAN.001` 由 [BDD checklist](./bdd-checklist.md) 关联现有 plan/session owner behavior tests；不创建或声明真实 E2E PASS。
+- [ ] BDD-Gate Phase 8: `listPracticeSessions` 无当前用户行为流，不新增 BDD/E2E；按 [BDD checklist](./bdd-checklist.md) 回归保留的 start/get 行为并执行代码层替代 gate。

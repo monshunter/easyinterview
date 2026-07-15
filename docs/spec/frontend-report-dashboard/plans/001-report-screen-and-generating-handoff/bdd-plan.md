@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen BDD Plan
 
-> **版本**: 3.6
+> **版本**: 3.7
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -9,6 +9,7 @@
 | Behavior ID | Given | When | Then | 验证入口 |
 |-------------|-------|------|------|----------|
 | `BDD.REPORT.UI.001` | report 处于 generating、ready、failed 或 identity/context 不合法 | 页面轮询、恢复、展示报告或触发 replay/next/back | 状态与 CTA 只来自 API truth；ready desktop 按 `3/2/2/2/1` 展示，mobile 同序单列，readiness 与唯一服务端 summary 位于四个内容区之后的全宽面试总评；typed failure/route recovery fail closed 且不泄露 private IDs | `frontend/src/app/screens/generating/__tests__/GeneratingScreen.test.tsx` + `frontend/src/app/screens/report/__tests__/ConversationReport.test.tsx`，由根 `make test` 承接 |
+| `BDD.REPORT.CONVERSATION.001` | owned report 存在，状态为 queued/generating/ready/failed，消息投影可为合法或损坏 | 用户从 Report 或 ReportsScreen 打开记录、切换 reportId 或返回父页 | 只以 reportId 读取并按 sequence 显示安全只读 Markdown；四状态返回正确父页；跨用户/乱序/非法 role/stale response 整体 fail closed，无 session list/live controls/internal IDs | `frontend/src/app/screens/report-conversation/__tests__/ReportConversationScreen.test.tsx` + `frontend/src/app/screens/reports/__tests__/ReportsScreen.test.tsx`，由根 `make test` 承接 |
 
 ## Real E2E handoff
 

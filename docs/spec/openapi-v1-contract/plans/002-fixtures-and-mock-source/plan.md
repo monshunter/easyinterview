@@ -1,15 +1,15 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.19
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.20
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-维护 `openapi/fixtures/` 作为当前 HTTP mock 数据的唯一真理源：当前 10 个 tag / 37 个 operationId 必须各有一份 fixture，`default` scenario 覆盖规范响应，`prototype-baseline` scenario 由 `frontend/src` 同步，fixtures 再投影为 Prism / 文档站消费的 OpenAPI named examples。
+维护 `openapi/fixtures/` 作为当前 HTTP mock 数据的唯一真理源：当前 10 个 tag / 37 个 operationId 必须各有一份 fixture，`default` scenario 覆盖规范响应，其它 named scenario 由对应 consumer owner 在同一 fixture 中维护，fixtures 再投影为 Prism / 文档站消费的 OpenAPI named examples。
 
 本 plan 只拥有 fixture 数据、fixture validator、prototype sync、fixture example render、Prism byte-equal smoke 和对应文档。正式 mock server 运行壳、前端 MSW runtime、后端 handler、OpenAPI schema 变更与 breaking-change policy 分别归对应 owner；它们只能消费这里的 fixture truth source，不在这里重建第二份 example。
 
@@ -19,7 +19,7 @@
 - 每个 fixture 必须包含 `scenarios.default`，并且该 key 是 `scenarios` 的第一项。声明 requestBody 的 operation 必须给出 `request.body`；header-only idempotent operation 可只给 `request.headers`。
 - `response.status` 必须是 operation 声明的状态码，或被 `default` error response 覆盖。`requestPrivacyExport` 固定返回 `501 + PRIVACY_EXPORT_NOT_AVAILABLE`；`exportResume` 固定返回 `501 + RESUME_EXPORT_NOT_AVAILABLE`。
 - 所有 scenario 的 request/response body 必须按 `openapi/openapi.yaml` schema 校验通过。AI 生成相关 schema 必须带非空 `provenance`；隐私字段只能使用保留域名、保留电话号码和通用公司名；所有 UUID 字段使用 UUIDv7 字面量；`tmp_` id 直接失败。
-- `prototype-baseline` 只由 `make sync-fixtures-from-prototype` 写入。源数据来自 `frontend/src`，映射关系写在 `openapi/fixtures/PROTOTYPE_MAPPING.md`；手工改该 scenario 会被下一次同步覆盖。
+- named scenarios 由 fixture consumer owner 直接维护；不从正式前端源码或已删除的 UI Demo 反向生成 mock 数据。
 - `make render-openapi-fixture-examples` 从 fixtures 生成 `openapi/.generated/openapi-with-fixtures.yaml`。OpenAPI 主文件不得手写 response examples；Prism smoke 只使用生成物。
 
 ## 3 质量门禁分类
@@ -27,7 +27,7 @@
 - **Plan 类型**: `contract + tooling + mock-source`
 - **TDD 策略**: fixture coverage、schema validation、provenance、privacy allowlist、UUIDv7 / `tmp_` id scan、prototype sync idempotency、example projection 和 Prism byte-equal smoke 是可执行断言。重进本 plan 时必须先运行对应 gate 暴露 drift，再最小修复 fixture 或工具。
 - **BDD 策略**: 不适用。本 plan 只交付内部 fixture/mock data truth source，不创建 BDD 文件或引用场景编号。用户行为由 domain owner 独立验收；fixture markers 只用于 contract/consumer tests。
-- **替代验证 gate**: `make validate-fixtures`、`make sync-fixtures-from-prototype`、`make render-openapi-fixture-examples`、`python3 scripts/codegen/prism_fixture_smoke.py`、fixture render/unit tests、`make lint-openapi`、`make codegen-check`、`sync-doc-index --check`。
+- **替代验证 gate**: `make validate-fixtures`、`make render-openapi-fixture-examples`、`python3 scripts/codegen/prism_fixture_smoke.py`、fixture render/unit tests、`make lint-openapi`、`make codegen-check`、`sync-doc-index --check`。
 
 ## 4 交付范围
 
@@ -42,9 +42,9 @@
 - AI schema 的 `provenance` 字段非空。
 - 隐私 allowlist、黑名单、UUIDv7 和 `tmp_` id rule 通过。
 
-### 4.2 Prototype sync
+### 4.2 Named scenario ownership
 
-`openapi/fixtures/PROTOTYPE_MAPPING.md` 声明 `frontend/src` 到 operationId 的映射。`make sync-fixtures-from-prototype` 只更新受支持 fixture 的 `prototype-baseline` scenario，并在写入后执行 fixture validation。该命令必须幂等：重复运行不会制造新的 fixture diff。
+`openapi/fixtures/<tag>/<operationId>.json` 同时承载 `default` 与 consumer-owned named scenarios。所有 scenario 使用同一 validator，不得从前端源码或第二套数据集同步。
 
 ### 4.3 Example projection and Prism smoke
 
@@ -70,7 +70,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 - `openapi/fixtures/` 覆盖当前 37 个 operationId，没有多余 operation fixture。
 - `make validate-fixtures` 通过，并能拒绝缺 fixture、schema drift、缺 provenance、非保留隐私值、非 UUIDv7 id 和 `tmp_` id。
-- `make sync-fixtures-from-prototype` 幂等，且 P0 closed-loop endpoints 的 `prototype-baseline` scenario 非空并 schema-valid。
+- 所有 consumer-owned named scenarios 非空并 schema-valid，且不存在平行 mock 数据真理源。
 - `make render-openapi-fixture-examples` 通过，生成 examples 与 fixture body 字节级一致。
 - Prism smoke 固定 matrix 通过，其中 `requestPrivacyExport` 返回 `501 + PRIVACY_EXPORT_NOT_AVAILABLE`。
 - `openapi/fixtures/README.md`、`openapi/README.md` 和本 owner docs 均只描述当前 fixture truth source 与 consumer contract。
@@ -80,7 +80,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 风险 | 应对措施 |
 |------|----------|
-| Prototype data 与 OpenAPI schema 字段不同步 | sync 工具 fail-fast，并要求先修正 `PROTOTYPE_MAPPING.md` 或 `frontend/src`；不在脚本里静默改名 |
+| Consumer scenario 与 OpenAPI schema 字段不同步 | validator fail-fast，并要求在当前 fixture owner 中修正；不在 consumer 中静默改名 |
 | fixture 手写 response 漂出 schema | `make validate-fixtures` 校验所有 scenario，fixture edit 必须伴随 validator 通过 |
 | privacy export 被误写成成功响应 | validator 对 `requestPrivacyExport` 固定检查 `501 + PRIVACY_EXPORT_NOT_AVAILABLE` |
 | AI provenance 被写成空值 | validator 强制 provenance 字段存在且非空 |
@@ -90,7 +90,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 - `createPracticePlan` / `getPracticePlan` fixtures must include paired `roundId + roundSequence` for current records and a legacy-null negative scenario that is never reusable.
 - `listTargetJobs` / `getTargetJob` fixtures must include `practiceProgress` for not-started, partially completed, and all-completed rounds; `completedRounds` is ordered/deduplicated and final `currentRound` is null.
-- `prototype-baseline` must project the same current/completed round semantics from `frontend/src`; it must not derive a round from TargetJob lifecycle `status`.
+- round-related named scenarios must project the same current/completed semantics and must not derive a round from TargetJob lifecycle `status`.
 
 | operationId | fixture scenarios | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|-------------------|-------------------|-----------------|-------------|---------------|-------------------|
@@ -103,6 +103,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-15 | 1.20 | Add Phase 12 for report-owned conversation fixtures and removal of the public PracticeSessions list fixture while keeping 37/37 parity. | OPENAPI-001 v1.7 |
 | 2026-07-14 | 1.19 | Add Phase 11 for OPENAPI-005 summary-only list fixture, full detail fixture and Prism/mock consumer handoff. | OPENAPI-005 |
 | 2026-07-14 | 1.16 | Reopen for OPENAPI-004 canonical-round report overview fixtures, prototype projection, Prism parity and latest-report-pointer removal. | OPENAPI-004 |
 | 2026-07-13 | 1.15 | Add canonical blank-rawText 422 validation fixture and Practice reload/same-ID recovery plus typed failure fixture matrix. | openapi-v1-contract 1.54 |
@@ -123,7 +124,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 ## 8 OPENAPI-001 report fixture migration
 
-Replace every `getFeedbackReport` scenario with queued/generating/ready-needs-practice/ready-well-prepared/failed/failed-context-too-large/invalid-contract/long-content current-shape variants. Every body includes frozen minimal context; ready variants include summary, code+label dimensions, dimensionCode evidence, actions and report-local focus. The oversized-context failed variant uses exactly B1 `REPORT_CONTEXT_TOO_LARGE`; no local alias is permitted. Replace `listTargetJobReports` and `createPracticePlan` focus-input scenarios, and update `frontend/src` + `PROTOTYPE_MAPPING.md` before running sync twice.
+Replace every `getFeedbackReport` scenario with queued/generating/ready-needs-practice/ready-well-prepared/failed/failed-context-too-large/invalid-contract/long-content current-shape variants. Every body includes frozen minimal context; ready variants include summary, code+label dimensions, dimensionCode evidence, actions and report-local focus. The oversized-context failed variant uses exactly B1 `REPORT_CONTEXT_TOO_LARGE`; no local alias is permitted. Replace `listTargetJobReports` and `createPracticePlan` focus-input scenarios, then validate and render the fixture tree.
 
 Fixture/schema negative tests must prove old `dimension`, `retryFocusCompetencyCodes`, question fields and arbitrary additional properties fail. Render examples and run Prism byte-equal smoke for both Reports operations plus createPracticePlan.
 
@@ -143,7 +144,7 @@ Focused validator tests must first fail on current fixtures, then prove old `sou
 
 ### 10.3 Prototype, examples and runtime handoff
 
-Update `frontend/src` mapping inputs and `PROTOTYPE_MAPPING.md` so prototype sync can only emit paste-only TargetJob requests/responses. Run sync twice and require byte idempotency. Render examples and run Prism byte-equal smoke for `importTargetJob`, `listTargetJobs`, `getTargetJob` and `createUploadPresign`; hand the exact fixture markers to mock-contract-suite/001 and frontend/backend consumers.
+Update the TargetJob fixture scenarios directly so they can only express paste-only requests/responses. Validate the complete fixture tree, render examples and run Prism byte-equal smoke for `importTargetJob`, `listTargetJobs`, `getTargetJob` and `createUploadPresign`; hand the exact fixture markers to mock-contract-suite/001 and frontend/backend consumers.
 
 ### 10.4 BDD and zero-reference gates
 
@@ -206,3 +207,17 @@ Keep `Resumes/getResume.json` on the complete `Resume` contract, including sourc
 ### 11.3 Example, Prism, mock and BDD handoff
 
 Render examples and run byte-equal Prism/mock parity for both `listResumes` and `getResume`; inventory remains 37 fixtures / 37 operations. Hand the summary/full markers to backend-resume, all generated frontend consumers and mock-contract-suite in the same batch. No fixture compatibility scenario or frontend detail-fetch fallback is allowed；阶段收口执行根 `make test`。
+
+## 14 Phase 12: Report-owned conversation fixtures
+
+### 12.1 One-for-one fixture replacement
+
+Delete `openapi/fixtures/PracticeSessions/listPracticeSessions.json` and add `openapi/fixtures/Reports/getReportConversation.json`, preserving exactly 37 default fixtures for 37 operations. No archived, disabled or compatibility session-list scenario remains. Focused fixture tests RED on the old path/operation/schema or any missing new fixture.
+
+### 12.2 Closed conversation scenario matrix
+
+Cover ready, queued/generating/failed with an existing owned report row, empty messages, Markdown/GFM content, hidden cross-user/not-found 404, and fail-closed identity/role/sequence/binding cases. Successful bodies contain only `reportId/reportStatus/context/messages`; messages contain only `sequence/role/content/createdAt` and are strictly increasing. No session/message/replay/anchor locator is allowed.
+
+### 12.3 Example, Prism, mock and downstream handoff
+
+Render examples and run live byte-equal Prism/mock parity for `getReportConversation`; prove the deleted list operation cannot be selected by path or scenario. Hand exact markers to backend-review, frontend-report-dashboard, mock-contract-suite and extended `E2E.P0.099`. BDD behavior remains downstream-owned; this fixture phase closes with validation, rendering, Prism parity, zero-reference and root `make test`.

@@ -44,6 +44,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0173](./BUG-0173.md) | malformed report conversation ID reached the UUID database query | medium | resolved | 2026-07-15 | `feat(report): integrate readonly conversation record (BUG-0173, BUG-0174)` |
 | [BUG-0171](./BUG-0171.md) | report generation rejected valid context at a stale hardcoded byte limit | high | resolved | 2026-07-14 | `fix(runtime): centralize content size limits (BUG-0171)` |
 | [BUG-0166](./BUG-0166.md) | unpaired report prompt example leaked unsupported facts into live output | high | resolved | 2026-07-13 | `fix(report): ground report semantics and reliability (BUG-0164, BUG-0165, BUG-0166)` |
 | [BUG-0165](./BUG-0165.md) | empty report retry focus encoded as null and blocked ready dashboards | high | resolved | 2026-07-13 | `fix(report): ground report semantics and reliability (BUG-0164, BUG-0165, BUG-0166)` |
@@ -193,6 +194,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0174](./BUG-0174.md) | evidence privacy gate rejected benign PNG metadata | medium | resolved | 2026-07-15 | `feat(report): integrate readonly conversation record (BUG-0173, BUG-0174)` |
 | [BUG-0172](./BUG-0172.md) | UI Demo pruning gate missed renamed browser contracts and owner drift | medium | resolved | 2026-07-15 | `fix(ui-design): close pruning review findings (BUG-0172)` |
 | [BUG-0169](./BUG-0169.md) | Closeout contract gates drifted from current source ownership | medium | resolved | 2026-07-14 | `fix(interview): close turn UX and report navigation (BUG-0167, BUG-0168, BUG-0169)` |
 | [BUG-0168](./BUG-0168.md) | P0.006 verifier treated business failed counters as Playwright failures | medium | resolved | 2026-07-14 | `fix(interview): close turn UX and report navigation (BUG-0167, BUG-0168, BUG-0169)` |

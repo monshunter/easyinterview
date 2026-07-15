@@ -97,7 +97,7 @@
 ### 4.3 契约与 mock-first 约束
 
 - 前端 mock 数据来源必须是 B2 OpenAPI fixtures（当前 10 tag / 37 operation；Resume Workshop 使用 D-20 后的扁平 Resume contract 与 PDF source preview，TargetJob archive 属于当前 fixture coverage），禁止前端重新 hardcode product data truth source。
-- `frontend/src` 只能作为 prototype-baseline 场景输入，不能越过 OpenAPI fixtures 直接驱动实现。
+- `frontend/src` 不得成为 mock 数据真理源，必须通过 generated client 和 fixture-backed transport 消费 OpenAPI fixtures。
 - 后端 AI 调用必须通过 A3 `AIClient` 和 F3 prompt/rubric/model profile 契约。
 - 业务 spec 不得 hardcode prompt 正文、rubric 文本、模型名、厂商 SDK 或 feature flag 绕过 A3/A4/F3。
 - OpenAPI、events、migrations、feature flags 和 runtime config 的破坏性变更必须先修订对应 Layer B/A/F spec 与 drift gate。

@@ -1,8 +1,8 @@
 # 001 Plan and Session Orchestration Test Checklist
 
-> **版本**: 2.4
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 2.5
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -32,3 +32,10 @@
 - [x] Contract/generated round fields and paired persistence tests pass.<!-- verified: 2026-07-12 method=unit+integration -->
 - [x] Baseline/retry/next transactional selection and idempotency tests pass.<!-- verified: 2026-07-12 method=real-postgres-integration -->
 - [x] TargetJob-bound resume/provenance plus same-duration/non-contiguous/int32/type/legacy/all-complete/invalid-source tests pass.<!-- verified: 2026-07-12 method=unit+real-postgres-integration markers="target-resume-binding-and-provenance,canonical-round-type-case-sensitive,non-contiguous-successor" -->
+
+## Phase 8: Session-list removal
+
+- [ ] Retired list operation/route/handler/fixture/mock/generated/frontend positive-surface negatives pass.
+- [ ] Start-session and scoped get-session preservation tests pass.
+- [ ] ReportConversation handoff and no-migration audit pass.
+- [ ] Root `make test` plus OpenAPI/fixture/codegen/mock/docs/context gates pass.

@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 3.6
+> **版本**: 3.7
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-在既有 report UI owner 内交付规划范围的独立 ReportsScreen、grounded direct semantic report 与诚实 generating：列表只展示当前 TargetJob canonical rounds 的 current report 与 latest attempt，不做全局中心或完整历史；ready 详情按 `3/2/2/2/1` 建立阅读层级，把准备度与既有服务端 `summary` 收敛到最低端全宽“面试总评”，并保持 CTA、direct semantic、长内容/mobile 可读性与真实证据边界。
+在既有 report UI owner 内交付规划范围的独立 ReportsScreen、grounded direct semantic report、诚实 generating 与 report-owned 只读 conversation：列表只展示当前 TargetJob canonical rounds 的 current report 与 latest attempt，不做全局中心或完整历史；ready 详情保留 `3/2/2/2/1` 当前设计合同；会话记录以 reportId-only 附属页复用安全 Markdown message renderer，不建立 session 列表或实时控制。
 
 ## 2 Operation Matrix
 
@@ -20,6 +20,7 @@
 | getTargetJob | `TargetJobs/getTargetJob.json` | ReportsScreen current target + canonical round display | targetjob handler/store | target_jobs.summary read | read none | focused client/consumer tests |
 | listTargetJobReports | `Reports/listTargetJobReports.json` | ReportsScreen current/latest pointers only | reports handler/store | feedback_reports + canonical target read | read none | focused handler/store/consumer tests |
 | getFeedbackReport | `Reports/getFeedbackReport.json`: queued/generating/ready-needs-practice/ready-well-prepared/ready-empty-focus/failed/invalid-focus/long-content | generating/report; only status/context truth | reports handler/store | feedback_reports + frozen context | read none | focused consumer tests + P0.099 real API/UI |
+| getReportConversation | `Reports/getReportConversation.json`: ready/queued/generating/failed/missing/invalid-order/unsafe-markdown | report-conversation; ReportsScreen 只传 current report locator | reports handler/store | feedback_reports.session_id -> practice_messages ordered read | none | focused client/component/route tests + BDD.REPORT.CONVERSATION.001 + P0.099 click/load/back |
 | createPracticePlan | `PracticePlans/createPracticePlan.json`: retry/next/mismatch | replay handler; no focus input | practice handler/store | practice_plans + source report projection | none | focused request/consumer tests |
 | startPracticeSession | `PracticeSessions/startPracticeSession.json` | replay handler | practice handler/store | session/messages | practice.session.chat | focused request/consumer tests |
 
@@ -31,6 +32,7 @@
 | Phase 7.1 | `backend-review/001 6.1` + OpenAPI 001/002 codegen/fixture PASS | frontend RED/GREEN uses the real generated contract, not handwritten types |
 | Phase 7.4 | `backend-practice/004 Phase 3` server-derived request/focus PASS | frontend removes all derived settings/identity/focus route authority |
 | Phase 8 | backend 6-8 + frontend 6-7 PASS | code gates close deterministic behavior；P0.099 is reserved for an explicitly run real report/generating UI acceptance |
+| Phase 13 | OpenAPI 001/002/003 + backend-review report-owned read PASS | formal frontend 只消费 generated `getReportConversation`；不恢复 `listPracticeSessions` 或已删除 Demo runtime |
 | Phase 12 | current OpenAPI `FeedbackReport.summary` + `preparednessLevel` and frontend report owner | layout-only change；do not modify API、backend、persistence or model prompt |
 
 ## 3 质量门禁分类
@@ -59,6 +61,7 @@
 | spec C-13 | current-plan list | 10 | ReportsScreen target/overview table tests | ReportsScreen canonical round list | cross-target rows / full history / Parse list consumer |
 | spec C-14 | navigation recovery | 10 | Report/Generating Back table tests | Back control | workspace-only back / route target authority / detail-screen list consumer |
 | spec C-15 | command/read separation | 11 | ReportsScreen Back route tests + current-scope route negative | Reports Back control | Parse navigation/animation/import/poll; extra Workspace query params |
+| spec C-16/C-17 | report conversation primary/failure | 13 | generated-client + component/route/Markdown tests; P0.099 real click/load/back handoff | formal `ReportConversationScreen` + ReportsScreen/Report entries | session list, live controls, third Header CTA, stale/partial transcript |
 
 ## 5 实施步骤
 
@@ -160,6 +163,20 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 
 正式 frontend component/browser tests 在 1440 与 390 宽度验证卡片数量、DOM 顺序、desktop 全宽跨度、mobile 单列、完整换行与无横向溢出；标题、readiness 与 summary 均可访问。`BDD.REPORT.UI.001` 的 ready 分支必须覆盖新层级。实现阶段先对齐 P0.099 README/manual visual audit 与 capture/verification contract，使其明确检查行动区之后的底部面试总评；完成根 `make test` 后，显式运行 P0.099 才能产生当前真实环境 PASS。历史六图 PASS 不作为本阶段证据。
 
+### Phase 13: Integrate report-owned readonly conversation
+
+#### 13.1 Contract and route
+
+将 generated `getReportConversation` 与 `/report-conversation?reportId=...` 接入正式 frontend，路由只允许 `reportId`。报告 Context Strip 下方保留主入口，ReportsScreen 的 current report 行保留快捷入口；不改 Header 两 CTA 和 Phase 12 的 `3/2/2/2/1` 目标布局。
+
+#### 13.2 Readonly projection and failure boundary
+
+按 `sequence` 严格升序渲染 user/assistant 安全 Markdown/GFM；禁止 Composer、retry、thinking、pause、session/message/client IDs 与 browser storage。Report status 决定 Back 到 report 或 generating；hidden 404、invalid order/role/closed projection 与 stale response 整体 fail closed。
+
+#### 13.3 Current integration gates
+
+运行 report-conversation/ReportsScreen focused frontend tests、reports service/store/handler focused Go tests、OpenAPI/codegen/fixture drift gates 与根 `make test`。P0.099 脚本仍只驱动真实 API/UI，不嵌入 Go/Vitest/pytest/lint/build；未显式运行时不记录新 E2E PASS。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -172,6 +189,7 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 - Context Strip 正式验收只有同一 ready report 的 exact 1440x1200 / 390x844 两张 formal real UI full-page 图与固定 manifest；path/hash/state/viewport/fullPage、target/round/resume 可见和 report/session DOM/a11y/screenshot sentinel absence 全部可校验。
 - ReportsScreen 只展示当前 target 的 canonical rounds、current report 与 latest attempt，覆盖 loading/empty/error/identity mismatch/stale response；不展示其他规划或完整历史，desktop/mobile 响应式合同一致。
 - ReportsScreen Back 直接进入 `/workspace?targetJobId=...` 只读规划详情，query 只有 `targetJobId`，不经过 Parse、不展示解析动画、不触发 import/poll；Report/Generating Back 在 trusted target context 存在时进入 `/reports?targetJobId=...`，缺失可信 identity 时进入 `/workspace` 列表；detail/generating route 保持 reportId-only，且列表 operation 只有 ReportsScreen 消费。
+- Report 主入口与 ReportsScreen 快捷入口都打开同一 reportId-only 只读记录；queued/generating/ready/failed 可返回正确父页，失败/隐私边界不泄露 partial transcript 或内部 ID。
 
 ## 7 风险与应对
 
@@ -187,11 +205,13 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 | 列表混入其他规划或 stale response | `getTargetJob` 与 overview target/canonical round 双重闭合；target switch 首帧清旧 rows，request sequence fence 拒绝旧响应 |
 | Back 使用旧 route 或标题猜测 TargetJob | 只接受当前/最后可信 API response 的 targetJobId；缺失即 workspace fallback，并对 route target 与 detail-screen list consumer 做负向测试 |
 | 读取既有规划误入解析状态机 | Reports Back 固定为 targetJobId-only Workspace detail；route/browser tests 与 source negative 同时拒绝 Parse navigation、动画、import 和 polling |
+| 并行分支合并恢复已删 Demo 或丢失会话入口 | 保留 Demo zero-directory gate，并以 route/list/detail tests 反向锁定两处入口和唯一 generated API |
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 3.7 | Integrate the previously isolated report-owned readonly conversation implementation as Phase 13, preserving the active Phase 12 `3/2/2/2/1` layout contract and deleted Demo boundary. |
 | 2026-07-15 | 3.6 | Reopen Phase 12 for the confirmed `3/2/2/2/1` report hierarchy: move readiness and the existing server summary into one bottom full-width interview-summary card, keep mobile order, replace stale prototype parity wording, and make no API/backend change. |
 | 2026-07-14 | 3.5 | Separate code-owned report UI BDD from the explicitly run Ready-only P0.099 real acceptance handoff. |
 | 2026-07-14 | 3.4 | Reopen Phase 11 so Reports Back opens the targetJobId-only read-only Workspace detail directly, without Parse animation/import/polling; preserve Report/Generating trusted recovery. |

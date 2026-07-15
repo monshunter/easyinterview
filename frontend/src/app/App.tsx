@@ -37,6 +37,7 @@ import { HomeScreen } from "./screens/home/HomeScreen";
 import { ParseScreen } from "./screens/parse/ParseScreen";
 import { PracticeScreen } from "./screens/practice/PracticeScreen";
 import { ReportScreen } from "./screens/report/ReportScreen";
+import { ReportConversationScreen } from "./screens/report-conversation/ReportConversationScreen";
 import { ReportsScreen } from "./screens/reports/ReportsScreen";
 import { ResumeWorkshopScreen } from "./screens/resume-workshop/ResumeWorkshopScreen";
 import { RouteShellScreen } from "./screens/RouteShellScreen";
@@ -114,6 +115,9 @@ function renderRouteScreen(
   }
   if (route.name === "report") {
     return <ReportScreen route={route} />;
+  }
+  if (route.name === "report_conversation") {
+    return <ReportConversationScreen route={route} />;
   }
   if (!runtime) {
     return <RouteShellScreen route={route} />;
