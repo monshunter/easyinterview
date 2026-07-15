@@ -5,10 +5,10 @@ metadata:
   name: 001-home-jd-import-and-parse
   sequence: 1
   baseBranch: main
-  branch: runtime-size-limits
+  branch: design/resume-interview-report-layout
   specVersion:
-    from: 2.25
-    to: 2.26
+    from: 2.26
+    to: 2.27
 spec:
   defaultTarget: frontend
   discovery:
@@ -38,6 +38,10 @@ spec:
       - listResumes
       - getTargetJob
       - plan detail report entry
+      - title adjacent bound resume link
+      - saved resumeId resume detail navigation
+      - leading start reports action row
+      - no standalone parse launch resume binding block
       - reports targetJobId handoff
       - Parse no embedded reports list
       - Parse no listTargetJobReports request
@@ -117,9 +121,9 @@ spec:
           - backend/internal/targetjob
           - backend/internal/api/generated
           - config/prompts/target.import.parse
-          - frontend/tests/responsive-browser
+          - frontend/tests/e2e
           - frontend/src
-          - ui-design
+          - docs/ui-design
           - openapi
           - openapi/fixtures/TargetJobs
           - openapi/fixtures/Resumes

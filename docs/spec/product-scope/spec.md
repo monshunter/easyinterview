@@ -1,8 +1,8 @@
 # Product Scope Spec
 
-> **版本**: 2.22
+> **版本**: 2.23
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 背景与目标
 
@@ -109,7 +109,7 @@ EasyInterview 当前产品形态由 `docs/spec/product-scope/spec.md`、`docs/ui
 | D-4 | 一级导航 | `首页 / 面试 / 简历` | `复盘`、`岗位推荐`、`当前岗位`、`面试报告`、`成长` 等不作为一级导航；`面试` 是面试规划列表和统一面试规划详情入口，不改变完整模拟面试 session 语义 |
 | D-5 | 模拟面试语义 | 面试是一场连续 conversation session；opening、追问、话题转换都是普通 assistant message | 不提供题号、题目预算、当前题、问题/回答/追问分类、热身或单题深钻 |
 | D-6 | 语音边界 | 当前 P0 暂不开放电话模式；前端电话图标置灰，后端 voice endpoint fail-closed；通用 speech foundation 可保留 | phone/voice 参数不得 materialize PhoneSurface；重新启用必须重新设计和验收 |
-| D-7 | 报告形态 | 报告只有 session-scoped conversation Dashboard 一种形态；三项指标与四个常驻区块展示 LLM direct semantic summary、能力维度、会话证据和下一步 | 不按题目/turn，不展示隐藏数值分，前端不二次推导报告语义 |
+| D-7 | 报告形态 | 报告只有 session-scoped conversation Dashboard 一种形态；desktop 自上而下采用 `3/2/2/2/1`：三项冻结上下文、两个数量指标、两行各两个能力/证据/行动区块、底部全宽面试总评；准备度与 LLM direct semantic summary 只在面试总评展示，mobile 同序单列 | 不按题目/turn，不展示隐藏数值分，前端不二次推导或重复展示报告语义 |
 | D-8 | 复练价值承载 | 复练当前轮由后端从 source report 投影；报告存在 issue-backed needs-work dimension 时可以携带 report-local focus，否则创建空 focus 的通用同轮复练；code 仅在单份报告内稳定 | 不设置全局 competency taxonomy、题目回顾、逐题评分、独立错题队列、Drill builder、turn-based retry 或客户端 focus 事实源 |
 | D-9 | 真实面试复盘边界 | 复盘不属于当前 P0 模块或后续默认能力 | 不设置 `debrief` route、API、DB、AI feature key 或场景 |
 | D-10 | 证据和版本化 | 生成结果必须携带 prompt / rubric / model / language / feature flag / data source 等来源信息 | 支撑质量评估、回归检测和问题追踪 |
@@ -667,6 +667,7 @@ P0 质量评估必须覆盖三类指标：
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 2.23 | 2026-07-15 | D-7：用户确认报告 ready 页采用 `3/2/2/2/1`；准备度与服务端 summary 从顶部指标下移为底部全宽面试总评，mobile 保持同序单列。 |
 | 2.22 | 2026-07-14 | D-14/D-23/D-27/D-28：Parse 仅承接 import 后 queued/processing 命令进度，ready replace 到 targetJobId-only Workspace 只读详情；ready 卡片、Reports Back、Practice terminal recovery 统一回 Workspace；报告入口迁至 Workspace。D-21 同步为 Ocean/Plum + hue/saturation-only custom accent，无 preview/value/reset。 |
 | 2.21 | 2026-07-14 | D-27：规划详情右上角进入 target-scoped ReportsScreen，当前规划 current/latest-only；Parse 解耦、TopBar 无入口、trusted Back 返回 Reports、无可信上下文回 workspace。 |
 | 2.20 | 2026-07-13 | D-26：Practice 用户消息即时显示、等待态 thinking/输入锁、失败 row-local retry，并由后端持久化 reply state 支持刷新后同 ID 恢复。 |

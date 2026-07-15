@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 3.8
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 3.9
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -97,6 +97,14 @@
 - [x] 19.4 reject/retry/abort/polling：第一次相同请求 reject 后 registry 清空，用户 retry 发起新的 transport 并成功；resolve 后新用户动作也可发起新 transport；带 `AbortSignal` 请求不共享；queued/processing 详情仅在前次 settle 后轮询，ready/failed/已有正文不轮询。Focused hook/client/component tests 仅作开发反馈。
 - [x] 19.7 收口：仓库根 `make test` 完成前后端全量单测回归；typecheck/build、owner contexts、`sync-doc-index --check`、`make docs-check`、`git diff --check` 与 pruning 作为独立 gates；完成后同步 checklist 证据并恢复 completed。
 
+## Phase 20: Responsive resume card list
+
+- [ ] 20.1 RED：`ResumeListView.test.tsx` 与 CSS/responsive owner gate 先证明当前 table/header/row DOM 和整行布局不符合卡片合同；同时锁定 closed `ResumeSummary`、loading/empty/error/pagination、打开与删除的既有行为。
+- [ ] 20.2 GREEN：`ResumeListView` 改为 list/card DOM；卡片展示名称、可选摘要、来源、语言和最近编辑，缺摘要不伪造，底部“打开”、右上角 trash 删除；desktop 固定最大列宽 + `auto-fill` + 左对齐，mobile 同序单列，1/2/3 卡片规格稳定且单卡不拉伸整行。
+- [ ] 20.3 A11Y/PARITY：打开与删除具有独立可访问名称、键盘焦点和触控区域；超长名称/摘要/来源完整换行；desktop/mobile geometry、no-overflow 与正式 screenshot acceptance 通过，不新增 nested-card-button 冲突。
+- [ ] 20.4 REGRESSION：focused Vitest 只作开发反馈；执行根 `make test`、frontend typecheck/build、owner context、`sync-doc-index --check`、`make docs-check`、`git diff --check`，同步证据后恢复 completed。
+
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.RESUME.READ.001` 由 [BDD checklist](./bdd-checklist.md) 关联 list/readonly-detail owner behavior tests；不创建或声明真实 E2E PASS。
+- [ ] BDD-Gate: `BDD.RESUME.LIST.002` 由 [BDD checklist](./bdd-checklist.md) 关联 desktop/mobile 卡片列表、打开/删除与非表格语义行为；当前无真实 E2E owner，不把代码 gate 声明为 E2E PASS。

@@ -1,8 +1,8 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 3.5
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 3.6
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -45,7 +45,16 @@
 - [x] Reports Back reaches targetJobId-only Workspace detail directly with no Parse detour、animation、import or polling.
 - [x] Focused component/route/source tests and deterministic parity pass.
 
-## Closeout
+## Phase 12: Bottom full-width interview summary hierarchy
+
+- [ ] 12.1 RED: `ConversationReport` tests prove the current top readiness+summary card violates the new contract; assert ready DOM order `3/2/2/2/1`、two top metrics、one bottom Overall Summary and exactly one rendered `summary`.
+- [ ] 12.2 GREEN: move localized readiness and the existing server `summary` into a localized bottom “面试总评” card; keep dimension/evidence counts as the only Summary Metrics and make no API/backend/persistence/prompt change.
+- [ ] 12.3 RESPONSIVE/A11Y: formal frontend 1440/390 gates prove desktop `3/2/2/2/1`、bottom full-width span、mobile same-order single column、complete wrapping、no horizontal overflow and accessible title/readiness/summary.
+- [ ] 12.4 BDD-Gate: `BDD.REPORT.UI.001` ready branch and [BDD checklist](./bdd-checklist.md) cover the revised hierarchy; historical Phase 1-11 PASS is not current Phase 12 evidence.
+- [ ] 12.5 E2E-HANDOFF: align the existing P0.099 README/manual-audit/capture-verification contract with the bottom interview summary, then explicitly run it on the current real environment so ready full-page images include actions and the following summary；historical exact-six evidence is not reused.
+- [ ] 12.6 CLOSEOUT: root `make test`、typecheck/build/lint/docs/index/diff gates pass independently, current evidence is recorded, and plan/spec/test/BDD lifecycle returns to `completed` only after all required Phase 12 checks finish.
+
+## Historical Closeout through Phase 11
 
 - [x] Root `make test` is the independent complete backend/frontend unit regression gate; focused test PASS is development feedback, not full regression.
 - [x] P0.099、typecheck/build/lint/docs/index/diff are reported as separate gates; code gates are never wrapped as E2E.

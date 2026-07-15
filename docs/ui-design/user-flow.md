@@ -1,8 +1,8 @@
 # EasyInterview 目标用户流程
 
-> **版本**: 2.27
+> **版本**: 2.28
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 文档目的
 
@@ -54,12 +54,11 @@ Parse Command Progress(targetJobId)
 └─ ready -> replace Workspace Plan Detail(targetJobId)
 
 Workspace Plan Detail(targetJobId)
+├─ 标题旁 绑定简历 -> Resume Detail(resumeId)
+├─ 首行动作行 立即面试 + 面试报告 -> Reports(targetJobId)
 ├─ 核对 JD 基础信息
 ├─ 核对必需项 / 加分项 / 隐性关注点
-├─ 查看已绑定简历
-├─ 确认 InterviewRound
-├─ 右上角 面试报告 -> Reports(targetJobId)
-└─ 立即面试 -> Practice
+└─ 确认 InterviewRound
 ```
 
 首次导入链路只有一个 ready 详情母版。Parse 只展示新导入的 queued/processing 命令进度；解析成功即代表规划已保存并 replace 到 `/workspace?targetJobId=...` 只读详情。既有 ready 规划回访也直接进入同一 Workspace 详情，不播放 Parse 动画。
@@ -174,6 +173,7 @@ Auth
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 2.28 | Workspace 详情将绑定简历改为标题旁详情链接，并把立即面试/面试报告合并为左对齐首行动作行。 |
 | 2026-07-14 | 2.27 | 将 Parse 收窄为新导入 queued/processing 进度；ready replace 与既有规划、Reports Back 均进入 targetJobId-only Workspace 详情。 |
 | 2026-07-14 | 2.26 | 增加从规划详情进入 target-scoped Reports 的流程，并锁定 current/latest-only、Back 路径、鉴权与非全局入口边界。 |
 | 2026-07-13 | 2.25 | Practice 增加即时 user row、pending thinking/输入锁、failed-row retry 与服务端 reply-state 刷新恢复。 |

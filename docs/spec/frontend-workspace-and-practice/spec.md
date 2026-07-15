@@ -1,8 +1,8 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.45
+> **版本**: 1.46
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 背景与目标
 
@@ -20,6 +20,8 @@
 - 快速启动通过 generated `createPracticePlan` / `startPracticeSession` 创建或复用 plan，然后进入 `practice`。
 - 卡片 round rail、`立即面试` 和 parse 当前轮只消费 backend `TargetJob.practiceProgress`；TargetJob lifecycle `status` 只用于岗位状态展示，不参与轮次推断。
 - Workspace 详情的轮次假设卡片必须复用列表 rail 的同一严格投影：完成前缀显示 `done / 已进行`，首个未完成轮显示 `current / 即将进行`，其余显示 `pending / 未进行`；三态分别使用 success-soft、accent-soft、neutral-soft 背景与对应边框，并暴露 `data-round-state`。投影缺失或无效时保持中性、隐藏状态文案并禁用启动，不得伪造 pending/current/done。
+- Workspace 详情删除独立 Interview Launch / 绑定简历大卡片与页尾启动区。标题 cluster 在“面试规划详情”旁显示“绑定简历”查看链接，点击只使用 `getTargetJob` 返回的 `resumeId` 进入 `resume_versions?resumeId=...`，不调用 `getResume` 预读、不提供 rebind；缺失绑定时显示非链接状态并禁用启动。
+- 标题下方首行动作行从左依次展示「立即面试」与「面试报告」；desktop 同排，mobile 保持顺序并在必要时换行。报告入口仍只携带可信 `targetJobId`，启动仍使用后端绑定 resume/round/progress 事实；两者不得回到标题右侧或页尾。
 
 ### 2.2 Practice
 
@@ -82,6 +84,7 @@
 | D-13 | Conversation Markdown projection | user/assistant 均由 `react-markdown + remark-gfm` 渲染；`skipHtml`、no `rehypeRaw`、no remote image、safe link；retry 保留原始 text/clientMessageId | Markdown 只是 view，不能改写业务 payload；mobile code block 必须容器内滚动 |
 | D-14 | Workspace detail round-state affordance | 详情卡片与列表 mini rail 消费同一 `practiceProgress`：`done/已进行`、`current/即将进行`、`pending/未进行` 使用三种背景、边框、可见标签与 `data-round-state`；无效投影中性 fail closed | 不新增 API/schema/前端状态机，不从 TargetJob lifecycle、URL 或 storage 猜测 |
 | D-15 | Practice text limits | `AppRuntimeProvider.contentLimits.practiceMessageBytes/practiceSessionTextBytes` 是唯一前端数据源，缺字段用 A4 同值 code default 32768/262144；`TextEncoder` 计算 bytes；backend error 可覆盖前端估算 | 删除 8,000-rune 本地真理源，保持 composer DOM/视觉不变并防止正常长回答误拒 |
+| D-16 | Workspace detail leading controls | 删除独立 Interview Launch/绑定简历 block；标题旁的“绑定简历”只按 `TargetJob.resumeId` 打开对应简历详情，标题下首行动作行左对齐“立即面试 + 面试报告”。缺绑定时 link 不可用且 Start fail closed，Report 仍按可信 target 可用 | 减少重复上下文块，把查看绑定、开始面试和查看报告前置到详情开头，同时保持 backend 事实源与 route 最小化 |
 
 ## 4 UI 设计文档与 parity
 
@@ -138,7 +141,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Workspace list/detail | ready plans | 进入 `/workspace` 或 `/workspace?targetJobId` | 无参列表；有 target 只读详情；card 直达；详情 same-key `getTargetJob` 底层 count=1，零 import/poll/Parse animation | 001 |
+| C-1 | Workspace list/detail | ready plans | 进入 `/workspace` 或 `/workspace?targetJobId` | 无参列表；有 target 只读详情；card 直达；详情 same-key `getTargetJob` 底层 count=1，零 import/poll/Parse animation；标题旁绑定简历只按 saved `resumeId` 打开详情，无独立 binding/launch block；标题下首行动作行左对齐“立即面试 + 面试报告” | 001 |
 | C-2 | Practice 首屏 | session 有 opening message | 进入 practice | 只见 Top Bar + 全宽 Conversation | 002 |
 | C-3 | 连续聊天 | session running，或刷新后服务端 user message 为 `replyStatus=pending` | 提交一条消息并等待 AI / 刷新页面 | user message 立即进入 Transcript、composer 立即清空并禁用、面试官思考动画可访问；刷新从 `getPracticeSession` 重建同一 row + thinking，不重复 send；成功后 server messages 按序收敛且无重复/题目分类 | 002 |
 | C-4 | 消息失败恢复 | AI/网络首次可重试失败，或 validation/auth/not-found/conflict 终态失败 | 查看失败 row、刷新、编辑下一条草稿并恢复 | generated `ApiClientError.apiError` 或 transport failure 决定当前请求分类；刷新后以 server `clientMessageId + replyStatus` 重建。可重试失败只在原 user row 底部显示 retry，复用原文本/同 ID 且保留草稿；终态错误无 retry icon并转入事实恢复；两类状态均保持 Finish disabled，AI failure → reload → retry 成功后 user message 与 reply 各唯一一条 | 002 |

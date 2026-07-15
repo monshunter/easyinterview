@@ -1,8 +1,8 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.30
+> **版本**: 1.31
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 目标
 
@@ -81,7 +81,7 @@ PracticeScreen(sessionId)
 
 Ready 报告只展示：
 
-- 准备度与服务端 summary。
+- 顶部两个数量指标、两行共四个能力/证据/行动区块，以及最低端全宽“面试总评”；准备度与服务端 `summary` 只在面试总评中出现。
 - 报告内 code + 用户可见 label 的能力维度，以及本地化 status / confidence。
 - 有候选人消息 grounding anchor 的会话证据摘要。
 - 服务端排序的下一步行动。
@@ -122,6 +122,7 @@ Ready 报告只展示：
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.31 | 对齐报告 `3/2/2/2/1` 信息层级：准备度与服务端 summary 下移为底部全宽面试总评，顶部只保留两个数量指标。 |
 | 2026-07-14 | 1.30 | Practice user/assistant 增加安全 Markdown/GFM view projection 与 mobile overflow 边界；terminal CTA 改为 Workspace targetJobId 只读详情。 |
 | 2026-07-14 | 1.29 | T-B/P-A：90 秒服务端 lease 对应 95 秒前端 timeout + 同 ID 对账；terminal failure 增加精确返回当前 `parse(targetJobId)` 规划的通用 CTA。 |
 | 2026-07-13 | 1.28 | 用户确认方案 A：Practice reply state 与原 clientMessageId 由后端读模型恢复，刷新后仍可在原消息下同 ID 重试。 |

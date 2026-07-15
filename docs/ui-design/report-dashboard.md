@@ -1,8 +1,8 @@
 # 报告仪表盘目标结构
 
-> **版本**: 1.33
+> **版本**: 1.35
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 目标
 
@@ -30,21 +30,24 @@ ReportDashboard(reportId)
 │  ├─ round
 │  └─ resume
 ├─ SummaryMetrics
-│  ├─ 准备度 + summary
 │  ├─ 能力维度数量
 │  └─ 会话证据数量
-└─ DetailGrid
-   ├─ 能力维度
-   ├─ 优势证据
-   ├─ 风险 / 待加强证据
-   └─ 下一步行动
+├─ DetailGrid
+│  ├─ 能力维度
+│  ├─ 优势证据
+│  ├─ 风险 / 待加强证据
+│  └─ 下一步行动
+└─ OverallSummary
+   ├─ 面试总评
+   ├─ localized readiness tier
+   └─ LLM summary
 ```
 
-ReportsScreen 是规划范围的导航/索引页，不是第二种报告内容形态。ReportDashboard 的当前设计合同仍是“三项指标 + 四个常驻区块，无 tab”，不得根据旧文档恢复四卡或四 tab。
+ReportsScreen 是规划范围的导航/索引页，不是第二种报告内容形态。ReportDashboard 的当前设计合同是 desktop 自上而下 `3/2/2/2/1`：三项冻结上下文、两项数量指标、两行各两个内容区，最后一个全宽“面试总评”大卡片；无 tab。Mobile 保持相同 DOM 与阅读顺序，每组收敛为单列。不得根据旧文档恢复顶部“准备度 + summary”指标、四卡或四 tab。
 
 ### 2.1 当前规划报告列表
 
-- 入口位于 `/workspace?targetJobId=...` 只读详情内容区标题行右上角，进入 `/reports?targetJobId=<uuid>`；不加入全局 TopBar。
+- 入口位于 `/workspace?targetJobId=...` 只读详情标题下方首行动作行，与“立即面试”从左同排，进入 `/reports?targetJobId=<uuid>`；不加入全局 TopBar 或页尾。
 - 同时读取 `getTargetJob(targetJobId)` 与 `listTargetJobReports(targetJobId)`。前者提供当前规划与 canonical round display，后者只提供 `currentReport/latestAttempt`；target、round ID/sequence/count/order 任一不一致即整页 fail closed。
 - 每轮只展示当前可用报告和最新生成状态：queued/generating 可进入 Generating，failed 为本地化状态且无同 report Retry，latest ready 与 current 同 ID 时去重；ID 不同时只说明最近一次生成已完成，不展开完整历史版本。
 - loading、empty、network/contract error、跨用户/target mismatch 和 stale response 均有明确状态；target 切换首帧清空旧 rows，其他规划 sentinel 不得出现。
@@ -60,15 +63,16 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 - queued/generating 自动继续轮询；timeout/network 可“继续检查”；ready 后进入 report；failed/not found/invalid contract/`REPORT_CONTEXT_TOO_LARGE` 是终态，只能返回，不把重新 GET 伪装成重新生成。超限态说明本次材料与对话过长，并引导返回规划、缩短输入后开启新会话。
 - Report单次`GenerateReport`动作在后端调用内执行initial+最多3次retry与10s/20s/40s等待；动作返回销毁retry context，新动作清零。Runner的`async_jobs.attempts/max_attempts`与outbox/infra的30s/2m/10m/1h/6h都不是产品retry事实。Frontend使用`maxAttempts=49`、初始1.5s、×1.5、cap8s，总约6m04s，覆盖4×60s+10+20+40=5m10s并留约54s。整个queued/generating期间不显示attempt/retry/progress；轮询窗口耗尽只提供“继续检查”，不能显示为服务端failed。当前OpenAPI没有failed-report regenerate operation，不设计或宣称同report Retry入口。
 
-## 4 Summary Metrics
+## 4 Summary Metrics 与面试总评
 
 | Metric | 内容 |
 |--------|------|
-| 准备度 | localized readiness tier + LLM `summary` |
 | 能力维度 | `dimensionAssessments.length` |
 | 会话证据 | `highlights.length + issues.length` |
 
-不得在前端补默认数量、默认 summary 或假报告。
+Summary Metrics 只承载两个可扫描数量，不展示 readiness 或 `summary`。
+
+页面最底部的全宽 `OverallSummary` 是唯一“面试总评”容器：先展示 localized readiness tier，再展示服务端 LLM `summary`。该卡片在 desktop 跨越整个内容网格，在 mobile 位于所有证据与行动之后；`summary` 全页只出现一次，前端不得改写、提炼、复制或移动回顶部指标区。不得在前端补默认数量、默认 summary 或假报告。
 
 ## 5 Detail Grid
 
@@ -114,7 +118,7 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 
 - frozen target / round / resume 允许换行或通过 title/accessible description 读取完整值。
 - session/report UUID 等内部 locator 不渲染为用户字段，也不进入 title、tooltip 或 accessible description；它们只保留在 API/动作内部关联中。
-- Desktop 使用双列 DetailGrid；390px mobile 明确单列。
+- Desktop 的 ready 内容严格按 `3/2/2/2/1` 排列：Context Strip 三列、Summary Metrics 两列、Dimensions/Strength Evidence 两列、Risks/Next Actions 两列、Overall Summary 全宽一列。390px mobile 保持相同 DOM 顺序并全部收敛为单列。
 - 长 dimension/evidence/action 必须换行，不横向溢出、不被不可恢复截断。
 - 1440x1200 desktop 与 390x844 mobile full-page 都必须覆盖 action 区域，并证明合法 24/64 label 完整换行、无截断/ellipsis/隐藏/横溢。恰好 24/64 由 deterministic fixture-backed responsive test 证明；200-code-point malformed fixture只用于 typed invalid/no-raw-output 测试，不能充当 UX PASS。18/52 只用于 targeted repair 内部生成，不替代边界 fixture。
 - 能力维度行在宽度足够时保持 `label` 与本地化 status/confidence 左右对齐；空间不足时整项换为两段可读行。英文长 label 优先按单词换行，禁止为了保留右侧状态而压缩成逐字符竖排。
@@ -125,7 +129,7 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 - Missing session/report：专用空态。
 - Queued/generating：诚实等待态。
 - Timeout/network：typed recoverable error，可继续检查；Failed/not found/invalid contract/`REPORT_CONTEXT_TOO_LARGE`：typed terminal error，只能返回；超限态不得出现同 report 的 Retry。
-- Ready：summary、dimensions、evidence、actions 完整。
+- Ready：dimensions/evidence 数量指标、四个证据/行动区块以及底部唯一面试总评完整。
 - Empty required semantic fields：合同失败，不回退假内容。
 
 ## 9 负向边界
@@ -140,6 +144,7 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 - focusCompetencyCodes / evidenceGaps URL 或客户端事实源。
 - route status/error/target/resume/round 覆盖 API frozen facts。
 - client translation/rewrite of model summary/dimension/evidence/action labels。
+- readiness/summary 继续位于顶部 Summary Metrics、`summary` 重复渲染，或 Overall Summary 未位于四个内容区之后。
 - user-visible or accessibility-exposed session/report UUID/internal locator。
 - global/cross-target Report Center、完整历史版本列表、Parse/Report/Generating reports-list consumer 或 route-provided targetJobId authority。
 
@@ -148,7 +153,7 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 | ID | Given | When | Then |
 |----|-------|------|------|
 | R-1 | queued/generating | 打开生成页 | 无假进度、假观察、假通知 |
-| R-2 | ready direct report | 打开报告 | 三指标四常驻区块，summary 与 localized semantic 完整 |
+| R-2 | ready direct report | 打开报告 | desktop 按 `3/2/2/2/1` 展示；顶部只有两个数量指标，四个常驻区块之后是全宽面试总评，localized readiness 与唯一 `summary` 完整 |
 | R-3 | retry/next/review first action | 查看 Header | 现有 CTA 主次与建议一致 |
 | R-4 | needs-work / well-prepared report | 点击复练 | source report 服务端投影 issue-backed focus，或在无可支持 focus 时创建空 focus 的通用同轮复练；客户端不携带 focus |
 | R-5 | 长内容 desktop/mobile | 打开报告 | 完整可读、mobile 单列、无横向溢出 |
@@ -164,6 +169,8 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.35 | 将 Workspace 详情的报告入口从标题右上角移到标题下方左对齐首行动作行，与“立即面试”同排。 |
+| 2026-07-15 | 1.34 | 用户确认报告信息层级改为 `3/2/2/2/1`：顶部准备度卡片下移为底部全宽“面试总评”，与服务端 `summary` 只在该处展示；mobile 保持同序单列。 |
 | 2026-07-14 | 1.33 | 将 ReportsScreen 入口与 Back 锚定到 Workspace targetJobId 只读详情；Parse 只保留新导入命令进度。 |
 | 2026-07-14 | 1.32 | 增加独立 target-scoped ReportsScreen，锁定 current/latest-only、规划隔离、四态与 desktop/mobile 响应式合同；Report/Generating trusted Back 改回该列表。 |
 | 2026-07-14 | 1.31 | 将 Report/Generating Back 收敛为 trusted target -> Parse reports anchor、无可信 identity -> Workspace fallback，并禁止顶层报告中心与 route target authority。 |

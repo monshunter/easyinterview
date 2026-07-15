@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.4
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 3.5
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 ## 1 Unit-test ownership
 
@@ -24,7 +24,10 @@
 ## 4 Layout, privacy and parity
 
 - Deterministic tests cover wire fuse、English 24/25 whitespace words、zh-CN 64/65 code points、U+FEFF/U+0085 delimiter parity and typed invalid/no raw over-limit output.
-- Prototype/formal component Playwright compares DOM、computed style、bbox、viewport and screenshot diff at 1440/390 under fixed locale/time/DPR/fonts/motion. This is code-level visual regression, not E2E.
+- Formal frontend component/browser tests assert the ready DOM order and exact group counts `3/2/2/2/1`: Context Strip 3、Summary Metrics 2、two detail rows of 2、one bottom Overall Summary.
+- Source/semantic assertions prove readiness and `summary` are absent from the top metrics, the localized Overall Summary contains both, and the server `summary` renders exactly once without client rewrite.
+- At 1440 the Overall Summary spans the full content grid after Next Actions；at 390 every group is single-column in the same DOM order. Computed style、bbox、viewport、wrapping、scroll width and accessible names are code-level gates, not E2E.
+- Formal frontend deterministic visual regression uses fixed locale/time/DPR/fonts/motion and controlled actual/expected/diff artifacts; no parallel prototype runtime is an acceptance source.
 - UUID sentinel tests reject report/session IDs from visible text、tooltip、ARIA and accessible names while keeping target/round/resume visible.
 
 ## 5 ReportsScreen and route recovery
@@ -35,5 +38,6 @@
 
 ## 6 Real E2E handoff
 
-- P0.099 alone captures current real report/generating desktop/mobile UI and binds authenticated API/read-only DB evidence.
+- P0.099 alone captures current real report/generating desktop/mobile UI and binds authenticated API/read-only DB evidence；Phase 12 first aligns its README/manual visual audit and capture/verification contract so ready full-page images explicitly include the action region and following bottom Overall Summary.
 - Code-level exact boundary/parity and provider/eval results are independent; neither is copied into E2E PASS markers.
+- Historical exact-six evidence cannot satisfy the revised hierarchy；only an explicitly run current environment produces the Phase 12 E2E result.

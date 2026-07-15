@@ -4,9 +4,11 @@ metadata:
   subspec: frontend-resume-workshop
   name: 001-listing-routing-and-detail-readonly
   sequence: 1
+  baseBranch: main
+  branch: design/resume-interview-report-layout
   specVersion:
-    from: null
-    to: 2.15
+    from: 2.16
+    to: 2.17
 spec:
   defaultTarget: frontend
   discovery:
@@ -22,7 +24,10 @@ spec:
       - resume-detail-readonly
     keywords:
       - resume workshop route shell
-      - flat resume list table
+      - responsive resume card list
+      - fixed max width desktop card grid
+      - mobile single column resume cards
+      - resume list table semantics absent
       - resumeId detail readonly
       - resumeId detail read-only resume body
       - out-of-scope tab tailorRunId ignored
@@ -60,7 +65,7 @@ spec:
           - frontend/src/app/i18n
           - frontend/src/api/generated
           - frontend/src/lib/conventions
-          - frontend/tests/responsive-browser
+          - frontend/tests/e2e
           - frontend/src
           - docs/ui-design
         uiRoutes:

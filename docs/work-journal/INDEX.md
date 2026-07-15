@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-15](2026-07-15.md) | `docs(ui): revise resume interview and report layouts` | #docs #ui #test #bdd |
 | [2026-07-15](2026-07-15.md) | `fix(ui-design): close pruning review findings (BUG-0172)` | #fix #ui #test #docs |
 | [2026-07-15](2026-07-15.md) | `docs(ui-design): close demo pruning lifecycle` | #docs #ui #test |
 | [2026-07-15](2026-07-15.md) | `refactor(ui-design): remove demo toolchain and active coupling` | #refactor #ui #test #docs |

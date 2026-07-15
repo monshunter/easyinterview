@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.43
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.44
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -188,3 +188,16 @@
 - [x] 27.2 GREEN: prototype and formal detail derive `done/current/pending` only from strict persisted progress, render localized labels/attributes with ok/accent/neutral tokens, and keep invalid projection neutral/non-startable.
 - [x] 27.3 PARITY-Gate: desktop/mobile DOM, computed background/border, bbox, viewport overflow and screenshots prove formal implementation contract across valid states; dark/custom themes retain semantic distinction.<!-- verified: 2026-07-14 method=parse-responsive-browser result="desktop+mobile 2/2; source styles equal; distinct backgrounds/borders; bbox/no-overflow; screenshots" -->
 - [x] 27.5 POST-PASS: 仓库根 `make test` 完成前后端全量单测回归；typecheck/build、docs/context/index/diff 与 lifecycle/URL/storage 负向搜索作为独立 gates；随后恢复 completed lifecycle。
+
+## Phase 28: Workspace detail leading resume link and action row
+
+- [ ] 28.1 OWNER-HANDOFF：确认 `frontend-home-job-picks-and-parse/001` Phase 23 是共享 ready-detail 的唯一 UI RED/GREEN owner；本阶段不得建立第二套组件、测试树或重复实现。
+- [ ] 28.2 RED：执行 owner 的 Workspace detail/shared `ParseScreen` tests 与 UI responsive contract 先锁定 title-adjacent resume link、left-aligned Start/Reports row，并拒绝标题右侧 report、`parse-launch`/`parse-resume-binding` 独立 block 与页尾 Start。
+- [ ] 28.3 CROSS-OWNER ACCEPTANCE：绑定链接只消费 `getTargetJob` 的 saved `resumeId`，精确进入 `resume_versions?resumeId=...`；缺失绑定为非链接状态并禁用 Start，零 `getResume`/`listResumes`/route/list-item/recent-resume fallback；旧 block-only locale key 与断言已由执行 owner 删除。
+- [ ] 28.4 CROSS-OWNER ACCEPTANCE：标题下首行动作行依次为“立即面试” primary 和“面试报告” secondary；desktop 同排、mobile 同序换行，Report 只带可信 `targetJobId`，Start 继续使用 saved resume/current round，启动错误不阻断 Report。
+- [ ] 28.5 PARITY/A11Y：desktop/mobile DOM、可访问名称、键盘/触控、computed style、bbox 与 no-overflow 通过；旧独立 block、右对齐/页尾动作和 orphan locale 负向搜索为零。
+- [ ] 28.6 POST-PASS：根 `make test`、frontend typecheck/build、owner contexts、`sync-doc-index --check`、`make docs-check`、`git diff --check` 通过，同步证据后恢复 completed。
+
+## BDD Gate
+
+- [ ] BDD-Gate: `BDD.WORKSPACE.DETAIL.002` 由 [BDD checklist](./bdd-checklist.md) 关联标题旁简历查看、首行动作行、缺失绑定与 route 事实源行为；不把代码 gate 声明为真实 E2E PASS。

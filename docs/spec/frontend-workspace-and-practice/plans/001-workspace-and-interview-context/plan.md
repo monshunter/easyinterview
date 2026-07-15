@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.43
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.44
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -32,6 +32,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - 顶栏 `面试` 进入 query-free `/workspace` 列表；卡片主体进入 `/workspace?targetJobId=...` 详情。`planId`/`resumeId`/auto-start 等非安全 query 被 shell 剔除。
 - 卡片详情 route 只携带 `targetJobId`；绑定 resume/plan/round 事实由 detail `getTargetJob` response 恢复，不从 list item/query 复制。
 - Workspace detail 复用统一只读母版，不拥有 `autoStartPractice` route side effect；列表 quick-start 仍使用 shared generated practice handoff。
+- Workspace detail 删除独立 Interview Launch/绑定简历大卡片：标题旁的“绑定简历”只使用 `getTargetJob` 保存的 `resumeId` 进入 `resume_versions` 详情；标题下首行动作行从左依次展示“立即面试”和“面试报告”，desktop 同排、mobile 同序换行；不得新增 `getResume` 预读、route resume authority 或 in-place rebind。
 - 列表页删除图标使用 generated `archiveTargetJob` 和 `Idempotency-Key` 持久软归档 TargetJob；成功后从当前列表移除，失败时不导航、不隐藏卡片，并展示错误；不得继续使用本地-only hidden set 作为删除合同。
 - `InterviewContext` 不在 `workspace` route carry；`practice / generating / report` owner route 按各自最小上下文携带稳定 ID 与 `practiceGoal`，不携带 mode/modality/hint 状态。
 - Workspace runtime 保留 list + read-only detail 两态；不包含 Plan Switcher、Resume Picker 或 route-side 启动副作用。
@@ -258,6 +259,14 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - Formal frontend uses only `resolveTargetJobPracticeProgress(targetJob)`. Indexes before `completedCount` are done, the exact valid `currentIndex` is current, and later indexes are pending. Each valid card exposes a localized visible label plus `data-round-state`; invalid/missing projections keep neutral cards with no fabricated state and disable Start.
 - Reuse existing palette tokens: done uses `okSoft/ok`, current uses `accentSoft/accent`, pending uses `bgSoft/rule-strong`. Do not add API/schema/store fields, theme tokens, lifecycle-status fallbacks, URL state or browser persistence.
 
+### Phase 28: Workspace detail leading resume link and action row
+
+- EXECUTION OWNER：共享 ready-detail 组件位于 `frontend-home-job-picks-and-parse/001`，其 Phase 23 是唯一 UI RED/GREEN 实施 owner；本 Phase 28 只承接 Workspace route、saved TargetJob 事实源、Start/Report handoff 与跨 owner 验收，不建立第二套组件、测试树或重复实现。
+- RED：扩展 Workspace detail / shared `ParseScreen` component tests 与 UI source/responsive contract，先证明当前标题右侧 report、独立 `parse-launch`/`parse-resume-binding` block、页尾 Start 与缺失 resume 行为不符合新信息层级；保留 `getTargetJob` 单次实际 transport、Start/Report route 及轮次三态回归断言。
+- GREEN：删除独立 Interview Launch/绑定简历大卡片和页尾 action 区；标题 cluster 在“面试规划详情”旁渲染“绑定简历”链接，点击 `navigate({ name: "resume_versions", params: { resumeId: targetJob.resumeId } })`。缺失/空绑定渲染非链接状态并禁用 Start；不得调用 `getResume`、`listResumes` 或从 URL/list item/最近简历推断。同步删除仅供旧 block 使用的 `parse.launch*`、`parse.resumeBound*`、`parse.footerHint` locale key/test 断言，保留新链接与缺失态所需文案。
+- ACTIONS：标题下方首行动作行左对齐“立即面试” primary 与“面试报告” secondary；desktop 同排，mobile 保持 DOM/阅读顺序并在不足时换行。Report 只携带可信 `targetJobId`；Start 继续使用 saved resume + strict current progress。启动错误紧邻 action row，不阻断报告入口。
+- CLOSEOUT：focused Vitest 只作开发反馈；执行根 `make test`、frontend typecheck/build、desktop/mobile DOM/style/bbox/no-overflow、owner contexts、`sync-doc-index --check`、`make docs-check`、`git diff --check` 与旧标题右侧/独立 binding/footer action/孤儿 locale key 负向搜索，完成后恢复 `completed`。
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -273,11 +282,13 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 | A-14 | Workspace card click opens planning detail while footer provides quick start carrying structured `roundId/roundName`, and top-right delete performs persistent `archiveTargetJob`; Home recent reuses quick start and omits delete | `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, browser screenshots |
 | A-18 | Home/Workspace/Parse/Report consume backend-persisted progress, reuse only exact current round plans, and fail closed after final/invalid progress without browser business-state persistence | repository-root `make test`; focused mapper/start/Parse/Report tests only for development feedback; storage negative gate and UI parity |
 | A-20 | Real login plus completion survives Home/Workspace/TargetJob refresh and detail read | `E2E.P0.098`; explicitly excludes Parse, chat, plan creation and session start |
+| A-21 | Workspace detail starts with title-adjacent bound-resume link and a left-aligned Start/Reports action row; no standalone binding/launch block or footer Start remains | `ParseScreen.test.tsx`, `ParseResumeBinding.test.tsx`, `App.test.tsx`, responsive/a11y owner gates; root `make test` |
 
 ## 6 变更记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.44 | Reopen Phase 28 to replace the standalone resume-binding launch block with a title-adjacent resume link and a leading Start/Reports action row. |
 | 2026-07-14 | 1.43 | Separate code-owned Workspace behavior BDD from the Ready-only P0.098 real progress-refresh handoff. |
 | 2026-07-14 | 1.42 | Add Phase 27 rail-consistent done/current/pending treatments to Workspace detail round assumptions. |
 | 2026-07-14 | 1.41 | Add Phase 26 `/workspace` list plus targetJobId detail, direct card routing and exact detail GET count. |

@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.4
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 3.5
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -15,8 +15,16 @@
 ## Layout and privacy
 
 - [x] Exact 24/64 deterministic fixtures wrap completely at desktop/mobile; 25/65 fail closed.
-- [x] Prototype/formal DOM/style/bbox/viewport/pixel tests pass as code-level visual regression.
+- [x] Historical formal frontend DOM/style/bbox/viewport tests through Phase 11 pass as code-level visual regression.
 - [x] Report/session UUID sentinel DOM/a11y negatives and target/round/resume positives pass.
+
+## Phase 12 report summary hierarchy
+
+- [ ] RED proves the current third top readiness+summary metric violates the revised design before implementation.
+- [ ] DOM tests prove exact ready group order/count `3/2/2/2/1` and that Overall Summary follows Next Actions.
+- [ ] Semantic/i18n tests prove Summary Metrics contain only dimension/evidence counts；Overall Summary contains localized title/readiness plus the unchanged server `summary` exactly once.
+- [ ] Formal frontend 1440/390 style/bbox/viewport/a11y tests prove desktop full-width bottom summary、mobile same-order single column、complete wrapping and zero horizontal overflow.
+- [ ] Source negatives reject top readiness/summary、duplicate summary、parallel prototype ownership and any backend/API/persistence/prompt change.
 
 ## ReportsScreen and routing
 
@@ -24,8 +32,13 @@
 - [x] Trusted/untrusted Back matrix、reportId-only route and direct Workspace detail without Parse detour tests pass.
 - [x] ReportsScreen-only list consumer and no TopBar/global/history/compatibility entry negatives pass.
 
-## E2E separation and full regression
+## Historical E2E separation and full regression through Phase 11
 
 - [x] P0.099 independently binds current real report/generating API/DB/screenshot evidence; mock/component outputs cannot satisfy it.
 - [x] Provider/eval and deterministic parity remain independent code gates, not E2E steps.
 - [x] Root `make test` runs the complete frontend/backend unit regression for phase completion.
+
+## Phase 12 current gates
+
+- [ ] Root `make test`、typecheck/build/lint and document gates pass on the revised implementation.
+- [ ] P0.099 README/manual-audit/capture-verification assertions are aligned, then an explicitly run current scenario produces ready full-page evidence covering actions and the following bottom interview summary；historical exact-six PASS is not reused.

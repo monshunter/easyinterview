@@ -1,8 +1,8 @@
 # 多 JD 与多简历目标管理结构
 
-> **版本**: 3.6
+> **版本**: 3.7
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 文档目的
 
@@ -92,10 +92,11 @@ Mock Interview Plan Header
 ```text
 Resume / resume_versions
 ├─ Resume Workshop List（平铺）
-│  ├─ 简历名称 / 语言
-│  ├─ 来源（上传 / 粘贴）
-│  ├─ 最近编辑
-│  └─ 打开
+│  └─ 响应式 Resume Cards
+│     ├─ 简历名称 / 摘要 / 语言
+│     ├─ 来源（上传 / 粘贴）/ 最近编辑
+│     ├─ Footer: 打开
+│     └─ 右上角: 删除
 ├─ 新建简历
 │  ├─ 上传文件
 │  ├─ 粘贴文本
@@ -104,9 +105,9 @@ Resume / resume_versions
    └─ 只读原始简历正文
 
 Workspace Plan Detail(targetJobId)
-└─ 绑定简历
-   ├─ 只读展示创建规划时已保存的简历摘要
-   └─ 缺失或无效时阻断开始；不提供 picker / in-place rebind
+├─ 标题旁“绑定简历” -> resume_versions?resumeId=<saved resumeId>
+├─ 首行动作行“立即面试” + “面试报告”
+└─ 缺失或无效绑定时阻断开始；不提供独立绑定 block / picker / in-place rebind
 ```
 
 详情页不再提供原件预览弹层、导出、复制、改写建议或手动编辑；原始简历预览就是当前只读简历正文。
@@ -136,9 +137,9 @@ MockInterviewPlan
 | 用户首次无简历 | 首页提示创建简历；首页不提供上传简历入口，只跳转到 `resume_versions(flow=create)`；Workspace 详情若发现历史规划缺少绑定简历，只阻断开始，不在当前规划上补绑 |
 | 用户上传新简历 | 创建新的 `Resume`，注册成功后直接打开详情 |
 | 用户粘贴简历 | 创建新的 `Resume`，保留粘贴文本，根据内容派生临时标题，并注册成功后直接打开详情 |
-| 用户查看简历资产 | 平铺列表查看全部简历，打开详情后只阅读原始简历正文 |
+| 用户查看简历资产 | 以 desktop 固定最大列宽多列、mobile 单列的卡片列表查看全部简历；每卡片可打开或删除，详情只阅读原始简历正文 |
 | 用户查看原始简历 | 简历详情正文即原始简历预览；不打开独立原件弹层 |
-| 用户想更换面试绑定简历 | 回到首页用同一 JD 和新的 ready `Resume` 创建新面试规划；当前规划详情不做 in-place rebind |
+| 用户查看或想更换面试绑定简历 | 当前规划详情标题旁“绑定简历”只跳转对应 Resume 详情；若要更换，回到首页用同一 JD 和新的 ready `Resume` 创建新规划，当前详情不做 in-place rebind |
 | 用户在首页新建面试规划 | 在首页唯一 JD 文本框粘贴 JD；通过适度宽度下拉框选择已有 ready `Resume`，创建简历入口在下拉框右侧同排；未选择简历或未提供 JD 前「立即面试」禁用，按钮位于简历选择下方；提交 `{ rawText, targetLanguage, resumeId }` 后，route 只携带 `targetJobId`，真实 `resumeId` 由 TargetJob 后端事实恢复 |
 
 ## 8 不做的事
@@ -164,6 +165,7 @@ MockInterviewPlan
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 3.7 | 2026-07-15 | Resume 列表改为响应式卡片；Workspace 详情删除独立绑定 block，标题旁提供绑定简历详情链接，并将立即面试/面试报告合并到首行动作行。 |
 | 3.6 | 2026-07-14 | 新导入仅以 Parse 展示 queued/processing，ready replace 到 targetJobId-only Workspace 详情；绑定简历在详情只读，不携带 resumeId route 或提供 picker/rebind。 |
 | 3.5 | 2026-07-13 | Home JD intake 收敛为唯一粘贴文本框与 `{ rawText, targetLanguage, resumeId }` 请求合同；Resume 上传 / 粘贴保持不变。 |
 | 3.4 | 2026-07-13 | Parse loading 删除 model/rubric/provenance/latency 等内部调试信息，只保留用户可理解的进度与等待状态。 |

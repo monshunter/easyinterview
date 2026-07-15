@@ -1,12 +1,12 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.6
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 3.7
+> **状态**: active
+> **更新日期**: 2026-07-15
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
-## `BDD.REPORT.UI.001` Report/generating UI
+## Historical `BDD.REPORT.UI.001` through Phase 11
 
 - [x] Owner behavior tests 覆盖 polling、typed failure、ready display、CTA、route recovery、identity/context 与 privacy。
 - [x] 根 `make test` 已执行对应 Vitest；该结果是代码层行为证据，不是 `E2E.P0.099` PASS。
@@ -27,3 +27,15 @@
 - [x] Polling、typed failure、CTA、focus、route recovery、ReportsScreen isolation、privacy/a11y and deterministic parity remain code-level tests.
 - [x] Exact 24/64 tests and provider/eval reliability do not become P0.099 steps or prerequisites.
 - [x] Root `make test` remains the complete frontend/backend unit regression gate outside E2E；this classification does not claim a scenario run.
+
+## Phase 12 `BDD.REPORT.UI.001` revision
+
+- [ ] RED/GREEN owner behavior tests cover ready desktop `3/2/2/2/1` and mobile same-order single-column layout.
+- [ ] Ready behavior proves top Summary Metrics contain only dimension/evidence counts；bottom full-width Overall Summary contains localized readiness and the unchanged server `summary` exactly once.
+- [ ] DOM/a11y/geometry negatives reject a top readiness+summary card、duplicate summary、wrong mobile order or a non-full-width desktop Overall Summary.
+- [ ] Root `make test` is rerun after implementation；the historical Phase 1-11 result does not satisfy this revision.
+
+## Phase 12 real E2E evidence
+
+- [ ] Align P0.099 README/manual-audit/capture-verification assertions, then explicitly run it against the current real environment after implementation；ready full-page images include actions and the following bottom interview summary.
+- [ ] Record only current-run exact-six/manual audit evidence；the prior static asset audit and historical PASS state do not satisfy Phase 12.

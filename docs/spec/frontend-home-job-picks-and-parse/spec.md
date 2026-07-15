@@ -1,8 +1,8 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.26
+> **版本**: 2.27
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 背景与目标
 
@@ -40,11 +40,11 @@ Home 粘贴 JD
   - 按设计合同实现 `frontend/src` 当前结构。
   - Loading 阶段只渲染 4 步进度与面向用户的等待说明；不得展示 model/provider、rubric/prompt/version/hash、provenance、典型耗时等内部调试或实现元数据。
   - 通过 generated `getTargetJob(targetJobId)` 分类/轮询 `analysisStatus`；仅 queued/processing 留在 Parse。首读 ready 或轮询转 ready 必须 replace 到 `/workspace?targetJobId=...`，不在 Parse 渲染 preview。
-  - Workspace detail 用户可见名称为“面试规划详情 / 面试上下文确认”，只读展示 Basic fields、requirements evidence、hidden signals、round assumptions 和 TargetJob 已绑定 ready 简历摘要；详情初载只执行同 key `getTargetJob`，不调用 `listResumes`。
-  - Workspace detail 内容区标题行右上角展示“面试报告”页面级入口，点击后仅携带当前可信 `targetJobId` 进入 `/reports?targetJobId=<uuid>`；该入口不加入全局 TopBar。
+  - Workspace detail 用户可见名称为“面试规划详情 / 面试上下文确认”，只读展示 Basic fields、requirements evidence、hidden signals 和 round assumptions；标题旁的“绑定简历”只使用 TargetJob 已保存 `resumeId` 跳转对应 `resume_versions` 详情。详情初载只执行同 key `getTargetJob`，不调用 `listResumes` 或 `getResume`。
+  - Workspace detail 标题下方首行动作行从左依次展示“立即面试”与“面试报告”；desktop 同排，mobile 同序响应式换行。报告入口只携带当前可信 `targetJobId` 进入 `/reports?targetJobId=<uuid>`，不加入全局 TopBar 或页尾。
   - Workspace detail 不嵌入报告列表、不调用 `listTargetJobReports`，也不接受 `section=reports` 或其他报告相关 query；独立报告列表与状态由 `frontend-report-dashboard` owner 承接。Parse 不渲染 ready detail 或报告入口。
-  - Workspace detail 不提供字段编辑、requirements toggle、hidden signal 移除、重新解析、保存规划、取消或更换简历入口；解析成功即表示规划已保存，若用户想换 JD/简历，必须回到 Home 创建新规划。
-  - Footer actions 只保留「立即面试」，并从受保护 TargetJob 事实读取真实 `targetJobId`、`resumeId`、可选 `currentPracticePlanId` 和 `roundId` 进入 practice handoff；route 仍只携带 `targetJobId`。
+  - Workspace detail 不提供字段编辑、requirements toggle、hidden signal 移除、重新解析、保存规划、取消或更换简历入口；标题旁绑定简历是查看链接而非 rebind。解析成功即表示规划已保存，若用户想换 JD/简历，必须回到 Home 创建新规划。
+  - 删除独立 Interview Launch / 绑定简历大卡片和 Footer actions；「立即面试」前移至首行动作行，并从受保护 TargetJob 事实读取真实 `targetJobId`、`resumeId`、可选 `currentPracticePlanId` 和 `roundId` 进入 practice handoff；route 仍只携带 `targetJobId`。
   - 未登录启动通过 auth continuation 接续到 practice。
 - Parity 与验证：
   - Home / Parse / Workspace detail 的前后端单测完成由根 `make test` 统一承接；正式前端 component、responsive 与 accessibility assertions 独立执行。JD import/parse 当前没有真实 E2E owner。
@@ -65,7 +65,7 @@ Home 粘贴 JD
 | D-1 | Owner 范围 | 本 subspec 接管 Home、Parse command progress 和被 Workspace targetJobId route 复用的统一详情组件 | Workspace 列表、Practice / Report / Resume 管理仍由各自 owner 承接 |
 | D-2 | UI 设计文档 | `frontend/src` | 正式前端必须按设计合同实现，不做二次设计 |
 | D-3 | Home 提交流程 | 用户在唯一 textarea 粘贴 JD，并显式选择 ready 简历后提交 | POST 成功只进入 `/parse?targetJobId=...`；route 不携带 `resumeId` 或原文 |
-| D-4 | Workspace detail handoff | Workspace targetJobId detail 是只读上下文收据；解析成功即已保存规划，唯一 footer CTA 是「立即面试」，直接使用已绑定上下文进入 practice handoff，不先 PATCH `updateTargetJob` 或经由 route-side auto start | Practice session 创建使用已保存 TargetJob / Resume / Round 快照 |
+| D-4 | Workspace detail handoff | Workspace targetJobId detail 是只读上下文收据；解析成功即已保存规划。标题旁“绑定简历”只查看 saved resume；标题下首行动作行的「立即面试」直接使用已绑定上下文进入 practice handoff，不先 PATCH `updateTargetJob` 或经由 route-side auto start | Practice session 创建使用已保存 TargetJob / Resume / Round 快照；不保留独立 launch/footer 区 |
 | D-5 | Parse 状态机 | `getTargetJob.analysisStatus` 驱动 queued/processing progress 与 failed；ready 必须 replace 到 workspace detail | Parse 是命令进度，不是 ready 详情回访页 |
 | D-6 | Recent mocks | Home 最多展示 3 张最近模拟面试卡片，更多列表入口交给 `workspace` | 首页保持新建任务优先 |
 | D-7 | i18n | 只维护当前 `home.*` 与 `parse.*` namespace | 与 typed locale helper 一致 |
@@ -77,7 +77,8 @@ Home 粘贴 JD
 | D-13 | Parse loading 信息层级 | loading 只说明当前进度与等待状态，不暴露 model/provider、rubric/prompt/version/hash、provenance 或典型耗时 | 内部诊断信息留在受控日志/观测面，不进入用户界面 |
 | D-14 | JD intake 单一合同 | Home 与 `importTargetJob` 只保留 `{ rawText, targetLanguage, resumeId }` | 不保留 source discriminator；删除其他 JD 导入形态但不影响 Resume 上传 |
 | D-15 | JD raw text runtime limit | Home 只消费 RuntimeConfig `targetJobRawTextBytes`，默认/code fallback 98,304 bytes；通过 `TextEncoder` 按 UTF-8 bytes 预检，limit+1 不调用 import；backend 仍作最终裁决 | 不改变 textarea DOM/样式，只统一数据源、字节口径与本地化错误；不把 route/vault/browser storage 当限制事实源 |
-| D-15 | 报告记录入口 | Workspace detail 内容区右上角提供页面级“面试报告”入口，进入 `/reports?targetJobId=<uuid>`；入口不进入全局 TopBar，Parse 不渲染 ready 入口、不嵌入或请求报告列表 | 用户在独立页面查看且只查看当前规划的轮次报告；Report/Generating 仍由各自 reportId-only 页面承接 |
+| D-15 | 报告记录入口 | Workspace detail 标题下方首行动作行在“立即面试”之后提供“面试报告”，两者左对齐同排；进入 `/reports?targetJobId=<uuid>`。入口不进入全局 TopBar/页尾，Parse 不渲染 ready 入口、不嵌入或请求报告列表 | 用户在独立页面查看且只查看当前规划的轮次报告；Report/Generating 仍由各自 reportId-only 页面承接 |
+| D-16 | 绑定简历查看入口 | 删除独立绑定 block；“绑定简历”放在“面试规划详情”旁，点击只使用 `TargetJob.resumeId` 进入 `resume_versions?resumeId=...`；缺失绑定显示非链接状态并只阻断 Start | 不新增 `getResume`/`listResumes` 读取，不把查看入口误作 rebind，也不从 route/list/recent resume 伪造绑定 |
 | D-16 | Initial GET request count | Home `listResumes` / `listTargetJobs` 与 Parse 每个分类/调度 tick 的 `getTargetJob` 依赖 shell safe-read single-flight | StrictMode mount 不产生紧邻重复底层 GET；轮询只由明确 scheduler 在间隔到期后发起 |
 | D-17 | Workspace detail round state | 轮次假设卡片使用与 Home/Workspace mini rail 相同的 `practiceProgress` 投影：完成前缀为 `done/已进行`，首个未完成轮为 `current/即将进行`，其余为 `pending/未进行`；三态必须同时有不同背景、边框、文字标签和可测试状态属性 | 用户无需从顺序猜测进度；不从 lifecycle status、URL 或浏览器存储推断轮次状态 |
 
@@ -135,11 +136,11 @@ Home 粘贴 JD
 | C-5 | Recent mocks | `listTargetJobs` 返回多条 ready 记录 | Home 加载完成 | Home `listTargetJobs`/`listResumes` 同 key 初载底层请求各 1 次；只展示最近 3 张；卡片主体直达 `/workspace?targetJobId=...`，不经过 Parse/动画；quick-start 与 More 保持 | 001 |
 | C-6 | Parse ready replace | `getTargetJob` 首读 ready 或 queued/processing 轮询转 ready | 用户进入 `/parse?targetJobId=...` | 每个分类/调度 tick 同 key底层 GET 恰好 1；ready 立即 replace 到 `/workspace?targetJobId=...`，Back 不返回动画；Parse 不渲染 ready detail | 001 |
 | C-7 | Parse failed flow | `analysisStatus=failed` 或轮询超时 | Parse polling | 渲染失败态、重新解析和返回首页；不伪造 preview 数据 | 001 |
-| C-8 | Readonly plan receipt | Workspace detail 已绑定 ready 简历 | 用户查看详情 | 初载同 key `getTargetJob` 底层 count=1 且不调用 `listResumes`；不出现字段编辑、requirements toggle、hidden signal 移除、重新解析、保存规划、取消或更换简历入口；缺少绑定简历时只阻断开始，不提供 picker 兜底 | 001 |
-| C-9 | Start interview | Workspace detail 已绑定 ready 简历 | 点击「立即面试」 | 不调用 `updateTargetJob`，直接使用已保存 `targetJobId/resumeId/roundId/currentPracticePlanId` 创建或读取 PracticePlan 并启动 PracticeSession | 001 |
+| C-8 | Readonly plan receipt | Workspace detail 已绑定 ready 简历 | 用户查看详情 | 初载同 key `getTargetJob` 底层 count=1 且不调用 `listResumes/getResume`；标题旁“绑定简历”精确进入对应 Resume 详情；无独立 binding/launch block、字段编辑、picker/rebind 或页尾动作；缺绑定时链接不可用且只阻断 Start | 001 |
+| C-9 | Start interview | Workspace detail 已绑定 ready 简历 | 点击首行动作行「立即面试」 | 不调用 `updateTargetJob`，直接使用已保存 `targetJobId/resumeId/roundId/currentPracticePlanId` 创建或读取 PracticePlan 并启动 PracticeSession；同排“面试报告”不受启动错误影响 | 001 |
 | C-10 | Privacy / auth continuation | 未登录用户提交 JD，随后正常登录、刷新导致 vault 丢失、entry 过期或重复触发 continuation | 检查 pendingAction、vault consume、URL/storage/log/telemetry 与 import 调用 | `pendingAction` 只含 `opaquePendingImportId`；raw JD 只在一次性内存 vault。正常登录原子 consume 后 exact request 只提交一次；refresh/expired/duplicate consume 均不发起 import，清除无效 action 并返回 Home 显示本地化重新输入提示；fixture transport 不记录 request body | 001 |
 | C-11 | Workspace 回访统一详情 | `listTargetJobs` 返回已保存 ready 规划且有 `targetJobId/resumeId` | 用户从 Home 或 workspace 卡片打开 | 直达 `/workspace?targetJobId=...` 并渲染同一详情母版；无 Parse loading/animation；返回 `/workspace` 列表 | 001 / frontend-workspace-and-practice 001 |
-| C-12 | 规划详情报告入口 | ready TargetJob 有可信 `targetJobId` | 打开 Workspace 面试规划详情并点击标题行右上角“面试报告” | 精确进入 `/reports?targetJobId=<uuid>`；入口不在全局 TopBar；Parse 不渲染 ready detail/报告入口，Workspace detail 不渲染报告列表、不调用 `listTargetJobReports`、不保留 `section=reports` 兼容逻辑，Start 不受影响 | 001 |
+| C-12 | 规划详情报告入口 | ready TargetJob 有可信 `targetJobId` | 打开 Workspace 面试规划详情并点击首行动作行“面试报告” | “立即面试 + 面试报告”从左同排且顺序稳定，报告精确进入 `/reports?targetJobId=<uuid>`；入口不在全局 TopBar/页尾；Parse 不渲染 ready detail/报告入口，Workspace detail 不渲染报告列表、不调用 `listTargetJobReports`、不保留 `section=reports` 兼容逻辑 | 001 |
 | C-13 | 规划详情轮次三态 | ready TargetJob 有合法 2~5 轮与 `practiceProgress` 完成前缀/current | 打开或刷新 `/workspace?targetJobId=...` | 每张 round assumption 卡显示且仅显示 done/current/pending 之一，对应“已进行 / 即将进行 / 未进行”及三种不同背景/边框；状态与列表 mini rail 一致，全完成与无效投影 fail closed | 001 |
 | C-14 | JD size boundary | owner config 提供 UTF-8 JD byte limit | 点击「立即面试」 | 注入小型 boundary 验证 overflow inline validation 且零 import；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文本或配置 E2E | 001 Phase 22 |
 
@@ -159,6 +160,7 @@ Home 粘贴 JD
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 2.27 | 2026-07-15 | Move the bound-resume viewer beside the plan title, remove the standalone launch/binding block, and place Start plus Reports in one leading action row. |
 | 2.26 | 2026-07-14 | Add RuntimeConfig-backed 96KiB JD UTF-8 boundary to Home without changing the paste-only UI structure. |
 | 2.25 | 2026-07-14 | Add Workspace detail round-assumption done/current/pending visual states derived from the same backend practice-progress projection as list-card rails. |
 | 2.24 | 2026-07-14 | Make Parse command-progress-only, replace ready targets into Workspace detail, route ready cards directly, move ready detail/report/start language to Workspace, and require exact initial GET counts. |

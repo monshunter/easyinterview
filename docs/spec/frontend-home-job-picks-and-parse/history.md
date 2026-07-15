@@ -1,13 +1,14 @@
 # Frontend Home / Parse History
 
-> **版本**: 2.23
+> **版本**: 2.27
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-15 | 2.27 | 统一详情删除独立 launch/绑定简历 block，标题旁绑定简历只跳对应 Resume 详情，并将立即面试与面试报告合并为左对齐首行动作行。 | [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) Phase 23 |
 | 2026-07-14 | 2.23 | 用户修正确认：报告列表从 Parse 嵌入区迁移到独立 `/reports?targetJobId=...`；Parse 仅在内容区右上角保留页面级入口，并删除列表请求、嵌入 UI 与 `section=reports` 兼容逻辑。 | [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) |
 | 2026-07-14 | 2.22 | 用户确认 R-A：不新增顶层报告中心，在 Parse 统一详情内按 canonical round 接入最小 `currentReport/latestAttempt` 概览；锁定 join、状态链接、独立错误、不阻断 Start 与 `section=reports` 返回锚点。 | [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) |
 | 2026-07-13 | 2.21 | Home JD intake 收敛为唯一 textarea 与 `{ rawText, targetLanguage, resumeId }`；删除其他 JD intake 正向合同并保留 Resume 上传。 | 001-home-jd-import-and-parse Phase 18 |

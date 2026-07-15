@@ -5,10 +5,10 @@ metadata:
   name: 001-workspace-and-interview-context
   sequence: 1
   baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
+  branch: design/resume-interview-report-layout
   specVersion:
-    from: 1.43
-    to: 1.44
+    from: 1.45
+    to: 1.46
 spec:
   defaultTarget: frontend
   discovery:
@@ -65,6 +65,10 @@ spec:
       - topbar Interview nav
       - 面试规划列表
       - 面试规划详情
+      - title adjacent bound resume link
+      - resume_versions saved resumeId detail navigation
+      - leading start reports action row
+      - no standalone resume binding launch block
       - 一级面试入口
       - E2E.P0.098
   targets:
@@ -105,9 +109,9 @@ spec:
           - frontend/src/api
           - frontend/src/api/generated
           - frontend/src/lib/conventions
-          - frontend/tests/responsive-browser
+          - frontend/tests/e2e
           - frontend/src
-          - ui-design
+          - docs/ui-design
           - openapi
           - openapi/fixtures/TargetJobs
           - openapi/fixtures/Resumes
@@ -129,4 +133,3 @@ spec:
           - createPracticePlan
           - startPracticeSession
           - getTargetJob
-          - getResume
