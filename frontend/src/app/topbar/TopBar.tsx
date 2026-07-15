@@ -11,7 +11,6 @@ import { translate } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import { PRIMARY_NAV_ROUTES, type RouteName } from "../routes";
 import { THEME_METADATA } from "../theme/themes.data";
-import type { UserContext } from "../../api/generated/types";
 
 /**
  * Three primary nav entries match docs/ui-design/auth-and-entry.md §4 after
@@ -61,14 +60,12 @@ export interface TopBarProps {
    * formal frontend implementation
    */
   signedIn?: boolean;
-  user?: Pick<UserContext, "displayName" | "emailMasked">;
 }
 
 export const TopBar: FC<TopBarProps> = ({
   activeRoute,
   onNavigate,
   signedIn = false,
-  user,
 }) => {
   const prefs = useDisplayPreferences();
   const t = (key: Parameters<typeof translate>[1]) => translate(prefs.lang, key);
@@ -76,7 +73,6 @@ export const TopBar: FC<TopBarProps> = ({
   const [pickerOpen, setPickerOpen] = useState<boolean>(customActive);
   const [themeMenuOpen, setThemeMenuOpen] = useState<boolean>(false);
   const [langMenuOpen, setLangMenuOpen] = useState<boolean>(false);
-  const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
 
   const seed = CUSTOM_ACCENT_SEEDS[prefs.theme] ?? CUSTOM_ACCENT_SEEDS.ocean;
   const accentValue: CustomAccent = prefs.customAccent ?? seed;
@@ -89,17 +85,16 @@ export const TopBar: FC<TopBarProps> = ({
     SUPPORTED_LOCALES[0];
 
   useEffect(() => {
-    if (!userMenuOpen && !themeMenuOpen && !langMenuOpen) return;
+    if (!themeMenuOpen && !langMenuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setUserMenuOpen(false);
         setThemeMenuOpen(false);
         setLangMenuOpen(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [userMenuOpen, themeMenuOpen, langMenuOpen]);
+  }, [themeMenuOpen, langMenuOpen]);
 
   const handleAccentChange = useCallback(
     (next: Partial<CustomAccent>) => {
@@ -107,18 +102,6 @@ export const TopBar: FC<TopBarProps> = ({
     },
     [accentValue, prefs],
   );
-  const userName =
-    user?.displayName?.trim() || (prefs.lang === "en" ? "Candidate" : "候选人");
-  const userEmail =
-    user?.emailMasked?.trim() ||
-    (prefs.lang === "en" ? "Email unavailable" : "邮箱未提供");
-  const userInitials = getInitials(userName);
-
-  const navigateFromUserMenu = (route: LooseRoute) => {
-    setUserMenuOpen(false);
-    onNavigate(route);
-  };
-
   return (
     <header data-testid="app-shell-topbar" className="ei-shell-topbar">
       <div className="ei-topbar-brand">
@@ -364,74 +347,16 @@ export const TopBar: FC<TopBarProps> = ({
         className="ei-topbar-user"
       >
         {signedIn ? (
-          <div className="ei-topbar-user-wrap">
-            <button
-              type="button"
-              data-testid="topbar-user-chip"
-              aria-label={prefs.lang === "en" ? "User menu" : "用户菜单"}
-              aria-expanded={userMenuOpen}
-              className="ei-topbar-user-chip"
-              onClick={() => setUserMenuOpen((open) => !open)}
-            >
-              <span data-testid="topbar-user-avatar" className="ei-topbar-user-avatar">
-                {userInitials}
-              </span>
-              <span data-testid="topbar-user-name" className="ei-topbar-user-name">
-                {userName}
-              </span>
-              <span className="ei-topbar-caret" aria-hidden="true">
-                ▾
-              </span>
-            </button>
-            {userMenuOpen && (
-              <>
-                <button
-                  type="button"
-                  data-testid="topbar-user-backdrop"
-                  className="ei-topbar-menu-backdrop"
-                  aria-label={prefs.lang === "en" ? "Close user menu" : "关闭用户菜单"}
-                  onClick={() => setUserMenuOpen(false)}
-                />
-                <nav
-                  data-testid="topbar-user-menu"
-                  aria-label="user"
-                  className="ei-topbar-user-menu"
-                >
-                  <div
-                    data-testid="topbar-user-menu-header"
-                    className="ei-topbar-user-menu-header"
-                  >
-                    <div className="ei-topbar-user-menu-name">{userName}</div>
-                    <div
-                      data-testid="topbar-user-email"
-                      className="ei-topbar-user-menu-email"
-                    >
-                      {userEmail}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    data-testid="topbar-user-settings"
-                    className="ei-topbar-user-button ei-text-body"
-                    onClick={() => navigateFromUserMenu({ name: "settings", params: {} })}
-                  >
-                    <Icon name="settings" size={13} />
-                    {t("user.settings")}
-                  </button>
-                  <div className="ei-topbar-user-separator" />
-                  <button
-                    type="button"
-                    data-testid="topbar-user-logout"
-                    className="ei-topbar-user-button ei-topbar-user-button--logout ei-text-body"
-                    onClick={() => navigateFromUserMenu({ name: "auth_logout", params: {} })}
-                  >
-                    <Icon name="logout" size={13} />
-                    {t("user.logout")}
-                  </button>
-                </nav>
-              </>
-            )}
-          </div>
+          <button
+            type="button"
+            data-testid="topbar-settings"
+            aria-label={t("user.settings")}
+            title={t("user.settings")}
+            className="ei-topbar-settings"
+            onClick={() => onNavigate({ name: "settings", params: {} })}
+          >
+            <Icon name="settings" size={16} />
+          </button>
         ) : (
           <button
             type="button"
@@ -530,9 +455,7 @@ type IconName =
   | "play"
   | "file"
   | "flag"
-  | "user"
   | "settings"
-  | "logout"
   | "check"
   | "moon"
   | "sun"
@@ -562,19 +485,12 @@ const Icon: FC<IconProps> = ({ name, size = 13, "data-testid": testId }) => {
     play: <path d="M7 5l12 7-12 7V5z" fill="currentColor" stroke="none" />,
     file: <path d="M7 3h8l4 4v14H7z M15 3v5h4" />,
     flag: <path d="M5 22V3h13l-3 5 3 5H5" />,
-    user: (
-      <>
-        <circle cx="12" cy="8" r="4" />
-        <path d="M5 21a7 7 0 0114 0" />
-      </>
-    ),
     settings: (
       <>
         <circle cx="12" cy="12" r="3" />
         <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M4.5 19.5l2-2M17.5 6.5l2-2" />
       </>
     ),
-    logout: <path d="M9 4H5a2 2 0 00-2 2v12a2 2 0 002 2h4M16 8l4 4-4 4M20 12h-9" />,
     check: <path d="M5 12l5 5L20 7" />,
     moon: <path d="M21 13.5A8.5 8.5 0 1110.5 3a7 7 0 0010.5 10.5z" />,
     sun: (
@@ -608,11 +524,3 @@ const Icon: FC<IconProps> = ({ name, size = 13, "data-testid": testId }) => {
     </svg>
   );
 };
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
-  }
-  return (parts[0]?.slice(0, 2) || "U").toUpperCase();
-}

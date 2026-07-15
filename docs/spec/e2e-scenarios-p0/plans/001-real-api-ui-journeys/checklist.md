@@ -1,6 +1,6 @@
 # 001 Real API/UI Journeys Checklist
 
-> **版本**: 4.2
+> **版本**: 4.3
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -40,11 +40,16 @@
 - [ ] 4.4 BDD-Gate: run `E2E.P0.098` against the current real environment and record current-run PASS.
 - [x] 4.5 BDD-Gate: run `E2E.P0.099` against the current real environment, complete exact-six no-OCR audit plus bounded conversation navigation/API/DB evidence, and record current-run PASS.
   <!-- verified: 2026-07-15 run_id="e2e-p0-099-20260715T021319Z-57232" result="PASS" evidence="exact six Chrome full-page screenshots; live API/PostgreSQL/conversation/back binding; manual-visual-audit.json; bounded redaction" -->
-- [ ] 4.6 BDD-Gate: run `E2E.P0.101` against the current real environment and record current-run PASS.
+- [x] 4.6 BDD-Gate: run `E2E.P0.101` against the current real environment and record current-run PASS.
+  <!-- verified: 2026-07-15 run_id="e2e-p0-101-20260715114513-19516" result="PASS" evidence="real frontend/backend/Mailpit; complete Settings email; redacted plain and URL-encoded email; cleanup PASS" -->
 
 ## Phase 5: P0.101 Settings extension
 
-- [ ] 5.1 ASSET-RED: tracked P0.101 test fails until the post-profile flow can click the sole settings gear and rejects the old account chip/dropdown/settings tabs.
-- [ ] 5.2 REAL-DATA-GATE: Settings assertions use the current run's submitted displayName plus masked-email format from real `/me`；network evidence proves real backend and no duplicate Settings-mounted `getMe`.
-- [ ] 5.3 LOGOUT-GATE: enter existing auth_logout from Settings, confirm session clears, then relogin with the same email without repeating profile setup；never call deleteMe.
-- [ ] 5.4 PRIVACY/STATIC-GATE: evidence excludes full email/code/cookie and remains `Ready` until explicit scenario run；syntax/interception/docs/index checks pass without wrapping code tests.
+- [x] 5.1 ASSET-RED: tracked P0.101 test fails until the post-profile flow can click the sole settings gear and rejects the old account chip/dropdown/settings tabs.
+  <!-- verified: 2026-07-15 method=scenario-tdd-red evidence="pre-extension flow lacked Settings/account/logout assertions; corrected privacy verify also rejected the first run's URL-encoded email leak" -->
+- [x] 5.2 REAL-DATA-GATE: Settings assertions use the current run's submitted displayName plus complete account email from real `/me`；network evidence proves real backend and no duplicate Settings-mounted `getMe`, while logs/evidence redact the email.
+  <!-- verified: 2026-07-15 run_id="e2e-p0-101-20260715114513-19516" evidence="settingsAccount=runtime-full-email settingsMountedGetMe=0; console/page/http failures=0" -->
+- [x] 5.3 LOGOUT-GATE: enter existing auth_logout from Settings, confirm session clears, then relogin with the same email without repeating profile setup；never call deleteMe.
+  <!-- verified: 2026-07-15 run_id="e2e-p0-101-20260715114513-19516" evidence="logoutRelogin lifecycle PASS; completed account relogin skips setup; deleteMeRequests=0" -->
+- [x] 5.4 PRIVACY/STATIC-GATE: evidence excludes full email/code/cookie and remains `Ready` until explicit scenario run；syntax/interception/docs/index checks pass without wrapping code tests.
+  <!-- verified: 2026-07-15 method=red-green-privacy-verify evidence="verify first rejected URL-encoded current-run email, then PASS after finalUrl redaction and exact plain/encoded leak checks; static INDEX remains Ready" -->

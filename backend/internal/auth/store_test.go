@@ -23,6 +23,15 @@ func TestStoreSurfaceDoesNotExposeExternalIdentities(t *testing.T) {
 	}
 }
 
+func TestUserContextHasNoDisplayPreferencesOrAnalyticsProjection(t *testing.T) {
+	typeOfUser := reflect.TypeOf(auth.UserContext{})
+	for _, field := range []string{"UILanguage", "PreferredPracticeLanguage", "AnalyticsOptIn"} {
+		if _, ok := typeOfUser.FieldByName(field); ok {
+			t.Fatalf("auth.UserContext must not expose obsolete/current-user-external field %s", field)
+		}
+	}
+}
+
 func TestSQLStoreAuthTableBoundaries(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -90,7 +99,7 @@ func TestSQLStoreAuthTableBoundaries(t *testing.T) {
 		t.Fatalf("CreateSession: %v", err)
 	}
 
-	mock.ExpectQuery("from users u join user_settings us").
+	mock.ExpectQuery("from users u").
 		WithArgs("018f2a40-0000-7000-9000-000000000003").
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id",
@@ -98,22 +107,23 @@ func TestSQLStoreAuthTableBoundaries(t *testing.T) {
 			"display_name",
 			"profile_completed_at",
 			"terms_accepted_at",
-			"ui_language",
-			"preferred_practice_language",
-			"analytics_opt_in",
 		}).AddRow(
 			"018f2a40-0000-7000-9000-000000000003",
 			"candidate@example.com",
 			"Candidate",
 			now,
 			now,
-			"zh-CN",
-			"en",
-			true,
 		))
 
 	if _, err := store.GetUserContext(context.Background(), "018f2a40-0000-7000-9000-000000000003"); err != nil {
 		t.Fatalf("GetUserContext: %v", err)
+	}
+
+	mock.ExpectQuery("select analytics_opt_in").
+		WithArgs("018f2a40-0000-7000-9000-000000000003").
+		WillReturnRows(sqlmock.NewRows([]string{"analytics_opt_in"}).AddRow(true))
+	if optIn, err := store.GetAnalyticsOptIn(context.Background(), "018f2a40-0000-7000-9000-000000000003"); err != nil || !optIn {
+		t.Fatalf("GetAnalyticsOptIn = %t, %v", optIn, err)
 	}
 
 	mock.ExpectExec("update sessions set updated_at = \\$1, expires_at = \\$2 where id = \\$3 and status = 'active'").

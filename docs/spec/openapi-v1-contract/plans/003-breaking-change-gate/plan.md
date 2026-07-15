@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.23
-> **状态**: active
+> **版本**: 1.24
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -120,6 +120,7 @@ The wrapper must verify the exact path, method and statuses. Any other status tr
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.24 | Revise Phase 12 exact audit for the `emailMasked` → complete `email` replacement and guarded all-consumer re-freeze. |
 | 2026-07-15 | 1.23 | Add Phase 12 for OPENAPI-007 exact UserContext two-field removal audit and guarded all-consumer re-freeze. |
 | 2026-07-15 | 1.22 | Add Phase 11 for OPENAPI-001 v1.7 exact one-for-one session-list to report-conversation correction. |
 | 2026-07-14 | 1.20 | Add Phase 9 for OPENAPI-005 exact Resume list-summary audit and all-consumer guarded re-freeze. |
@@ -224,10 +225,10 @@ Audit separately locks 37 operations/10 tags; unchanged `startPracticeSession` a
 
 ### 12.1 Accepted authority and generated exact oracle
 
-Require accepted [OPENAPI-007](../../decisions/OPENAPI-007-settings-user-context-pruning.md), spec D-39 and history 1.63 before proposed mutation. Snapshot the merge-base old baseline and keep the worktree baseline unchanged. After focused RED proves both old required properties, generate the OPENAPI-007 expected-findings JSON from old baseline → proposed OpenAPI；this design revision intentionally does not hand-author that JSON.
+Require accepted [OPENAPI-007](../../decisions/OPENAPI-007-settings-user-context-pruning.md), spec D-39 and history 1.64 before proposed mutation. Snapshot the merge-base old baseline and keep the worktree baseline unchanged. After focused RED proves the legacy language fields and `emailMasked`, generate the OPENAPI-007 expected-findings JSON from old baseline → proposed OpenAPI；this design revision intentionally does not hand-author that JSON.
 
-The oracle exact-matches removal of `UserContext.uiLanguage` and `UserContext.preferredPracticeLanguage` from both required and properties, plus the object closure introduced by `additionalProperties: false`, by `severity + path + kind + before + after`. Missing/extra finding, wildcard, placeholder, edited old baseline, optional compatibility fields or constant-filled aliases fail.
+The oracle exact-matches removal of `UserContext.uiLanguage`, `UserContext.preferredPracticeLanguage` and `UserContext.emailMasked`, addition of required/property `UserContext.email`, plus the object closure introduced by `additionalProperties: false`, by `severity + path + kind + before + after`. The generated result determines the exact finding count. Missing/extra finding, wildcard, placeholder, edited old baseline, optional compatibility fields or constant-filled aliases fail.
 
 ### 12.2 Invariants and guarded re-freeze
 
-Audit locks 37 operations/10 tags；exact `getMe` / `completeMyProfile` / `deleteMe` method/path/operationId/status/security；four-field closed required `UserContext`；email masking and profile-completion semantics. Do not re-freeze until 001 Phase 19, 002 Phase 13, backend-auth/001 Phase 10, frontend-shell/001 Phase 14, B4 001 Phase 13 and mock/BDD handoffs pass. Preserve deterministic old-baseline audit before mutation；final proof requires clean current diff plus independent lint/fixture/codegen/consumer/migration/root-test gates.
+Audit locks 37 operations/10 tags；exact `getMe` / `completeMyProfile` / `deleteMe` method/path/operationId/status/security；four-field closed required `UserContext`；complete authenticated email and profile-completion semantics. `emailMasked` aliases are forbidden, while logs/E2E evidence remain redacted. Do not re-freeze until 001 Phase 19, 002 Phase 13, backend-auth/001 Phase 10, frontend-shell/001 Phase 14, B4 001 Phase 13 and mock/BDD handoffs pass. Preserve deterministic old-baseline audit before mutation；final proof requires clean current diff plus independent lint/fixture/codegen/consumer/migration/root-test gates.

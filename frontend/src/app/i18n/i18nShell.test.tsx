@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 
 import { AuthLoginScreen } from "../auth/AuthLoginScreen";
 import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
+import { NavigationProvider } from "../navigation/NavigationProvider";
 import { RouteShellScreen } from "../screens/RouteShellScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { TopBar } from "../topbar/TopBar";
@@ -20,7 +20,9 @@ describe("D1 shell i18n", () => {
           onNavigate={() => {}}
           onStartChallenge={vi.fn()}
         />
-        <SettingsScreen route={{ name: "settings", params: {} }} />
+        <NavigationProvider value={{ navigate: () => {}, replaceRoute: () => {} }}>
+          <SettingsScreen route={{ name: "settings", params: {} }} />
+        </NavigationProvider>
         <RouteShellScreen
           route={{ name: "workspace", params: { planId: "plan-tj-1" } }}
         />
@@ -41,15 +43,10 @@ describe("D1 shell i18n", () => {
       expect(languageControl.tagName).toBe("BUTTON");
       expect(languageControl).toHaveTextContent("English");
     }
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("topbar-user-chip"));
-    expect(screen.queryByTestId("topbar-user-profile")).not.toBeInTheDocument();
-    expect(screen.getByTestId("topbar-user-settings")).toHaveTextContent(
+    expect(screen.getByTestId("topbar-settings")).toHaveAccessibleName(
       "Settings & privacy",
     );
-    expect(screen.getByTestId("topbar-user-logout")).toHaveTextContent(
-      "Sign out",
-    );
+    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
 
     expect(screen.getByTestId("route-auth_login")).toHaveTextContent(
       "Sign in",

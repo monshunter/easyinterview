@@ -19,6 +19,7 @@ const ALLOWED_AUTH_OPERATIONS = new Set<string>([
   "verifyAuthEmailChallenge",
   "completeMyProfile",
   "getMe",
+  "deleteMe",
   "logout",
 ]);
 

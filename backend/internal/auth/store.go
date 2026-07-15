@@ -67,10 +67,11 @@ type UserContext struct {
 	ID                        string
 	Email                     string
 	DisplayName               string
-	UILanguage                string
-	PreferredPracticeLanguage string
-	AnalyticsOptIn            bool
 	ProfileCompletionRequired bool
+}
+
+type analyticsOptInStore interface {
+	GetAnalyticsOptIn(context.Context, string) (bool, error)
 }
 
 // Store is the P0 email-code session persistence surface. It intentionally
@@ -391,11 +392,8 @@ select
   u.email,
   u.display_name,
   u.profile_completed_at,
-  u.terms_accepted_at,
-  us.ui_language,
-  us.preferred_practice_language,
-  us.analytics_opt_in
-from users u join user_settings us on us.user_id = u.id
+  u.terms_accepted_at
+from users u
 where `+predicate+` and u.deleted_at is null`,
 		arg,
 	).Scan(
@@ -404,9 +402,6 @@ where `+predicate+` and u.deleted_at is null`,
 		&displayName,
 		&profileCompletedAt,
 		&termsAcceptedAt,
-		&out.UILanguage,
-		&out.PreferredPracticeLanguage,
-		&out.AnalyticsOptIn,
 	)
 	if err != nil {
 		return UserContext{}, err
@@ -414,6 +409,20 @@ where `+predicate+` and u.deleted_at is null`,
 	out.DisplayName = displayName.String
 	out.ProfileCompletionRequired = strings.TrimSpace(displayName.String) == "" || !profileCompletedAt.Valid || !termsAcceptedAt.Valid
 	return out, nil
+}
+
+func (s *SQLStore) GetAnalyticsOptIn(ctx context.Context, userID string) (bool, error) {
+	if s == nil || s.db == nil {
+		return false, fmt.Errorf("auth store db is nil")
+	}
+	var optIn bool
+	if err := s.db.QueryRowContext(ctx, `
+select analytics_opt_in
+from user_settings
+where user_id = $1`, userID).Scan(&optIn); err != nil {
+		return false, fmt.Errorf("select analytics opt-in: %w", err)
+	}
+	return optIn, nil
 }
 
 func nullString(value string) any {

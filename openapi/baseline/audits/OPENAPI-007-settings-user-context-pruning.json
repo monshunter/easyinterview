@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-007",
+  "mode": "exact-set",
+  "keyFields": [
+    "severity",
+    "path",
+    "kind",
+    "before",
+    "after"
+  ],
+  "authority": {
+    "decision": "OPENAPI-007",
+    "specDecision": "D-39",
+    "historyVersion": "1.64",
+    "productDecision": "Scheme A with complete authenticated email"
+  },
+  "baselineSource": "git:bf34fb7ba4f4c7617143e19e3b080cd10aff363d:openapi/baseline/openapi-v1.0.0.yaml",
+  "currentSource": "openapi/openapi.yaml",
+  "baselineSha256": "88d77c6a5b5f48eb67eb06d6a6663efc9cdaf3709ae14dd8da3331c27d2870f5",
+  "currentSha256": "921fbc2d82344a2efbf55652d87b0d9ef089b4c3f09732c40bc124bc1b6d5a44",
+  "summary": {
+    "breaking": 5,
+    "additive": 4,
+    "informational": 0
+  },
+  "expectedFindingCount": 9,
+  "findingCount": 9,
+  "findings": [
+    {
+      "severity": "additive",
+      "path": "/components/schemas/UserContext/properties/email",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/UserContext/required/emailMasked",
+      "kind": "required_property_removed",
+      "before": "required",
+      "after": "absent"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/UserContext/required/preferredPracticeLanguage",
+      "kind": "required_property_removed",
+      "before": "required",
+      "after": "absent"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/UserContext/required/uiLanguage",
+      "kind": "required_property_removed",
+      "before": "required",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UserContext/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UserContext/properties/emailMasked",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UserContext/properties/preferredPracticeLanguage",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UserContext/properties/uiLanguage",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UserContext/required/email",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "required"
+    }
+  ],
+  "errors": []
+}

@@ -1,19 +1,15 @@
 /*
- * D2 fontsource imports for ui-design EI_FONT_PRESETS.
+ * Fontsource imports for the single application typography system.
  *
  * Sources of truth:
  *   - formal frontend implementation
  *
- * Each preset declared in primitives.jsx must be loadable at runtime so the
- * settings page (Phase 5.1) can switch presets atomically without flashing
- * a fallback. We also load JetBrains Mono for ei-mono / labels.
+ * Noto Serif SC and Inter provide the editorial serif/sans pairing. We also
+ * load JetBrains Mono for ei-mono / labels.
  *
  * Noto Serif SC's default bundles use unicode-range slices that cover both
  * Simplified Chinese and Latin glyphs. Importing its full Chinese bundles as
  * well would package the same glyphs twice.
- * Western preset families use Latin subsets because the product locales are
- * Chinese and English; unsupported glyphs continue through the CSS fallbacks.
- *
  * `font-display: swap` is enforced by fontsource defaults; first paint will
  * use the system fallback chain declared in `themes.css`.
  */
@@ -24,19 +20,6 @@
 
 @import "@fontsource/noto-serif-sc/400.css";
 @import "@fontsource/noto-serif-sc/500.css";
-
-@import "@fontsource/source-serif-pro/latin-400.css";
-@import "@fontsource/source-serif-pro/latin-600.css";
-
-@import "@fontsource/cormorant-garamond/latin-400.css";
-@import "@fontsource/cormorant-garamond/latin-600.css";
-
-@import "@fontsource/geist-sans/400.css";
-@import "@fontsource/geist-sans/500.css";
-@import "@fontsource/geist-sans/600.css";
-
-@import "@fontsource/ibm-plex-sans/latin-400.css";
-@import "@fontsource/ibm-plex-sans/latin-500.css";
 
 @import "@fontsource/jetbrains-mono/latin-400.css";
 @import "@fontsource/jetbrains-mono/latin-500.css";

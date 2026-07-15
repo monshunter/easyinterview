@@ -1305,7 +1305,16 @@ class OpenAPI001V17ConversationTests(unittest.TestCase):
         baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
         self.assertIsNotNone(baseline_text)
         self.assertEqual(audit["baselineSha256"], od._sha256_text(baseline_text))
-        current_text = (REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8")
+        next_audit = json.loads(
+            (
+                REPO_ROOT
+                / "openapi/baseline/audits/OPENAPI-007-settings-user-context-pruning.json"
+            ).read_text(encoding="utf-8")
+        )
+        next_kind, next_ref, next_path = next_audit["baselineSource"].split(":", 2)
+        self.assertEqual("git", next_kind)
+        current_text = od._git_show(REPO_ROOT, next_ref, REPO_ROOT / next_path)
+        self.assertIsNotNone(current_text)
         baseline = yaml.safe_load(baseline_text)
         current = yaml.safe_load(current_text)
 
@@ -1313,6 +1322,7 @@ class OpenAPI001V17ConversationTests(unittest.TestCase):
         self.assertEqual("exact-set", audit["mode"])
         self.assertEqual([], audit["errors"])
         self.assertEqual(audit["currentSha256"], od._sha256_text(current_text))
+        self.assertEqual(audit["currentSha256"], next_audit["baselineSha256"])
         self.assertEqual(audit["expectedFindingCount"], audit["findingCount"])
         self.assertEqual(
             [],
@@ -2063,6 +2073,123 @@ class OpenAPI005OracleTests(unittest.TestCase):
             od.validate_openapi_005_invariants(
                 baseline, current, expected["invariants"]
             ),
+        )
+
+
+class OpenAPI007OracleTests(unittest.TestCase):
+    @staticmethod
+    def _preserved_audit() -> dict:
+        return json.loads(
+            (
+                REPO_ROOT
+                / "openapi/baseline/audits/OPENAPI-007-settings-user-context-pruning.json"
+            ).read_text(encoding="utf-8")
+        )
+
+    @classmethod
+    def _old_baseline(cls) -> dict:
+        audit = cls._preserved_audit()
+        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
+        if source_kind != "git":
+            raise AssertionError("OPENAPI-007 audit baseline must be a git snapshot")
+        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
+        if baseline_text is None:
+            raise AssertionError("OPENAPI-007 audit baseline snapshot must remain readable")
+        if audit["baselineSha256"] != od._sha256_text(baseline_text):
+            raise AssertionError("OPENAPI-007 audit baseline digest drifted")
+        return yaml.safe_load(baseline_text)
+
+    @classmethod
+    def _documents(cls) -> tuple[dict, dict]:
+        baseline = cls._old_baseline()
+        current = yaml.safe_load(
+            (REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8")
+        )
+        return baseline, current
+
+    def test_exact_oracle_covers_required_properties_and_closure(self) -> None:
+        baseline, current = self._documents()
+        generated = od.build_openapi_007_oracle(baseline, current)
+        oracle = json.loads(
+            (
+                REPO_ROOT
+                / "docs/spec/openapi-v1-contract/decisions/OPENAPI-007-settings-user-context-pruning.expected-findings.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual("OPENAPI-007", oracle["decisionId"])
+        self.assertEqual([], od.validate_exact_set_oracle(oracle, "OPENAPI-007"))
+        self.assertEqual(
+            [], od.compare_finding_sets(generated["findings"], oracle["findings"])
+        )
+        self.assertEqual(9, len(oracle["findings"]))
+        self.assertEqual(
+            {
+                "closed_object",
+                "property_added",
+                "property_removed",
+                "required_property_added",
+                "required_property_removed",
+            },
+            {finding["kind"] for finding in oracle["findings"]},
+        )
+        self.assertEqual([], od.validate_openapi_007_contract(baseline, current))
+        self.assertEqual(
+            [],
+            od.validate_openapi_007_invariants(baseline, current, oracle["invariants"]),
+        )
+
+    def test_contract_rejects_alias_missing_field_and_auth_operation_drift(self) -> None:
+        baseline, current = self._documents()
+        alias = copy.deepcopy(current)
+        alias["components"]["schemas"]["UserContext"]["properties"]["emailMasked"] = {
+            "type": "string"
+        }
+        errors = od.validate_openapi_007_contract(baseline, alias)
+        self.assertTrue(any("exact four-field" in error for error in errors), errors)
+
+        missing = copy.deepcopy(current)
+        missing["components"]["schemas"]["UserContext"]["required"].remove("displayName")
+        errors = od.validate_openapi_007_contract(baseline, missing)
+        self.assertTrue(any("required fields" in error for error in errors), errors)
+
+        drifted = copy.deepcopy(current)
+        drifted["paths"]["/me"]["get"]["operationId"] = "getSettingsUser"
+        oracle = od.build_openapi_007_oracle(baseline, current)
+        errors = od.validate_openapi_007_invariants(baseline, drifted, oracle["invariants"])
+        self.assertTrue(any("getMe operationId" in error for error in errors), errors)
+
+    def test_repo_preserved_audit_replays_after_guarded_refreeze(self) -> None:
+        payload = self._preserved_audit()
+        oracle = json.loads(
+            (
+                REPO_ROOT
+                / "docs/spec/openapi-v1-contract/decisions/OPENAPI-007-settings-user-context-pruning.expected-findings.json"
+            ).read_text(encoding="utf-8")
+        )
+        baseline = self._old_baseline()
+        current_text = (REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8")
+        frozen_text = (REPO_ROOT / "openapi/baseline/openapi-v1.0.0.yaml").read_text(
+            encoding="utf-8"
+        )
+        current = yaml.safe_load(current_text)
+
+        self.assertEqual("OPENAPI-007", payload["decisionId"])
+        self.assertEqual([], payload["errors"])
+        self.assertEqual(9, payload["findingCount"])
+        self.assertEqual(payload["expectedFindingCount"], payload["findingCount"])
+        self.assertEqual(payload["currentSha256"], od._sha256_text(current_text))
+        self.assertEqual(payload["currentSha256"], od._sha256_text(frozen_text))
+        self.assertEqual(
+            [],
+            od.compare_finding_sets(
+                payload["findings"], od.normalize_openapi_007_findings(baseline, current)
+            ),
+        )
+        self.assertEqual([], od.compare_finding_sets(payload["findings"], oracle["findings"]))
+        self.assertEqual([], od.validate_openapi_007_contract(baseline, current))
+        self.assertEqual(
+            [], od.validate_openapi_007_invariants(baseline, current, oracle["invariants"])
         )
 
 

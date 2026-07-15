@@ -79,7 +79,7 @@ function buildClient(responses: FeedbackReport[]) {
     async getMe() {
       return {
         id: "user-1",
-        emailMasked: "u***@example.com",
+        email: "user@example.com",
         displayName: "User",
         profileCompletionRequired: false,
       } as never;

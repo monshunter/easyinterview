@@ -142,7 +142,7 @@ Auth
 
 已登录 TopBar
 └─ 设置齿轮 -> Settings & privacy
-   ├─ Account: 姓名 / 脱敏邮箱 / 退出登录
+   ├─ Account: 姓名 / 完整账号邮箱 / 退出登录
    └─ Privacy: 导出暂不可用 / 删除账号二次确认
 ```
 

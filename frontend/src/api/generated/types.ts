@@ -86,11 +86,9 @@ export interface PaginatedEnvelope {
 
 export interface UserContext {
 	displayName: string;
-	emailMasked: string;
+	email: string;
 	id: string;
-	preferredPracticeLanguage: string;
 	profileCompletionRequired: boolean;
-	uiLanguage: string;
 }
 
 export interface AuthEmailStartRequest {

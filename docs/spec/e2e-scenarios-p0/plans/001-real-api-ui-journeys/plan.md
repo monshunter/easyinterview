@@ -1,6 +1,6 @@
 # 001 Real API/UI Journeys
 
-> **版本**: 3.10
+> **版本**: 3.11
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -57,7 +57,7 @@
 
 ### Phase 3: 分层回归与收口
 
-- 原地扩展 P0.101 Playwright flow：profile setup 后点击唯一设置齿轮，以当前登录时提交的 displayName 和 `/me` 脱敏邮箱格式核对真实 Settings；断言旧账号 dropdown/tab 不存在；从 Settings 进入既有 logout 确认，再完成同邮箱 relogin。不得调用 deleteMe，也不得保存完整邮箱、验证码或 cookie 到证据。
+- 原地扩展 P0.101 Playwright flow：profile setup 后点击唯一设置齿轮，以当前登录时提交的 displayName 和 `/me` 完整账号邮箱核对真实 Settings；断言旧账号 dropdown/tab 不存在；从 Settings 进入既有 logout 确认，再完成同邮箱 relogin。场景运行时可在页面内断言完整值，但不得把完整邮箱、验证码或 cookie 写入日志或保存到证据；不得调用 deleteMe。
 - 开发中运行必要 focused tests；完成时从根执行 `make test`。
 - 只在相应 owner 发生变化时独立运行 OpenAPI/codegen、migration、lint、build、prompt/eval gate；不把结果写成 E2E marker。
 - 静态校验场景目录、shell 语法、真实 Playwright 请求边界、docs/index/diff 与旧场景引用。真实环境运行由显式 `/scenario-run` 单独触发；未运行时场景保持 `Ready`，不记录 PASS。
@@ -76,6 +76,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 3.11 | Correct P0.101 to assert the complete authenticated account email in Settings while keeping scenario logs/evidence redacted. |
 | 2026-07-15 | 3.10 | Extend P0.101 in place with Settings gear, real account fields and Settings-owned logout while excluding destructive account deletion. |
 | 2026-07-15 | 3.9 | Scope P0.099 privacy rejection to project user data and secrets while retaining independent PNG integrity and digest checks. |
 | 2026-07-15 | 3.8 | Extend P0.099 with report-owned Conversation navigation and API/DB binding while preserving the exact-six screenshot contract through bounded non-image evidence. |

@@ -1,7 +1,7 @@
 # App Shell Visual System
 
-> **版本**: 3.2
-> **状态**: active
+> **版本**: 3.3
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)

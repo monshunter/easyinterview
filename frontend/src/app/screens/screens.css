@@ -841,35 +841,177 @@
 
 }
 
-/* Settings two-tab rail (product-scope D-21).
-   Source: formal frontend implementation tab rail —
-   text buttons, padding 10px 12px, fontSize 14, 2px accent left border on
-   the active tab. */
-.ei-settings-tab-rail {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  align-items: flex-start;
+.ei-settings-screen {
+  max-width: 980px;
 }
 
-.ei-settings-tab {
-  background: transparent;
-  border: none;
-  border-left: 2px solid transparent;
-  border-radius: 2px;
-  text-align: left;
-  padding: 10px 12px;
-  cursor: pointer;
-  font-family: var(--ei-font-sans);
-  font-size: 14px;
-  font-weight: 400;
+.ei-settings-section-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ei-space-1);
+  padding-bottom: var(--ei-space-2);
+}
+
+.ei-settings-section-heading .ei-text-label {
+  color: var(--ei-color-accent);
+  font-family: var(--ei-font-mono);
+  letter-spacing: 0.08em;
+}
+
+.ei-settings-values {
+  margin: 0;
+}
+
+.ei-settings-value-row,
+.ei-settings-privacy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--ei-space-6);
+  padding: 16px 0;
+  border-top: 1px solid var(--ei-color-rule-soft);
+}
+
+.ei-settings-value-row dt,
+.ei-settings-value-row dd {
+  margin: 0;
+}
+
+.ei-settings-value-row dt {
   color: var(--ei-color-fg-tertiary);
 }
 
-.ei-settings-tab[data-active="true"] {
-  border-left-color: var(--ei-color-accent);
+.ei-settings-value-row dd {
   color: var(--ei-color-fg-primary);
+  text-align: right;
+}
+
+.ei-settings-email {
+  font-family: var(--ei-font-mono);
+}
+
+.ei-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--ei-space-2);
+}
+
+.ei-settings-privacy-row h3 {
+  margin: 0 0 var(--ei-space-1);
+  color: var(--ei-color-fg-primary);
+}
+
+.ei-settings-unavailable {
+  padding: 5px 9px;
+  border-radius: var(--ei-radius-pill);
+  color: var(--ei-color-fg-tertiary);
+  background: var(--ei-color-bg-soft);
+  white-space: nowrap;
+}
+
+.ei-settings-danger-row {
+  border-bottom: none;
+}
+
+.ei-settings-secondary-action,
+.ei-settings-danger-action {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: var(--ei-radius-sm);
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
   font-weight: 500;
+  cursor: pointer;
+}
+
+.ei-settings-secondary-action {
+  color: var(--ei-color-fg-secondary);
+  background: transparent;
+  border: 1px solid var(--ei-color-rule-strong);
+}
+
+.ei-settings-danger-action {
+  color: var(--ei-color-danger);
+  background: var(--ei-color-danger-soft);
+  border: 1px solid var(--ei-color-danger);
+}
+
+.ei-settings-secondary-action:focus-visible,
+.ei-settings-danger-action:focus-visible {
+  outline: 2px solid var(--ei-color-accent);
+  outline-offset: 2px;
+}
+
+.ei-settings-secondary-action:disabled,
+.ei-settings-danger-action:disabled {
+  cursor: wait;
+  opacity: 0.56;
+}
+
+.ei-settings-dialog-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: var(--ei-space-5);
+  background: color-mix(in srgb, var(--ei-color-bg-canvas) 74%, transparent);
+}
+
+.ei-settings-dialog {
+  width: min(100%, 480px);
+  padding: 28px;
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: var(--ei-radius-md);
+  background: var(--ei-color-bg-card);
+  box-shadow: var(--ei-shadow-elev2);
+}
+
+.ei-settings-dialog > .ei-text-label {
+  color: var(--ei-color-danger);
+  font-family: var(--ei-font-mono);
+  letter-spacing: 0.08em;
+}
+
+.ei-settings-dialog h2 {
+  margin: var(--ei-space-2) 0;
+}
+
+.ei-settings-dialog p {
+  margin: 0;
+  color: var(--ei-color-fg-secondary);
+}
+
+.ei-settings-dialog-error {
+  margin-top: var(--ei-space-4) !important;
+  padding: 10px 12px;
+  color: var(--ei-color-danger) !important;
+  background: var(--ei-color-danger-soft);
+  border-radius: var(--ei-radius-sm);
+}
+
+.ei-settings-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ei-space-2);
+  margin-top: var(--ei-space-6);
+}
+
+@media (max-width: 600px) {
+  .ei-settings-value-row,
+  .ei-settings-privacy-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ei-space-2);
+  }
+
+  .ei-settings-value-row dd {
+    text-align: left;
+  }
+
+  .ei-settings-unavailable,
+  .ei-settings-danger-action {
+    justify-self: start;
+  }
 }
 
 /* Practice safe Markdown projection. Source: formal frontend implementation

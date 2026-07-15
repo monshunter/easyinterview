@@ -1,7 +1,7 @@
 # App Shell Visual System Checklist
 
 > **版本**: 3.3
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
@@ -102,13 +102,17 @@
 
 ## Phase 20: settings and fixed-font simplification
 
-- [ ] 20.1 RED-GATE: visual/source/font tests fail while account chip/menu/backdrop/TopBar logout, settings tab/security/font/product/static-list selectors, preset metadata or extra font packages/imports remain current positive surfaces.
-- [ ] 20.2 TOPBAR-GATE: style one settings gear with localized accessible name, visible focus, >=40px hit area and 1440/390 viewport containment；delete obsolete user-menu CSS/i18n/test anchors without aliases or empty wrappers.
-- [ ] 20.3 SETTINGS-GATE: preserve `ei-screen-shell/card` rhythm for semantic Account/Privacy read-only rows, unavailable export reason, sign-out link and delete confirmation/pending/error/success states；dialog styling keeps initial/trapped/returned focus, Escape/cancel and pending disabled semantics；remove tab rail and deleted block spacing with no blank placeholders.
-- [ ] 20.4 FONT-GATE: retain only Noto Serif SC 400/500, Inter Latin 400/500/600 and JetBrains Mono Latin 400/500；delete `FONT_PRESETS` and Source Serif Pro/Cormorant Garamond/IBM Plex Sans/Geist packages/imports, lockfile entries and tests; build asset inventory has no removed family.
-- [ ] 20.5 BDD-Gate: update `BDD.SHELL.VISUAL.001` and consume frontend-shell/001 Settings behaviors；do not create a second settings E2E.
-- [ ] 20.6 REGRESSION-GATE: update `frontend/README.md`, then run focused visual/font/source tests, root `make test`, frontend typecheck/build, 1440/390 responsive/a11y gates, contexts/docs/diff and scoped zero-reference checks before restoring `completed`.
+- [x] 20.1 RED-GATE: visual/source/font tests fail while account chip/menu/backdrop/TopBar logout, settings tab/security/font/product/static-list selectors, preset metadata or extra font packages/imports remain current positive surfaces. Evidence (2026-07-15): focused TopBar/Settings RED exposes old DOM/selectors; fixed-font negative test now rejects the four current extra font packages/imports before their removal.
+- [x] 20.2 TOPBAR-GATE: style one settings gear with localized accessible name, visible focus, >=40px hit area and 1440/390 viewport containment；delete obsolete user-menu CSS/i18n/test anchors without aliases or empty wrappers.
+  <!-- verified: 2026-07-15 method=focused-topbar-visual evidence="TopBarVisual 17/17 PASS; 40px gear/focus/mobile containment and negative user-menu styling gate pass" -->
+- [x] 20.3 SETTINGS-GATE: preserve `ei-screen-shell/card` rhythm for semantic Account/Privacy read-only rows, unavailable export reason, sign-out link and delete confirmation/pending/error/success states；dialog styling keeps initial/trapped/returned focus, Escape/cancel and pending disabled semantics；remove tab rail and deleted block spacing with no blank placeholders.
+  <!-- verified: 2026-07-15 method=focused-settings-visual evidence="Settings 8/8 and ScreensVisual 10/10 PASS; semantic cards, responsive stack and dialog states covered" -->
+- [x] 20.4 FONT-GATE: retain only Noto Serif SC 400/500, Inter Latin 400/500/600 and JetBrains Mono Latin 400/500；delete `FONT_PRESETS` and Source Serif Pro/Cormorant Garamond/IBM Plex Sans/Geist packages/imports, lockfile entries and tests; build asset inventory has no removed family.
+  <!-- verified: 2026-07-15 method=font-source-build-inventory evidence="fonts 8/8 and tokens 12/12 PASS; typecheck/build PASS; dist asset inventory has zero removed-family matches" -->
+- [x] 20.5 BDD-Gate: update `BDD.SHELL.VISUAL.001` and consume frontend-shell/001 Settings behaviors；do not create a second settings E2E.
+  <!-- verified: 2026-07-15 method=owner-bdd+chrome evidence="frontend-shell Settings BDD and E2E.P0.101 PASS; Chrome 1440x900 and 390x844 screenshots prove one gear, full email, no legacy blocks and zero horizontal overflow" -->
+- [x] 20.6 REGRESSION-GATE: update `frontend/README.md`, then run focused visual/font/source tests, root `make test`, frontend typecheck/build, 1440/390 responsive/a11y gates, contexts/docs/diff and scoped zero-reference checks before restoring `completed`.
 
 ## BDD Gate
 
-- [ ] BDD-Gate: `BDD.SHELL.VISUAL.001` 由 [BDD checklist](./bdd-checklist.md) 关联 shell/display-preference/设置视觉 owner behavior tests；视觉 gate 不包装为 E2E。
+- [x] BDD-Gate: `BDD.SHELL.VISUAL.001` 由 [BDD checklist](./bdd-checklist.md) 关联 shell/display-preference/设置视觉 owner behavior tests；视觉 gate 不包装为 E2E。

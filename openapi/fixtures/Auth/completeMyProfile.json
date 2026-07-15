@@ -16,10 +16,8 @@
         },
         "body": {
           "id": "01918fa0-0000-7000-8000-000000000101",
-          "emailMasked": "new***r@example.com",
+          "email": "new.user@example.com",
           "displayName": "Alice Example",
-          "uiLanguage": "zh-CN",
-          "preferredPracticeLanguage": "zh-CN",
           "profileCompletionRequired": false
         }
       }

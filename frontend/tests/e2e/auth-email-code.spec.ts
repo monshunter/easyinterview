@@ -11,7 +11,6 @@ interface FlowResult {
     | "cross-browser-relogin-profile-setup"
     | "logout-relogin-profile-setup"
     | "existing-email-login";
-  email: string;
   mailSubject: string;
   finalUrl: string;
   meStatus: number;
@@ -42,10 +41,10 @@ test("E2E.P0.101 auth email-code same-email login/profile lifecycle", async ({
     console.log(
       [
         `E2E.P0.101 ${result.kind} email-code flow PASS`,
-        `email=${result.email}`,
+        "email=<redacted-synthetic>",
         `mailSubject=${result.mailSubject}`,
         "mailCode=<redacted>",
-        `finalUrl=${result.finalUrl}`,
+        `finalUrl=${redact(result.finalUrl)}`,
         `meStatus=${result.meStatus}`,
         `profileCompletionRequired=${String(result.profileCompletionRequired)}`,
       ].join(" "),
@@ -61,12 +60,17 @@ test("E2E.P0.101 auth email-code same-email login/profile lifecycle", async ({
       "authStartBodyKeys=email",
       "authRegisterLivePage=absent",
       "topbarRegister=absent",
+      "settingsEntry=single-gear",
+      "settingsAccount=runtime-full-email",
+      "settingsLegacySurfaces=absent",
+      "settingsMountedGetMe=0",
+      "deleteMeRequests=0",
     ].join(" "),
   );
   console.log(
     [
       "E2E.P0.101 auth email-code same-email lifecycle passed",
-      `email=${AUTH_EMAIL}`,
+      "email=<redacted-synthetic>",
       `consoleErrors=${consoleErrors}`,
       `pageErrors=${pageErrors}`,
       `httpFailures=${unexpectedHttpFailures}`,
@@ -85,6 +89,8 @@ async function runLifecycle(browser: Browser): Promise<{
   const pageErrors: string[] = [];
   const httpFailures: Array<{ status: number; url: string }> = [];
   const authStartBodies: Array<Record<string, unknown>> = [];
+  const meGetRequests: string[] = [];
+  const deleteMeRequests: string[] = [];
   const results: FlowResult[] = [];
 
   const firstContext = await browser.newContext({ baseURL: FRONTEND_ORIGIN });
@@ -94,6 +100,8 @@ async function runLifecycle(browser: Browser): Promise<{
     pageErrors,
     httpFailures,
     authStartBodies,
+    meGetRequests,
+    deleteMeRequests,
   });
 
   try {
@@ -119,7 +127,6 @@ async function runLifecycle(browser: Browser): Promise<{
     await expect(firstPage).toHaveURL(/pendingRoute=practice/);
     results.push({
       kind: "first-login-profile-setup",
-      email: AUTH_EMAIL,
       mailSubject: firstLoginMail.subject,
       finalUrl: firstPage.url(),
       meStatus: firstLoginUser.status,
@@ -136,6 +143,8 @@ async function runLifecycle(browser: Browser): Promise<{
     pageErrors,
     httpFailures,
     authStartBodies,
+    meGetRequests,
+    deleteMeRequests,
   });
 
   try {
@@ -151,7 +160,6 @@ async function runLifecycle(browser: Browser): Promise<{
     expect(crossBrowserUser.profileCompletionRequired).toBe(true);
     results.push({
       kind: "cross-browser-relogin-profile-setup",
-      email: AUTH_EMAIL,
       mailSubject: crossBrowserMail.subject,
       finalUrl: secondPage.url(),
       meStatus: crossBrowserUser.status,
@@ -180,7 +188,6 @@ async function runLifecycle(browser: Browser): Promise<{
     expect(logoutReloginUser.profileCompletionRequired).toBe(true);
     results.push({
       kind: "logout-relogin-profile-setup",
-      email: AUTH_EMAIL,
       mailSubject: logoutReloginMail.subject,
       finalUrl: secondPage.url(),
       meStatus: logoutReloginUser.status,
@@ -191,7 +198,11 @@ async function runLifecycle(browser: Browser): Promise<{
     const completedUser = await assertSignedIn(secondPage, DISPLAY_NAME);
     expect(completedUser.profileCompletionRequired).toBe(false);
 
-    await logout(secondPage);
+    await assertSettingsAndLogout(
+      secondPage,
+      completedUser,
+      meGetRequests,
+    );
 
     await secondPage.goto(`${FRONTEND_ORIGIN}/auth/login`, {
       waitUntil: "domcontentloaded",
@@ -204,7 +215,6 @@ async function runLifecycle(browser: Browser): Promise<{
 
     results.push({
       kind: "existing-email-login",
-      email: AUTH_EMAIL,
       mailSubject: completedLoginMail.subject,
       finalUrl: secondPage.url(),
       meStatus: completedLoginUser.status,
@@ -218,6 +228,7 @@ async function runLifecycle(browser: Browser): Promise<{
       expect(body).not.toHaveProperty("purpose");
       expect(body).not.toHaveProperty("displayName");
     }
+    expect(deleteMeRequests).toHaveLength(0);
 
     const unexpectedHttpFailures = httpFailures.filter(
       (failure) => !isExpectedAuthLifecycleHttpFailure(failure),
@@ -255,6 +266,8 @@ function attachDiagnostics(
     pageErrors: string[];
     httpFailures: Array<{ status: number; url: string }>;
     authStartBodies: Array<Record<string, unknown>>;
+    meGetRequests: string[];
+    deleteMeRequests: string[];
   },
 ): void {
   page.on("console", (msg) => {
@@ -276,6 +289,12 @@ function attachDiagnostics(
     }
   });
   page.on("request", (request) => {
+    if (request.method() === "GET" && request.url().endsWith("/api/v1/me")) {
+      sinks.meGetRequests.push(request.url());
+    }
+    if (request.method() === "DELETE" && request.url().endsWith("/api/v1/me")) {
+      sinks.deleteMeRequests.push(request.url());
+    }
     if (
       request.method() === "POST" &&
       request.url().endsWith("/api/v1/auth/email/start")
@@ -339,6 +358,7 @@ async function assertSignedIn(
   status: number;
   profileCompletionRequired?: boolean;
   displayName?: string;
+  email?: string;
 }> {
   await page.waitForFunction(
     () => window.location.pathname === "/",
@@ -348,18 +368,37 @@ async function assertSignedIn(
   const currentUser = await currentUserContext(page);
   expect(currentUser.status).toBe(200);
   expect(currentUser.displayName).toBe(expectedDisplayName);
-  await expect(page.getByTestId("topbar-user-name")).toContainText(
-    expectedDisplayName,
-  );
-  await expect(page.getByTestId("topbar-user-name")).not.toContainText(
-    "Runtime Duplicate",
-  );
+  await expect(page.getByTestId("topbar-settings")).toBeVisible();
   return currentUser;
 }
 
-async function logout(page: Page): Promise<void> {
-  await page.getByTestId("topbar-user-chip").click();
-  await page.getByTestId("topbar-user-logout").click();
+async function assertSettingsAndLogout(
+  page: Page,
+  currentUser: {
+    displayName?: string;
+    email?: string;
+  },
+  meGetRequests: string[],
+): Promise<void> {
+  expect(currentUser.email).toBe(AUTH_EMAIL);
+  const meCountBeforeSettings = meGetRequests.length;
+  await expect(page.getByTestId("topbar-settings")).toHaveCount(1);
+  await expect(page.getByTestId("topbar-user-chip")).toHaveCount(0);
+  await page.getByTestId("topbar-settings").click();
+  await expect(page.getByTestId("route-settings")).toBeVisible();
+  await expect(page.getByTestId("settings-account")).toContainText(
+    currentUser.displayName ?? "",
+  );
+  await expect(page.getByTestId("settings-account")).toContainText(
+    currentUser.email ?? "",
+  );
+  await expect(page.getByTestId("settings-tabs")).toHaveCount(0);
+  await expect(page.getByTestId("settings-login-security")).toHaveCount(0);
+  await expect(page.getByTestId("settings-font-preset")).toHaveCount(0);
+  await expect(page.getByTestId("topbar-user-menu")).toHaveCount(0);
+  await page.waitForTimeout(300);
+  expect(meGetRequests).toHaveLength(meCountBeforeSettings);
+  await page.getByRole("button", { name: /退出登录|sign out/i }).click();
   await page.getByTestId("auth-logout-confirm").click();
   await expect(page.getByTestId("topbar-user-area")).toHaveAttribute(
     "data-signed-in",
@@ -469,6 +508,7 @@ async function currentUserContext(page: Page): Promise<{
   status: number;
   profileCompletionRequired?: boolean;
   displayName?: string;
+  email?: string;
 }> {
   return page.evaluate(async (apiBaseUrl) => {
     const response = await fetch(`${apiBaseUrl}/me`, {
@@ -479,12 +519,15 @@ async function currentUserContext(page: Page): Promise<{
       status: response.status,
       profileCompletionRequired: body.profileCompletionRequired,
       displayName: body.displayName,
+      email: body.email,
     };
   }, API_BASE_URL);
 }
 
 function redact(value: string): string {
   return value
+    .replaceAll(AUTH_EMAIL, "<redacted-email>")
+    .replaceAll(encodeURIComponent(AUTH_EMAIL), "<redacted-email>")
     .replace(/token=[^&\s]+/g, "token=<redacted>")
     .replace(/\b\d{6}\b/g, "<redacted-code>")
     .replace(/ei_session=[^;\s]+/g, "ei_session=<redacted>");

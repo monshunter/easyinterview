@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
-> **版本**: 1.23
-> **状态**: active
+> **版本**: 1.24
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
@@ -110,8 +110,10 @@
 
 ## Phase 12: OPENAPI-007 Settings UserContext pruning
 
-- [ ] 12.1 GOVERNANCE/RED: accepted OPENAPI-007 + spec/history 1.63 exist；merge-base baseline remains byte-stable and focused diff proves the two old UserContext required properties before any baseline edit.
-- [ ] 12.2 ORACLE-GATE: generate exact five-key findings from old baseline → proposed source for both old fields leaving required/properties plus `additionalProperties: false` closure；reject missing/extra/wildcard/placeholder, edited baseline, optional aliases or constant-filled compatibility fields.
-- [ ] 12.3 INVARIANT-GATE: preserve 37/10 and exact getMe/completeMyProfile/deleteMe method/path/operationId/status/security；lock four-field closed required UserContext, email masking and profile completion.
-- [ ] 12.4 HANDOFF-GATE: 001/002, backend-auth, frontend-shell, B4 migration, mock and downstream Settings BDD pass before baseline edit with production old-field references at zero.
-- [ ] 12.5 RE-FREEZE/REGRESSION: preserve audit, re-freeze, then independently run diff/lint/fixture/codegen/consumer/migration/root-test/contexts/docs gates；clean current diff alone is insufficient.
+- [x] 12.1 GOVERNANCE/RED: accepted OPENAPI-007 + spec/history 1.64 exist；merge-base baseline remains byte-stable and focused diff proves the legacy language fields plus `emailMasked` before any baseline edit. Evidence (2026-07-15): the approved full-email correction invalidates the masked oracle while preserving the old baseline.
+- [x] 12.2 ORACLE-GATE: generate and exact-match all 9 findings from old baseline → proposed source, including language-field removals, `emailMasked` removal, required/property `email` addition and `additionalProperties: false` closure；reject missing/extra/wildcard/placeholder, edited baseline or aliases.
+  <!-- verified: 2026-07-15 method=generated-exact-oracle evidence="build_openapi_007_oracle generated 9 findings; exact-set and alias/missing-field mutation tests PASS against unchanged baseline" -->
+- [x] 12.3 INVARIANT-GATE: preserve 37/10 and exact getMe/completeMyProfile/deleteMe method/path/operationId/status/security；lock closed required `{id,email,displayName,profileCompletionRequired}`, complete authenticated email, no `emailMasked`, and redacted logs/E2E evidence.
+  <!-- verified: 2026-07-15 method=oracle-contract-consumer evidence="OpenAPI007OracleTests 2/2, inventory contract, Auth fixtures, backend handlers and Settings focused consumers PASS" -->
+- [x] 12.4 HANDOFF-GATE: 001/002, backend-auth, frontend-shell, B4 migration, mock and downstream Settings BDD pass before baseline edit with production old-field references at zero.
+- [x] 12.5 RE-FREEZE/REGRESSION: preserve audit, re-freeze, then independently run diff/lint/fixture/codegen/consumer/migration/root-test/contexts/docs gates；clean current diff alone is insufficient.

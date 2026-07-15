@@ -47,6 +47,7 @@ if [ "${VITE_EI_API_BASE_URL:-}" != "http://127.0.0.1:8080/api/v1" ]; then
   echo "setup: E2E.P0.101 requires the frontend API base to match the live backend" >&2
   exit 1
 fi
+MAILPIT_BASE_URL="http://127.0.0.1:${MAILPIT_WEB_HOST_PORT:-8025}"
 
 PG_DSN="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}"
 PROFILE_COLUMN_COUNT="$(psql "$PG_DSN" -tAc "
@@ -66,7 +67,7 @@ fi
   echo "AUTH_EMAIL=$AUTH_EMAIL"
   echo "FRONTEND_ORIGIN=http://127.0.0.1:5173"
   echo "API_BASE_URL=http://127.0.0.1:8080/api/v1"
-  echo "MAILPIT_BASE_URL=http://127.0.0.1:8025"
+  echo "MAILPIT_BASE_URL=$MAILPIT_BASE_URL"
   echo "setup_at=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 } > "$OUTPUT_DIR/setup.env"
 
@@ -75,11 +76,11 @@ fi
   echo "RUN_ID=$RUN_ID"
   echo "frontend=http://127.0.0.1:5173"
   echo "backend=http://127.0.0.1:8080/api/v1"
-  echo "mailpit=http://127.0.0.1:8025"
+  echo "mailpit=$MAILPIT_BASE_URL"
   echo "VITE_EI_API_MODE=real"
   echo "VITE_EI_API_BASE_URL=$VITE_EI_API_BASE_URL"
   curl -fsS --max-time 5 "http://127.0.0.1:5173/" >/dev/null
   curl -fsS --max-time 5 "http://127.0.0.1:8080/api/v1/runtime-config" >/dev/null
-  curl -fsS --max-time 5 "http://127.0.0.1:8025/readyz" >/dev/null
+  curl -fsS --max-time 5 "$MAILPIT_BASE_URL/readyz" >/dev/null
   echo "setup: ok"
 } 2>&1 | tee "$OUTPUT_DIR/setup.log"

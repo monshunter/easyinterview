@@ -86,7 +86,7 @@ function clientFor(value: FeedbackReport) {
         return {
           id: "user-1",
           displayName: "Tester",
-          emailMasked: "t***@example.com",
+          email: "test@example.com",
           profileCompletionRequired: false,
         } as never;
       },

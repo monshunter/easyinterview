@@ -2560,6 +2560,191 @@ def validate_openapi_005_invariants(
     return errors
 
 
+OPENAPI_007_RETIRED_FIELDS = ("uiLanguage", "preferredPracticeLanguage", "emailMasked")
+OPENAPI_007_USER_FIELDS = (
+    "id",
+    "email",
+    "displayName",
+    "profileCompletionRequired",
+)
+OPENAPI_007_EMAIL_SCHEMA = {
+    "type": "string",
+    "format": "email",
+    "description": "Complete account email returned only to the authenticated user for account settings.",
+}
+
+
+def normalize_openapi_007_findings(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    findings: List[Dict[str, Any]] = []
+    baseline_user = (
+        ((baseline.get("components") or {}).get("schemas") or {}).get("UserContext") or {}
+    )
+    current_user = (
+        ((current.get("components") or {}).get("schemas") or {}).get("UserContext") or {}
+    )
+    baseline_required = set(baseline_user.get("required") or [])
+    current_required = set(current_user.get("required") or [])
+    baseline_properties = baseline_user.get("properties") or {}
+    current_properties = current_user.get("properties") or {}
+    for field in OPENAPI_007_RETIRED_FIELDS:
+        if field in baseline_required and field not in current_required:
+            findings.append(
+                _normalized_finding(
+                    "additive",
+                    _json_pointer("components", "schemas", "UserContext", "required", field),
+                    "required_property_removed",
+                    "required",
+                    "absent",
+                )
+            )
+        if field in baseline_properties and field not in current_properties:
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer("components", "schemas", "UserContext", "properties", field),
+                    "property_removed",
+                    _type_signature(baseline_properties[field]),
+                    "absent",
+                )
+            )
+    if "email" not in baseline_required and "email" in current_required:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer("components", "schemas", "UserContext", "required", "email"),
+                "required_property_added",
+                "absent",
+                "required",
+            )
+        )
+    if "email" not in baseline_properties and "email" in current_properties:
+        findings.append(
+            _normalized_finding(
+                "additive",
+                _json_pointer("components", "schemas", "UserContext", "properties", "email"),
+                "property_added",
+                "absent",
+                _type_signature(current_properties["email"]),
+            )
+        )
+    baseline_closure = baseline_user.get("additionalProperties", "unspecified")
+    current_closure = current_user.get("additionalProperties", "unspecified")
+    if baseline_closure != current_closure:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer("components", "schemas", "UserContext", "additionalProperties"),
+                "closed_object",
+                baseline_closure,
+                current_closure,
+            )
+        )
+    return findings
+
+
+def validate_openapi_007_contract(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    baseline_user = copy.deepcopy(
+        ((baseline.get("components") or {}).get("schemas") or {}).get("UserContext") or {}
+    )
+    current_user = copy.deepcopy(
+        ((current.get("components") or {}).get("schemas") or {}).get("UserContext") or {}
+    )
+    baseline_required = set(baseline_user.get("required") or [])
+    baseline_properties = set((baseline_user.get("properties") or {}).keys())
+    for field in OPENAPI_007_RETIRED_FIELDS:
+        if field not in baseline_required or field not in baseline_properties:
+            errors.append(f"old baseline UserContext must retain required {field}")
+    if current_user.get("type") != "object" or current_user.get("additionalProperties") is not False:
+        errors.append("UserContext must be an explicitly closed object")
+    if list(current_user.get("required") or []) != list(OPENAPI_007_USER_FIELDS):
+        errors.append("UserContext required fields must equal the exact four-field projection")
+    if list((current_user.get("properties") or {}).keys()) != list(OPENAPI_007_USER_FIELDS):
+        errors.append("UserContext properties must equal the exact four-field projection")
+    expected = copy.deepcopy(baseline_user)
+    expected["additionalProperties"] = False
+    expected["required"] = list(OPENAPI_007_USER_FIELDS)
+    for field in OPENAPI_007_RETIRED_FIELDS:
+        (expected.get("properties") or {}).pop(field, None)
+    (expected.get("properties") or {})["email"] = copy.deepcopy(OPENAPI_007_EMAIL_SCHEMA)
+    expected["properties"] = {
+        field: expected["properties"][field] for field in OPENAPI_007_USER_FIELDS
+    }
+    if current_user != expected:
+        errors.append(
+            "UserContext may change only by pruning language/emailMasked fields, adding complete email, and closing the object"
+        )
+    return errors
+
+
+def validate_openapi_007_invariants(
+    baseline: Dict[str, Any], current: Dict[str, Any], invariants: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    inventory = invariants.get("inventory") or {}
+    tags = [tag.get("name") for tag in current.get("tags") or [] if isinstance(tag, dict)]
+    if _operation_count(current) != inventory.get("operations"):
+        errors.append("OPENAPI-007 operation inventory drifted")
+    if len(tags) != inventory.get("tags") or len(set(tags)) != inventory.get("tags"):
+        errors.append("OPENAPI-007 tag inventory drifted")
+    for name in ("getMe", "completeMyProfile", "deleteMe"):
+        expected = invariants.get(name) or {}
+        baseline_operation = _operation_at_contract_path(
+            baseline, str(expected.get("path") or ""), str(expected.get("method") or "")
+        )
+        current_operation = _operation_at_contract_path(
+            current, str(expected.get("path") or ""), str(expected.get("method") or "")
+        )
+        if baseline_operation is None or current_operation is None:
+            errors.append(f"{name} method/path must remain unchanged")
+            continue
+        if baseline_operation.get("operationId") != name or current_operation.get("operationId") != name:
+            errors.append(f"{name} operationId must remain unchanged")
+        status = str(expected.get("successStatus"))
+        if status not in (baseline_operation.get("responses") or {}) or status not in (current_operation.get("responses") or {}):
+            errors.append(f"{name} success status must remain {status}")
+        baseline_security = baseline_operation.get("security", baseline.get("security"))
+        current_security = current_operation.get("security", current.get("security"))
+        if baseline_security != current_security or current_security != [{"sessionCookie": []}]:
+            errors.append(f"{name} session-cookie security must remain unchanged")
+    return errors
+
+
+def build_openapi_007_oracle(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> Dict[str, Any]:
+    return OrderedDict(
+        schemaVersion=1,
+        decisionId="OPENAPI-007",
+        baseline="openapi/baseline/openapi-v1.0.0.yaml@merge-base(main)",
+        proposed="openapi/openapi.yaml@working-tree",
+        comparison={
+            "mode": "exact-set",
+            "keyFields": list(OPENAPI_001_FINDING_KEYS),
+            "orderSignificant": False,
+            "missingFinding": "fail",
+            "unexpectedFinding": "fail",
+        },
+        authority={
+            "decision": "OPENAPI-007",
+            "specDecision": "D-39",
+            "historyVersion": "1.64",
+            "productDecision": "Scheme A",
+        },
+        invariants={
+            "inventory": {"operations": 37, "tags": 10},
+            "getMe": {"path": "/api/v1/me", "method": "GET", "successStatus": 200},
+            "completeMyProfile": {"path": "/api/v1/me", "method": "PATCH", "successStatus": 200},
+            "deleteMe": {"path": "/api/v1/me", "method": "DELETE", "successStatus": 202},
+        },
+        findings=sorted(normalize_openapi_007_findings(baseline, current), key=_finding_key),
+    )
+
+
 OPENAPI_006_LIMIT_FIELDS = (
     "resumeUploadBytes",
     "resumePasteTextBytes",

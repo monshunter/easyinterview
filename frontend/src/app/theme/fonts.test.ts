@@ -19,18 +19,18 @@ const NOTO_SERIF_SC_ROOT = resolve(
 const REQUIRED_FONTSOURCE_PACKAGES = [
   "@fontsource/noto-serif-sc",
   "@fontsource/inter",
+  "@fontsource/jetbrains-mono",
+];
+
+const REMOVED_FONTSOURCE_PACKAGES = [
   "@fontsource/source-serif-pro",
   "@fontsource/cormorant-garamond",
   "@fontsource/ibm-plex-sans",
-  "@fontsource/jetbrains-mono",
   "@fontsource/geist-sans",
 ];
 
 const LATIN_ONLY_IMPORTS = {
   "@fontsource/inter": [400, 500, 600],
-  "@fontsource/source-serif-pro": [400, 600],
-  "@fontsource/cormorant-garamond": [400, 600],
-  "@fontsource/ibm-plex-sans": [400, 500],
   "@fontsource/jetbrains-mono": [400, 500],
 } as const;
 
@@ -41,12 +41,20 @@ describe("open-source font sourcing (Phase 2.1)", () => {
     ...(pkg.devDependencies ?? {}),
   };
 
-  it("declares fontsource packages for every EI_FONT_PRESETS entry", () => {
+  it("declares the single application typography package set", () => {
     for (const name of REQUIRED_FONTSOURCE_PACKAGES) {
       expect(
         merged[name],
         `missing required fontsource dep ${name}`,
       ).toBeTruthy();
+    }
+  });
+
+  it("does not ship removed font-preset packages or imports", () => {
+    const fonts = readFileSync(FONTS_CSS, "utf8");
+    for (const name of REMOVED_FONTSOURCE_PACKAGES) {
+      expect(merged[name]).toBeUndefined();
+      expect(fonts).not.toContain(name);
     }
   });
 

@@ -223,7 +223,7 @@ ROUTE_ALIASES
 11. Route/component gate 必须证明 query-free Workspace 列表、targetJobId Workspace 详情和 Parse command-progress 三态互斥；ready 卡片详情执行一次同 key `getTargetJob`，不得 import、poll、播放 Parse animation 或在 route side 启动 session。
 12. Practice message renderer 必须同时覆盖 user/assistant GFM、raw HTML/remote image/unsafe URI 负向、安全 link、exact raw same-ID retry，以及 390px pre/code/table 局部滚动且 document 无横向溢出。
 13. TopBar 已登录态只渲染设置齿轮；component/responsive/a11y gate 必须证明头像、姓名、caret、backdrop、dropdown 与 TopBar logout 零引用，且 desktop/mobile 点击区域和 focus ring 可用。
-14. Settings 为无 tab 单页：Account 只读展示 runtime `/me.displayName` / `emailMasked` 并进入既有 logout 确认；Privacy 只展示导出暂不可用与账号删除。删除流程覆盖确认、pending、失败重试；`202` 后调用现有 `refreshAuth()` 重探测 `/me`（预期 401），提交 unauthenticated 状态并 replace Home；不得重复实现清 session 方法、挂载时重复调用 `/me` 或保留伪静态字段。
+14. Settings 为无 tab 单页：Account 只读展示 runtime `/me.displayName` / 完整 `email` 并进入既有 logout 确认；Privacy 只展示导出暂不可用与账号删除。完整 email 只用于 authenticated 页面显示，不写入日志/场景证据。删除流程覆盖确认、pending、失败重试；`202` 后调用现有 `refreshAuth()` 重探测 `/me`（预期 401），提交 unauthenticated 状态并 replace Home；不得重复实现清 session 方法、挂载时重复调用 `/me`、保留 `emailMasked` alias 或伪静态字段。
 15. 字体固定为 Noto Serif SC（标题）、Inter（正文）与 JetBrains Mono（标签/代码）；删除其它 font preset 数据、包、CSS imports、locale 文案和兼容状态。
 
 ## 9 修订记录

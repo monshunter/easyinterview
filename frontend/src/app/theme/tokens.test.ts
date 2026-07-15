@@ -13,7 +13,7 @@ import {
   MODE_KEYS,
   cssVar,
 } from "./tokens";
-import { THEME_PALETTE, FONT_PRESETS } from "./themes.data";
+import { THEME_PALETTE } from "./themes.data";
 import { computeCustomAccentOverrides } from "./customAccent";
 
 const HERE = resolve(__dirname);
@@ -116,17 +116,6 @@ describe("theme palette data (Phase 1.1)", () => {
     }
   });
 
-  it("defines the supported font presets with non-empty families", () => {
-    expect(FONT_PRESETS.map((p) => p.key)).toEqual([
-      "editorial",
-      "modern",
-      "magazine",
-    ]);
-    for (const preset of FONT_PRESETS) {
-      expect(preset.serif).not.toBe("");
-      expect(preset.sans).not.toBe("");
-    }
-  });
 });
 
 describe("themes.css CSS variable wiring (Phase 1.1)", () => {

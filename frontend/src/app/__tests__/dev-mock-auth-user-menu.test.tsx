@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 /**
- * Code-level dev-mock auth state and user-menu regression.
+ * Code-level dev-mock auth state and settings-entry regression.
  *
  * Truth source: docs/spec/frontend-shell/plans/001-app-shell-auth-settings/bdd-plan.md
  *               + bdd-checklist.md.
  *
  * Given the default fixture-backed Vite dev mock client, the mounted App must
  * start signed out, sign in through email-code auth, expose the ui-design
- * aligned avatar dropdown, route settings/logout from that dropdown,
+ * aligned single settings entry, route logout from Settings,
  * and return to signed out after logout.
  */
 import { describe, expect, it } from "vitest";
@@ -17,8 +17,8 @@ import userEvent from "@testing-library/user-event";
 import { createDevMockClient } from "../../api/devMockClient";
 import { App } from "../App";
 
-describe("dev mock auth state and user menu", () => {
-  it("keeps /me stateful across login, settings menu action, and logout", async () => {
+describe("dev mock auth state and settings entry", () => {
+  it("keeps /me stateful across login, settings action, and logout", async () => {
     setNavigatorLanguages("zh-CN", ["zh-CN", "en-US"]);
     render(<App client={createDevMockClient()} />);
 
@@ -30,7 +30,7 @@ describe("dev mock auth state and user menu", () => {
     );
     expect(screen.getByTestId("topbar-login")).toBeInTheDocument();
     expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("topbar-user-chip")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-settings")).not.toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(screen.getByTestId("topbar-login"));
@@ -50,26 +50,19 @@ describe("dev mock auth state and user menu", () => {
         "true",
       ),
     );
-    expect(screen.getByTestId("topbar-user-chip")).toBeInTheDocument();
-    expect(screen.getByTestId("topbar-user-avatar")).toHaveTextContent("AE");
-    expect(screen.queryByTestId("topbar-user-profile")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("topbar-user-settings")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("topbar-user-logout")).not.toBeInTheDocument();
+    expect(screen.getByTestId("topbar-settings")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
 
-    await user.click(screen.getByTestId("topbar-user-chip"));
-    expect(screen.getByTestId("topbar-user-menu")).toBeInTheDocument();
-    expect(screen.getByTestId("topbar-user-menu-header")).toHaveTextContent(
+    await user.click(screen.getByTestId("topbar-settings"));
+    expect(screen.getByTestId("route-settings")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-account")).toHaveTextContent(
       "Alice Example",
     );
-    expect(screen.getByTestId("topbar-user-email")).toHaveTextContent(
-      "ali***@example.com",
+    expect(screen.getByTestId("settings-account")).toHaveTextContent(
+      "alice@example.com",
     );
 
-    await user.click(screen.getByTestId("topbar-user-settings"));
-    expect(screen.getByTestId("route-settings")).toBeInTheDocument();
-
-    await user.click(screen.getByTestId("topbar-user-chip"));
-    await user.click(screen.getByTestId("topbar-user-logout"));
+    await user.click(screen.getByRole("button", { name: "退出登录" }));
     await screen.findByTestId("route-auth_logout");
     await user.click(screen.getByTestId("auth-logout-confirm"));
 
@@ -81,10 +74,10 @@ describe("dev mock auth state and user menu", () => {
     );
     expect(screen.getByTestId("topbar-login")).toHaveTextContent("登录");
     expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("topbar-user-chip")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-settings")).not.toBeInTheDocument();
 
     console.log(
-      "dev mock regression: unauthenticated login avatar dropdown settings logout Alice Example ali***@example.com topbar-user-chip topbar-user-avatar",
+      "dev mock regression: unauthenticated login settings logout Alice Example email=<redacted> topbar-settings",
     );
   });
 });

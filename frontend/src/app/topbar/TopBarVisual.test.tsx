@@ -126,6 +126,23 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
     ).toHaveLength(1);
   });
 
+  it("uses one accessible 40px settings gear and removes account-menu styling", () => {
+    renderTopBar({ signedIn: true });
+    const settings = screen.getByTestId("topbar-settings");
+    expect(settings).toHaveAccessibleName(/设置与隐私|settings & privacy/i);
+    expect(settings.className).toMatch(/\bei-topbar-settings\b/);
+    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
+
+    const css = readFileSync(TOPBAR_CSS, "utf8");
+    expect(css).toMatch(/\.ei-topbar-settings\s*\{[^}]*width:\s*40px/);
+    expect(css).toMatch(/\.ei-topbar-settings\s*\{[^}]*height:\s*40px/);
+    expect(css).toMatch(/\.ei-topbar-settings:focus-visible\s*\{[^}]*outline:/);
+    expect(css).not.toMatch(/\.ei-topbar-user-(button|menu|backdrop|avatar|name|email)/);
+    expect(css).toMatch(
+      /@media \(max-width: 720px\)[\s\S]*\.ei-topbar-controls,[\s\S]*\.ei-topbar-user\s*\{[^}]*flex:\s*0 0 auto/,
+    );
+  });
+
   it("regression: D1 testids and aria-current/aria-pressed contract intact", () => {
     renderTopBar();
     expect(screen.getByTestId("topbar-primary-nav")).toBeInTheDocument();

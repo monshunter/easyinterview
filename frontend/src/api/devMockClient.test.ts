@@ -107,7 +107,7 @@ describe("frontend dev fixture-backed mock client", () => {
 		});
 		await expect(client.getMe()).resolves.toMatchObject({
 			displayName: "",
-			emailMasked: "new***r@example.com",
+			email: "new.user@example.com",
 			profileCompletionRequired: true,
 		});
 
@@ -117,7 +117,7 @@ describe("frontend dev fixture-backed mock client", () => {
 		});
 		await expect(client.getMe()).resolves.toMatchObject({
 			displayName: "Alice Example",
-			emailMasked: "new***r@example.com",
+			email: "new.user@example.com",
 			profileCompletionRequired: false,
 		});
 

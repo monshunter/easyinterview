@@ -193,11 +193,9 @@ type PaginatedEnvelope struct {
 
 type UserContext struct {
 	DisplayName               string `json:"displayName"`
-	EmailMasked               string `json:"emailMasked"`
+	Email                     string `json:"email"`
 	Id                        string `json:"id"`
-	PreferredPracticeLanguage string `json:"preferredPracticeLanguage"`
 	ProfileCompletionRequired bool   `json:"profileCompletionRequired"`
-	UiLanguage                string `json:"uiLanguage"`
 }
 
 type AuthEmailStartRequest struct {

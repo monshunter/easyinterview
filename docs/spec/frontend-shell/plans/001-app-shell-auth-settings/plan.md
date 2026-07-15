@@ -1,7 +1,7 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.29
-> **状态**: active
+> **版本**: 1.30
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -33,7 +33,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 - Auth UI 只通过 email-code flow 触发 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`completeMyProfile`、`logout` 和 first-party session cookie。
 - `profileCompletionRequired=true` 时，登录后必须先进入 `auth_profile_setup`；资料补全成功并刷新 `/me` 后，才恢复 pendingAction 或回 Home。
 - `pendingAction` 只保存 route name、canonical URL 和 safe params，不保存 JD 原文、简历原文、验证码、AI prompt/response 或解析正文。
-- Settings 为无 tab 单页：Account 复用 runtime user 展示只读 `displayName/emailMasked` 并提供退出入口；Privacy 展示导出暂不可用状态和账号删除确认流程。
+- Settings 为无 tab 单页：Account 复用 runtime user 展示只读 `displayName/email`（完整账号邮箱）并提供退出入口；Privacy 展示导出暂不可用状态和账号删除确认流程。
 - 显示偏好由前端持有：主题、暗色和语言下拉在登录前后保持稳定；默认主题与无效值 fallback 为 `ocean`。字体固定，不保留 preset 状态。
 
 ### 2.3 StrictMode-safe GET orchestration
@@ -71,7 +71,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 - Browser History URL、hash adapter 输入和 in-memory route 均进入同一 normalization / route store 合同。
 - 语言、主题与暗色在未登录、登录、退出登录和 `/me` refresh 中保持前端偏好优先级；generated client 请求携带当前 UI locale display hint；字体保持固定产品栈。
 - 未登录用户触发受保护动作时进入 `auth_login(pendingAction)`；email-code 验证成功后先执行资料补全 gate，再恢复 safe route params。
-- Settings 无 tab，复用 runtime user 展示真实姓名/脱敏邮箱，不重复调用 `getMe`；退出进入既有确认页，导出诚实显示暂不可用，删除账号覆盖确认、pending、失败重试，以及 `202` 后复用 `refreshAuth()` 重探测 `/me` 并回到 Home。
+- Settings 无 tab，复用 runtime user 展示真实姓名/完整邮箱，不重复调用 `getMe`；完整邮箱不写入日志/场景证据；退出进入既有确认页，导出诚实显示暂不可用，删除账号覆盖确认、pending、失败重试，以及 `202` 后复用 `refreshAuth()` 重探测 `/me` 并回到 Home。
 - 面试业务 route 在 runtime auth loading / unauthenticated 状态下不挂载业务 screen，不调用受保护 API；Home 未登录态不请求账号记录。
 - Vite dev mock 从 unauthenticated 开始，verify 后 `/me` 变为 authenticated 或 profileIncomplete，logout 后回到 unauthenticated。
 - Auth verify 成功后的 `/me` refresh failure 不被渲染为验证码错误；App 离开 verify 页并在 route gate 中表达 auth/profile loading 或 error。
@@ -114,7 +114,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 
 ### Phase 14: Settings simplification and real account actions
 
-先以 focused component/source RED 固化当前可移除面：头像姓名 chip、用户 dropdown、TopBar logout、settings tab rail、静态账号/隐私列表、登录与安全、字体预设、产品信息及无后端事实字段。随后把已登录 TopBar 收敛为直接导航到 `settings` 的设置齿轮，并让 `SettingsScreen` 从 `AppRuntimeContext.auth.user` 读取 `displayName/emailMasked`，不得新增第二次 `getMe`。
+先以 focused component/source RED 固化当前可移除面：头像姓名 chip、用户 dropdown、TopBar logout、settings tab rail、静态账号/隐私列表、登录与安全、字体预设、产品信息及无后端事实字段。随后把已登录 TopBar 收敛为直接导航到 `settings` 的设置齿轮，并让 `SettingsScreen` 从 `AppRuntimeContext.auth.user` 读取 `displayName/email`，不得新增第二次 `getMe`；`emailMasked` 必须作为旧合同零引用删除。
 
 Account 区用只读语义行展示真实值并进入既有 `auth_logout`；Privacy 区把 P0 export 呈现为带原因的禁用/暂不可用状态，不渲染可触发动作，也不发送会被误读为成功的请求。账号删除使用 generated `deleteMe`：打开 destructive confirm 时生成一次 idempotency key，同一确认生命周期内失败重试复用该 key；对话框具备 destructive description、初始/约束/归还焦点与 Escape/取消；pending 禁止关闭和重复提交；网络/服务失败留在对话框并显示可恢复错误，`401` 转入统一认证重探测。`202` 后关闭对话框，调用现有 `refreshAuth()` 重探测 `/me`（预期 401）并提交 unauthenticated runtime，再 replace 到 Home；重探测网络/服务错误保留 honest auth error。未登录直开 `/settings` 仍由统一 protected-route guard 转入登录和 safe pendingAction；不得新增 `clearAuth` 或第二套 session mutation。
 

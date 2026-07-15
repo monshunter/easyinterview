@@ -14,15 +14,6 @@ importers:
 
   frontend:
     dependencies:
-      '@fontsource/cormorant-garamond':
-        specifier: ^5.2.11
-        version: 5.2.11
-      '@fontsource/geist-sans':
-        specifier: ^5.2.5
-        version: 5.2.5
-      '@fontsource/ibm-plex-sans':
-        specifier: ^5.2.8
-        version: 5.2.8
       '@fontsource/inter':
         specifier: ^5.2.8
         version: 5.2.8
@@ -32,9 +23,6 @@ importers:
       '@fontsource/noto-serif-sc':
         specifier: ^5.2.9
         version: 5.2.9
-      '@fontsource/source-serif-pro':
-        specifier: ^5.2.5
-        version: 5.2.5
       pdfjs-dist:
         specifier: 5.4.296
         version: 5.4.296
@@ -869,15 +857,6 @@ packages:
     resolution: {integrity: sha512-c3AVeH31OioiI2J1BfW8Cryi1DhUYldnY3X35nv6xLMq3fU2NQOo+eYaR5mL2O8MoHHh+HzXdQuIyanIyeq+ug==}
     engines: {node: '>=18.0.0'}
 
-  '@fontsource/cormorant-garamond@5.2.11':
-    resolution: {integrity: sha512-5JjpN023lhA5soijgVT0BdRGzmlijm402ppjccMd6h+vRE0mX2lJnE+41UPfnlidrkV9/rCo1mf58WZlHnB0CA==}
-
-  '@fontsource/geist-sans@5.2.5':
-    resolution: {integrity: sha512-anllOHyJbElRs9fV15TeDRqAeb1IKm4bSknPl6ZMoyPTx1BBy7logudcUwpNjmQLkzn4Q0JGQLRCUKJYoyST6A==}
-
-  '@fontsource/ibm-plex-sans@5.2.8':
-    resolution: {integrity: sha512-eztSXjDhPhcpxNIiGTgMebdLP9qS4rWkysuE1V7c+DjOR0qiezaiDaTwQE7bTnG5HxAY/8M43XKDvs3cYq6ZYQ==}
-
   '@fontsource/inter@5.2.8':
     resolution: {integrity: sha512-P6r5WnJoKiNVV+zvW2xM13gNdFhAEpQ9dQJHt3naLvfg+LkF2ldgSLiF4T41lf1SQCM9QmkqPTn4TH568IRagg==}
 
@@ -886,9 +865,6 @@ packages:
 
   '@fontsource/noto-serif-sc@5.2.9':
     resolution: {integrity: sha512-+wosdNmyrtRjnqJ/4A6i99jApm6ye34n8Nh7jUO3P/+6Hd1ZBY1gB9yGaI5jVxb56RS1lM2kTc0DzX1ifRO2MA==}
-
-  '@fontsource/source-serif-pro@5.2.5':
-    resolution: {integrity: sha512-MTsjMrl2+81dar37wV1taDYzU+o9ArcuBVBkXRNb6JuNCBmrKOIAAmI1wC3cE+Q0eAlgXlfNrvZ7swP3l2M8tQ==}
 
   '@googleapis/sheets@13.0.2':
     resolution: {integrity: sha512-b1tBlMcfvNEziM4DZCikLOc9iqSlgCK1e5bMKtNQIADRXr1CQmbkHV3ZBVvTsFsjLErgihqO58Itn/kzCnSZ0A==}
@@ -5698,19 +5674,11 @@ snapshots:
       robot3: 0.4.1
     optional: true
 
-  '@fontsource/cormorant-garamond@5.2.11': {}
-
-  '@fontsource/geist-sans@5.2.5': {}
-
-  '@fontsource/ibm-plex-sans@5.2.8': {}
-
   '@fontsource/inter@5.2.8': {}
 
   '@fontsource/jetbrains-mono@5.2.8': {}
 
   '@fontsource/noto-serif-sc@5.2.9': {}
-
-  '@fontsource/source-serif-pro@5.2.5': {}
 
   '@googleapis/sheets@13.0.2':
     dependencies:

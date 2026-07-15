@@ -1,6 +1,6 @@
 # Frontend Shell Spec
 
-> **版本**: 1.32
+> **版本**: 1.33
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -19,7 +19,7 @@
 - 上下文 route：`parse`、`practice`、`reports`、`generating`、`report`。
 - 账号入口 route：已登录 TopBar 设置齿轮直达 `settings`；`auth_logout` 只由设置页发起。
 - Auth route：`auth_login`、`auth_verify`、`auth_profile_setup`、`auth_logout`。
-- Settings：无 tab 的账号与隐私单页；复用 runtime `/me` 展示真实 `displayName/emailMasked`，提供既有退出登录入口、导出暂不可用状态和账号删除确认流程。
+- Settings：无 tab 的账号与隐私单页；复用 runtime `/me` 展示真实 `displayName/email`（完整账号邮箱），提供既有退出登录入口、导出暂不可用状态和账号删除确认流程。
 - `requestAuth(pendingAction)`：未登录用户触发受保护动作时进入登录页，登录和资料补全完成后恢复 safe route params。
 - Email-code auth：`auth_verify` 承接 6 位验证码输入，通过 generated `verifyAuthEmailChallenge` 完成验证。
 - Runtime bootstrap：`getRuntimeConfig`、`getMe`、generated client、fixture-backed mock transport and dev mock session state。
@@ -104,7 +104,7 @@
 | C-12 | StrictMode safe-read 去重 | AppRuntimeProvider 或 Home/Parse/Workspace/Reports/Practice loader 在 StrictMode mount cycle 内发出同 key safe-read GET | 两个 caller 同时等待、settle 后重试、使用不同 `okStatuses`，或在任一语义写请求前/期间/settle 后读取 | 同时在途只产生一次底层 GET；settle 后重试产生新 GET；不同 client/query/header/okStatuses/epoch/auth、带 signal、非 GET 与 verify GET 均不合并；所有语义写请求 dispatch 前和 settle 后推进 read epoch，verify 成功另推进 auth/session epoch并真实刷新 | 001-app-shell-auth-settings |
 | C-13 | Parse/workspace route 分工 | TargetJob 为 queued/processing 或 ready | 打开 `/parse?targetJobId`、轮询转 ready、或打开 ready 卡片 | Parse 只在处理中展示进度；ready 使用 replace 进入 `/workspace?targetJobId`；无 target 的 workspace 仍为列表，详情不显示 Parse 动画 | 004-url-addressable-routing |
 | C-14 | Custom accent 最小选择器 | TopBar 主题菜单打开 | 用户调整自定义色或选择 Ocean / Plum | 只显示色相、饱和度；不显示 preview/value、恢复主题默认色按钮；选择预定义主题清晰退出 custom accent | 002-app-shell-visual-system |
-| C-15 | Settings 真实数据与隐私动作 | authenticated runtime 已取得 `/me` | 打开设置、查看导出状态、退出或删除账号 | 只显示真实 `displayName/emailMasked`；不重复 `getMe`；导出显示暂不可用；删除流程具备确认/pending/failure/202 success，且旧 tab/block/字段零引用 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
+| C-15 | Settings 真实数据与隐私动作 | authenticated runtime 已取得 `/me` | 打开设置、查看导出状态、退出或删除账号 | 只显示真实 `displayName/email`，其中 email 完整显示但不进入日志/证据；不重复 `getMe`；导出显示暂不可用；删除流程具备确认/pending/failure/202 success，且旧 tab/block/字段零引用 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
 
 ## 7 关联计划
 

@@ -569,8 +569,8 @@ describe("App auth route dispatch", () => {
         "true",
       ),
     );
-    await user.click(screen.getByTestId("topbar-user-chip"));
-    await user.click(screen.getByTestId("topbar-user-logout"));
+    await user.click(screen.getByTestId("topbar-settings"));
+    await user.click(screen.getByRole("button", { name: /退出登录|sign out/i }));
     await screen.findByTestId("route-auth_logout");
     await user.click(screen.getByTestId("auth-logout-confirm"));
 

@@ -1,6 +1,6 @@
 # E2E Scenarios P0 Spec
 
-> **版本**: 2.16
+> **版本**: 2.17
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -50,7 +50,7 @@
 | `startAuthEmailChallenge` | `Auth/startAuthEmailChallenge.json` | AuthLoginScreen | backend-auth challenge handler | auth challenge + email dispatch job | none | P0.101 real Mailpit delivery |
 | `verifyAuthEmailChallenge` | `Auth/verifyAuthEmailChallenge.json` | AuthVerifyScreen | backend-auth verification handler | challenge consumption + first-party session | none | P0.101 real code verification |
 | `completeMyProfile` | `Auth/completeMyProfile.json` | AuthProfileSetupScreen | backend-auth profile-completion handler | users display/profile/terms | none | P0.101 first-login setup |
-| `getMe` | `Auth/getMe.json` | AppRuntimeProvider + Settings | backend-auth current-user handler | session-owned user identity/profile | none | P0.101 real displayName/emailMasked projection；no duplicate page request |
+| `getMe` | `Auth/getMe.json` | AppRuntimeProvider + Settings | backend-auth current-user handler | session-owned user identity/profile | none | P0.101 real displayName/full email projection；no duplicate page request；evidence redacts email |
 | `logout` | `Auth/logout.json` | AuthLogoutScreen entered from Settings | backend-auth logout handler | session revocation | none | P0.101 real logout/relogin |
 
 Resume/JD/plan/chat/provider 的业务与可靠性由各代码 owner 测试或 eval gate 承接；它们不是本 subject 为扩大覆盖率而拼接的 E2E 步骤。
@@ -61,7 +61,7 @@ Resume/JD/plan/chat/provider 的业务与可靠性由各代码 owner 测试或 e
 - P0.099 对当前 run 的 en/zh ready report 与 generating state 捕获精确六张 `fullPage: true` 图片；每个 row 绑定当前 DB/API 状态、canonical content digest、action/content audit、screenshot digest 与 report/session/context digest。
 - P0.099 的两张 390x844 ready report 图片完整覆盖 action 区域，实际 English / zh-CN label 分别满足 `<=24 whitespace words` / `<=64 Unicode code points` 且无 clipping、ellipsis、hidden content 或横向溢出；这不替代代码层 exact boundary test。
 - P0.099 还从 ready Report 点击“查看本次面试记录”，验证 URL 只含 `reportId`、真实 API 返回同一 report/context 与 DB 绑定 session 的严格有序消息，并按 Back 回到该 Report；conversation 不新增截图、不抄录正文，只记录 route/status/count/sequence digest、report/session/context digest 与返回目标。公共 `listPracticeSessions` route/API 请求必须为零。
-- P0.101 经真实 Mailpit 收取验证码并完成首次 profile setup；点击唯一设置齿轮后显示同一账号的姓名/脱敏邮箱且不出现旧账号下拉/设置 tab，随后通过 Settings 进入 logout；完成账号再次登录不重复补全，且浏览器请求不被 fixture/mock transport 接管。账号删除不在该共享场景执行。
+- P0.101 经真实 Mailpit 收取验证码并完成首次 profile setup；点击唯一设置齿轮后显示同一账号的姓名/完整邮箱且不出现旧账号下拉/设置 tab，随后通过 Settings 进入 logout；完整邮箱只在页面断言，不写入 trigger/result 证据；完成账号再次登录不重复补全，且浏览器请求不被 fixture/mock transport 接管。账号删除不在该共享场景执行。
 - 三个场景都只接受当前真实环境证据；cookie、邮箱验证码、完整 prompt/response、JD、简历和 transcript 不写入 tracked docs 或验收 evidence。
 - 技术元数据可以保留，前提是其中不携带上述用户数据、认证材料或 secret；校验器必须按内容风险判断，不能把普通开发过程信息等同于隐私数据。
 - 根 `make test` 与 code/eval gate 单独报告，不得作为 E2E PASS marker。

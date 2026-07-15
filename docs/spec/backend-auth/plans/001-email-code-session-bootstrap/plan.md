@@ -1,7 +1,7 @@
 # Email-Code Session Bootstrap
 
-> **版本**: 2.4
-> **状态**: active
+> **版本**: 2.5
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -78,7 +78,7 @@ ADR-Q1 已锁定自建 email-code challenge + first-party session cookie。B2 Op
 
 #### 3.3 实现 `/me`
 
-根据 session cookie 读取当前用户，返回 masked email、displayName、语言偏好等 B2 schema 字段；未登录返回 B1 error envelope。
+根据 session cookie 读取当前用户，返回完整 email、displayName 等当前 B2 schema 字段；未登录返回 B1 error envelope。完整 email 仅进入 authenticated response，不写日志。
 
 #### 3.4 实现 logout
 
@@ -106,7 +106,7 @@ ADR-Q1 已锁定自建 email-code challenge + first-party session cookie。B2 Op
 
 #### 5.1 完成代码级 BDD 并登记真实 E2E handoff
 
-按 `bdd-plan.md` 和 `bdd-checklist.md` 由 `BDD.AUTH.EMAIL.001` 关联 email challenge -> verify -> `/me` -> profile completion -> logout/relogin 的代码层行为证据。`E2E.P0.101` 只登记真实 Mailpit 主链路；本轮未运行，状态保持 `Ready`。runtime-config wiring、deleteMe idempotency 和错误矩阵由代码层 gate 承接，不扩张该 E2E。
+按 `bdd-plan.md` 和 `bdd-checklist.md` 由 `BDD.AUTH.EMAIL.001` 关联 email challenge -> verify -> `/me` -> profile completion -> logout/relogin 的代码层行为证据。`E2E.P0.101` 只登记真实 Mailpit 主链路；本轮当前 run `e2e-p0-101-20260715114513-19516` 已 PASS，静态 INDEX 生命周期状态保持 `Ready`。runtime-config wiring、deleteMe idempotency 和错误矩阵由代码层 gate 承接，不扩张该 E2E。
 
 #### 5.2 Handoff 给 frontend-shell
 
@@ -182,7 +182,7 @@ Replace the duplicate unauthenticated `getMe` / `deleteMe` envelope tests with o
 
 ### Phase 10: OPENAPI-007 minimal current-user projection
 
-Use OPENAPI-007 generated types as the only public shape. Focused RED must fail while internal `UserContext`, `GetUserContext` SQL/scan, handler mapping or test builders read/fill `UILanguage` / `PreferredPracticeLanguage`. GREEN removes those fields and selects only users identity/profile plus `user_settings.analytics_opt_in`, which remains internal for runtime-config resolution. The Auth handler must serialize exact `id/emailMasked/displayName/profileCompletionRequired` and never raw email or compatibility language fields.
+Use OPENAPI-007 generated types as the only public shape. Focused RED must fail while internal `UserContext`, `GetUserContext` SQL/scan, handler mapping or test builders read/fill `UILanguage` / `PreferredPracticeLanguage` / `emailMasked`. GREEN removes those fields and selects the existing account email plus users identity/profile；`user_settings.analytics_opt_in` remains internal for runtime-config resolution. The Auth handler must serialize exact `id/email/displayName/profileCompletionRequired`, never log raw email and never retain compatibility aliases or language fields.
 
 Coordinate B4 001 Phase 13 before removing DB columns；new account creation still inserts a `user_settings` row so analytics opt-in keeps its default owner. `region/timezone` have no Auth consumer and are removed by B4. Run focused store/handler/runtime-config tests, generated compile, root `make test` and production old-field zero-reference gates. User-visible Settings behavior remains owned by frontend-shell BDD；`E2E.P0.101` may verify the real values after login but this backend phase creates no parallel scenario.
 
@@ -195,7 +195,7 @@ Coordinate B4 001 Phase 13 before removing DB columns；new account creation sti
 - 发码前不泄露账号存在性；新邮箱 verify 后创建资料未补全账号并返回 `profileCompletionRequired=true`；未补全用户重开浏览器、换浏览器或 logout 后重新登录仍必须保持未补全状态；`PATCH /me` 成功后返回 `profileCompletionRequired=false`。
 - 日志 / metric / audit privacy grep 无 secret / PII 明文；auth metrics 名称已由 F1 登记或承接，label 只使用 F1 allowed labels。
 - `backend/internal/auth` has no duplicate unauthenticated account-envelope test body at the scoped threshold.
-- `/me` and profile-completion success use exact OPENAPI-007 four-field `UserContext`; auth store no longer reads obsolete display/practice-language columns while runtime-config analytics behavior remains intact.
+- `/me` and profile-completion success use exact OPENAPI-007 four-field `UserContext` with full authenticated `email` and no `emailMasked`; auth store no longer reads obsolete display/practice-language columns while runtime-config analytics behavior remains intact.
 
 ## 6 风险与应对
 

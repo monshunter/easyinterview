@@ -53,7 +53,7 @@ paths:
       tags: [Auth]
       operationId: getMe
       summary: Get current user context
-      description: Returns minimal context for the authenticated user (id, masked email, display name, language preferences, profile completion state).
+      description: Returns minimal context for the authenticated user (id, complete account email, display name, profile completion state).
       parameters:
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
@@ -1571,23 +1571,19 @@ components:
     # ----- Auth / runtime -----
     UserContext:
       type: object
-      required: [id, emailMasked, displayName, uiLanguage, preferredPracticeLanguage, profileCompletionRequired]
+      additionalProperties: false
+      required: [id, email, displayName, profileCompletionRequired]
       description: Minimal current-user context returned by `GET /me`.
       properties:
         id:
           type: string
           format: uuid
-        emailMasked:
+        email:
           type: string
-          description: Masked email address (e.g., `ali***@example.com`); raw email never leaves the server.
+          format: email
+          description: Complete account email returned only to the authenticated user for account settings.
         displayName:
           type: string
-        uiLanguage:
-          type: string
-          description: BCP 47 UI language preference.
-        preferredPracticeLanguage:
-          type: string
-          description: BCP 47 preferred practice language.
         profileCompletionRequired:
           type: boolean
           description: True when the signed-in account still needs first-login display name and terms completion before business actions can resume.

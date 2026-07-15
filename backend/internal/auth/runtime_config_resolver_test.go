@@ -20,11 +20,7 @@ func TestRuntimeConfigSessionResolverOnlyAffectsA4Allowlist(t *testing.T) {
 	store := &sessionStore{
 		session: auth.SessionRecord{ID: "session-1", UserID: "user-1", Status: auth.SessionStatusActive, ExpiresAt: now.Add(auth.SessionTTL)},
 	}
-	userStore := &runtimeConfigStore{sessionStore: store, user: auth.UserContext{
-		ID:             "user-1",
-		Email:          "candidate@example.com",
-		AnalyticsOptIn: true,
-	}}
+	userStore := &runtimeConfigStore{sessionStore: store, analyticsOptIn: true}
 	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               userStore,
 		SessionCookieSecret: "session-secret",
@@ -77,11 +73,11 @@ func TestRuntimeConfigSessionResolverOnlyAffectsA4Allowlist(t *testing.T) {
 
 type runtimeConfigStore struct {
 	*sessionStore
-	user auth.UserContext
+	analyticsOptIn bool
 }
 
-func (s *runtimeConfigStore) GetUserContext(context.Context, string) (auth.UserContext, error) {
-	return s.user, nil
+func (s *runtimeConfigStore) GetAnalyticsOptIn(context.Context, string) (bool, error) {
+	return s.analyticsOptIn, nil
 }
 
 type runtimeFlags struct {

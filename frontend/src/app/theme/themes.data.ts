@@ -1,10 +1,10 @@
 /**
  * Theme palette data. Every value here is transcribed verbatim from
- * formal frontend implementation (EI_THEMES) and formal frontend implementation (font
- * presets). The matching focused tests in `tokens.test.ts` assert that every
+ * formal frontend implementation (EI_THEMES). The matching focused tests in
+ * `tokens.test.ts` assert that every
  * hex appears in primitives.jsx so AI cannot invent values.
  *
- * Do NOT export hex literals from `tokens.ts`; palette and font data are
+ * Do NOT export hex literals from `tokens.ts`; palette data is
  * checked by the focused traceability test, while THEME_METADATA drives the
  * TopBar swatches. `themes.css` is checked-in runtime source, not generated.
  */
@@ -133,18 +133,6 @@ export const THEME_PALETTE: Record<Theme, Record<Mode, PaletteEntry>> = {
     },
   },
 };
-
-export interface FontPresetEntry {
-  key: "editorial" | "modern" | "magazine";
-  serif: string;
-  sans: string;
-}
-
-export const FONT_PRESETS: readonly FontPresetEntry[] = [
-  { key: "editorial", serif: "Noto Serif SC", sans: "Inter" },
-  { key: "modern", serif: "Source Serif Pro", sans: "Geist" },
-  { key: "magazine", serif: "Cormorant Garamond", sans: "IBM Plex Sans" },
-];
 
 export interface ThemeMetadataEntry {
   key: Theme;

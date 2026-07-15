@@ -1,6 +1,6 @@
 # 001 Real API/UI Journeys BDD Checklist
 
-> **版本**: 4.3
+> **版本**: 4.4
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -29,17 +29,18 @@
 
 - [x] The tracked flow requires real frontend/backend/Mailpit and drives email-code, first profile setup and logout/relogin without request interception.
 - [x] Business behavior remains owned by backend-auth/frontend-shell; this suite records only the executable asset and current-run result.
-- [ ] The tracked flow opens Settings through the sole gear, verifies current-run displayName and masked email from the real backend, and rejects the old account dropdown/settings tab surface.
-- [ ] Logout is entered from Settings and relogin skips profile setup；the flow never calls deleteMe and stores no full email/code/cookie evidence.
+- [x] The tracked flow opens Settings through the sole gear, verifies current-run displayName and complete account email from the real backend, rejects the old account dropdown/settings tab surface, and keeps that email redacted from scenario logs/evidence.
+- [x] Logout is entered from Settings and relogin skips profile setup；the flow never calls deleteMe and stores no full email/code/cookie evidence.
 
 ## 当前真实环境运行证据
 
 - [ ] Run `E2E.P0.098` against the current real environment and record current-run PASS.
 - [x] Run `E2E.P0.099` against the current real environment, complete the exact-six no-OCR audit plus bounded conversation/API/DB/back evidence, and record current-run PASS.
   <!-- verified: 2026-07-15 run_id="e2e-p0-099-20260715T021319Z-57232" result="PASS" evidence="exact six Chrome full-page screenshots; no-OCR visual audit; live API/PostgreSQL/conversation/back binding; bounded redaction" -->
-- [ ] Run `E2E.P0.101` against the current real environment and record current-run PASS.
+- [x] Run `E2E.P0.101` against the current real environment and record current-run PASS.
+  <!-- verified: 2026-07-15 run_id="e2e-p0-101-20260715114513-19516" result="PASS" evidence="real Mailpit lifecycle, full Settings email, logout/relogin, deleteMe=0, plain+URL-encoded email redaction, cleanup PASS" -->
 
-本轮已在当前 host-run 真实环境完成 P0.099 的 setup → trigger → Chrome exact-six capture/no-OCR audit → verify → cleanup，current-run 结果为 `PASS`；P0.098 与 P0.101 仍保持未运行。
+本轮已在当前 host-run 真实环境完成 P0.099 与 P0.101 的 setup → trigger → verify → cleanup，current-run 结果均为 `PASS`；P0.101 另经 Chrome 1440/390 验证完整邮箱、单设置齿轮与零横向溢出。P0.098 仍保持未运行。
 
 ## Independent regression gates
 

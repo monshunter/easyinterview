@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-007",
+  "baseline": "openapi/baseline/openapi-v1.0.0.yaml@merge-base(main)",
+  "proposed": "openapi/openapi.yaml@working-tree",
+  "comparison": {
+    "mode": "exact-set",
+    "keyFields": [
+      "severity",
+      "path",
+      "kind",
+      "before",
+      "after"
+    ],
+    "orderSignificant": false,
+    "missingFinding": "fail",
+    "unexpectedFinding": "fail"
+  },
+  "authority": {
+    "decision": "OPENAPI-007",
+    "specDecision": "D-39",
+    "historyVersion": "1.64",
+    "productDecision": "Scheme A"
+  },
+  "invariants": {
+    "inventory": {
+      "operations": 37,
+      "tags": 10
+    },
+    "getMe": {
+      "path": "/api/v1/me",
+      "method": "GET",
+      "successStatus": 200
+    },
+    "completeMyProfile": {
+      "path": "/api/v1/me",
+      "method": "PATCH",
+      "successStatus": 200
+    },
+    "deleteMe": {
+      "path": "/api/v1/me",
+      "method": "DELETE",
+      "successStatus": 202
+    }
+  },
+  "findings": [
+    {
+      "severity": "additive",
+      "path": "/components/schemas/UserContext/properties/email",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/UserContext/required/emailMasked",
+      "kind": "required_property_removed",
+      "before": "required",
+      "after": "absent"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/UserContext/required/preferredPracticeLanguage",
+      "kind": "required_property_removed",
+      "before": "required",
+      "after": "absent"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/UserContext/required/uiLanguage",
+      "kind": "required_property_removed",
+      "before": "required",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UserContext/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UserContext/properties/emailMasked",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UserContext/properties/preferredPracticeLanguage",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UserContext/properties/uiLanguage",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UserContext/required/email",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "required"
+    }
+  ]
+}

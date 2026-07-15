@@ -287,11 +287,6 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
             activeRoute={routeForRender.name}
             onNavigate={navigate}
             signedIn={signedIn}
-            user={
-              runtime?.auth.status === "authenticated"
-                ? runtime.auth.user
-                : undefined
-            }
           />
         )}
         <main>

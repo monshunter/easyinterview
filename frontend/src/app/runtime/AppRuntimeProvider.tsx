@@ -31,7 +31,7 @@ export interface AppRuntimeValue {
   runtime: RuntimeConfigState;
   auth: AuthState;
   /** Force a re-fetch of `/me`, or commit a freshly returned user context. */
-  refreshAuth: (user?: UserContext) => void;
+  refreshAuth: (user?: UserContext) => Promise<AuthState> | void;
 }
 
 export interface AppRuntimeProviderProps {
@@ -99,6 +99,7 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
   );
   const [authNonce, setAuthNonce] = useState(0);
   const skippedInitialAuthProbeRef = useRef(false);
+  const authRefreshResolversRef = useRef<Array<(state: AuthState) => void>>([]);
   const runtimeConfigOptionsRef = useRef(requestOptions?.runtimeConfig);
   const getMeOptionsRef = useRef(requestOptions?.getMe);
   runtimeConfigOptionsRef.current = requestOptions?.runtimeConfig;
@@ -146,18 +147,21 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
     client
       .getMe(getMeOptionsRef.current)
       .then((user) => {
-        if (!cancelled) setAuth({ status: "authenticated", user });
+        if (cancelled) return;
+        const next: AuthState = { status: "authenticated", user };
+        setAuth(next);
+        authRefreshResolversRef.current.splice(0).forEach((resolve) => resolve(next));
       })
       .catch((error: unknown) => {
         if (cancelled) return;
         const wrapped = wrapError(error);
         // Spec D-3: `/me` only drives the user area. A real 401 is the signed
         // out state; fixture or transport wiring errors must stay visible.
-        setAuth(
-          isUnauthenticatedError(wrapped)
-            ? { status: "unauthenticated" }
-            : { status: "error", error: wrapped },
-        );
+        const next: AuthState = isUnauthenticatedError(wrapped)
+          ? { status: "unauthenticated" }
+          : { status: "error", error: wrapped };
+        setAuth(next);
+        authRefreshResolversRef.current.splice(0).forEach((resolve) => resolve(next));
       });
 
     return () => {
@@ -179,11 +183,15 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
       refreshAuth: (user?: UserContext) => {
         skippedInitialAuthProbeRef.current = true;
         if (user) {
-          setAuth({ status: "authenticated", user });
-          return;
+          const next: AuthState = { status: "authenticated", user };
+          setAuth(next);
+          return Promise.resolve(next);
         }
         setAuth({ status: "loading" });
         setAuthNonce((n) => n + 1);
+        return new Promise<AuthState>((resolve) => {
+          authRefreshResolversRef.current.push(resolve);
+        });
       },
     }),
     [client, runtime, auth],

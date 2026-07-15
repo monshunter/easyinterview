@@ -116,10 +116,10 @@ featureFlag:
 			ExpiresAt: time.Now().Add(auth.SessionTTL),
 		},
 		user: auth.UserContext{
-			ID:             "user-1",
-			Email:          "candidate@example.com",
-			AnalyticsOptIn: true,
+			ID:    "user-1",
+			Email: "candidate@example.com",
 		},
+		analyticsOptIn: true,
 	}
 	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:                 store,
@@ -1625,10 +1625,11 @@ func assertAPIStatusCode(t *testing.T, rec *httptest.ResponseRecorder, status in
 }
 
 type apiAuthStore struct {
-	challenge auth.ChallengeRecord
-	session   auth.SessionRecord
-	user      auth.UserContext
-	lookupErr error
+	challenge      auth.ChallengeRecord
+	session        auth.SessionRecord
+	user           auth.UserContext
+	lookupErr      error
+	analyticsOptIn bool
 }
 
 type apiUploadFileDeleter struct{}
@@ -1720,6 +1721,10 @@ func (s *apiAuthStore) GetSessionByHash(context.Context, string, time.Time) (aut
 
 func (s *apiAuthStore) GetUserContext(context.Context, string) (auth.UserContext, error) {
 	return s.user, nil
+}
+
+func (s *apiAuthStore) GetAnalyticsOptIn(context.Context, string) (bool, error) {
+	return s.analyticsOptIn, nil
 }
 
 func (s *apiAuthStore) TouchSession(_ context.Context, sessionID string, now time.Time, expiresAt time.Time) error {

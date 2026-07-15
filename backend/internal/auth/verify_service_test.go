@@ -19,12 +19,9 @@ func TestVerifyAuthEmailChallengeConsumesTokenAndSetsSessionCookie(t *testing.T)
 			ExpiresAt: time.Date(2026, 5, 6, 10, 30, 0, 0, time.UTC),
 		},
 		user: auth.UserContext{
-			ID:                        "018f2a40-0000-7000-9000-000000000100",
-			Email:                     "candidate@example.com",
-			DisplayName:               "Candidate",
-			UILanguage:                "zh-CN",
-			PreferredPracticeLanguage: "en",
-			AnalyticsOptIn:            true,
+			ID:          "018f2a40-0000-7000-9000-000000000100",
+			Email:       "candidate@example.com",
+			DisplayName: "Candidate",
 		},
 	}
 	now := time.Date(2026, 5, 6, 10, 15, 0, 0, time.UTC)
@@ -140,9 +137,6 @@ func TestVerifyNewEmailCreatesIncompleteUserAndSession(t *testing.T) {
 		user: auth.UserContext{
 			ID:                        "018f2a40-0000-7000-9000-000000000200",
 			Email:                     "candidate@example.com",
-			UILanguage:                "zh-CN",
-			PreferredPracticeLanguage: "en",
-			AnalyticsOptIn:            true,
 			ProfileCompletionRequired: true,
 		},
 		findErr: auth.ErrUserNotFound,
@@ -177,12 +171,9 @@ func TestVerifyExistingEmailLogsInWithoutCreatingUser(t *testing.T) {
 			ExpiresAt: time.Date(2026, 5, 28, 10, 30, 0, 0, time.UTC),
 		},
 		user: auth.UserContext{
-			ID:                        "018f2a40-0000-7000-9000-000000000210",
-			Email:                     "candidate@example.com",
-			DisplayName:               "Alice Candidate",
-			UILanguage:                "zh-CN",
-			PreferredPracticeLanguage: "en",
-			AnalyticsOptIn:            true,
+			ID:          "018f2a40-0000-7000-9000-000000000210",
+			Email:       "candidate@example.com",
+			DisplayName: "Alice Candidate",
 		},
 	}
 	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{

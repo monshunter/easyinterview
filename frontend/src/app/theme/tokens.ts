@@ -5,7 +5,7 @@
  * `:root[data-theme][data-mode]` selectors in `themes.css`.
  *
  * Sources of truth:
- *   - formal frontend implementation (EI_THEMES, EI_FONT_PRESETS, ei-global vars)
+ *   - formal frontend implementation (EI_THEMES and ei-global vars)
  *   - formal frontend implementation (customAccent oklch formula)
  *
  * Adding a new token requires updating: this registry, themes.data.ts (when

@@ -85,10 +85,9 @@ describe("locale bootstrap", () => {
         if (url.endsWith("/me")) {
           return jsonResponse({
             id: "01918fa0-0000-7000-8000-000000000100",
-            emailMasked: "ali***@example.com",
+            email: "alice@example.com",
             displayName: "Alice Example",
-            uiLanguage: "zh-CN",
-            preferredPracticeLanguage: "zh-CN",
+            profileCompletionRequired: false,
           });
         }
         return jsonResponse({});
@@ -104,12 +103,10 @@ describe("locale bootstrap", () => {
       ),
     );
     expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("Home");
-    expect(screen.queryByTestId("topbar-user-profile")).not.toBeInTheDocument();
-    await userEvent.setup().click(screen.getByTestId("topbar-user-chip"));
-    expect(screen.queryByTestId("topbar-user-profile")).not.toBeInTheDocument();
-    expect(screen.getByTestId("topbar-user-settings")).toHaveTextContent(
+    expect(screen.getByTestId("topbar-settings")).toHaveAccessibleName(
       "Settings & privacy",
     );
+    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
     expect(
       seen.filter((request) => request.url.endsWith("/me")),
     ).toHaveLength(1);

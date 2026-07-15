@@ -96,7 +96,7 @@ requestAuth({
 #### Design tokens 入口
 
 - 语义 token：[`src/app/theme/tokens.ts`](./src/app/theme/tokens.ts) — 仅导出 CSS variable 名（`--ei-color-*` / `--ei-radius-*` / `--ei-shadow-*` / `--ei-space-*` / `--ei-text-*` / `--ei-font-*`），不导出 hex 字面量。
-- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（内部）— `ocean` / `plum` 2 主题 × 2 模式 × 21 个颜色角色、3 个 serif/sans 字体预设和固定 mono family；色板/字体由正式前端测试校验，`THEME_METADATA` 供 TopBar 使用，TopBar 另保留 custom accent。
+- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（内部）— `ocean` / `plum` 2 主题 × 2 模式 × 21 个颜色角色；`THEME_METADATA` 供 TopBar 使用，TopBar 另保留 custom accent。全站固定使用 Noto Serif SC + Inter，并以 JetBrains Mono 承接标签和代码文本，不提供设置页字体预设。
 - 主题 CSS：[`src/app/theme/themes.css`](./src/app/theme/themes.css) — `:root[data-theme=X][data-mode=Y]` 8 组合声明所有色板。
 - Custom accent helper：[`src/app/theme/customAccent.ts`](./src/app/theme/customAccent.ts) — 维护 oklch 公式（light=58 / dark=68 / soft 92/28，chroma clamp [0,0.28]，hue normalize [0,360)），仅覆盖 `--ei-color-accent` / `--ei-color-accent-soft`。
 
@@ -111,7 +111,7 @@ requestAuth({
 
 #### 字体加载
 
-- 字体来源：[`src/app/theme/fonts.css`](./src/app/theme/fonts.css) 通过 `@fontsource/{noto-serif-sc,inter,source-serif-pro,cormorant-garamond,ibm-plex-sans,geist-sans,jetbrains-mono}` 引入；fontsource 默认带 `font-display: swap`，首屏使用 system fallback 链。
+- 字体来源：[`src/app/theme/fonts.css`](./src/app/theme/fonts.css) 仅通过 `@fontsource/{noto-serif-sc,inter,jetbrains-mono}` 引入；fontsource 默认带 `font-display: swap`，首屏使用 system fallback 链。
 - Typography scale：[`src/app/theme/typography.css`](./src/app/theme/typography.css) 提供 `--ei-text-{display,title,subtitle,body,caption,label}-*` 4 维度 24 个 token + `.ei-text-*` 6 类 className。组件内**禁止内联 px font-size / line-height**，改用 `ei-text-*` className。
 - 不引入私有品牌字体（`copernicus` / `styreneb` 等）；新增字体必须以 fontsource 或可仓库自托管为前提。
 

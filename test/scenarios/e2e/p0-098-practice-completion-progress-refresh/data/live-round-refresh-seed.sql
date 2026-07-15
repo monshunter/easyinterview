@@ -15,13 +15,9 @@ insert into users (
 );
 
 insert into user_settings (
-  user_id, ui_language, preferred_practice_language, timezone,
-  analytics_opt_in, created_at, updated_at
+  user_id, analytics_opt_in, created_at, updated_at
 ) values (
   '019f6098-0000-7000-8000-000000000001',
-  'zh-CN',
-  'zh-CN',
-  'Asia/Shanghai',
   false,
   now(),
   now()

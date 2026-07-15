@@ -353,11 +353,15 @@ func (s *EmailCodeService) RuntimeConfigSessionResolver() func(*http.Request) bo
 		if err != nil {
 			return false
 		}
-		user, err := s.CurrentUser(r.Context(), current.UserID)
+		store, ok := s.store.(analyticsOptInStore)
+		if !ok {
+			return false
+		}
+		optIn, err := store.GetAnalyticsOptIn(r.Context(), current.UserID)
 		if err != nil {
 			return false
 		}
-		return user.AnalyticsOptIn
+		return optIn
 	}
 }
 

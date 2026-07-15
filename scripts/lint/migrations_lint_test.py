@@ -327,6 +327,28 @@ def test_targetjob_paste_only_schema_removes_source_storage_but_preserves_indepe
     assert "resume" in enum_sources and "privacy_export" in enum_sources
 
 
+def test_user_settings_net_state_removes_display_preferences_and_retains_internal_fields() -> None:
+    baseline = migrations_lint.normalize_sql(current_baseline_sql())
+    all_up = migrations_lint.normalize_sql(current_migration_up_sql())
+    user_settings_start = baseline.index("create table user_settings")
+    user_settings_end = baseline.index("create table file_objects")
+    user_settings = baseline[user_settings_start:user_settings_end]
+
+    for retained in (
+        "user_id uuid primary key references users(id) on delete cascade",
+        "analytics_opt_in boolean not null default true",
+        "created_at timestamptz not null default now()",
+        "updated_at timestamptz not null default now()",
+    ):
+        assert retained in user_settings
+
+    for removed in ("ui_language", "preferred_practice_language", "region", "timezone"):
+        assert f"drop column {removed}" in all_up
+
+    for forbidden in ("create table user_settings_", "create view user_settings_"):
+        assert forbidden not in all_up
+
+
 def test_grounded_report_v18_lint_rejects_missing_current_rename() -> None:
     sql = current_migration_up_sql().replace(
         "RENAME COLUMN retry_focus_competency_codes TO retry_focus_dimension_codes;",

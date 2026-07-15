@@ -3,7 +3,7 @@
 > **ID**: OPENAPI-007
 > **状态**: accepted
 > **日期**: 2026-07-15
-> **版本**: 1.0
+> **版本**: 1.1
 
 ## 1 背景
 
@@ -11,7 +11,8 @@
 
 ## 2 决策
 
-- `UserContext` 显式增加 `additionalProperties: false`，并收敛为 required `{id,emailMasked,displayName,profileCompletionRequired}`。
+- `UserContext` 显式增加 `additionalProperties: false`，并收敛为 required `{id,email,displayName,profileCompletionRequired}`。
+- authenticated `/me` 与 `PATCH /me` success 返回完整账号 email，供 Settings 正常显示；删除 `emailMasked`，不保留 alias/双字段。完整 email 不进入日志、场景证据或 public unauthenticated response。
 - 从 OpenAPI source、Auth fixtures、Go/TS generated artifacts、backend mapper/store 与 frontend test builders 删除 `uiLanguage`、`preferredPracticeLanguage`；不提供 optional alias、默认值或兼容字段。
 - `GET /api/v1/me` 与 `PATCH /api/v1/me` 的 method/path/operationId/status 保持不变；`DELETE /api/v1/me`、email-code/profile-completion/session 语义保持不变。
 - TopBar 语言继续由前端 display preference + `Accept-Language` 表达；practice language 继续由对应业务 request/plan 表达，不迁回 `UserContext`。
@@ -37,7 +38,7 @@
 ## 5 验证边界
 
 - B2 只拥有 schema/fixture/codegen/exact-diff；用户可见 Settings 行为由 frontend-shell BDD 与扩展后的 `E2E.P0.101` 承接。
-- backend-auth focused contract 证明 `/me` 只返回四字段且 email 仍为 masked；B4 migration contract 证明四列删除、analytics opt-in 保留和 up/down/up 可逆。
+- backend-auth focused contract 证明 `/me` 只返回四字段且 authenticated email 为完整账号值；B4 migration contract 证明四列删除、analytics opt-in 保留和 up/down/up 可逆。
 - scoped negative search 允许本 ADR、history、plan 与 negative tests 提及旧字段；production OpenAPI/generated/backend/frontend/runtime fixture 不得有正向引用。
 
 ## 6 审计
@@ -56,3 +57,4 @@
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-07-15 | 1.0 | 接受 UserContext 四字段最小投影与 settings display-preference DB 列删除。 |
+| 2026-07-15 | 1.1 | 用户确认 Settings 正常显示完整账号 email；四字段合同将 `emailMasked` 原位替换为 `email`，不保留兼容 alias，并维持日志/场景证据脱敏边界。 |

@@ -98,7 +98,7 @@ class ValidatorCliTest(unittest.TestCase):
     def test_real_email_domain_fails(self) -> None:
         rel = "openapi/fixtures/Auth/getMe.json"
         data = self._read(rel)
-        data["scenarios"]["default"]["response"]["body"]["emailMasked"] = "alice@gmail.com"
+        data["scenarios"]["default"]["response"]["body"]["email"] = "alice@gmail.com"
         self._write(rel, data)
         out = _run_validator(self.repo)
         self.assertNotEqual(out.returncode, 0)

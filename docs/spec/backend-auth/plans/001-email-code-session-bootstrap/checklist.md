@@ -1,7 +1,7 @@
 # Email-Code Session Bootstrap Checklist
 
-> **版本**: 2.4
-> **状态**: active
+> **版本**: 2.5
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
@@ -23,7 +23,7 @@
 
 - [x] 3.1 实现 `verifyAuthEmailChallenge`；验证: tests 覆盖成功签发 `ei_session` cookie、过期 token、重复 verify、无效 token、session_hash 入库且不返回 cookie 明文
 - [x] 3.2 实现 session middleware / current-user resolver；验证: middleware tests 覆盖缺 cookie、无效 session、expired / revoked session 返回 B1 error envelope，active session 更新 `sessions.updated_at` / expiry 且不记录 cookie 明文
-- [x] 3.3 实现 `/me`；验证: handler tests 覆盖有效 session 返回 masked email / displayName / language，缺 cookie 或无效 session 返回 B1 error envelope
+- [x] 3.3 实现 `/me`；验证: handler tests 覆盖有效 session 返回账号 email / displayName，缺 cookie 或无效 session 返回 B1 error envelope
 - [x] 3.4 实现 logout；验证: tests 覆盖有效 session 撤销、缺 cookie / 无效 session 仍进入 handler 并 Set-Cookie 清除、重复 logout 幂等和无账号存在性泄露
 - [x] 3.5 实现 `deleteMe` auth handoff；验证: handler tests 覆盖有效 session 返回 B2 `202 + PrivacyRequestWithJob` 兼容响应并撤销 session，`Idempotency-Key` 或等价 active-request dedupe 使重复请求返回同一 active `privacy_delete` job 或同义终态且不创建重复 job，缺/无效 session 返回 B1 error envelope，实际 privacy_delete runner / 删除矩阵不在 C1 中实现
 
@@ -72,9 +72,11 @@
 
 ## Phase 10: OPENAPI-007 minimal current-user projection
 
-- [ ] 10.1 RED-GATE: generated/store/handler tests fail while public/internal UserContext, SQL scan or builders read/fill `uiLanguage/preferredPracticeLanguage`, or while the public response exposes any field outside id/emailMasked/displayName/profileCompletionRequired；internal `analytics_opt_in` remains explicitly allowed only for runtime-config resolution.
-- [ ] 10.2 STORE-GATE: remove obsolete language fields from auth types/query/scan；retain only internal `analytics_opt_in` join/read for runtime-config and keep new-account `user_settings` creation.
-- [ ] 10.3 HANDLER-GATE: getMe/completeMyProfile success serialize exact four-field generated UserContext, masked email and unchanged profile-completion semantics；unauthenticated/error behavior remains B1-compliant.
-- [ ] 10.4 MIGRATION/HANDOFF: B4 001 Phase 13 drops ui/practice-language/region/timezone with analytics retained；frontend/mock typed consumers compile without defaults/aliases before B2 re-freeze.
-- [ ] 10.5 BDD-GATE: update `BDD.AUTH.EMAIL.001` static owner evidence and `E2E.P0.101` settings handoff；account-delete behavior remains backend contract + frontend Settings BDD, not a new E2E.
-- [ ] 10.6 REGRESSION-GATE: focused auth/store/runtime-config, root `make test`, generated/codegen, migration, contexts/docs/diff and production old-field zero-reference gates pass before restoring `completed`.
+- [x] 10.1 RED-GATE: generated/store/handler tests fail while public/internal UserContext, SQL scan or builders read/fill `uiLanguage/preferredPracticeLanguage/emailMasked`, or while the public response differs from exact id/email/displayName/profileCompletionRequired；internal `analytics_opt_in` remains explicitly allowed only for runtime-config resolution. Evidence (2026-07-15): after the full-email correction, current generated/handler/frontend contracts remain RED on `emailMasked` versus required `email`.
+- [x] 10.2 STORE-GATE: remove obsolete language and `emailMasked` fields from auth types/query/scan；map the existing account email to exact internal `email`；retain only internal `analytics_opt_in` read for runtime-config and keep new-account `user_settings` creation.
+  <!-- verified: 2026-07-15 method=focused-auth-store evidence="current-user query/scan returns account email without retired settings fields; focused internal/auth and cmd/api packages PASS" -->
+- [x] 10.3 HANDLER-GATE: getMe/completeMyProfile success serialize exact four-field generated UserContext with complete authenticated email and unchanged profile-completion semantics；no `emailMasked` alias and unauthenticated/error behavior remains B1-compliant.
+  <!-- verified: 2026-07-15 method=handler-contract evidence="GET/PATCH /me exact full-email response PASS; auth observability test excludes email from audit/metrics/mail sink while allowing it in authenticated response" -->
+- [x] 10.4 MIGRATION/HANDOFF: B4 001 Phase 13 drops ui/practice-language/region/timezone with analytics retained；frontend/mock typed consumers compile with `email` and without defaults/aliases before B2 re-freeze.
+- [x] 10.5 BDD-GATE: update `BDD.AUTH.EMAIL.001` static owner evidence and `E2E.P0.101` settings handoff；account-delete behavior remains backend contract + frontend Settings BDD, not a new E2E.
+- [x] 10.6 REGRESSION-GATE: focused auth/store/runtime-config, root `make test`, generated/codegen, migration, contexts/docs/diff and production old-field zero-reference gates pass before restoring `completed`.

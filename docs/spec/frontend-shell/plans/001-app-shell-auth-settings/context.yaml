@@ -46,7 +46,8 @@ spec:
       - single settings gear
       - no user avatar dropdown
       - settings runtime user context
-      - displayName emailMasked
+      - displayName full email
+      - remove emailMasked
       - no duplicate getMe
       - settings logout route
       - privacy export unavailable

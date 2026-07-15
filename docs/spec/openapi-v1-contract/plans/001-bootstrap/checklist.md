@@ -1,7 +1,7 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.30
-> **状态**: active
+> **版本**: 1.31
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
@@ -151,9 +151,10 @@ git diff --check
 
 ## Phase 19: OPENAPI-007 Settings UserContext pruning
 
-- [ ] 19.1 OWNER/RED: accepted OPENAPI-007 + spec/history 1.63 exist；focused schema/generated tests reject `uiLanguage/preferredPracticeLanguage` in `UserContext` while locking 37/10 and unchanged getMe/completeMyProfile/deleteMe method/path/operationId/status/security.
-- [ ] 19.2 GREEN: source explicitly sets `UserContext.additionalProperties: false` and generated Go/TS expose exact required `{id,emailMasked,displayName,profileCompletionRequired}`；no optional alias/default/compatibility mapping and email masking/profile-completion requirements remain strict.
-- [ ] 19.3 FIXTURE/CODEGEN-GATE: 002 Phase 13 Auth fixtures, embedded schema, dev mock and generated builders migrate together；fixture validation and `make codegen-check` pass.
-- [ ] 19.4 HANDOFF-GATE: backend-auth/001 Phase 10, frontend-shell/001 Phase 14, B4 001 Phase 13 and mock consumers compile/pass before baseline edit；Settings reuses runtime user without duplicate `getMe`.
-- [ ] 19.5 AUDIT/RE-FREEZE: 003 Phase 12 generates exact five-key findings from unchanged merge-base baseline, preserves the audit, then re-freezes only after all consumers pass；clean current diff alone is insufficient.
-- [ ] 19.6 BDD-HANDOFF/REGRESSION: reference Settings BDD + extended `E2E.P0.101` without creating B2 E2E；run lint/fixtures/codegen/diff, root `make test`, contexts/docs/diff and scoped old-field zero-reference gates.
+- [x] 19.1 OWNER/RED: accepted OPENAPI-007 + spec/history 1.64 exist；focused schema/generated tests reject `uiLanguage/preferredPracticeLanguage/emailMasked` in `UserContext` and require complete `email`, while locking 37/10 and unchanged getMe/completeMyProfile/deleteMe method/path/operationId/status/security. Evidence (2026-07-15): the approved full-email correction makes the current masked source/generated contract RED.
+- [x] 19.2 GREEN: source explicitly sets `UserContext.additionalProperties: false` and generated Go/TS expose exact required `{id,email,displayName,profileCompletionRequired}`；no optional alias/default/compatibility mapping, Settings receives the complete authenticated account email, and logs/E2E evidence remain redacted.
+  <!-- verified: 2026-07-15 method=source-codegen-focused-contract evidence="source/embedded/Go/TS exact four-field contract PASS; 37/10 and protected Auth operation invariants unchanged" -->
+- [x] 19.3 FIXTURE/CODEGEN-GATE: 002 Phase 13 Auth fixtures, embedded schema, dev mock and generated builders migrate together；fixture validation and `make codegen-check` pass.
+- [x] 19.4 HANDOFF-GATE: backend-auth/001 Phase 10, frontend-shell/001 Phase 14, B4 001 Phase 13 and mock consumers compile/pass before baseline edit；Settings reuses runtime user without duplicate `getMe`.
+- [x] 19.5 AUDIT/RE-FREEZE: 003 Phase 12 generates and exact-matches all 9 findings, including the `emailMasked` → `email` replacement and closed-object contract, from unchanged merge-base baseline；preserve the audit and re-freeze only after all consumers pass. Clean current diff alone is insufficient.
+- [x] 19.6 BDD-HANDOFF/REGRESSION: reference Settings BDD + extended `E2E.P0.101` without creating B2 E2E；run lint/fixtures/codegen/diff, root `make test`, contexts/docs/diff and scoped old-field zero-reference gates.

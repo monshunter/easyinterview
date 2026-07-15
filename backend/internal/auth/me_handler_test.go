@@ -14,12 +14,9 @@ import (
 
 func TestGetMeReturnsMaskedCurrentUser(t *testing.T) {
 	store := &meStore{user: auth.UserContext{
-		ID:                        "user-1",
-		Email:                     "candidate@example.com",
-		DisplayName:               "Candidate",
-		UILanguage:                "zh-CN",
-		PreferredPracticeLanguage: "en",
-		AnalyticsOptIn:            true,
+		ID:          "user-1",
+		Email:       "candidate@example.com",
+		DisplayName: "Candidate",
 	}}
 	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{Store: store})
 	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
@@ -40,17 +37,26 @@ func TestGetMeReturnsMaskedCurrentUser(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if body["id"] != "user-1" || body["displayName"] != "Candidate" || body["uiLanguage"] != "zh-CN" || body["preferredPracticeLanguage"] != "en" {
+	if body["id"] != "user-1" || body["displayName"] != "Candidate" {
 		t.Fatalf("bad user context: %+v", body)
 	}
-	if body["emailMasked"] == "" || body["emailMasked"] == "candidate@example.com" {
-		t.Fatalf("email was not masked: %+v", body)
+	wantKeys := map[string]bool{"id": true, "email": true, "displayName": true, "profileCompletionRequired": true}
+	if len(body) != len(wantKeys) {
+		t.Fatalf("user context keys=%v, want exact four-field projection", body)
+	}
+	for key := range body {
+		if !wantKeys[key] {
+			t.Fatalf("unexpected user context field %q in %+v", key, body)
+		}
+	}
+	if body["email"] != "candidate@example.com" {
+		t.Fatalf("email = %v, want complete account email", body["email"])
 	}
 	if body["profileCompletionRequired"] != false {
 		t.Fatalf("profile completion flag = %+v", body["profileCompletionRequired"])
 	}
-	if contains(rec.Body.String(), "candidate@example.com") {
-		t.Fatalf("full email leaked: %s", rec.Body.String())
+	if _, exists := body["emailMasked"]; exists {
+		t.Fatalf("legacy emailMasked field leaked: %+v", body)
 	}
 }
 
@@ -58,8 +64,6 @@ func TestGetMeReturnsProfileCompletionRequiredForIncompleteUser(t *testing.T) {
 	store := &meStore{user: auth.UserContext{
 		ID:                        "user-incomplete",
 		Email:                     "new-user@example.com",
-		UILanguage:                "zh-CN",
-		PreferredPracticeLanguage: "en",
 		ProfileCompletionRequired: true,
 	}}
 	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{Store: store})
@@ -90,8 +94,6 @@ func TestCompleteMyProfileRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
 	store := &meStore{user: auth.UserContext{
 		ID:                        "user-incomplete",
 		Email:                     "new-user@example.com",
-		UILanguage:                "zh-CN",
-		PreferredPracticeLanguage: "en",
 		ProfileCompletionRequired: true,
 	}}
 	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{Store: store})
@@ -124,6 +126,9 @@ func TestCompleteMyProfileRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
 	}
 	if body["displayName"] != "Alice Candidate" || body["profileCompletionRequired"] != false {
 		t.Fatalf("bad completion response: %+v", body)
+	}
+	if len(body) != 4 {
+		t.Fatalf("completion user context keys=%v, want exact four-field projection", body)
 	}
 }
 

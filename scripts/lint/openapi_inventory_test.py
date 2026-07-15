@@ -22,6 +22,55 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertNotIn(("patch", "/me"), inventory.IK_REQUIRED)
         self.assertNotIn(("patch", "/me"), inventory.IK_FORBIDDEN)
 
+    def test_settings_user_context_is_exact_four_field_closed_contract(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        expected_fields = [
+            "id",
+            "email",
+            "displayName",
+            "profileCompletionRequired",
+        ]
+        user_context = data["components"]["schemas"]["UserContext"]
+        self.assertEqual("object", user_context["type"])
+        self.assertIs(False, user_context.get("additionalProperties"))
+        self.assertEqual(expected_fields, user_context["required"])
+        self.assertEqual(expected_fields, list(user_context["properties"]))
+        self.assertNotIn("uiLanguage", user_context["properties"])
+        self.assertNotIn("preferredPracticeLanguage", user_context["properties"])
+
+        expected_operations = {
+            ("get", "getMe", "200"),
+            ("patch", "completeMyProfile", "200"),
+            ("delete", "deleteMe", "202"),
+        }
+        actual_operations = set()
+        for method in ("get", "patch", "delete"):
+            operation = data["paths"]["/me"][method]
+            success_status = next(status for status in operation["responses"] if status.startswith("2"))
+            actual_operations.add((method, operation["operationId"], success_status))
+            self.assertEqual(
+                [{"sessionCookie": []}],
+                operation.get("security", data.get("security")),
+            )
+        self.assertEqual(expected_operations, actual_operations)
+
+        embedded = yaml.safe_load(
+            Path("backend/internal/api/generated/openapi.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(user_context, embedded["components"]["schemas"]["UserContext"])
+        ts_types = Path("frontend/src/api/generated/types.ts").read_text(encoding="utf-8")
+        go_types = Path("backend/internal/api/generated/types.gen.go").read_text(encoding="utf-8")
+        user_context_ts = ts_types.split("export interface UserContext {", 1)[1].split("}", 1)[0]
+        user_context_go = go_types.split("type UserContext struct {", 1)[1].split("}", 1)[0]
+        for retired in ("uiLanguage", "preferredPracticeLanguage"):
+            self.assertNotIn(retired, user_context_ts)
+        self.assertNotIn("emailMasked", user_context_ts)
+        for retired in ("UiLanguage", "PreferredPracticeLanguage"):
+            self.assertNotIn(retired, user_context_go)
+        self.assertNotIn("EmailMasked", user_context_go)
+        self.assertEqual(4, len([line for line in user_context_ts.splitlines() if ":" in line]))
+        self.assertEqual(4, len([line for line in user_context_go.splitlines() if "`json:" in line]))
+
     def test_report_conversation_replaces_the_public_practice_session_list(self) -> None:
         self.assertEqual(37, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(

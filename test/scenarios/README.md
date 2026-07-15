@@ -103,6 +103,8 @@ test/scenarios/
 
 `trigger.sh` 必须把真实 HTTP 请求或真实浏览器 runner 输出写入场景输出目录（通常是 `trigger.log`）。`verify.sh` 必须检查实际执行证据：目标真实环境、HTTP 方法/状态或浏览器用户动作、业务结果，以及 runner 的成功状态。禁止只检查文件存在，也禁止使用 package test、source contract、lint、build 或数据库直查结果替代 E2E 证据。
 
+若场景运行时使用完整 email、token、cookie 或其他敏感值，证据脱敏与 `verify.sh` 负向检查必须同时覆盖原文和 URL percent-encoded 等实际可进入 URL/日志的等价表示；只替换原文不能视为隐私 gate 通过。验证器应使用当前 run 的真实敏感输入生成检查值，避免仅匹配固定样例而漏掉变体。
+
 `setup.sh` / `cleanup.sh` 可以为隔离目的写入或删除固定场景数据，环境 readiness 也可以作为 preflight；这些操作均不能独立产生 PASS。若一个 Playwright 流程同时包含真实请求和 route mock，只有未被拦截且实际到达真实服务的部分可以写入 Given / When / Then、expected outcome 和 verify marker。
 
 Hybrid 场景若已经完成 AI Agent preflight 但缺少本地真实凭证、浏览器操作或人工观察证据，`verify.sh` 必须写出 `result=MANUAL_REQUIRED` 等价 JSON artifact 并退出 0；不得把它标记为 full PASS，也不得退化为框架 ERROR。补齐脱敏证据后，同一场景可再次运行并转为 PASS。

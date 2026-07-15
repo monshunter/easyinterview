@@ -1,0 +1,179 @@
+// @vitest-environment jsdom
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+
+import { ApiClientError, EasyInterviewClient } from "../../api/generated/client";
+import type { PrivacyRequestWithJob } from "../../api/generated/types";
+import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
+import { NavigationProvider } from "../navigation/NavigationProvider";
+import {
+  AppRuntimeContext,
+  type AppRuntimeValue,
+} from "../runtime/AppRuntimeProvider";
+import { SettingsScreen } from "./SettingsScreen";
+
+function acceptedDeletion(): PrivacyRequestWithJob {
+  return {
+    privacyRequestId: "privacy-1",
+    job: {
+      id: "job-1",
+      jobType: "privacy_delete",
+      status: "queued",
+      resourceType: "privacy_request",
+      resourceId: "privacy-1",
+      errorCode: null,
+      createdAt: "2026-07-15T00:00:00Z",
+      updatedAt: "2026-07-15T00:00:00Z",
+    },
+  };
+}
+
+function renderSettings() {
+  const client = new EasyInterviewClient({
+    fetch: vi.fn() as unknown as typeof fetch,
+  });
+  const getMe = vi.spyOn(client, "getMe");
+  const deleteMe = vi.spyOn(client, "deleteMe");
+  const refreshAuth = vi.fn().mockResolvedValue({ status: "unauthenticated" });
+  const navigate = vi.fn();
+  const replaceRoute = vi.fn();
+  const runtime: AppRuntimeValue = {
+    client,
+    runtime: { status: "loading" },
+    auth: {
+      status: "authenticated",
+      user: {
+        id: "user-1",
+        displayName: "Alice Candidate",
+        email: "alice@example.com",
+        profileCompletionRequired: false,
+      },
+    },
+    refreshAuth,
+  };
+  render(
+    <DisplayPreferencesProvider initial={{ lang: "en" }}>
+      <AppRuntimeContext.Provider value={runtime}>
+        <NavigationProvider value={{ navigate, replaceRoute }}>
+          <SettingsScreen route={{ name: "settings", params: {} }} />
+        </NavigationProvider>
+      </AppRuntimeContext.Provider>
+    </DisplayPreferencesProvider>,
+  );
+  return { deleteMe, getMe, navigate, refreshAuth, replaceRoute };
+}
+
+describe("Settings account and privacy contract", () => {
+  it("uses the runtime user without a second getMe and routes sign-out", async () => {
+    const { getMe, navigate } = renderSettings();
+
+    expect(screen.getByTestId("settings-account")).toHaveTextContent("Alice Candidate");
+    expect(screen.getByTestId("settings-account")).toHaveTextContent("alice@example.com");
+    expect(getMe).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("settings-tabs")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("settings-login-security")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("settings-font-preset")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("settings-app-info")).not.toBeInTheDocument();
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
+    expect(navigate).toHaveBeenCalledWith({ name: "auth_logout", params: {} });
+  });
+
+  it("presents export as unavailable without a trigger", () => {
+    renderSettings();
+    const exportStatus = screen.getByTestId("settings-export-unavailable");
+    expect(exportStatus).toHaveTextContent(/not available/i);
+    expect(exportStatus.tagName).not.toBe("BUTTON");
+  });
+
+  it("opens an accessible destructive dialog, cancels with Escape, and returns focus", async () => {
+    renderSettings();
+    const user = userEvent.setup();
+    const trigger = screen.getByRole("button", { name: "Delete account" });
+    await user.click(trigger);
+
+    const dialog = screen.getByRole("dialog", { name: "Delete account?" });
+    expect(dialog).toHaveAttribute("aria-describedby", "delete-account-description");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(screen.getByRole("button", { name: "Confirm deletion" })).toHaveFocus();
+    await user.keyboard("{Tab}");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("reuses one idempotency key for recoverable retry", async () => {
+    const { deleteMe } = renderSettings();
+    deleteMe
+      .mockRejectedValueOnce(new Error("network unavailable"))
+      .mockResolvedValueOnce(acceptedDeletion());
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Delete account" }));
+    await user.click(screen.getByRole("button", { name: "Confirm deletion" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/try again/i);
+    const firstKey = deleteMe.mock.calls[0]?.[0]?.idempotencyKey;
+    expect(firstKey).toMatch(/^v1\./);
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(deleteMe.mock.calls[1]?.[0]?.idempotencyKey).toBe(firstKey);
+  });
+
+  it("locks close and duplicate submit while deletion is pending", async () => {
+    let resolveDelete!: (value: PrivacyRequestWithJob) => void;
+    const pending = new Promise<PrivacyRequestWithJob>((resolve) => {
+      resolveDelete = resolve;
+    });
+    const { deleteMe } = renderSettings();
+    deleteMe.mockReturnValueOnce(pending);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Delete account" }));
+    await user.click(screen.getByRole("button", { name: "Confirm deletion" }));
+
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Deleting…" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(deleteMe).toHaveBeenCalledTimes(1);
+
+    resolveDelete(acceptedDeletion());
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("re-probes auth and replaces Home only after a 202 resolves as unauthenticated", async () => {
+    const { deleteMe, refreshAuth, replaceRoute } = renderSettings();
+    deleteMe.mockResolvedValue(acceptedDeletion());
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Delete account" }));
+    await user.click(screen.getByRole("button", { name: "Confirm deletion" }));
+
+    await waitFor(() => expect(refreshAuth).toHaveBeenCalledTimes(1));
+    expect(replaceRoute).toHaveBeenCalledWith({ name: "home", params: {} });
+  });
+
+  it("treats a typed 401 as an auth re-probe without a recoverable retry alert", async () => {
+    const { deleteMe, refreshAuth, replaceRoute } = renderSettings();
+    deleteMe.mockRejectedValue(new ApiClientError("http", 401, null));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Delete account" }));
+    await user.click(screen.getByRole("button", { name: "Confirm deletion" }));
+
+    await waitFor(() => expect(refreshAuth).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(replaceRoute).toHaveBeenCalledWith({ name: "home", params: {} });
+  });
+
+  it("keeps probe failures honest and does not replace Home", async () => {
+    const { deleteMe, refreshAuth, replaceRoute } = renderSettings();
+    deleteMe.mockResolvedValue(acceptedDeletion());
+    refreshAuth.mockResolvedValueOnce({ status: "error", error: new Error("probe failed") });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Delete account" }));
+    await user.click(screen.getByRole("button", { name: "Confirm deletion" }));
+
+    await waitFor(() => expect(refreshAuth).toHaveBeenCalledTimes(1));
+    expect(replaceRoute).not.toHaveBeenCalled();
+  });
+});

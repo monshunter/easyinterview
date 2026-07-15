@@ -3,9 +3,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
-import { fireEvent, render } from "@testing-library/react";
+import { render } from "@testing-library/react";
 
 import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
+import { NavigationProvider } from "../navigation/NavigationProvider";
 import { RouteShellScreen } from "./RouteShellScreen";
 import { SettingsScreen } from "./SettingsScreen";
 
@@ -14,11 +15,17 @@ const SCREENS_CSS = resolve(HERE, "screens.css");
 const FRONTEND_README = resolve(HERE, "..", "..", "..", "README.md");
 
 function withProvider(node: React.ReactElement) {
-  return <DisplayPreferencesProvider>{node}</DisplayPreferencesProvider>;
+  return (
+    <DisplayPreferencesProvider>
+      <NavigationProvider value={{ navigate: () => {}, replaceRoute: () => {} }}>
+        {node}
+      </NavigationProvider>
+    </DisplayPreferencesProvider>
+  );
 }
 
 describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
-  it("renders ei-screen-shell with a two-tab rail and profile-tab ei-screen-card sections", () => {
+  it("renders one account and privacy page without a tab rail or static prototype cards", () => {
     const { container } = render(
       withProvider(<SettingsScreen route={{ name: "settings", params: {} }} />),
     );
@@ -28,72 +35,19 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
     const heading = root!.querySelector("h1");
     expect(heading?.className).toMatch(/\bei-text-display\b/);
 
-    // D-21: exactly two tabs — profile and privacy & data.
-    expect(
-      container.querySelector("[data-testid='settings-tab-profile']"),
-    ).toBeTruthy();
-    expect(
-      container.querySelector("[data-testid='settings-tab-privacy']"),
-    ).toBeTruthy();
-    expect(
-      container.querySelectorAll("[data-testid^='settings-tab-']"),
-    ).toHaveLength(2);
-
-    // Default profile tab carries account / login-security / font preset /
-    // product info cards; the privacy card lives on the privacy tab.
-    for (const sectionId of [
-      "settings-account",
-      "settings-login-security",
-      "settings-font-preset",
-      "settings-app-info",
-    ]) {
+    expect(container.querySelectorAll("[data-testid^='settings-tab-']")).toHaveLength(0);
+    for (const sectionId of ["settings-account", "settings-privacy"]) {
       const section = container.querySelector(`[data-testid='${sectionId}']`);
       expect(section, `${sectionId} missing`).toBeTruthy();
       expect(section!.className).toMatch(/\bei-screen-card\b/);
     }
-    expect(
-      container.querySelector("[data-testid='settings-privacy']"),
-    ).toBeFalsy();
-
-    // D-21: P1 notifications/subscription tabs are outside current scope.
-    expect(
-      container.querySelector(
-        "[data-testid='settings-tab-notifications']",
-      ),
-    ).toBeFalsy();
-    expect(
-      container.querySelector(
-        "[data-testid='settings-tab-subscription']",
-      ),
-    ).toBeFalsy();
-
-    // D-16: login security only states the email-code method.
-    const security = container.querySelector(
-      "[data-testid='settings-login-security']",
-    );
-    expect(security!.textContent).toMatch(
-      /邮箱验证码 · 无密码|Email sign-in code · no password/,
-    );
-    expect(security!.textContent).not.toMatch(
-      /密码（|两步验证|Two-step verification/,
-    );
-  });
-
-  it("shows the privacy & data card when the privacy tab is selected", () => {
-    const { container } = render(
-      withProvider(<SettingsScreen route={{ name: "settings", params: {} }} />),
-    );
-    fireEvent.click(
-      container.querySelector("[data-testid='settings-tab-privacy']")!,
-    );
-    const privacy = container.querySelector(
-      "[data-testid='settings-privacy']",
-    );
-    expect(privacy).toBeTruthy();
-    expect(privacy!.className).toMatch(/\bei-screen-card\b/);
-    expect(
-      container.querySelector("[data-testid='settings-account']"),
-    ).toBeFalsy();
+    for (const removed of [
+      "settings-login-security",
+      "settings-font-preset",
+      "settings-app-info",
+    ]) {
+      expect(container.querySelector(`[data-testid='${removed}']`)).toBeFalsy();
+    }
   });
 
   it("rejects out-of-scope Growth / Experiences / Mistakes / Drill / 独立 voice copy and testid", () => {
@@ -200,6 +154,15 @@ describe("screens.css visual rhythm (Phase 5.1 + 5.2)", () => {
     expect(css).not.toMatch(/\.ei-screen-card-grid\s*\{/);
     expect(readFileSync(FRONTEND_README, "utf8")).not.toContain(
       "ei-screen-card-grid",
+    );
+  });
+
+  it("stacks settings values and privacy actions at the phone breakpoint", () => {
+    expect(css).toMatch(
+      /@media \(max-width: 600px\)[\s\S]*\.ei-settings-value-row,[\s\S]*\.ei-settings-privacy-row\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 600px\)[\s\S]*\.ei-settings-value-row dd\s*\{[^}]*text-align:\s*left/,
     );
   });
 });

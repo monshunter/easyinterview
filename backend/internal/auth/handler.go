@@ -131,10 +131,8 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(generated.UserContext{
 		Id:                        user.ID,
-		EmailMasked:               maskEmail(user.Email),
+		Email:                     user.Email,
 		DisplayName:               user.DisplayName,
-		UiLanguage:                user.UILanguage,
-		PreferredPracticeLanguage: user.PreferredPracticeLanguage,
 		ProfileCompletionRequired: user.ProfileCompletionRequired,
 	})
 }
@@ -172,10 +170,8 @@ func (h *Handler) CompleteMyProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(generated.UserContext{
 		Id:                        user.ID,
-		EmailMasked:               maskEmail(user.Email),
+		Email:                     user.Email,
 		DisplayName:               user.DisplayName,
-		UiLanguage:                user.UILanguage,
-		PreferredPracticeLanguage: user.PreferredPracticeLanguage,
 		ProfileCompletionRequired: user.ProfileCompletionRequired,
 	})
 }
@@ -257,23 +253,4 @@ func (h *Handler) clearSessionCookie(w http.ResponseWriter) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 	})
-}
-
-func maskEmail(email string) string {
-	at := -1
-	for i, ch := range email {
-		if ch == '@' {
-			at = i
-			break
-		}
-	}
-	if at <= 0 {
-		return "***"
-	}
-	local := email[:at]
-	domain := email[at:]
-	if len(local) == 1 {
-		return local[:1] + "***" + domain
-	}
-	return local[:1] + "***" + local[len(local)-1:] + domain
 }

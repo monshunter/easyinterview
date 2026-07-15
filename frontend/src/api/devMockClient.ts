@@ -106,7 +106,7 @@ export function createDevMockClient(
 		signedIn: false,
 		profileComplete: false,
 		displayName: "",
-		emailMasked: "new***r@example.com",
+		email: "new.user@example.com",
 		lastEmail: "",
 	};
 	const fetch: typeof globalThis.fetch = async (input, init) => {
@@ -118,7 +118,7 @@ export function createDevMockClient(
 			const body = parseJsonObject(request.bodyText);
 			if (typeof body?.email === "string") {
 				authState.lastEmail = body.email;
-				authState.emailMasked = maskEmail(body.email);
+				authState.email = body.email;
 			}
 		}
 		if (response.ok && request.method === "GET" && request.path === "/auth/email/verify") {
@@ -163,7 +163,7 @@ function respondToStatefulAuthRequest(
 		signedIn: boolean;
 		profileComplete: boolean;
 		displayName: string;
-		emailMasked: string;
+		email: string;
 		lastEmail: string;
 	},
 ): Response | null {
@@ -218,14 +218,12 @@ function respondToStatefulAuthRequest(
 function buildMockUserContext(state: {
 	profileComplete: boolean;
 	displayName: string;
-	emailMasked: string;
+	email: string;
 }): UserContext {
 	return {
 		id: "01918fa0-0000-7000-8000-000000000101",
-		emailMasked: state.emailMasked,
+		email: state.email,
 		displayName: state.profileComplete ? state.displayName || "Alice Example" : "",
-		uiLanguage: "zh-CN",
-		preferredPracticeLanguage: "zh-CN",
 		profileCompletionRequired: !state.profileComplete,
 	};
 }
@@ -235,13 +233,6 @@ function jsonResponse(status: number, body: unknown): Response {
 		status,
 		headers: { "Content-Type": "application/json" },
 	});
-}
-
-function maskEmail(email: string): string {
-	const [local, domain] = email.split("@");
-	if (!local || !domain) return "new***r@example.com";
-	const prefix = local.slice(0, Math.min(3, local.length));
-	return `${prefix}***@${domain}`;
 }
 
 function parseJsonObject(bodyText: string | undefined): Record<string, unknown> | null {

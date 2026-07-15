@@ -12,7 +12,7 @@
 
 - frontend dev server: `http://127.0.0.1:5173`
 - backend API: `http://127.0.0.1:8080/api/v1`
-- Mailpit Web/API: `http://127.0.0.1:8025`
+- Mailpit Web/API: `http://127.0.0.1:${MAILPIT_WEB_HOST_PORT:-8025}`，端口从 `deploy/dev-stack/.env` 解析
 - `deploy/dev-stack/.env` 中 `VITE_EI_API_MODE=real` 且 `VITE_EI_API_BASE_URL` 指向 backend。
 - Postgres `users` 表包含 `profile_completed_at` 与 `terms_accepted_at`，否则 `setup.sh` 会在消费验证码前失败并提示先运行 migrations。
 
@@ -46,11 +46,13 @@ pnpm --filter @easyinterview/frontend exec playwright test \
 - Mailpit 邮件只包含 6 位验证码，不包含 frontend `/auth/verify?token=...` URL callback 或 backend verify API URL。
 - 输入验证码后，frontend 调用 backend `verifyAuthEmailChallenge` 兑换 `ei_session`，`GET /me` 返回 200 且 `profileCompletionRequired=true`，页面进入 `auth_profile_setup`。
 - 资料补全前刷新 `auth_profile_setup`、深链到业务 route、关闭 browser context 后重登同一邮箱、换 browser context 后重登同一邮箱、退出后重登同一邮箱，均继续停在 `auth_profile_setup`，不得接续 pending action。
-- `auth_profile_setup` 提交 trimmed displayName 和 `acceptedTerms=true` 后调用 `PATCH /me`，`GET /me.profileCompletionRequired=false`，TopBar 展示该 displayName。
-- 退出后使用同一邮箱再次登录时不再进入 `auth_profile_setup`，直接进入正常账号。
+- `auth_profile_setup` 提交 trimmed displayName 和 `acceptedTerms=true` 后调用 `PATCH /me`，`GET /me.profileCompletionRequired=false`；已登录 TopBar 只有一个设置齿轮。
+- 点击设置齿轮后，Settings 使用 runtime `/me` 的同一 displayName 与完整账号邮箱，不追加页面级 `GET /me`；日志与证据仍脱敏，且无旧账号 dropdown、tab、sign-in/security 或 font preset。
+- 从 Settings 进入既有退出确认；退出后使用同一邮箱再次登录时不再进入 `auth_profile_setup`，直接进入正常账号。
+- 场景不触发 `DELETE /me`；破坏性账号删除只由 frontend/backend contract tests 承接。
 - 所有 `POST /auth/email/start` request body 只包含 email，不包含 `purpose`、`displayName`、password 或 OAuth 字段。
 - Playwright 捕获的 console errors / page errors / 非预期 HTTP >=400 failures 均为 0。
-- `trigger.log` 与 `result.json` 不包含 raw 验证码、`ei_session` cookie 值、auth secret 或非当前 URL callback。
+- `trigger.log` 与 `result.json` 不包含完整 synthetic email、raw 验证码、`ei_session` cookie 值、auth secret 或非当前 URL callback。
 
 ## 4 Cleanup
 

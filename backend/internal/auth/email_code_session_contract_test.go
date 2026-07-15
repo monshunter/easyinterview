@@ -63,8 +63,8 @@ func TestEmailCodeSessionCookieFlow(t *testing.T) {
 	if meRec.Code != http.StatusOK {
 		t.Fatalf("/me status = %d body=%s", meRec.Code, meRec.Body.String())
 	}
-	if contains(meRec.Body.String(), email) || !contains(meRec.Body.String(), "@example.test") {
-		t.Fatalf("/me masking failed: %s", meRec.Body.String())
+	if !contains(meRec.Body.String(), `"email":"`+email+`"`) || contains(meRec.Body.String(), "emailMasked") {
+		t.Fatalf("/me complete-email contract failed: %s", meRec.Body.String())
 	}
 
 	runtimeHandler := config.NewRuntimeConfigHandler(config.RuntimeConfigHandlerOptions{
@@ -125,7 +125,6 @@ func TestEmailCodeSessionCookieFlow(t *testing.T) {
 	}
 
 	observed := strings.Join([]string{
-		meRec.Body.String(),
 		runtimeRec.Body.String(),
 		firstDelete.Body.String(),
 		secondDelete.Body.String(),
@@ -281,6 +280,7 @@ type emailCodeContractStore struct {
 	sessionsByHash  map[string]auth.SessionRecord
 	sessionsByID    map[string]string
 	privacyHandoffs map[string]auth.PrivacyDeleteHandoff
+	analyticsOptIn  bool
 }
 
 type contractChallenge struct {
@@ -296,7 +296,12 @@ func newEmailCodeContractStore() *emailCodeContractStore {
 		sessionsByHash:  map[string]auth.SessionRecord{},
 		sessionsByID:    map[string]string{},
 		privacyHandoffs: map[string]auth.PrivacyDeleteHandoff{},
+		analyticsOptIn:  true,
 	}
+}
+
+func (s *emailCodeContractStore) GetAnalyticsOptIn(context.Context, string) (bool, error) {
+	return s.analyticsOptIn, nil
 }
 
 func (s *emailCodeContractStore) CountRecentChallenges(_ context.Context, email string, ipHash string, since time.Time) (int, error) {
@@ -338,9 +343,6 @@ func (s *emailCodeContractStore) CreateUserByEmail(_ context.Context, email stri
 		ID:                        userID,
 		Email:                     email,
 		DisplayName:               displayName,
-		UILanguage:                "zh-CN",
-		PreferredPracticeLanguage: "en",
-		AnalyticsOptIn:            true,
 		ProfileCompletionRequired: displayName == "",
 	}
 	s.usersByEmail[email] = user

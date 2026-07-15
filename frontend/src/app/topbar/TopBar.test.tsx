@@ -96,6 +96,26 @@ describe("TopBar primary nav", () => {
 });
 
 describe("TopBar user menu", () => {
+  it("renders one accessible settings gear for signed-in users without an account menu", async () => {
+    const onNavigate = vi.fn();
+    renderInProvider(
+      <TopBar
+        activeRoute="home"
+        onNavigate={onNavigate}
+        signedIn={true}
+      />,
+    );
+
+    const settings = screen.getByRole("button", { name: /设置与隐私|settings & privacy/i });
+    expect(settings).toHaveAttribute("data-testid", "topbar-settings");
+    expect(screen.queryByTestId("topbar-user-chip")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-user-logout")).not.toBeInTheDocument();
+
+    await userEvent.setup().click(settings);
+    expect(onNavigate).toHaveBeenCalledWith({ name: "settings", params: {} });
+  });
+
   it("renders the single login entry when signed-out", () => {
     renderInProvider(
       <TopBar activeRoute="home" onNavigate={() => {}} signedIn={false} />,
@@ -108,83 +128,6 @@ describe("TopBar user menu", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders the signed-in avatar chip, opens the ui-design user dropdown, and dispatches the right routes", async () => {
-    const onNavigate = vi.fn();
-    renderInProvider(
-      <TopBar
-        activeRoute="home"
-        onNavigate={onNavigate}
-        signedIn={true}
-        user={{
-          displayName: "Alice Example",
-          emailMasked: "ali***@example.com",
-        }}
-      />,
-    );
-    expect(screen.getByTestId("topbar-user-chip")).toBeInTheDocument();
-    expect(screen.getByTestId("topbar-user-avatar")).toHaveTextContent("AE");
-    expect(screen.getByTestId("topbar-user-name")).toHaveTextContent(
-      "Alice Example",
-    );
-    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("topbar-user-profile"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("topbar-login")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
-
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("topbar-user-chip"));
-    expect(screen.getByTestId("topbar-user-menu")).toBeInTheDocument();
-    expect(screen.getByTestId("topbar-user-menu-header")).toHaveTextContent(
-      "Alice Example",
-    );
-    expect(screen.getByTestId("topbar-user-email")).toHaveTextContent(
-      "ali***@example.com",
-    );
-    expect(screen.getByTestId("topbar-user-backdrop")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("topbar-user-profile"),
-    ).not.toBeInTheDocument();
-
-    await user.click(screen.getByTestId("topbar-user-settings"));
-    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
-    await user.click(screen.getByTestId("topbar-user-chip"));
-    await user.click(screen.getByTestId("topbar-user-logout"));
-    expect(onNavigate).toHaveBeenNthCalledWith(1, {
-      name: "settings",
-      params: {},
-    });
-    expect(onNavigate).toHaveBeenNthCalledWith(2, {
-      name: "auth_logout",
-      params: {},
-    });
-  });
-
-  it("uses neutral signed-in fallbacks instead of prototype sample identity", async () => {
-    render(
-      <DisplayPreferencesProvider initial={{ lang: "zh" }}>
-        <TopBar
-          activeRoute="home"
-          onNavigate={() => {}}
-          signedIn={true}
-          user={{ displayName: "", emailMasked: "" }}
-        />
-      </DisplayPreferencesProvider>,
-    );
-
-    expect(screen.getByTestId("topbar-user-name")).toHaveTextContent("候选人");
-    expect(screen.getByTestId("topbar-user-name")).not.toHaveTextContent("刘哲");
-
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("topbar-user-chip"));
-    expect(screen.getByTestId("topbar-user-email")).toHaveTextContent(
-      "邮箱未提供",
-    );
-    expect(screen.getByTestId("topbar-user-menu")).not.toHaveTextContent(
-      "liuzhe@example.com",
-    );
-  });
 });
 
 describe("TopBar display controls", () => {

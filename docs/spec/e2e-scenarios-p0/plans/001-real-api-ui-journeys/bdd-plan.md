@@ -1,6 +1,6 @@
 # 001 Real API/UI Journeys BDD Plan
 
-> **版本**: 3.10
+> **版本**: 3.11
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -12,7 +12,7 @@
 |----|------|-------|------|------|
 | E2E.P0.098 | real API/UI persistence | shared real stack with a pre-seeded round-1 plan and waiting session | browser logs in, calls the real completion flow, reloads Home/Workspace and opens TargetJob detail | canonical progress persists as `done,current,pending`; requests reach the backend; no round-2 plan is created |
 | E2E.P0.099 | real report/generating/conversation UI/API | current-run en/zh ready reports plus honest generating resource and owned report-session-message rows | browser captures exact six full-page report/generating images, opens Conversation from Report, calls real reportId-only API, verifies read-only DB binding, then goes Back | each screenshot row binds current state/digests；bounded non-image evidence proves same report/context, strict message ordering, correct back target and zero public session-list requests without storing transcript prose |
-| E2E.P0.101 | auth/settings-owned real API/UI session | shared real frontend/backend/Mailpit with a fresh email identity | browser verifies code, completes profile, opens Settings via the sole gear, checks real account fields, logs out from Settings and signs in again | first session requires profile setup；Settings matches the same account with no old menu/tab；logout clears session；relogin skips setup；no request is intercepted/mocked and deleteMe is never called |
+| E2E.P0.101 | auth/settings-owned real API/UI session | shared real frontend/backend/Mailpit with a fresh email identity | browser verifies code, completes profile, opens Settings via the sole gear, checks the complete account email and display name, logs out from Settings and signs in again | first session requires profile setup；Settings matches the same account with no old menu/tab；logs/evidence redact the email；logout clears session；relogin skips setup；no request is intercepted/mocked and deleteMe is never called |
 
 ## 2 Failure and privacy
 

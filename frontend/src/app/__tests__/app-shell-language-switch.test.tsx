@@ -45,10 +45,8 @@ function buildClient(
         if (auth === "authenticated") {
           return jsonResponse({
             id: "01918fa0-0000-7000-8000-000000000100",
-            emailMasked: "ali***@example.com",
+            email: "alice@example.com",
             displayName: "Alice Example",
-            uiLanguage: "zh-CN",
-            preferredPracticeLanguage: "zh-CN",
             profileCompletionRequired: false,
           });
         }
@@ -132,15 +130,11 @@ describe("app shell language switch", () => {
     );
     await user.click(screen.getByTestId("topbar-lang-toggle"));
     await user.click(screen.getByTestId("topbar-lang-option-en"));
-    await user.click(screen.getByTestId("topbar-user-chip"));
-    expect(screen.queryByTestId("topbar-user-profile")).not.toBeInTheDocument();
-    expect(screen.getByTestId("topbar-user-settings")).toHaveTextContent(
+    expect(screen.getByTestId("topbar-settings")).toHaveAccessibleName(
       "Settings & privacy",
     );
-    expect(screen.getByTestId("topbar-user-logout")).toHaveTextContent(
-      "Sign out",
-    );
-    await user.click(screen.getByTestId("topbar-user-settings"));
+    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("topbar-settings"));
     expect(screen.getByTestId("route-settings")).toHaveTextContent(
       "Settings & privacy",
     );

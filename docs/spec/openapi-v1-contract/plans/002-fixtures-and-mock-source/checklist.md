@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.21
-> **状态**: active
+> **版本**: 1.22
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
@@ -128,8 +128,9 @@
 
 ## Phase 13: OPENAPI-007 Settings UserContext fixtures
 
-- [ ] 13.1 RED: fixture/schema tests fail while authenticated/profileIncomplete `getMe` or `completeMyProfile` responses contain `uiLanguage/preferredPracticeLanguage`, omit a required four-field value, expose raw email or accept any extra field under the source `additionalProperties: false` contract.
-- [ ] 13.2 GREEN: Auth fixtures use exact four-field `UserContext`; unauthenticated error and profile-completion semantics remain unchanged；no compatibility scenario/default language constant.
-- [ ] 13.3 PARITY-GATE: fixture validation, rendered examples, live Prism and dev-mock byte parity pass for getMe/completeMyProfile with 37 fixtures/operations unchanged.
-- [ ] 13.4 HANDOFF/BDD-N/A: frontend runtime/settings typed builders and backend mapping consume exact fixtures；user behavior remains in frontend-shell Settings BDD + `E2E.P0.101`, not a fixture E2E.
-- [ ] 13.5 REGRESSION-GATE: root `make test`, lint/fixture/codegen/diff, contexts/docs/diff and production fixture/mock old-field zero-reference gates pass.
+- [x] 13.1 RED: fixture/schema tests fail while authenticated/profileIncomplete `getMe` or `completeMyProfile` responses contain `uiLanguage/preferredPracticeLanguage/emailMasked`, omit complete `email`, or accept any extra field under the source `additionalProperties: false` contract. Evidence (2026-07-15): the approved full-email correction makes the current masked fixtures RED.
+- [x] 13.2 GREEN: Auth fixtures use exact `{id,email,displayName,profileCompletionRequired}` with a complete reserved-domain synthetic email under the existing fixture privacy allowlist；unauthenticated errors remain unchanged, non-reserved real domains still fail, and logs/E2E evidence remain redacted.
+  <!-- verified: 2026-07-15 method=fixture-contract-negative-cli evidence="exact full-email Auth fixture test PASS; validate-fixtures 37/37 PASS; gmail mutation remains rejected" -->
+- [x] 13.3 PARITY-GATE: fixture validation, rendered examples, live Prism and dev-mock byte parity pass for getMe/completeMyProfile with 37 fixtures/operations unchanged.
+- [x] 13.4 HANDOFF/BDD-N/A: frontend runtime/settings typed builders and backend mapping consume exact full-email fixtures；user behavior remains in frontend-shell Settings BDD + `E2E.P0.101`, not a fixture E2E.
+- [x] 13.5 REGRESSION-GATE: root `make test`, lint/fixture/codegen/diff, contexts/docs/diff and production fixture/mock old-field zero-reference gates pass.

@@ -10,6 +10,24 @@ from scripts.codegen import prism_fixture_smoke as smoke
 
 
 class PrismFixtureSmokeTest(unittest.TestCase):
+    def test_settings_matrix_covers_get_and_complete_profile_defaults(self) -> None:
+        rows = {row[0]: row for row in smoke.SMOKE_MATRIX}
+
+        self.assertEqual(
+            ("getMe", "GET", "/me", 200, "openapi/fixtures/Auth/getMe.json"),
+            rows["getMe"],
+        )
+        self.assertEqual(
+            (
+                "completeMyProfile",
+                "PATCH",
+                "/me",
+                200,
+                "openapi/fixtures/Auth/completeMyProfile.json",
+            ),
+            rows["completeMyProfile"],
+        )
+
     def test_resume_matrix_covers_summary_list_and_full_detail_defaults(self) -> None:
         rows = {row[0]: row for row in smoke.SMOKE_MATRIX}
 

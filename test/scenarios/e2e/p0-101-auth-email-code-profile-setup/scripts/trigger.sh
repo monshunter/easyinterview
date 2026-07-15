@@ -35,7 +35,7 @@ export EI_PLAYWRIGHT_OUTPUT_DIR="$OUTPUT_DIR/playwright"
   echo "FRONTEND_ORIGIN=$FRONTEND_ORIGIN"
   echo "API_BASE_URL=$API_BASE_URL"
   echo "MAILPIT_BASE_URL=$MAILPIT_BASE_URL"
-  echo "EMAIL=$AUTH_EMAIL"
+  echo "EMAIL=<redacted-synthetic>"
   cd "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend exec playwright test \
     --config=playwright.auth-email-code.config.ts \

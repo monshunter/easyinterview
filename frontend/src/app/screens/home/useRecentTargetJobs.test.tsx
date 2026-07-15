@@ -24,10 +24,8 @@ function authenticatedRuntime(client: EasyInterviewClient): AppRuntimeValue {
       status: "authenticated",
       user: {
         id: "01918fa0-0000-7000-8000-00000000feed",
-        emailMasked: "te***@example.com",
+        email: "test@example.com",
         displayName: "Test User",
-        uiLanguage: "en",
-        preferredPracticeLanguage: "en",
         profileCompletionRequired: false,
       },
     },

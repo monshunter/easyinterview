@@ -194,6 +194,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0175](./BUG-0175.md) | E2E evidence redaction missed URL-encoded account email | medium | resolved | 2026-07-15 | `feat(settings): simplify account settings and harden evidence privacy (BUG-0175)` |
 | [BUG-0174](./BUG-0174.md) | evidence privacy gate rejected benign PNG metadata | medium | resolved | 2026-07-15 | `feat(report): integrate readonly conversation record (BUG-0173, BUG-0174)` |
 | [BUG-0172](./BUG-0172.md) | UI Demo pruning gate missed renamed browser contracts and owner drift | medium | resolved | 2026-07-15 | `fix(ui-design): close pruning review findings (BUG-0172)` |
 | [BUG-0169](./BUG-0169.md) | Closeout contract gates drifted from current source ownership | medium | resolved | 2026-07-14 | `fix(interview): close turn UX and report navigation (BUG-0167, BUG-0168, BUG-0169)` |

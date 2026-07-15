@@ -100,7 +100,7 @@ auth_logout
 Settings & privacy
 ├─ Account
 │  ├─ Display name: /me.displayName（只读）
-│  ├─ Login email: /me.emailMasked（只读）
+│  ├─ Login email: /me.email（完整账号邮箱，只读）
 │  └─ Sign out -> auth_logout
 └─ Privacy & data
    ├─ Export data: 暂不可用（不可触发伪成功）

@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.21
-> **状态**: active
+> **版本**: 1.22
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -105,6 +105,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-15 | 1.22 | Revise Phase 13 Auth fixtures to the complete authenticated `email`, remove `emailMasked`, and keep raw email out of logs/evidence. | OPENAPI-007 |
 | 2026-07-15 | 1.21 | Add Phase 13 for OPENAPI-007 four-field UserContext Auth fixtures, dev-mock parity and old-language-field negative gates. | OPENAPI-007 |
 | 2026-07-15 | 1.20 | Add Phase 12 for report-owned conversation fixtures and removal of the public PracticeSessions list fixture while keeping 37/37 parity. | OPENAPI-001 v1.7 |
 | 2026-07-14 | 1.19 | Add Phase 11 for OPENAPI-005 summary-only list fixture, full detail fixture and Prism/mock consumer handoff. | OPENAPI-005 |
@@ -227,6 +228,6 @@ Render examples and run live byte-equal Prism/mock parity for `getReportConversa
 
 ## 15 Phase 13: OPENAPI-007 Settings UserContext fixtures
 
-Update `Auth/getMe.json` authenticated/profileIncomplete responses and `Auth/completeMyProfile.json` success to exact `{id,emailMasked,displayName,profileCompletionRequired}`. Keep unauthenticated error scenarios unchanged and preserve masked, non-raw email examples. Validator mutations must exercise the source `additionalProperties: false` closure and reject either old language field, any arbitrary extra field, or a missing required field.
+Update `Auth/getMe.json` authenticated/profileIncomplete responses and `Auth/completeMyProfile.json` success to exact `{id,email,displayName,profileCompletionRequired}`. The authenticated fixture uses a complete reserved-domain synthetic email under the existing fixture privacy allowlist because it is the contract value rendered by Settings；unauthenticated errors and all logs/E2E evidence remain email-free or redacted. Validator mutations must exercise the source `additionalProperties: false` closure and reject either old language field, `emailMasked`, any arbitrary extra field, a missing required field or a non-reserved real email domain.
 
 Regenerate OpenAPI examples and prove Prism/dev-mock byte parity for `getMe` and `completeMyProfile`. Frontend dev mock and typed builders must consume the same fixture projection；no fallback constants or compatibility scenarios. This phase has no independent BDD: it hands real account values to frontend-shell settings BDD and the existing `E2E.P0.101` extension.

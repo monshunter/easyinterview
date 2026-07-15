@@ -4,6 +4,6 @@
 - Profile completion display name: `Runtime Verify`.
 - Frontend origin: `http://127.0.0.1:5173`.
 - Backend API base: `http://127.0.0.1:8080/api/v1`.
-- Mailpit API/Web: `http://127.0.0.1:8025`.
+- Mailpit API/Web: `http://127.0.0.1:${MAILPIT_WEB_HOST_PORT:-8025}` from `deploy/dev-stack/.env`.
 
 Inputs are synthetic and local-only. The scenario must not require a real external mailbox or external SMTP credentials. The same email must be used for first login, profile-incomplete relogin, and completed-account relogin; only the email is unique, not the display name.

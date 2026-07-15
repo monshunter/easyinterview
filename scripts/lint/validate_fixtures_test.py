@@ -360,6 +360,55 @@ class FixtureContentTest(unittest.TestCase):
         self.assertEqual(body["job"]["jobType"], "privacy_delete")
         self.assertEqual(body["job"]["resourceType"], "privacy_request")
 
+    def test_auth_user_context_fixtures_are_exact_full_email_four_field_projection(self) -> None:
+        expected_fields = {
+            "id",
+            "email",
+            "displayName",
+            "profileCompletionRequired",
+        }
+        fixtures = (
+            ("getMe", "default", False),
+            ("getMe", "authenticated", False),
+            ("getMe", "profileIncomplete", True),
+            ("completeMyProfile", "default", False),
+        )
+        for operation_id, scenario_name, completion_required in fixtures:
+            with self.subTest(operationId=operation_id, scenario=scenario_name):
+                body = _load_fixture(operation_id, "Auth")["scenarios"][scenario_name][
+                    "response"
+                ]["body"]
+                self.assertEqual(expected_fields, set(body))
+                self.assertEqual(completion_required, body["profileCompletionRequired"])
+                self.assertRegex(body["email"], r"^[^@]+@example\.(?:com|test)$")
+                self.assertNotIn("*", body["email"])
+                self.assertNotIn("emailMasked", body)
+                self.assertNotIn("uiLanguage", body)
+                self.assertNotIn("preferredPracticeLanguage", body)
+
+        validator = _load_validator()
+        spec = yaml.safe_load((ROOT / "openapi" / "openapi.yaml").read_text())
+        operation = validator.build_operation_index(spec)["getMe"]["operation"]
+        mutated = copy.deepcopy(_load_fixture("getMe", "Auth")["scenarios"]["default"])
+        mutated["response"]["body"]["compatibilityLanguage"] = "zh-CN"
+        errors: list[str] = []
+        validator.check_schema(
+            "getMe",
+            operation,
+            "extra-user-context-field",
+            mutated,
+            spec,
+            errors,
+        )
+        self.assertTrue(
+            any(
+                "unexpected property" in error.lower()
+                and "compatibilityLanguage" in error
+                for error in errors
+            ),
+            errors,
+        )
+
     def test_list_endpoints_have_pageInfo(self) -> None:
         for opid in LIST_OPERATIONS:
             tag = next(t for t, o, *_ in EXPECTED_OPERATIONS if o == opid)

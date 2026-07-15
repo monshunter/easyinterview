@@ -4,13 +4,18 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-101-auth-email-code-profile-setup"
+SETUP_ENV="$OUTPUT_DIR/setup.env"
 LOG="$OUTPUT_DIR/trigger.log"
 RESULT_FILE="$OUTPUT_DIR/result.json"
 
-if [ ! -s "$LOG" ]; then
-  echo "verify: missing trigger.log" >&2
+if [ ! -s "$SETUP_ENV" ] || [ ! -s "$LOG" ]; then
+  echo "verify: missing setup.env or trigger.log" >&2
   exit 1
 fi
+
+# shellcheck disable=SC1090
+. "$SETUP_ENV"
+AUTH_EMAIL_URLENCODED="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$AUTH_EMAIL")"
 
 for marker in \
   "SCENARIO_RUNNER=E2E.P0.101" \
@@ -29,9 +34,14 @@ for marker in \
   "authStartBodyKeys=email" \
   "authRegisterLivePage=absent" \
   "topbarRegister=absent" \
+  "settingsEntry=single-gear" \
+  "settingsAccount=runtime-full-email" \
+  "settingsLegacySurfaces=absent" \
+  "settingsMountedGetMe=0" \
+  "deleteMeRequests=0" \
   "E2E.P0.101 auth email-code same-email lifecycle passed" \
   "mailCode=<redacted>" \
-  "email=auth-email-code-" \
+  "email=<redacted-synthetic>" \
   "meStatus=200" \
   "profileCompletionRequired=true" \
   "profileCompletionRequired=false" \
@@ -62,6 +72,18 @@ for forbidden in \
   "AUTH_CHALLENGE_TOKEN_PEPPER"; do
   if grep -Fq -- "$forbidden" "$LOG"; then
     echo "verify: sensitive or wrong-link marker leaked into trigger log: $forbidden" >&2
+    exit 1
+  fi
+done
+
+if grep -Eq -- "auth-email-code-[^[:space:]]+@example\.test" "$LOG"; then
+  echo "verify: synthetic email leaked into trigger log" >&2
+  exit 1
+fi
+
+for forbidden_email in "$AUTH_EMAIL" "$AUTH_EMAIL_URLENCODED"; do
+  if grep -Fq -- "$forbidden_email" "$LOG"; then
+    echo "verify: current-run email leaked into trigger log" >&2
     exit 1
   fi
 done

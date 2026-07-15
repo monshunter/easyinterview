@@ -242,10 +242,8 @@ describe("AppRuntimeProvider", () => {
     const client = new EasyInterviewClient({ fetch: spy });
     const committedUser: UserContext = {
       id: "01918fa0-0000-7000-8000-00000000feed",
-      emailMasked: "ver***@example.com",
+      email: "verified@example.com",
       displayName: "Verified User",
-      uiLanguage: "zh-CN",
-      preferredPracticeLanguage: "zh-CN",
       profileCompletionRequired: false,
     };
     const view = (lang: "zh" | "en") => (

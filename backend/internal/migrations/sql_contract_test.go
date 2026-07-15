@@ -158,6 +158,45 @@ func TestTargetJobReportPointerRemovedMigrationContract(t *testing.T) {
 	}
 }
 
+func TestUserSettingsDisplayPreferencesPruningMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000020_remove_user_settings_display_preferences.up.sql")))
+	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000020_remove_user_settings_display_preferences.down.sql")))
+
+	for _, removed := range []string{
+		"drop column ui_language",
+		"drop column preferred_practice_language",
+		"drop column region",
+		"drop column timezone",
+	} {
+		if !strings.Contains(up, removed) {
+			t.Fatalf("user_settings display-preference up migration missing %q", removed)
+		}
+	}
+	for _, forbidden := range []string{
+		"drop column user_id",
+		"drop column analytics_opt_in",
+		"drop column created_at",
+		"drop column updated_at",
+		"create table",
+		"create view",
+	} {
+		if strings.Contains(up, forbidden) {
+			t.Fatalf("user_settings display-preference up migration must not contain %q", forbidden)
+		}
+	}
+	for _, restored := range []string{
+		"add column ui_language text not null default 'zh-cn'",
+		"add column preferred_practice_language text not null default 'en'",
+		"add column region text",
+		"add column timezone text not null default 'utc'",
+	} {
+		if !strings.Contains(down, restored) {
+			t.Fatalf("user_settings display-preference down migration missing %q", restored)
+		}
+	}
+}
+
 func TestPracticeIdempotencyMigrationContract(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readAllUpMigrations(t, filepath.Join(root, "migrations")))
