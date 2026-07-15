@@ -1,8 +1,8 @@
 # 首次无简历用户引导流程
 
-> **版本**: 1.16
+> **版本**: 1.17
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 ## 1 文档目的
 
@@ -18,16 +18,12 @@ Home
   -> resume_versions(flow=create)
   -> Resume Create Flow
 
-Mock Interview Plan / Parse
-  -> 检测无绑定简历
-  -> Resume Intake Prompt
-
 Resume
   -> 新建简历
   -> resume_versions(flow=create)
 ```
 
-简历引导不挡在首页之前。用户可以先输入 JD 或浏览静态页面，再在需要个性化准备时补全简历。当前静态 UI 的目标入口是 `resume_versions` 内的 `flow=create`；范围外 `onboarding` 路由折回 `resume_versions`。
+简历引导不挡在首页浏览和 JD 录入之前，但 selectable Resume 是提交 JD、创建模拟面试规划以及进入训练/报告链路的强制前置。selectable 指未归档且 `parseStatus=ready` 或已有可读正文/结构化证据。用户没有该类简历时只能进入 `resume_versions` 内的 `flow=create`；创建并形成可读证据后返回 Home，由用户显式选择该简历再提交。范围外 `onboarding` 路由折回 `resume_versions`。
 
 ## 3 两种输入路径
 
@@ -88,16 +84,18 @@ Submit Source
 └─ Inline Error / Progress
 ```
 
-## 6 跳过策略
+## 6 强制前置策略
 
-用户可以暂时跳过简历引导，但系统需要降低个性化承诺。
+用户可以暂时不创建简历并继续浏览或编辑尚未提交的 JD，但不能跳过简历进入任何模拟面试业务链路。
 
 | 场景 | 行为 |
 |------|------|
-| 无简历但只看 JD | 允许继续 |
-| 无简历开始模拟面试 | 允许但提示问题会更多依赖 JD，较少结合个人经历 |
-| 无简历生成报告 | 报告只基于本场回答和 JD，不声称了解完整背景 |
-| 用户稍后补简历 | 更新面试规划和后续报告分析 |
+| 无简历浏览 Home 或录入 JD 草稿 | 允许继续，但「立即面试」保持禁用且不调用 `importTargetJob` |
+| 无简历提交 JD / 创建规划 | 不允许；进入 `resume_versions(flow=create)` 创建简历 |
+| 无简历开始、复练或进入下一轮 | 不允许；不存在 JD-only 训练降级模式 |
+| 无简历生成或查看异常规划报告 | 不允许；不存在仅基于回答和 JD 的报告降级模式 |
+| 简历创建并形成可读证据 | 返回 Home，由用户显式选择后才能提交 JD；不自动绑定最近简历 |
+| 历史 TargetJob 缺失或无效绑定 | 作为异常数据 fail closed；不在 Workspace 补绑，不从 route 或浏览器存储恢复 |
 
 ## 7 数据落点
 
@@ -142,7 +140,7 @@ Resume Create Flow
 2. 上传和粘贴必须落到同一套平铺 `Resume` 结构。
 3. 原始内容、解析文本和结构化内容都必须保留。
 4. 首页的 `还没有简历？1 分钟创建` 应进入 `resume_versions(flow=create)`。
-5. 完整面试和报告应根据是否有简历调整个性化程度。
+5. Home、Practice、Reports 和报告后动作都必须以已持久化的 selectable 简历绑定为前提，不实现无简历降级分支。
 6. 不展示结构化草稿确认页。
 7. 注册成功后必须进入解析等待态；成功后详情页按来源格式自动展示 PDF 页面栈或 Markdown 正文，失败后展示失败态。
 8. 范围外 `onboarding` route 通过 `routeAliases` 折回 `resume_versions`，不作为当前目标入口；新文档和新交互不得引入画像前置流程或轻量问答建档。
@@ -151,6 +149,7 @@ Resume Create Flow
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 1.17 | 2026-07-15 | 将 selectable 简历锁定为 JD 提交、模拟面试和报告链路的永久强制前置；删除无简历训练与降级报告承诺，历史缺绑统一 fail closed。 |
 | 1.16 | 2026-07-14 | 将上传文件默认上限从历史 2MiB 修订为 RuntimeConfig 投影的 10MiB。 |
 | 1.15 | 2026-07-10 | 将 onboarding route 负向边界统一为范围外口径；行为不变。 |
 | 1.14 | 2026-07-08 | 修订详情阅读面：Markdown body 只渲染正文，不注入 displayName/header 元数据，并与 PDF 共用背景板。 |

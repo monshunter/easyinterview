@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.32
+> **版本**: 2.33
 > **状态**: completed
 > **更新日期**: 2026-07-15
 
@@ -150,6 +150,12 @@
   <!-- verified: 2026-07-15 method=vitest evidence="parse/workspace 11 files 54 tests PASS" -->
 - [x] 23.4 PARITY/A11Y：desktop/mobile DOM、可访问名称、键盘/触控、computed style、bbox/no-overflow 通过；独立 launch/binding、标题右侧 Report、页尾 Start 与 orphan locale key 零残留。（验证：Chrome 1440/390 actions 44px、左对齐同序、标题链接同簇、无横溢；旧 DOM 0）
 - [x] 23.5 POST-PASS：根 `make test`、frontend typecheck/build、owner contexts、`sync-doc-index --check`、`make docs-check`、`git diff --check` 通过，与 Workspace owner 同步恢复 completed。（验证：根后端 551 tests/4493 subtests、前端 125 files/993 tests PASS；lint/build/context/docs/index/diff PASS）
+
+## Phase 24: Required Resume product-contract reconciliation
+
+- [x] 24.1 Product/UI truth sources 明确 selectable Resume 是 JD import、Practice、Reports、复练和下一轮的永久强制前置，并删除无简历训练与降级报告承诺。<!-- verified: 2026-07-15 method=in-place-design-reconcile evidence="product-scope D-30/C-28 and four UI owner documents now reject resume-less import, training and report downgrade while preserving ready-or-readable-evidence selection; stale commitment search is zero" -->
+- [x] 24.2 Owner spec/plan/BDD/context 将无选择时零 import、形成可读证据后返回 Home 显式选择、历史缺失/无效绑定全链路 fail closed 固化为当前合同。<!-- verified: 2026-07-15 method=focused-contract-evidence evidence="Home/Parse 5 files 38 tests PASS; Home selection predicate, canSubmit/import guard and OpenAPI required resumeId match the revised owner contract" -->
+- [x] 24.3 Existing Home/Workspace focused tests、active-doc negative search、context、Header/INDEX、docs、diff 与 pruning gates 全部通过；本阶段无代码变更且不声明新 E2E。<!-- verified: 2026-07-15 method=post-pass-gates evidence="5 focused files 38 tests PASS; stale commitment rg returned zero matches; validate_context, sync-doc-index, docs-check, git diff --check and lint-core-loop-pruning-surface PASS with real_residuals=0" -->
 
 ## BDD Gate
 

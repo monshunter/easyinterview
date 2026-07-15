@@ -1,6 +1,6 @@
 # 多 JD 与多简历目标管理结构
 
-> **版本**: 3.7
+> **版本**: 3.8
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -15,7 +15,7 @@
 3. 每个模拟面试规划绑定一个 `TargetJob/JD`、一份 `Resume` 和一个 `InterviewRound`。
 4. 系统必须同时保留每份简历的原始来源、解析文本和结构化内容。
 5. 简历完成态名称由 backend parse 根据 LLM 结构化结果生成；上传 / 粘贴的通用标题只作为解析前来源信息，不作为完成态名称。
-6. 简历缺失时不阻断用户看 JD，但在创建个性化模拟面试规划前触发补全和登录；历史规划缺少绑定简历时只阻断开始。
+6. 简历缺失时允许浏览 Home 和录入未提交的 JD，但 `importTargetJob`、模拟面试、复练、下一轮和报告链路永久强制 selectable 简历；selectable 指未归档且 `parseStatus=ready` 或已有可读正文/结构化证据。历史缺绑规划属于异常数据并 fail closed。
 7. 模拟面试规划不是简历资产管理中心，只承载创建规划时已选择的简历快照。
 8. Home 的 JD intake 只有粘贴文本；请求形态固定为 `{ rawText, targetLanguage, resumeId }`。Resume 模块仍可上传或粘贴简历，两类入口不得混用。
 
@@ -130,11 +130,11 @@ MockInterviewPlan
 
 | 场景 | 目标行为 |
 |------|----------|
-| 用户新增 JD | 首页先选择已有 ready 简历，再点击「立即面试」POST import；只进入 `/parse?targetJobId` queued/processing 进度，ready 后 replace 到 `/workspace?targetJobId` 只读 JD / 简历 / 轮次详情，唯一成功 CTA 是立即面试 |
+| 用户新增 JD | 首页先选择已有 selectable 简历，再点击「立即面试」POST import；只进入 `/parse?targetJobId` queued/processing 进度，ready 后 replace 到 `/workspace?targetJobId` 只读 JD / 简历 / 轮次详情，唯一成功 CTA 是立即面试 |
 | JD 正在解析 | `parse` 只展示四步进度与等待说明；不得向用户展示 model/provider、rubric/prompt/version/hash、provenance 或典型耗时等内部实现元数据 |
 | 用户有多份 JD | 首页最多显示最近 3 条模拟面试；卡片主体点击进入规划详情，`立即面试` 主按钮直接启动 practice，不展示删除按钮；更多内容通过“更多”进入一级 `面试` 列表页 |
 | 用户不想继续当前规划 | 在面试页点击切换规划或新建规划 |
-| 用户首次无简历 | 首页提示创建简历；首页不提供上传简历入口，只跳转到 `resume_versions(flow=create)`；Workspace 详情若发现历史规划缺少绑定简历，只阻断开始，不在当前规划上补绑 |
+| 用户首次无简历 | 首页提示创建简历；首页不提供上传简历入口，只跳转到 `resume_versions(flow=create)`；未创建、形成可读证据并显式选择 selectable 简历前不调用 import，也不进入训练、复练、下一轮或报告链路 |
 | 用户上传新简历 | 创建新的 `Resume`，注册成功后直接打开详情 |
 | 用户粘贴简历 | 创建新的 `Resume`，保留粘贴文本，根据内容派生临时标题，并注册成功后直接打开详情 |
 | 用户查看简历资产 | 以 desktop 固定最大列宽多列、mobile 单列的卡片列表查看全部简历；每卡片可打开或删除，详情只阅读原始简历正文 |
@@ -154,6 +154,8 @@ MockInterviewPlan
 ├─ 多岗位信息混合在一个模拟面试规划里
 ├─ 让 Settings 承担简历管理职责
 ├─ 在面试规划详情中更换绑定简历
+├─ 无简历或 JD-only 的导入、训练、复练、下一轮与报告降级模式
+├─ 为历史缺绑规划自动选择最近简历或从 route / 浏览器存储恢复绑定
 ├─ 在简历详情页提供导出 / 复制 / 编辑 / 改写 / 原件弹层
 ├─ 从 Home 以文件、岗位链接或结构化表单导入 JD
 └─ 覆盖原始来源快照
@@ -165,6 +167,7 @@ MockInterviewPlan
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 3.8 | 2026-07-15 | 将 selectable 简历锁定为模拟面试全链路强制前置；无简历只允许创建简历，历史缺绑规划 fail closed。 |
 | 3.7 | 2026-07-15 | Resume 列表改为响应式卡片；Workspace 详情删除独立绑定 block，标题旁提供绑定简历详情链接，并将立即面试/面试报告合并到首行动作行。 |
 | 3.6 | 2026-07-14 | 新导入仅以 Parse 展示 queued/processing，ready replace 到 targetJobId-only Workspace 详情；绑定简历在详情只读，不携带 resumeId route 或提供 picker/rebind。 |
 | 3.5 | 2026-07-13 | Home JD intake 收敛为唯一粘贴文本框与 `{ rawText, targetLanguage, resumeId }` 请求合同；Resume 上传 / 粘贴保持不变。 |

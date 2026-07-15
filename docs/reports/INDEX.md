@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-15](./2026-07-15-mandatory-resume-contract-assessment.md) | Mandatory Resume Contract 交付复盘 | #assessment #product #ui |
 | [2026-07-15](./2026-07-15-settings-simplification-assessment.md) | Settings Simplification 交付复盘 | #assessment #BUG-0175 #BUG-0176 |
 | [2026-07-15](./2026-07-15-resume-workspace-report-layout-assessment.md) | Resume、Workspace 与 Report 布局交付复盘 | #assessment #ui |
 | [2026-07-15](./2026-07-15-report-conversation-record-assessment.md) | Report Conversation Record 交付复盘 | #assessment #BUG-0173 #BUG-0174 |

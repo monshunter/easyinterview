@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.31
+> **版本**: 2.32
 > **状态**: completed
 > **更新日期**: 2026-07-15
 
@@ -340,6 +340,20 @@ Home consumes the required `AppRuntimeProvider.contentLimits.targetJobRawTextByt
 
 Focused tests 只作开发反馈；执行根 `make test`、frontend typecheck/build、desktop/mobile DOM/style/bbox/no-overflow、owner contexts、`sync-doc-index --check`、`make docs-check`、`git diff --check` 与旧标题右侧/独立 block/footer action/orphan locale key 零残留。完成后与 `frontend-workspace-and-practice/001` 同步恢复 completed。
 
+### Phase 24: Required Resume product-contract reconciliation
+
+#### 24.1 Product and UI truth sources
+
+原地修订 product-scope 与 Home/Resume/Workspace 用户流程，把 selectable Resume 锁定为当前及未来 `importTargetJob`、Practice、Reports、复练和下一轮的强制前置。selectable 延用正式代码合同：未归档且 `parseStatus=ready` 或已有可读正文/结构化证据。无该类简历的用户只进入 `resume_versions(flow=create)`；形成可读证据后返回 Home 显式选择，不自动绑定最近简历。
+
+#### 24.2 Owner and legacy failure contract
+
+Home exact request 保持 `{ rawText, targetLanguage, resumeId }` 且无选择时零 request。历史 TargetJob 缺失或无效 `resumeId` 属于异常数据：Workspace 显示非链接缺失态，Start、Reports、复练和下一轮全部 fail closed；不得提供 picker/rebind、route/storage fallback、JD-only 训练或报告降级。
+
+#### 24.3 Documentation and behavior gates
+
+本阶段只纠正设计合同，不修改 frontend/OpenAPI/backend 实现，也不新建 BDD 文件或伪 E2E。复用 `BDD.HOME.JD.001/002` 和现有 Home/Workspace focused tests证明当前实现已要求简历；以 active docs 负向搜索拒绝“跳过简历训练”“无简历报告”“只阻断 Start”等旧承诺，并执行 context、Header/INDEX、docs links、diff 与 pruning gates。
+
 
 
 ## 6 验收标准
@@ -354,6 +368,7 @@ Focused tests 只作开发反馈；执行根 `make test`、frontend typecheck/bu
 - The pending import module exposes no test-only reset API；`pendingAction` only carries `opaquePendingImportId`，while raw JD remains in a process-memory one-shot vault. Home auth continuation tests cover normal atomic consume, refresh/lost vault, expiry and duplicate consume；only the normal path dispatches one exact request with the original idempotency key.
 - Parse loading 只展示用户可理解的进度/等待状态；prototype、formal、desktop/mobile 截图和 active source 均不含 model/provider、rubric/prompt/version/hash、provenance 或 typical latency。
 - Home 只展示 JD textarea、ready Resume 下拉框和主 CTA；`importTargetJob` 只接受 `{ rawText, targetLanguage, resumeId }`，route 只携带 `targetJobId`。
+- selectable Resume 是 import、Practice、Reports、复练和下一轮的永久前置；无 selectable 简历只进入创建流程，历史缺失/无效绑定全链路 fail closed，active docs 不得保留 JD-only 降级承诺。
 - 非当前 JD intake 的 UI、public schema、generated type、backend branch、专属 fixture/scenario 和 active docs 为零；Resume 上传路径继续通过原 owner gates。
 - Workspace detail 标题旁“绑定简历”精确进入 saved Resume 详情，标题下首行动作行从左展示“立即面试 + 面试报告”，后者精确进入 `reports?targetJobId=...`；全局 TopBar、页尾与 Parse command progress 无该入口，独立 launch/binding block 为零。
 - Parse 与 Workspace detail 中 `listTargetJobReports` 调用、嵌入式报告 DOM、列表状态、`section=reports` safe param 与滚动/聚焦兼容逻辑为零；独立 ReportsScreen 与返回路径由 report/shell owner 验证。
@@ -365,6 +380,7 @@ Focused tests 只作开发反馈；执行根 `make test`、frontend typecheck/bu
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 2.32 | Add Phase 24 to reconcile the permanent selectable-Resume prerequisite across product, UI and owner documents without adding a resume-less compatibility path. |
 | 2026-07-15 | 2.31 | Reopen Phase 23 to replace the standalone launch/binding block with a title-adjacent saved-resume link and a leading Start/Reports row. |
 | 2026-07-14 | 2.28 | Add Phase 20 command-only Parse, ready-card direct Workspace detail, ready replace, Workspace-owned report/start detail language, targetJobId-only routes and exact safe-read GET count gates. |
 | 2026-07-14 | 2.27 | Revise Phase 19 in place: move reports to an independent target-scoped page, keep only the plan-detail header entry, and delete Parse list requests, embedded UI, and section compatibility. |

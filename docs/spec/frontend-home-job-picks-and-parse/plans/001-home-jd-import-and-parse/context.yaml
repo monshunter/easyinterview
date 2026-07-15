@@ -5,10 +5,10 @@ metadata:
   name: 001-home-jd-import-and-parse
   sequence: 1
   baseBranch: main
-  branch: design/resume-interview-report-layout
+  branch: docs/resume-required-contract-0715
   specVersion:
-    from: 2.26
-    to: 2.27
+    from: 2.27
+    to: 2.28
 spec:
   defaultTarget: frontend
   discovery:
@@ -25,6 +25,11 @@ spec:
       - paste-only Home JD intake
       - Home JD textarea
       - rawText targetLanguage resumeId
+      - required selectable resume
+      - mandatory resume before import
+      - no resume practice zero reference
+      - no JD-only report fallback
+      - invalid missing resume fail closed
       - targetJobRawTextBytes 98304
       - JD UTF8 byte validation
       - exact flattened import wire

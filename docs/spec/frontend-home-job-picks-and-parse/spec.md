@@ -1,6 +1,6 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.27
+> **版本**: 2.28
 > **状态**: completed
 > **更新日期**: 2026-07-15
 
@@ -12,7 +12,7 @@
 
 ```text
 Home 粘贴 JD
-  -> 显式选择 ready Resume
+  -> 显式选择 selectable Resume
   -> /parse?targetJobId queued/processing
   -> replace /workspace?targetJobId
   -> 面试规划详情 / 面试上下文确认
@@ -30,7 +30,7 @@ Home 粘贴 JD
   - 按设计合同实现 `frontend/src` 当前结构。
   - Hero 只保留 label + title。
   - JD 输入卡只承载 textarea；不展示或挂载其他 JD intake 控件、弹窗或隐藏分支。
-  - `listResumes` 读取 ready 且未归档的简历；用户必须显式选择一份简历后才能点击「立即面试」。
+  - `listResumes` 读取未归档且 `parseStatus=ready` 或已有可读正文/结构化证据的 selectable 简历；用户必须显式选择一份后才能点击「立即面试」。
   - `还没有简历？1 分钟创建 ->` 与下拉框同行，点击进入 `resume_versions?flow=create`。
   - `listTargetJobs` 渲染最近 3 张 ready mock interview card；卡片主体直接进入 `/workspace?targetJobId=...`，不经过 Parse/动画；超过 3 条时展示「更多」并跳转 `/workspace`。
   - Empty state 引导继续创建模拟面试，不展示示例业务数据。
@@ -64,7 +64,7 @@ Home 粘贴 JD
 |----|------|--------|------|
 | D-1 | Owner 范围 | 本 subspec 接管 Home、Parse command progress 和被 Workspace targetJobId route 复用的统一详情组件 | Workspace 列表、Practice / Report / Resume 管理仍由各自 owner 承接 |
 | D-2 | UI 设计文档 | `frontend/src` | 正式前端必须按设计合同实现，不做二次设计 |
-| D-3 | Home 提交流程 | 用户在唯一 textarea 粘贴 JD，并显式选择 ready 简历后提交 | POST 成功只进入 `/parse?targetJobId=...`；route 不携带 `resumeId` 或原文 |
+| D-3 | Home 提交流程 | 用户在唯一 textarea 粘贴 JD，并显式选择 selectable 简历后提交 | POST 成功只进入 `/parse?targetJobId=...`；route 不携带 `resumeId` 或原文 |
 | D-4 | Workspace detail handoff | Workspace targetJobId detail 是只读上下文收据；解析成功即已保存规划。标题旁“绑定简历”只查看 saved resume；标题下首行动作行的「立即面试」直接使用已绑定上下文进入 practice handoff，不先 PATCH `updateTargetJob` 或经由 route-side auto start | Practice session 创建使用已保存 TargetJob / Resume / Round 快照；不保留独立 launch/footer 区 |
 | D-5 | Parse 状态机 | `getTargetJob.analysisStatus` 驱动 queued/processing progress 与 failed；ready 必须 replace 到 workspace detail | Parse 是命令进度，不是 ready 详情回访页 |
 | D-6 | Recent mocks | Home 最多展示 3 张最近模拟面试卡片，更多列表入口交给 `workspace` | 首页保持新建任务优先 |
@@ -78,9 +78,10 @@ Home 粘贴 JD
 | D-14 | JD intake 单一合同 | Home 与 `importTargetJob` 只保留 `{ rawText, targetLanguage, resumeId }` | 不保留 source discriminator；删除其他 JD 导入形态但不影响 Resume 上传 |
 | D-15 | JD raw text runtime limit | Home 只消费 RuntimeConfig `targetJobRawTextBytes`，默认/code fallback 98,304 bytes；通过 `TextEncoder` 按 UTF-8 bytes 预检，limit+1 不调用 import；backend 仍作最终裁决 | 不改变 textarea DOM/样式，只统一数据源、字节口径与本地化错误；不把 route/vault/browser storage 当限制事实源 |
 | D-15 | 报告记录入口 | Workspace detail 标题下方首行动作行在“立即面试”之后提供“面试报告”，两者左对齐同排；进入 `/reports?targetJobId=<uuid>`。入口不进入全局 TopBar/页尾，Parse 不渲染 ready 入口、不嵌入或请求报告列表 | 用户在独立页面查看且只查看当前规划的轮次报告；Report/Generating 仍由各自 reportId-only 页面承接 |
-| D-16 | 绑定简历查看入口 | 删除独立绑定 block；“绑定简历”放在“面试规划详情”旁，点击只使用 `TargetJob.resumeId` 进入 `resume_versions?resumeId=...`；缺失绑定显示非链接状态并只阻断 Start | 不新增 `getResume`/`listResumes` 读取，不把查看入口误作 rebind，也不从 route/list/recent resume 伪造绑定 |
+| D-16 | 绑定简历查看入口 | 删除独立绑定 block；“绑定简历”放在“面试规划详情”旁，点击只使用 `TargetJob.resumeId` 进入 `resume_versions?resumeId=...`；缺失绑定显示非链接异常状态，Start、Reports、复练和下一轮全部 fail closed | 不新增 `getResume`/`listResumes` 读取，不把查看入口误作 rebind，也不从 route/list/recent resume 伪造绑定 |
 | D-16 | Initial GET request count | Home `listResumes` / `listTargetJobs` 与 Parse 每个分类/调度 tick 的 `getTargetJob` 依赖 shell safe-read single-flight | StrictMode mount 不产生紧邻重复底层 GET；轮询只由明确 scheduler 在间隔到期后发起 |
 | D-17 | Workspace detail round state | 轮次假设卡片使用与 Home/Workspace mini rail 相同的 `practiceProgress` 投影：完成前缀为 `done/已进行`，首个未完成轮为 `current/即将进行`，其余为 `pending/未进行`；三态必须同时有不同背景、边框、文字标签和可测试状态属性 | 用户无需从顺序猜测进度；不从 lifecycle status、URL 或浏览器存储推断轮次状态 |
+| D-18 | Selectable Resume 永久前置 | Home 只有在用户显式选择未归档且 `parseStatus=ready` 或已有可读正文/结构化证据的 selectable Resume 后才能提交 exact import；TargetJob 必须保存该 `resumeId`，后续 Start、Reports、复练和下一轮都只消费该持久化事实 | 不实现无简历/JD-only 训练或报告降级；无 selectable 简历的用户只进入创建流程。历史缺失或无效绑定是异常数据并 fail closed，不自动选择最近简历，不从 route/browser storage 补齐 |
 
 ## 4 设计约束
 
@@ -120,7 +121,7 @@ Home 粘贴 JD
 | operationId | Fixture | Frontend consumer | Backend handler | Persistence | AI dependency | Scenario |
 |-------------|---------|-------------------|-----------------|-------------|---------------|----------|
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | Home recent ready cards；same-key initial underlying request count = 1 | `backend-targetjob` | `target_jobs` / `target_job_requirements` read | none in frontend | `E2E.P0.098` 仅 Home progress refresh |
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home ready resume select；same-key initial underlying request count = 1 | `backend-resume` | `resumes` read | none | 当前无真实 E2E owner；root `make test` |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home selectable resume list（ready 或有可读证据）；same-key initial underlying request count = 1 | `backend-resume` | `resumes` read | none | 当前无真实 E2E owner；root `make test` |
 | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json`（paste success + current validation/failure variants） | Home submits `{ rawText, targetLanguage, resumeId }` | `backend-targetjob` | `target_jobs` create + saved `resume_id` + parse job；无并行 source-specific persistence | backend-only parse job | 当前无真实 E2E owner；root `make test` |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse classification/scheduled polling + Workspace ready detail；each same-key tick count = 1 | `backend-targetjob` | `target_jobs.summary` / requirements read | backend-generated `target.import.parse` structured rounds | `E2E.P0.098` 仅 TargetJob progress/detail read；import/parse 无 owner |
 | `createPracticePlan` / `getPracticePlan` / `startPracticeSession` | `openapi/fixtures/PracticePlans/*`, `openapi/fixtures/PracticeSessions/*` | Workspace readonly detail Start action and Home recent quick start | `backend-practice` | `practice_plans` / `practice_sessions` create/read | none | 当前无真实 E2E owner；root `make test` |
@@ -130,19 +131,20 @@ Home 粘贴 JD
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | Home 默认渲染 | 用户进入 App | 打开 `home` | Hero、唯一 JD textarea、resume select、create resume CTA、recent mocks/empty state 正常渲染；旧 source controls / trigger / modal 锚点不存在；TopBar 高亮首页 | 001 |
-| C-2 | Home resume gate | `listResumes` 返回 ready 简历 | 用户尚未选择简历 | 「立即面试」disabled，不调用 import；选择 ready 简历后才允许提交 | 001 |
-| C-3 | Paste JD import | 用户选择 ready 简历并粘贴 JD | 点击「立即面试」 | 调用 `importTargetJob({ rawText, targetLanguage, resumeId })` 并携带 `Idempotency-Key`；POST 成功只进入 `/parse?targetJobId=...` | 001 |
+| C-2 | Home resume gate | `listResumes` 返回 selectable 简历 | 用户尚未选择简历 | 「立即面试」disabled，不调用 import；选择 selectable 简历后才允许提交 | 001 |
+| C-3 | Paste JD import | 用户选择 selectable 简历并粘贴 JD | 点击「立即面试」 | 调用 `importTargetJob({ rawText, targetLanguage, resumeId })` 并携带 `Idempotency-Key`；POST 成功只进入 `/parse?targetJobId=...` | 001 |
 | C-4 | 非当前 JD intake 零残留 | paste-only 合同已生效 | 扫描 UI 设计文档、formal frontend、OpenAPI/generated、backend、active fixtures/scenarios | 不存在平行 JD intake UI、source discriminator、专属 handler/persistence/job/scenario；Resume 上传路径仍通过原 owner gate | 001 |
 | C-5 | Recent mocks | `listTargetJobs` 返回多条 ready 记录 | Home 加载完成 | Home `listTargetJobs`/`listResumes` 同 key 初载底层请求各 1 次；只展示最近 3 张；卡片主体直达 `/workspace?targetJobId=...`，不经过 Parse/动画；quick-start 与 More 保持 | 001 |
 | C-6 | Parse ready replace | `getTargetJob` 首读 ready 或 queued/processing 轮询转 ready | 用户进入 `/parse?targetJobId=...` | 每个分类/调度 tick 同 key底层 GET 恰好 1；ready 立即 replace 到 `/workspace?targetJobId=...`，Back 不返回动画；Parse 不渲染 ready detail | 001 |
 | C-7 | Parse failed flow | `analysisStatus=failed` 或轮询超时 | Parse polling | 渲染失败态、重新解析和返回首页；不伪造 preview 数据 | 001 |
-| C-8 | Readonly plan receipt | Workspace detail 已绑定 ready 简历 | 用户查看详情 | 初载同 key `getTargetJob` 底层 count=1 且不调用 `listResumes/getResume`；标题旁“绑定简历”精确进入对应 Resume 详情；无独立 binding/launch block、字段编辑、picker/rebind 或页尾动作；缺绑定时链接不可用且只阻断 Start | 001 |
-| C-9 | Start interview | Workspace detail 已绑定 ready 简历 | 点击首行动作行「立即面试」 | 不调用 `updateTargetJob`，直接使用已保存 `targetJobId/resumeId/roundId/currentPracticePlanId` 创建或读取 PracticePlan 并启动 PracticeSession；同排“面试报告”不受启动错误影响 | 001 |
+| C-8 | Readonly plan receipt | Workspace detail 已绑定 selectable 简历，或历史 TargetJob 缺失/无效绑定 | 用户查看详情 | 初载同 key `getTargetJob` 底层 count=1 且不调用 `listResumes/getResume`；合法绑定精确进入对应 Resume 详情；无独立 binding/launch block、字段编辑、picker/rebind 或页尾动作；缺绑显示异常状态，Start、Reports、复练和下一轮全部 fail closed | 001 |
+| C-9 | Start interview | Workspace detail 已绑定 selectable 简历 | 点击首行动作行「立即面试」 | 不调用 `updateTargetJob`，直接使用已保存 `targetJobId/resumeId/roundId/currentPracticePlanId` 创建或读取 PracticePlan 并启动 PracticeSession；同排“面试报告”不受启动错误影响 | 001 |
 | C-10 | Privacy / auth continuation | 未登录用户提交 JD，随后正常登录、刷新导致 vault 丢失、entry 过期或重复触发 continuation | 检查 pendingAction、vault consume、URL/storage/log/telemetry 与 import 调用 | `pendingAction` 只含 `opaquePendingImportId`；raw JD 只在一次性内存 vault。正常登录原子 consume 后 exact request 只提交一次；refresh/expired/duplicate consume 均不发起 import，清除无效 action 并返回 Home 显示本地化重新输入提示；fixture transport 不记录 request body | 001 |
 | C-11 | Workspace 回访统一详情 | `listTargetJobs` 返回已保存 ready 规划且有 `targetJobId/resumeId` | 用户从 Home 或 workspace 卡片打开 | 直达 `/workspace?targetJobId=...` 并渲染同一详情母版；无 Parse loading/animation；返回 `/workspace` 列表 | 001 / frontend-workspace-and-practice 001 |
 | C-12 | 规划详情报告入口 | ready TargetJob 有可信 `targetJobId` | 打开 Workspace 面试规划详情并点击首行动作行“面试报告” | “立即面试 + 面试报告”从左同排且顺序稳定，报告精确进入 `/reports?targetJobId=<uuid>`；入口不在全局 TopBar/页尾；Parse 不渲染 ready detail/报告入口，Workspace detail 不渲染报告列表、不调用 `listTargetJobReports`、不保留 `section=reports` 兼容逻辑 | 001 |
 | C-13 | 规划详情轮次三态 | ready TargetJob 有合法 2~5 轮与 `practiceProgress` 完成前缀/current | 打开或刷新 `/workspace?targetJobId=...` | 每张 round assumption 卡显示且仅显示 done/current/pending 之一，对应“已进行 / 即将进行 / 未进行”及三种不同背景/边框；状态与列表 mini rail 一致，全完成与无效投影 fail closed | 001 |
 | C-14 | JD size boundary | owner config 提供 UTF-8 JD byte limit | 点击「立即面试」 | 注入小型 boundary 验证 overflow inline validation 且零 import；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文本或配置 E2E | 001 Phase 22 |
+| C-15 | 强制简历前置零残留 | 用户没有 selectable 简历或尚未显式选择 | 输入合法 JD 并尝试提交，随后扫描 active 产品/UI/owner 文档 | CTA disabled 且 `importTargetJob` 调用为零；创建并形成可读证据后仍须回 Home 显式选择；不存在无简历/JD-only 导入、训练、报告降级或历史缺绑 fallback 承诺 | 001 Phase 24 |
 
 ## 8 关联计划
 
@@ -160,6 +162,7 @@ Home 粘贴 JD
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 2.28 | 2026-07-15 | Lock a selectable Resume as a permanent prerequisite for import, practice and reports; preserve readable-evidence selection, remove resume-less fallback commitments, and fail closed on invalid historical bindings. |
 | 2.27 | 2026-07-15 | Move the bound-resume viewer beside the plan title, remove the standalone launch/binding block, and place Start plus Reports in one leading action row. |
 | 2.26 | 2026-07-14 | Add RuntimeConfig-backed 96KiB JD UTF-8 boundary to Home without changing the paste-only UI structure. |
 | 2.25 | 2026-07-14 | Add Workspace detail round-assumption done/current/pending visual states derived from the same backend practice-progress projection as list-card rails. |

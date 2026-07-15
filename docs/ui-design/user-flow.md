@@ -1,6 +1,6 @@
 # EasyInterview 目标用户流程
 
-> **版本**: 2.29
+> **版本**: 2.30
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -43,7 +43,7 @@ Home
 └─ 还没有简历？1 分钟创建
 ```
 
-首页不提供复盘辅助入口。用户有 JD 且已选择 ready 简历时创建 TargetJob 并进入解析进度；用户没有简历时进入简历创建。
+首页不提供复盘辅助入口。用户有 JD 且已显式选择 selectable 简历时才能创建 TargetJob 并进入解析进度；selectable 指未归档且 `parseStatus=ready` 或已有可读正文/结构化证据。用户没有该类简历时只能进入简历创建，不能提交 JD 或进入无简历训练/报告降级链路。
 
 ## 4 JD 解析进度、规划详情与启动
 
@@ -167,7 +167,7 @@ Auth
 | 情况 | 处理 |
 |------|------|
 | 用户没有 JD | 首页提示在唯一文本框粘贴 JD |
-| 用户没有简历 | 首页提供创建简历入口；历史 Workspace 详情缺少绑定时只阻断开始，不提供 rebind |
+| 用户没有 selectable 简历 | 首页只提供创建简历入口，未形成可读证据并显式选择前不调用 import；历史 Workspace 缺失/无效绑定属于异常数据，Start、Reports、复练和下一轮全部 fail closed，不提供 rebind 或 fallback |
 | 用户未登录执行写入动作 | 进入邮箱验证码登录，成功后接续 pendingAction |
 | Practice 请求等待 / 失败 / 刷新 | pending 锁输入并显示思考；只有 server retryable failure 在原 row 显示 retry；刷新通过 `getPracticeSession` 恢复原 `clientMessageId/replyStatus` |
 | `/reports` 缺失/非法/无权 targetJobId | 不展示其他规划或 stale rows，提供安全返回 Workspace；未登录时只用合法 targetJobId 接续鉴权 |
@@ -178,6 +178,7 @@ Auth
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 2.30 | 将 selectable 简历设为 JD import、训练、报告及报告后动作的永久强制前置；历史缺绑规划统一 fail closed。 |
 | 2026-07-15 | 2.29 | 采用设置简化方案 A：已登录 TopBar 只保留设置齿轮，Settings 只承接真实账号字段、退出、导出不可用与账号删除。 |
 | 2026-07-15 | 2.28 | Workspace 详情将绑定简历改为标题旁详情链接，并把立即面试/面试报告合并为左对齐首行动作行。 |
 | 2026-07-14 | 2.27 | 将 Parse 收窄为新导入 queued/processing 进度；ready replace 与既有规划、Reports Back 均进入 targetJobId-only Workspace 详情。 |

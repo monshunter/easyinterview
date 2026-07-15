@@ -1,12 +1,12 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.39
+> **版本**: 1.40
 > **状态**: active
 > **更新日期**: 2026-07-15
 
 ## 1 文档目的
 
-本文档定义当前静态 UI 中 `面试` 一级模块的目标结构。`/workspace` 无 `targetJobId` 时展示可继续的面试规划列表，`/workspace?targetJobId=...` 时展示该规划的统一只读“面试规划详情 / 面试上下文确认”母版；列表卡片主体和 Home ready 最近卡片都直接进入该 Workspace 详情，不播放解析动画。`/parse?targetJobId=...` 仅承接首页新建 JD 后的 queued/processing 命令进度；分析 ready 后以 replace 导航到 Workspace 详情。卡片右上角展示删除图标按钮，卡片底部只展示 `立即面试` 主按钮，不再展示可见的 `进入规划` 按钮；删除图标调用 generated `archiveTargetJob` 持久软归档，成功后卡片移出列表且刷新后不得回灌。该模块是既有面试规划的回访入口，不是“当前岗位”页。首页最近模拟面试只展示 3 条快捷卡片，复用同一卡片主体和 `立即面试` 主按钮但不展示删除按钮，`更多` 进入 Workspace 列表。首次导入新 JD 时，首页只保留 JD textarea、ready 简历下拉框与「立即面试」CTA；`还没有简历？1 分钟创建 →` 与下拉框同一行水平对齐。提交 `{ rawText, targetLanguage, resumeId }` 后只进入 Parse 命令进度，ready 后由 Workspace 详情只读展示 JD / 简历 / 轮次上下文；缺少或无效简历时只阻断开始，不在当前规划上补绑或默认替用户选中最近简历。
+本文档定义当前静态 UI 中 `面试` 一级模块的目标结构。`/workspace` 无 `targetJobId` 时展示可继续的面试规划列表，`/workspace?targetJobId=...` 时展示该规划的统一只读“面试规划详情 / 面试上下文确认”母版；列表卡片主体和 Home ready 最近卡片都直接进入该 Workspace 详情，不播放解析动画。`/parse?targetJobId=...` 仅承接首页新建 JD 后的 queued/processing 命令进度；分析 ready 后以 replace 导航到 Workspace 详情。卡片右上角展示删除图标按钮，卡片底部只展示 `立即面试` 主按钮，不再展示可见的 `进入规划` 按钮；删除图标调用 generated `archiveTargetJob` 持久软归档，成功后卡片移出列表且刷新后不得回灌。该模块是既有面试规划的回访入口，不是“当前岗位”页。首页最近模拟面试只展示 3 条快捷卡片，复用同一卡片主体和 `立即面试` 主按钮但不展示删除按钮，`更多` 进入 Workspace 列表。首次导入新 JD 时，首页只保留 JD textarea、selectable 简历下拉框与「立即面试」CTA；selectable 指未归档且 `parseStatus=ready` 或已有可读正文/结构化证据。`还没有简历？1 分钟创建 →` 与下拉框同一行水平对齐。提交 `{ rawText, targetLanguage, resumeId }` 后只进入 Parse 命令进度，ready 后由 Workspace 详情只读展示 JD / 简历 / 轮次上下文。缺少或无效简历的历史规划属于异常数据：Start、Reports、复练和下一轮全部 fail closed，不在当前规划上补绑，不默认选择最近简历，也不提供无简历训练或报告降级路径。
 
 ## 2 模块职责
 
@@ -128,7 +128,7 @@ workspace 只读详情标题旁的“绑定简历”链接
   -> 用户想换简历时回到 Home 用目标 JD + 新简历创建新规划
 ```
 
-简历绑定不属于当前规划详情的可变字段。Home 导入时已经强制选择 ready 简历；解析成功即保存该上下文快照。标题旁的“绑定简历”只用于查看对应简历详情，不触发 `getResume` 预读、不提供 resume picker、创建简历兜底或 in-place rebind。缺失绑定时显示非链接的缺失状态并禁用“立即面试”，不得用 route/list item/最近简历补齐。
+简历绑定不属于当前规划详情的可变字段。Home 导入时已经强制选择 ready 简历；解析成功即保存该上下文快照。标题旁的“绑定简历”只用于查看对应简历详情，不触发 `getResume` 预读、不提供 resume picker、创建简历兜底或 in-place rebind。缺失绑定时显示非链接的异常状态，并禁用“立即面试”和“面试报告”；复练/下一轮也不得从该规划继续。不得用 route/list item/最近简历补齐，不存在无简历兼容模式。
 
 ### 4.4 立即面试
 
@@ -256,7 +256,7 @@ Resume
 4. 列表卡片不展示可见的 `进入规划` / `Open plan` 按钮；点击卡片主体进入 `/workspace?targetJobId=...` 详情且不得触发 import/poll/Parse animation，点击 `立即面试` 启动 practice，点击右上角删除图标调用 generated `archiveTargetJob`，成功后隐藏当前卡片且刷新后不回灌。
 5. 真实面试轮次、已绑定简历和启动面试只出现在 Workspace 只读详情或后续 owner；Workspace 详情 round assumptions 与 Home 最近模拟面试卡片的迷你轮次轨道遵循本文档的同一视觉语义，但轮次数量、type/name、duration 和 focus 必须来自同一个 `TargetJob.summary.interviewRounds[]` mapper。该数组由后端 LLM 根据 JD、岗位级别、公司/行业性质、团队/业务上下文和招聘流程线索推断；前端不得用静态 4 轮、静态 HR/技术/经理面或静态分钟数 fallback。Workspace 规划列表保持紧凑卡片，但进入详情的 handoff 不得生成另一套静态 round name。
    当前/已完成状态必须来自 `TargetJob.practiceProgress`：`completedRounds` 画为完成态，`currentRound` 画为当前态，全部完成时所有节点为完成态且 `立即面试` disabled。缺失、跳轮、重复或 pair 不匹配时不高亮/不启动；禁止读取 lifecycle `status`、自由文本 `nextRound`、URL 或浏览器存储做轮次 fallback。mini rail 的 DOM、间距、颜色、节点几何以正式前端当前 token 和 component contract 为准。Workspace 详情的 round assumption 卡同步表达同一事实：done 显示“已进行”并使用 success-soft 背景/成功色边框，current 显示“即将进行”并使用 accent-soft 背景/主题色边框，pending 显示“未进行”并使用 neutral-soft 背景/规则线边框；三态必须有 `data-round-state`，不能只靠颜色传达。
-6. Workspace detail 标题 cluster 在“面试规划详情”旁展示“绑定简历”查看链接，点击精确进入 `resume_versions?resumeId=<TargetJob.resumeId>`；不得渲染独立绑定简历/Interview Launch 大卡片，不得从 route/list item/最近简历推断绑定。缺失绑定显示非链接状态并禁用 Start。
+6. Workspace detail 标题 cluster 在“面试规划详情”旁展示“绑定简历”查看链接，点击精确进入 `resume_versions?resumeId=<TargetJob.resumeId>`；不得渲染独立绑定简历/Interview Launch 大卡片，不得从 route/list item/最近简历推断绑定。缺失绑定显示非链接异常状态，Start、Reports、复练和下一轮全部 fail closed。
 7. Workspace detail 是首次导入 ready 后和既有规划回访的同一只读母版；不得另设第二个 ready 确认页面，详情页不提供“仅保存规划”。
 8. `/parse?targetJobId=...` 只保留新导入 queued/processing 的四步进度、当前步处理动画与面向用户的等待说明；ready 必须 replace 到 `/workspace?targetJobId=...`，既有 ready 卡片不得进入 Parse。内部 model/provider、rubric/prompt/version/hash、provenance、typical latency 不得出现在 prototype、formal DOM 或 desktop/mobile 截图中。
 9. Home JD intake 只接受粘贴文本；prototype、formal DOM、OpenAPI 请求与 desktop/mobile 截图不得出现平行 JD 导入控件、弹窗或 source discriminator。Resume 上传能力属于 Resume owner，必须继续保留。
@@ -266,6 +266,7 @@ Resume
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.40 | 将 selectable 简历锁定为 Workspace 及其报告后动作的强制上下文；历史缺绑规划视为异常并全链路 fail closed，不提供无简历降级。 |
 | 2026-07-15 | 1.39 | 删除 Workspace 详情独立 Interview Launch/绑定简历大卡片；标题旁新增绑定简历详情链接，并将立即面试与面试报告移到左对齐首行动作行。 |
 | 2026-07-14 | 1.38 | Workspace 详情轮次假设复用列表 rail 的 persisted progress，增加已进行/即将进行/未进行三种背景、边框、标签与状态属性。 |
 | 2026-07-14 | 1.37 | 将 Workspace 明确拆为无参列表与 targetJobId 只读详情；ready 卡片直达详情，Parse 仅承接新导入 queued/processing 并在 ready 后 replace，Reports Back 返回 Workspace 详情。 |
