@@ -49,12 +49,18 @@
 
 ## 8 OPENAPI-002 TargetJob paste-only mock parity
 
-- [ ] 8.1 RED: focused registry/frontend transport/backend mockruntime/boundary tests expose old URL/file/manual_form source variants, TargetJob `sourceType/sourceUrl`, `TargetJobImportSource*` and `target_job_attachment` positive surfaces before migration.
-- [ ] 8.2 GREEN: consume migrated fixtures/generated types so `importTargetJob` accepts only exact `{rawText,targetLanguage,resumeId}` and TargetJob read responses omit source provenance; do not copy local DTOs or fixture bodies.
-- [ ] 8.3 PRESERVATION-GATE: `createUploadPresign` remains in the 37-operation registry; resume/privacy purpose scenarios resolve in frontend/backend mock paths while TargetJob attachment purpose fails.
-- [ ] 8.4 PARITY-GATE: exact fixture status/body parity passes for `importTargetJob`, `listTargetJobs`, `getTargetJob` and `createUploadPresign`; unknown named scenarios still fail loudly.
-- [ ] 8.5 ZERO-REFERENCE-GATE: current positive fixture/generated/frontend-mock/backend-mock/seed surfaces contain zero positive/runtime old TargetJob-import variants. ADR/oracle and exact negative declarations are allowed; whole-file/directory exclusion is forbidden.
-- [ ] 8.6 COMPLETION-GATE: use focused registry/frontend/backend/boundary tests only for development feedback；before restoring completed status, run root `make test`, `make lint-mock-contract`, `make validate-fixtures`, `make lint-openapi`, `make codegen-check`, context/docs checks and `git diff --check`.
+- [x] 8.1 RED: focused registry/frontend transport/backend mockruntime/boundary tests expose old URL/file/manual_form source variants, TargetJob `sourceType/sourceUrl`, `TargetJobImportSource*` and `target_job_attachment` positive surfaces before migration.
+  <!-- verified: 2026-07-15 method=preexisting-mutation-tests+focused-green evidence="OpenAPI/fixture tests reject restored legacy variants; 11 Python tests PASS" -->
+- [x] 8.2 GREEN: consume migrated fixtures/generated types so `importTargetJob` accepts only exact `{rawText,targetLanguage,resumeId}` and TargetJob read responses omit source provenance; do not copy local DTOs or fixture bodies.
+  <!-- verified: 2026-07-15 method=fixture+inventory+frontend+backend evidence="11 Python, 12 frontend and focused backend mockruntime tests PASS" -->
+- [x] 8.3 PRESERVATION-GATE: `createUploadPresign` remains in the 37-operation registry; resume/privacy purpose scenarios resolve in frontend/backend mock paths while TargetJob attachment purpose fails.
+  <!-- verified: 2026-07-15 method=inventory+fixture-boundary evidence="createUploadPresign invariant and resume/privacy-only fixture tests PASS" -->
+- [x] 8.4 PARITY-GATE: exact fixture status/body parity passes for `importTargetJob`, `listTargetJobs`, `getTargetJob` and `createUploadPresign`; unknown named scenarios still fail loudly.
+  <!-- verified: 2026-07-15 method=registry+frontend+backend evidence="fixture registry 3 tests, frontend mock 12 tests and backend named-scenario tests PASS" -->
+- [x] 8.5 ZERO-REFERENCE-GATE: current positive fixture/generated/frontend-mock/backend-mock/seed surfaces contain zero positive/runtime old TargetJob-import variants. ADR/oracle and exact negative declarations are allowed; whole-file/directory exclusion is forbidden.
+  <!-- verified: 2026-07-15 method=structured-schema+fixture+scoped-runtime-search evidence="TargetJob exact request/read shapes and mock positive surfaces contain zero legacy variants; Resume sourceType classified as retained owner field" -->
+- [x] 8.6 COMPLETION-GATE: use focused registry/frontend/backend/boundary tests only for development feedback；before restoring completed status, run root `make test`, `make lint-mock-contract`, `make validate-fixtures`, `make lint-openapi`, `make codegen-check`, context/docs checks and `git diff --check`.
+  <!-- verified: 2026-07-15 method=root+contract+context+docs evidence="make test PASS (Python 551/4493 subtests, Go all packages, frontend 125 files/993 tests); lint-mock-contract/fixtures/lint-openapi/codegen/context/docs/diff PASS" -->
 
 ## 9 Practice durable recovery mock parity
 
