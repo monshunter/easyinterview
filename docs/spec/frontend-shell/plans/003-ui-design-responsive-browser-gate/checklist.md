@@ -1,7 +1,7 @@
 # UI Demo Pruning and Documentation-Owned Design Checklist
 
 > **版本**: 2.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
@@ -34,5 +34,5 @@
 
 ## Phase 6: 验证与生命周期收口
 
-- [ ] 6.1 执行 Demo pruning lint、`make test`、`make build`、`make docs-check`、`make codegen-check` 与 `git diff --check` 并记录当前 PASS
-- [ ] 6.2 完成 post-pass doc reconcile、INDEX 同步和 retrospective 后恢复 spec/plan/checklist `completed` 生命周期（验证：context validator + sync-doc-index check + checklist zero-open）
+- [x] 6.1 执行 Demo pruning lint、`make test`、`make build`、`make docs-check`、`make codegen-check` 与 `git diff --check` 并记录当前 PASS（验证：全部命令当前 PASS；pruning active_residuals=0；frontend production build PASS）
+- [x] 6.2 完成 post-pass doc reconcile、INDEX 同步和 retrospective 后恢复 spec/plan/checklist `completed` 生命周期（验证：retrospective=`docs/reports/2026-07-15-ui-demo-pruning-assessment.md`；context validator PASS；sync-doc-index check PASS；checklist zero-open）

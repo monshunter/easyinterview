@@ -1,7 +1,7 @@
 # Frontend Shell Spec
 
 > **版本**: 1.31
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 ## 1 背景与目标
