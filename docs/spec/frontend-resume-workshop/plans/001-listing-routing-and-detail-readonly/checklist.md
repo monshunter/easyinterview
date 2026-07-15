@@ -1,7 +1,7 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
 > **版本**: 3.9
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
@@ -99,12 +99,12 @@
 
 ## Phase 20: Responsive resume card list
 
-- [ ] 20.1 RED：`ResumeListView.test.tsx` 与 CSS/responsive owner gate 先证明当前 table/header/row DOM 和整行布局不符合卡片合同；同时锁定 closed `ResumeSummary`、loading/empty/error/pagination、打开与删除的既有行为。
-- [ ] 20.2 GREEN：`ResumeListView` 改为 list/card DOM；卡片展示名称、可选摘要、来源、语言和最近编辑，缺摘要不伪造，底部“打开”、右上角 trash 删除；desktop 固定最大列宽 + `auto-fill` + 左对齐，mobile 同序单列，1/2/3 卡片规格稳定且单卡不拉伸整行。
-- [ ] 20.3 A11Y/PARITY：打开与删除具有独立可访问名称、键盘焦点和触控区域；超长名称/摘要/来源完整换行；desktop/mobile geometry、no-overflow 与正式 screenshot acceptance 通过，不新增 nested-card-button 冲突。
-- [ ] 20.4 REGRESSION：focused Vitest 只作开发反馈；执行根 `make test`、frontend typecheck/build、owner context、`sync-doc-index --check`、`make docs-check`、`git diff --check`，同步证据后恢复 completed。
+- [x] 20.1 RED：`ResumeListView.test.tsx` 与 CSS/responsive owner gate 先证明当前 table/header/row DOM 和整行布局不符合卡片合同；同时锁定 closed `ResumeSummary`、loading/empty/error/pagination、打开与删除的既有行为。（验证：focused RED 7 failed；GREEN 后 Resume Workshop 20 files / 118 tests PASS）
+- [x] 20.2 GREEN：`ResumeListView` 改为 list/card DOM；卡片展示名称、可选摘要、来源、语言和最近编辑，缺摘要不伪造，底部“打开”、右上角 trash 删除；desktop 固定最大列宽 + `auto-fill` + 左对齐，mobile 同序单列，1/2/3 卡片规格稳定且单卡不拉伸整行。（验证：`ResumeListView.test.tsx`、`ResumeWorkshopCssParity.test.ts`、i18n/a11y 与 StrictMode list boundary PASS；旧 selector 仅剩负向断言）
+- [x] 20.3 A11Y/PARITY：打开与删除具有独立可访问名称、键盘焦点和触控区域；超长名称/摘要/来源完整换行；desktop/mobile geometry、no-overflow 与正式 screenshot acceptance 通过，不新增 nested-card-button 冲突。（验证：Chrome 1440 卡宽 360px/左对齐、390 单列 354px、两端无横溢；打开精确进入只读详情）
+- [x] 20.4 REGRESSION：focused Vitest 只作开发反馈；执行根 `make test`、frontend typecheck/build、owner context、`sync-doc-index --check`、`make docs-check`、`git diff --check`，同步证据后恢复 completed。（验证：根后端 551 tests/4493 subtests、前端 125 files/993 tests PASS；lint/build/context/docs/index/diff PASS）
 
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.RESUME.READ.001` 由 [BDD checklist](./bdd-checklist.md) 关联 list/readonly-detail owner behavior tests；不创建或声明真实 E2E PASS。
-- [ ] BDD-Gate: `BDD.RESUME.LIST.002` 由 [BDD checklist](./bdd-checklist.md) 关联 desktop/mobile 卡片列表、打开/删除与非表格语义行为；当前无真实 E2E owner，不把代码 gate 声明为 E2E PASS。
+- [x] BDD-Gate: `BDD.RESUME.LIST.002` 由 [BDD checklist](./bdd-checklist.md) 关联 desktop/mobile 卡片列表、打开/删除与非表格语义行为；当前无真实 E2E owner，不把代码 gate 声明为 E2E PASS。

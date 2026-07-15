@@ -65,25 +65,31 @@ const SECOND_ID =
   listResumesFixture.scenarios.default.response.body.items[1]!.id;
 
 describe("ResumeListView default fixture rendering", () => {
-  it("renders the flat table with one row per resume from the default fixture", async () => {
+  it("renders a semantic card grid with one list item per closed resume summary", async () => {
     renderListView(LIST_ROUTE);
 
     await waitFor(() => {
-      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-card-grid")).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByTestId(`resume-list-row-${FIRST_ID}`),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId(`resume-list-row-${SECOND_ID}`),
-    ).toBeInTheDocument();
+    const grid = screen.getByRole("list", { name: "你的简历" });
+    expect(grid).toHaveAttribute("data-testid", "resume-workshop-card-grid");
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getByTestId(`resume-list-card-${FIRST_ID}`)).toHaveTextContent(
+      "Senior frontend engineer focused on growth-stage SaaS",
+    );
+    expect(screen.getByTestId(`resume-list-card-${SECOND_ID}`)).toHaveTextContent(
+      "Frontend platform engineer with product systems scope",
+    );
     expect(
       screen.getByTestId(`resume-list-open-${FIRST_ID}`),
-    ).toBeInTheDocument();
+    ).toHaveAccessibleName("打开 Alice Example - Senior Frontend Engineer");
     expect(
-      screen.getByTestId(`resume-list-open-${SECOND_ID}`),
-    ).toBeInTheDocument();
+      screen.getByTestId(`resume-list-delete-${FIRST_ID}`),
+    ).toHaveAccessibleName("删除简历 Alice Example - Senior Frontend Engineer");
+    expect(screen.queryByRole("row")).not.toBeInTheDocument();
+    expect(screen.queryByRole("columnheader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("resume-workshop-table")).not.toBeInTheDocument();
     expect(screen.getByTestId("resume-workshop-create")).toHaveTextContent(
       "新建简历",
     );
@@ -121,11 +127,11 @@ describe("ResumeListView default fixture rendering", () => {
     });
   });
 
-  it("does not render the duplicate upload-or-paste CTA below the table", async () => {
+  it("does not render the duplicate upload-or-paste CTA below the card grid", async () => {
     renderListView(LIST_ROUTE);
 
     await waitFor(() => {
-      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-card-grid")).toBeInTheDocument();
     });
 
     expect(screen.queryByTestId("resume-workshop-upload-cta")).not.toBeInTheDocument();
@@ -138,13 +144,13 @@ describe("ResumeListView default fixture rendering", () => {
 
     renderListView(LIST_ROUTE, "default", client);
     await waitFor(() => {
-      expect(screen.getByTestId(`resume-list-row-${FIRST_ID}`)).toBeInTheDocument();
+      expect(screen.getByTestId(`resume-list-card-${FIRST_ID}`)).toBeInTheDocument();
     });
 
     await userEvent.setup().click(screen.getByTestId(`resume-list-delete-${FIRST_ID}`));
 
     await waitFor(() => {
-      expect(screen.queryByTestId(`resume-list-row-${FIRST_ID}`)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(`resume-list-card-${FIRST_ID}`)).not.toBeInTheDocument();
     });
     expect(archiveSpy).toHaveBeenCalledWith(
       FIRST_ID,
@@ -162,7 +168,7 @@ describe("ResumeListView default fixture rendering", () => {
 
     renderListView(LIST_ROUTE, "default", client);
     await waitFor(() => {
-      expect(screen.getByTestId(`resume-list-row-${FIRST_ID}`)).toBeInTheDocument();
+      expect(screen.getByTestId(`resume-list-card-${FIRST_ID}`)).toBeInTheDocument();
     });
 
     await userEvent.setup().click(screen.getByTestId(`resume-list-delete-${FIRST_ID}`));
@@ -170,7 +176,7 @@ describe("ResumeListView default fixture rendering", () => {
     await waitFor(() => {
       expect(screen.getByTestId("resume-workshop-delete-error")).toBeInTheDocument();
     });
-    expect(screen.getByTestId(`resume-list-row-${FIRST_ID}`)).toBeInTheDocument();
+    expect(screen.getByTestId(`resume-list-card-${FIRST_ID}`)).toBeInTheDocument();
   });
 
   it("shows the empty state when listResumes returns no items", async () => {
@@ -181,7 +187,7 @@ describe("ResumeListView default fixture rendering", () => {
         screen.getByTestId("resume-workshop-list-empty"),
       ).toBeInTheDocument();
     });
-    expect(screen.queryByTestId("resume-workshop-table")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("resume-workshop-card-grid")).not.toBeInTheDocument();
   });
 
   it("surfaces the paginated affordance when the page reports more results", async () => {

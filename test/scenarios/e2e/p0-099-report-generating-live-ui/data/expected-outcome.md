@@ -14,8 +14,9 @@
   three report resources.
 - The active backend has raw debug disabled and emits no current-run
   `AI_RAW_OUTPUT_DEBUG_BEGIN` / `AI_RAW_OUTPUT_DEBUG_END` marker.
-- Ready screenshots show direct preparedness, dimension/evidence content, and
-  executable action labels that agree with current DB/API summaries and pass
+- Ready screenshots show direct preparedness, dimension/evidence content,
+  executable action labels, and the bottom full-width interview summary after
+  the action region; action labels agree with current DB/API summaries and pass
   the same `en <=24 words` / `zh-CN <=64 Unicode code points` redacted count audit.
 - Generating screenshots make no false claim that analysis is already ready.
 - One current `manifest.json` maps each file to locale, state, fixture,

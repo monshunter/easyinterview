@@ -47,8 +47,8 @@
 |---------|------|------|----------|-------|
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.20 | active | 2026-07-15 | [plans](./mock-contract-suite/plans/) |
 | [frontend-shell](./frontend-shell/spec.md) | 1.31 | completed | 2026-07-15 | [plans](./frontend-shell/plans/) |
-| [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.27 | active | 2026-07-15 | [plans](./frontend-home-job-picks-and-parse/plans/) |
-| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.46 | active | 2026-07-15 | [plans](./frontend-workspace-and-practice/plans/) |
+| [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.27 | completed | 2026-07-15 | [plans](./frontend-home-job-picks-and-parse/plans/) |
+| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.46 | completed | 2026-07-15 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 2.1 | active | 2026-07-10 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 2.13 | active | 2026-07-14 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.35 | active | 2026-07-15 | [plans](./backend-practice/plans/) |
@@ -56,6 +56,6 @@
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.15 | completed | 2026-07-12 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.7 | active | 2026-07-14 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 2.9 | active | 2026-07-14 | [plans](./backend-resume/plans/) |
-| [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.17 | active | 2026-07-15 | [plans](./frontend-resume-workshop/plans/) |
+| [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.17 | completed | 2026-07-15 | [plans](./frontend-resume-workshop/plans/) |
 | [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.27 | active | 2026-07-15 | [plans](./frontend-report-dashboard/plans/) |
 | [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 2.15 | active | 2026-07-15 | [plans](./e2e-scenarios-p0/plans/) |

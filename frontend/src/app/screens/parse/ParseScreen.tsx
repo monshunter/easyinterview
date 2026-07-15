@@ -284,6 +284,23 @@ export const ParseScreen: FC<ParseScreenProps> = ({
 
   const boundResumeId = targetJob?.resumeId?.trim() ?? "";
 
+  const handleOpenBoundResume = useCallback(() => {
+    if (
+      stage !== "preview" ||
+      route.name !== "workspace" ||
+      !targetJobId ||
+      !targetJob ||
+      targetJob.id !== targetJobId ||
+      !boundResumeId
+    ) {
+      return;
+    }
+    navigate({
+      name: "resume_versions",
+      params: { resumeId: boundResumeId },
+    });
+  }, [boundResumeId, navigate, route.name, stage, targetJob, targetJobId]);
+
   const handleStartInterview = useCallback(async () => {
     if (!targetJob || !boundResumeId || confirming || !runtime) return;
     const practiceParams = buildInterviewParams(targetJob, boundResumeId);
@@ -703,15 +720,11 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       <div
         data-testid="unified-plan-detail"
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 16,
-          flexWrap: "wrap",
+          minWidth: 0,
           marginBottom: 24,
         }}
       >
-        <div style={{ minWidth: 0, flex: "1 1 520px" }}>
+        <div style={{ minWidth: 0 }}>
           <div
             className="ei-label"
             style={{
@@ -721,19 +734,63 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           >
             {t("parse.stepLabel")}
           </div>
-          <h1
-            data-testid="unified-plan-detail-title"
-            className="ei-serif"
+          <div
             style={{
-              fontSize: 32,
-              margin: 0,
-              color: "var(--ei-color-fg-primary)",
-              letterSpacing: "-0.02em",
-              lineHeight: 1.2,
+              display: "flex",
+              alignItems: "baseline",
+              gap: 14,
+              flexWrap: "wrap",
             }}
           >
-            {t("parse.previewTitle")}
-          </h1>
+            <h1
+              data-testid="unified-plan-detail-title"
+              className="ei-serif"
+              style={{
+                fontSize: 32,
+                margin: 0,
+                color: "var(--ei-color-fg-primary)",
+                letterSpacing: "-0.02em",
+                lineHeight: 1.2,
+              }}
+            >
+              {t("parse.previewTitle")}
+            </h1>
+            {route.name === "workspace" && targetJobId && targetJob?.id === targetJobId ? (
+              boundResumeId ? (
+                <button
+                  type="button"
+                  data-testid="parse-resume-link"
+                  onClick={handleOpenBoundResume}
+                  style={{
+                    minHeight: 36,
+                    padding: "4px 0",
+                    color: "var(--ei-color-accent)",
+                    background: "transparent",
+                    border: 0,
+                    fontFamily: "var(--ei-font-sans)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                    textUnderlineOffset: 3,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t("parse.resumeBinding")}
+                </button>
+              ) : (
+                <span
+                  data-testid="parse-resume-missing"
+                  style={{
+                    color: "var(--ei-color-warn)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
+                >
+                  {t("parse.resumeEmptyTitle")}
+                </span>
+              )
+            ) : null}
+          </div>
           <div
             style={{
               fontSize: 14,
@@ -746,10 +803,42 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             {t("parse.previewSub")}
           </div>
         </div>
-        {route.name === "workspace" &&
-          targetJobId &&
-          targetJob?.id === targetJobId && (
-            <span data-testid="parse-reports-entry" style={{ flexShrink: 0 }}>
+      </div>
+
+      {route.name === "workspace" && targetJobId && targetJob?.id === targetJobId ? (
+        <>
+          <div
+            data-testid="parse-leading-actions"
+            style={{
+              display: "flex",
+              justifyContent: "flex-start",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+              marginBottom: confirmError ? 12 : 24,
+            }}
+          >
+            <button
+              data-testid="parse-action-start-interview"
+              onClick={handleStartInterview}
+              disabled={launchDisabled}
+              style={{
+                minHeight: 44,
+                padding: "8px 18px",
+                fontSize: 13.5,
+                fontFamily: "var(--ei-font-sans)",
+                background: "var(--ei-color-accent)",
+                border: "1px solid var(--ei-color-accent)",
+                borderRadius: "var(--ei-radius-sm)",
+                color: "#fff",
+                cursor: launchDisabled ? "not-allowed" : "pointer",
+                opacity: launchDisabled ? 0.5 : 1,
+                fontWeight: 500,
+              }}
+            >
+              {t("parse.startInterview")}
+            </button>
+            <span data-testid="parse-reports-entry">
               <button
                 type="button"
                 onClick={handleOpenReports}
@@ -767,7 +856,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                  height: 38,
+                  minHeight: 44,
                   padding: "0 16px",
                   fontSize: 14,
                   fontWeight: 500,
@@ -799,8 +888,25 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 {t("parse.reports.label")}
               </button>
             </span>
-          )}
-      </div>
+          </div>
+          {confirmError ? (
+            <div
+              data-testid="parse-confirm-error"
+              style={{
+                padding: "8px 14px",
+                background: "var(--ei-color-danger-soft)",
+                border: "1px solid var(--ei-color-danger)",
+                borderRadius: "var(--ei-radius-sm)",
+                fontSize: 13,
+                color: "var(--ei-color-danger)",
+                marginBottom: 24,
+              }}
+            >
+              {t(confirmError)}
+            </div>
+          ) : null}
+        </>
+      ) : null}
 
       {/* Basic fields */}
       <div
@@ -1271,205 +1377,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         </div>
       </div>
 
-      {/* Interview launch */}
-      <div
-        data-testid="parse-launch"
-        className="ei-screen-card"
-        style={{
-          marginBottom: 28,
-          borderColor: boundResumeId
-            ? "var(--ei-color-ok)"
-            : "var(--ei-color-warn)",
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: compactLayout
-              ? "minmax(0, 1fr)"
-              : "1fr minmax(260px, 360px)",
-            gap: 24,
-            alignItems: "start",
-          }}
-        >
-          <div>
-            <div
-              className="ei-label"
-              style={{
-                color: "var(--ei-color-fg-tertiary)",
-                marginBottom: 6,
-              }}
-            >
-              {t("parse.launchTitle")}
-            </div>
-            <div
-              className="ei-serif"
-              style={{
-                fontSize: 22,
-                color: "var(--ei-color-fg-primary)",
-                letterSpacing: "-0.01em",
-                lineHeight: 1.25,
-                marginBottom: 8,
-              }}
-            >
-              {t("parse.launchHeading")}
-            </div>
-            <div
-              style={{
-                fontSize: 13,
-                color: "var(--ei-color-fg-tertiary)",
-                lineHeight: 1.5,
-                maxWidth: 620,
-              }}
-            >
-              {t("parse.launchSub")}
-            </div>
-          </div>
-
-          <div
-            data-testid="parse-resume-binding"
-            style={{
-              padding: 14,
-              background: "var(--ei-color-bg-soft)",
-              border: "1px solid var(--ei-color-rule-strong)",
-              borderRadius: "var(--ei-radius-sm)",
-              minWidth: 0,
-	            }}
-          >
-            <div
-              className="ei-label"
-              style={{
-                color: boundResumeId
-                  ? "var(--ei-color-ok)"
-                  : "var(--ei-color-warn)",
-                marginBottom: 8,
-              }}
-            >
-              {t("parse.resumeBinding")}
-            </div>
-
-            {boundResumeId ? (
-              <>
-                <div
-                  data-testid="parse-resume-bound-title"
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "var(--ei-color-fg-primary)",
-                    lineHeight: 1.35,
-                    marginBottom: 4,
-                  }}
-                >
-                  {t("parse.resumeBoundTitle")}
-                </div>
-                <div
-                  data-testid="parse-resume-bound-meta"
-                  style={{
-                    fontSize: 11.5,
-                    color: "var(--ei-color-fg-tertiary)",
-                    fontFamily: "var(--ei-font-mono)",
-                    marginBottom: 12,
-                  }}
-                >
-                  {t("parse.resumeBoundMeta")}
-                </div>
-              </>
-            ) : (
-              <div data-testid="parse-resume-empty">
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "var(--ei-color-fg-primary)",
-                    marginBottom: 4,
-                }}
-              >
-                  {t("parse.resumeEmptyTitle")}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12.5,
-                    color: "var(--ei-color-fg-tertiary)",
-                    lineHeight: 1.5,
-                    marginBottom: 12,
-                }}
-              >
-                  {t("parse.resumeEmptyBody")}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer actions */}
-      {confirmError && (
-        <div
-          data-testid="parse-confirm-error"
-          style={{
-            padding: "8px 14px",
-            background: "var(--ei-color-danger-soft)",
-            border: "1px solid var(--ei-color-danger)",
-            borderRadius: "var(--ei-radius-sm)",
-            fontSize: 13,
-            color: "var(--ei-color-danger)",
-            marginBottom: 12,
-          }}
-        >
-          {t(confirmError)}
-        </div>
-      )}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: compactLayout ? "column" : "row",
-          justifyContent: "space-between",
-          alignItems: compactLayout ? "stretch" : "center",
-          gap: compactLayout ? 14 : 24,
-          padding: "16px 0",
-          borderTop: "1px solid var(--ei-color-rule-strong)",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--ei-color-fg-tertiary)",
-            fontFamily: "var(--ei-font-mono)",
-            lineHeight: 1.6,
-            maxWidth: 420,
-          }}
-        >
-          {t("parse.footerHint")}
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap",
-            justifyContent: compactLayout ? "flex-start" : "flex-end",
-          }}
-        >
-          <button
-            data-testid="parse-action-start-interview"
-            onClick={handleStartInterview}
-            disabled={launchDisabled}
-            style={{
-              padding: "8px 18px",
-              fontSize: 13.5,
-              fontFamily: "var(--ei-font-sans)",
-              background: "var(--ei-color-accent)",
-              border: "none",
-              borderRadius: "var(--ei-radius-sm)",
-              color: "#fff",
-              cursor: launchDisabled ? "not-allowed" : "pointer",
-              opacity: launchDisabled ? 0.5 : 1,
-              fontWeight: 500,
-            }}
-          >
-            {t("parse.startInterview")}
-          </button>
-        </div>
-      </div>
     </section>
   );
 };

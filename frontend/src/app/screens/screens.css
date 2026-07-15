@@ -128,6 +128,27 @@
   gap: 0;
 }
 
+.ei-report-context-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--ei-color-rule-strong);
+  background: var(--ei-color-rule-strong);
+}
+
+.ei-report-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.ei-report-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
 .ei-resume-workshop-list {
   width: 100%;
   display: flex;
@@ -180,78 +201,103 @@
   font-weight: 500;
 }
 
-.ei-resume-workshop-table {
-  overflow: hidden;
+.ei-resume-workshop-card-grid {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 360px));
+  justify-content: start;
+  gap: 16px;
+  list-style: none;
+}
+
+.ei-resume-workshop-card {
+  position: relative;
+  min-width: 0;
+  min-height: 248px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  color: var(--ei-color-fg-secondary);
   background: var(--ei-color-bg-card);
   border: 1px solid var(--ei-color-rule-strong);
   border-radius: 3px;
 }
 
-.ei-resume-workshop-table-head,
-.ei-resume-workshop-table-row {
-  display: grid;
-  grid-template-columns: 1.8fr 1.4fr 0.6fr 1fr 132px;
-  gap: 14px;
-  align-items: center;
+.ei-resume-workshop-card-heading {
+  padding-right: 32px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
 }
 
-.ei-resume-workshop-table-head {
-  padding: 11px 18px;
+.ei-resume-workshop-card-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
   color: var(--ei-color-fg-tertiary);
-  background: var(--ei-color-bg-soft);
-  border-bottom: 1px solid var(--ei-color-rule-strong);
+}
+
+.ei-resume-workshop-card-heading h2 {
+  min-width: 0;
+  margin: 0;
+  color: var(--ei-color-fg-primary);
+  overflow-wrap: anywhere;
+  font-size: 17px;
+  line-height: 1.35;
+  font-weight: 560;
+}
+
+.ei-resume-workshop-card-summary {
+  margin: 14px 0 18px;
+  color: var(--ei-color-fg-tertiary);
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.ei-resume-workshop-card-meta {
+  margin: 0 0 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.ei-resume-workshop-card-meta > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.ei-resume-workshop-card-meta dt,
+.ei-resume-workshop-card-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+.ei-resume-workshop-card-meta dt {
+  color: var(--ei-color-fg-tertiary);
   font-family: var(--ei-font-mono);
-  font-size: 11px;
+  font-size: 9px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.ei-resume-workshop-table-row {
-  padding: 13px 18px;
+.ei-resume-workshop-card-meta dd {
   color: var(--ei-color-fg-secondary);
-  border-bottom: 1px dotted var(--ei-color-rule-strong);
-  font-size: 12.5px;
+  font-family: var(--ei-font-mono);
+  font-size: 11px;
 }
 
-.ei-resume-workshop-table-row:last-child {
-  border-bottom: 0;
-}
-
-.ei-resume-workshop-table-row > div,
-.ei-resume-workshop-table-head > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ei-resume-workshop-table-name {
+.ei-resume-workshop-card-footer {
+  margin-top: auto;
+  padding-top: 14px;
   display: flex;
   align-items: center;
-  min-width: 0;
-  gap: 10px;
-}
-
-.ei-resume-workshop-table-name .ei-resume-workshop-icon {
-  flex: 0 0 auto;
-  color: var(--ei-color-fg-tertiary);
-}
-
-.ei-resume-workshop-table-name-main {
-  overflow: hidden;
-  color: var(--ei-color-fg-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14px;
-}
-
-.ei-resume-workshop-table-name-sub {
-  overflow: hidden;
-  color: var(--ei-color-fg-tertiary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--ei-font-mono);
-  font-size: 10.5px;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px dotted var(--ei-color-rule-strong);
 }
 
 .ei-resume-workshop-lang-tag {
@@ -264,13 +310,9 @@
   letter-spacing: 0.08em;
 }
 
-.ei-resume-workshop-table-source,
-.ei-resume-workshop-table-date {
-  font-family: var(--ei-font-mono);
-}
-
-.ei-resume-workshop-table-open {
-  padding: 5px 12px;
+.ei-resume-workshop-card-open {
+  min-height: 36px;
+  padding: 7px 14px;
   color: var(--ei-color-fg-secondary);
   background: transparent;
   border: 1px solid var(--ei-color-rule-strong);
@@ -279,27 +321,41 @@
   font-size: 12px;
 }
 
-.ei-resume-workshop-table-actions {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  min-width: 0;
-}
-
-.ei-resume-workshop-table-delete {
+.ei-resume-workshop-card-delete {
+  position: absolute;
+  top: 14px;
+  right: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   color: var(--ei-color-fg-tertiary);
   background: transparent;
   border: 1px solid var(--ei-color-rule-strong);
   border-radius: 2px;
 }
 
-.ei-resume-workshop-table-delete:disabled {
+.ei-resume-workshop-card-delete:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ei-mock-interview-card-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--ei-color-fg-tertiary);
+  background: transparent;
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 2px;
+}
+
+.ei-mock-interview-card-delete:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -514,6 +570,12 @@
 }
 
 @media (max-width: 700px) {
+  .ei-report-context-grid,
+  .ei-report-summary-grid,
+  .ei-report-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .ei-screen-shell[data-testid="resume-workshop-screen"] {
     padding: 28px 18px 72px;
   }
@@ -523,8 +585,7 @@
     font-size: 30px;
   }
 
-  .ei-resume-workshop-table-head,
-  .ei-resume-workshop-table-row {
+  .ei-resume-workshop-card-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

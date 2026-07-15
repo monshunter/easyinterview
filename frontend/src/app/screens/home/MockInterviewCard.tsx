@@ -260,7 +260,7 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
           type="button"
           aria-label={deleteAction.label}
           title={deleteAction.label}
-          className="ei-resume-workshop-table-delete"
+          className="ei-mock-interview-card-delete"
           disabled={deleteAction.disabled}
           onClick={(event) => runAction(event, deleteAction)}
           style={{

@@ -95,12 +95,11 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
       >
         <ConversationEntryIcon /> {t("report.conversation.entry")}
       </button>
-      <section data-testid="report-summary-cards" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 22 }}>
-        <Metric label={t("report.summary.readiness")} value={t(readinessTierLabel(data.preparednessLevel))} description={data.summary} />
+      <section className="ei-report-summary-grid" data-testid="report-summary-cards">
         <Metric label={t("report.summary.dimensions")} value={String(dimensions.length)} />
         <Metric label={t("report.summary.evidence")} value={String(evidenceCount)} />
       </section>
-      <section data-testid="report-detail-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap: 18 }}>
+      <section className="ei-report-detail-grid" data-testid="report-detail-grid">
         <Panel title={t("report.detail.dimensions")} titleMarginBottom={14} testId="report-dimensions">
           {dimensions.map((item, index) => (
             <div className="ei-report-dimension-row" key={item.code} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "8px 16px", padding: "13px 0", borderBottom: index < dimensions.length - 1 ? "1px dotted var(--ei-color-rule-strong)" : "none" }}>
@@ -114,12 +113,21 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
         <Panel title={t("report.detail.actions")} titleColor="var(--ei-color-accent)" testId="report-actions">
           {data.nextActions.map((item, index) => <div className="ei-report-action-row" key={`${item.type}-${index}`} style={{ display: "flex", minWidth: 0, gap: 10, color: "var(--ei-color-fg-secondary)", fontSize: 13, lineHeight: 1.65, marginTop: index ? 12 : 0, overflowWrap: "anywhere", wordBreak: "normal" }}><span style={{ color: "var(--ei-color-accent)", fontFamily: "var(--ei-font-mono)", flexShrink: 0 }}>{String(index + 1).padStart(2, "0")}</span><span className="ei-report-action-label" style={{ minWidth: 0, overflowWrap: "anywhere", wordBreak: "normal" }}>{item.label}</span></div>)}
         </Panel>
+        <section
+          aria-labelledby="report-overall-summary-title"
+          data-testid="report-overall-summary"
+          style={{ gridColumn: "1 / -1", minWidth: 0, border: "1px solid var(--ei-color-rule-strong)", borderRadius: 3, padding: 24, background: "var(--ei-color-bg-card)" }}
+        >
+          <h2 id="report-overall-summary-title" className="ei-label" style={{ margin: "0 0 14px", color: "var(--ei-color-accent)" }}>{t("report.summary.overall")}</h2>
+          <div className="ei-serif" style={{ fontSize: 24, overflowWrap: "anywhere" }}>{t(readinessTierLabel(data.preparednessLevel))}</div>
+          <p style={{ margin: "12px 0 0", color: "var(--ei-color-fg-secondary)", fontSize: 13.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>{data.summary}</p>
+        </section>
       </section>
     </main>
   );
 };
 
-const Metric: FC<{ label: string; value: string; description?: string }> = ({ label, value, description }) => <div style={{ border: "1px solid var(--ei-color-rule-strong)", padding: 20, background: "var(--ei-color-bg-card)", minWidth: 0 }}><div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 10 }}>{label}</div><div className="ei-serif" style={{ fontSize: 24, overflowWrap: "anywhere" }}>{value}</div>{description ? <div style={{ color: "var(--ei-color-fg-secondary)", fontSize: 13, lineHeight: 1.65, marginTop: 10, overflowWrap: "anywhere" }}>{description}</div> : null}</div>;
+const Metric: FC<{ label: string; value: string }> = ({ label, value }) => <div style={{ border: "1px solid var(--ei-color-rule-strong)", padding: 20, background: "var(--ei-color-bg-card)", minWidth: 0 }}><div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 10 }}>{label}</div><div className="ei-serif" style={{ fontSize: 24, overflowWrap: "anywhere" }}>{value}</div></div>;
 const Panel: FC<{ title: string; titleColor?: string; titleMarginBottom?: number; testId: string; children: ReactNode }> = ({ title, titleColor = "var(--ei-color-fg-tertiary)", titleMarginBottom = 12, testId, children }) => <div data-testid={testId}><div style={{ border: "1px solid var(--ei-color-rule-strong)", borderRadius: 3, padding: 20, background: "var(--ei-color-bg-card)", minWidth: 0, cursor: "default", transition: "border-color .15s, transform .15s" }}><div className="ei-label" style={{ color: titleColor, marginBottom: titleMarginBottom }}>{title}</div>{children}</div></div>;
 const EvidencePanel: FC<{ title: string; titleColor: string; testId: string; items: Array<{ dimensionCode: string; evidence: string; confidence: Confidence }>; labelsByCode: Map<string, string>; confidenceText: (value: Confidence) => string }> = ({ title, titleColor, testId, items, labelsByCode, confidenceText }) => <Panel title={title} titleColor={titleColor} testId={testId}>{items.map((item, index) => <div key={`${item.dimensionCode}-${index}`} style={{ color: "var(--ei-color-fg-secondary)", fontSize: 13, lineHeight: 1.65, marginTop: index ? 14 : 0, overflowWrap: "anywhere" }}><div style={{ color: "var(--ei-color-fg-primary)", fontWeight: 500, marginBottom: 3 }}>{labelsByCode.get(item.dimensionCode)}</div><div>{item.evidence}</div><div style={{ color: "var(--ei-color-fg-tertiary)", fontSize: 11.5, marginTop: 4 }}>{confidenceText(item.confidence)}</div></div>)}</Panel>;
 const statusColor = (status: string) => status === "needs_work" ? "var(--ei-color-warn)" : "var(--ei-color-ok)";

@@ -30,10 +30,10 @@
 
 ## Phase 12 `BDD.REPORT.UI.001` revision
 
-- [ ] RED/GREEN owner behavior tests cover ready desktop `3/2/2/2/1` and mobile same-order single-column layout.
-- [ ] Ready behavior proves top Summary Metrics contain only dimension/evidence counts；bottom full-width Overall Summary contains localized readiness and the unchanged server `summary` exactly once.
-- [ ] DOM/a11y/geometry negatives reject a top readiness+summary card、duplicate summary、wrong mobile order or a non-full-width desktop Overall Summary.
-- [ ] Root `make test` is rerun after implementation；the historical Phase 1-11 result does not satisfy this revision.
+- [x] RED/GREEN owner behavior tests cover ready desktop `3/2/2/2/1` and mobile same-order single-column layout.
+- [x] Ready behavior proves top Summary Metrics contain only dimension/evidence counts；bottom full-width Overall Summary contains localized readiness and the unchanged server `summary` exactly once.
+- [x] DOM/a11y/geometry negatives reject a top readiness+summary card、duplicate summary、wrong mobile order or a non-full-width desktop Overall Summary.
+- [x] Root `make test` is rerun after implementation；the historical Phase 1-11 result does not satisfy this revision.
 
 ## Phase 12 real E2E evidence
 

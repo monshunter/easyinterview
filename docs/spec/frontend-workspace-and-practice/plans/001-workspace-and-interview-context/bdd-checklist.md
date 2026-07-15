@@ -1,7 +1,7 @@
 # Workspace and Interview Context BDD Checklist
 
 > **版本**: 1.28
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -20,9 +20,9 @@
 
 ## `BDD.WORKSPACE.DETAIL.002` 详情开头信息层级
 
-- [ ] 标题旁“绑定简历”只使用 `TargetJob.resumeId` 导航对应 Resume 详情；缺失绑定不提供链接、不从 route/list/recent resume 兜底。
-- [ ] “立即面试”与“面试报告”在标题下首行动作行左对齐，desktop 同排、mobile 同序响应式换行；Start/Report route 与错误隔离保持。
-- [ ] 独立 Interview Launch/绑定简历 block、标题右侧 Report 与页尾 Start 的正式 DOM/source 负向 gate 为零；根 `make test` 和独立 responsive/a11y gates 通过。
+- [x] 标题旁“绑定简历”只使用 `TargetJob.resumeId` 导航对应 Resume 详情；缺失绑定不提供链接、不从 route/list/recent resume 兜底。
+- [x] “立即面试”与“面试报告”在标题下首行动作行左对齐，desktop 同排、mobile 同序响应式换行；Start/Report route 与错误隔离保持。
+- [x] 独立 Interview Launch/绑定简历 block、标题右侧 Report 与页尾 Start 的正式 DOM/source 负向 gate 为零；根 `make test` 和独立 responsive/a11y gates 通过。
 
 ## 真实环境证据边界
 

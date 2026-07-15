@@ -93,23 +93,29 @@ async function renderReadyParse(
 }
 
 describe("ParseResumeBinding", () => {
-  it("shows the saved bound resume as readonly context", async () => {
+  it("shows the saved bound resume beside the title and opens that exact detail", async () => {
     const client = createClient();
     const listSpy = vi.spyOn(client, "listResumes");
+    const getResumeSpy = vi.spyOn(client, "getResume");
+    const { navigate } = await renderReadyParse(client);
 
-    await renderReadyParse(client);
-
-    expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
-        "Resume saved with this interview plan",
-      );
-    });
+    const resumeLink = await screen.findByTestId("parse-resume-link");
+    expect(resumeLink).toHaveTextContent("Bound resume");
+    expect(screen.queryByTestId("parse-launch")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("parse-resume-binding")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker-toggle")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-create")).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
     expect(listSpy).not.toHaveBeenCalled();
+    expect(getResumeSpy).not.toHaveBeenCalled();
+
+    fireEvent.click(resumeLink);
+    expect(navigate).toHaveBeenCalledWith({
+      name: "resume_versions",
+      params: { resumeId: "01918fa0-0000-7000-8000-000000001000" },
+    });
+    expect(getResumeSpy).not.toHaveBeenCalled();
   });
 
   it("does not inherit route resumeId when the saved TargetJob lacks one", async () => {
@@ -123,8 +129,9 @@ describe("ParseResumeBinding", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("parse-resume-empty")).toBeInTheDocument();
+      expect(screen.getByTestId("parse-resume-missing")).toBeInTheDocument();
     });
+    expect(screen.queryByTestId("parse-resume-link")).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
     expect(screen.queryByTestId("parse-resume-option-01918fa0-0000-7000-8000-000000001000")).not.toBeInTheDocument();
   });
@@ -138,9 +145,9 @@ describe("ParseResumeBinding", () => {
 
     await renderReadyParse(client);
 
-    expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-resume-binding")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-resume-empty")).toBeInTheDocument();
+    expect(await screen.findByTestId("parse-resume-missing")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-launch")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("parse-resume-binding")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker-toggle")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-create")).not.toBeInTheDocument();
@@ -204,10 +211,24 @@ describe("ParseResumeBinding", () => {
 
     await renderReadyParse(client);
 
-    expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
+    expect(await screen.findByTestId("parse-leading-actions")).toBeInTheDocument();
     expect(listSpy).not.toHaveBeenCalled();
     expect(screen.queryByText("HTTP 503 RESUME_STORE_UNAVAILABLE")).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
+  });
+
+  it("renders Start then Reports in one leading left-aligned action row", async () => {
+    const client = createClient();
+    await renderReadyParse(client);
+
+    const actions = await screen.findByTestId("parse-leading-actions");
+    const buttons = Array.from(actions.querySelectorAll("button"));
+    expect(buttons.map((button) => button.textContent?.trim())).toEqual([
+      "Start interview now",
+      "INTERVIEW REPORTS",
+    ]);
+    expect(actions).toHaveStyle({ justifyContent: "flex-start" });
+    expect(screen.queryByTestId("parse-launch")).not.toBeInTheDocument();
   });
 
   it("does not expose a backend error when starting the interview fails", async () => {

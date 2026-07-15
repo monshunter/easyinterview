@@ -90,7 +90,7 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     renderScreen(client, { name: "resume_versions", params: {} });
 
     await waitFor(() => {
-      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-card-grid")).toBeInTheDocument();
     });
     const list = within(screen.getByTestId("resume-workshop-list"));
     expect(list.getByText("Resume Workshop")).toBeInTheDocument();
@@ -104,7 +104,7 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     renderScreen(client, { name: "resume_versions", params: {} });
 
     await waitFor(() => {
-      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-card-grid")).toBeInTheDocument();
     });
     const list = within(screen.getByTestId("resume-workshop-list"));
     expect(list.getByText("简历工坊")).toBeInTheDocument();
@@ -118,7 +118,7 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     renderScreen(client, { name: "resume_versions", params: {} });
 
     await waitFor(() => {
-      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-card-grid")).toBeInTheDocument();
     });
 
     const listCall = recorded.find((req) => req.url.endsWith("/resumes"));
@@ -143,15 +143,20 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     expect(getCall!.headers["Accept-Language"]).toBe("zh");
   });
 
-  it("the list table exposes row + columnheader roles for assistive tech", async () => {
+  it("the card grid exposes list items and distinct card actions for assistive tech", async () => {
     const client = buildClientWithSpy("default");
     renderScreen(client, { name: "resume_versions", params: {} });
     await waitFor(() => {
-      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-card-grid")).toBeInTheDocument();
     });
-    const table = within(screen.getByTestId("resume-workshop-table"));
-    expect(table.getAllByRole("columnheader").length).toBeGreaterThan(0);
-    expect(table.getAllByRole("row").length).toBeGreaterThan(0);
+    const list = within(screen.getByTestId("resume-workshop-card-grid"));
+    expect(list.getAllByRole("listitem")).toHaveLength(2);
+    expect(list.queryByRole("row")).not.toBeInTheDocument();
+    expect(list.queryByRole("columnheader")).not.toBeInTheDocument();
+    expect(list.getAllByRole("button", { name: /^(打开|Open) / })).toHaveLength(2);
+    expect(
+      list.getAllByRole("button", { name: /^(删除简历|Delete resume) / }),
+    ).toHaveLength(2);
   });
 
   it("Detail view exposes the read-only resume article without tab semantics", async () => {

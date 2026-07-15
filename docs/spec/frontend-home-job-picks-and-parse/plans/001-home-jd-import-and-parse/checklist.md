@@ -1,7 +1,7 @@
 # 001 Home + JD Import + Parse Checklist
 
 > **版本**: 2.32
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
@@ -142,13 +142,16 @@
 
 ## Phase 23: Workspace detail leading resume link and action row
 
-- [ ] 23.1 RED：shared Workspace detail tests/source/responsive contract 先拒绝标题右侧 Report、`parse-launch`/`parse-resume-binding` 独立 block 与页尾 Start，并保留 exact GET、round state、route 与 fail-closed 回归。
-- [ ] 23.2 GREEN：标题旁“绑定简历”只用 saved `TargetJob.resumeId` 导航 `resume_versions?resumeId=...`；缺失绑定为非链接并禁用 Start，零 `getResume`/`listResumes`/route/list/recent fallback，零 picker/rebind；删除旧 block-only `parse.launch*`、`parse.resumeBound*`、`parse.footerHint` locale key 与断言。
-- [ ] 23.3 GREEN：标题下首行动作行依次为“立即面试” primary 和“面试报告” secondary；desktop 同排、mobile 同序换行，Report 只带可信 target，Start 保持 saved resume/current round，启动错误不阻断 Report。
-- [ ] 23.4 PARITY/A11Y：desktop/mobile DOM、可访问名称、键盘/触控、computed style、bbox/no-overflow 通过；独立 launch/binding、标题右侧 Report、页尾 Start 与 orphan locale key 零残留。
-- [ ] 23.5 POST-PASS：根 `make test`、frontend typecheck/build、owner contexts、`sync-doc-index --check`、`make docs-check`、`git diff --check` 通过，与 Workspace owner 同步恢复 completed。
+- [x] 23.1 RED：shared Workspace detail tests/source/responsive contract 先拒绝标题右侧 Report、`parse-launch`/`parse-resume-binding` 独立 block 与页尾 Start，并保留 exact GET、round state、route 与 fail-closed 回归。
+  <!-- verified: 2026-07-15 method=vitest-red expected-failures="missing title-adjacent resume and leading action row" -->
+- [x] 23.2 GREEN：标题旁“绑定简历”只用 saved `TargetJob.resumeId` 导航 `resume_versions?resumeId=...`；缺失绑定为非链接并禁用 Start，零 `getResume`/`listResumes`/route/list/recent fallback，零 picker/rebind；删除旧 block-only `parse.launch*`、`parse.resumeBound*`、`parse.footerHint` locale key 与断言。
+  <!-- verified: 2026-07-15 method=vitest evidence="parse/workspace 11 files 54 tests PASS" -->
+- [x] 23.3 GREEN：标题下首行动作行依次为“立即面试” primary 和“面试报告” secondary；desktop 同排、mobile 同序换行，Report 只带可信 target，Start 保持 saved resume/current round，启动错误不阻断 Report。
+  <!-- verified: 2026-07-15 method=vitest evidence="parse/workspace 11 files 54 tests PASS" -->
+- [x] 23.4 PARITY/A11Y：desktop/mobile DOM、可访问名称、键盘/触控、computed style、bbox/no-overflow 通过；独立 launch/binding、标题右侧 Report、页尾 Start 与 orphan locale key 零残留。（验证：Chrome 1440/390 actions 44px、左对齐同序、标题链接同簇、无横溢；旧 DOM 0）
+- [x] 23.5 POST-PASS：根 `make test`、frontend typecheck/build、owner contexts、`sync-doc-index --check`、`make docs-check`、`git diff --check` 通过，与 Workspace owner 同步恢复 completed。（验证：根后端 551 tests/4493 subtests、前端 125 files/993 tests PASS；lint/build/context/docs/index/diff PASS）
 
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.HOME.JD.001` 由 [BDD checklist](./bdd-checklist.md) 关联 import/parse/handoff owner behavior tests；P0.098 不承接该流程。
-- [ ] BDD-Gate: `BDD.HOME.JD.002` 由 [BDD checklist](./bdd-checklist.md) 关联共享 Workspace ready-detail 的绑定简历查看与首行动作行行为；当前无该 UI 的真实 E2E owner。
+- [x] BDD-Gate: `BDD.HOME.JD.002` 由 [BDD checklist](./bdd-checklist.md) 关联共享 Workspace ready-detail 的绑定简历查看与首行动作行行为；当前无该 UI 的真实 E2E owner。

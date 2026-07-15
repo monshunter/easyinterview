@@ -87,7 +87,7 @@ describe("ParseAuthGate — resume-required launch", () => {
 
     expect(screen.queryByTestId("parse-action-save-plan")).not.toBeInTheDocument();
     expect(startBtn).toBeDisabled();
-    expect(screen.getByTestId("parse-resume-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-resume-missing")).toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-confirm")).not.toBeInTheDocument();
 

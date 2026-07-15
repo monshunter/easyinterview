@@ -12,11 +12,7 @@ import {
 import { useResumes } from "../hooks/useResumes";
 import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
 
-/**
- * D-20 flat list view — source-level replica of `ResumeListView` in
- * the static resume-workshop prototype. A single flat table of resumes sorted
- * by last edit.
- */
+/** D-20 flat resume cards sorted by last edit. */
 export const ResumeListView: FC = () => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
@@ -131,67 +127,68 @@ export const ResumeListView: FC = () => {
           <p className="ei-text-body">{t("resumeWorkshop.list.empty")}</p>
         </div>
       ) : (
-        <div className="ei-resume-workshop-table" data-testid="resume-workshop-table">
-          <div className="ei-resume-workshop-table-head" role="row">
-            <span role="columnheader">{t("resumeWorkshop.list.colResume")}</span>
-            <span role="columnheader">{t("resumeWorkshop.list.colSource")}</span>
-            <span role="columnheader">{t("resumeWorkshop.list.colLang")}</span>
-            <span role="columnheader">{t("resumeWorkshop.list.colLastEdit")}</span>
-            <span role="columnheader" aria-hidden="true" />
-          </div>
+        <ul
+          aria-label={t("resumeWorkshop.title")}
+          className="ei-resume-workshop-card-grid"
+          data-testid="resume-workshop-card-grid"
+        >
           {sorted.map((resume) => (
-            <div
+            <li
               key={resume.id}
-              role="row"
-              data-testid={`resume-list-row-${resume.id}`}
-              className="ei-resume-workshop-table-row"
+              data-testid={`resume-list-card-${resume.id}`}
+              className="ei-resume-workshop-card"
             >
-              <div className="ei-resume-workshop-table-name">
-                <ResumeWorkshopIcon name="resume" size={13} />
+              <button
+                type="button"
+                aria-label={`${t("resumeWorkshop.list.delete")} ${resume.name}`}
+                title={t("resumeWorkshop.list.delete")}
+                data-testid={`resume-list-delete-${resume.id}`}
+                className="ei-resume-workshop-card-delete"
+                disabled={deletingId === resume.id}
+                onClick={() => void onDelete(resume.id)}
+              >
+                <ResumeWorkshopIcon name="trash" size={14} />
+              </button>
+
+              <div className="ei-resume-workshop-card-heading">
+                <span className="ei-resume-workshop-card-icon">
+                  <ResumeWorkshopIcon name="resume" size={16} />
+                </span>
+                <h2>{resume.name}</h2>
+              </div>
+
+              {resume.summary ? (
+                <p className="ei-resume-workshop-card-summary">{resume.summary}</p>
+              ) : null}
+
+              <dl className="ei-resume-workshop-card-meta">
                 <div>
-                  <div className="ei-resume-workshop-table-name-main">
-                    {resume.name}
-                  </div>
-                  <div className="ei-resume-workshop-table-name-sub">
-                    {resume.summary}
-                  </div>
+                  <dt>{t("resumeWorkshop.list.colSource")}</dt>
+                  <dd>{resume.sourceName}</dd>
                 </div>
-              </div>
-              <div className="ei-resume-workshop-table-source">
-                {resume.sourceName}
-              </div>
-              <div className="ei-resume-workshop-table-lang">
+                <div>
+                  <dt>{t("resumeWorkshop.list.colLastEdit")}</dt>
+                  <dd>{resume.updatedAt}</dd>
+                </div>
+              </dl>
+
+              <div className="ei-resume-workshop-card-footer">
                 <span className="ei-resume-workshop-lang-tag">
                   {resume.langTag}
                 </span>
-              </div>
-              <div className="ei-resume-workshop-table-date">
-                {resume.updatedAt}
-              </div>
-              <div className="ei-resume-workshop-table-actions">
                 <button
                   type="button"
+                  aria-label={`${t("resumeWorkshop.list.open")} ${resume.name}`}
                   data-testid={`resume-list-open-${resume.id}`}
-                  className="ei-resume-workshop-table-open"
+                  className="ei-resume-workshop-card-open"
                   onClick={() => onOpen(resume.id)}
                 >
                   {t("resumeWorkshop.list.open")}
                 </button>
-                <button
-                  type="button"
-                  aria-label={t("resumeWorkshop.list.delete")}
-                  title={t("resumeWorkshop.list.delete")}
-                  data-testid={`resume-list-delete-${resume.id}`}
-                  className="ei-resume-workshop-table-delete"
-                  disabled={deletingId === resume.id}
-                  onClick={() => void onDelete(resume.id)}
-                >
-                  <ResumeWorkshopIcon name="trash" size={13} />
-                </button>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
       {deleteError ? (

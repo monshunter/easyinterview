@@ -1,7 +1,7 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly
 
 > **版本**: 3.8
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)

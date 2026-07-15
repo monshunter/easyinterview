@@ -108,10 +108,10 @@ describe("resume flat list and auth boundary", () => {
     renderApp("authenticated");
 
     // The `resume-workshop-list` testid is shared by the loading and loaded
-    // states; wait for the loaded flat table specifically so this assertion is
+    // states; wait for the loaded card grid specifically so this assertion is
     // deterministic regardless of fixture-fetch timing under parallel workers.
     await waitFor(() => {
-      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-card-grid")).toBeInTheDocument();
     });
     // Resume workshop screen replaces the route shell.
     expect(
@@ -120,12 +120,12 @@ describe("resume flat list and auth boundary", () => {
     expect(screen.getByTestId("resume-workshop-screen")).toBeInTheDocument();
     expect(screen.getByTestId("resume-workshop-list")).toBeInTheDocument();
 
-    // One flat row per resume, derived from the fixture body.
+    // One flat card per resume, derived from the closed summary fixture body.
     expect(
-      screen.getByTestId(`resume-list-row-${FIRST_RESUME_ID}`),
+      screen.getByTestId(`resume-list-card-${FIRST_RESUME_ID}`),
     ).toBeInTheDocument();
     expect(
-      screen.getByTestId(`resume-list-row-${SECOND_RESUME_ID}`),
+      screen.getByTestId(`resume-list-card-${SECOND_RESUME_ID}`),
     ).toBeInTheDocument();
 
     // Flat Resume list: stats strip, view switcher, and grouped UI stay absent.
@@ -149,7 +149,7 @@ describe("resume flat list and auth boundary", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("opening a flat row navigates to that resume's read-only detail with only resumeId", async () => {
+  it("opening a flat card navigates to that resume's read-only detail with only resumeId", async () => {
     const requests: string[] = [];
     const client = buildClient(requests);
     render(
@@ -231,7 +231,7 @@ describe("resume flat list and auth boundary", () => {
     const retry = await screen.findByTestId("resume-workshop-list-retry");
     expect(listTransports).toBe(1);
     await userEvent.click(retry);
-    await screen.findByTestId("resume-workshop-table");
+    await screen.findByTestId("resume-workshop-card-grid");
     expect(listTransports).toBe(2);
     console.info(
       "resume list rejection retry transport PASS initialRejected=1 retrySucceeded=2",

@@ -103,6 +103,7 @@ READY_VISUAL_CHECKS = {
     "preparedness_visible",
     "dimension_and_evidence_content_visible",
     "action_region_visible",
+    "bottom_interview_summary_visible_after_actions",
     "action_labels_complete_without_clipping_or_ellipsis",
     "horizontal_overflow_absent",
 }

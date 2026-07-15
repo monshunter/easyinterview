@@ -1,7 +1,7 @@
 # Home JD Import and Parse BDD Checklist
 
 > **版本**: 2.27
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -14,6 +14,6 @@
 
 ## `BDD.HOME.JD.002` 共享 Workspace ready-detail 首行动作
 
-- [ ] 标题旁“绑定简历”只消费 saved `TargetJob.resumeId` 并打开对应 Resume 详情；缺失绑定不链接、不伪造、不提供 rebind。
-- [ ] “立即面试 + 面试报告”在标题下左对齐首行动作行按序呈现；desktop 同排、mobile 同序换行，Start/Report 事实与错误边界不变。
-- [ ] 独立 launch/binding block、标题右侧 Report、页尾 Start 的 DOM/source 负向 gate 为零；根 `make test` 与独立 responsive/a11y gate 通过，不声明真实 E2E PASS。
+- [x] 标题旁“绑定简历”只消费 saved `TargetJob.resumeId` 并打开对应 Resume 详情；缺失绑定不链接、不伪造、不提供 rebind。
+- [x] “立即面试 + 面试报告”在标题下左对齐首行动作行按序呈现；desktop 同排、mobile 同序换行，Start/Report 事实与错误边界不变。
+- [x] 独立 launch/binding block、标题右侧 Report、页尾 Start 的 DOM/source 负向 gate 为零；根 `make test` 与独立 responsive/a11y gate 通过，不声明真实 E2E PASS。

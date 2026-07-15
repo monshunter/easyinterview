@@ -64,7 +64,7 @@ describe("ParseScreen", () => {
     render(
       wrap(
         <ParseScreen
-          route={{ name: "parse", params: { targetJobId: "tj-1" } }}
+          route={{ name: "workspace", params: { targetJobId: "tj-1" } }}
           _mockStage="preview"
           _mockTargetJob={{
             id: "tj-1",
@@ -188,11 +188,14 @@ describe("ParseScreen", () => {
     expect(screen.getByTestId("parse-round-0")).not.toHaveTextContent(
       /Motivation, timing|动机/,
     );
-    expect(screen.getByTestId("parse-launch")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-launch")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("parse-resume-binding")).not.toBeInTheDocument();
+    expect(screen.getByTestId("parse-leading-actions")).toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-cancel")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-reparse")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-save-plan")).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-action-start-interview")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-reports-entry")).toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-confirm")).not.toBeInTheDocument();
   });
 

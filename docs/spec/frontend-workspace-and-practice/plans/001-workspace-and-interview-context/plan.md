@@ -1,7 +1,7 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
 > **版本**: 1.44
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)

@@ -15,7 +15,7 @@ export const ReportContextStrip: FC<{
     { id: "resume", label: "report.context.resume", value: context.resumeDisplayName },
   ];
   return (
-    <section data-testid="report-context-strip" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 1, border: "1px solid var(--ei-color-rule-strong)", background: "var(--ei-color-rule-strong)", marginBottom }}>
+    <section className="ei-report-context-grid" data-testid="report-context-strip" style={{ marginBottom }}>
       {fields.map((field) => (
         <div key={field.id} data-testid={`report-context-${field.id}`} style={{ padding: "12px 14px", minWidth: 0, background: "var(--ei-color-bg-card)" }}>
           <div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 5 }}>{t(field.label)}</div>

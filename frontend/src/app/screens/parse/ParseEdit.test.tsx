@@ -136,7 +136,7 @@ describe("Workspace detail — readonly plan receipt", () => {
     const client = createClient();
     await renderReadyParse(client);
 
-    await screen.findByTestId("parse-launch");
+    await screen.findByTestId("parse-leading-actions");
     expect(screen.queryByTestId("parse-action-save-plan")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-cancel")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-reparse")).not.toBeInTheDocument();

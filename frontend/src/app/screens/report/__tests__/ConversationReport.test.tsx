@@ -254,6 +254,36 @@ describe("grounded direct-semantic feedback report", () => {
     expect(getResume).not.toHaveBeenCalled();
   });
 
+  it("renders the ready report in 3/2/2/2/1 order with one bottom full-width interview summary", async () => {
+    localStorage.setItem("ei-lang", "zh");
+    const value = report();
+    const { client } = clientFor(value);
+    render(<App client={client} initialRoute={{ name: "report", params: { reportId: REPORT_ID } }} />);
+
+    const dashboard = await screen.findByTestId("report-dashboard");
+    expect(screen.getByTestId("report-context-strip").children).toHaveLength(3);
+    expect(screen.getByTestId("report-summary-cards").children).toHaveLength(2);
+    expect(screen.getByTestId("report-detail-grid").children).toHaveLength(5);
+
+    const overall = screen.getByTestId("report-overall-summary");
+    expect(overall).toHaveStyle({ gridColumn: "1 / -1" });
+    expect(overall).toHaveTextContent("面试总评");
+    expect(overall).toHaveTextContent("建议再练");
+    expect(overall).toHaveTextContent(value.summary ?? "");
+    expect(dashboard.querySelectorAll('[data-testid="report-overall-summary"]')).toHaveLength(1);
+    expect(dashboard.textContent?.split(value.summary ?? "")).toHaveLength(2);
+
+    const readyGroups = Array.from(dashboard.querySelectorAll(
+      '[data-testid="report-context-strip"], [data-testid="report-summary-cards"], [data-testid="report-detail-grid"], [data-testid="report-overall-summary"]',
+    ));
+    expect(readyGroups).toEqual([
+      screen.getByTestId("report-context-strip"),
+      screen.getByTestId("report-summary-cards"),
+      screen.getByTestId("report-detail-grid"),
+      overall,
+    ]);
+  });
+
   it("uses the first action only for CTA visual priority and keeps an empty replay focus valid", async () => {
     const value = report({
       nextActions: [{ type: "retry_current_round", label: "通用同轮复练。" }],

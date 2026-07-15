@@ -20,11 +20,11 @@
 
 ## Phase 12 report summary hierarchy
 
-- [ ] RED proves the current third top readiness+summary metric violates the revised design before implementation.
-- [ ] DOM tests prove exact ready group order/count `3/2/2/2/1` and that Overall Summary follows Next Actions.
-- [ ] Semantic/i18n tests prove Summary Metrics contain only dimension/evidence counts；Overall Summary contains localized title/readiness plus the unchanged server `summary` exactly once.
-- [ ] Formal frontend 1440/390 style/bbox/viewport/a11y tests prove desktop full-width bottom summary、mobile same-order single column、complete wrapping and zero horizontal overflow.
-- [ ] Source negatives reject top readiness/summary、duplicate summary、parallel prototype ownership and any backend/API/persistence/prompt change.
+- [x] RED proves the current third top readiness+summary metric violates the revised design before implementation.
+- [x] DOM tests prove exact ready group order/count `3/2/2/2/1` and that Overall Summary follows Next Actions.
+- [x] Semantic/i18n tests prove Summary Metrics contain only dimension/evidence counts；Overall Summary contains localized title/readiness plus the unchanged server `summary` exactly once.
+- [x] Formal frontend 1440/390 style/bbox/viewport/a11y tests prove desktop full-width bottom summary、mobile same-order single column、complete wrapping and zero horizontal overflow.
+- [x] Source negatives reject top readiness/summary、duplicate summary、parallel prototype ownership and any backend/API/persistence/prompt change.
 
 ## ReportsScreen and routing
 
@@ -40,7 +40,7 @@
 
 ## Phase 12 current gates
 
-- [ ] Root `make test`、typecheck/build/lint and document gates pass on the revised implementation.
+- [x] Root `make test`、typecheck/build/lint and document gates pass on the revised implementation.
 - [ ] P0.099 README/manual-audit/capture-verification assertions are aligned, then an explicitly run current scenario produces ready full-page evidence covering actions and the following bottom interview summary；historical exact-six PASS is not reused.
 
 ## Phase 13 report conversation integration
