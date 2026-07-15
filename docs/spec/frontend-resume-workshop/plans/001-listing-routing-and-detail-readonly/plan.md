@@ -38,7 +38,7 @@
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `listResumes` | current list fixtures | list hook + flat list + Home selector | backend-resume summary handler | summary projection | none | 当前无真实 E2E owner；root `make test` |
 | `getResume` | current detail fixtures | detail hook + readonly detail | backend-resume full-detail handler | full resume projection | parse produces snapshot | 当前无真实 E2E owner；root `make test` |
-| `getResumeSource` | current source fixtures | PDF page-stack renderer | backend-resume source handler | file object + object storage | none | 当前无真实 E2E owner；root `make test` + responsive browser verification |
+| `getResumeSource` | current source fixtures | PDF page-stack renderer | backend-resume source handler | file object + object storage | none | 当前无真实 E2E owner；root `make test` + PDF page-stack component tests |
 | `archiveResume` | current archive fixture | list-row delete | backend-resume archive handler | `resumes.deleted_at` | none | 当前无真实 E2E owner；root `make test` |
 
 ## 4 实施步骤
@@ -137,7 +137,7 @@ paste、Markdown upload 和 TXT upload 继续使用 Markdown engine，并保留 
 
 #### 9.2 UI truth and screenshot smoke
 
-`frontend/src`、`docs/ui-design/resume-module.md`、`docs/ui-design/resume-onboarding.md` 和正式 CSS 统一描述 PDF 页面栈，不再描述原生 viewer。Responsive browser verification smoke 覆盖 desktop/mobile PDF 详情，并断言页面栈可见且没有 native viewer shell。
+`frontend/src`、`docs/ui-design/resume-module.md`、`docs/ui-design/resume-onboarding.md` 和正式 CSS 统一描述 PDF 页面栈，不再描述原生 viewer。正式 component/responsive tests 覆盖 desktop/mobile PDF 详情，并断言页面栈可见且没有 native viewer shell。
 
 ### Phase 10: Source-format Reading Surface Alignment
 

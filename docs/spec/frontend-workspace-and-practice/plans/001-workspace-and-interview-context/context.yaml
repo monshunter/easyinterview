@@ -43,7 +43,7 @@ spec:
       - PracticeDisplayContext
       - stable practice route IDs
       - continuous conversation handoff
-      - workspace responsive browser verification
+      - workspace component responsive assertions
       - WorkspacePlanList
       - interview plan list landing
       - plan-list metadata trimming

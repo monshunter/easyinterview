@@ -24,7 +24,7 @@
 
 ## Phase 8: Visual and real-environment separation
 
-- [x] Deterministic prototype/formal DOM/style/bbox/viewport/responsive browser verification runs as a frontend code gate, not E2E.
+- [x] Deterministic formal DOM/style/viewport component assertions run as a frontend code gate, not E2E.
 - [x] BDD-Gate: `BDD.REPORT.UI.001` 由 [BDD checklist](./bdd-checklist.md) 关联 report/generating owner behavior tests。
 - [x] E2E-HANDOFF: P0.099 是唯一 real report/generating owner，要求 exactly six `fullPage: true` images 绑定 current API/DB/report/session/context/screenshot digests；本轮未运行，状态仍为 `Ready`。
 - [x] P0.099 contract 要求 real mobile ready images 完整显示 action region 且无 clipping/ellipsis/hiding/overflow；exact 24/64 保持 code test。

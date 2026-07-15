@@ -1,16 +1,16 @@
 # URL-Addressable Routing Checklist
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联计划**: [plan](./plan.md)
 
-## Phase 1: Route codec and hash adapter
+## Phase 1: Route codec and canonical bootstrap
 
 - [x] 1.1 Implement route-to-URL table for every current `Route.name`; verification: routeUrl tests cover serialize/parse for primary nav, context routes, user-menu routes and auth routes.
 - [x] 1.2 Implement shared safe-param allowlist; verification: routeUrl and pendingAction tests prove legal handoff params survive while unknown/raw payload params are dropped.
-- [x] 1.3 Preserve `#route=...` adapter; verification: bootstrapRoute tests prove hash inputs normalize through the same route contract and normal browser mode can replace with canonical path.
+- [x] 1.3 Historical implementation evidence: the former Demo bootstrap adapter normalized hash inputs；Phase 14 supersedes this contract after the Demo/toolchain removal.
 
 ## Phase 2: Browser History integration
 
@@ -33,6 +33,11 @@
 - [x] 5.1 Update implementation handoff docs only where operators need route/fallback guidance.
 - [x] 5.2 Run route codec, browser history, auth privacy, host fallback and scenario focused gates.
 - [x] 5.3 Reconcile spec/history/plan/checklist/context/BDD/index files to current implementation evidence before completion.
+
+## Phase 14: UI Demo pruning owner reconcile
+
+- [x] 14.1 Supersede the historical hash-adapter contract with canonical path/query routing and remove deleted browser-harness discovery from plan/checklist/context.（验证：owner context PASS；deleted path/symbol search=0）
+- [x] 14.2 Verify route-store fragment rejection, canonical replacement, owner context, docs links and active UI Demo residual gates before restoring `completed`.（验证：route focused=`4 files / 42 tests`；004 context PASS；deleted symbol search=0；docs links PASS；active residuals=0）
 
 
 

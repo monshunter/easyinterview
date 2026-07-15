@@ -1,6 +1,6 @@
 # UI Demo Pruning and Documentation-Owned Design
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-15
 
@@ -31,7 +31,7 @@
 
 | Source | 类别 | Plan phase | 验证 | 负向范围 |
 |--------|------|------------|------|----------|
-| 删除重复 Demo 实现 | Primary path | Phase 1 | `scripts/lint/ui_demo_pruning_test.py` + `make lint-ui-demo-pruning` | `frontend/` 实体目录不得存在 |
+| 删除重复 Demo 实现 | Primary path | Phase 1 | `scripts/lint/ui_demo_pruning_test.py` + `make lint-ui-demo-pruning` | `ui-design/` 实体目录不得存在 |
 | 保留 UI 架构与流程文档 | Cross-layer contract | Phase 2 | `make docs-check` + active-doc reference scan | `docs/ui-design/` 不得被误删；不得链接 Demo 源文件或运行入口 |
 | 删除双源工具链 | Regression / non-current-negative | Phase 3 | Make/package/script tests + repo search | `test:responsive-browser`、`serve-responsive-browser`、prototype fixture sync、golden preview 不得残留为 active gate |
 | 保留独立有价值的正式前端测试 | UX quality | Phase 4 | focused Vitest + 根 `make test` | 不以删除 Demo 为理由删除行为、a11y、responsive 或 route 正确性覆盖 |
@@ -106,9 +106,23 @@
 
 确认所有 checklist 项有当前执行证据后，将 spec/plan/checklist 恢复为 `completed` 并同步 INDEX；执行 post-pass reconcile 与 retrospective。
 
+### Phase 7: L2 review remediation
+
+#### 7.1 收紧已删除浏览器门禁的负向合同
+
+先补充会因 `responsive browser verification`、`test:responsive-browser` 与 `serve-responsive-browser` 正向合同而失败的 focused test，再扩展 UI Demo pruning lint，避免已删除套件仅通过改名绕过零残留门禁。
+
+#### 7.2 修复 owner 文档漂移
+
+将验收标准中的误写目录改回 `ui-design/`，清理 active spec/plan/checklist/context 对已删除 browser parity 套件、hash adapter、`bootstrapRoute.ts` 与旧 harness 的当前合同；历史事实只保留在明确的历史区段。
+
+#### 7.3 重新验证并恢复生命周期
+
+执行 focused lint tests、active residual scan、003/004 context validation、route regressions、根 `make test`、`make build`、`make docs-check`、`make codegen-check` 与 `git diff --check`，证据全部通过后恢复 owner lifecycle。
+
 ## 6 验收标准
 
-- `frontend/` 实体目录不存在，clean checkout 的 test/build/docs/codegen gate 不依赖它。
+- `ui-design/` 实体目录不存在，clean checkout 的 test/build/docs/codegen gate 不依赖它。
 - `docs/ui-design/` 保留，并只表达 UI 信息架构、流程、交互约束和设计决策。
 - active 代码和文档不再定义可运行原型权威来源、Demo-first、源级复制、golden preview 或旧 parity 合同。
 - 只为 Demo 对照存在的 Playwright、fixture sync、scaffold 和 traceability 资产被删除。
@@ -128,5 +142,6 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 2.1 | L2 review remediation：补齐已删除 browser gate 的 lint 术语覆盖，修复 003 验收目录与 004 hash-adapter owner 漂移。 |
 | 2026-07-15 | 2.0 | 用户确认删除 `ui-design/` Demo，保留 `docs/ui-design/` 作为 UI 架构与流程设计文档；原 parity owner 原地重开为降熵删除计划。 |
-| 2026-07-10 | 1.6 | 完成当时的 12-spec UI Demo responsive browser verification gate。 |
+| 2026-07-10 | 1.6 | 完成当时的 12-spec UI Demo browser gate；该套件已由 v2.0 删除。 |

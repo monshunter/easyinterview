@@ -64,6 +64,20 @@ def test_rejects_positive_active_demo_contract_but_allows_negative_guard(tmp_pat
     assert report.findings[0].label == "pixel parity contract"
 
 
+def test_rejects_removed_responsive_browser_gate_names(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    write(
+        repo / "docs" / "spec" / "frontend-shell" / "spec.md",
+        "Run responsive browser verification before delivery.\n"
+        "Use test:responsive-browser for the frontend gate.\n"
+        "Start serve-responsive-browser for the browser harness.\n",
+    )
+
+    report = audit.scan_repo(repo)
+
+    assert [finding.line for finding in report.findings] == [1, 2, 3]
+
+
 def test_allows_docs_relative_links_and_multiline_negative_guards(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     write(

@@ -193,6 +193,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0172](./BUG-0172.md) | UI Demo pruning gate missed renamed browser contracts and owner drift | medium | resolved | 2026-07-15 | `fix(ui-design): close pruning review findings (BUG-0172)` |
 | [BUG-0169](./BUG-0169.md) | Closeout contract gates drifted from current source ownership | medium | resolved | 2026-07-14 | `fix(interview): close turn UX and report navigation (BUG-0167, BUG-0168, BUG-0169)` |
 | [BUG-0168](./BUG-0168.md) | P0.006 verifier treated business failed counters as Playwright failures | medium | resolved | 2026-07-14 | `fix(interview): close turn UX and report navigation (BUG-0167, BUG-0168, BUG-0169)` |
 | [BUG-0167](./BUG-0167.md) | P0.058 report evidence fixture omitted required practice reply state | medium | resolved | 2026-07-14 | `fix(interview): close turn UX and report navigation (BUG-0167, BUG-0168, BUG-0169)` |

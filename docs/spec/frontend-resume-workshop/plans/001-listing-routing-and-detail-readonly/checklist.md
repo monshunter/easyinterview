@@ -24,7 +24,7 @@
 
 - [x] 4.1 raw resume text、parsed snapshot、structured profile、rewrite text 不进入 URL / pending action / localStorage / console / generic logs；验证: `ResumeWorkshopPrivacy.test.ts`。
 - [x] 4.2 中英文案、Accept-Language、只读详情和 aria 语义可测试；验证: `ResumeWorkshopI18nA11y.test.tsx`。
-- [x] 4.3 UI parity 锚点、computed style、bounding box、viewport 和 screenshot smoke 由 owner gates 承接；验证: `ResumeWorkshopCssParity.test.ts` 与 responsive browser verification owner。
+- [x] 4.3 UI layout、computed style、viewport 与 accessibility 由正式前端 owner gates 承接；验证: `ResumeWorkshopCssParity.test.ts` 与 Resume Workshop component tests。
 
 
 

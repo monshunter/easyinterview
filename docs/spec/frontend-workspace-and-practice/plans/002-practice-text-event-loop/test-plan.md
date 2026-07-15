@@ -13,7 +13,7 @@
 ## Phase 4: Completion
 - Stable-ID handoff and generating conversation copy.
 ## Phase 5: Integration/parity
-- Vitest/typecheck/build, source/responsive browser verification and Practice owner-scoped desktop/mobile screenshots.
+- Vitest/typecheck/build, formal component/responsive assertions and explicitly owned real-UI desktop/mobile screenshots.
 
 ## Phase 6: Review remediation
 - PracticeScreen component tests simulate loader 5xx, send failure and completion failure, then assert the retry button invokes only the matching operation.

@@ -60,7 +60,7 @@
 - 本阶段只拥有 completion handoff；GeneratingScreen 的状态、文案与动作自 2026-07-12 起由 `frontend-report-dashboard/001` 唯一承接。
 
 ### Phase 5: Parity and real scenario
-- Run Vitest/typecheck/build/UI contract/responsive browser verification.
+- Run Vitest/typecheck/build plus formal component/responsive/accessibility assertions.
 - Run the Practice owner scenarios and capture redacted desktop/mobile conversation screenshots; report-page real screenshot ownership remains in `frontend-report-dashboard`.
 
 ### Phase 6: Review remediation

@@ -88,7 +88,9 @@ FORBIDDEN_PATTERNS = (
     ForbiddenPattern(
         "pixel parity contract",
         re.compile(
-            r"test:pixel-parity|serve-pixel-parity|golden preview|pixel parity|"
+            r"test:(?:pixel-parity|responsive-browser)|"
+            r"serve-(?:pixel-parity|responsive-browser)|"
+            r"responsive browser verification|golden preview|pixel parity|"
             r"source-level parity|source-level replication|源码复刻|源级复刻|"
             r"UI truth source|UI 真理源",
             re.IGNORECASE,

@@ -113,7 +113,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 ### Phase 6: Verification closeout
 
-- Focused tests remain development feedback；phase completion uses repository-root `make test`, with workspace responsive browser verification, fixture validation, docs/index checks and negative grep as separate gates. Only `E2E.P0.098` owns the real completion/progress-refresh flow described in the BDD plan.
+- Focused tests remain development feedback；phase completion uses repository-root `make test`, with formal component/responsive assertions, fixture validation, docs/index checks and negative grep as separate gates. Only `E2E.P0.098` owns the real completion/progress-refresh flow described in the BDD plan.
 
 ### Phase 7: Interview nav and plan-list landing revision
 

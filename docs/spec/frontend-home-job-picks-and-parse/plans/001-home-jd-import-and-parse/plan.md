@@ -133,7 +133,7 @@ Successful import navigates to Parse with only `targetJobId`; route params never
 
 #### 5.1 UI design document and copy
 
-Rename the shared ready-detail visual from "JD parse result" to "Interview Plan Detail / Context Confirm" in `frontend/src`, `docs/ui-design/`, formal locales and responsive browser verification expectations；render it only under Workspace while keeping the 4-step Parse loading state for first import only.
+Rename the shared ready-detail visual from "JD parse result" to "Interview Plan Detail / Context Confirm" in `frontend/src`, `docs/ui-design/`, formal locales and component/responsive expectations；render it only under Workspace while keeping the 4-step Parse loading state for first import only.
 
 #### 5.2 Shared route implementation
 
@@ -157,7 +157,7 @@ Remove ready-detail PATCH behavior. Focused tests must prove Workspace Start doe
 
 #### 6.3 Removed controls negative gate
 
-Vitest, responsive browser verification and scenario gates must assert the absence of editable inputs, requirements toggles, hidden-signal remove controls, resume picker / create-resume fallback, success-state Re-parse, Save plan and Cancel controls.
+Vitest component/responsive assertions and any applicable real API/UI scenario gates must assert the absence of editable inputs, requirements toggles, hidden-signal remove controls, resume picker / create-resume fallback, success-state Re-parse, Save plan and Cancel controls.
 
 
 

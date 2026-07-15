@@ -32,7 +32,7 @@
 - [x] Exact 95,000 ms timeout, same-ID reconciliation, all server-status adoption, uncertain-read fallback and stale-response guard tests pass.
 - [x] Historical Phase 10 terminal `parse(targetJobId)` route/i18n/a11y matrix passed；Phase 11 supersedes only this route destination.
 - [x] Persisted retryable row + failed online refresh keeps one row-local retry and editable next draft；typed HTTP `retryable=true` reuses the exact ID/text without duplicate or technical leakage. (`PracticeScreen.test.tsx` + hooks: 62/62；frontend typecheck)
-- [x] Formal/prototype four-state desktop/mobile DOM/style/bbox/viewport/responsive browser verification passes. (`practice.spec.ts`: 16/16 desktop 1440 + mobile 390；`ui-design-contract.test.mjs`: 60/60)
+- [x] Current formal Practice component tests cover four-state DOM, interaction, desktop/mobile responsive and accessibility contracts；the deleted Demo/parity suites are not current evidence.
 
 
 ## Phase 12

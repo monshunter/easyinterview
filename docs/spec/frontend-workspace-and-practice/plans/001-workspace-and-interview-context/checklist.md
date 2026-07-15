@@ -46,7 +46,7 @@
 ## Phase 6: closeout
 
 - [x] 6.1 App、Workspace、Header、modals、start practice、auth 与 handoff 的 focused Vitest 仅作开发反馈；阶段单测完成由仓库根 `make test` 承接。
-- [x] 6.2 Responsive browser verification passed for workspace desktop/mobile and theme states（验证：`pnpm --filter @easyinterview/frontend test`）
+- [x] 6.2 Formal component layout tests passed for workspace desktop/mobile and theme states（验证：`pnpm --filter @easyinterview/frontend test`）
 - [x] 6.3 Fixtures remain valid for TargetJobs, Resumes, PracticePlans and PracticeSessions（验证：`make validate-fixtures`）
 - [x] 6.4 Owner docs/index/context are current and completed（验证：`validate_context.py frontend-workspace-and-practice/001 frontend`; `sync-doc-index --check`; `make docs-check`）
 
@@ -59,13 +59,13 @@
 
 - [x] 8.1 UI design documents define the no-context plan list as visible list cards with card background, border, subtle elevation, internal body/footer sections, and responsive desktop/mobile grid（验证：`docs/ui-design/module-job-workspace.md`, `frontend/src`）
 - [x] 8.2 `WorkspacePlanList` mirrors the card treatment and keeps generated `listTargetJobs` + safe navigation semantics unchanged（验证：`WorkspaceEmptyState.test.tsx` red/green assertions）
-- [x] 8.3 Responsive browser verification catches loose text-column regression through computed style and bounding-box assertions for card, body and footer sections（验证：`formal frontend component tests`）
+- [x] 8.3 Formal frontend component tests catch loose text-column regression through layout/style assertions for card, body and footer sections。
 
 ## Phase 9: plan-list card simplification and theme consistency
 
 - [x] 9.1 UI design documents define concise no-context plan cards with no source/language metadata and theme accent CTA（验证：`docs/ui-design/module-job-workspace.md`, `frontend/src`）
 - [x] 9.2 `WorkspacePlanList` removes `workspace.planList.cardMeta`, `sourceType` and `targetLanguage` display from cards while preserving generated `listTargetJobs` navigation（验证：`WorkspaceEmptyState.test.tsx` red/green assertions）
-- [x] 9.3 Responsive browser verification catches metadata/secondary-button regression and verifies card/page separation via existing theme tokens（验证：`formal frontend component tests`）
+- [x] 9.3 Formal frontend component tests catch metadata/secondary-button regression and verify card/page separation via existing theme tokens。
 
 ## Phase 10: plan-list bound resume navigation remediation
 
@@ -79,7 +79,7 @@
 
 ## Phase 12: unified detail route remediation
 
-- [x] 12.1 Historical `workspace?targetJobId=...` detail re-entry is superseded; parse route renders the `面试规划详情 / 面试上下文确认` mother page（验证：`ParseResumeBinding.test.tsx`, responsive browser verification parse detail PASS）
+- [x] 12.1 Historical at the time: `workspace?targetJobId=...` detail re-entry was superseded and Parse rendered the `面试规划详情 / 面试上下文确认` mother page（当时验证：`ParseResumeBinding.test.tsx`；后续 Phase 16/17 再次 supersede route destination）
 - [x] 12.2 Workspace `WorkspacePlanList` and plan-card navigation remain generated `listTargetJobs` backed, carrying declared `resumeId/currentPracticePlanId` only to `parse`（验证：`WorkspaceEmptyState.test.tsx`, `frontend/src/app/navigation/interviewContext.ts` tests PASS）
 - [x] 12.3 `autoStartPractice=1` workspace ownership is superseded; parse/report handoff owns session start logic（验证：`ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` PASS）
 - [x] 12.4 Pixel/formal implementation contract verifies workspace list + parse detail routing split across desktop/mobile and rejects out-of-scope independent workspace detail geometry（验证：`formal frontend component tests` PASS）
@@ -115,7 +115,7 @@
 - [x] 17.2 Formal `MockInterviewCard` supports quick-start and top-right delete actions, stops action propagation, and uses the resume-list trash icon for delete（验证：`MockInterviewCard.test.tsx`）
 - [x] 17.3 `WorkspacePlanList` removes visible `进入规划` footer button, starts practice through shared generated practice handoff with structured `roundId/roundName`, and keeps delete isolated from card navigation; Phase 18 owns backend-persistent archive（验证：`WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx` PASS）
 - [x] 17.4 Home recent cards reuse the same quick-start action card and omit delete controls（验证：`HomeRecentMocks.test.tsx`）
-- [x] 17.5 Browser screenshot acceptance captures workspace card actions and Home recent card actions after the optimization（验证：`.test-output/screenshots/workspace-plan-list-action-card.png`, `.test-output/screenshots/home-recent-action-card.png`, responsive browser verification workspace spec）
+- [x] 17.5 Formal component tests cover workspace card actions and Home recent card actions after the optimization；真实 UI screenshot 仅由明确场景或 acceptance run 产生。
 
 ## Phase 18: persistent TargetJob archive integration
 

@@ -26,7 +26,7 @@
 > Ownership note (2026-07-12): the completed evidence above is historical. Current work stops at stable `reportId` handoff; GeneratingScreen is exclusively owned by `frontend-report-dashboard/001`.
 
 ## Phase 5: Parity and real scenario
-- [x] 5.1 仓库根 `make test` 完成前后端全量单测回归；typecheck/build、UI contract 与 desktop/mobile responsive browser verification 作为独立 gates。
+- [x] 5.1 仓库根 `make test` 完成前后端全量单测回归；typecheck/build、UI contract 与 desktop/mobile component/responsive assertions 作为独立 gates。
 - [x] 5.2 Run the then-current real backend/frontend path and capture redacted conversation/report screenshots.
 
 ## Phase 6: Review remediation

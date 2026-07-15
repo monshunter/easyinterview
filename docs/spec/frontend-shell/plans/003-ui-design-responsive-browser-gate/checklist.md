@@ -1,6 +1,6 @@
 # UI Demo Pruning and Documentation-Owned Design Checklist
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-15
 
@@ -36,3 +36,9 @@
 
 - [x] 6.1 执行 Demo pruning lint、`make test`、`make build`、`make docs-check`、`make codegen-check` 与 `git diff --check` 并记录当前 PASS（验证：全部命令当前 PASS；pruning active_residuals=0；frontend production build PASS）
 - [x] 6.2 完成 post-pass doc reconcile、INDEX 同步和 retrospective 后恢复 spec/plan/checklist `completed` 生命周期（验证：retrospective=`docs/reports/2026-07-15-ui-demo-pruning-assessment.md`；context validator PASS；sync-doc-index check PASS；checklist zero-open）
+
+## Phase 7: L2 review remediation
+
+- [x] 7.1 为 `responsive browser verification`、`test:responsive-browser` 与 `serve-responsive-browser` 正向合同补 Red/Green pruning lint 覆盖，确保已删除 browser gate 不能通过改名绕过 active residual gate。（验证：focused Red=`[] != [1, 2, 3]`；Green=`1 passed`；文件回归=`11 passed`；完整 lint 正确暴露 18 个待 7.2 清理的 active residual）
+- [x] 7.2 将 003 验收目录修正为 `ui-design/`，并原地清理 004 routing owner 及其他 active 文档中的旧 browser parity、hash adapter、`bootstrapRoute.ts` 和 harness 当前合同。（验证：18 个 active browser residual 清零；003/004 context PASS；route focused=`4 files / 42 tests passed`；deleted path/symbol search=0）
+- [x] 7.3 运行 focused lint/residual/context/route gates、根 `make test`、`make build`、`make docs-check`、`make codegen-check` 与 `git diff --check`，完成 post-pass reconcile 后恢复 lifecycle。（验证：lint active_residuals=0；route=`42 passed`；Python=`544 passed / 4241 subtests`；backend PASS；frontend=`123 files / 969 tests`；build/docs/codegen/diff PASS；BUG-0172 与原 retrospective 已同步）

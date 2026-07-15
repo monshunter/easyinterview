@@ -29,7 +29,7 @@
 
 - **Plan 类型**: `feature-behavior` + `frontend`
 - **TDD 策略**: 通过 `/implement frontend-shell/002-app-shell-visual-system frontend` 进入 `/tdd`。每个可见视觉 surface 必须先有 focused token、component、structural 或 visual-smoke 断言，再写实现。
-- **契约边界**: browser-level responsive browser verification 由 `frontend-shell/003-ui-design-responsive-browser-gate` 承接；本 owner 保持 jsdom fast smoke 与 source-to-target 映射，不用截图基线替代 formal implementation contract。
+- **契约边界**: 正式 component、responsive 与 accessibility assertions 由各 frontend owner 承接；`frontend-shell/003-ui-design-responsive-browser-gate` 只负责防止已删除 Demo/parity 工具链回流。本 owner 保持 jsdom fast smoke，不用截图基线替代 formal implementation contract。
 
 ## 4 当前合同
 

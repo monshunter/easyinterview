@@ -29,7 +29,7 @@
 
 ## Phase 5: BDD / handoff
 
-- [x] 5.2 Handoff docs；验证: `frontend/README.md` 记录 token、display wiring、fonts、className 接入点、visual smoke 与 browser responsive browser verification gate 分工。
+- [x] 5.2 Handoff docs；验证: `frontend/README.md` 记录 token、display wiring、fonts、className 接入点、visual smoke 与正式 component/responsive/accessibility gate 分工。
 
 ## Phase 6: theme option pruning
 

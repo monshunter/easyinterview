@@ -25,8 +25,8 @@ spec:
       - popstate
       - deep link
       - canonical path
-      - hash adapter
-      - parseInitialRouteHash
+      - fragment ignored
+      - canonical fragment stripping
       - pendingAction
       - unsupported route params rejected
       - safe route params
@@ -66,13 +66,12 @@ spec:
         packages:
           - frontend/src/app/routes.ts
           - frontend/src/app/normalizeRoute.ts
-          - frontend/src/app/bootstrapRoute.ts
           - frontend/src/app/App.tsx
           - frontend/src/app/navigation/NavigationProvider.tsx
           - frontend/src/main.tsx
           - frontend/src/app/screens/parse
           - frontend/src/app/screens/workspace
-          - frontend/tests/responsive-browser
+          - frontend/src/app/routeStore.test.ts
         uiRoutes:
           - home
           - workspace

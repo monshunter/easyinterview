@@ -1,8 +1,8 @@
 # URL-Addressable Routing
 
-> **版本**: 1.12
+> **版本**: 1.14
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -17,10 +17,9 @@
 
 ### 2.1 Route and history
 
-- App 初始 route 优先级：test harness route > canonical path > hash adapter > default `home`。
+- App 初始 route 优先级：test harness route > canonical path > default `home`；URL fragment 不参与 route 解析。
 - `NavigationProvider.navigate(next)` 继续作为屏幕层 API；内部统一 normalize、safe-param filter、serialize、`pushState` / `replaceState` and React state update。
 - `popstate` 必须恢复 route params、TopBar active state、chrome hidden state and InterviewContext hydration，并清理 hostile `history.state`。
-- `#route=...` adapter 继续服务 static preview、responsive browser verification and scenario harness；正常浏览器模式下替换为 canonical path。
 
 ### 2.2 Canonical route table
 
@@ -45,7 +44,7 @@ Unsupported paths and malformed query input must normalize to the current route 
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `frontend` + `routing`。
-- **TDD 策略**: 本计划按 `/implement frontend-shell/004-url-addressable-routing frontend` -> `/tdd` 完成。Current regression gate covers route codec, hash adapter, route store, History integration, auth pendingAction serialization, privacy redline and host fallback tests.
+- **TDD 策略**: 本计划按 `/implement frontend-shell/004-url-addressable-routing frontend` -> `/tdd` 完成。Current regression gate covers route codec, route store, History integration, fragment rejection, auth pendingAction serialization, privacy redline and host fallback tests.
 - **替代验证 gate**: 不适用；BDD 是用户行为 gate。阶段单测完成由仓库根 `make test` 承接；host fallback、context validator、`make docs-check` 与 `git diff --check` 是独立 gates。
 
 ## 4 Operation Matrix / Contract Boundary
@@ -53,7 +52,6 @@ Unsupported paths and malformed query input must normalize to the current route 
 | Boundary | Contract | Frontend Consumer | Backend Handler | Persistence | AI dependency | Scenario Coverage |
 |----------|----------|-------------------|-----------------|-------------|---------------|-------------------|
 | Browser History router | route codec + safe-param allowlist | route adapter、NavigationProvider、TopBar、auth pendingAction | N/A | browser history only | none | 当前无真实 E2E owner；root `make test` |
-| Hash adapter | hash input -> normalize -> canonical replace | bootstrap/parity harness | N/A | none | none | 当前无真实 E2E owner；code-level/parity gates |
 | Generated API client | no new operation/fixture contract | route params feed existing screen hooks | owner handlers | owner stores | owner-specific | 当前无 routing E2E owner；root `make test` |
 | Host fallback | known frontend paths return app shell | direct open/reload/preview | API routes unchanged | N/A | none | 当前无真实 E2E owner；host smoke separate from E2E |
 
@@ -71,11 +69,10 @@ Blocked payload categories:
 ## 6 Current Implementation Summary
 
 - `routeUrl.ts` owns route-to-URL serialize/parse, route param allowlist and canonical path table.
-- `bootstrapRoute.ts` preserves hash adapter input and feeds the same normalization path.
 - `routeStore.ts` owns initial route resolution, `pushState`, `replaceState`, `popstate` and URL equality checks.
 - `NavigationProvider` keeps screen-level `navigate(next)` stable while routing through Browser History.
 - Auth pendingAction serialization shares the safe-param allowlist with URL serialization.
-- `spaFallback.mjs`, Vite SPA config and responsive browser verification server tests separate known frontend paths from API/static/script paths.
+- `spaFallback.mjs`, Vite SPA config and focused host-fallback tests separate known frontend paths from API/static/script paths.
 
 ### 6.1 Phase 8 route-table evidence reconciliation
 
@@ -111,9 +108,8 @@ Blocked payload categories:
 - `reports` is protected and chrome-visible, accepts only `targetJobId`, survives direct/reload/history/auth restore, and never appears in TopBar.
 - `/workspace` without target is the list and `/workspace?targetJobId` is read-only detail; only `targetJobId` survives normalization. `/parse?targetJobId` is command/progress only and ready state replace-navigates to workspace detail.
 - Parse strips legacy `section=reports`; report/generating preserve only reportId and cannot use query state as trusted report context.
-- Hash adapter inputs continue to work for static preview and responsive browser verification harness.
 - Auth pendingAction restore returns to the original canonical route using safe params only.
-- Hostile URL / hash / history state input is scrubbed into canonical safe state.
+- Hostile URL / history state input is scrubbed into canonical safe state；fragments are ignored and removed during canonical replacement.
 - Host fallback returns `index.html` for known frontend paths and does not swallow API/static/script paths.
 
 ## 8 风险与应对
@@ -129,6 +125,7 @@ Blocked payload categories:
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.14 | UI Demo pruning reconcile：删除当前 hash-adapter/browser-harness 合同，统一为 canonical path/query 与 fragment rejection。 |
 | 2026-07-14 | 1.12 | Supersede workspace-zero-query with `/workspace?targetJobId` read-only detail and make `/parse?targetJobId` command-only with ready replace. |
 | 2026-07-14 | 1.11 | Use replace-only workspace recovery for invalid Reports deep links and prevent stale bootstrap canonicalization from recreating the bad URL. |
 | 2026-07-14 | 1.10 | Reopen in place for protected `/reports`, targetJobId-only deep links/auth restore, no TopBar entry, no Parse section compatibility, and reportId-only report/generating routes. |

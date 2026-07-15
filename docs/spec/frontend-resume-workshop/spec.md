@@ -92,7 +92,7 @@
 - 请求去重测试必须区分 hook/client method 调用次数与底层实际 transport 次数；StrictMode 双 effect 允许共享同一 in-flight Promise，但同一 request identity 的底层 transport 必须为 1。
 - reject / abort / settle 后 registry 必须清理；失败后的显式重试必须产生新的 transport，且 queued/processing 详情轮询不得被永久缓存或吞掉。
 - Route, auth, privacy and integration flows use focused scenario tests.
-- Visual parity follows frontend-shell responsive browser verification owner patterns.
+- Visual quality is verified by formal component, responsive and accessibility assertions; real-browser acceptance must use the running frontend/backend when applicable.
 - Formal Resume Workshop CSS must not retain breadcrumb, structured-preview, modal or action selectors without a current DOM or prototype consumer.
 - Header / INDEX drift uses `/sync-doc-index`.
 

@@ -47,7 +47,7 @@ Home 粘贴 JD
   - Footer actions 只保留「立即面试」，并从受保护 TargetJob 事实读取真实 `targetJobId`、`resumeId`、可选 `currentPracticePlanId` 和 `roundId` 进入 practice handoff；route 仍只携带 `targetJobId`。
   - 未登录启动通过 auth continuation 接续到 practice。
 - Parity 与验证：
-  - Home / Parse / Workspace detail 的前后端单测完成由根 `make test` 统一承接；Playwright responsive browser verification 独立执行。JD import/parse 当前没有真实 E2E owner。
+  - Home / Parse / Workspace detail 的前后端单测完成由根 `make test` 统一承接；正式前端 component、responsive 与 accessibility assertions 独立执行。JD import/parse 当前没有真实 E2E owner。
 
 ### 2.2 Out of Scope
 
@@ -105,7 +105,7 @@ Home 粘贴 JD
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| Home / Parse progress / Unified Workspace Detail UI | `frontend-home-job-picks-and-parse` | React 组件、route 业务内容、i18n、formal implementation contract、responsive browser verification；ready 详情只由 Workspace targetJobId route 复用 |
+| Home / Parse progress / Unified Workspace Detail UI | `frontend-home-job-picks-and-parse` | React 组件、route 业务内容、i18n、formal component/responsive/accessibility contract；ready 详情只由 Workspace targetJobId route 复用 |
 | App shell / auth / runtime | `frontend-shell` | TopBar、route normalization、auth continuation、generated client bootstrap |
 | TargetJobs API | `openapi-v1-contract` + `backend-targetjob` | `importTargetJob` / `listTargetJobs` / `getTargetJob` schema、fixtures、handler；`updateTargetJob` 仍属后端 TargetJobs 合同但不是 Parse preview 成功态 consumer |
 | Resume upload | `backend-upload` + `backend-resume` | Resume 文件上传与 file object persistence 继续保留；Home JD intake 不消费该能力 |

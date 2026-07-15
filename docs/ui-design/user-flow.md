@@ -167,8 +167,7 @@ Auth
 | 用户未登录执行写入动作 | 进入邮箱验证码登录，成功后接续 pendingAction |
 | Practice 请求等待 / 失败 / 刷新 | pending 锁输入并显示思考；只有 server retryable failure 在原 row 显示 retry；刷新通过 `getPracticeSession` 恢复原 `clientMessageId/replyStatus` |
 | `/reports` 缺失/非法/无权 targetJobId | 不展示其他规划或 stale rows，提供安全返回 Workspace；未登录时只用合法 targetJobId 接续鉴权 |
-| `#route=debrief` / `#route=debrief_full` | 归一到 `home` |
-| `#route=profile` | 归一到 `home` |
+| URL fragment 携带 `route` / 业务参数 | fragment 不参与 routing，按 canonical path/query 解析并在首次 replace 时移除 |
 | 范围外 `auth_reset` | 归一到 `auth_login` |
 
 ## 11 修订记录
