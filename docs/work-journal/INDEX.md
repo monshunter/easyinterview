@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-15](2026-07-15.md) | `feat(openapi): close report conversation replacement` | #feat #api #test #docs #bdd |
 | [2026-07-15](2026-07-15.md) | `refactor(openapi): refreeze report conversation baseline` | #refactor #api #test #docs |
 | [2026-07-15](2026-07-15.md) | `test(mock): close report conversation parity` | #test #api #docs |
 | [2026-07-15](2026-07-15.md) | `test(mock): close practice recovery parity` | #test #api #docs |
