@@ -144,6 +144,7 @@ REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = {
     "getTargetJob": ("targetJobs", "jdSample"),
     "getPracticeSession": ("targetJobs", "sessionTranscript"),
     "getFeedbackReport": ("report", "targetJobs"),
+    "getReportConversation": ("reportConversation",),
 }
 
 OP_TAGS = {
@@ -152,6 +153,7 @@ OP_TAGS = {
     "getTargetJob": "TargetJobs",
     "getPracticeSession": "PracticeSessions",
     "getFeedbackReport": "Reports",
+    "getReportConversation": "Reports",
 }
 
 
@@ -315,6 +317,45 @@ def map_get_practice_session(data: dict) -> OrderedDict:
     return _wrap_response(200, body)
 
 
+def map_get_report_conversation(data: dict) -> OrderedDict:
+    conversation = data["reportConversation"]
+    raw_context = conversation.get("context") or {}
+    context = OrderedDict([
+        ("sourcePlanId", uuidv7_for(
+            f"plan:prototype:{raw_context.get('sourcePlanId', 'plan-1')}"
+        )),
+        ("targetJobTitle", raw_context.get("targetJobTitle") or "Senior Engineer"),
+        ("targetJobCompany", _translate_company(raw_context.get("targetJobCompany"))),
+        ("resumeId", uuidv7_for(
+            f"resume:prototype:{raw_context.get('resumeId', 'resume-1')}"
+        )),
+        ("resumeDisplayName", raw_context.get("resumeDisplayName") or "Example Resume"),
+        ("roundId", raw_context.get("roundId") or "round-1-technical"),
+        ("roundSequence", int(raw_context.get("roundSequence") or 1)),
+        ("roundName", raw_context.get("roundName") or "Interview Round"),
+        ("roundType", raw_context.get("roundType") or "other"),
+        ("language", raw_context.get("language") or "zh-CN"),
+        ("hasNextRound", bool(raw_context.get("hasNextRound"))),
+    ])
+    messages = []
+    for index, item in enumerate(conversation.get("messages", [])):
+        messages.append(OrderedDict([
+            ("sequence", int(item.get("sequence") or index + 1)),
+            ("role", "assistant" if item.get("role") == "ai" else item.get("role")),
+            ("content", _sanitize_prototype_text(item.get("content"))),
+            ("createdAt", item.get("createdAt") or (EARLIER if index == 0 else NOW)),
+        ]))
+    body = OrderedDict([
+        ("reportId", uuidv7_for(
+            f"report:prototype:{conversation.get('reportId', 'report-1')}"
+        )),
+        ("reportStatus", conversation.get("reportStatus") or "ready"),
+        ("context", context),
+        ("messages", messages),
+    ])
+    return _wrap_response(200, body)
+
+
 def map_get_feedback_report(data: dict) -> OrderedDict:
     report = data["report"]
     target = data["targetJobs"][0]
@@ -394,6 +435,7 @@ MAPPERS: dict[str, Callable[[dict], OrderedDict]] = {
     "getTargetJob": map_get_target_job,
     "getPracticeSession": map_get_practice_session,
     "getFeedbackReport": map_get_feedback_report,
+    "getReportConversation": map_get_report_conversation,
 }
 
 

@@ -5,6 +5,7 @@ ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
 OUT="$ROOT/.test-output/e2e/p0-099-report-generating-live-ui"
 SETUP="$OUT/setup.env"
 MANIFEST="$OUT/manifest.json"
+NAVIGATION="$OUT/conversation-navigation.json"
 LIVE_CAPTURE="$OUT/live-capture.json"
 RESULT="$OUT/result.json"
 VALIDATOR="$ROOT/test/scenarios/e2e/p0-099-report-generating-live-ui/scripts/validate_evidence.py"
@@ -96,6 +97,7 @@ P0_099_DATABASE_URL="$LIVE_DATABASE_URL" P0_099_SESSION_COOKIE="$LIVE_SESSION_CO
   --output "$LIVE_CAPTURE" \
   --run-id "$RUN_ID" \
   --api-base-url "$LIVE_API_BASE_URL" \
+  --navigation "$NAVIGATION" \
   --bind-manifest
 LIVE_CAPTURE_STATUS="$?"
 set -e
@@ -138,8 +140,13 @@ case "$LIVE_CAPTURE_RESULT:$LIVE_CAPTURE_STATUS" in
   PASS:0)
     ;;
   MANUAL_REQUIRED:2)
-    echo "MANUAL_REQUIRED independent live HTTP capture unavailable reason=$LIVE_CAPTURE_REASON"
-    write_nonpass_result "MANUAL_REQUIRED" "awaiting independent authenticated live HTTP capture"
+    if [ "$LIVE_CAPTURE_REASON" = "conversation_navigation_missing" ]; then
+      echo "MANUAL_REQUIRED bounded report conversation navigation artifact is not present"
+      write_nonpass_result "MANUAL_REQUIRED" "awaiting bounded report conversation navigation browser evidence"
+    else
+      echo "MANUAL_REQUIRED independent live HTTP capture unavailable reason=$LIVE_CAPTURE_REASON"
+      write_nonpass_result "MANUAL_REQUIRED" "awaiting independent authenticated live HTTP capture"
+    fi
     exit 0
     ;;
   *)
@@ -150,6 +157,7 @@ esac
 if python3 "$VALIDATOR" --output-dir "$OUT" --run-id "$RUN_ID" --automated-only; then
   echo "P0_099_AUTOMATED_EVIDENCE_PASS"
   echo "P0_099_LIVE_CAPTURE_BOUND_PASS"
+  echo "P0_099_CONVERSATION_NAVIGATION_BOUND_PASS"
   EVIDENCE_RETAINABLE=1
   write_result "MANUAL_REQUIRED" "awaiting exact-six manual visual audit"
   echo "MANUAL_REQUIRED awaiting exact-six manual visual audit file=$MANUAL_AUDIT"

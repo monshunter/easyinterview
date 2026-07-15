@@ -1061,6 +1061,278 @@ class OpenAPI001OracleTests(unittest.TestCase):
         )
 
 
+class OpenAPI001V17ConversationTests(unittest.TestCase):
+    @staticmethod
+    def _baseline() -> dict:
+        baseline_text = od._git_show(
+            REPO_ROOT, "main", REPO_ROOT / "openapi/baseline/openapi-v1.0.0.yaml"
+        )
+        if baseline_text is None:
+            raise AssertionError("main baseline must remain available for the v1.7 audit")
+        return yaml.safe_load(baseline_text)
+
+    @staticmethod
+    def _current() -> dict:
+        return yaml.safe_load((REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8"))
+
+    def test_normalizer_captures_the_one_for_one_route_and_schema_replacement(self) -> None:
+        findings = od.normalize_openapi_001_v17_findings(
+            self._baseline(), self._current()
+        )
+        finding_keys = {
+            (
+                finding["severity"],
+                finding["path"],
+                finding["kind"],
+                finding["before"],
+                finding["after"],
+            )
+            for finding in findings
+        }
+
+        self.assertIn(
+            (
+                "breaking",
+                "/paths/~1practice~1sessions/get",
+                "operation_removed",
+                "listPracticeSessions",
+                "absent",
+            ),
+            finding_keys,
+        )
+        self.assertIn(
+            (
+                "additive",
+                "/paths/~1reports~1{reportId}~1conversation/get",
+                "operation_added",
+                "absent",
+                "getReportConversation",
+            ),
+            finding_keys,
+        )
+        self.assertIn(
+            (
+                "breaking",
+                "/components/schemas/PaginatedPracticeSession",
+                "schema_removed",
+                "present",
+                "absent",
+            ),
+            finding_keys,
+        )
+        self.assertIn(
+            (
+                "additive",
+                "/components/schemas/ReportConversation",
+                "schema_added_with_required_fields",
+                "absent",
+                "reportId,reportStatus,context,messages",
+            ),
+            finding_keys,
+        )
+        self.assertIn(
+            (
+                "additive",
+                "/components/schemas/ReportConversationMessage/properties/content",
+                "property_added",
+                "absent",
+                r"string(minLength=1,pattern=\S)",
+            ),
+            finding_keys,
+        )
+        self.assertFalse(
+            any(
+                finding["path"].startswith("/components/schemas/FeedbackReport")
+                for finding in findings
+            ),
+            findings,
+        )
+
+    def test_contract_rejects_legacy_list_and_internal_conversation_locators(self) -> None:
+        baseline = self._baseline()
+        current = self._current()
+        self.assertEqual([], od.validate_openapi_001_v17_contract(baseline, current))
+
+        legacy = copy.deepcopy(current)
+        legacy["paths"]["/practice/sessions"]["get"] = baseline["paths"][
+            "/practice/sessions"
+        ]["get"]
+        legacy_errors = od.validate_openapi_001_v17_contract(baseline, legacy)
+        self.assertTrue(any("public session list" in error for error in legacy_errors), legacy_errors)
+
+        locator = copy.deepcopy(current)
+        locator["components"]["schemas"]["ReportConversationMessage"]["properties"][
+            "sessionId"
+        ] = {"type": "string", "format": "uuid"}
+        locator_errors = od.validate_openapi_001_v17_contract(baseline, locator)
+        self.assertTrue(any("internal locator" in error for error in locator_errors), locator_errors)
+
+    def test_generated_oracle_and_cli_preserve_the_old_baseline_until_refreeze(self) -> None:
+        baseline = self._baseline()
+        current = self._current()
+        oracle = od.build_openapi_001_v17_oracle(baseline, current)
+        self.assertEqual("OPENAPI-001", oracle["decisionId"])
+        self.assertEqual(
+            [],
+            od.compare_finding_sets(
+                oracle["findings"],
+                od.normalize_openapi_001_v17_findings(baseline, current),
+            ),
+        )
+        self.assertEqual([], od.validate_exact_set_oracle(oracle, "OPENAPI-001"))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            baseline_path = repo / "openapi/baseline/openapi-v1.0.0.yaml"
+            current_path = repo / "openapi/openapi.yaml"
+            decision_dir = repo / "docs/spec/openapi-v1-contract/decisions"
+            decision_path = decision_dir / "OPENAPI-001-report-direct-semantics.md"
+            oracle_path = (
+                decision_dir
+                / "OPENAPI-001-report-conversation.expected-findings.json"
+            )
+            artifact_path = repo / "audit.json"
+            baseline_path.parent.mkdir(parents=True)
+            decision_dir.mkdir(parents=True)
+            baseline_text = yaml.safe_dump(baseline, sort_keys=False)
+            baseline_path.write_text(baseline_text, encoding="utf-8")
+            current_path.write_text(baseline_text, encoding="utf-8")
+            decision_path.write_text(
+                "# OPENAPI-001\n\n"
+                "> **ID**: OPENAPI-001\n"
+                "> **状态**: accepted\n"
+                "> **版本**: 1.7\n\n"
+                "## Report-owned conversation locator correction\n",
+                encoding="utf-8",
+            )
+            oracle_path.write_text(
+                json.dumps(oracle, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            authority_dir = decision_dir.parent
+            (authority_dir / "spec.md").write_text(
+                "| D-21 | OPENAPI-001 report conversation getReportConversation listPracticeSessions |\n",
+                encoding="utf-8",
+            )
+            (authority_dir / "history.md").write_text(
+                "| 2026-07-15 | 1.61 | OPENAPI-001 report conversation getReportConversation listPracticeSessions |\n",
+                encoding="utf-8",
+            )
+            env = os.environ.copy()
+            env.update(
+                {
+                    "GIT_AUTHOR_NAME": "test",
+                    "GIT_AUTHOR_EMAIL": "test@example.com",
+                    "GIT_COMMITTER_NAME": "test",
+                    "GIT_COMMITTER_EMAIL": "test@example.com",
+                }
+            )
+            subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-q", "-m", "old baseline"],
+                check=True,
+                env=env,
+            )
+            current_path.write_text(
+                yaml.safe_dump(current, sort_keys=False), encoding="utf-8"
+            )
+            generated = subprocess.run(
+                [
+                    sys.executable,
+                    str(HERE / "openapi_diff.py"),
+                    "--repo-root",
+                    str(repo),
+                    "--base-ref",
+                    "main",
+                    "--emit-openapi-001-v17-oracle",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(0, generated.returncode, generated.stderr or generated.stdout)
+            self.assertEqual(oracle, json.loads(generated.stdout))
+            oracle_path.write_text(generated.stdout, encoding="utf-8")
+
+            command = [
+                sys.executable,
+                str(HERE / "openapi_diff.py"),
+                "--repo-root",
+                str(repo),
+                "--decision-id",
+                "OPENAPI-001",
+                "--decision-record",
+                str(decision_path),
+                "--oracle",
+                str(oracle_path),
+                "--base-ref",
+                "main",
+                "--output",
+                str(artifact_path),
+            ]
+            passed = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(0, passed.returncode, passed.stderr or passed.stdout)
+            payload = json.loads(passed.stdout)
+            self.assertEqual([], payload["errors"])
+            self.assertEqual(payload, json.loads(artifact_path.read_text(encoding="utf-8")))
+
+            baseline_path.write_text(current_path.read_text(encoding="utf-8"), encoding="utf-8")
+            refrozen = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(1, refrozen.returncode, refrozen.stderr or refrozen.stdout)
+            self.assertTrue(
+                any(
+                    "worktree baseline differs" in error
+                    for error in json.loads(refrozen.stdout)["errors"]
+                ),
+                refrozen.stdout,
+            )
+
+    def test_repo_preserved_audit_replays_current_v17_contract(self) -> None:
+        audit = json.loads(
+            (
+                REPO_ROOT
+                / "openapi/baseline/audits/OPENAPI-001-report-conversation.json"
+            ).read_text(encoding="utf-8")
+        )
+        oracle = json.loads(
+            (
+                REPO_ROOT
+                / "docs/spec/openapi-v1-contract/decisions/OPENAPI-001-report-conversation.expected-findings.json"
+            ).read_text(encoding="utf-8")
+        )
+        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
+        self.assertEqual("git", source_kind)
+        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
+        self.assertIsNotNone(baseline_text)
+        self.assertEqual(audit["baselineSha256"], od._sha256_text(baseline_text))
+        current_text = (REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8")
+        baseline = yaml.safe_load(baseline_text)
+        current = yaml.safe_load(current_text)
+
+        self.assertEqual("OPENAPI-001", audit["decisionId"])
+        self.assertEqual("exact-set", audit["mode"])
+        self.assertEqual([], audit["errors"])
+        self.assertEqual(audit["currentSha256"], od._sha256_text(current_text))
+        self.assertEqual(audit["expectedFindingCount"], audit["findingCount"])
+        self.assertEqual(
+            [],
+            od.compare_finding_sets(
+                oracle["findings"],
+                od.normalize_openapi_001_v17_findings(baseline, current),
+            ),
+        )
+        self.assertEqual(
+            [], od.compare_finding_sets(audit["findings"], oracle["findings"])
+        )
+        self.assertEqual([], od.validate_openapi_001_v17_contract(baseline, current))
+        self.assertEqual(
+            [],
+            od.validate_openapi_001_v17_invariants(
+                current, oracle["invariants"]
+            ),
+        )
+
+
 class OpenAPI002OracleTests(unittest.TestCase):
     @staticmethod
     def _oracle() -> dict:
@@ -1868,12 +2140,19 @@ class OpenAPI006OracleTests(unittest.TestCase):
         payload = self._preserved_audit()
         expected = json.loads(oracle_path.read_text(encoding="utf-8"))
         baseline = self._old_baseline()
-        current_path = REPO_ROOT / payload["currentSource"]
-        current_text = current_path.read_text(encoding="utf-8")
+        next_audit = json.loads(
+            (
+                REPO_ROOT
+                / "openapi/baseline/audits/OPENAPI-001-report-conversation.json"
+            ).read_text(encoding="utf-8")
+        )
+        source_kind, source_ref, source_path = next_audit["baselineSource"].split(
+            ":", 2
+        )
+        self.assertEqual("git", source_kind)
+        current_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
+        self.assertIsNotNone(current_text)
         current = yaml.safe_load(current_text)
-        frozen_text = (
-            REPO_ROOT / "openapi/baseline/openapi-v1.0.0.yaml"
-        ).read_text(encoding="utf-8")
 
         self.assertEqual("OPENAPI-006", payload["decisionId"])
         self.assertEqual("exact-set", payload["mode"])
@@ -1881,7 +2160,7 @@ class OpenAPI006OracleTests(unittest.TestCase):
         self.assertEqual(9, payload["findingCount"])
         self.assertEqual(payload["expectedFindingCount"], payload["findingCount"])
         self.assertEqual(payload["currentSha256"], od._sha256_text(current_text))
-        self.assertEqual(current_text, frozen_text)
+        self.assertEqual(payload["currentSha256"], next_audit["baselineSha256"])
         self.assertEqual(
             [],
             od.compare_finding_sets(

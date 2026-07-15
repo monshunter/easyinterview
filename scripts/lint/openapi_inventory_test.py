@@ -22,15 +22,121 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertNotIn(("patch", "/me"), inventory.IK_REQUIRED)
         self.assertNotIn(("patch", "/me"), inventory.IK_FORBIDDEN)
 
-    def test_list_practice_sessions_operation_is_registered_without_idempotency_key(self) -> None:
-        # GET /practice/sessions surfaces target-job session history.
-        # As a read-only operation it must not require Idempotency-Key.
+    def test_report_conversation_replaces_the_public_practice_session_list(self) -> None:
+        self.assertEqual(37, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(
+            ("Reports", "get", "/reports/{reportId}/conversation", "getReportConversation"),
+            inventory.EXPECTED_OPERATIONS,
+        )
+        self.assertNotIn(
             ("PracticeSessions", "get", "/practice/sessions", "listPracticeSessions"),
             inventory.EXPECTED_OPERATIONS,
         )
         self.assertNotIn(("get", "/practice/sessions"), inventory.IK_REQUIRED)
         self.assertNotIn(("get", "/practice/sessions"), inventory.IK_FORBIDDEN)
+
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        self.assertNotIn("get", data["paths"]["/practice/sessions"])
+        operation = data["paths"]["/reports/{reportId}/conversation"]["get"]
+        self.assertEqual("getReportConversation", operation["operationId"])
+        self.assertEqual(
+            ["reportId"],
+            [parameter["name"] for parameter in operation["parameters"] if "name" in parameter],
+        )
+        self.assertEqual(
+            "#/components/schemas/ReportConversation",
+            operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"],
+        )
+
+        schemas = data["components"]["schemas"]
+        self.assertNotIn("PaginatedPracticeSession", schemas)
+        conversation = schemas["ReportConversation"]
+        self.assertEqual("object", conversation["type"])
+        self.assertIs(False, conversation["additionalProperties"])
+        self.assertEqual(
+            ["reportId", "reportStatus", "context", "messages"],
+            conversation["required"],
+        )
+        self.assertEqual(
+            ["reportId", "reportStatus", "context", "messages"],
+            list(conversation["properties"]),
+        )
+        self.assertEqual(
+            "#/components/schemas/ReportContextSnapshot",
+            conversation["properties"]["context"]["$ref"],
+        )
+        self.assertEqual(
+            "#/components/schemas/ReportConversationMessage",
+            conversation["properties"]["messages"]["items"]["$ref"],
+        )
+
+        message = schemas["ReportConversationMessage"]
+        self.assertEqual("object", message["type"])
+        self.assertIs(False, message["additionalProperties"])
+        self.assertEqual(["sequence", "role", "content", "createdAt"], message["required"])
+        self.assertEqual(["sequence", "role", "content", "createdAt"], list(message["properties"]))
+        self.assertEqual(["user", "assistant"], message["properties"]["role"]["enum"])
+        self.assertEqual(
+            {"type": "string", "minLength": 1, "pattern": r"\S"},
+            message["properties"]["content"],
+        )
+        for forbidden in (
+            "sessionId",
+            "id",
+            "clientMessageId",
+            "replyStatus",
+            "replyGeneration",
+            "anchor",
+        ):
+            self.assertNotIn(forbidden, message["properties"])
+
+        errors: list[str] = []
+        inventory.validate_report_conversation_contract(data, errors)
+        self.assertEqual([], errors)
+
+        mutated = copy.deepcopy(data)
+        mutated["paths"]["/practice/sessions"]["get"] = {
+            "operationId": "listPracticeSessions"
+        }
+        mutated["components"]["schemas"]["ReportConversationMessage"]["properties"][
+            "sessionId"
+        ] = {"type": "string", "format": "uuid"}
+        errors = []
+        inventory.validate_report_conversation_contract(mutated, errors)
+        self.assertTrue(any("public GET /practice/sessions" in error for error in errors), errors)
+        self.assertTrue(any("sessionId" in error for error in errors), errors)
+
+        generated = yaml.safe_load(
+            Path("backend/internal/api/generated/openapi.yaml").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("get", generated["paths"]["/practice/sessions"])
+        self.assertEqual(
+            "getReportConversation",
+            generated["paths"]["/reports/{reportId}/conversation"]["get"]["operationId"],
+        )
+
+        ts_types = Path("frontend/src/api/generated/types.ts").read_text(encoding="utf-8")
+        ts_client = Path("frontend/src/api/generated/client.ts").read_text(encoding="utf-8")
+        go_types = Path("backend/internal/api/generated/types.gen.go").read_text(encoding="utf-8")
+        go_server = Path("backend/internal/api/generated/server.gen.go").read_text(encoding="utf-8")
+        self.assertIn("export interface ReportConversation", ts_types)
+        self.assertIn("export interface ReportConversationMessage", ts_types)
+        self.assertNotIn("export type ReportConversation = any", ts_types)
+        self.assertNotIn("export type ReportConversationMessage = any", ts_types)
+        self.assertNotIn("PaginatedPracticeSession", ts_types)
+        self.assertNotIn("listPracticeSessions", ts_client)
+        self.assertIn(
+            "async getReportConversation(reportId: string, opts?: RequestOptions): Promise<Types.ReportConversation>",
+            ts_client,
+        )
+        self.assertIn("type ReportConversation struct", go_types)
+        self.assertIn("type ReportConversationMessage struct", go_types)
+        self.assertNotIn("PaginatedPracticeSession", go_types)
+        self.assertNotIn("ListPracticeSessions", go_server)
+        self.assertIn(
+            "GetReportConversation(w http.ResponseWriter, r *http.Request, reportId string)",
+            go_server,
+        )
 
     def test_targetjob_report_overview_is_closed_and_keeps_endpoint_inventory(self) -> None:
         decision = Path(

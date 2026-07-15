@@ -196,6 +196,22 @@ REPORT_OVERVIEW_SCENARIO_ORDER = (
     "missing-frozen-context",
 )
 
+REPORT_CONVERSATION_SCENARIO_ORDER = (
+    "default",
+    "prototype-baseline",
+    "queued",
+    "generating",
+    "failed",
+    "empty-messages",
+    "markdown-gfm",
+    "cross-user-not-found",
+    "report-not-found",
+    "invalid-report-identity",
+    "invalid-message-role",
+    "invalid-message-sequence",
+    "invalid-report-session-binding",
+)
+
 # *WithJob async operations and the JobType they must emit.
 WITH_JOB_OPERATIONS = {
     "startAuthEmailChallenge": None,  # 202 but no Job envelope (auth challenge)
@@ -772,6 +788,76 @@ class FixtureContentTest(unittest.TestCase):
         for name, mutation in mutations:
             errors: list[str] = []
             validator.check_target_job_reports_overview_semantics(mutation, errors)
+            with self.subTest(mutation=name):
+                self.assertTrue(errors)
+
+    def test_report_conversation_fixture_is_closed_and_report_owned(self) -> None:
+        validator = _load_validator()
+        scenarios = _load_fixture("getReportConversation", "Reports")["scenarios"]
+        errors: list[str] = []
+        validator.check_report_conversation_semantics(scenarios, errors)
+
+        self.assertEqual(REPORT_CONVERSATION_SCENARIO_ORDER, tuple(scenarios))
+        self.assertEqual([], errors)
+        success_names = {
+            "default",
+            "prototype-baseline",
+            "queued",
+            "generating",
+            "failed",
+            "empty-messages",
+            "markdown-gfm",
+        }
+        for scenario_name in success_names:
+            with self.subTest(scenario=scenario_name):
+                body = scenarios[scenario_name]["response"]["body"]
+                self.assertEqual(
+                    {"reportId", "reportStatus", "context", "messages"}, set(body)
+                )
+                previous_sequence = 0
+                for message in body["messages"]:
+                    self.assertEqual(
+                        {"sequence", "role", "content", "createdAt"}, set(message)
+                    )
+                    self.assertGreater(message["sequence"], previous_sequence)
+                    previous_sequence = message["sequence"]
+
+    def test_report_conversation_requires_a_prototype_baseline(self) -> None:
+        validator = _load_validator()
+        scenarios = _load_fixture("getReportConversation", "Reports")["scenarios"]
+
+        self.assertIn(
+            "prototype-baseline",
+            validator.REQUIRED_NAMED_SCENARIOS["getReportConversation"],
+        )
+        self.assertIn("prototype-baseline", scenarios)
+
+    def test_report_conversation_semantics_reject_internal_or_partial_projection(self) -> None:
+        validator = _load_validator()
+        scenarios = _load_fixture("getReportConversation", "Reports")["scenarios"]
+
+        mutations: list[tuple[str, dict]] = []
+        internal_locator = copy.deepcopy(scenarios)
+        internal_locator["default"]["response"]["body"]["messages"][0]["sessionId"] = (
+            "01918fa0-0050-7000-8000-000000000050"
+        )
+        mutations.append(("internal-locator", internal_locator))
+
+        non_increasing = copy.deepcopy(scenarios)
+        non_increasing["default"]["response"]["body"]["messages"][1]["sequence"] = 1
+        mutations.append(("non-increasing-sequence", non_increasing))
+
+        partial = copy.deepcopy(scenarios)
+        del partial["default"]["response"]["body"]["context"]
+        mutations.append(("partial-body", partial))
+
+        blank_content = copy.deepcopy(scenarios)
+        blank_content["default"]["response"]["body"]["messages"][0]["content"] = " \n\t"
+        mutations.append(("blank-message-content", blank_content))
+
+        for name, mutation in mutations:
+            errors: list[str] = []
+            validator.check_report_conversation_semantics(mutation, errors)
             with self.subTest(mutation=name):
                 self.assertTrue(errors)
 

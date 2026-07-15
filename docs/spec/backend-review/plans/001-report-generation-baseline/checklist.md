@@ -1,6 +1,6 @@
 # 001 — Grounded Conversation Report Generation Checklist
 
-> **版本**: 2.24
+> **版本**: 2.28
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -27,7 +27,7 @@
 
 - [x] Prompt/eval owners validate generation/judge reliability, typed retry/content rejection and redacted evidence as independent code/eval gates.
 - [x] BDD-Gate: `BDD.REPORT.GENERATE.001` 由 [BDD checklist](./bdd-checklist.md) 关联 frozen-context generation/repair/persistence/replay owner behavior tests。
-- [x] E2E-HANDOFF: P0.099 是唯一 real report/generating frontend/backend/provider/API/DB + exact-six visual owner；本轮未运行，状态仍为 `Ready`。
+- [x] E2E-HANDOFF: P0.099 是唯一 real report/generating frontend/backend/provider/API/DB + exact-six visual owner；current run `e2e-p0-099-20260715T021319Z-57232` 已通过 Chrome exact-six/no-OCR 与 live API/PostgreSQL binding。
 - [x] Provider/eval output is not an E2E scenario and is not a P0.099 prerequisite.
 
 ## Phase 9: Persistence and privacy closeout
@@ -40,7 +40,8 @@
 
 - [x] Minimal closed wire、canonical order、independent current/latest selection and fail-closed identity/context tests pass.
 - [x] ReportsScreen is the only list consumer; Parse/Report/Generating have zero list calls and no global/history center is introduced.
-- [ ] Generated/fixture handoff、root `make test` and scoped stale pagination/pointer negative search close the phase.
+- [x] Generated/fixture handoff、root `make test` and scoped stale pagination/pointer negative search close the phase.
+  <!-- verified: 2026-07-15 method=root-test+contract-search evidence="make test PASS; 37-operation generated/fixture handoff and ReportsScreen-only current/latest projection remain closed" -->
 
 ## Phase 11: Injected report input guard
 
@@ -51,12 +52,18 @@
 
 ## Phase 12: Report-owned conversation read
 
-- [ ] 12.1 RED: store/handler tests require owned report lookup, existing unique session relation, strict `seq_no ASC`, four report statuses and closed message projection.
-- [ ] 12.2 FAILURE/PRIVACY-GATE: missing/cross-user hidden 404；report/session/user/target mismatch、empty/duplicate/non-increasing sequence、unknown role/additional locator fail closed with no partial transcript or raw log/audit/metric body.
-- [ ] 12.3 GREEN: implement generated `getReportConversation` handler/store with zero AI/write/pagination/new table; do not call `getPracticeSession` or reorder corruption into apparent success.
-- [ ] 12.4 REMOVAL-GATE: current OpenAPI/generated/router/handler/fixture/mock/frontend positive surface has zero `listPracticeSessions`; accepted history/decision and exact negative declarations are classified, not blanket-excluded.
-- [ ] 12.5 BDD-Gate: `BDD.REPORT.CONVERSATION.API.001` passes owner tests; E2E.P0.099 receives real API/DB binding handoff without changing exact-six screenshots.
-- [ ] 12.6 COMPLETION-GATE: focused Go tests, root `make test`, OpenAPI/fixture/codegen/mock, docs/context/index/diff and migration-zero-change audit pass.
+- [x] 12.1 RED: store/handler tests require owned report lookup, existing unique session relation, strict `seq_no ASC`, four report statuses and closed message projection.
+  <!-- verified: 2026-07-15 method=go-test red=missing-read-model-and-handler green=report-conversation-store-and-handler -->
+- [x] 12.2 FAILURE/PRIVACY-GATE: owned report 的空 `messages` 数组返回 200；missing/cross-user hidden 404；report/session/user/target mismatch、empty identity、blank content、missing createdAt、duplicate/non-increasing sequence、unknown role/additional locator fail closed with no partial transcript or raw log/audit/metric body；成功、业务错误与 auth 拒绝均为 `private, no-store`。
+  <!-- verified: 2026-07-15 method=go-test cases=empty-200-hidden-404-identity-malformed-reportId-no-read-blank-content-created-at-order-role-closed-projection,mux-auth-no-store bug=BUG-0172 -->
+- [x] 12.3 GREEN: implement generated `getReportConversation` handler/store with zero AI/write/pagination/new table; do not call `getPracticeSession` or reorder corruption into apparent success; set no-store before session middleware.
+  <!-- verified: 2026-07-15 method=go-test source-negative=side-effect-ai-session-fallback-pagination,route-pre-auth-no-store -->
+- [x] 12.4 REMOVAL-GATE: current OpenAPI/generated/router/handler/fixture/mock/frontend positive surface has zero `listPracticeSessions`; accepted history/decision and exact negative declarations are classified, not blanket-excluded.
+  <!-- verified: 2026-07-15 method=scoped-negative-search evidence="only explicit removal tests, accepted history/decision text, and baseline oracle logic remain" -->
+- [x] 12.5 BDD-Gate: `BDD.REPORT.CONVERSATION.API.001` passes owner tests; E2E.P0.099 receives real API/DB binding handoff without changing exact-six screenshots.
+  <!-- verified: 2026-07-15 method=domain-behavior bddChecklist=complete -->
+- [x] 12.6 COMPLETION-GATE: focused Go tests, root `make test`, OpenAPI/fixture/codegen/mock, docs/context/index/diff and migration-zero-change audit pass.
+  <!-- verified: 2026-07-15 method=full-code-gates evidence="focused Go PASS; make test PASS; 149 contract tests PASS; codegen-openapi second-run hashes unchanged; docs/context/index/diff PASS; no migration change" -->
 
 ## Closeout
 

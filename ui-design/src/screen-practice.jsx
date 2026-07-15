@@ -347,6 +347,16 @@ const practiceMarkdownHref = (rawHref) => {
   return !scheme || PRACTICE_MARKDOWN_SAFE_SCHEMES.has(scheme) ? href : "";
 };
 
+const renderPracticeStrong = (text, keyPrefix) =>
+  String(text || "")
+    .split(/(\*\*[^*\n]+\*\*)/g)
+    .filter(Boolean)
+    .map((part, index) => {
+      const key = `${keyPrefix}-strong-${index}`;
+      const strong = part.match(/^\*\*([^*\n]+)\*\*$/);
+      return strong ? <strong key={key}>{strong[1]}</strong> : part;
+    });
+
 const renderPracticeInlineMarkdown = (text, keyPrefix) =>
   String(text || "")
     .split(/(`[^`\n]+`|!?\[[^\]\n]+\]\([^)\n]+\))/g)
@@ -360,11 +370,11 @@ const renderPracticeInlineMarkdown = (text, keyPrefix) =>
       if (link) {
         if (link[1] === "!") return null;
         const href = practiceMarkdownHref(link[3]);
-        if (!href) return <span key={key}>{link[2]}</span>;
+        if (!href) return <span key={key}>{renderPracticeStrong(link[2], key)}</span>;
         const external = /^https?:\/\//i.test(href);
-        return <a key={key} href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>{link[2]}</a>;
+        return <a key={key} href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>{renderPracticeStrong(link[2], key)}</a>;
       }
-      return token;
+      return renderPracticeStrong(token, key);
     });
 
 const practiceMarkdownCells = (line) =>

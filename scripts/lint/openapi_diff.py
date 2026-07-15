@@ -1094,6 +1094,385 @@ def normalize_openapi_001_findings(
     return findings
 
 
+def _openapi_001_v17_property_signature(schema: Any) -> str:
+    """Return a compact, stable signature for the new closed read projection."""
+    if not isinstance(schema, dict):
+        return "unknown"
+    ref = schema.get("$ref")
+    if isinstance(ref, str):
+        return ref.rsplit("/", 1)[-1]
+    enum = schema.get("enum")
+    if isinstance(enum, list):
+        return f"enum({','.join(str(value) for value in enum)})"
+    schema_type = schema.get("type")
+    if schema_type == "array":
+        return f"array<{_openapi_001_v17_property_signature(schema.get('items') or {})}>"
+    fragments: List[str] = []
+    if schema.get("format"):
+        fragments.append(f"format={schema['format']}")
+    for key in ("minimum", "minLength", "maxLength", "pattern"):
+        if key in schema:
+            fragments.append(f"{key}={schema[key]}")
+    return f"{schema_type}({','.join(fragments)})" if fragments else str(schema_type or "unknown")
+
+
+def normalize_openapi_001_v17_findings(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """Normalize only OPENAPI-001 v1.7's session-list replacement delta.
+
+    Earlier OPENAPI-001 report semantics are already in the merge-base
+    baseline. The v1.7 correction must therefore record only the one-for-one
+    operation swap and its newly introduced closed projection schemas.
+    """
+    # Do not reuse normalize_openapi_001_findings here. That historical
+    # normalizer intentionally projects ready-state constraints from a
+    # FeedbackReport conditional branch even when the baseline and current
+    # documents are identical. v1.7 owns only the session-list replacement,
+    # so inheriting those historical projections would silently authorize
+    # unrelated report-semantic drift.
+    findings: List[Dict[str, Any]] = []
+    baseline_paths = baseline.get("paths") or {}
+    current_paths = current.get("paths") or {}
+    baseline_list = ((baseline_paths.get("/practice/sessions") or {}).get("get")) or {}
+    current_list = ((current_paths.get("/practice/sessions") or {}).get("get")) or {}
+    if baseline_list and not current_list:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer("paths", "/practice/sessions", "get"),
+                "operation_removed",
+                str(baseline_list.get("operationId") or "present"),
+                "absent",
+            )
+        )
+
+    conversation_path = "/reports/{reportId}/conversation"
+    baseline_conversation = ((baseline_paths.get(conversation_path) or {}).get("get")) or {}
+    current_conversation = ((current_paths.get(conversation_path) or {}).get("get")) or {}
+    if not baseline_conversation and current_conversation:
+        findings.append(
+            _normalized_finding(
+                "additive",
+                _json_pointer("paths", conversation_path, "get"),
+                "operation_added",
+                "absent",
+                str(current_conversation.get("operationId") or "present"),
+            )
+        )
+
+    baseline_schemas = ((baseline.get("components") or {}).get("schemas") or {})
+    current_schemas = ((current.get("components") or {}).get("schemas") or {})
+    if "PaginatedPracticeSession" in baseline_schemas and "PaginatedPracticeSession" not in current_schemas:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer("components", "schemas", "PaginatedPracticeSession"),
+                "schema_removed",
+                "present",
+                "absent",
+            )
+        )
+    for schema_name in ("ReportConversation", "ReportConversationMessage"):
+        if schema_name in baseline_schemas:
+            continue
+        schema = current_schemas.get(schema_name)
+        if not isinstance(schema, dict):
+            continue
+        required = list(schema.get("required") or [])
+        findings.append(
+            _normalized_finding(
+                "additive",
+                _json_pointer("components", "schemas", schema_name),
+                "schema_added_with_required_fields" if required else "schema_added",
+                "absent",
+                ",".join(required) if required else "present",
+            )
+        )
+        if schema.get("additionalProperties") is False:
+            findings.append(
+                _normalized_finding(
+                    "additive",
+                    _json_pointer("components", "schemas", schema_name, "additionalProperties"),
+                    "closed_object",
+                    "absent",
+                    False,
+                )
+            )
+        for property_name, property_schema in (schema.get("properties") or {}).items():
+            findings.append(
+                _normalized_finding(
+                    "additive",
+                    _json_pointer(
+                        "components", "schemas", schema_name, "properties", property_name
+                    ),
+                    "property_added",
+                    "absent",
+                    _openapi_001_v17_property_signature(property_schema),
+                )
+            )
+    return findings
+
+
+def _openapi_001_v17_response_schema(operation: Dict[str, Any], status: str) -> Any:
+    return (
+        (((((operation.get("responses") or {}).get(status) or {}).get("content") or {})
+          .get("application/json") or {}).get("schema") or {})
+    ).get("$ref")
+
+
+def validate_openapi_001_v17_contract(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[str]:
+    """Validate the closed, report-owned read contract and unchanged live APIs."""
+    errors: List[str] = []
+    baseline_paths = baseline.get("paths") or {}
+    paths = current.get("paths") or {}
+    baseline_sessions = baseline_paths.get("/practice/sessions") or {}
+    sessions = paths.get("/practice/sessions") or {}
+    if ((baseline_sessions.get("get") or {}).get("operationId")) != "listPracticeSessions":
+        errors.append("merge-base must retain the legacy public session list")
+    if "get" in sessions:
+        errors.append("public session list GET /practice/sessions must be removed")
+    if sessions.get("post") != baseline_sessions.get("post"):
+        errors.append("startPracticeSession must remain byte-equivalent to the merge-base")
+    session_detail_path = "/practice/sessions/{sessionId}"
+    if (paths.get(session_detail_path) or {}).get("get") != (
+        baseline_paths.get(session_detail_path) or {}
+    ).get("get"):
+        errors.append("getPracticeSession must remain byte-equivalent to the merge-base")
+
+    operation = ((paths.get("/reports/{reportId}/conversation") or {}).get("get")) or {}
+    if operation.get("operationId") != "getReportConversation":
+        errors.append("getReportConversation operationId must be exact")
+    if operation.get("tags") != ["Reports"]:
+        errors.append("getReportConversation must be owned by Reports")
+    if "requestBody" in operation:
+        errors.append("getReportConversation must be read-only without requestBody")
+    named_parameters = [
+        parameter.get("name")
+        for parameter in operation.get("parameters") or []
+        if isinstance(parameter, dict) and "name" in parameter
+    ]
+    if named_parameters != ["reportId"]:
+        errors.append("getReportConversation must accept only reportId as a named parameter")
+    shared_refs = [
+        parameter.get("$ref")
+        for parameter in operation.get("parameters") or []
+        if isinstance(parameter, dict) and "$ref" in parameter
+    ]
+    if shared_refs != [
+        "#/components/parameters/XRequestID",
+        "#/components/parameters/Traceparent",
+        "#/components/parameters/AcceptLanguage",
+        "#/components/parameters/XClientVersion",
+    ]:
+        errors.append("getReportConversation shared parameters must remain the protected read set")
+    if _openapi_001_v17_response_schema(operation, "200") != "#/components/schemas/ReportConversation":
+        errors.append("getReportConversation 200 must return ReportConversation")
+    if _openapi_001_v17_response_schema(operation, "404") != "#/components/schemas/ApiErrorResponse":
+        errors.append("getReportConversation 404 must use ApiErrorResponse")
+    default_response = (operation.get("responses") or {}).get("default") or {}
+    if default_response.get("$ref") != "#/components/responses/ApiErrorResponse":
+        errors.append("getReportConversation default must reference ApiErrorResponse")
+
+    current_operation_count = _operation_count(current)
+    baseline_operation_count = _operation_count(baseline)
+    if current_operation_count != 37 or baseline_operation_count != 37:
+        errors.append(
+            "report conversation correction must preserve 37 operations in both merge-base and current"
+        )
+    baseline_tags = [tag.get("name") for tag in baseline.get("tags") or []]
+    current_tags = [tag.get("name") for tag in current.get("tags") or []]
+    if baseline_tags != current_tags or len(current_tags) != 10 or len(set(current_tags)) != 10:
+        errors.append("report conversation correction must preserve the exact 10-tag inventory")
+
+    schemas = ((current.get("components") or {}).get("schemas") or {})
+    if "PaginatedPracticeSession" in schemas:
+        errors.append("PaginatedPracticeSession must be removed with the public session list")
+    expected_shapes = {
+        "ReportConversation": {
+            "required": ["reportId", "reportStatus", "context", "messages"],
+            "properties": {
+                "reportId": {"type": "string", "format": "uuid"},
+                "reportStatus": {"$ref": "#/components/schemas/ReportStatus"},
+                "context": {"$ref": "#/components/schemas/ReportContextSnapshot"},
+                "messages": {
+                    "type": "array",
+                    "items": {"$ref": "#/components/schemas/ReportConversationMessage"},
+                },
+            },
+        },
+        "ReportConversationMessage": {
+            "required": ["sequence", "role", "content", "createdAt"],
+            "properties": {
+                "sequence": {"type": "integer", "format": "int32", "minimum": 1},
+                "role": {"type": "string", "enum": ["user", "assistant"]},
+                "content": {"type": "string", "minLength": 1, "pattern": r"\S"},
+                "createdAt": {"type": "string", "format": "date-time"},
+            },
+        },
+    }
+    for schema_name, expected in expected_shapes.items():
+        schema = schemas.get(schema_name) or {}
+        if schema.get("type") != "object" or schema.get("additionalProperties") is not False:
+            errors.append(f"{schema_name} must be a closed object")
+        if schema.get("required") != expected["required"]:
+            errors.append(f"{schema_name} required fields must be exact")
+        if schema.get("properties") != expected["properties"]:
+            errors.append(f"{schema_name} properties must be exact")
+    message_properties = ((schemas.get("ReportConversationMessage") or {}).get("properties") or {})
+    for locator in (
+        "sessionId",
+        "id",
+        "clientMessageId",
+        "replyStatus",
+        "replyGeneration",
+        "anchor",
+    ):
+        if locator in message_properties:
+            errors.append(f"ReportConversationMessage internal locator {locator!r} is forbidden")
+    return errors
+
+
+OPENAPI_001_V17_AUTHORITY = {
+    "decision": "OPENAPI-001",
+    "decisionVersion": "1.7",
+    "specDecision": "D-21",
+    "historyVersion": "1.61",
+    "productDecision": "report-owned-conversation",
+}
+
+OPENAPI_001_V17_INVARIANTS = {
+    "inventory": {"operations": 37, "tags": 10},
+    "startPracticeSession": {
+        "path": "/api/v1/practice/sessions",
+        "method": "POST",
+        "operationId": "startPracticeSession",
+        "successStatus": 201,
+        "response": "PracticeSession",
+    },
+    "getPracticeSession": {
+        "path": "/api/v1/practice/sessions/{sessionId}",
+        "method": "GET",
+        "operationId": "getPracticeSession",
+        "successStatus": 200,
+        "response": "PracticeSession",
+    },
+    "getReportConversation": {
+        "path": "/api/v1/reports/{reportId}/conversation",
+        "method": "GET",
+        "operationId": "getReportConversation",
+        "successStatus": 200,
+        "response": "ReportConversation",
+    },
+    "publicList": "forbidden",
+}
+
+
+def build_openapi_001_v17_oracle(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Build the deterministic, merge-base-only v1.7 exact-set oracle."""
+    return OrderedDict(
+        schemaVersion=1,
+        decisionId="OPENAPI-001",
+        baseline="openapi/baseline/openapi-v1.0.0.yaml@merge-base(main)",
+        proposed="openapi/openapi.yaml@working-tree",
+        comparison=OrderedDict(
+            mode="exact-set",
+            keyFields=list(OPENAPI_001_FINDING_KEYS),
+            orderSignificant=False,
+            missingFinding="fail",
+            unexpectedFinding="fail",
+        ),
+        authority=copy.deepcopy(OPENAPI_001_V17_AUTHORITY),
+        invariants=copy.deepcopy(OPENAPI_001_V17_INVARIANTS),
+        findings=sorted(normalize_openapi_001_v17_findings(baseline, current), key=_finding_key),
+    )
+
+
+def validate_openapi_001_v17_authority(
+    repo_root: Path, oracle: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    if oracle.get("authority") != OPENAPI_001_V17_AUTHORITY:
+        errors.append(
+            "OPENAPI-001 v1.7 authority must bind D-21, history 1.61 and report-owned conversation"
+        )
+
+    contract_dir = repo_root / "docs" / "spec" / "openapi-v1-contract"
+    spec_path = contract_dir / "spec.md"
+    history_path = contract_dir / "history.md"
+    decision_path = contract_dir / "decisions" / "OPENAPI-001-report-direct-semantics.md"
+    spec_text = spec_path.read_text(encoding="utf-8") if spec_path.is_file() else ""
+    history_text = history_path.read_text(encoding="utf-8") if history_path.is_file() else ""
+    decision_text = decision_path.read_text(encoding="utf-8") if decision_path.is_file() else ""
+    spec_rows = [line for line in spec_text.splitlines() if re.search(r"\|\s*D-21\s*\|", line)]
+    if not any(
+        "getReportConversation" in line and "listPracticeSessions" in line
+        for line in spec_rows
+    ):
+        errors.append("OPENAPI-001 v1.7 requires current spec D-21 authority")
+    history_rows = [
+        line for line in history_text.splitlines() if re.search(r"\|\s*1\.61\s*\|", line)
+    ]
+    if not any(
+        "getReportConversation" in line and "listPracticeSessions" in line
+        for line in history_rows
+    ):
+        errors.append("OPENAPI-001 v1.7 requires history 1.61 authority")
+    if "Report-owned conversation locator correction" not in decision_text:
+        errors.append("OPENAPI-001 decision record must preserve report-owned conversation authority")
+    return errors
+
+
+def validate_openapi_001_v17_invariants(
+    current: Dict[str, Any], invariants: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    if invariants != OPENAPI_001_V17_INVARIANTS:
+        errors.append("OPENAPI-001 v1.7 oracle invariants must remain exact")
+        return errors
+    inventory = invariants["inventory"]
+    if _operation_count(current) != inventory["operations"]:
+        errors.append(
+            f"OPENAPI-001 v1.7 operations must equal {inventory['operations']}"
+        )
+    tag_names = [
+        str(tag.get("name"))
+        for tag in current.get("tags") or []
+        if isinstance(tag, dict) and tag.get("name")
+    ]
+    if len(tag_names) != inventory["tags"] or len(set(tag_names)) != inventory["tags"]:
+        errors.append(f"OPENAPI-001 v1.7 tags must equal {inventory['tags']} unique entries")
+    for invariant_name in (
+        "startPracticeSession",
+        "getPracticeSession",
+        "getReportConversation",
+    ):
+        expected = invariants[invariant_name]
+        operation = _operation_at_contract_path(
+            current, expected["path"], expected["method"]
+        )
+        if operation is None:
+            errors.append(
+                f"{invariant_name} must remain {expected['method']} {expected['path']}"
+            )
+            continue
+        if operation.get("operationId") != expected["operationId"]:
+            errors.append(f"{invariant_name} operationId must equal {expected['operationId']}")
+        if _success_response_schema(operation, expected["successStatus"]) != expected["response"]:
+            errors.append(
+                f"{invariant_name} response {expected['successStatus']} must equal {expected['response']}"
+            )
+    if invariants["publicList"] == "forbidden" and "get" in (
+        (current.get("paths") or {}).get("/practice/sessions") or {}
+    ):
+        errors.append("OPENAPI-001 v1.7 public session list must remain forbidden")
+    return errors
+
+
 def _openapi_002_property_signature(schema: Any) -> str:
     if not isinstance(schema, dict):
         return "unknown"
@@ -2788,6 +3167,18 @@ def run_openapi_001_audit(
 ) -> int:
     decision_path = Path(args.decision_record).resolve() if args.decision_record else None
     oracle_path = Path(args.oracle).resolve() if args.oracle else None
+    if oracle_path is not None and oracle_path.is_file():
+        try:
+            requested_oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            requested_oracle = None
+        if isinstance(requested_oracle, dict) and requested_oracle.get("authority") == OPENAPI_001_V17_AUTHORITY:
+            return run_openapi_001_v17_audit(
+                args,
+                repo_root,
+                baseline_path,
+                current_path,
+            )
     errors: List[str] = []
     if decision_path is None or not decision_path.is_file():
         errors.append("OPENAPI-001 audit requires --decision-record")
@@ -2869,6 +3260,144 @@ def run_openapi_001_audit(
         baselineSha256=_sha256_text(baseline_text or ""),
         currentSha256=_sha256_text(current_text),
         summary=summary,
+        findingCount=len(sorted_findings),
+        findings=sorted_findings,
+        errors=errors,
+    )
+    _write_json_payload(payload, args.output)
+    return 0 if not errors else 1
+
+
+def emit_openapi_001_v17_oracle(
+    args: argparse.Namespace,
+    repo_root: Path,
+    baseline_path: Path,
+    current_path: Path,
+) -> int:
+    """Print, but never write, the oracle that must be checked in by the caller."""
+    base_ref = args.base_ref or "main"
+    base_commit = _git_merge_base(repo_root, "HEAD", base_ref)
+    if base_commit is None:
+        base_commit = _git_rev_parse(repo_root, base_ref)
+    if base_commit is None:
+        sys.stderr.write(f"ERROR: cannot resolve base ref {base_ref!r}\n")
+        return 1
+    baseline_text = _git_show(repo_root, base_commit, baseline_path)
+    if baseline_text is None:
+        sys.stderr.write(
+            f"ERROR: cannot load {baseline_path.relative_to(repo_root)} from {base_commit}\n"
+        )
+        return 1
+    if baseline_path.read_text(encoding="utf-8") != baseline_text:
+        sys.stderr.write(
+            "ERROR: OPENAPI-001 v1.7 generator requires an unchanged worktree baseline\n"
+        )
+        return 1
+    baseline_doc = yaml.safe_load(baseline_text) or {}
+    current_doc = yaml.safe_load(current_path.read_text(encoding="utf-8")) or {}
+    sys.stdout.write(
+        json.dumps(
+            build_openapi_001_v17_oracle(baseline_doc, current_doc),
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n"
+    )
+    return 0
+
+
+def run_openapi_001_v17_audit(
+    args: argparse.Namespace,
+    repo_root: Path,
+    baseline_path: Path,
+    current_path: Path,
+) -> int:
+    decision_path = Path(args.decision_record).resolve() if args.decision_record else None
+    oracle_path = Path(args.oracle).resolve() if args.oracle else None
+    errors: List[str] = []
+    if decision_path is None or not decision_path.is_file():
+        errors.append("OPENAPI-001 v1.7 audit requires --decision-record")
+    if oracle_path is None or not oracle_path.is_file():
+        errors.append("OPENAPI-001 v1.7 audit requires --oracle")
+
+    base_ref = args.base_ref or "main"
+    base_commit = _git_merge_base(repo_root, "HEAD", base_ref)
+    if base_commit is None:
+        base_commit = _git_rev_parse(repo_root, base_ref)
+    baseline_text: Optional[str] = None
+    if base_commit is None:
+        errors.append(f"cannot resolve base ref {base_ref!r}")
+    else:
+        baseline_text = _git_show(repo_root, base_commit, baseline_path)
+        if baseline_text is None:
+            errors.append(
+                f"cannot load {baseline_path.relative_to(repo_root)} from {base_commit}"
+            )
+
+    current_text = current_path.read_text(encoding="utf-8")
+    worktree_baseline_text = baseline_path.read_text(encoding="utf-8")
+    if baseline_text is not None and worktree_baseline_text != baseline_text:
+        errors.append("OPENAPI-001 v1.7 worktree baseline differs from base-ref snapshot")
+    baseline_doc = yaml.safe_load(baseline_text) if baseline_text is not None else {}
+    current_doc = yaml.safe_load(current_text) or {}
+
+    oracle: Dict[str, Any] = {}
+    expected_findings: List[Dict[str, Any]] = []
+    if decision_path is not None and decision_path.is_file():
+        errors.extend(
+            validate_decision_record(
+                decision_path.read_text(encoding="utf-8"), args.decision_id
+            )
+        )
+    if oracle_path is not None and oracle_path.is_file():
+        try:
+            loaded_oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            errors.append(f"cannot parse OPENAPI-001 v1.7 oracle: {exc}")
+        else:
+            if isinstance(loaded_oracle, dict):
+                oracle = loaded_oracle
+                errors.extend(validate_exact_set_oracle(oracle, args.decision_id))
+                raw_findings = oracle.get("findings")
+                if isinstance(raw_findings, list):
+                    expected_findings = [
+                        finding for finding in raw_findings if isinstance(finding, dict)
+                    ]
+            else:
+                errors.append("OPENAPI-001 v1.7 oracle must be a JSON object")
+
+    errors.extend(validate_openapi_001_v17_authority(repo_root, oracle))
+    actual_findings = normalize_openapi_001_v17_findings(baseline_doc or {}, current_doc)
+    if len(expected_findings) != len(actual_findings):
+        errors.append(
+            "OPENAPI-001 v1.7 exact-set expected "
+            f"{len(expected_findings)} findings but actual {len(actual_findings)}"
+        )
+    errors.extend(compare_finding_sets(expected_findings, actual_findings))
+    errors.extend(validate_openapi_001_v17_contract(baseline_doc or {}, current_doc))
+    errors.extend(
+        validate_openapi_001_v17_invariants(
+            current_doc, oracle.get("invariants") or {}
+        )
+    )
+
+    sorted_findings = sorted(actual_findings, key=_finding_key)
+    payload: Dict[str, Any] = OrderedDict(
+        schemaVersion=1,
+        decisionId=args.decision_id,
+        mode="exact-set",
+        keyFields=list(OPENAPI_001_FINDING_KEYS),
+        authority=oracle.get("authority"),
+        baselineSource=(
+            f"git:{base_commit}:{baseline_path.relative_to(repo_root)}"
+            if base_commit is not None
+            else None
+        ),
+        currentSource=str(current_path.relative_to(repo_root)),
+        baselineSha256=_sha256_text(baseline_text or ""),
+        currentSha256=_sha256_text(current_text),
+        summary=_format_summary(sorted_findings),
+        expectedFindingCount=len(expected_findings),
         findingCount=len(sorted_findings),
         findings=sorted_findings,
         errors=errors,
@@ -3534,6 +4063,14 @@ def run(args: argparse.Namespace) -> int:
         sys.stderr.write(f"ERROR: current file not found: {current_path}\n")
         return 1
 
+    if args.emit_openapi_001_v17_oracle:
+        return emit_openapi_001_v17_oracle(
+            args,
+            repo_root,
+            baseline_path,
+            current_path,
+        )
+
     if args.decision_id:
         if args.decision_id not in {
             "OPENAPI-001",
@@ -3663,6 +4200,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--decision-record", default=None)
     parser.add_argument("--oracle", default=None)
     parser.add_argument("--base-ref", default=None)
+    parser.add_argument(
+        "--emit-openapi-001-v17-oracle",
+        action="store_true",
+        default=False,
+        help="Print the deterministic old-baseline to proposed OPENAPI-001 v1.7 oracle.",
+    )
     parser.add_argument(
         "--fail-on-incompatible",
         dest="fail_on_incompatible",

@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-real-api-ui-journeys](./001-real-api-ui-journeys/plan.md) | [plan](./001-real-api-ui-journeys/plan.md) / [checklist](./001-real-api-ui-journeys/checklist.md) / [bdd-plan](./001-real-api-ui-journeys/bdd-plan.md) / [bdd-checklist](./001-real-api-ui-journeys/bdd-checklist.md) / [context](./001-real-api-ui-journeys/context.yaml) | 3.8 | active | 2026-07-15 |
+| [001-real-api-ui-journeys](./001-real-api-ui-journeys/plan.md) | [plan](./001-real-api-ui-journeys/plan.md) / [checklist](./001-real-api-ui-journeys/checklist.md) / [bdd-plan](./001-real-api-ui-journeys/bdd-plan.md) / [bdd-checklist](./001-real-api-ui-journeys/bdd-checklist.md) / [context](./001-real-api-ui-journeys/context.yaml) | 3.9 | active | 2026-07-15 |
 
 ## 2 已完成（Completed）
 

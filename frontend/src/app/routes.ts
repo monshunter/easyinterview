@@ -6,7 +6,7 @@
  *
  * Three primary nav entries: home / workspace / resume_versions
  * (out-of-scope product entries are outside the current route catalog).
- * Context routes: parse / practice / reports / generating / report.
+ * Context routes: parse / practice / reports / generating / report / report_conversation.
  * User-menu routes: settings / auth_logout.
  * Auth pages: auth_login / auth_verify / auth_profile_setup / auth_logout.
  * auth_reset is outside the current route catalog per product-scope D-16; it normalizes back to auth_login.
@@ -28,6 +28,7 @@ export const CONTEXT_ROUTES = [
   "reports",
   "generating",
   "report",
+  "report_conversation",
 ] as const;
 
 export const USER_MENU_ROUTES = ["settings", "auth_logout"] as const;

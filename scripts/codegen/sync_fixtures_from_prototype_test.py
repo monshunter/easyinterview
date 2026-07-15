@@ -2,7 +2,7 @@
 """Tests for scripts/codegen/sync_fixtures_from_prototype.py.
 
 Covers Phase 2.2 contract:
-- Running the sync writes a `scenarios.prototype-baseline` to the 5 P0
+- Running the sync writes a `scenarios.prototype-baseline` to the 6 P0
   closed-loop endpoints listed in plan 2.4.
 - Re-running is idempotent (`git diff --exit-code` clean).
 - After sync, `validate_fixtures.py` exits 0 (default + prototype-baseline
@@ -30,6 +30,7 @@ P0_BASELINE_OPS = (
     ("TargetJobs", "getTargetJob"),
     ("PracticeSessions", "getPracticeSession"),
     ("Reports", "getFeedbackReport"),
+    ("Reports", "getReportConversation"),
 )
 
 
@@ -229,6 +230,32 @@ class SyncFixturesFromPrototypeTest(unittest.TestCase):
             "retryFocusCompetencyCodes",
         ):
             self.assertNotIn(old_field, body)
+
+    def test_report_conversation_projection_is_report_owned_and_closed(self) -> None:
+        out = _run(SYNC, self.repo)
+        self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
+        fixture = _read_json(
+            self.repo / "openapi/fixtures/Reports/getReportConversation.json"
+        )
+        body = fixture["scenarios"]["prototype-baseline"]["response"]["body"]
+
+        self.assertEqual(
+            {"reportId", "reportStatus", "context", "messages"}, set(body)
+        )
+        self.assertEqual("ready", body["reportStatus"])
+        self.assertTrue(body["messages"])
+        self.assertEqual(
+            {"sequence", "role", "content", "createdAt"},
+            set(body["messages"][0]),
+        )
+        self.assertEqual(
+            list(range(1, len(body["messages"]) + 1)),
+            [message["sequence"] for message in body["messages"]],
+        )
+        self.assertNotIn("sessionId", json.dumps(body, ensure_ascii=False))
+        self.assertIn("**", body["messages"][1]["content"])
+        self.assertIn("|", body["messages"][1]["content"])
+        self.assertIn("```", body["messages"][1]["content"])
 
     def test_sync_fails_fast_on_mapping_gap(self) -> None:
         # Drop the targetJobs section that listTargetJobs depends on.

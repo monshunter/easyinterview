@@ -1,6 +1,6 @@
 # E2E Scenarios P0 Spec
 
-> **版本**: 2.14
+> **版本**: 2.15
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -15,6 +15,7 @@
 - `practice_session_events` 只保留 session started/completed 生命周期事实；完成后的 canonical round progress 必须从真实 API/UI 读取。
 - Report 以完成时 frozen context 和整场对话生成 conversation-level report；`reportId` 是 Report/Generating/ReportConversation 页面唯一 locator。会话记录只作为所属报告的只读附件，不存在公共 session list。
 - E2E 浏览器不得 intercept/fulfill 应用请求，不得用 fixture transport、dev mock、jsdom 或进程内 handler 代替 backend。
+- Evidence 隐私门禁只保护项目用户数据与认证/运行 secret；PNG 色彩配置、创建工具、文件格式等不含用户内容的开发过程技术元数据不属于隐私数据，不得仅因存在而拒绝当前证据。
 
 ## 3 当前场景
 
@@ -36,6 +37,7 @@
 | D-4 | 代码回归与 E2E 分层 | focused tests 用于开发反馈；阶段完成与 CI 由根 `make test` 统一运行 backend/frontend 全量单测，E2E 脚本不得再次编排这些命令 |
 | D-5 | 共享环境由顶层 `test/scenarios/env-*.sh` 管理 | 场景目录不私有化环境 bootstrap，setup/cleanup 只隔离自身数据 |
 | D-6 | P0.101 保持独立 auth owner | E2E suite 登记其真实环境资产与运行状态；backend-auth/frontend-shell 拥有 email-code/profile 行为，避免在 suite plan 复制业务合同 |
+| D-7 | Privacy gate 只识别用户数据与 secret | transcript、JD、简历、Cookie、验证码、密钥和可还原正文必须 fail closed；无用户内容的 PNG `iCCP` 等技术元数据属于开发过程，不作为隐私失败条件 |
 
 ## 5 Operation Matrix
 
@@ -56,12 +58,14 @@ Resume/JD/plan/chat/provider 的业务与可靠性由各代码 owner 测试或 e
 - P0.099 还从 ready Report 点击“查看本次面试记录”，验证 URL 只含 `reportId`、真实 API 返回同一 report/context 与 DB 绑定 session 的严格有序消息，并按 Back 回到该 Report；conversation 不新增截图、不抄录正文，只记录 route/status/count/sequence digest、report/session/context digest 与返回目标。公共 `listPracticeSessions` route/API 请求必须为零。
 - P0.101 经真实 Mailpit 收取验证码并完成首次 profile setup；完成账号再次登录不重复补全，且浏览器请求不被 fixture/mock transport 接管。
 - 三个场景都只接受当前真实环境证据；cookie、邮箱验证码、完整 prompt/response、JD、简历和 transcript 不写入 tracked docs 或验收 evidence。
+- 技术元数据可以保留，前提是其中不携带上述用户数据、认证材料或 secret；校验器必须按内容风险判断，不能把普通开发过程信息等同于隐私数据。
 - 根 `make test` 与 code/eval gate 单独报告，不得作为 E2E PASS marker。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 2.15 | Narrow evidence privacy gates to project user data and secrets; allow benign development metadata such as PNG color profiles. |
 | 2026-07-15 | 2.14 | Extend P0.099 with real report-owned Conversation navigation/API/DB binding and deleted-session-list negative evidence; retain the exact-six screenshot contract by using bounded non-image evidence. |
 | 2026-07-14 | 2.13 | 将 P0.101 作为独立 auth owner 的真实 E2E 资产纳入 suite 清单，保持业务合同不复制；统一三项场景的 current-run evidence 边界。 |
 | 2026-07-14 | 2.12 | 将 E2E 收敛为真实 API/UI：P0.098 只承接 completion/progress，P0.099 只承接 report/generating；删除 provider CLI/eval 场景 owner。 |

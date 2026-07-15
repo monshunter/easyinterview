@@ -115,8 +115,11 @@
 
 ## Phase 12: Report-owned conversation fixtures
 
-- [ ] 12.1 RED: fixture/inventory tests fail until the old `PracticeSessions/listPracticeSessions.json` is absent and `Reports/getReportConversation.json` exists one-for-one with 37/37 unchanged.
-- [ ] 12.2 GREEN: add ready/non-ready/empty/Markdown/hidden/fail-closed scenarios using exact closed response/message fields and strictly increasing sequence；reject all internal locators and partial/reordered success.
-- [ ] 12.3 PARITY-GATE: validate fixtures, render examples and run live Prism/mock byte parity for `getReportConversation`; the deleted path/operation/scenario fails closed.
+- [x] 12.1 RED: fixture/inventory tests fail until the old `PracticeSessions/listPracticeSessions.json` is absent and `Reports/getReportConversation.json` exists one-for-one with 37/37 unchanged.
+  <!-- verified: 2026-07-15 evidence="make validate-fixtures and the focused fixture test both failed while the old fixture existed and the replacement was absent." -->
+- [x] 12.2 GREEN: add ready/non-ready/empty/Markdown/hidden/fail-closed scenarios using exact closed response/message fields and strictly increasing sequence；reject all internal locators and partial/reordered success.
+  <!-- verified: 2026-07-15 evidence="51 focused fixture/Prism-matrix tests pass; report conversation fixture covers all four report states, empty/GFM, hidden 404 and fail-closed invalid projections." -->
+- [x] 12.3 PARITY-GATE: validate fixtures, render examples and run live Prism/mock byte parity for `getReportConversation`; the deleted path/operation/scenario fails closed.
+  <!-- verified: 2026-07-15 method=validate+render+live-prism+mock evidence="37 fixtures validate; generated example projection refreshed; Prism 5.14.2 matrix 14/14 byte-equal including getReportConversation=200; frontend devMock/auth focused suite 15 tests PASS with no listPracticeSessions operation." -->
 - [ ] 12.4 HANDOFF-GATE: backend-review, frontend-report-dashboard, mock-contract-suite and `E2E.P0.099` consume exact markers without a public session-list consumer or compatibility fixture.
 - [ ] 12.5 REGRESSION-GATE: 37 fixtures / 37 operations, prototype sync idempotency, root `make test`, contexts/docs/diff all pass.

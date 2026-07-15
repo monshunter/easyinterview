@@ -42,9 +42,6 @@ type ServerInterface interface {
 	// getPracticePlan — get /practice/plans/{planId}: Get a practice plan
 	GetPracticePlan(w http.ResponseWriter, r *http.Request, planId string)
 
-	// listPracticeSessions — get /practice/sessions: List practice sessions (cursor-paginated)
-	ListPracticeSessions(w http.ResponseWriter, r *http.Request)
-
 	// startPracticeSession — post /practice/sessions: Start a practice session
 	StartPracticeSession(w http.ResponseWriter, r *http.Request)
 
@@ -71,6 +68,9 @@ type ServerInterface interface {
 
 	// getFeedbackReport — get /reports/{reportId}: Get a feedback report (queued or generating reports return 200 with current status)
 	GetFeedbackReport(w http.ResponseWriter, r *http.Request, reportId string)
+
+	// getReportConversation — get /reports/{reportId}/conversation: Get the read-only conversation record for a feedback report
+	GetReportConversation(w http.ResponseWriter, r *http.Request, reportId string)
 
 	// requestResumeTailor — post /resume/tailor: Start a resume-tailoring run for a target job
 	RequestResumeTailor(w http.ResponseWriter, r *http.Request)
@@ -149,7 +149,6 @@ var AllRoutes = []Route{
 	{OperationID: "completeMyProfile", Method: "patch", Path: "/me", PathParams: nil},
 	{OperationID: "createPracticePlan", Method: "post", Path: "/practice/plans", PathParams: nil},
 	{OperationID: "getPracticePlan", Method: "get", Path: "/practice/plans/{planId}", PathParams: []string{"planId"}},
-	{OperationID: "listPracticeSessions", Method: "get", Path: "/practice/sessions", PathParams: nil},
 	{OperationID: "startPracticeSession", Method: "post", Path: "/practice/sessions", PathParams: nil},
 	{OperationID: "getPracticeSession", Method: "get", Path: "/practice/sessions/{sessionId}", PathParams: []string{"sessionId"}},
 	{OperationID: "completePracticeSession", Method: "post", Path: "/practice/sessions/{sessionId}/complete", PathParams: []string{"sessionId"}},
@@ -159,6 +158,7 @@ var AllRoutes = []Route{
 	{OperationID: "requestPrivacyExport", Method: "post", Path: "/privacy/exports", PathParams: nil},
 	{OperationID: "getPrivacyRequest", Method: "get", Path: "/privacy/requests/{privacyRequestId}", PathParams: []string{"privacyRequestId"}},
 	{OperationID: "getFeedbackReport", Method: "get", Path: "/reports/{reportId}", PathParams: []string{"reportId"}},
+	{OperationID: "getReportConversation", Method: "get", Path: "/reports/{reportId}/conversation", PathParams: []string{"reportId"}},
 	{OperationID: "requestResumeTailor", Method: "post", Path: "/resume/tailor", PathParams: nil},
 	{OperationID: "getResumeTailorRun", Method: "get", Path: "/resume/tailor-runs/{tailorRunId}", PathParams: []string{"tailorRunId"}},
 	{OperationID: "listResumes", Method: "get", Path: "/resumes", PathParams: nil},

@@ -211,6 +211,39 @@ window.EI_DATA = {
     error: { state: "error" },
   },
 
+  reportConversation: {
+    state: "ready",
+    reportId: "report-24",
+    reportStatus: "ready",
+    context: {
+      sourcePlanId: "plan-tj-1",
+      targetJobTitle: "高级前端工程师",
+      targetJobCompany: "星环科技",
+      resumeId: "frontend-v3",
+      resumeDisplayName: "前端工程师简历 · 第 3 版",
+      roundId: "round-2-technical",
+      roundSequence: 2,
+      roundName: "技术一面 · 45m",
+      roundType: "technical",
+      language: "zh-CN",
+      hasNextRound: true,
+    },
+    messages: [
+      {
+        sequence: 1,
+        role: "assistant",
+        content: "## 技术取舍追问\n\n请先说明约束、候选方案，以及最终选择的理由。",
+        createdAt: "2026-07-15T08:00:00Z",
+      },
+      {
+        sequence: 2,
+        role: "user",
+        content: "我会按 **STAR** 结构回答。\n\n| 阶段 | 成功指标 | 回滚条件 |\n| --- | --- | --- |\n| 灰度 | 核心链路成功率保持在 99.99% 且连续观察两个完整窗口 | 任一关键指标连续三个窗口低于基线立即回滚 |\n\n```ts\nconst rollout = \"baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-baseline-\";\n```",
+        createdAt: "2026-07-15T08:00:18Z",
+      },
+    ],
+  },
+
   report: {
     id: "report-24",
     targetJobId: "tj-1",

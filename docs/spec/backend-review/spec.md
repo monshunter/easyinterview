@@ -1,6 +1,6 @@
 # Backend Review Spec
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -17,7 +17,7 @@
 | operation / async path | frontend consumer | persistence | AI dependency | verification |
 |------------------------|-------------------|-------------|---------------|--------------|
 | `getFeedbackReport` | generating/report | `feedback_reports` | none on read | focused handler/store/consumer tests + `E2E.P0.099` real API/UI |
-| `getReportConversation` | report-conversation read-only page | `feedback_reports.session_id` + `practice_messages` | none on read | focused handler/store/auth/order/privacy tests + `BDD.REPORT.CONVERSATION.API.001` + `E2E.P0.099` real API/UI |
+| `getReportConversation` | report-conversation read-only page | `feedback_reports.session_id` + `practice_messages` | none on read | focused handler/store/auth/order/privacy/no-store tests + `BDD.REPORT.CONVERSATION.API.001` + `E2E.P0.099` real API/UI |
 | `listTargetJobReports` | target-scoped ReportsScreen | `feedback_reports` + current TargetJob canonical round summary | none on read | focused handler/store/consumer contract tests |
 | `report_generate` | async runner | `feedback_reports`, jobs/outbox/audit/task-runs | `report.generate` | focused service/store/integration tests + independent eval gate + `E2E.P0.099` visible report |
 
@@ -162,10 +162,10 @@ TargetJobReportsOverview
 
 `GET /reports/{reportId}/conversation` / `getReportConversation` 是完成会话 transcript 的唯一用户可见 read-side。请求只接受 `reportId`；服务端按当前用户先定位 `feedback_reports`，再使用已有唯一 `feedback_reports.session_id` 读取 `practice_messages ORDER BY seq_no ASC`。现有外键和 `idx_feedback_reports_session_unique` 已表达一个 session 最多一份 report，不新增 relation table 或 migration。
 
-Response 为 closed `ReportConversation`：`reportId`、`reportStatus`、frozen `ReportContextSnapshot` 和 non-empty `messages[]`。每个 closed `ReportConversationMessage` 只投影 `sequence / role / content / createdAt`；role 仅允许 `user / assistant`，不得暴露 `sessionId`、message UUID、`clientMessageId`、`replyStatus`、`replyGeneration`、message anchor 或生成元数据。
+Response 为 closed `ReportConversation`：`reportId`、`reportStatus`、frozen `ReportContextSnapshot` 和可为空的 `messages[]`。每个 closed `ReportConversationMessage` 只投影 `sequence / role / content / createdAt`；role 仅允许 `user / assistant`，`content` 必须 trim 后非空，且不得暴露 `sessionId`、message UUID、`clientMessageId`、`replyStatus`、`replyGeneration`、message anchor 或生成元数据。
 
 - 只要 owned report row 已在 completion transaction 创建，queued / generating / ready / failed 都返回同一 transcript；报告生成失败不得删除用户已完成的复盘依据。
-- report missing/deleted/cross-user 统一 hidden 404。report/session/user/target identity 不一致、messages 为空、sequence 非正/重复/非严格递增或未知 role 时整份 response fail closed；不得 partial return、重排后掩盖 corruption 或回退到 `getPracticeSession`。
+- report missing/deleted/cross-user 统一 hidden 404。空 `messages` 数组是合法 200；report/session/user/target identity 不一致、任一 message 的 `content` 为空或纯空白、sequence 非正/重复/非严格递增、createdAt 缺失或未知 role 时整份 response fail closed；不得 partial return、重排后掩盖 corruption 或回退到 `getPracticeSession`。
 - read path 不调用 AI、不修改 report/session/message，不写正文到 audit/log/metric/task-run/outbox，不提供 cursor/pagination/list endpoint。
 - `listPracticeSessions` 随本次未上线 contract correction 删除；`getPracticeSession` 仅保留给进行中会话恢复，不作为报告记录 consumer。
 
@@ -197,7 +197,7 @@ Response 为 closed `ReportConversation`：`reportId`、`reportStatus`、frozen 
 | C-10 | Judge bounded retry | generation output完整合法 | evaluator调用 | 独立budget=4；仅provider retryable或protocol/schema invalid重试；结构合法negative verdict typed content-rejected并终端FAIL，不重采样 | 001 + F3 004 code/eval gate |
 | C-11 | Report job/fencing | report job创建、reap/takeover、迟到worker | generation persistence/finalize | async `max_attempts`只约束基础设施执行恢复；仅running+claimed attempt可写report/outbox/audit/job，stale worker零领域副作用；不得充当产品retry counter | 001 + backend-async-runner/001 |
 | C-12 | TargetJob 轮次报告概览 | owned ready TargetJob 含 canonical rounds，且各轮可有 ready / queued / generating / failed 历史 | 调用 `listTargetJobReports` | 无分页地返回每个 canonical round 的 `PracticeRoundRef + currentReport + latestAttempt`；两个指针按各自稳定顺序独立选择，非法 ownership/context/round identity 整体 fail closed，不返回完整报告内容 | 001 |
-| C-13 | Report-owned transcript | owned report 为 queued/generating/ready/failed，且 completion session 有严格有序消息 | 调用 `getReportConversation(reportId)` | 从唯一 report-session 关系返回 closed ordered projection；无 session/message/client IDs，无写入/AI；missing/cross-user/corruption hidden 404 或 fail closed | 001 |
+| C-13 | Report-owned transcript | owned report 为 queued/generating/ready/failed，且 completion session 的消息数组可为空或严格有序 | 调用 `getReportConversation(reportId)` | 从唯一 report-session 关系返回 closed ordered projection；空数组为 200、每条 message content 非空白；无 session/message/client IDs，无写入/AI；missing/cross-user/corruption hidden 404 或 fail closed | 001 |
 
 ## 5 关联计划
 
@@ -207,6 +207,7 @@ Response 为 closed `ReportConversation`：`reportId`、`reportStatus`、frozen 
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-15 | 1.30 | Correct C-13 so an owned empty messages array is legal, while blank message content, missing createdAt and malformed message identity fail closed; require no-store verification before auth reads. |
 | 2026-07-15 | 1.29 | Add report-owned getReportConversation read-side over the existing unique report-session FK; expose a closed ordered message projection for all report statuses, remove listPracticeSessions product dependency, and require hidden-404/privacy/corruption fail-closed gates without a migration. |
 | 2026-07-14 | 1.28 | Remove the cross-unit byte/token capacity formula; keep the 917,504-byte input guard and the 1M/16K profile contract as independently owned configuration facts. |
 | 2026-07-14 | 1.27 | Raise the A3 report output setting to 16,384 and replace default-sized report/scenario boundaries with one 62,397 regression plus small injected provider call/no-call tests; the former capacity-formula interpretation is superseded by 1.28. |

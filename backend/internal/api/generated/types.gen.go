@@ -572,11 +572,6 @@ type PracticeSession struct {
 	UpdatedAt   string            `json:"updatedAt"`
 }
 
-type PaginatedPracticeSession struct {
-	Items    []PracticeSession `json:"items"`
-	PageInfo PageInfo          `json:"pageInfo"`
-}
-
 type CreatePracticeVoiceTurnRequest struct {
 	Audio             PracticeVoiceAudioInput `json:"audio"`
 	ClientVoiceTurnId string                  `json:"clientVoiceTurnId"`
@@ -685,6 +680,20 @@ type ReportContextSnapshot struct {
 	SourcePlanId      string `json:"sourcePlanId"`
 	TargetJobCompany  string `json:"targetJobCompany"`
 	TargetJobTitle    string `json:"targetJobTitle"`
+}
+
+type ReportConversation struct {
+	Context      ReportContextSnapshot       `json:"context"`
+	Messages     []ReportConversationMessage `json:"messages"`
+	ReportId     string                      `json:"reportId"`
+	ReportStatus ReportStatus                `json:"reportStatus"`
+}
+
+type ReportConversationMessage struct {
+	Content   string `json:"content"`
+	CreatedAt string `json:"createdAt"`
+	Role      string `json:"role"`
+	Sequence  int32  `json:"sequence"`
 }
 
 type FeedbackReport struct {

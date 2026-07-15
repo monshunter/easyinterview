@@ -27,6 +27,7 @@ describe("ROUTE_TO_PATH catalog", () => {
       reports: "/reports",
       generating: "/generating",
       report: "/report",
+      report_conversation: "/report-conversation",
       settings: "/settings",
       auth_login: "/auth/login",
       auth_verify: "/auth/verify",
@@ -110,7 +111,7 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/reports?targetJobId=tj-1");
   });
 
-  it("retains only reportId for generating/report deep links", () => {
+  it("retains only reportId for generating/report/report-conversation deep links", () => {
     expect(
       formatRouteUrl({
         name: "generating",
@@ -129,6 +130,28 @@ describe("serializeRouteToUrl", () => {
         },
       }),
     ).toBe("/report?reportId=rpt-1");
+
+    expect(
+      formatRouteUrl({
+        name: "report_conversation",
+        params: {
+          reportId: "rpt-1",
+          sessionId: "session-must-not-be-routed",
+          targetJobId: "target-must-not-be-routed",
+          status: "ready",
+          messageId: "message-must-not-be-routed",
+        },
+      }),
+    ).toBe("/report-conversation?reportId=rpt-1");
+
+    expect(
+      parseUrlToRoute(
+        "/report-conversation?reportId=rpt-1&sessionId=session-must-not-be-routed&status=ready",
+      ),
+    ).toEqual({
+      name: "report_conversation",
+      params: { reportId: "rpt-1" },
+    });
 
     expect(
       formatRouteUrl({

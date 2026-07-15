@@ -1,6 +1,6 @@
 # Grounded Conversation Report Test Plan
 
-> **版本**: 2.23
+> **版本**: 2.26
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -46,6 +46,6 @@
 ## 7 Report conversation read
 
 - Store/handler tests cover reportId/current-user lookup, existing FK/unique ownership, strict sequence projection and queued/generating/ready/failed success without AI or writes.
-- Negative tests cover hidden 404, report/session/user/target mismatch, empty messages, duplicate/non-increasing sequence, unknown role and any internal/additional response field.
-- Privacy tests assert no session/message/client IDs, reply state or raw transcript in errors/logs/audit/metrics/task payloads; read count is bounded to the report lookup plus ordered messages query without list/pagination.
+- Positive tests cover an owned empty `messages` array as a 200 projection. Negative tests cover hidden 404, report/session/user/target mismatch, empty identity, blank message content, missing createdAt, duplicate/non-increasing sequence, unknown role and any internal/additional response field.
+- Privacy tests assert no session/message/client IDs, reply state or raw transcript in errors/logs/audit/metrics/task payloads; successful, business-error and session-middleware rejection responses all set `Cache-Control: private, no-store` before any report read; read count is bounded to the report lookup plus ordered messages query without list/pagination.
 - Scoped removal tests reject `listPracticeSessions` in current OpenAPI/generated/router/handler/fixture/mock/frontend positive surfaces and prove no migration/table/compatibility layer is introduced.

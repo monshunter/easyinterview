@@ -1,6 +1,6 @@
 # 001 Real API/UI Journeys BDD Checklist
 
-> **版本**: 3.9
+> **版本**: 4.2
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -19,8 +19,11 @@
 - [x] The tracked runbook requires real frontend/backend/provider、authenticated report API and read-only PostgreSQL evidence.
 - [x] The capture contract requires exactly six current-run full-page screenshots for en/zh ready reports and honest generating at desktop/mobile.
 - [x] The evidence/manual contracts bind current API/DB state and canonical digests, reject stale/cross-run evidence, and require no-OCR visible-state/privacy review.
-- [ ] The real flow opens report-owned Conversation using reportId only, binds real API rows to the owned report/session/messages in PostgreSQL, verifies strict source ordering and returns to the original Report.
-- [ ] Conversation evidence contains no transcript prose and no extra image；the screenshot directory/manifest/manual audit remain exactly six, and network evidence contains zero public session-list requests.
+- [x] Privacy review rejects project user data and secrets, while benign development metadata is handled by independent file-integrity/digest gates rather than classified as private data.
+- [x] The real flow opens report-owned Conversation using reportId only, binds real API rows to the owned report/session/messages in PostgreSQL, verifies strict source ordering and returns to the original Report.
+  <!-- verified: 2026-07-15 method=scenario-asset-tdd evidence="test_report_conversation_evidence.py 7 PASS; setup/trigger/verify/cleanup scripts use real host-run API + PostgreSQL and never intercept requests" -->
+- [x] Conversation evidence contains no transcript prose and no extra image；the screenshot directory/manifest/manual audit remain exactly six, and network evidence contains zero public session-list requests.
+  <!-- verified: 2026-07-15 method=scenario-asset-static evidence="validator enforces exact six screenshots, redacted digest-only evidence and public-session-list count zero" -->
 
 ### E2E.P0.101
 
@@ -30,10 +33,11 @@
 ## 当前真实环境运行证据
 
 - [ ] Run `E2E.P0.098` against the current real environment and record current-run PASS.
-- [ ] Run `E2E.P0.099` against the current real environment, complete the exact-six no-OCR audit plus bounded conversation/API/DB/back evidence, and record current-run PASS.
+- [x] Run `E2E.P0.099` against the current real environment, complete the exact-six no-OCR audit plus bounded conversation/API/DB/back evidence, and record current-run PASS.
+  <!-- verified: 2026-07-15 run_id="e2e-p0-099-20260715T021319Z-57232" result="PASS" evidence="exact six Chrome full-page screenshots; no-OCR visual audit; live API/PostgreSQL/conversation/back binding; bounded redaction" -->
 - [ ] Run `E2E.P0.101` against the current real environment and record current-run PASS.
 
-本轮只审计静态资产与证据合同，没有执行上述真实环境场景；场景状态保持 `Ready`。
+本轮已在当前 host-run 真实环境完成 P0.099 的 setup → trigger → Chrome exact-six capture/no-OCR audit → verify → cleanup，current-run 结果为 `PASS`；P0.098 与 P0.101 仍保持未运行。
 
 ## Independent regression gates
 

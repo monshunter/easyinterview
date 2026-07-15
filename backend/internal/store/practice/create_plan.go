@@ -1,14 +1,11 @@
 package practice
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 	stderrs "errors"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -265,68 +262,6 @@ where session_id=$2 and role='user' and reply_lease_expires_at <= $3 and reply_s
 		return domain.SessionRecord{}, fmt.Errorf("commit get practice session: %w", err)
 	}
 	return session, nil
-}
-
-func (r *SQLRepository) ListSessions(ctx context.Context, in domain.ListSessionsInput) (domain.ListSessionsResult, error) {
-	if r == nil || r.db == nil {
-		return domain.ListSessionsResult{}, fmt.Errorf("practice SQL repository is not configured")
-	}
-	pageSize := in.PageSize
-	if pageSize <= 0 {
-		pageSize = sharedtypes.DefaultPageSize
-	}
-	if pageSize > sharedtypes.MaxPageSize {
-		pageSize = sharedtypes.MaxPageSize
-	}
-	args := []any{in.UserID}
-	query := `select s.id, s.plan_id, s.target_job_id, s.status, s.language, s.created_at, s.updated_at
-from practice_sessions s where s.user_id = $1`
-	if targetJobID := strings.TrimSpace(in.TargetJobID); targetJobID != "" {
-		args = append(args, targetJobID)
-		query += fmt.Sprintf(" and s.target_job_id = $%d", len(args))
-	}
-	if in.Status != "" {
-		args = append(args, string(in.Status))
-		query += fmt.Sprintf(" and s.status = $%d", len(args))
-	}
-	if cursor := strings.TrimSpace(in.Cursor); cursor != "" {
-		updatedAt, id, err := decodeSessionCursor(cursor)
-		if err != nil {
-			return domain.ListSessionsResult{}, domain.ErrInvalidCursor
-		}
-		args = append(args, updatedAt, id)
-		query += fmt.Sprintf(" and (s.updated_at, s.id) < ($%d, $%d)", len(args)-1, len(args))
-	}
-	args = append(args, pageSize+1)
-	query += fmt.Sprintf(" order by s.updated_at desc, s.id desc limit $%d", len(args))
-	rows, err := r.db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return domain.ListSessionsResult{}, fmt.Errorf("list practice sessions: %w", err)
-	}
-	defer rows.Close()
-	items := make([]domain.SessionRecord, 0, pageSize)
-	for rows.Next() {
-		var session domain.SessionRecord
-		if err := rows.Scan(&session.ID, &session.PlanID, &session.TargetJobID, &session.Status,
-			&session.Language, &session.CreatedAt, &session.UpdatedAt); err != nil {
-			return domain.ListSessionsResult{}, fmt.Errorf("scan practice session: %w", err)
-		}
-		session.Messages = []domain.MessageRecord{}
-		items = append(items, session)
-	}
-	if err := rows.Err(); err != nil {
-		return domain.ListSessionsResult{}, fmt.Errorf("iterate practice sessions: %w", err)
-	}
-	hasMore := len(items) > pageSize
-	if hasMore {
-		items = items[:pageSize]
-	}
-	nextCursor := ""
-	if hasMore && len(items) > 0 {
-		last := items[len(items)-1]
-		nextCursor = encodeSessionCursor(last.UpdatedAt, last.ID)
-	}
-	return domain.ListSessionsResult{Items: items, NextCursor: nextCursor, HasMore: hasMore, PageSize: pageSize}, nil
 }
 
 func (r *SQLRepository) ReserveSessionStart(ctx context.Context, in domain.StartSessionReservationInput) (domain.SessionReservation, error) {
@@ -711,37 +646,6 @@ where id=$5 and user_id=$6 and domain='practice' and operation='startPracticeSes
 
 func startSessionAdvisoryLockKey(in domain.StartSessionReservationInput) string {
 	return strings.Join([]string{in.UserID, "practice", "startPracticeSession", in.IdempotencyKeyHash}, "\x1f")
-}
-
-type sessionCursorPayload struct {
-	UpdatedAt string `json:"updatedAt"`
-	ID        string `json:"id"`
-}
-
-func encodeSessionCursor(updatedAt time.Time, id string) string {
-	raw, _ := json.Marshal(sessionCursorPayload{UpdatedAt: updatedAt.UTC().Format(time.RFC3339Nano), ID: strings.TrimSpace(id)})
-	return base64.RawURLEncoding.EncodeToString(raw)
-}
-
-func decodeSessionCursor(cursor string) (time.Time, string, error) {
-	raw, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(cursor))
-	if err != nil || len(raw) == 0 {
-		return time.Time{}, "", domain.ErrInvalidCursor
-	}
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	dec.DisallowUnknownFields()
-	var payload sessionCursorPayload
-	if err := dec.Decode(&payload); err != nil {
-		return time.Time{}, "", domain.ErrInvalidCursor
-	}
-	if err := dec.Decode(&struct{}{}); !stderrs.Is(err, io.EOF) {
-		return time.Time{}, "", domain.ErrInvalidCursor
-	}
-	updatedAt, err := time.Parse(time.RFC3339Nano, payload.UpdatedAt)
-	if err != nil || payload.UpdatedAt != updatedAt.UTC().Format(time.RFC3339Nano) || strings.TrimSpace(payload.ID) == "" {
-		return time.Time{}, "", domain.ErrInvalidCursor
-	}
-	return updatedAt.UTC(), strings.TrimSpace(payload.ID), nil
 }
 
 func isUniqueViolation(err error) bool {

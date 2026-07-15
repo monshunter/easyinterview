@@ -1,6 +1,8 @@
 package reports
 
 import (
+	"time"
+
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	reviewdomain "github.com/monshunter/easyinterview/backend/internal/review"
 )
@@ -90,6 +92,24 @@ func toAPIFeedbackReport(report reviewdomain.FeedbackReportRecord) api.FeedbackR
 	for _, assessment := range report.DimensionAssessments {
 		out.DimensionAssessments = append(out.DimensionAssessments, api.DimensionAssessment{
 			Code: assessment.Code, Label: assessment.Label, Status: assessment.Status, Confidence: assessment.Confidence,
+		})
+	}
+	return out
+}
+
+func toAPIReportConversation(conversation reviewdomain.ReportConversationRecord) api.ReportConversation {
+	out := api.ReportConversation{
+		ReportId:     conversation.ReportID,
+		ReportStatus: conversation.Status,
+		Context:      toAPIReportContext(conversation.Context),
+		Messages:     make([]api.ReportConversationMessage, 0, len(conversation.Messages)),
+	}
+	for _, message := range conversation.Messages {
+		out.Messages = append(out.Messages, api.ReportConversationMessage{
+			Sequence:  message.Sequence,
+			Role:      message.Role,
+			Content:   message.Content,
+			CreatedAt: message.CreatedAt.UTC().Format(time.RFC3339Nano),
 		})
 	}
 	return out

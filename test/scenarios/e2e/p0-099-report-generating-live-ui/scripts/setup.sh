@@ -12,7 +12,7 @@ BACKEND_PID="$ROOT/.test-output/local-dev/backend.pid"
 
 python3 "$VALIDATOR" --sanitize-output "$OUT" --setup >/dev/null
 mkdir -p "$OUT/screenshots"
-rm -f "$OUT/manifest.json" "$OUT/live-capture.json" "$OUT/manual-visual-audit.json" "$OUT/result.json" "$OUT/trigger.log" "$OUT/trigger.env" "$OUT/evidence.md"
+rm -f "$OUT/manifest.json" "$OUT/conversation-navigation.json" "$OUT/live-capture.json" "$OUT/manual-visual-audit.json" "$OUT/result.json" "$OUT/trigger.log" "$OUT/trigger.env" "$OUT/evidence.md"
 
 (cd "$ROOT" && test/scenarios/env-verify.sh >/dev/null)
 test -s "$DEV_ENV"

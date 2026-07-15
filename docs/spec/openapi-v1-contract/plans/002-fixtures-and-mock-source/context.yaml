@@ -8,7 +8,7 @@ metadata:
   branch: design/report-conversation-record
   specVersion:
     from: 1.60
-    to: 1.61
+    to: 1.62
 spec:
   defaultTarget: contract
   discovery:

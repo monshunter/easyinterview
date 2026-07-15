@@ -86,7 +86,15 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
         nextVariant={firstAction?.type === "next_round" ? "accent" : "secondary"}
         nextDisabledReason={nextDisabledReason}
       />
-      <ReportContextStrip report={data} />
+      <ReportContextStrip report={data} marginBottom={10} />
+      <button
+        data-testid="report-conversation-entry"
+        type="button"
+        onClick={() => navigate({ name: "report_conversation", params: { reportId } })}
+        style={{ display: "inline-flex", alignItems: "center", gap: 5, margin: "0 0 22px", padding: 0, border: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", fontSize: 12.5, fontFamily: "var(--ei-font-sans)", cursor: "pointer" }}
+      >
+        <ConversationEntryIcon /> {t("report.conversation.entry")}
+      </button>
       <section data-testid="report-summary-cards" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 22 }}>
         <Metric label={t("report.summary.readiness")} value={t(readinessTierLabel(data.preparednessLevel))} description={data.summary} />
         <Metric label={t("report.summary.dimensions")} value={String(dimensions.length)} />
@@ -115,3 +123,9 @@ const Metric: FC<{ label: string; value: string; description?: string }> = ({ la
 const Panel: FC<{ title: string; titleColor?: string; titleMarginBottom?: number; testId: string; children: ReactNode }> = ({ title, titleColor = "var(--ei-color-fg-tertiary)", titleMarginBottom = 12, testId, children }) => <div data-testid={testId}><div style={{ border: "1px solid var(--ei-color-rule-strong)", borderRadius: 3, padding: 20, background: "var(--ei-color-bg-card)", minWidth: 0, cursor: "default", transition: "border-color .15s, transform .15s" }}><div className="ei-label" style={{ color: titleColor, marginBottom: titleMarginBottom }}>{title}</div>{children}</div></div>;
 const EvidencePanel: FC<{ title: string; titleColor: string; testId: string; items: Array<{ dimensionCode: string; evidence: string; confidence: Confidence }>; labelsByCode: Map<string, string>; confidenceText: (value: Confidence) => string }> = ({ title, titleColor, testId, items, labelsByCode, confidenceText }) => <Panel title={title} titleColor={titleColor} testId={testId}>{items.map((item, index) => <div key={`${item.dimensionCode}-${index}`} style={{ color: "var(--ei-color-fg-secondary)", fontSize: 13, lineHeight: 1.65, marginTop: index ? 14 : 0, overflowWrap: "anywhere" }}><div style={{ color: "var(--ei-color-fg-primary)", fontWeight: 500, marginBottom: 3 }}>{labelsByCode.get(item.dimensionCode)}</div><div>{item.evidence}</div><div style={{ color: "var(--ei-color-fg-tertiary)", fontSize: 11.5, marginTop: 4 }}>{confidenceText(item.confidence)}</div></div>)}</Panel>;
 const statusColor = (status: string) => status === "needs_work" ? "var(--ei-color-warn)" : "var(--ei-color-ok)";
+
+const ConversationEntryIcon: FC = () => (
+  <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);

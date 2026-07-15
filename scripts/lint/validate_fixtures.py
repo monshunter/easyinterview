@@ -121,6 +121,23 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
             "long-content",
         }
     ),
+    "getReportConversation": frozenset(
+        {
+            "default",
+            "prototype-baseline",
+            "queued",
+            "generating",
+            "failed",
+            "empty-messages",
+            "markdown-gfm",
+            "cross-user-not-found",
+            "report-not-found",
+            "invalid-report-identity",
+            "invalid-message-role",
+            "invalid-message-sequence",
+            "invalid-report-session-binding",
+        }
+    ),
     "getPracticePlan": frozenset({"default", "legacy-null-round-identity"}),
     "getTargetJob": frozenset({"default", "not-started-progress", "all-completed-progress"}),
     "listTargetJobs": frozenset({"default", "not-started-progress", "all-completed-progress"}),
@@ -214,6 +231,51 @@ REPORT_OVERVIEW_FORBIDDEN_BODY_KEYS = frozenset(
         "dimensionAssessments",
         "practicePlanId",
         "latestReportId",
+    }
+)
+REPORT_CONVERSATION_SCENARIO_ORDER = (
+    "default",
+    "prototype-baseline",
+    "queued",
+    "generating",
+    "failed",
+    "empty-messages",
+    "markdown-gfm",
+    "cross-user-not-found",
+    "report-not-found",
+    "invalid-report-identity",
+    "invalid-message-role",
+    "invalid-message-sequence",
+    "invalid-report-session-binding",
+)
+REPORT_CONVERSATION_ERROR_MATRIX = {
+    "cross-user-not-found": (404, "REPORT_NOT_FOUND"),
+    "report-not-found": (404, "REPORT_NOT_FOUND"),
+    "invalid-report-identity": (500, "AI_OUTPUT_INVALID"),
+    "invalid-message-role": (500, "AI_OUTPUT_INVALID"),
+    "invalid-message-sequence": (500, "AI_OUTPUT_INVALID"),
+    "invalid-report-session-binding": (500, "AI_OUTPUT_INVALID"),
+}
+REPORT_CONVERSATION_SUCCESS_STATUS = {
+    "default": "ready",
+    "prototype-baseline": "ready",
+    "queued": "queued",
+    "generating": "generating",
+    "failed": "failed",
+    "empty-messages": "ready",
+    "markdown-gfm": "ready",
+}
+REPORT_CONVERSATION_MESSAGE_FIELDS = frozenset(
+    {"sequence", "role", "content", "createdAt"}
+)
+REPORT_CONVERSATION_FORBIDDEN_MESSAGE_FIELDS = frozenset(
+    {
+        "sessionId",
+        "id",
+        "clientMessageId",
+        "replyStatus",
+        "replyGeneration",
+        "anchor",
     }
 )
 PRACTICE_REPLY_STATUSES = frozenset(
@@ -1043,6 +1105,145 @@ def check_target_job_reports_overview_semantics(
         )
 
 
+def check_report_conversation_semantics(scenarios: dict, errors: List[str]) -> None:
+    """Verify the report-owned read projection never becomes a session list."""
+    opid = "getReportConversation"
+    if tuple(scenarios) != REPORT_CONVERSATION_SCENARIO_ORDER:
+        errors.append(
+            f"{opid}: scenarios must be exactly "
+            f"{list(REPORT_CONVERSATION_SCENARIO_ORDER)!r}; got {list(scenarios)!r}"
+        )
+
+    frozen_context: dict | None = None
+    for scenario_name, scenario in scenarios.items():
+        response = scenario.get("response") or {}
+        expected_error = REPORT_CONVERSATION_ERROR_MATRIX.get(scenario_name)
+        if expected_error is not None:
+            expected_status, expected_code = expected_error
+            body = response.get("body") or {}
+            error = body.get("error") or {}
+            if response.get("status") != expected_status:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.status: expected {expected_status}"
+                )
+            if set(body) != {"error"}:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body: typed ApiErrorResponse required"
+                )
+            if error.get("code") != expected_code:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.error.code: "
+                    f"expected {expected_code!r}"
+                )
+            if error.get("retryable") is not False:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.error.retryable: expected false"
+                )
+            continue
+
+        expected_status = REPORT_CONVERSATION_SUCCESS_STATUS.get(scenario_name)
+        if expected_status is None:
+            errors.append(f"{opid}.{scenario_name}: unexpected success scenario")
+            continue
+        if response.get("status") != 200:
+            errors.append(
+                f"{opid}.{scenario_name}.response.status: conversation scenario must return 200"
+            )
+            continue
+        body = response.get("body")
+        if not isinstance(body, dict):
+            errors.append(f"{opid}.{scenario_name}.response.body: object required")
+            continue
+        body_path = f"{opid}.{scenario_name}.response.body"
+        if set(body) != {"reportId", "reportStatus", "context", "messages"}:
+            errors.append(
+                f"{body_path}: closed conversation requires exactly "
+                "reportId/reportStatus/context/messages"
+            )
+        if not isinstance(body.get("reportId"), str) or not body["reportId"].strip():
+            errors.append(f"{body_path}.reportId: non-empty report locator required")
+        if body.get("reportStatus") != expected_status:
+            errors.append(
+                f"{body_path}.reportStatus: expected {expected_status!r}"
+            )
+        context = body.get("context")
+        if not isinstance(context, dict):
+            errors.append(f"{body_path}.context: frozen report context is required")
+        elif scenario_name == "prototype-baseline":
+            # The prototype-derived report record has its own frozen source
+            # context; named hand-authored status variants share another one.
+            pass
+        elif frozen_context is None:
+            frozen_context = context
+        elif context != frozen_context:
+            errors.append(
+                f"{body_path}.context: every report-status fixture must retain the same frozen context"
+            )
+
+        messages = body.get("messages")
+        if not isinstance(messages, list):
+            errors.append(f"{body_path}.messages: array required")
+            continue
+        previous_sequence = 0
+        for index, message in enumerate(messages):
+            message_path = f"{body_path}.messages[{index}]"
+            if not isinstance(message, dict):
+                errors.append(f"{message_path}: object required")
+                continue
+            if set(message) != REPORT_CONVERSATION_MESSAGE_FIELDS:
+                errors.append(
+                    f"{message_path}: requires exactly "
+                    "sequence/role/content/createdAt"
+                )
+            for field in REPORT_CONVERSATION_FORBIDDEN_MESSAGE_FIELDS:
+                if field in message:
+                    errors.append(
+                        f"{message_path}: internal locator {field!r} is forbidden"
+                    )
+            sequence = message.get("sequence")
+            if not isinstance(sequence, int) or sequence <= previous_sequence:
+                errors.append(
+                    f"{message_path}.sequence: messages must be strictly increasing"
+                )
+            elif sequence <= 0:
+                errors.append(f"{message_path}.sequence: must be positive")
+            previous_sequence = sequence if isinstance(sequence, int) else previous_sequence
+            if message.get("role") not in {"user", "assistant"}:
+                errors.append(f"{message_path}.role: must be user or assistant")
+            if not isinstance(message.get("content"), str) or not message["content"].strip():
+                errors.append(f"{message_path}.content: nonblank string required")
+            if not isinstance(message.get("createdAt"), str) or not message["createdAt"].strip():
+                errors.append(f"{message_path}.createdAt: non-empty timestamp required")
+
+    default_messages = (
+        ((scenarios.get("default") or {}).get("response") or {}).get("body") or {}
+    ).get("messages") or []
+    if not (
+        len(default_messages) >= 2
+        and default_messages[0].get("role") == "user"
+        and default_messages[1].get("role") == "assistant"
+    ):
+        errors.append(f"{opid}.default: must expose an ordered user/assistant record")
+    empty_messages = (
+        ((scenarios.get("empty-messages") or {}).get("response") or {}).get("body") or {}
+    ).get("messages")
+    if empty_messages != []:
+        errors.append(f"{opid}.empty-messages: must use an explicit empty messages array")
+    markdown_messages = (
+        ((scenarios.get("markdown-gfm") or {}).get("response") or {}).get("body") or {}
+    ).get("messages") or []
+    markdown_content = "\n".join(
+        message.get("content", "")
+        for message in markdown_messages
+        if isinstance(message, dict)
+    )
+    for marker in ("**", "|", "```"):
+        if marker not in markdown_content:
+            errors.append(
+                f"{opid}.markdown-gfm: fixture must retain GFM marker {marker!r}"
+            )
+
+
 def _practice_round_ref(sequence: int, round_type: str) -> dict[str, Any]:
     return {
         "roundId": f"round-{sequence}-{round_type}",
@@ -1711,6 +1912,8 @@ def validate(repo_root: Path) -> List[str]:
         check_target_job_paste_only_semantics(opid, scenarios, errors)
         if opid == "listTargetJobReports":
             check_target_job_reports_overview_semantics(scenarios, errors)
+        if opid == "getReportConversation":
+            check_report_conversation_semantics(scenarios, errors)
         if opid == "getFeedbackReport":
             check_feedback_report_semantics(scenarios, errors)
         check_practice_round_semantics(opid, scenarios, errors)

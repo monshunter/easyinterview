@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-15](2026-07-15.md) | `feat(report): implement readonly conversation record (BUG-0172, BUG-0173)` | #feat #api #ui #test #docs #bdd |
 | [2026-07-15](2026-07-15.md) | `docs(report): define report conversation record` | #docs #api #ui #test #bdd |
 | [2026-07-15](2026-07-15.md) | `fix(e2e): enforce real API and UI evidence` | #fix #test #docs #bdd |
 | [2026-07-14](2026-07-14.md) | `docs(runtime): close content limit delivery` | #docs #test #bdd |

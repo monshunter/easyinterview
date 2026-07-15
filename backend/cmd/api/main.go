@@ -452,6 +452,14 @@ func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagC
 		mux.Handle("GET /api/v1/reports/{reportId}", auth.SessionMiddleware(authService, "getFeedbackReport", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			reports.Handler.GetFeedbackReport(w, r, r.PathValue("reportId"))
 		})))
+		reportConversation := auth.SessionMiddleware(authService, "getReportConversation", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			reports.Handler.GetReportConversation(w, r, r.PathValue("reportId"))
+		}))
+		mux.Handle("GET /api/v1/reports/{reportId}/conversation", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "private, no-store")
+			w.Header().Set("Pragma", "no-cache")
+			reportConversation.ServeHTTP(w, r)
+		}))
 		mux.Handle("GET /api/v1/targets/{targetJobId}/reports", auth.SessionMiddleware(authService, "listTargetJobReports", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			reports.Handler.ListTargetJobReports(w, r, r.PathValue("targetJobId"))
 		})))
@@ -481,7 +489,6 @@ func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagC
 		mux.Handle("GET /api/v1/practice/plans/{planId}", auth.SessionMiddleware(authService, "getPracticePlan", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			practice.Handler.GetPracticePlan(w, r, r.PathValue("planId"))
 		})))
-		mux.Handle("GET /api/v1/practice/sessions", auth.SessionMiddleware(authService, "listPracticeSessions", http.HandlerFunc(practice.Handler.ListPracticeSessions)))
 		mux.Handle("POST /api/v1/practice/sessions", auth.SessionMiddleware(authService, "startPracticeSession", http.HandlerFunc(practice.Handler.StartPracticeSession)))
 		mux.Handle("GET /api/v1/practice/sessions/{sessionId}", auth.SessionMiddleware(authService, "getPracticeSession", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			practice.Handler.GetPracticeSession(w, r, r.PathValue("sessionId"))

@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 3.6
+> **版本**: 3.7
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -109,7 +109,7 @@ Playwright 使用同一 deterministic fixture 同时加载 prototype/formal：lo
 
 #### 8.2 Full-page real UAT
 
-当被显式运行时，P0.099 为当前 run 创建 en/zh ready rows 并捕获六图，不依赖 provider/eval output digest。每个 ready row 必须绑定 DB/API `canonical_report_content_digest`、`action_length_audit`、`content_audit`、`screenshot_sha256` 与 report/session/context digest。两张 390x844 mobile report `fullPage: true` 图完整覆盖 action 区域，证明当前合法 zh-CN / English label 完整可见、无 clipping/ellipsis/hidden content 且 `scrollWidth=390`。恰好 64/24 的边界由代码层 deterministic fixture tests 独立证明，不作为 E2E 步骤。本轮未运行，状态保持 `Ready`。
+当被显式运行时，P0.099 为当前 run 创建 en/zh ready rows 并捕获六图，不依赖 provider/eval output digest。每个 ready row 必须绑定 DB/API `canonical_report_content_digest`、`action_length_audit`、`content_audit`、`screenshot_sha256` 与 report/session/context digest。两张 390x844 mobile report `fullPage: true` 图完整覆盖 action 区域，证明当前合法 zh-CN / English label 完整可见、无 clipping/ellipsis/hidden content 且 `scrollWidth=390`。恰好 64/24 的边界由代码层 deterministic fixture tests 独立证明，不作为 E2E 步骤。current-run PASS 仅记录在对应 BDD checklist 与场景输出中，不改变 INDEX 的资产 `Ready` 含义。
 
 #### 8.3 Active stale negative
 

@@ -30,7 +30,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.32 | active | 2026-07-14 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.61 | active | 2026-07-15 | [plans](./openapi-v1-contract/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.62 | active | 2026-07-15 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.15 | active | 2026-07-13 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.37 | active | 2026-07-14 | [plans](./db-migrations-baseline/plans/) |
 
@@ -52,10 +52,10 @@
 | [backend-auth](./backend-auth/spec.md) | 2.1 | active | 2026-07-10 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 2.13 | active | 2026-07-14 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.35 | active | 2026-07-15 | [plans](./backend-practice/plans/) |
-| [backend-review](./backend-review/spec.md) | 1.29 | active | 2026-07-15 | [plans](./backend-review/plans/) |
+| [backend-review](./backend-review/spec.md) | 1.30 | active | 2026-07-15 | [plans](./backend-review/plans/) |
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.15 | completed | 2026-07-12 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.7 | active | 2026-07-14 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 2.9 | active | 2026-07-14 | [plans](./backend-resume/plans/) |
 | [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.16 | active | 2026-07-14 | [plans](./frontend-resume-workshop/plans/) |
 | [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.26 | active | 2026-07-15 | [plans](./frontend-report-dashboard/plans/) |
-| [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 2.14 | active | 2026-07-15 | [plans](./e2e-scenarios-p0/plans/) |
+| [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 2.15 | active | 2026-07-15 | [plans](./e2e-scenarios-p0/plans/) |

@@ -119,6 +119,164 @@ const ReportFailureState = ({ T, lang, nav, errorCode, targetJobId }) => {
   );
 };
 
+const ReportConversationScreen = ({ T, lang, nav, params = {} }) => {
+  const conversation = window.EI_DATA.reportConversation;
+  if (!params.reportId) return <ReportConversationUnavailable T={T} lang={lang} nav={nav} />;
+  if (conversation?.state === "loading") return <ReportConversationLoading T={T} lang={lang} nav={nav} />;
+  if (conversation?.state === "network_error" || !isValidReportConversation(conversation, params.reportId)) {
+    return <ReportConversationUnavailable T={T} lang={lang} nav={nav} />;
+  }
+
+  const back = () => {
+    if (conversation.reportStatus === "ready") {
+      nav("report", { reportId: conversation.reportId });
+      return;
+    }
+    if (REPORT_CONVERSATION_REPORT_STATUSES.has(conversation.reportStatus)) {
+      nav("generating", { reportId: conversation.reportId });
+      return;
+    }
+    nav("workspace");
+  };
+
+  return (
+    <main data-testid="report-conversation-screen" className="ei-fadein" style={{ maxWidth: 880, margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}>
+      <button data-testid="report-conversation-back-button" type="button" onClick={back} style={{ border: 0, background: "transparent", color: T.ink3, cursor: "pointer", marginBottom: 20, padding: 0 }}>
+        ← {lang === "en" ? "Back to report" : "返回报告"}
+      </button>
+
+      <header style={{ marginBottom: 24 }}>
+        <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "INTERVIEW RECORD" : "本次面试记录"}</div>
+        <h1 className="ei-serif" style={{ margin: 0, fontSize: 36, color: T.ink, overflowWrap: "anywhere" }}>
+          {conversation.context.targetJobCompany} · {conversation.context.targetJobTitle}
+        </h1>
+        <p style={{ color: T.ink2, lineHeight: 1.7, margin: "10px 0 0" }}>
+          {lang === "en" ? "A read-only record of the completed interview conversation." : "按原始顺序查看本场面试的完整对话记录。"}
+        </p>
+      </header>
+
+      <div data-testid="report-conversation-context-strip">
+        <ReportContextStrip T={T} lang={lang} report={{ context: conversation.context }} />
+      </div>
+
+      <section data-testid="report-conversation-transcript" aria-label={lang === "en" ? "Interview conversation record" : "面试对话记录"} style={{ minWidth: 0, overflowX: "hidden" }}>
+        {conversation.messages.length > 0 ? (
+          <ol style={{ margin: 0, padding: 0, listStyle: "none" }}>
+            {conversation.messages.map((message) => <ReportConversationMessage key={message.sequence} message={message} T={T} lang={lang} />)}
+          </ol>
+        ) : <ReportConversationEmpty T={T} lang={lang} />}
+      </section>
+    </main>
+  );
+};
+
+const REPORT_CONVERSATION_REPORT_STATUSES = new Set(["queued", "generating", "ready", "failed"]);
+const REPORT_CONVERSATION_CONTEXT_KEYS = new Set([
+  "sourcePlanId",
+  "targetJobTitle",
+  "targetJobCompany",
+  "resumeId",
+  "resumeDisplayName",
+  "roundId",
+  "roundSequence",
+  "roundName",
+  "roundType",
+  "language",
+  "hasNextRound",
+]);
+const REPORT_CONVERSATION_MESSAGE_KEYS = new Set(["sequence", "role", "content", "createdAt"]);
+const REPORT_CONVERSATION_MESSAGE_ROLES = new Set(["user", "assistant"]);
+
+const hasExactConversationKeys = (value, keys) => {
+  const actualKeys = Object.keys(value || {});
+  return actualKeys.length === keys.size && actualKeys.every((key) => keys.has(key));
+};
+
+const isValidReportConversation = (conversation, reportId) => {
+  if (!conversation || conversation.state !== "ready" || conversation.reportId !== reportId) return false;
+  if (!REPORT_CONVERSATION_REPORT_STATUSES.has(conversation.reportStatus)) return false;
+  if (!hasExactConversationKeys(conversation.context, REPORT_CONVERSATION_CONTEXT_KEYS)) return false;
+  if (!Array.isArray(conversation.messages)) return false;
+  const context = conversation.context;
+  if (
+    !isNonEmptyText(context.sourcePlanId) ||
+    !isNonEmptyText(context.targetJobTitle) ||
+    !isNonEmptyText(context.targetJobCompany) ||
+    !isNonEmptyText(context.resumeId) ||
+    !isNonEmptyText(context.resumeDisplayName) ||
+    !isNonEmptyText(context.roundId) ||
+    !Number.isInteger(context.roundSequence) ||
+    context.roundSequence < 1 ||
+    !isNonEmptyText(context.roundName) ||
+    !isNonEmptyText(context.roundType) ||
+    !isNonEmptyText(context.language) ||
+    typeof context.hasNextRound !== "boolean"
+  ) return false;
+
+  let previousSequence = 0;
+  return conversation.messages.every((message) => {
+    if (!hasExactConversationKeys(message, REPORT_CONVERSATION_MESSAGE_KEYS)) return false;
+    if (
+      !Number.isInteger(message.sequence) ||
+      message.sequence < 1 ||
+      message.sequence <= previousSequence ||
+      !REPORT_CONVERSATION_MESSAGE_ROLES.has(message.role) ||
+      !isNonEmptyText(message.content) ||
+      !isNonEmptyText(message.createdAt)
+    ) return false;
+    previousSequence = message.sequence;
+    return true;
+  });
+};
+
+const ReportConversationLoading = ({ T, lang, nav }) => (
+  <main data-testid="report-conversation-loading" className="ei-fadein" style={{ maxWidth: 820, margin: "0 auto", padding: "72px clamp(16px, 5vw, 48px)" }}>
+    <Card T={T}>
+      <div role="status" aria-live="polite">
+        <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "LOADING RECORD" : "正在读取记录"}</div>
+        <div className="ei-serif" style={{ color: T.ink, fontSize: 26, marginBottom: 10 }}>{lang === "en" ? "Opening this interview record…" : "正在打开本次面试记录…"}</div>
+        <p style={{ color: T.ink2, lineHeight: 1.65, margin: "0 0 18px" }}>{lang === "en" ? "The conversation will appear only after its report context is verified." : "仅在报告上下文核验完成后显示对话内容。"}</p>
+        <Btn T={T} variant="secondary" onClick={() => nav("workspace")}>{lang === "en" ? "Back to interviews" : "返回面试"}</Btn>
+      </div>
+    </Card>
+  </main>
+);
+
+const ReportConversationUnavailable = ({ T, lang, nav }) => (
+  <main data-testid="report-conversation-unavailable" className="ei-fadein" style={{ maxWidth: 820, margin: "0 auto", padding: "72px clamp(16px, 5vw, 48px)" }}>
+    <Card T={T}>
+      <div role="alert">
+        <div className="ei-label" style={{ color: T.danger, marginBottom: 10 }}>{lang === "en" ? "RECORD UNAVAILABLE" : "记录暂时不可用"}</div>
+        <div className="ei-serif" style={{ color: T.ink, fontSize: 26, marginBottom: 10 }}>{lang === "en" ? "This interview record cannot be opened." : "无法打开本次面试记录。"}</div>
+        <p style={{ color: T.ink2, lineHeight: 1.65, margin: "0 0 18px" }}>{lang === "en" ? "Return to your interviews and open another verified report." : "请返回面试，打开另一份已核验的报告。"}</p>
+        <Btn T={T} variant="secondary" onClick={() => nav("workspace")}>{lang === "en" ? "Back to interviews" : "返回面试"}</Btn>
+      </div>
+    </Card>
+  </main>
+);
+
+const ReportConversationEmpty = ({ T, lang }) => (
+  <div data-testid="report-conversation-empty" role="status" style={{ padding: "20px 0 28px", color: T.ink3, fontSize: 13, lineHeight: 1.65 }}>
+    <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "NO MESSAGES" : "暂无对话消息"}</div>
+    <div style={{ color: T.ink2 }}>{lang === "en" ? "This verified interview record does not contain any messages." : "这份已核验的面试记录暂未包含对话消息。"}</div>
+  </div>
+);
+
+const ReportConversationMessage = ({ message, T, lang }) => {
+  const isAssistant = message.role === "assistant";
+  return (
+    <li data-testid={`report-conversation-message-${message.sequence}`} data-role={message.role} style={{ display: "flex", gap: 12, minWidth: 0, marginBottom: 20 }}>
+      <div style={{ width: 28, height: 28, borderRadius: 2, flexShrink: 0, background: isAssistant ? T.accentSoft : T.bgSoft, color: isAssistant ? T.accent : T.ink2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontFamily: "var(--ei-mono)", fontWeight: 500 }}>
+        {isAssistant ? "AI" : (lang === "en" ? "ME" : "我")}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: T.ink2, fontSize: 12, fontWeight: 500, marginBottom: 5 }}>{isAssistant ? (lang === "en" ? "Interviewer" : "面试官") : (lang === "en" ? "You" : "我")}</div>
+        <PracticeMessageBody text={message.content} T={T} />
+      </div>
+    </li>
+  );
+};
+
 const ReportDashboard = ({ T, lang, nav, report }) => {
   const context = report.context;
   const dimensions = report.dimensionAssessments;
@@ -149,7 +307,10 @@ const ReportDashboard = ({ T, lang, nav, report }) => {
         </div>
       </header>
 
-      <ReportContextStrip T={T} lang={lang} report={report} />
+      <ReportContextStrip T={T} lang={lang} report={report} marginBottom={10} />
+      <button data-testid="report-conversation-entry" type="button" onClick={() => nav("report-conversation", { reportId: report.id })} style={{ display: "inline-flex", alignItems: "center", gap: 5, margin: "0 0 22px", padding: 0, border: 0, background: "transparent", color: T.ink3, fontSize: 12.5, fontFamily: "var(--ei-sans)", cursor: "pointer" }}>
+        <Icon name="arrow_right" size={13} /> {lang === "en" ? "View this interview record" : "查看本次面试记录"}
+      </button>
 
       <section data-testid="report-summary-cards" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 22 }}>
         <ReportMetric T={T} label={lang === "en" ? "READINESS" : "准备度"} value={localizeReadiness(report.preparednessLevel, lang)} description={report.summary} />
@@ -175,7 +336,7 @@ const ReportDashboard = ({ T, lang, nav, report }) => {
   );
 };
 
-const ReportContextStrip = ({ T, lang, report }) => {
+const ReportContextStrip = ({ T, lang, report, marginBottom = 22 }) => {
   const context = report.context;
   const items = [
     ["job", lang === "en" ? "TARGET" : "目标岗位", `${context.targetJobCompany} · ${context.targetJobTitle}`],
@@ -183,7 +344,7 @@ const ReportContextStrip = ({ T, lang, report }) => {
     ["resume", lang === "en" ? "RESUME" : "简历", context.resumeDisplayName],
   ];
   return (
-    <section data-testid="report-context-strip" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 1, border: `1px solid ${T.rule}`, background: T.rule, marginBottom: 22 }}>
+    <section data-testid="report-context-strip" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 1, border: `1px solid ${T.rule}`, background: T.rule, marginBottom }}>
       {items.map(([id, label, value]) => <div key={id} data-testid={`report-context-${id}`} style={{ minWidth: 0, padding: "12px 14px", background: T.bgCard }}><div className="ei-label" style={{ color: T.ink3, marginBottom: 5 }}>{label}</div><div title={value} style={{ color: T.ink2, fontSize: 12.5, lineHeight: 1.5, overflowWrap: "anywhere" }}>{value}</div></div>)}
     </section>
   );

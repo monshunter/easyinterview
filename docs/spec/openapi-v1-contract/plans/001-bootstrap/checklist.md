@@ -136,9 +136,12 @@ git diff --check
 
 ## Phase 18: Report-owned conversation replacement
 
-- [ ] 18.1 OWNER/RED: OPENAPI-001 v1.7 + spec/history 1.61 exist；tests reject the public list path/query/schema and require the reportId-only protected replacement while preserving 37/10 plus start/get live-session invariants.
-- [ ] 18.2 GREEN: add exact closed `ReportConversation` / `ReportConversationMessage`, replace `listPracticeSessions` with `getReportConversation`, and regenerate typed Go/TS without compatibility method, locator leakage, optional alias or `any`.
-- [ ] 18.3 AUDIT-GATE: 003 Phase 11 generates the exact five-key OPENAPI-001 v1.7 oracle from merge-base old baseline after RED and before baseline mutation；missing/extra/wildcard/hand-authored placeholder fails.
+- [x] 18.1 OWNER/RED: OPENAPI-001 v1.7 + spec/history 1.61 exist；tests reject the public list path/query/schema and require the reportId-only protected replacement while preserving 37/10 plus start/get live-session invariants.
+  <!-- verified: 2026-07-15 evidence="Focused inventory contract test failed against the old list surface, then passed with 37/10 and preserved start/get session operations." -->
+- [x] 18.2 GREEN: add exact closed `ReportConversation` / `ReportConversationMessage`, replace `listPracticeSessions` with `getReportConversation`, and regenerate typed Go/TS without compatibility method, locator leakage, optional alias or `any`.
+  <!-- verified: 2026-07-15 evidence="make lint-openapi plus focused inventory/generated Go+TS type test pass after codegen-openapi." -->
+- [x] 18.3 AUDIT-GATE: 003 Phase 11 generates the exact five-key OPENAPI-001 v1.7 oracle from merge-base old baseline after RED and before baseline mutation；missing/extra/wildcard/hand-authored placeholder fails.
+  <!-- verified: 2026-07-15 method=generated-base-ref-audit evidence="--emit-openapi-001-v17-oracle generated 15 findings from main merge-base; exact audit and preserved artifact match with errors=[]; focused wrapper test rejects wildcard/edited baseline." -->
 - [ ] 18.4 HANDOFF-GATE: 002 Phase 12 fixture/example/Prism, backend-practice list deletion, backend-review strict read model, frontend reportId-only consumer, mock parity and downstream BDD gates pass before re-freeze.
 - [ ] 18.5 ZERO-REFERENCE-GATE: current positive/runtime OpenAPI, fixture, generated, backend, frontend, mock and scenario surfaces contain zero `listPracticeSessions` / public session-list route/query/schema/consumer references；accepted decision/oracle and explicit negative tests are the only allowed occurrences.
 - [ ] 18.6 REGRESSION-GATE: `make lint-openapi validate-fixtures codegen-check openapi-diff`、scoped consumers、root `make test`、contexts/docs/diff all pass with 37/10 unchanged.

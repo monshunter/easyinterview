@@ -326,16 +326,6 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** listPracticeSessions — get /practice/sessions: List practice sessions (cursor-paginated) */
-	async listPracticeSessions(opts?: RequestOptions): Promise<Types.PaginatedPracticeSession> {
-		return this.request<Types.PaginatedPracticeSession>(
-			"GET",
-			"/practice/sessions",
-			undefined,
-			opts,
-		);
-	}
-
 	/** startPracticeSession — post /practice/sessions: Start a practice session */
 	async startPracticeSession(body: Types.StartPracticeSessionRequest, opts?: RequestOptions): Promise<Types.PracticeSession> {
 		return this.request<Types.PracticeSession>(
@@ -422,6 +412,16 @@ export class EasyInterviewClient {
 		return this.request<Types.FeedbackReport>(
 			"GET",
 			buildPath("/reports/{reportId}", { reportId: reportId }),
+			undefined,
+			opts,
+		);
+	}
+
+	/** getReportConversation — get /reports/{reportId}/conversation: Get the read-only conversation record for a feedback report */
+	async getReportConversation(reportId: string, opts?: RequestOptions): Promise<Types.ReportConversation> {
+		return this.request<Types.ReportConversation>(
+			"GET",
+			buildPath("/reports/{reportId}/conversation", { reportId: reportId }),
 			undefined,
 			opts,
 		);
@@ -620,7 +620,6 @@ export const ALL_OPERATION_IDS = [
 	"completeMyProfile",
 	"createPracticePlan",
 	"getPracticePlan",
-	"listPracticeSessions",
 	"startPracticeSession",
 	"getPracticeSession",
 	"completePracticeSession",
@@ -630,6 +629,7 @@ export const ALL_OPERATION_IDS = [
 	"requestPrivacyExport",
 	"getPrivacyRequest",
 	"getFeedbackReport",
+	"getReportConversation",
 	"requestResumeTailor",
 	"getResumeTailorRun",
 	"listResumes",
@@ -668,7 +668,6 @@ export const ALL_ROUTES = [
 	{ operationId: "completeMyProfile", method: "PATCH", path: "/me" },
 	{ operationId: "createPracticePlan", method: "POST", path: "/practice/plans" },
 	{ operationId: "getPracticePlan", method: "GET", path: "/practice/plans/{planId}" },
-	{ operationId: "listPracticeSessions", method: "GET", path: "/practice/sessions" },
 	{ operationId: "startPracticeSession", method: "POST", path: "/practice/sessions" },
 	{ operationId: "getPracticeSession", method: "GET", path: "/practice/sessions/{sessionId}" },
 	{ operationId: "completePracticeSession", method: "POST", path: "/practice/sessions/{sessionId}/complete" },
@@ -678,6 +677,7 @@ export const ALL_ROUTES = [
 	{ operationId: "requestPrivacyExport", method: "POST", path: "/privacy/exports" },
 	{ operationId: "getPrivacyRequest", method: "GET", path: "/privacy/requests/{privacyRequestId}" },
 	{ operationId: "getFeedbackReport", method: "GET", path: "/reports/{reportId}" },
+	{ operationId: "getReportConversation", method: "GET", path: "/reports/{reportId}/conversation" },
 	{ operationId: "requestResumeTailor", method: "POST", path: "/resume/tailor" },
 	{ operationId: "getResumeTailorRun", method: "GET", path: "/resume/tailor-runs/{tailorRunId}" },
 	{ operationId: "listResumes", method: "GET", path: "/resumes" },

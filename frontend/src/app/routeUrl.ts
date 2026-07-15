@@ -33,6 +33,7 @@ export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
   reports: "/reports",
   generating: "/generating",
   report: "/report",
+  report_conversation: "/report-conversation",
   settings: "/settings",
   auth_login: "/auth/login",
   auth_verify: "/auth/verify",
@@ -89,6 +90,10 @@ const REPORT_SAFE = new Set([
   "reportId",
 ]);
 
+const REPORT_CONVERSATION_SAFE = new Set([
+  "reportId",
+]);
+
 const REPORTS_SAFE = new Set(["targetJobId"]);
 
 const RESUME_VERSIONS_SAFE = new Set([
@@ -135,6 +140,7 @@ const ROUTE_SAFE_PARAMS: Readonly<Record<RouteName, ReadonlySet<string>>> = {
   reports: REPORTS_SAFE,
   generating: GENERATING_SAFE,
   report: REPORT_SAFE,
+  report_conversation: REPORT_CONVERSATION_SAFE,
   settings: SETTINGS_SAFE,
   auth_login: AUTH_LOGIN_BASE,
   auth_verify: AUTH_VERIFY_BASE,

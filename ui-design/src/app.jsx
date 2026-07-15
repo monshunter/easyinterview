@@ -77,7 +77,7 @@ const DEFAULT_INTERVIEW_CONTEXT = {
 };
 
 const INTERVIEW_CONTEXT_ROUTES = new Set(["practice"]);
-const REPORT_LOCATOR_ROUTES = new Set(["generating", "report"]);
+const REPORT_LOCATOR_ROUTES = new Set(["generating", "report", "report-conversation"]);
 const TARGET_JOB_LOCATOR_ROUTES = new Set(["parse", "reports", "workspace"]);
 const normalizeRouteName = (name) => ROUTE_ALIASES[name] || name;
 const shouldCarryInterviewContext = (name) => INTERVIEW_CONTEXT_ROUTES.has(normalizeRouteName(name));
@@ -333,6 +333,7 @@ const App = () => {
       : <WorkspaceScreen T={T} lang={lang} nav={nav} />,
     practice: <PracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} jobId={currentContext.targetJobId} mode={route.params.mode} />,
     report: <ReportScreen T={T} lang={lang} nav={nav} params={route.params || {}} requestAuth={requestAuth} />,
+    "report-conversation": <ReportConversationScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     parse: <ParseScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} params={route.params || {}} />,
     reports: <ReportsScreen T={T} lang={lang} nav={nav} params={route.params || {}} demoState={prototypeReportDemoState} />,
     generating: <ReportGeneratingScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
@@ -351,7 +352,7 @@ const App = () => {
   return (
     <div style={{ minHeight: "100vh", background: T.bg, color: T.ink, fontFamily: "var(--ei-sans)" }} data-screen-label={route.name}>
       {!hideTopBar && <TopBar T={T} route={{ ...route, name: activeRouteName }} nav={nav} lang={lang} setLang={setLang} dark={tweaks.dark} setDark={(v) => updateTweak("dark", v)} theme={tweaks.theme} setTheme={(v) => updateTweak("theme", v)} customAccent={tweaks.customAccent} setCustomAccent={(v) => updateTweak("customAccent", v)} signedIn={signedIn} signOut={() => nav("auth_logout")} />}
-      <div key={route.name + (route.params.targetJobId || route.params.jobId || "")}>
+      <div key={route.name + (route.params.reportId || route.params.targetJobId || route.params.jobId || "")}>
         {effectiveScreen}
       </div>
     </div>

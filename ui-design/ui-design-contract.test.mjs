@@ -176,7 +176,7 @@ test("resume workshop create flow keeps upload/paste only and opens detail direc
   assert.match(resume, /setCreatedResumes\(\(prev\) => \[\.\.\.prev, resume\]\);\s+setFlow\("list"\);\s+nav\("resume_versions", \{ resumeId: resume\.id \}\);/);
   assert.match(resume, /nav\("resume_versions", \{ resumeId: resume\.id \}\);/);
   assert.match(resume, /setFlow\(params\.flow === "create" \? "create" : "list"\);/);
-  assert.match(app, /<div key=\{route\.name \+ \(route\.params\.targetJobId \|\| route\.params\.jobId \|\| ""\)\}>/);
+  assert.match(app, /<div key=\{route\.name \+ \(route\.params\.reportId \|\| route\.params\.targetJobId \|\| route\.params\.jobId \|\| ""\)\}>/);
   assert.match(resume, /onCreateResume\(sourceLabel, createMode === "paste" \? resumeText : ""\)/);
   assert.match(resume, /onCreateResume\(f\.name, ""\)/);
   assert.match(resume, /\{ k: "upload", icon: "upload"/);
@@ -774,18 +774,92 @@ test("Report context strip hides internal session and report locators", () => {
   assert.doesNotMatch(strip, /report\.(?:sessionId|id)|report-context-session|SESSION|会话/);
 });
 
+test("report-owned conversation record stays reportId-only, read-only, and scoped to its parent report", () => {
+  const app = readUiFile("./src/app.jsx");
+  const report = readUiFile("./src/screen-report.jsx");
+  const reports = readUiFile("./src/screens-p0-complete.jsx");
+  const data = readUiFile("./src/data.jsx");
+  const canvas = readUiFile("./canvas.html");
+  const conversationStart = report.indexOf("const ReportConversationScreen = ");
+  const conversationEnd = report.indexOf("const ReportDashboard = ", conversationStart);
+  const conversation = report.slice(conversationStart, conversationEnd);
+  const dashboardStart = report.indexOf("const ReportDashboard = ");
+  const dashboardEnd = report.indexOf("const ReportContextStrip = ", dashboardStart);
+  const dashboard = report.slice(dashboardStart, dashboardEnd);
+  const reportsStart = reports.indexOf("const ReportsScreen = ");
+  const reportsEnd = reports.indexOf("// #3 REPORT GENERATING", reportsStart);
+  const reportsScreen = reports.slice(reportsStart, reportsEnd);
+  const currentReportStart = reportsScreen.indexOf("{item.currentReport &&");
+  const currentReportEnd = reportsScreen.indexOf("{showGenerating &&", currentReportStart);
+  const currentReportEntry = reportsScreen.slice(currentReportStart, currentReportEnd);
+  const generatingEntry = reportsScreen.slice(currentReportEnd);
+
+  assert.ok(conversationStart >= 0 && conversationEnd > conversationStart, "ReportConversationScreen must be a report-owned surface");
+  assert.ok(dashboardStart >= 0 && dashboardEnd > dashboardStart);
+  assert.ok(reportsStart >= 0 && reportsEnd > reportsStart);
+  assert.match(data, /reportConversation:\s*\{/);
+  assert.match(data, /reportStatus:\s*"ready"/);
+  assert.match(data, /sequence:\s*1[\s\S]*role:\s*"assistant"/);
+  assert.match(data, /sequence:\s*2[\s\S]*role:\s*"user"/);
+  assert.match(data, /阶段 \| 成功指标 \| 回滚条件/);
+  assert.match(data, /baseline-baseline-baseline/);
+
+  assert.match(app, /const REPORT_LOCATOR_ROUTES = new Set\(\["generating", "report", "report-conversation"\]\)/);
+  assert.match(app, /"report-conversation":\s*<ReportConversationScreen[^>]*params=\{route\.params \|\| \{\}\}/);
+  assert.match(app, /route\.params\.reportId \|\| route\.params\.targetJobId/);
+  assert.match(canvas, /\["generating", "report", "report-conversation"\]\.includes\(route\).*params\.set\("reportId", "report-24"\)/);
+
+  assert.match(dashboard, /data-testid="report-conversation-entry"/);
+  assert.match(dashboard, /nav\("report-conversation", \{ reportId: report\.id \}\)/);
+  assert.doesNotMatch(dashboard, /report-conversation-entry[\s\S]*<header/);
+  assert.ok(currentReportStart >= 0 && currentReportEnd > currentReportStart);
+  assert.match(currentReportEntry, /data-testid="reports-conversation-entry"/);
+  assert.match(currentReportEntry, /nav\("report-conversation", \{ reportId: item\.currentReport\.id \}\)/);
+  assert.doesNotMatch(generatingEntry, /reports-conversation-entry/);
+
+  for (const testId of [
+    "report-conversation-screen",
+    "report-conversation-back-button",
+    "report-conversation-context-strip",
+    "report-conversation-transcript",
+    "report-conversation-empty",
+    "report-conversation-loading",
+    "report-conversation-unavailable",
+  ]) {
+    assert.match(conversation, new RegExp(`data-testid=["\\{][^\\n]*${testId}`));
+  }
+  assert.match(conversation, /if \(!params\.reportId\)/);
+  assert.match(conversation, /const isValidReportConversation = \(conversation, reportId\) =>/);
+  assert.match(conversation, /conversation\.reportId !== reportId/);
+  assert.match(conversation, /Array\.isArray\(conversation\.messages\)/);
+  assert.doesNotMatch(conversation, /conversation\.messages\.length === 0/);
+  assert.match(conversation, /new Set\(\["queued", "generating", "ready", "failed"\]\)/);
+  assert.match(conversation, /message\.sequence <= previousSequence/);
+  assert.match(conversation, /new Set\(\["user", "assistant"\]\)/);
+  assert.match(conversation, /PracticeMessageBody text=\{message\.content\} T=\{T\}/);
+  assert.match(conversation, /nav\("report", \{ reportId: conversation\.reportId \}\)/);
+  assert.match(conversation, /nav\("generating", \{ reportId: conversation\.reportId \}\)/);
+  assert.match(conversation, /nav\("workspace"\)/);
+  assert.match(conversation, /state === "loading"/);
+  assert.match(conversation, /state === "network_error"/);
+  assert.match(conversation, /overflowX: "hidden"/);
+  assert.match(conversation, /minWidth: 0/);
+  assert.doesNotMatch(conversation, /sessionId|clientMessageId|replyStatus|replyGeneration|Composer|textarea|thinking|暂停|计时|电话/);
+  assert.doesNotMatch(conversation, /listPracticeSessions|Session History|会话列表/);
+});
+
 test("prototype report routes retain only their stable resource locators", () => {
   const app = readUiFile("./src/app.jsx");
   const canvas = readUiFile("./canvas.html");
 
-  assert.match(app, /const REPORT_LOCATOR_ROUTES = new Set\(\["generating", "report"\]\)/);
+  assert.match(app, /const REPORT_LOCATOR_ROUTES = new Set\(\["generating", "report", "report-conversation"\]\)/);
   assert.match(app, /const TARGET_JOB_LOCATOR_ROUTES = new Set\(\["parse", "reports", "workspace"\]\)/);
   assert.match(app, /return stripUndefined\(\{ reportId: params\.reportId \}\)/);
   assert.match(app, /return stripUndefined\(\{ targetJobId: params\.targetJobId \}\)/);
   assert.match(app, /const prototypeReportDemoState = activeRouteName === "reports"/);
   assert.match(app, /reports:\s*<ReportsScreen[^>]*params=\{route\.params \|\| \{\}\}[^>]*demoState=\{prototypeReportDemoState\}/);
-  assert.match(canvas, /\["generating", "report"\]\.includes\(route\).*params\.set\("reportId", "report-24"\)/);
-  assert.doesNotMatch(canvas, /\["practice", "generating", "report"\]\.includes\(route\).*sessionId/);
+  assert.match(canvas, /\["generating", "report", "report-conversation"\]\.includes\(route\).*params\.set\("reportId", "report-24"\)/);
+  assert.doesNotMatch(canvas, /\["practice", "generating", "report", "report-conversation"\]\.includes\(route\).*sessionId/);
 });
 
 test("P0 report has no voice or modality-specific report branch", () => {
@@ -851,6 +925,9 @@ test("practice owns one deterministic semantic GFM message-body and mobile overf
   assert.match(practice, /"markdown-gfm"/);
   assert.match(practice, /const PracticeMessageBody = /);
   assert.match(practice, /renderPracticeMarkdownBlocks\(text\)/);
+  assert.match(practice, /const renderPracticeStrong = /);
+  assert.match(practice, /<strong key=\{key\}>\{strong\[1\]\}<\/strong>/);
+  assert.match(practice, /return renderPracticeStrong\(token, key\)/);
   assert.match(practice, /PRACTICE_MARKDOWN_SAFE_SCHEMES/);
   assert.match(practice, /noopener noreferrer/);
   assert.match(practice, /data-testid="practice-message-body"/);
@@ -911,7 +988,7 @@ test("design canvas component surface matches its only tracked consumer", () => 
   assert.doesNotMatch(canvas, /params\.set\("(?:nochrome|jobId|targetJobId|planId|jdId|resumeId|roundId|roundName)"/);
   assert.match(canvas, /params\.set\("lang", "zh"\)/);
   assert.match(canvas, /route === "practice".*params\.set\("sessionId", "session-24"\)/);
-  assert.match(canvas, /\["generating", "report"\]\.includes\(route\).*params\.set\("reportId", "report-24"\)/);
+  assert.match(canvas, /\["generating", "report", "report-conversation"\]\.includes\(route\).*params\.set\("reportId", "report-24"\)/);
 });
 
 test("design canvas keeps edits in memory without an unavailable sidecar bridge", () => {

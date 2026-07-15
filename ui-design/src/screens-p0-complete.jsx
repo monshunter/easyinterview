@@ -459,8 +459,11 @@ const ReportsScreen = ({ T, lang, nav, params = {}, demoState }) => {
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {item.currentReport && (
-                      <span data-testid="reports-current">
+                      <span data-testid="reports-current" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                         <Btn T={T} variant="secondary" size="sm" icon="arrow_right" onClick={() => nav("report", { reportId: item.currentReport.id })}>{lang === "en" ? "Open report" : "查看报告"}</Btn>
+                        <button data-testid="reports-conversation-entry" type="button" onClick={() => nav("report-conversation", { reportId: item.currentReport.id })} style={{ border: 0, padding: 0, background: "transparent", color: T.ink3, fontSize: 12, fontFamily: "var(--ei-sans)", cursor: "pointer" }}>
+                          {lang === "en" ? "View interview record" : "查看面试记录"}
+                        </button>
                       </span>
                     )}
                     {showGenerating && (

@@ -10,6 +10,8 @@ import re
 import shutil
 import struct
 import sys
+import urllib.parse
+import uuid
 import zlib
 from collections import Counter
 from datetime import datetime
@@ -61,7 +63,7 @@ FORBIDDEN_VALUE_PATTERNS = (
     re.compile(r"(?i)postgres(?:ql)?://[^\s]+"),
 )
 
-FORBIDDEN_PNG_METADATA = {b"tEXt", b"zTXt", b"iTXt", b"eXIf", b"iCCP", b"tIME"}
+PNG_METADATA_CHUNKS = {b"tEXt", b"zTXt", b"iTXt", b"eXIf", b"iCCP", b"tIME"}
 FORBIDDEN_FILENAME_MARKERS = (
     "raw",
     "cookie",
@@ -71,6 +73,7 @@ FORBIDDEN_FILENAME_MARKERS = (
 )
 ALLOWED_TOP_LEVEL = {
     "cleanup.env",
+    "conversation-navigation.json",
     "live-capture.json",
     "manual-visual-audit.json",
     "manifest.json",
@@ -80,6 +83,7 @@ ALLOWED_TOP_LEVEL = {
     "trigger.env",
     "trigger.log",
 }
+MAX_NAVIGATION_REQUEST_COUNT = 4
 FORBIDDEN_TEXT_PATTERNS = (
     re.compile(
         rb'(?i)["\'](?:answer(?:_?text)?|auth_?code|cookie|email_?code|frozen_?context|jd_?text|prompt(?:_?body)?|provider_?response|raw_?context|response(?:_?body)?|resume_?text|session_?cookie(?:_?value)?|transcript)["\']\s*:'
@@ -186,8 +190,13 @@ def png_pixels(path: Path) -> tuple[int, int, int, list[bytes]]:
         actual_crc = zlib.crc32(kind + payload) & 0xFFFFFFFF
         if actual_crc != expected_crc:
             fail(f"{path.name} PNG chunk {kind!r} has an invalid CRC")
-        if kind in FORBIDDEN_PNG_METADATA:
-            fail(f"{path.name} contains forbidden PNG metadata chunk {kind.decode('ascii', errors='replace')}")
+        if kind in PNG_METADATA_CHUNKS:
+            for pattern in FORBIDDEN_TEXT_PATTERNS:
+                if pattern.search(payload):
+                    fail(
+                        f"{path.name} PNG metadata chunk "
+                        f"{kind.decode('ascii', errors='replace')} contains forbidden sensitive material"
+                    )
         if chunk_index == 0:
             if kind != b"IHDR" or length != 13:
                 fail(f"{path.name} PNG must start with one 13-byte IHDR")
@@ -589,6 +598,110 @@ def validate_count(value: Any, path: str) -> int:
     return value
 
 
+def validate_navigation_url(value: Any, expected_path: str, report_ref: str, path: str) -> None:
+    if not isinstance(value, str):
+        fail(f"{path} must be a relative reportId-only URL")
+    parsed = urllib.parse.urlsplit(value)
+    if (
+        parsed.scheme
+        or parsed.netloc
+        or parsed.fragment
+        or parsed.path != expected_path
+        or urllib.parse.parse_qsl(parsed.query, keep_blank_values=True) != [("reportId", report_ref)]
+    ):
+        fail(f"{path} must be a relative reportId-only URL")
+
+
+def validate_navigation_artifact(path: Path, run_id: str, ready_report_refs: set[str]) -> dict[str, str]:
+    if not path.is_file():
+        fail("missing bounded report conversation navigation artifact")
+    try:
+        navigation = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        fail(f"invalid report conversation navigation artifact: {exc}")
+    if not isinstance(navigation, dict):
+        fail("report conversation navigation artifact must be an object")
+    scan_redline(navigation)
+    require_keys(
+        navigation,
+        {
+            "schema_version",
+            "scenario_id",
+            "run_id",
+            "method",
+            "report_ref",
+            "urls",
+            "request_audit",
+            "privacy",
+        },
+        "conversation_navigation",
+    )
+    if (
+        navigation["schema_version"] != "p0-099-conversation-navigation.v1"
+        or navigation["scenario_id"] != "E2E.P0.099"
+        or navigation["run_id"] != run_id
+        or navigation["method"] != "real-browser-report-conversation-back"
+    ):
+        fail("report conversation navigation identity/run/method is invalid")
+    report_ref = validate_ref(navigation["report_ref"], "conversation_navigation.report_ref")
+    try:
+        uuid.UUID(report_ref)
+    except ValueError:
+        fail("conversation_navigation.report_ref must be a UUID")
+    if report_ref not in ready_report_refs:
+        fail("conversation navigation must bind one current ready report")
+
+    urls = navigation["urls"]
+    if not isinstance(urls, dict):
+        fail("conversation_navigation.urls must be an object")
+    require_keys(urls, {"report", "conversation", "back"}, "conversation_navigation.urls")
+    validate_navigation_url(urls["report"], "/report", report_ref, "conversation_navigation.urls.report")
+    validate_navigation_url(
+        urls["conversation"],
+        "/report-conversation",
+        report_ref,
+        "conversation_navigation.urls.conversation",
+    )
+    validate_navigation_url(urls["back"], "/report", report_ref, "conversation_navigation.urls.back")
+
+    request_audit = navigation["request_audit"]
+    if not isinstance(request_audit, dict):
+        fail("conversation_navigation.request_audit must be an object")
+    require_keys(
+        request_audit,
+        {
+            "report_get_path",
+            "report_get_count",
+            "conversation_get_path",
+            "conversation_get_count",
+            "public_session_list_request_count",
+            "route_interception_used",
+        },
+        "conversation_navigation.request_audit",
+    )
+    if (
+        request_audit["report_get_path"] != f"/api/v1/reports/{report_ref}"
+        or request_audit["conversation_get_path"] != f"/api/v1/reports/{report_ref}/conversation"
+    ):
+        fail("conversation navigation request paths do not bind the reportId-only APIs")
+    for key in ("report_get_count", "conversation_get_count"):
+        count = validate_count(request_audit[key], f"conversation_navigation.request_audit.{key}")
+        if not 1 <= count <= MAX_NAVIGATION_REQUEST_COUNT:
+            fail(f"conversation_navigation.request_audit.{key} is outside the bounded browser observation")
+    if request_audit["public_session_list_request_count"] != 0:
+        fail("conversation navigation observed a forbidden public session-list request")
+    if request_audit["route_interception_used"] is not False:
+        fail("conversation navigation must not use route interception")
+
+    if navigation["privacy"] != {
+        "transcript_prose_written": False,
+        "internal_locator_written": False,
+        "browser_state_written": False,
+    }:
+        fail("conversation navigation must persist only bounded redacted facts")
+    return {"report_ref": report_ref}
+
+
 def parse_utc_timestamp(value: Any, path: str) -> datetime:
     if not isinstance(value, str) or not value.endswith("Z"):
         fail(f"{path} must be an RFC3339 UTC timestamp")
@@ -619,11 +732,92 @@ def load_setup_boundary(output_dir: Path, run_id: str) -> datetime:
     return parse_utc_timestamp(values.get("setup_at"), "setup.env.setup_at")
 
 
+def validate_conversation_capture(
+    conversation: Any,
+    expected: dict[str, dict[str, Any]],
+    navigation: dict[str, str],
+) -> None:
+    if not isinstance(conversation, dict):
+        fail("live conversation capture must be an object")
+    require_keys(
+        conversation,
+        {"report_ref", "session_ref", "db", "api"},
+        "live_capture.conversation",
+    )
+    report_ref = validate_ref(conversation["report_ref"], "live_capture.conversation.report_ref")
+    if report_ref != navigation["report_ref"] or report_ref not in expected:
+        fail("live conversation capture does not bind the current browser-selected report")
+    binding = expected[report_ref]
+    session_ref = validate_ref(conversation["session_ref"], "live_capture.conversation.session_ref")
+    if session_ref != binding["session_ref"] or binding["status"] != "ready":
+        fail("live conversation capture report/session/ready binding is invalid")
+
+    db = conversation["db"]
+    if not isinstance(db, dict):
+        fail("live conversation DB projection must be an object")
+    require_keys(
+        db,
+        {
+            "report_status",
+            "frozen_context_digest",
+            "context_digest",
+            "message_count",
+            "strict_sequence_digest",
+            "ordered_message_digest",
+            "read_only",
+            "ordered_by",
+        },
+        "live_capture.conversation.db",
+    )
+    if (
+        db["report_status"] != "ready"
+        or db["frozen_context_digest"] != binding["frozen_context_digest"]
+        or db["read_only"] is not True
+        or db["ordered_by"] != "seq_no ASC"
+    ):
+        fail("live conversation DB report/context/order binding is invalid")
+    for key in ("frozen_context_digest", "context_digest", "strict_sequence_digest", "ordered_message_digest"):
+        validate_digest(db[key], f"live_capture.conversation.db.{key}")
+    message_count = validate_count(db["message_count"], "live_capture.conversation.db.message_count")
+    if message_count < 1:
+        fail("live conversation capture must bind at least one ordered message")
+
+    api = conversation["api"]
+    if not isinstance(api, dict):
+        fail("live conversation API projection must be an object")
+    require_keys(
+        api,
+        {
+            "report_status",
+            "context_digest",
+            "message_count",
+            "strict_sequence_digest",
+            "ordered_message_digest",
+            "authenticated",
+            "internal_locator_exposed",
+        },
+        "live_capture.conversation.api",
+    )
+    if (
+        api["report_status"] != db["report_status"]
+        or api["context_digest"] != db["context_digest"]
+        or api["message_count"] != message_count
+        or api["strict_sequence_digest"] != db["strict_sequence_digest"]
+        or api["ordered_message_digest"] != db["ordered_message_digest"]
+        or api["authenticated"] is not True
+        or api["internal_locator_exposed"] is not False
+    ):
+        fail("live conversation DB/API projection is not redacted and identical")
+    for key in ("context_digest", "strict_sequence_digest", "ordered_message_digest"):
+        validate_digest(api[key], f"live_capture.conversation.api.{key}")
+
+
 def validate_live_capture(
     output_dir: Path,
     run_id: str,
     manifest_rows: list[dict[str, Any]],
     setup_at: datetime,
+    navigation: dict[str, str],
 ) -> None:
     path = output_dir / "live-capture.json"
     if not path.is_file():
@@ -646,12 +840,13 @@ def validate_live_capture(
             "result",
             "reason_code",
             "reports",
+            "conversation",
             "privacy",
         },
         "live_capture",
     )
     if (
-        capture["schema_version"] != "p0-099-live-capture.v2"
+        capture["schema_version"] != "p0-099-live-capture.v3"
         or capture["scenario_id"] != "E2E.P0.099"
         or capture["run_id"] != run_id
         or capture["method"] != "authenticated-live-http+read-only-postgres"
@@ -668,6 +863,7 @@ def validate_live_capture(
         "raw_api_written": False,
         "raw_db_written": False,
         "raw_frozen_context_written": False,
+        "raw_conversation_content_written": False,
         "prose_written": False,
     }:
         fail("live DB/API capture privacy contract is not redacted")
@@ -797,6 +993,8 @@ def validate_live_capture(
         if actions != len(binding["action_label_audit"]["counts"]):
             fail(f"live capture action count does not match manifest audit for {report_ref}")
 
+    validate_conversation_capture(capture["conversation"], expected, navigation)
+
 
 def validate_manual_visual_audit(
     output_dir: Path,
@@ -923,7 +1121,17 @@ def validate(output_dir: Path, run_id: str, automated_only: bool = False) -> Non
             fail(f"{state} desktop/mobile rows must bind to the same report/session/context")
     if len({refs[0][0] for refs in grouped.values()}) != 3 or len({refs[0][1] for refs in grouped.values()}) != 3:
         fail("the three captured states must bind to isolated report/session resources")
-    validate_live_capture(output_dir, run_id, rows, setup_at)
+    ready_report_refs = {
+        refs[0][0]
+        for state, refs in grouped.items()
+        if state in {"ready-needs-practice", "ready-well-prepared"}
+    }
+    navigation = validate_navigation_artifact(
+        output_dir / "conversation-navigation.json",
+        run_id,
+        ready_report_refs,
+    )
+    validate_live_capture(output_dir, run_id, rows, setup_at, navigation)
     if not automated_only:
         validate_manual_visual_audit(output_dir, run_id, rows)
 
@@ -954,7 +1162,8 @@ def main() -> int:
     manual = "skipped" if args.automated_only else "bound"
     print(
         "P0_099_SIX_SCREENSHOT_PASS screenshots=6 states=3 "
-        f"live_binding=pass db_current_run=pass manual_visual_audit={manual} privacy=redacted"
+        "live_binding=pass conversation_navigation=pass db_current_run=pass "
+        f"manual_visual_audit={manual} privacy=redacted"
     )
     return 0
 

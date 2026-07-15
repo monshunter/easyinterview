@@ -1,6 +1,6 @@
 # 001 Real API/UI Journeys BDD Plan
 
-> **版本**: 3.8
+> **版本**: 3.9
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -18,7 +18,7 @@
 
 - Missing real frontend/backend/Mailpit/PostgreSQL prerequisites fail closed or return `MANUAL_REQUIRED`; they are not skipped as PASS.
 - Route interception, fixture transport, dev mock, stale run identity, digest mismatch or non-exact screenshots fail the relevant scenario.
-- Evidence excludes secrets, codes, cookies, raw JD/resume/transcript, complete prompt/response and report prose copies.
+- Evidence excludes project user data and secrets: codes, cookies, raw JD/resume/transcript, complete prompt/response and report prose copies. Benign development metadata such as PNG color profiles is not private user data and remains subject only to integrity/digest validation.
 - Code tests and eval gates are reported separately and cannot replace any real-environment scenario.
 - P0.101 business assertions remain owned by backend-auth/frontend-shell; this suite owns only the executable asset and current-run result.
 - P0.099 conversation must not add screenshots: its directory, manifest and manual audit remain exactly six images; route/status/count/sequence/binding/back-target digests are the only added evidence fields.

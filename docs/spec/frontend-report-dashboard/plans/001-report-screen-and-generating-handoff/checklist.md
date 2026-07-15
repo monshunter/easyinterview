@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 3.6
+> **版本**: 3.7
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -26,7 +26,7 @@
 
 - [x] Deterministic prototype/formal DOM/style/bbox/viewport/pixel parity runs as a frontend code gate, not E2E.
 - [x] BDD-Gate: `BDD.REPORT.UI.001` 由 [BDD checklist](./bdd-checklist.md) 关联 report/generating owner behavior tests。
-- [x] E2E-HANDOFF: P0.099 是唯一 real report/generating owner，要求 exactly six `fullPage: true` images 绑定 current API/DB/report/session/context/screenshot digests；本轮未运行，状态仍为 `Ready`。
+- [x] E2E-HANDOFF: P0.099 是唯一 real report/generating owner；current run `e2e-p0-099-20260715T021319Z-57232` 已通过 exactly six Chrome `fullPage: true` images、no-OCR visual audit 与 current API/DB/report/session/context/screenshot digest binding。
 - [x] P0.099 contract 要求 real mobile ready images 完整显示 action region 且无 clipping/ellipsis/hiding/overflow；exact 24/64 保持 code test。
 
 ## Phase 9: Context Strip privacy
@@ -47,13 +47,20 @@
 
 ## Phase 12: Report-owned readonly conversation
 
-- [ ] 12.1 RED: prototype/source tests require `ReportConversationScreen`, Report Context Strip link and ReportsScreen current-report shortcut; reject Header third CTA, Workspace/session-list entry and live Practice controls.
-- [ ] 12.2 GREEN: update `ui-design/` first, then implement `/report-conversation?reportId=...` against generated `getReportConversation`; no handwritten DTO, `getPracticeSession`, `listPracticeSessions` or browser-persisted transcript.
-- [ ] 12.3 STATE-GATE: queued/generating/ready/failed all render the same ordered read-only transcript; Back returns the exact parent report state, reportId switch clears stale rows, missing/cross-user/invalid order/role/extra fields fail closed.
-- [ ] 12.4 MARKDOWN/PRIVACY-GATE: reuse safe `react-markdown + remark-gfm` behavior; raw HTML/remote image/unsafe URI do not execute, safe links harden, and session/message/client IDs are absent from visible/a11y/URL/storage/log surfaces.
-- [ ] 12.5 PARITY-GATE: source structure and visual geometry are separately verified at desktop/390; code/table stay inside the message container and no screenshot-only gate substitutes for DOM/control parity.
-- [ ] 12.6 BDD-Gate: `BDD.REPORT.CONVERSATION.001` passes owner tests; `E2E.P0.099` adds real click/load/back + API/DB binding without changing the exact-six screenshot contract.
-- [ ] 12.7 COMPLETION-GATE: run root `make test`, frontend build/typecheck, OpenAPI/fixture/codegen/mock gates, docs/context/index checks and `git diff --check` before restoring completed status.
+- [x] 12.1 RED: prototype/source tests require `ReportConversationScreen`, Report Context Strip link and ReportsScreen current-report shortcut; reject Header third CTA, Workspace/session-list entry and live Practice controls.
+  <!-- verified: 2026-07-15 method=ui-contract+vitest red=missing-formal-screen green=prototype-and-formal-source -->
+- [x] 12.2 GREEN: update `ui-design/` first, then implement `/report-conversation?reportId=...` against generated `getReportConversation`; no handwritten DTO, `getPracticeSession`, `listPracticeSessions` or browser-persisted transcript.
+  <!-- verified: 2026-07-15 method=vitest+source-negative evidence="generated client only; reportId-only route; no session-list/live consumer" -->
+- [x] 12.3 STATE-GATE: queued/generating/ready/failed all render the same ordered read-only transcript; Back returns the exact parent report state, reportId switch clears stale rows, missing/cross-user/invalid order/role/extra fields fail closed.
+  <!-- verified: 2026-07-15 method=vitest cases=four-status,parent-back,report-switch,hidden-and-invalid-fail-closed -->
+- [x] 12.4 MARKDOWN/PRIVACY-GATE: reuse safe `react-markdown + remark-gfm` behavior; raw HTML/remote image/unsafe URI do not execute, safe links harden, and session/message/client IDs are absent from visible/a11y/URL/storage/log surfaces.
+  <!-- verified: 2026-07-15 method=vitest+source-negative cases=gfm,unsafe-html,remote-image,unsafe-uri,no-locators,no-persistence -->
+- [x] 12.5 PARITY-GATE: source structure and visual geometry are separately verified at desktop/390; code/table stay inside the message container and no screenshot-only gate substitutes for DOM/control parity.
+  <!-- verified: 2026-07-15 method=playwright-code-gate evidence="report-conversation pixel parity 6/6 desktop+390 PASS; DOM/computed-style/geometry/mobile-overflow/full-page comparisons" -->
+- [x] 12.6 BDD-Gate: `BDD.REPORT.CONVERSATION.001` passes owner tests; `E2E.P0.099` adds real click/load/back + API/DB binding without changing the exact-six screenshot contract.
+  <!-- verified: 2026-07-15 method=domain-behavior bddChecklist=complete -->
+- [x] 12.7 COMPLETION-GATE: run root `make test`, frontend build/typecheck, OpenAPI/fixture/codegen/mock gates, docs/context/index checks and `git diff --check` before restoring completed status.
+  <!-- verified: 2026-07-15 method=full-code-gates evidence="make test/build/docs-check PASS; 149 contract tests PASS; codegen idempotent; context/index/diff PASS" -->
 
 ## Closeout
 

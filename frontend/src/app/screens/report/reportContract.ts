@@ -100,7 +100,7 @@ function validatedReportBase(value: unknown): FeedbackReport | null {
     !uuid(report.targetJobId) ||
     !dateTime(report.createdAt) ||
     !dateTime(report.updatedAt) ||
-    !validContext(report.context)
+    !isValidReportContext(report.context)
   ) return null;
   return report;
 }
@@ -192,7 +192,7 @@ function validReadyPayload(report: FeedbackReport): report is ReadyFeedbackRepor
   );
 }
 
-function validContext(value: unknown): value is FeedbackReport["context"] {
+export function isValidReportContext(value: unknown): value is FeedbackReport["context"] {
   if (!exactKeys(value, CONTEXT_KEYS)) return false;
   const context = value as FeedbackReport["context"];
   return Boolean(

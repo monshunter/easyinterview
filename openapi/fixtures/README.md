@@ -150,7 +150,7 @@ hard gate, but it returns `401 Unauthorized` with the documented error
 envelope when a cookie is missing — the smoke calls below therefore include
 `Cookie: ei_session=fake` to exercise the success branch.
 
-### Live smoke matrix (13 fixed operations)
+### Live smoke matrix (14 fixed operations)
 
 The repeatable smoke matches all selected defaults byte-for-byte. It retains
 the original read/handoff checks and also covers the Resume summary-list/full-detail
@@ -170,6 +170,7 @@ the declared response.
 | `archiveTargetJob` | `POST /targets/{targetJobId}/archive` | 202 |
 | `getPracticeSession` | `GET /practice/sessions/{sessionId}` | 200 |
 | `getFeedbackReport` | `GET /reports/{reportId}` | 200 |
+| `getReportConversation` | `GET /reports/{reportId}/conversation` | 200 |
 | `listTargetJobReports` | `GET /targets/{targetJobId}/reports` | 200 |
 | `createPracticePlan` | `POST /practice/plans` | 201 |
 | `requestPrivacyExport` | `POST /privacy/exports` | 501 |

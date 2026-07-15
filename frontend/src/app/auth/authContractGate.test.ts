@@ -9,6 +9,8 @@ import { extname, join, resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { ALL_OPERATION_IDS } from "../../api/generated/client";
+
 const FRONTEND_SRC = resolve(__dirname, "../..");
 const AUTH_DIR = resolve(__dirname);
 
@@ -47,9 +49,10 @@ const ALLOWED_NON_AUTH_OPERATIONS = new Set<string>([
   "getResumeTailorRun",
   // Phase 1-6 resume workshop create flow (frontend-resume-workshop/002)
   "registerResume",
-  "listPracticeSessions",
   "getPracticeSession",
   "getJob",
+  // Report-owned read-only conversation record (frontend-report-dashboard)
+  "getReportConversation",
 ]);
 
 const ALL_CLIENT_CALL_RE = /\.client\.(\w+)\(/g;
@@ -178,6 +181,16 @@ describe("auth contract gate (Phase 3.3)", () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it("owner operation allowlists only retain generated operations", () => {
+    const allowed = new Set<string>([
+      ...ALLOWED_AUTH_OPERATIONS,
+      ...ALLOWED_NON_AUTH_OPERATIONS,
+    ]);
+    const generated = new Set<string>(ALL_OPERATION_IDS);
+
+    expect([...allowed].filter((operationId) => !generated.has(operationId))).toEqual([]);
   });
 
   it("keeps zero auth_reset / forgot-password residue in the auth surface (D-16)", () => {

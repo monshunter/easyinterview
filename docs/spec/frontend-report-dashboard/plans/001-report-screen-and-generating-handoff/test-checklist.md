@@ -32,7 +32,7 @@
 
 ## ReportConversation
 
-- [ ] Ready/queued/generating/failed, parent Back, route switch fence and missing/cross-user/invalid-contract tests pass.
-- [ ] Markdown security, no-ID/no-live-control/no-browser-persistence and listPracticeSessions/session-history negative tests pass.
-- [ ] Prototype/formal source structure and visual geometry parity pass independently at desktop/390.
-- [ ] P0.099 real click/load/back evidence is bound without changing its exact-six screenshots; root `make test` and build/typecheck pass separately.
+- [x] Ready/queued/generating/failed, parent Back, route switch fence and missing/cross-user/invalid-contract tests pass.
+- [x] Markdown security, no-ID/no-live-control/no-browser-persistence and listPracticeSessions/session-history negative tests pass.
+- [x] Prototype/formal source structure and visual geometry parity pass independently at desktop/390.
+- [x] P0.099 real click/load/back evidence is bound without changing its exact-six screenshots; root `make test` and build/typecheck pass separately.

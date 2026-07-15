@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-001",
+  "baseline": "openapi/baseline/openapi-v1.0.0.yaml@merge-base(main)",
+  "proposed": "openapi/openapi.yaml@working-tree",
+  "comparison": {
+    "mode": "exact-set",
+    "keyFields": [
+      "severity",
+      "path",
+      "kind",
+      "before",
+      "after"
+    ],
+    "orderSignificant": false,
+    "missingFinding": "fail",
+    "unexpectedFinding": "fail"
+  },
+  "authority": {
+    "decision": "OPENAPI-001",
+    "decisionVersion": "1.7",
+    "specDecision": "D-21",
+    "historyVersion": "1.61",
+    "productDecision": "report-owned-conversation"
+  },
+  "invariants": {
+    "inventory": {
+      "operations": 37,
+      "tags": 10
+    },
+    "startPracticeSession": {
+      "path": "/api/v1/practice/sessions",
+      "method": "POST",
+      "operationId": "startPracticeSession",
+      "successStatus": 201,
+      "response": "PracticeSession"
+    },
+    "getPracticeSession": {
+      "path": "/api/v1/practice/sessions/{sessionId}",
+      "method": "GET",
+      "operationId": "getPracticeSession",
+      "successStatus": 200,
+      "response": "PracticeSession"
+    },
+    "getReportConversation": {
+      "path": "/api/v1/reports/{reportId}/conversation",
+      "method": "GET",
+      "operationId": "getReportConversation",
+      "successStatus": 200,
+      "response": "ReportConversation"
+    },
+    "publicList": "forbidden"
+  },
+  "findings": [
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversation",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "reportId,reportStatus,context,messages"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversation/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversation/properties/context",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "ReportContextSnapshot"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversation/properties/messages",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "array<ReportConversationMessage>"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversation/properties/reportId",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string(format=uuid)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversation/properties/reportStatus",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "ReportStatus"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversationMessage",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "sequence,role,content,createdAt"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversationMessage/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversationMessage/properties/content",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string(minLength=1,pattern=\\S)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversationMessage/properties/createdAt",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "string(format=date-time)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversationMessage/properties/role",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "enum(user,assistant)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportConversationMessage/properties/sequence",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int32,minimum=1)"
+    },
+    {
+      "severity": "additive",
+      "path": "/paths/~1reports~1{reportId}~1conversation/get",
+      "kind": "operation_added",
+      "before": "absent",
+      "after": "getReportConversation"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/PaginatedPracticeSession",
+      "kind": "schema_removed",
+      "before": "present",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/paths/~1practice~1sessions/get",
+      "kind": "operation_removed",
+      "before": "listPracticeSessions",
+      "after": "absent"
+    }
+  ]
+}

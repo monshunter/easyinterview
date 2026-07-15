@@ -27,7 +27,7 @@
     params.set("route", route);
     params.set("lang", "zh");
     if (route === "practice") params.set("sessionId", "session-24");
-    if (["generating", "report"].includes(route)) params.set("reportId", "report-24");
+    if (["generating", "report", "report-conversation"].includes(route)) params.set("reportId", "report-24");
     if (mode) params.set("mode", mode);
     if (dark) params.set("dark", "1");
     if (theme) params.set("theme", theme);
@@ -47,6 +47,7 @@
         <DCArtboard id="ws" label="02 · 模拟面试规划" width={FRAME_W} height={FRAME_H}><Screen route="workspace" /></DCArtboard>
         <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}><Screen route="practice" /></DCArtboard>
         <DCArtboard id="report" label="04 · 证据化报告仪表盘" width={FRAME_W} height={FRAME_H}><Screen route="report" /></DCArtboard>
+        <DCArtboard id="report-conversation" label="05 · 本次面试记录" width={FRAME_W} height={FRAME_H}><Screen route="report-conversation" /></DCArtboard>
       </DCSection>
       <DCSection id="auth" title="账户体系 · 登录 / 验证 / 首次资料补全" subtitle="M0 入口">
         <DCArtboard id="auth-login" label="登录 · 邮箱验证码" width={FRAME_W} height={FRAME_H}><Screen route="auth_login" /></DCArtboard>

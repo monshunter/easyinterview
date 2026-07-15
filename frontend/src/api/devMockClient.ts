@@ -12,12 +12,12 @@ import sendPracticeMessageFixture from "../../../openapi/fixtures/PracticeSessio
 import completePracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/completePracticeSession.json";
 import createPracticeVoiceTurnFixture from "../../../openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json";
 import getPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/getPracticeSession.json";
-import listPracticeSessionsFixture from "../../../openapi/fixtures/PracticeSessions/listPracticeSessions.json";
 import startPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 import getPrivacyRequestFixture from "../../../openapi/fixtures/Privacy/getPrivacyRequest.json";
 import requestPrivacyDeleteFixture from "../../../openapi/fixtures/Privacy/requestPrivacyDelete.json";
 import requestPrivacyExportFixture from "../../../openapi/fixtures/Privacy/requestPrivacyExport.json";
 import getFeedbackReportFixture from "../../../openapi/fixtures/Reports/getFeedbackReport.json";
+import getReportConversationFixture from "../../../openapi/fixtures/Reports/getReportConversation.json";
 import listTargetJobReportsFixture from "../../../openapi/fixtures/Reports/listTargetJobReports.json";
 import getResumeTailorRunFixture from "../../../openapi/fixtures/ResumeTailor/getResumeTailorRun.json";
 import requestResumeTailorFixture from "../../../openapi/fixtures/ResumeTailor/requestResumeTailor.json";
@@ -60,7 +60,6 @@ const DEV_MOCK_FIXTURES = [
 	getPracticePlanFixture,
 	startPracticeSessionFixture,
 	getPracticeSessionFixture,
-	listPracticeSessionsFixture,
 	completePracticeSessionFixture,
 	sendPracticeMessageFixture,
 	createPracticeVoiceTurnFixture,
@@ -68,6 +67,7 @@ const DEV_MOCK_FIXTURES = [
 	requestPrivacyExportFixture,
 	getPrivacyRequestFixture,
 	getFeedbackReportFixture,
+	getReportConversationFixture,
 	requestResumeTailorFixture,
 	getResumeTailorRunFixture,
 	listResumesFixture,

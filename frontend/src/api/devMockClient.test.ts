@@ -37,6 +37,21 @@ describe("frontend dev fixture-backed mock client", () => {
 		expect(targets.items[0]?.title).toBe("Senior Frontend Engineer");
 	});
 
+	it("serves the report-scoped conversation fixture through the generated operation", async () => {
+		const client = createDevMockClient();
+
+		await expect(
+			client.getReportConversation("01918fa0-0070-7000-8000-000000000070"),
+		).resolves.toMatchObject({
+			reportId: "01918fa0-0070-7000-8000-000000000070",
+			reportStatus: "ready",
+			messages: [
+				{ sequence: 1, role: "user" },
+				{ sequence: 2, role: "assistant" },
+			],
+		});
+	});
+
 	it("keeps voice mode fail-closed in the generated fixture client", async () => {
 		const client = createDevMockClient();
 		const body = {

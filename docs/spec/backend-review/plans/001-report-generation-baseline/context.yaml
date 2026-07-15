@@ -8,7 +8,7 @@ metadata:
   branch: design/report-conversation-record
   specVersion:
     from: 1.28
-    to: 1.29
+    to: 1.30
 spec:
   defaultTarget: backend
   discovery:

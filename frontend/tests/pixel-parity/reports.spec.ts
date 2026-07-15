@@ -329,8 +329,9 @@ test.describe("current-plan reports source, geometry, and screenshot parity", ()
     await expect(page.locator("[data-testid='reports-generating']")).toHaveCount(1);
     await expect(page.locator("[data-testid='reports-failed']")).toHaveCount(1);
     await expect(page.locator("[data-testid='reports-latest-ready']")).toHaveCount(0);
-    await expect(page.locator("[data-testid='reports-list'] button")).toHaveCount(3);
-    await expect(page.locator("[data-testid='reports-round-4'] button")).toHaveCount(1);
+    await expect(page.locator("[data-testid='reports-list'] button")).toHaveCount(5);
+    await expect(page.locator("[data-testid='reports-conversation-entry']")).toHaveCount(2);
+    await expect(page.locator("[data-testid='reports-round-4'] button")).toHaveCount(2);
     await expect(page.locator("[data-testid='topbar-nav-reports']")).toHaveCount(0);
     await expectNoReportHistory(page);
     await expectNoReportHistory(prototype);
@@ -454,7 +455,8 @@ test.describe("current-plan reports source, geometry, and screenshot parity", ()
             formal.locator("[data-testid='reports-round-2'] [data-testid='reports-generating']"),
           ).toHaveCount(0);
           await expect(formal.locator("[data-testid='reports-generating']")).toHaveCount(1);
-          await expect(formal.locator("[data-testid='reports-list'] button")).toHaveCount(3);
+          await expect(formal.locator("[data-testid='reports-list'] button")).toHaveCount(5);
+          await expect(formal.locator("[data-testid='reports-conversation-entry']")).toHaveCount(2);
         }
         if (state === "empty" || state === "loading" || state === "error" || state === "mismatch") {
           await expect(formal.locator("[data-testid='reports-list']")).toHaveCount(0);

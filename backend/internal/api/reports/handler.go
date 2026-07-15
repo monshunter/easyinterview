@@ -16,6 +16,7 @@ type SessionResolver func(ctx context.Context) (userID string, ok bool)
 
 type reportService interface {
 	GetFeedbackReport(ctx context.Context, userID, reportID string) (reviewdomain.FeedbackReportRecord, error)
+	GetReportConversation(ctx context.Context, userID, reportID string) (reviewdomain.ReportConversationRecord, error)
 	ListTargetJobReports(ctx context.Context, in reviewdomain.ListTargetJobReportsRequest) (reviewdomain.TargetJobReportsOverviewRecord, error)
 }
 
