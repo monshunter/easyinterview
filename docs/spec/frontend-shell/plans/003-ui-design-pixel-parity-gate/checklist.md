@@ -13,8 +13,8 @@
 
 ## Phase 2: 让 `docs/ui-design/` 成为纯设计文档
 
-- [ ] 2.1 改写 `docs/ui-design/README.md`、`INDEX.md` 与 `TEMPLATES.md`，移除 Demo 运行/同步合同并明确文档 owner（验证：`make docs-check` + Demo path negative scan）
-- [ ] 2.2 修订 `docs/ui-design/*.md` 中的原型源码、hash route、source replication 和 parity 口径，保留 UI 架构/流程/交互语义（验证：`make docs-check` + focused `rg` negative scan）
+- [x] 2.1 改写 `docs/ui-design/README.md`、`INDEX.md` 与 `TEMPLATES.md`，移除 Demo 运行/同步合同并明确文档 owner（验证：`make docs-check` PASS；focused active residuals=0；pruning tests=`6 passed`）
+- [x] 2.2 修订 `docs/ui-design/*.md` 中的原型源码、hash route、source replication 和 parity 口径，保留 UI 架构/流程/交互语义（验证：13 个 UI 设计文档 active residuals=0；`make docs-check` PASS；仅保留 README 负向禁用语句）
 
 ## Phase 3: 删除双源工具链
 

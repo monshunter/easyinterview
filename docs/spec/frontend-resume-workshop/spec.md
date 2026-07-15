@@ -6,7 +6,7 @@
 
 ## 1 背景与目标
 
-`frontend-resume-workshop` 是当前 `resume_versions` 路由的前端 owner。正式前端必须源级复刻 [`ui-design/src/screen-resume-workshop.jsx`](../../../ui-design/src/screen-resume-workshop.jsx)、[`ui-design/src/primitives.jsx`](../../../ui-design/src/primitives.jsx)、[`ui-design/src/app.jsx`](../../../ui-design/src/app.jsx) 与 `docs/ui-design/` 中的当前 flat Resume Workshop 设计。
+`frontend-resume-workshop` 是当前 `resume_versions` 路由的前端 owner。正式前端必须实现 [`docs/ui-design/resume-module.md`](../../ui-design/resume-module.md)、[`resume-onboarding.md`](../../ui-design/resume-onboarding.md) 与 [`ui-architecture.md`](../../ui-design/ui-architecture.md) 中的当前 flat Resume Workshop 设计。
 
 当前目标：
 

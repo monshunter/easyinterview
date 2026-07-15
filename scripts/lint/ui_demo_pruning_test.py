@@ -53,7 +53,8 @@ def test_rejects_positive_active_demo_contract_but_allows_negative_guard(tmp_pat
     )
     write(
         repo / "AGENTS.md",
-        "正式 frontend 不再依赖 ui-design/ Demo 或 pixel parity。\n",
+        "正式 frontend 不再依赖 ui-design/ Demo 或 pixel parity。\n"
+        "当前合同未引入 UI truth source 或 golden preview。\n",
     )
 
     report = audit.scan_repo(repo)

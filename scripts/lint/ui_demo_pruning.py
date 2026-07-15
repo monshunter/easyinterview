@@ -65,7 +65,7 @@ SELF_PATHS = {
 }
 
 NEGATIVE_CONTEXT_RE = re.compile(
-    r"不(?:再|得|允许|存在|保留|依赖|要求|使用)|删除|移除|禁止|零残留|"
+    r"不(?:再|得|允许|存在|保留|依赖|要求|使用)|未(?:引入|保留|使用|依赖)|删除|移除|禁止|零残留|"
     r"remove|delete|drop|reject|forbid|must not|no longer|negative|prun(?:e|ing)|absent",
     re.IGNORECASE,
 )

@@ -40,7 +40,7 @@ ReportDashboard(reportId)
    └─ 下一步行动
 ```
 
-ReportsScreen 是规划范围的导航/索引页，不是第二种报告内容形态。ReportDashboard 的 UI 真理源仍是“三项指标 + 四个常驻区块，无 tab”，不得根据旧文档恢复四卡或四 tab。
+ReportsScreen 是规划范围的导航/索引页，不是第二种报告内容形态。ReportDashboard 的当前设计合同仍是“三项指标 + 四个常驻区块，无 tab”，不得根据旧文档恢复四卡或四 tab。
 
 ### 2.1 当前规划报告列表
 
@@ -116,7 +116,7 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 - session/report UUID 等内部 locator 不渲染为用户字段，也不进入 title、tooltip 或 accessible description；它们只保留在 API/动作内部关联中。
 - Desktop 使用双列 DetailGrid；390px mobile 明确单列。
 - 长 dimension/evidence/action 必须换行，不横向溢出、不被不可恢复截断。
-- 1440x1200 desktop 与 390x844 mobile full-page 都必须覆盖 action 区域，并证明合法 24/64 label 完整换行、无截断/ellipsis/隐藏/横溢。恰好 24/64 由 deterministic fixture parity 证明；200-code-point malformed fixture只用于 typed invalid/no-raw-output 测试，不能充当 UX PASS。18/52 只用于 targeted repair 内部生成，不替代边界 fixture。
+- 1440x1200 desktop 与 390x844 mobile full-page 都必须覆盖 action 区域，并证明合法 24/64 label 完整换行、无截断/ellipsis/隐藏/横溢。恰好 24/64 由 deterministic fixture-backed responsive test 证明；200-code-point malformed fixture只用于 typed invalid/no-raw-output 测试，不能充当 UX PASS。18/52 只用于 targeted repair 内部生成，不替代边界 fixture。
 - 能力维度行在宽度足够时保持 `label` 与本地化 status/confidence 左右对齐；空间不足时整项换为两段可读行。英文长 label 优先按单词换行，禁止为了保留右侧状态而压缩成逐字符竖排。
 - Report 保留 App Shell TopBar：desktop 内容从 58px TopBar 后开始；390px mobile 内容从响应式 TopBar 的实际底部开始。TopBar 可因 UI locale 与已登录用户名称产生合法换行，但 document `scrollWidth` 不得超过 viewport，报告局部布局也不得用相对坐标掩盖共享 TopBar 的绝对纵向偏差。
 
@@ -152,20 +152,20 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 | R-3 | retry/next/review first action | 查看 Header | 现有 CTA 主次与建议一致 |
 | R-4 | needs-work / well-prepared report | 点击复练 | source report 服务端投影 issue-backed focus，或在无可支持 focus 时创建空 focus 的通用同轮复练；客户端不携带 focus |
 | R-5 | 长内容 desktop/mobile | 打开报告 | 完整可读、mobile 单列、无横向溢出 |
-| R-6 | prototype/formal deterministic boundary fixture | 运行 desktop+390 parity | 恰好 24-whitespace-word / 64-Unicode-code-point label 在 1440x1200 与 390x844 均完整换行；超 24/64 fixture 进入 typed invalid 且不回显 raw |
+| R-6 | deterministic boundary fixture | 运行正式前端 desktop+390 responsive test | 恰好 24-whitespace-word / 64-Unicode-code-point label 在 1440x1200 与 390x844 均完整换行；超 24/64 fixture 进入 typed invalid 且不回显 raw |
 | R-7 | real provider zh/en | P0.099 当前 run 的 en/zh ready rows | 六图 manifest 对每个 row 绑定 DB/API `canonical_report_content_digest`、`action_length_audit`、`content_audit`、`screenshot_sha256` 与 report/session/context digest；两张 390x844 report full-page 截图完整覆盖 action 区域，实际 label 分别满足 `<=24 whitespace words` / `<=64 Unicode code points` 且完整可见、无截断/省略/横溢 |
 | R-8 | reportId-only / conflicting route | 深链刷新/点击 CTA | API frozen status/context 获胜 |
 | R-9 | UI locale != report language | 打开报告 | chrome 本地化，模型语义保持报告原文 |
 | R-10 | ready report has internal IDs | 打开 desktop/mobile 报告 | Context Strip 只显示 target/round/resume；可见 DOM、可访问名称与截图都不暴露 session/report UUID |
 | R-11 | trusted target context / no trusted identity | 从 ready/pending/failed/recoverable generating 点击 Back，或在 missing/first-load failure 点击 Back | 有 trusted target 时进入 `/reports?targetJobId=...`；否则进入 workspace；report/generating route 仍只含 reportId |
-| R-12 | 当前 TargetJob overview populated/empty/loading/error | 直开或刷新 `/reports?targetJobId=...` | 只展示当前规划 canonical rounds 的 current/latest，不展示其他规划或完整历史；mismatch/stale fail closed，desktop/mobile prototype/formal parity 通过 |
+| R-12 | 当前 TargetJob overview populated/empty/loading/error | 直开或刷新 `/reports?targetJobId=...` | 只展示当前规划 canonical rounds 的 current/latest，不展示其他规划或完整历史；mismatch/stale fail closed，desktop/mobile responsive/state tests 通过 |
 
 ## 11 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-07-14 | 1.33 | 将 ReportsScreen 入口与 Back 锚定到 Workspace targetJobId 只读详情；Parse 只保留新导入命令进度。 |
-| 2026-07-14 | 1.32 | 增加独立 target-scoped ReportsScreen，锁定 current/latest-only、规划隔离、四态与 desktop/mobile parity；Report/Generating trusted Back 改回该列表。 |
+| 2026-07-14 | 1.32 | 增加独立 target-scoped ReportsScreen，锁定 current/latest-only、规划隔离、四态与 desktop/mobile 响应式合同；Report/Generating trusted Back 改回该列表。 |
 | 2026-07-14 | 1.31 | 将 Report/Generating Back 收敛为 trusted target -> Parse reports anchor、无可信 identity -> Workspace fallback，并禁止顶层报告中心与 route target authority。 |
 | 2026-07-13 | 1.30 | Context Strip 删除 session/report UUID 等内部 locator，只保留 target/round/resume，并要求 desktop/mobile 可见与可访问负向验收。 |
 | 2026-07-13 | 1.29 | Correct report timing ownership to action-local initial+3 with10s/20s/40s; async attempts are infrastructure-only. Keep maxAttempts49/6m04s and no unsupported failed-report regenerate UI. |
@@ -175,9 +175,9 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 | 2026-07-13 | 1.25 | A-200：wire/schema fuse改为200；14/40仍为UX gate，desktop+390合法边界完整换行，超限typed invalid且不回显raw。 |
 | 2026-07-13 | 1.24 | 归一化 action-label schema120/语言14-40 violation set；即使 label>120 导致 schema-invalid 仍使用 action_labels，修复同时满足两层上限。 |
 | 2026-07-13 | 1.23 | Runtime 使用一次总预算下的整报告 / 唯一 action-length label-only LLM repair，labels-only 原样 merge并全量复验；evalkit 分界由 F3/P0.100 owner 承接。 |
-| 2026-07-13 | 1.22 | 区分 120-char wire/schema fuse、P0.099 current-run canonical audit chain 与确定性 14/40 boundary fixture pixel parity；P0.100 内容可靠性不与六图强绑 output digest。 |
-| 2026-07-12 | 1.21 | 修复 prototype/formal 同时错误导致的 mobile 英文能力维度逐字符竖排，定义 label 与 status 可读换行契约。 |
-| 2026-07-12 | 1.20 | 固化 Report mobile TopBar 响应式换行、内容起点和无横向溢出的绝对 viewport parity 契约。 |
+| 2026-07-13 | 1.22 | 区分 120-char wire/schema fuse、P0.099 current-run canonical audit chain 与确定性 14/40 boundary fixture 响应式验证；P0.100 内容可靠性不与六图强绑 output digest。 |
+| 2026-07-12 | 1.21 | 修复两套页面同时错误导致的 mobile 英文能力维度逐字符竖排，定义 label 与 status 可读换行契约。 |
+| 2026-07-12 | 1.20 | 固化 Report mobile TopBar 响应式换行、内容起点和无横向溢出的绝对 viewport 契约。 |
 | 2026-07-12 | 1.19 | 明确 Replay 在无可支持 focus 时创建空 focus 的通用同轮复练，并补 `REPORT_CONTEXT_TOO_LARGE` 的诚实终态与可执行返回指引。 |
 | 2026-07-12 | 1.18 | 补 frozen context/reportId-only 事实源、终态动作矩阵、records 负向边界与 UI/report 双语言契约。 |
 | 2026-07-12 | 1.17 | 统一三指标四常驻区块；接入 direct semantic summary/code+label，删除 generating 伪实时语义，补齐 enum i18n、CTA 推荐、server-owned focus、mobile 可读性与强截图 gate。 |

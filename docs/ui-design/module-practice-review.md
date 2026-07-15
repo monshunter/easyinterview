@@ -88,17 +88,17 @@ Ready 报告只展示：
 
 报告不得展示题目回顾、逐题评分、题数、raw enum/code、turn-based retry 或 session UUID 等内部 locator。`reportId` 是唯一路由 locator，但不得作为用户界面字段；Context Strip/status/CTA identity 来自 frozen report context，Context Strip 只显示目标岗位、轮次和简历。复练/下一轮只提交 goal + sourceReportId，由后端从 source report/plan 派生 settings/round；复练有可靠 issue-backed dimension 时投影 focus，否则使用空 focus 开始通用同轮复练。
 
-## 7 UI 真理源
+## 7 UI 实施与验证
 
-- Practice：`ui-design/src/screen-practice.jsx::PracticeScreen`
-- Report：`ui-design/src/screen-report.jsx::ReportScreen`
-- Generating：`ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen`
-- Shared primitives：`ui-design/src/primitives.jsx`
+- Practice：由本文档连续对话、回复状态、结束条件和 phone mode 约束承接。
+- Report：由本文档报告结构与 `report-dashboard.md` 承接。
+- Generating：由本文档 honest wait、失败恢复和 Back 行为承接。
+- Shared primitives：使用正式 frontend token、component 和 accessibility contract。
 
-正式 frontend 必须源级复刻上述当前原型。验证分为：
+正式 frontend 的验证分为：
 
-1. DOM/control/a11y source structure parity。
-2. computed style/bounding box/responsive/screenshot geometry parity。
+1. DOM/control/a11y component contract。
+2. responsive layout、viewport containment 与必要 browser smoke。
 3. stale question/phone/hint positive-contract negative search。
 
 ## 8 验收标准
@@ -110,7 +110,7 @@ Ready 报告只展示：
 | U-3 | phone disabled | 查看/键盘操作电话图标 | 图标置灰且不能改变模式 |
 | U-4 | send failure | 查看失败消息并点击其底部 retry icon | retry 只在失败后显示，复用原文与同一 clientMessageId；下一条草稿保留，成功后 user message 不重复且只有一个 reply |
 | U-5 | 仅有 opening、尚无 user message | 查看/操作结束 CTA | CTA disabled，显示本地化可访问原因；绕过前端调用仍由后端 `VALIDATION_FAILED` 拒绝且不生成报告 |
-| U-6 | desktop/mobile | parity gate | 无 sidebar 空白、无溢出、截图与原型一致 |
+| U-6 | desktop/mobile | responsive/browser gate | 无 sidebar 空白、无 document 横向溢出，关键操作在 viewport 内可见可用 |
 | U-7 | 当前结构化轮次为 60 分钟 | 启动/刷新 Practice | plan 保存 60 分钟预算且 Top Bar 显示 `elapsed / 60:00`；不存在固定 `25:00` |
 | U-8 | 已提交至少一条 user message | 点击结束并生成报告 | 进入 generating，随后会话级报告 |
 | U-9 | AI 失败后刷新或组件重挂载 | `getPracticeSession` 返回 user `clientMessageId/replyStatus` | pending 恢复 thinking；retryable failure 在原 row 恢复同 ID retry；terminal failure 无 retry；成功后只有一个 assistant reply |
