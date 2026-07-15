@@ -53,12 +53,18 @@
 
 ## Phase 8: Remove public session listing
 
-- [ ] 8.1 RED: OpenAPI inventory/generated/router/handler/fixture/mock/source tests fail while `GET /practice/sessions` / `listPracticeSessions` remains a current positive surface.
-- [ ] 8.2 GREEN: remove list operation, generated method/server interface, mux route, handler/service/store path, fixture and mock registry entry without redirect/deprecated/empty compatibility.
-- [ ] 8.3 PRESERVATION-GATE: `POST /practice/sessions` start and `GET /practice/sessions/{sessionId}` live recovery remain generated, routed, fixture-backed and behavior-tested.
-- [ ] 8.4 HANDOFF-GATE: completed transcript is reachable only through backend-review `getReportConversation(reportId)` over the existing relation; Workspace/Reports/Practice have no session-list consumer and no migration/table is introduced.
-- [ ] 8.5 BDD-N/A: no current user-visible session-list flow exists; substitute gates are OpenAPI exact inventory/diff, fixture/codegen/mock parity, focused handler/source negatives and root `make test`.
-- [ ] 8.6 COMPLETION-GATE: root `make test`, build, OpenAPI/fixture/codegen/mock, docs/context/index/diff and scoped zero-reference gates pass before restoring completed status.
+- [x] 8.1 RED: OpenAPI inventory/generated/router/handler/fixture/mock/source tests fail while `GET /practice/sessions` / `listPracticeSessions` remains a current positive surface.
+  <!-- verified: 2026-07-15 method=preexisting-red-mutation+focused-green evidence="OpenAPI mutation rejects restored GET/list operation; Python registry 4 tests and Go mockruntime removed-list test PASS" -->
+- [x] 8.2 GREEN: remove list operation, generated method/server interface, mux route, handler/service/store path, fixture and mock registry entry without redirect/deprecated/empty compatibility.
+  <!-- verified: 2026-07-15 method=focused-source+contract evidence="production OpenAPI/generated/backend/frontend list surface zero; legacy fixture absent; registry and mockruntime PASS" -->
+- [x] 8.3 PRESERVATION-GATE: `POST /practice/sessions` start and `GET /practice/sessions/{sessionId}` live recovery remain generated, routed, fixture-backed and behavior-tested.
+  <!-- verified: 2026-07-15 method=fixture+domain+generated evidence="practice fixture scenarios 2 tests PASS; backend start/get focused tests PASS; exact operations and generated methods preserved" -->
+- [x] 8.4 HANDOFF-GATE: completed transcript is reachable only through backend-review `getReportConversation(reportId)` over the existing relation; Workspace/Reports/Practice have no session-list consumer and no migration/table is introduced.
+  <!-- verified: 2026-07-15 method=backend+frontend+source+diff evidence="review/store/api focused tests PASS; ReportConversationScreen 17 tests PASS; production consumer and SQL relation/order audit PASS; migrations unchanged from main" -->
+- [x] 8.5 BDD-N/A: no current user-visible session-list flow exists; substitute gates are OpenAPI exact inventory/diff, fixture/codegen/mock parity, focused handler/source negatives and root `make test`.
+  <!-- verified: 2026-07-15 method=behavior-id+scenario-negative+owner-tests evidence="no session-list BDD/E2E asset; retained BDD.PRACTICE.PLAN.001 start/get tests PASS" -->
+- [x] 8.6 COMPLETION-GATE: root `make test`, build, OpenAPI/fixture/codegen/mock, docs/context/index/diff and scoped zero-reference gates pass before restoring completed status.
+  <!-- verified: 2026-07-15 method=full-post-refreeze-regression evidence="root Python 551/4493, Go all, frontend 125/993; build PASS; OpenAPI diff/lint/37 fixtures/codegen/mock/consumers/docs/context/diff/zero-reference PASS" -->
 
 ## 修订记录
 
@@ -73,4 +79,5 @@
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.PRACTICE.PLAN.001` 由 [BDD checklist](./bdd-checklist.md) 关联现有 plan/session owner behavior tests；不创建或声明真实 E2E PASS。
-- [ ] BDD-Gate Phase 8: `listPracticeSessions` 无当前用户行为流，不新增 BDD/E2E；按 [BDD checklist](./bdd-checklist.md) 回归保留的 start/get 行为并执行代码层替代 gate。
+- [x] BDD-Gate Phase 8: `listPracticeSessions` 无当前用户行为流，不新增 BDD/E2E；按 [BDD checklist](./bdd-checklist.md) 回归保留的 start/get 行为并执行代码层替代 gate。
+  <!-- verified: 2026-07-15 method=owner-behavior+exact-audit+root-contract evidence="retained start/get behavior PASS; no new scenario; 15-finding old-baseline audit, mock parity and root tests PASS; no E2E claimed" -->

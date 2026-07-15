@@ -35,7 +35,11 @@
 
 ## Phase 8: Session-list removal
 
-- [ ] Retired list operation/route/handler/fixture/mock/generated/frontend positive-surface negatives pass.
-- [ ] Start-session and scoped get-session preservation tests pass.
-- [ ] ReportConversation handoff and no-migration audit pass.
-- [ ] Root `make test` plus OpenAPI/fixture/codegen/mock/docs/context gates pass.
+- [x] Retired list operation/route/handler/fixture/mock/generated/frontend positive-surface negatives pass.
+  <!-- verified: 2026-07-15 method=focused-contract tests="openapi inventory + fixture registry + Go mockruntime" -->
+- [x] Start-session and scoped get-session preservation tests pass.
+  <!-- verified: 2026-07-15 method=fixture+go+source result=PASS -->
+- [x] ReportConversation handoff and no-migration audit pass.
+  <!-- verified: 2026-07-15 method=backend+frontend+source+diff result=PASS -->
+- [x] Root `make test` plus OpenAPI/fixture/codegen/mock/docs/context gates pass.
+  <!-- verified: 2026-07-15 method=post-refreeze-full-regression result=PASS -->
