@@ -103,8 +103,10 @@
   <!-- verified: 2026-07-15 method=generated-oracle evidence="--emit-openapi-001-v17-oracle generated 15 five-key findings; OPENAPI-001-report-conversation.expected-findings.json exact-matches; wrapper test rejects edited worktree baseline" -->
 - [x] 11.3 INVARIANT-GATE: preserve 37/10 and exact start/get live-session operations；lock protected getReportConversation method/path/operationId/200 while rejecting public list compatibility.
   <!-- verified: 2026-07-15 method=base-ref-audit evidence="OPENAPI-001 v1.7 audit PASS: 37 operations, 10 tags, unchanged start/get Practice operations, protected Reports GET, 2 breaking + 13 additive findings, errors=[]" -->
-- [ ] 11.4 HANDOFF-GATE: 001/002, backend-practice, backend-review, frontend-report, mock and downstream BDD gates pass before baseline edit with zero positive/runtime list surface.
-- [ ] 11.5 RE-FREEZE: preserve deterministic old-baseline artifact, re-freeze, then independently run current diff/lint/fixture/codegen/downstream/root-test/docs gates；clean current diff alone is insufficient.
+- [x] 11.4 HANDOFF-GATE: 001/002, backend-practice, backend-review, frontend-report, mock and downstream BDD gates pass before baseline edit with zero positive/runtime list surface.
+  <!-- verified: 2026-07-15 method=current-handoff+base-ref-audit evidence="001 18.1-18.5, 002 Phase 12, practice/review/frontend/mock/BDD owners PASS; OPENAPI001V17ConversationTests 4 PASS; positive/runtime list surface zero" -->
+- [x] 11.5 RE-FREEZE: preserve deterministic old-baseline artifact, re-freeze, then independently run current diff/lint/fixture/codegen/downstream/root-test/docs gates；clean current diff alone is insufficient.
+  <!-- verified: 2026-07-15 method=guarded-refreeze+independent-gates evidence="preserved audit old baseline b5f99de3/15 findings/errors=[] unchanged; baseline/current sha256=88d77c6a; diff 0; lint/fixtures/codegen/consumers/root/context/docs/diff PASS" -->
 
 ## Phase 12: OPENAPI-007 Settings UserContext pruning
 

@@ -760,55 +760,6 @@ paths:
           $ref: '#/components/responses/ApiErrorResponse'
 
   /practice/sessions:
-    get:
-      tags: [PracticeSessions]
-      operationId: listPracticeSessions
-      summary: List practice sessions (cursor-paginated)
-      description: |
-        List practice sessions for the authenticated user, optionally filtered
-        by `targetJobId` and `status`. Powers target-job session history and
-        report replay entry points.
-      parameters:
-        - name: targetJobId
-          in: query
-          required: false
-          schema:
-            type: string
-            format: uuid
-        - name: status
-          in: query
-          required: false
-          schema:
-            $ref: '#/components/schemas/SessionStatus'
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            type: string
-        - name: pageSize
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int32
-            minimum: 1
-            maximum: 100
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      responses:
-        '200':
-          description: Paginated practice sessions.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedPracticeSession'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
     post:
       tags: [PracticeSessions]
       operationId: startPracticeSession
@@ -1010,6 +961,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FeedbackReport'
+        '404':
+          description: Feedback report not found or not accessible (`REPORT_NOT_FOUND`).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                reportNotFound:
+                  summary: Report not found
+                  value:
+                    error:
+                      code: REPORT_NOT_FOUND
+                      message: feedback report not found or not accessible
+                      retryable: false
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
+  /reports/{reportId}/conversation:
+    get:
+      tags: [Reports]
+      operationId: getReportConversation
+      summary: Get the read-only conversation record for a feedback report
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Ordered read-only conversation projection for the owned report.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportConversation'
         '404':
           description: Feedback report not found or not accessible (`REPORT_NOT_FOUND`).
           headers:
@@ -2384,16 +2381,6 @@ components:
           type: string
           format: date-time
 
-    PaginatedPracticeSession:
-      allOf:
-        - $ref: '#/components/schemas/PaginatedEnvelope'
-        - type: object
-          properties:
-            items:
-              type: array
-              items:
-                $ref: '#/components/schemas/PracticeSession'
-
     CreatePracticeVoiceTurnRequest:
       type: object
       required: [clientVoiceTurnId, audio, language]
@@ -2672,6 +2659,43 @@ components:
           type: string
         hasNextRound:
           type: boolean
+
+    ReportConversation:
+      type: object
+      required: [reportId, reportStatus, context, messages]
+      additionalProperties: false
+      properties:
+        reportId:
+          type: string
+          format: uuid
+        reportStatus:
+          $ref: '#/components/schemas/ReportStatus'
+        context:
+          $ref: '#/components/schemas/ReportContextSnapshot'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportConversationMessage'
+
+    ReportConversationMessage:
+      type: object
+      required: [sequence, role, content, createdAt]
+      additionalProperties: false
+      properties:
+        sequence:
+          type: integer
+          format: int32
+          minimum: 1
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+          minLength: 1
+          pattern: '\S'
+        createdAt:
+          type: string
+          format: date-time
 
     FeedbackReport:
       type: object
