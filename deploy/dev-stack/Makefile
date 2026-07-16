@@ -5,6 +5,7 @@ SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
 
 DEV_STACK_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+REPO_ROOT := $(abspath $(DEV_STACK_DIR)/../..)
 COMPOSE := docker compose -f $(DEV_STACK_DIR)/docker-compose.yaml --project-directory $(DEV_STACK_DIR)
 
 DEPENDENCY_SERVICES := postgres-dev redis-dev minio-dev mailpit-dev
@@ -15,8 +16,10 @@ DOCTOR_SCRIPT := $(DEV_STACK_DIR)/scripts/dev-doctor.sh
 POSTGRES_VOLUME_GUARD := $(DEV_STACK_DIR)/scripts/check-postgres-volume-layout.sh
 ENV_EXAMPLE := $(DEV_STACK_DIR)/.env.example
 ENV_FILE := $(DEV_STACK_DIR)/.env
+HOST_BACKEND_PID := $(REPO_ROOT)/.test-output/local-dev/backend.pid
+HOST_FRONTEND_PID := $(REPO_ROOT)/.test-output/local-dev/frontend.pid
 
-.PHONY: up down doctor reset logs pull container-up container-down container-doctor container-logs help _ensure_env _check_container_env _check_postgres_volume _wait_init _all_healthy
+.PHONY: up down doctor reset logs pull container-up container-down container-doctor container-logs help _ensure_env _check_container_env _check_postgres_volume _stop_host_runtimes _wait_init _all_healthy
 
 help: ## List dev-stack make targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -43,6 +46,26 @@ _check_postgres_volume:
 	@if [ -x "$(POSTGRES_VOLUME_GUARD)" ]; then \
 		"$(POSTGRES_VOLUME_GUARD)"; \
 	fi
+
+_stop_host_runtimes:
+	@for pid_file in "$(HOST_BACKEND_PID)" "$(HOST_FRONTEND_PID)"; do \
+		if [ ! -s "$$pid_file" ]; then continue; fi; \
+		pid="$$(cat "$$pid_file")"; \
+		if [ -z "$$pid" ] || ! kill -0 "$$pid" >/dev/null 2>&1; then \
+			rm -f "$$pid_file"; \
+			continue; \
+		fi; \
+		echo "[dev-stack] stopping repo-managed host runtime from $${pid_file#$(REPO_ROOT)/}"; \
+		kill -TERM "-$$pid" >/dev/null 2>&1 || kill -TERM "$$pid" >/dev/null 2>&1 || true; \
+		for _ in $$(seq 1 20); do \
+			if ! kill -0 "$$pid" >/dev/null 2>&1; then break; fi; \
+			sleep 0.25; \
+		done; \
+		if kill -0 "$$pid" >/dev/null 2>&1; then \
+			kill -KILL "-$$pid" >/dev/null 2>&1 || kill -KILL "$$pid" >/dev/null 2>&1 || true; \
+		fi; \
+		rm -f "$$pid_file"; \
+	done
 
 _all_healthy: # internal: prints "yes" iff all deps running+healthy AND init exited 0
 	@all_ok=yes; \
@@ -100,8 +123,16 @@ up: _ensure_env _check_postgres_volume ## Start dev stack (idempotent; skip if a
 
 container-up: _check_container_env _check_postgres_volume ## Build and start dependencies plus containerized backend/frontend
 	@$(MAKE) -s -C "$(DEV_STACK_DIR)" up
+	@$(MAKE) -s -C "$(DEV_STACK_DIR)" _stop_host_runtimes
 	@echo "[dev-stack] building and starting full-container application services"
-	@$(COMPOSE) --profile $(FULL_CONTAINER_PROFILE) up -d --build --wait --wait-timeout 180 $(FULL_CONTAINER_SERVICES)
+	@provider="$${EMAIL_PROVIDER:-$$(awk -F= '$$1 == "EMAIL_PROVIDER" { print $$2; exit }' "$(ENV_FILE)")}"; \
+	provider="$$(printf '%s' "$$provider" | tr '[:upper:]' '[:lower:]')"; \
+	if [ "$$provider" = "mailpit" ]; then \
+		EMAIL_SMTP_HOST=mailpit-dev EMAIL_SMTP_PORT=1025 \
+			$(COMPOSE) --profile $(FULL_CONTAINER_PROFILE) up -d --build --wait --wait-timeout 180 $(FULL_CONTAINER_SERVICES); \
+	else \
+		$(COMPOSE) --profile $(FULL_CONTAINER_PROFILE) up -d --build --wait --wait-timeout 180 $(FULL_CONTAINER_SERVICES); \
+	fi
 	@$(MAKE) -s -C "$(DEV_STACK_DIR)" container-doctor
 	@echo "[dev-stack] frontend: http://127.0.0.1:$${FULL_CONTAINER_FRONTEND_HOST_PORT:-10800}"
 	@echo "[dev-stack] backend:  http://127.0.0.1:$${FULL_CONTAINER_API_HOST_PORT:-10801}/api/v1"

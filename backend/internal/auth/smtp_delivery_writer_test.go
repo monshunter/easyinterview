@@ -2,7 +2,6 @@ package auth_test
 
 import (
 	"errors"
-	"net/smtp"
 	"strings"
 	"testing"
 
@@ -22,6 +21,7 @@ func TestSMTPDeliveryWriterSendsLoginCodeThroughSMTP(t *testing.T) {
 	}
 	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
 		SMTPAddr:        "127.0.0.1:1025",
+		TLSMode:         auth.SMTPTLSNone,
 		FromAddress:     "noreply@easyinterview.local",
 		VerifyBaseURL:   "http://127.0.0.1:5173/auth/verify",
 		DeliverySecrets: secrets,
@@ -31,11 +31,11 @@ func TestSMTPDeliveryWriterSendsLoginCodeThroughSMTP(t *testing.T) {
 			}
 			return "candidate@example.test", nil
 		},
-		SendMail: func(addr string, _ smtp.Auth, from string, to []string, msg []byte) error {
-			captured.addr = addr
-			captured.from = from
-			captured.to = append([]string(nil), to...)
-			captured.msg = string(msg)
+		Send: func(envelope auth.SMTPEnvelope) error {
+			captured.addr = envelope.Addr
+			captured.from = envelope.From
+			captured.to = append([]string(nil), envelope.To...)
+			captured.msg = string(envelope.Message)
 			return nil
 		},
 	})
@@ -87,7 +87,7 @@ func TestSMTPDeliveryWriterRequiresStoredDeliverySecret(t *testing.T) {
 		LookupChallengeEmail: func(string) (string, error) {
 			return "candidate@example.test", nil
 		},
-		SendMail: func(string, smtp.Auth, string, []string, []byte) error {
+		Send: func(auth.SMTPEnvelope) error {
 			called = true
 			return nil
 		},
@@ -113,7 +113,7 @@ func TestSMTPDeliveryWriterDoesNotExposeLookupErrorDetails(t *testing.T) {
 		LookupChallengeEmail: func(string) (string, error) {
 			return "", errors.New("candidate@example.test 123456")
 		},
-		SendMail: func(string, smtp.Auth, string, []string, []byte) error {
+		Send: func(auth.SMTPEnvelope) error {
 			t.Fatal("SMTP send must not run when recipient lookup fails")
 			return nil
 		},
@@ -127,6 +127,50 @@ func TestSMTPDeliveryWriterDoesNotExposeLookupErrorDetails(t *testing.T) {
 		if strings.Contains(err.Error(), forbidden) {
 			t.Fatalf("error leaked %q: %v", forbidden, err)
 		}
+	}
+}
+
+func TestSMTPDeliveryWriterPassesTLSAndAuthenticationWithoutLeakingSecrets(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		mode auth.SMTPTLSMode
+	}{
+		{name: "starttls", mode: auth.SMTPTLSStartTLS},
+		{name: "implicit tls", mode: auth.SMTPTLSImplicit},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			secrets := auth.NewDevMailSink(auth.DevMailSinkOptions{})
+			secrets.PutDeliverySecret("auth_challenge:challenge-1", "123456")
+			var captured auth.SMTPEnvelope
+			writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
+				SMTPAddr:        "smtp.example.test:587",
+				FromAddress:     "noreply@example.test",
+				Username:        "mailer",
+				Password:        "smtp-secret",
+				TLSMode:         tt.mode,
+				DeliverySecrets: secrets,
+				LookupChallengeEmail: func(string) (string, error) {
+					return "candidate@example.test", nil
+				},
+				Send: func(envelope auth.SMTPEnvelope) error {
+					captured = envelope
+					return errors.New("provider rejected credentials smtp-secret candidate@example.test 123456")
+				},
+			})
+
+			err := writer.Write(emailPayload(t, "challenge-1", "auth_challenge:challenge-1"))
+			if err == nil {
+				t.Fatal("expected delivery failure")
+			}
+			if captured.TLSMode != tt.mode || captured.Username != "mailer" || captured.Password != "smtp-secret" {
+				t.Fatalf("SMTP envelope config = %#v", captured)
+			}
+			for _, forbidden := range []string{"smtp-secret", "candidate@example.test", "123456"} {
+				if strings.Contains(err.Error(), forbidden) {
+					t.Fatalf("delivery error leaked %q: %v", forbidden, err)
+				}
+			}
+		})
 	}
 }
 

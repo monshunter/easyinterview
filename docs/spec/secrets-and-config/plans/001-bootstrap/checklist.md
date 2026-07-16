@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -113,3 +113,14 @@
   <!-- verified: 2026-07-14 method=focused-vitest+build evidence="Typed runtime content-limit resolution, binary formatting, and a small injected upload boundary cover the frontend contract; production build passes without scenario-owned default-size assertions." -->
 - [x] 13.7 BDD-N/A: 配置默认值、注入与 public projection 不产生独立用户流程；删除 A4 配置专用 BDD 文档及所有配置断言/运行要求。真实场景仍由 domain owner 独立维护。
 - [x] 13.8 REGRESSION/POST-PASS: owner config 契约、active-profile floor、必要 provider/domain/frontend focused tests、`make lint-config`、旧硬编码 negative search、根 `make test`、context/docs/diff gate 通过；不强制与本次无关的 codegen、migration、eval、E2E 或真实 provider gate；完成 Bug 记录与 retrospective 评估。
+
+## Phase 14: Standard SMTP provider config
+
+- [x] 14.1 RED: owner table tests 覆盖 Mailpit plain/no-auth、SMTP STARTTLS/TLS + auth、未知 provider/mode、非法 port、缺条件字段、staging/prod 禁用 Mailpit/none，并确认错误只包含 env key 不包含 secret value。
+  <!-- verified: 2026-07-16 method=focused-red evidence="focused tests failed on missing SMTP bindings and accepted unknown provider, insecure SMTP, missing auth, and invalid port before production changes" -->
+- [x] 14.2 GREEN: bindings/secret bindings/validator 落地 `EMAIL_SMTP_USERNAME` / `EMAIL_SMTP_PASSWORD` / `EMAIL_SMTP_TLS_MODE`，删除 `EMAIL_PROVIDER_API_KEY`；配置规则保持单一 owner，不在 cmd/api 重复完整矩阵。
+  <!-- verified: 2026-07-16 method=focused-green evidence="platform config package passes with canonical SMTP bindings, password secret binding, conditional provider validation, and redacted errors" -->
+- [x] 14.3 DICTIONARY: 同步 spec、根与 dev-stack `.env.example`、Compose 和 `make lint-config`；secret 示例为空，SMTP password 只经 `GetSecret` 消费。
+  <!-- verified: 2026-07-16 method=env-dictionary+compose-contract evidence="35-key env dictionary, provider terminology, secret scan, full-container email contract, and compose config pass" -->
+- [x] 14.4 BDD-N/A/REGRESSION: focused owner tests、`make lint-config`、secret redaction 与 `EMAIL_PROVIDER_API_KEY` current-scope zero-reference 通过；用户行为交给 backend-auth `BDD.AUTH.EMAIL.002`。
+  <!-- verified: 2026-07-16 method=substitute-gates evidence="platform config package and lint-config pass; removed key remains only in explicit negative assertions and plan verification wording" -->

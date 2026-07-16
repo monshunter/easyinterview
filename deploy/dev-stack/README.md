@@ -55,7 +55,7 @@
 | `make dev-reset` | 停止容器并 **删除** 三个命名卷（C-5）；交互式 `read` 确认；`DEV_RESET_FORCE=1` 跳过确认 |
 | `make dev-logs` | 汇总打印近期容器日志；`SERVICE=<name>` 限定到单个 service |
 | `make dev-pull` | 预拉锁定 tag 的依赖镜像（慢网络） |
-| `make dev-container-up` | 校验本地 secret，构建镜像、执行 migration 并启动完整容器栈；frontend `10800`，backend `10801` |
+| `make dev-container-up` | 校验本地 secret，停止由仓库 PID 文件管理的 host-run backend/frontend，构建镜像、执行 migration 并启动完整容器栈；frontend `10800`，backend `10801` |
 | `make dev-container-down` | 停止完整容器栈并保留命名卷 |
 | `make dev-container-doctor` | 检查外部依赖与容器化前后端健康状态 |
 | `make dev-container-logs` | 输出容器化前后端日志；`SERVICE=backend-dev|frontend-dev` 可缩小范围 |
@@ -143,10 +143,13 @@ test/scenarios/env-redeploy.sh all
 - `EMAIL_PROVIDER=mailpit`
 - `EMAIL_SMTP_HOST=127.0.0.1`
 - `EMAIL_SMTP_PORT=1025`
+- `EMAIL_SMTP_TLS_MODE=none`
 - `EMAIL_FROM_ADDRESS=noreply@easyinterview.local`
 - `EMAIL_VERIFY_BASE_URL=http://127.0.0.1:5173/auth/verify`（当前仅作为本地 frontend origin / dev CORS 推导来源保留，不拼入邮件正文）
 
 Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启动后，`startAuthEmailChallenge` 会通过 `email_dispatch` handler 向 Mailpit SMTP 投递 code-only 邮件；邮件正文只包含 6 位验证码和过期提示，不包含 `/auth/verify?token=...` 链接或 backend verify API URL。人工 UAT 使用 synthetic `.example.test` 邮箱即可完成注册/登录，不需要真实邮箱账号：在前端验证页输入邮件中的 6 位 code 后，由前端调用 `GET /api/v1/auth/email/verify` 兑换 session。backend dev CORS allowlist 仍从 `EMAIL_VERIFY_BASE_URL` 解析 frontend origin，避免前端端口和 CORS 端口分裂。若使用 `vite preview --port 4174` 作为唯一前端入口，本地 `.env` 的 `EMAIL_VERIFY_BASE_URL` 应同步改为 `http://127.0.0.1:4174/auth/verify`。
+
+切换到标准邮件服务时，在同一个 `deploy/dev-stack/.env` 中设置 `EMAIL_PROVIDER=smtp`，并填写 `EMAIL_SMTP_HOST`、`EMAIL_SMTP_PORT`、`EMAIL_SMTP_USERNAME`、`EMAIL_SMTP_PASSWORD`、`EMAIL_FROM_ADDRESS` 与 `EMAIL_SMTP_TLS_MODE=starttls|tls`。`EMAIL_FROM_ADDRESS` 必须是服务商已验证或授权的发件地址；不要默认任意 `noreply` 地址都可用。随后重建 backend：full-container 执行 `make dev-container-up`，host-run 执行 `make scenario-env-redeploy TARGET=backend`。Compose 会原样透传标准 SMTP endpoint；当 `EMAIL_PROVIDER=mailpit` 时，`dev-container-up` 自动把容器内 endpoint 切换为 `mailpit-dev:1025`，host-run `.env` 仍保留 `127.0.0.1:1025`，用户无需来回改 host。`dev-container-up` 同时停止仓库 PID 文件管理的 host-run backend/frontend，避免两个 backend 竞争同一异步队列；它不会停止无关进程或删除数据卷。日志、doctor 输出和验收证据都不得记录密码、完整收件邮箱或验证码。
 
 ## 5 与场景测试的关系
 

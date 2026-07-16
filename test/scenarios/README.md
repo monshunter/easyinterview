@@ -65,14 +65,14 @@ test/scenarios/
 | `test/scenarios/env-verify.sh` | 验证共享环境 readiness | `make scenario-env-verify` |
 | `test/scenarios/env-cleanup.sh` | 清理共享环境，默认保留命名卷 | `make scenario-env-cleanup` |
 | `test/scenarios/env-redeploy.sh` | 按 `deps/backend/frontend/all` 刷新依赖或 build artifacts | `make scenario-env-redeploy TARGET=<target>` |
-| `deploy/dev-stack` 的 `full-container` profile | 构建并启动依赖、migration、backend、frontend | `make dev-container-up`；停止用 `make dev-container-down` |
+| `deploy/dev-stack` 的 `full-container` profile | 停止仓库 PID 文件管理的 host-run app，构建并启动依赖、migration、backend、frontend | `make dev-container-up`；停止用 `make dev-container-down` |
 | `env-cleanup.sh --with-volumes` → `env-setup.sh --with-migrations` → `env-redeploy.sh all` → `env-verify.sh` | 清理数据、重跑迁移、重编译并重启 host-run backend/frontend，再验证 readiness | `make scenario-env-reset-redeploy` |
 
 `env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-redeploy.sh` 必须给出开发者可接管的信息：frontend/backend/Mailpit/MinIO 地址、`.test-output/local-dev/{backend,frontend}.log`、PID 文件以及容器日志命令。当前 host-run 口径下，`env-redeploy.sh backend|frontend|all` 不是只做 build；它必须重新启动对应宿主机前后端进程，保证用户在浏览器里看到的服务已经加载当前代码和 `deploy/dev-stack/.env`。
 
 `make scenario-env-reset-redeploy` 是显式清数据调试入口，会删除本地 named volumes。普通重启或仅重新加载当前代码时使用 `make scenario-env-redeploy TARGET=all`，不得把“重启”默认解释为 reset。
 
-具体场景的 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 只负责场景数据、runner 执行证据和场景自有清理，不得把共享环境 bootstrap 私有化，也不得引用另一个具体场景作为环境前提。默认仍由 `/scenario-env setup` 或 `make scenario-env-setup` 准备依赖、宿主机运行前后端；当请求明确指定全容器部署时，改用 `make dev-container-up`，并以 `10800` / `10801` 的真实 UI/API 入口完成同一场景验收。
+具体场景的 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 只负责场景数据、runner 执行证据和场景自有清理，不得把共享环境 bootstrap 私有化，也不得引用另一个具体场景作为环境前提。默认仍由 `/scenario-env setup` 或 `make scenario-env-setup` 准备依赖、宿主机运行前后端；当请求明确指定全容器部署时，改用 `make dev-container-up`，该入口会先停止仓库 PID 文件管理的 host-run backend/frontend，避免两个 backend 竞争同一异步队列，再以 `10800` / `10801` 的真实 UI/API 入口完成同一场景验收。
 
 ## 4 首次使用
 

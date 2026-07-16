@@ -1,8 +1,8 @@
 # Backend Auth BDD Plan
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -11,6 +11,7 @@
 | Behavior ID | Given | When | Then | 验证入口 |
 |-------------|-------|------|------|----------|
 | `BDD.AUTH.EMAIL.001` | 新邮箱或已有账号发起 email-code 登录 | challenge、verify、读取最小 `/me`、补全 profile、logout/relogin | session/profile 状态按账号持久化；UserContext 只有 id/full email/display name/completion flag；完整 email 只在 authenticated response 中返回且不进入日志；非法/重放请求 fail closed | backend Auth contract/integration tests，由根 `make test` 承接 |
+| `BDD.AUTH.EMAIL.002` | operator 选择合法 `mailpit` 或 `smtp` 配置；SMTP 凭据仅存在 secret source | 用户发起同一个 email-code challenge，runner 执行 `email_dispatch` | Mailpit 以本地无认证 SMTP 投递；标准 SMTP 必须在 STARTTLS 或隐式 TLS 后认证并投递；错误 fail closed 且不暴露凭据、完整邮箱或 raw code | backend Auth SMTP transport + cmd/api provider behavior tests，由根 `make test` 承接 |
 
 ## 当前真实 E2E handoff
 

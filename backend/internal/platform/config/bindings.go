@@ -60,9 +60,11 @@ var defaultEnvBindings = map[string]string{
 	"POSTHOG_PROJECT_API_KEY":     "featureFlag.posthogProjectApiKey",
 	"POSTHOG_PUBLIC_KEY":          "featureFlag.posthogPublicKey",
 	"EMAIL_PROVIDER":              "email.provider",
-	"EMAIL_PROVIDER_API_KEY":      "email.providerApiKey",
 	"EMAIL_SMTP_HOST":             "email.smtpHost",
 	"EMAIL_SMTP_PORT":             "email.smtpPort",
+	"EMAIL_SMTP_USERNAME":         "email.smtpUsername",
+	"EMAIL_SMTP_PASSWORD":         "email.smtpPassword",
+	"EMAIL_SMTP_TLS_MODE":         "email.smtpTLSMode",
 	"EMAIL_FROM_ADDRESS":          "email.fromAddress",
 	"EMAIL_VERIFY_BASE_URL":       "email.verifyBaseURL",
 }
@@ -76,7 +78,7 @@ var defaultSecretBindings = map[string]string{
 	"auth.challengeTokenPepper":        "AUTH_CHALLENGE_TOKEN_PEPPER",
 	"ai.defaultProviderApiKey":         "AI_PROVIDER_API_KEY",
 	"featureFlag.posthogProjectApiKey": "POSTHOG_PROJECT_API_KEY",
-	"email.providerApiKey":             "EMAIL_PROVIDER_API_KEY",
+	"email.smtpPassword":               "EMAIL_SMTP_PASSWORD",
 }
 
 func cloneStringMap(in map[string]string) map[string]string {

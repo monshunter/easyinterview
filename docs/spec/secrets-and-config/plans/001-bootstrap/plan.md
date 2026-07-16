@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -31,7 +31,7 @@
 
 本次 v1.13 技术债清理删除仅供单测清理 module cache 的 `_resetRuntimeConfigCache` export。各用例改用生产 `forceRefresh` 选项建立独立缓存边界，缓存、失败恢复和刷新行为不变。
 
-Phase 1-12 及其已完成条目只保留为历史交付证据；Phase 13 是当前内容大小配置、代码缺省与最小验证合同。旧 Phase 中的附件配置、散落硬编码和配置专用场景口径不得作为当前实现、验收或兼容要求，统一由 Phase 13 覆盖。
+Phase 1-13 及其已完成条目只保留为历史交付证据；Phase 14 是当前标准 SMTP provider 配置与最小验证合同。旧 Phase 中被 Phase 13 清退的附件配置、散落硬编码和配置专用场景口径仍不得作为当前实现、验收或兼容要求。
 
 ## 2 背景
 
@@ -49,7 +49,7 @@ Phase 1-12 及其已完成条目只保留为历史交付证据；Phase 13 是当
 
 ## 3 质量门禁分类
 
-- **Plan 类型**: `platform-config + code-internal + contract + tooling`。Phase 13 的 public projection 与既有 domain consumer 不新增独立用户流程；用户行为继续由各 domain owner 持有，A4 只持有配置与投影合同。
+- **Plan 类型**: `platform-config + code-internal + contract + tooling`。Phase 14 的 SMTP provider 配置不新增独立用户流程；用户可感知的邮件投递行为由 backend-auth 持有，A4 只持有配置与 secret 合同。
 - **TDD 策略**: 必须通过 `/implement secrets-and-config/001-bootstrap platform-config` → `/tdd`。platform config 保留一组表驱动契约测试覆盖缺 key、合法 override、显式非法值与跨字段约束；消费者只为错误映射、持久化原子性、provider call/no-call、协议读取上限等非平凡分支保留 focused test，并注入小型边界值或 metadata。
 - **BDD 策略**: 不适用。默认数值、配置注入和 public projection 不是独立用户流程；不得为其新增、扩展或重复运行任何 E2E。真实用户流程由 domain owner 独立验证，但不充当 A4 配置 gate。
 - **替代验证 gate**: platform config typed contract、OpenAPI schema/codegen drift、AI profile catalog lint、必要的 provider/domain/frontend focused tests、旧硬编码 negative search、`sync-doc-index --check`、`make docs-check`、`git diff --check`。
@@ -129,7 +129,7 @@ type FeatureFlagClient interface {
 
 #### 3.3 落地 `.env.example` 与 env key 字典
 
-按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典) 写入仓库根 `.env.example`，包含全部 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_SMTP_*` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写说明注释（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
+按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典) 写入仓库根 `.env.example`，包含全部 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_SMTP_*` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL`）。所有 secret 字段只写说明注释（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 
@@ -338,6 +338,18 @@ canonical AI profile 的 `max_tokens` / `context_window_tokens` 继续由 A3 cat
 
 只运行 13.5 中的 owner contract 与必要 focused gates，不为配置注入启动场景环境，也不在多个 consumer 重复默认值或 `limit / limit+1`。负向搜索必须证明旧 48,000、2MiB、8,000-rune、8MiB 与 adapter-local 4MiB 不再是生产真理源；合法历史与针对独立业务缺陷的 boundary test 可保留。成功后执行 doc reconcile、Bug 记录评估与 retrospective。
 
+### Phase 14: Standard SMTP provider config
+
+#### 14.1 Typed provider contract
+
+在 `backend/internal/platform/config` 先补表驱动 RED：`mailpit` 要求 host/port/from、`TLS_MODE=none` 且无认证；`smtp` 要求 host/port/from/username/password、`TLS_MODE=starttls|tls`；未知 provider/mode、非法 port、staging/prod Mailpit/none 全部 fail-fast。然后最小修改 bindings / secret bindings / validator。
+
+#### 14.2 Dictionary and drift cleanup
+
+新增 `EMAIL_SMTP_USERNAME` / `EMAIL_SMTP_PASSWORD` / `EMAIL_SMTP_TLS_MODE`，删除未被 runtime 消费的 `EMAIL_PROVIDER_API_KEY`；同步根与 dev-stack `.env.example`、Compose、当前 owner 文档和 config lint 字典。历史修订记录可保留，current contract zero-reference 必须通过。
+
+BDD-N/A：本阶段只定义配置合法性与 secret 边界；用户可感知的邮件投递行为由 backend-auth `BDD.AUTH.EMAIL.002` 验证。替代 gate 为 owner table tests、`make lint-config`、secret redaction 与 current-scope zero-reference。
+
 ## 5 验收标准
 
 - [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-14 全部成立；C-6 由 A4 builder/handler、B2 generated contract 与 D1 `AppRuntimeProvider` 共同闭环，无平行前端 fetcher；C-14 证明 typed defaults、override、非法值、public allowlist 与旧硬编码清退。
@@ -361,6 +373,7 @@ canonical AI profile 的 `max_tokens` / `context_window_tokens` 继续由 A3 cat
 |------|------|------|------|
 | 2026-07-14 | 1.18 | 方案 A：统一内容大小 typed defaults、代码缺省、AI 容量 gate、runtime-config 投影与跨 owner BDD。 | runtime size limits recalibration |
 | 2026-07-14 | 1.19 | 按奥卡姆剃刀删除跨层重复配置测试与配置专用场景 gate，保留单一 typed contract 和必要业务缺陷回归。 | config test proportionality |
+| 2026-07-16 | 1.20 | 新增标准 SMTP username/password/TLS mode 条件合同，删除未消费的 provider API key。 | backend-auth production SMTP |
 | 2026-07-13 | 1.17 | 删除无当前消费者的 TargetJob attachment maxBytes config/validator/composition binding，保留 Resume 与 Privacy Export 配额。 | Home paste-only JD intake |
 | 2026-07-10 | 1.15 | 删除无正式入口消费者的平行 frontend runtime-config fetch/cache/type/test 包。 | tech-debt pruning |
 | 2026-07-10 | 1.14 | 删除零消费者 `Loader.GetDuration` 与旧 bootstrap 合同引用。 | tech-debt pruning |

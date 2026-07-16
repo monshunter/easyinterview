@@ -5,9 +5,9 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   specVersion:
-    from: 2.16
-    to: 2.17
-  branch: runtime-size-limits
+    from: 2.18
+    to: 2.19
+  branch: backend-auth-production-smtp
 spec:
   defaultTarget: platform-config
   discovery:
@@ -29,6 +29,10 @@ spec:
       - secret scan
       - gitleaks
       - env example
+      - EMAIL_PROVIDER mailpit smtp
+      - EMAIL_SMTP_USERNAME
+      - EMAIL_SMTP_PASSWORD
+      - EMAIL_SMTP_TLS_MODE
       - session cookie secret
       - upload maxBytes resume privacyExport
       - current upload purpose limits

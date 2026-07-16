@@ -108,8 +108,9 @@ def scan_file(repo: Path, path: Path) -> list[str]:
     findings: list[str] = []
     rel = path.relative_to(repo)
     for lineno, line in enumerate(text.splitlines(), start=1):
+        scan_line = line.replace("host-gateway", "")
         for pattern in OUT_OF_SCOPE_PATTERNS:
-            if pattern.pattern.search(line):
+            if pattern.pattern.search(scan_line):
                 findings.append(f"{rel}:{lineno}: {pattern.label}: {line.strip()}")
                 break
     return findings

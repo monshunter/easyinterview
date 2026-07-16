@@ -1,8 +1,8 @@
 # Email-Code Session Bootstrap
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -21,7 +21,7 @@ ADR-Q1 已锁定自建 email-code challenge + first-party session cookie。B2 Op
 
 - **Plan 类型**: `feature-behavior` + `backend` + `contract`。
 - **TDD 策略**: 通过 `/implement backend-auth/001-email-code-session-bootstrap backend` -> `/tdd` 执行；focused Go test / handler contract test / store test 只用于开发反馈，阶段完成由仓库根 `make test` 承接前后端全量单测。
-- **BDD 策略**: `BDD.AUTH.EMAIL.001` 由代码层 owner tests 验证 email-code、session 与 profile-completion 行为，并由仓库根 `make test` 统一回归；`E2E.P0.101` 仅作为 real frontend/backend/Mailpit 链路的独立 handoff，只有显式真实运行后才产生 PASS。OpenAPI contract、migration、config lint、privacy grep、metrics checks 与 docs checks 作为独立 gate，不包装为 E2E。
+- **BDD 策略**: `BDD.AUTH.EMAIL.001` 由代码层 owner tests 验证 email-code、session 与 profile-completion，`BDD.AUTH.EMAIL.002` 验证 Mailpit/SMTP provider、TLS/auth、失败与隐私行为；两者由仓库根 `make test` 统一回归。`E2E.P0.101` 仅作为 real frontend/backend/Mailpit 链路的独立 handoff，只有显式真实运行后才产生 PASS；外部 SMTP 使用显式脱敏 live smoke，不创建配置型 E2E。OpenAPI contract、config lint、privacy grep 与 docs checks 作为独立 gate，不包装为 E2E。
 
 ### 3.1 Operation Matrix
 
@@ -42,7 +42,7 @@ ADR-Q1 已锁定自建 email-code challenge + first-party session cookie。B2 Op
 
 #### 1.2 锁定 config / secret 边界
 
-从 A4 secrets/config 读取 `SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`EMAIL_PROVIDER`、`EMAIL_PROVIDER_API_KEY` 与固定 `ei_session` cookie name；缺必需配置或 secret 必须 fail-fast。challenge TTL 固定 5 分钟、session TTL 固定 30 天、同邮箱或同 IP 1 分钟第 3 次及以上触发 rate-limit / dedupe，dev mail sink 默认值由 C1 代码常量持有并在包级文档记录；若需要配置化，先停止并修订 A4 `secrets-and-config` spec / config truth source。
+从 A4 secrets/config 读取 `SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`EMAIL_PROVIDER`、标准 SMTP 配置与固定 `ei_session` cookie name；缺必需配置或 secret 必须 fail-fast。challenge TTL 固定 5 分钟、session TTL 固定 30 天、同邮箱或同 IP 1 分钟第 3 次及以上触发 rate-limit / dedupe，dev mail sink 默认值由 C1 代码常量持有并在包级文档记录；若需要配置化，先停止并修订 A4 `secrets-and-config` spec / config truth source。
 
 #### 1.3 锁定 generated Auth surface 和 session middleware
 
@@ -186,6 +186,30 @@ Use OPENAPI-007 generated types as the only public shape. Focused RED must fail 
 
 Coordinate B4 001 Phase 13 before removing DB columns；new account creation still inserts a `user_settings` row so analytics opt-in keeps its default owner. `region/timezone` have no Auth consumer and are removed by B4. Run focused store/handler/runtime-config tests, generated compile, root `make test` and production old-field zero-reference gates. User-visible Settings behavior remains owned by frontend-shell BDD；`E2E.P0.101` may verify the real values after login but this backend phase creates no parallel scenario.
 
+### Phase 11: Production SMTP delivery
+
+#### 11.1 A4 provider/config contract
+
+先由 `secrets-and-config/001` 原地落地 `mailpit|smtp` provider、SMTP username/password/TLS mode 与 staging/prod fail-fast；删除未消费的 `EMAIL_PROVIDER_API_KEY`。配置 owner 只维护一组 typed contract tests，C1 不复制完整配置矩阵。
+
+#### 11.2 SMTP transport TDD
+
+在 `backend/internal/auth` 先补 RED tests，覆盖 Mailpit 无认证明文投递、STARTTLS、隐式 TLS、认证顺序、TLS 最低 1.2、服务器不支持 STARTTLS、无效地址/凭据与错误脱敏；再以可注入 SMTP client factory 落地最小 transport。raw code 仍只存在 transient delivery secret 和出站邮件正文。
+
+#### 11.3 Runtime wiring and provider selection
+
+`cmd/api` 对 `mailpit` 与 `smtp` 都注册同一 `SMTPDeliveryWriter`：Mailpit 使用 `none` 且无认证；标准 SMTP 从 A4 loader 读取 secret password，按 TLS mode 建连并认证。未知 provider 不得静默回落 `DevMailSink`；`DevMailSink` 仅保留单测显式使用。
+
+#### 11.4 Operation matrix and verification
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json` 既有场景 | frontend auth email flow（generated client） | C1 handler → `async_jobs(email_dispatch)` → internal runner → SMTP writer | `auth_challenges`、`async_jobs`；凭据与 raw code 不持久化到 job payload | none | domain `BDD.AUTH.EMAIL.002`；真实 Mailpit 链路复用 `E2E.P0.101`，外部 SMTP 用显式脱敏 smoke 证据，不新建配置型 E2E |
+
+执行 focused Go tests、`make lint-config`、根 `make test`、`make build`、旧 `EMAIL_PROVIDER_API_KEY` current-scope zero-reference，并分别对 Mailpit 与用户 `.env` 的标准 SMTP 做真实投递验收。
+
+MVP 部署边界锁定为单个 active backend 实例：验证码只在发起进程的 transient delivery secret store 中短暂存在。当前阶段不新增 Redis client、共享 secret store 或加密 job payload；进入多副本生产部署前，必须原地重开本 plan 设计共享一次性 secret 与跨实例消费语义。`dev-container-up` 负责停止仓库 PID 文件管理的 host-run backend，避免本地两套 runner 竞争同一任务。
+
 ## 5 验收标准
 
 - 仓库根 `make test` 覆盖 `startAuthEmailChallenge`、`email_dispatch` delivery、`verifyAuthEmailChallenge`、session middleware、`getMe`、`deleteMe`、`logout` 与 runtime-config resolver；focused Go tests 只用于开发反馈。
@@ -196,6 +220,8 @@ Coordinate B4 001 Phase 13 before removing DB columns；new account creation sti
 - 日志 / metric / audit privacy grep 无 secret / PII 明文；auth metrics 名称已由 F1 登记或承接，label 只使用 F1 allowed labels。
 - `backend/internal/auth` has no duplicate unauthenticated account-envelope test body at the scoped threshold.
 - `/me` and profile-completion success use exact OPENAPI-007 four-field `UserContext` with full authenticated `email` and no `emailMasked`; auth store no longer reads obsolete display/practice-language columns while runtime-config analytics behavior remains intact.
+- `mailpit` 与 `smtp` 均可通过 `EMAIL_PROVIDER` 选择；生产 SMTP 支持 STARTTLS / 隐式 TLS 和认证，staging/prod 对不安全或缺失配置 fail-fast，且凭据与 raw code 不泄露。
+- MVP 单 backend 实例下，用户配置的外部 SMTP 已完成应用发码、provider 接收与真实收件箱可见性确认；多副本投递不属于本轮验收。
 
 ## 6 风险与应对
 
@@ -205,6 +231,7 @@ Coordinate B4 001 Phase 13 before removing DB columns；new account creation sti
 | token 或 session secret 进入日志 | Phase 4.2 privacy test 和 grep gate 强制覆盖 |
 | P0 误引入 OAuth / SSO | spec Out of Scope 和 checklist negative search 拦截 |
 | 过早依赖独立 worker 阻塞本地验证 | 邮件派发由 backend internal runner 的 in-process kernel 承接；C1 不需要独立后台执行进程，dev sink / Mailpit writer 仍能被本地场景验证 |
+| 多个 backend 实例竞争任务时无法读取另一进程内存中的 delivery secret | MVP 明确只运行一个 active backend 实例；本地 full-container 入口停止仓库管理的 host-run backend。扩容到多副本前必须原地设计共享一次性 secret store 与跨实例重放语义 |
 | C1 绕过 B3 email payload 红线 | Phase 2.3 强制使用 generated `BuildEmailDispatchPayload`，并用 negative tests 拒绝 redacted fields |
 | C1 抢占 privacy deletion 执行 | Phase 3.5 只做 auth/session handoff，backend internal runner / B4 删除执行不进入本 plan |
 | C1 新增未登记 auth metric | Phase 4.3 先跑 F1 registry preflight；未登记则先修订 F1，不在 C1 私造 metric |

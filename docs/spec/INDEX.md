@@ -18,11 +18,11 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.9 | active | 2026-07-10 | [plans](./repo-scaffold/plans/) |
-| [local-dev-stack](./local-dev-stack/spec.md) | 1.26 | active | 2026-07-16 | [plans](./local-dev-stack/plans/) |
+| [local-dev-stack](./local-dev-stack/spec.md) | 1.27 | completed | 2026-07-16 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.8 | active | 2026-07-10 | [plans](./backend-runtime-topology/plans/) |
 | [backend-async-runner](./backend-async-runner/spec.md) | 1.16 | active | 2026-07-13 | [plans](./backend-async-runner/plans/) |
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.29 | active | 2026-07-14 | [plans](./ai-provider-and-model-routing/plans/) |
-| [secrets-and-config](./secrets-and-config/spec.md) | 2.18 | active | 2026-07-14 | [plans](./secrets-and-config/plans/) |
+| [secrets-and-config](./secrets-and-config/spec.md) | 2.19 | completed | 2026-07-16 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.10 | active | 2026-07-10 | [plans](./ci-pipeline-baseline/plans/) |
 
 ## 3 Contract
@@ -49,7 +49,7 @@
 | [frontend-shell](./frontend-shell/spec.md) | 1.34 | active | 2026-07-15 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.28 | completed | 2026-07-15 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.46 | completed | 2026-07-15 | [plans](./frontend-workspace-and-practice/plans/) |
-| [backend-auth](./backend-auth/spec.md) | 2.3 | active | 2026-07-15 | [plans](./backend-auth/plans/) |
+| [backend-auth](./backend-auth/spec.md) | 2.4 | completed | 2026-07-16 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 2.13 | active | 2026-07-14 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.35 | active | 2026-07-15 | [plans](./backend-practice/plans/) |
 | [backend-review](./backend-review/spec.md) | 1.30 | active | 2026-07-15 | [plans](./backend-review/plans/) |

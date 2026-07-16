@@ -285,14 +285,16 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.EmailCodeService
 		verifyBaseURL = "/api/v1/auth/email/verify"
 	}
 	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: verifyBaseURL})
-	writer := auth.DeliveryWriter(sink)
-	if strings.EqualFold(strings.TrimSpace(loader.GetString("email.provider")), "mailpit") {
+	var writer auth.DeliveryWriter
+	provider := strings.ToLower(strings.TrimSpace(loader.GetString("email.provider")))
+	switch provider {
+	case "mailpit", "smtp":
 		host := strings.TrimSpace(loader.GetString("email.smtpHost"))
-		if host == "" {
+		if host == "" && provider == "mailpit" {
 			host = "127.0.0.1"
 		}
 		port := loader.GetInt("email.smtpPort")
-		if port <= 0 {
+		if port <= 0 && provider == "mailpit" {
 			port = 1025
 		}
 		from := strings.TrimSpace(loader.GetString("email.fromAddress"))
@@ -302,10 +304,15 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.EmailCodeService
 		writer = auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
 			SMTPAddr:             net.JoinHostPort(host, fmt.Sprintf("%d", port)),
 			FromAddress:          from,
+			Username:             strings.TrimSpace(loader.GetString("email.smtpUsername")),
+			Password:             loader.GetSecret("email.smtpPassword").Reveal(),
+			TLSMode:              auth.SMTPTLSMode(strings.ToLower(strings.TrimSpace(loader.GetString("email.smtpTLSMode")))),
 			VerifyBaseURL:        verifyBaseURL,
 			DeliverySecrets:      sink,
 			LookupChallengeEmail: auth.SQLChallengeEmailLookup(db),
 		})
+	default:
+		return nil, nil, fmt.Errorf("EMAIL_PROVIDER must be mailpit or smtp")
 	}
 	// Producer enqueues email_dispatch async_jobs rows (spec D-10); the kernel
 	// EmailDispatchHandler delivers them through the configured writer.

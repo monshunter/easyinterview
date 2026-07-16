@@ -80,6 +80,18 @@ class AIProviderTerminologyLintTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_allows_docker_host_gateway_directive(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            write(
+                repo / "deploy" / "dev-stack" / "docker-compose.yaml",
+                'services:\n  backend:\n    extra_hosts:\n      - "minio.localhost:host-gateway"\n',
+            )
+
+            result = run_lint(repo)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

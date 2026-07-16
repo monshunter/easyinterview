@@ -58,11 +58,10 @@ func (l *Loader) Validate() error {
 		default:
 			problems = append(problems, "FEATURE_FLAG_SOURCE must be file or posthog in staging/prod")
 		}
-		problems = append(problems, l.checkRequiredValue("email.provider", "EMAIL_PROVIDER")...)
-		problems = append(problems, l.checkRequiredSecret("email.providerApiKey", "EMAIL_PROVIDER_API_KEY")...)
 	}
 
 	if env != "test" {
+		problems = append(problems, l.validateEmailProvider(env)...)
 		switch strings.ToLower(strings.TrimSpace(l.GetString("objectStorage.provider"))) {
 		case "minio", "filesystem":
 		default:
@@ -96,6 +95,39 @@ func (l *Loader) Validate() error {
 	}
 	sort.Strings(problems)
 	return fmt.Errorf("config validation failed:\n  - %s", strings.Join(problems, "\n  - "))
+}
+
+func (l *Loader) validateEmailProvider(env string) []string {
+	provider := strings.ToLower(strings.TrimSpace(l.GetString("email.provider")))
+	var problems []string
+	if provider != "mailpit" && provider != "smtp" {
+		return []string{"EMAIL_PROVIDER must be mailpit or smtp"}
+	}
+	if env == "staging" || env == "prod" {
+		if provider != "smtp" {
+			problems = append(problems, "EMAIL_PROVIDER must be smtp in staging/prod")
+		}
+	}
+	problems = append(problems, l.checkRequiredValue("email.smtpHost", "EMAIL_SMTP_HOST")...)
+	port := l.GetInt("email.smtpPort")
+	if port < 1 || port > 65535 {
+		problems = append(problems, "EMAIL_SMTP_PORT must be between 1 and 65535")
+	}
+	problems = append(problems, l.checkRequiredValue("email.fromAddress", "EMAIL_FROM_ADDRESS")...)
+	tlsMode := strings.ToLower(strings.TrimSpace(l.GetString("email.smtpTLSMode")))
+	switch provider {
+	case "mailpit":
+		if tlsMode != "none" {
+			problems = append(problems, "EMAIL_SMTP_TLS_MODE must be none when EMAIL_PROVIDER=mailpit")
+		}
+	case "smtp":
+		problems = append(problems, l.checkRequiredValue("email.smtpUsername", "EMAIL_SMTP_USERNAME")...)
+		problems = append(problems, l.checkRequiredSecret("email.smtpPassword", "EMAIL_SMTP_PASSWORD")...)
+		if tlsMode != "starttls" && tlsMode != "tls" {
+			problems = append(problems, "EMAIL_SMTP_TLS_MODE must be starttls or tls when EMAIL_PROVIDER=smtp")
+		}
+	}
+	return problems
 }
 
 func (l *Loader) checkRequiredSecret(dotPath, envKey string) []string {

@@ -96,7 +96,11 @@ func (h *EmailDispatchHandler) Handle(_ context.Context, job runner.ClaimedJob) 
 		return runner.JobOutcome{Retryable: true, ErrorCode: "EMAIL_DISPATCH_FAILED", ErrorMessage: "delivery writer unavailable"}
 	}
 	if err := h.writer.Write(payload); err != nil {
-		return runner.JobOutcome{Retryable: true, ErrorCode: "EMAIL_DISPATCH_FAILED", ErrorMessage: "email delivery failed"}
+		message := "email delivery failed"
+		if safe, ok := err.(interface{ SafeMessage() string }); ok {
+			message = safe.SafeMessage()
+		}
+		return runner.JobOutcome{Retryable: true, ErrorCode: "EMAIL_DISPATCH_FAILED", ErrorMessage: message}
 	}
 	return runner.JobOutcome{Succeeded: true}
 }

@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.21
+> **版本**: 1.22
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -397,7 +397,7 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 
 #### 12.3 Make, docs and skill lifecycle
 
-根 `Makefile` 与 `deploy/dev-stack/Makefile` 增加 `dev-container-up/down/doctor/logs` 委派和实现；`.env.example` 增加两项可覆盖 host port。更新 `deploy/dev-stack/README.md`、`test/scenarios/README.md`、`scenario-env` / `scenario-redeploy` skill，明确默认 host-run 与显式 full-container 两条模式、部署/停止/日志/验收命令和 secret fail-fast 边界。
+根 `Makefile` 与 `deploy/dev-stack/Makefile` 增加 `dev-container-up/down/doctor/logs` 委派和实现；`.env.example` 增加两项可覆盖 host port。`dev-container-up` 在启动容器应用前停止仓库 PID 文件管理的 host-run backend/frontend，防止两个 backend 竞争同一异步任务，但不得杀无关进程或删除数据卷。更新 `deploy/dev-stack/README.md`、`test/scenarios/README.md`、`scenario-env` / `scenario-redeploy` skill，明确默认 host-run 与显式 full-container 两条模式、部署/停止/日志/验收命令和 secret fail-fast 边界。
 
 #### 12.4 Static and regression gates
 
@@ -407,9 +407,17 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 
 使用 `make dev-container-up` 部署当前工作树，确认 `dev-container-doctor` 全绿、`http://127.0.0.1:10800/` 与 `http://127.0.0.1:10801/api/v1/runtime-config` 可访问、Compose 中 migrations 成功且 backend/frontend healthy。随后使用 Chrome 在 10800 frontend 上执行当前产品主流程，业务请求必须落到真实 backend 且不使用浏览器 mock/interception；保留截图和关键网络/页面状态证据，验收完成后环境保持运行供开发者接管。
 
+### Phase 13: Mailpit / external SMTP provider switch
+
+以 `scripts/lint/scenario_env_contract_test.py` 先写 RED contract，要求 `.env.example` 和 full-container Compose 透传 `EMAIL_PROVIDER`、host/port/username/password/TLS mode/from；`dev-container-up` 在 Mailpit 模式自动把容器内 endpoint 解析为 `mailpit-dev:1025`，在 SMTP 模式原样保留用户 endpoint，不要求操作者来回修改 host-run `.env`。同一 contract 还要求 full-container 切换前停止仓库 PID 文件管理的 host-run app，避免跨进程 runner 抢占只在发起进程内存中存在的 delivery secret。GREEN 后执行 compose config（仅检查结构，不打印 secret）、focused contract、provider-only Mailpit live delivery 和外部 SMTP 脱敏 smoke。
+
+本阶段不新增 E2E ID：Mailpit 用户登录仍复用 `E2E.P0.101`，外部 SMTP 是同一业务行为的部署变体；配置矩阵由 A4 单测，用户可感知投递由 backend-auth `BDD.AUTH.EMAIL.002` 与显式 live smoke 承接。
+
+MVP 只运行一个 active backend 实例，不新增 Redis client 或共享 delivery secret 依赖。`dev-container-up` 停止仓库 PID 文件管理的 host-run app 后再启动容器应用；多副本生产扩容时由 backend-auth owner 另行补齐共享一次性 secret 与跨实例消费合同。
+
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-18 全部成立，证据贴入工作日志或当前 `.test-output/`。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-19 全部成立，证据贴入工作日志或当前 `.test-output/`。
 - 本 plan checklist 全部勾选；Phase 3 / Phase 4 的 `make dev-*` 自检命令日志贴入工作日志。
 - engineering-roadmap rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
 
@@ -424,13 +432,16 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 | init 脚本中 MinIO bucket 创建在 image 升级后字段格式漂移 | 镜像 tag 锁定在 spec D-2；任何 major 升级走 spec 修订流程而非本 plan 静默 bump |
 | 未来组件没有 Dockerfile 或稳定 dev command，导致无法纳入 `make dev-up` | 默认不纳入 compose：对应组件先提供宿主机 dev command；只有确实需要 optional app service 时，组件 plan 才补齐 Dockerfile、健康检查与资源预算后声明受 `make dev-up` 覆盖 |
 | 全容器 frontend 把宿主机 API 地址固化进 bundle，端口 override 后请求失效 | production bundle 使用相对 `/api/v1`，由 frontend 容器代理到 Compose `backend-dev`；10801 只作为宿主机直连/诊断入口 |
-| `.env` 仍使用 localhost 依赖地址导致 backend 容器启动失败 | Compose 为 backend/migrations 显式注入容器网络地址；host-run `.env` 值保持不变，避免两种模式互相污染 |
+| `.env` 仍使用 localhost 依赖地址导致 backend 容器启动失败 | Compose 为 backend/migrations 显式注入容器网络地址；Mailpit 由 `dev-container-up` 自动切换到 `mailpit-dev:1025`，标准 SMTP 原样透传；host-run `.env` 值保持不变，避免两种模式互相污染 |
+| host-run 与 full-container backend 同时消费 `email_dispatch`，另一进程拿不到内存 delivery secret | `dev-container-up` 只停止仓库 PID 文件管理的 host-run backend/frontend，再启动容器应用；不杀无关进程、不清卷；provider-only Mailpit live gate 验证任务一次成功 |
+| 生产多副本 backend 无法共享进程内 delivery secret | MVP 固定单 active backend 实例，保持最少依赖；扩容前回到 backend-auth owner 设计共享一次性 secret store，不在本地栈中提前引入 Redis client |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
 | 2026-07-16 | 1.21 | Full-container revision：同一 Compose 增加 migrations/backend/frontend 可选 profile，新增 `dev-container-*` lifecycle，锁定 10800/10801 与 Chrome 主流程部署验收。 | user goal |
+| 2026-07-16 | 1.22 | Full-container 和 host-run 支持通过同一邮件变量切换 Mailpit / 标准 SMTP，不再硬编码 Mailpit endpoint。 | backend-auth production SMTP |
 | 2026-07-10 | 1.20 | 删除场景 README 中两个不存在的 shared script 入口，并增加真实文件 inventory gate。 | tech-debt pruning |
 | 2026-07-10 | 1.19 | Wording cleanup：将 `.env.example` 的 secret / provider 描述从旧 scaffold wording 收敛为空值示例 / 示例默认值。 | tech-debt pruning |
 | 2026-07-10 | 1.18 | Wording cleanup：A2 承接 repo-scaffold 锁定的 `dev-up` / `dev-down` 根入口，不再使用早期切换口径。 | tech-debt pruning |

@@ -2,50 +2,99 @@ package auth
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
+	"errors"
 	"fmt"
+	"net"
 	"net/mail"
 	"net/smtp"
 	"strings"
+	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
 
 type ChallengeEmailLookup func(challengeID string) (string, error)
 
-type SMTPSendMailFunc func(addr string, a smtp.Auth, from string, to []string, msg []byte) error
+type SMTPTLSMode string
+
+const (
+	SMTPTLSNone     SMTPTLSMode = "none"
+	SMTPTLSStartTLS SMTPTLSMode = "starttls"
+	SMTPTLSImplicit SMTPTLSMode = "tls"
+)
+
+type SMTPEnvelope struct {
+	Addr     string
+	From     string
+	To       []string
+	Message  []byte
+	Username string
+	Password string
+	TLSMode  SMTPTLSMode
+}
+
+type SMTPSendFunc func(SMTPEnvelope) error
+
+type safeDeliveryError struct{ stage string }
+
+func (e safeDeliveryError) Error() string       { return e.SafeMessage() }
+func (e safeDeliveryError) SafeMessage() string { return "smtp " + e.stage + " failed" }
+
+func smtpFailure(stage string) error { return safeDeliveryError{stage: stage} }
 
 type SMTPDeliveryWriterOptions struct {
 	SMTPAddr             string
 	FromAddress          string
+	Username             string
+	Password             string
+	TLSMode              SMTPTLSMode
 	VerifyBaseURL        string
 	DeliverySecrets      DeliverySecretStore
 	LookupChallengeEmail ChallengeEmailLookup
-	SendMail             SMTPSendMailFunc
+	Send                 SMTPSendFunc
 }
 
 type SMTPDeliveryWriter struct {
 	smtpAddr             string
 	fromAddress          string
+	username             string
+	password             string
+	tlsMode              SMTPTLSMode
 	verifyBaseURL        string
 	deliverySecrets      DeliverySecretStore
 	lookupChallengeEmail ChallengeEmailLookup
-	sendMail             SMTPSendMailFunc
+	send                 SMTPSendFunc
 }
 
 func NewSMTPDeliveryWriter(opts SMTPDeliveryWriterOptions) *SMTPDeliveryWriter {
-	sendMail := opts.SendMail
-	if sendMail == nil {
-		sendMail = smtp.SendMail
+	send := opts.Send
+	if send == nil {
+		send = sendSMTPEnvelope
 	}
 	return &SMTPDeliveryWriter{
 		smtpAddr:             strings.TrimSpace(opts.SMTPAddr),
 		fromAddress:          strings.TrimSpace(opts.FromAddress),
+		username:             strings.TrimSpace(opts.Username),
+		password:             opts.Password,
+		tlsMode:              opts.TLSMode,
 		verifyBaseURL:        strings.TrimSpace(opts.VerifyBaseURL),
 		deliverySecrets:      opts.DeliverySecrets,
 		lookupChallengeEmail: opts.LookupChallengeEmail,
-		sendMail:             sendMail,
+		send:                 send,
 	}
+}
+
+func (w *SMTPDeliveryWriter) TLSMode() SMTPTLSMode {
+	if w == nil {
+		return ""
+	}
+	return w.tlsMode
+}
+
+func (w *SMTPDeliveryWriter) UsesAuthentication() bool {
+	return w != nil && w.username != ""
 }
 
 func SQLChallengeEmailLookup(db *sql.DB) ChallengeEmailLookup {
@@ -104,10 +153,94 @@ func (w *SMTPDeliveryWriter) Write(payload jobs.EmailDispatchPayload) error {
 	if w.smtpAddr == "" {
 		return fmt.Errorf("smtp address missing")
 	}
-	if err := w.sendMail(w.smtpAddr, nil, from, []string{to}, []byte(msg)); err != nil {
-		return fmt.Errorf("smtp email delivery failed")
+	if err := w.send(SMTPEnvelope{
+		Addr: w.smtpAddr, From: from, To: []string{to}, Message: []byte(msg),
+		Username: w.username, Password: w.password, TLSMode: w.tlsMode,
+	}); err != nil {
+		var safe interface{ SafeMessage() string }
+		if errors.As(err, &safe) {
+			return err
+		}
+		return smtpFailure("delivery")
 	}
 	return nil
+}
+
+func sendSMTPEnvelope(envelope SMTPEnvelope) error {
+	host, _, err := net.SplitHostPort(envelope.Addr)
+	if err != nil {
+		return smtpFailure("connect")
+	}
+	tlsConfig := newSMTPTLSConfig(host)
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	var client *smtp.Client
+	switch envelope.TLSMode {
+	case SMTPTLSNone:
+		conn, dialErr := dialer.Dial("tcp", envelope.Addr)
+		if dialErr != nil {
+			return smtpFailure("connect")
+		}
+		client, err = smtp.NewClient(conn, host)
+	case SMTPTLSStartTLS:
+		conn, dialErr := dialer.Dial("tcp", envelope.Addr)
+		if dialErr != nil {
+			return smtpFailure("connect")
+		}
+		client, err = smtp.NewClient(conn, host)
+		if err == nil {
+			if ok, _ := client.Extension("STARTTLS"); !ok {
+				client.Close()
+				return smtpFailure("starttls")
+			}
+			if err = client.StartTLS(tlsConfig); err != nil {
+				return smtpFailure("starttls")
+			}
+		}
+	case SMTPTLSImplicit:
+		conn, dialErr := tls.DialWithDialer(dialer, "tcp", envelope.Addr, tlsConfig)
+		if dialErr != nil {
+			return smtpFailure("connect")
+		}
+		client, err = smtp.NewClient(conn, host)
+	default:
+		return smtpFailure("tls-mode")
+	}
+	if err != nil {
+		return smtpFailure("greeting")
+	}
+	defer client.Close()
+	if envelope.Username != "" {
+		if err := client.Auth(smtp.PlainAuth("", envelope.Username, envelope.Password, host)); err != nil {
+			return smtpFailure("auth")
+		}
+	}
+	if err := client.Mail(envelope.From); err != nil {
+		return smtpFailure("mail-from")
+	}
+	for _, recipient := range envelope.To {
+		if err := client.Rcpt(recipient); err != nil {
+			return smtpFailure("recipient")
+		}
+	}
+	w, err := client.Data()
+	if err != nil {
+		return smtpFailure("data")
+	}
+	if _, err := w.Write(envelope.Message); err != nil {
+		w.Close()
+		return smtpFailure("data")
+	}
+	if err := w.Close(); err != nil {
+		return smtpFailure("data")
+	}
+	if err := client.Quit(); err != nil {
+		return smtpFailure("quit")
+	}
+	return nil
+}
+
+func newSMTPTLSConfig(host string) *tls.Config {
+	return &tls.Config{ServerName: host, MinVersion: tls.VersionTLS12}
 }
 
 func parseEmailAddress(raw string) (string, error) {

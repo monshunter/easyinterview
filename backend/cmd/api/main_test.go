@@ -1405,6 +1405,7 @@ email:
   provider: "mailpit"
   smtpHost: "127.0.0.1"
   smtpPort: 1025
+  smtpTLSMode: "none"
   fromAddress: "noreply@easyinterview.local"
   verifyBaseURL: "http://127.0.0.1:5173/auth/verify"
 `)
@@ -1427,6 +1428,69 @@ email:
 	}
 	if _, ok := writer.(*auth.SMTPDeliveryWriter); !ok {
 		t.Fatalf("delivery writer type = %T, want *auth.SMTPDeliveryWriter", writer)
+	}
+	if smtpWriter := writer.(*auth.SMTPDeliveryWriter); smtpWriter.TLSMode() != auth.SMTPTLSNone || smtpWriter.UsesAuthentication() {
+		t.Fatalf("mailpit writer mode/auth = %q/%v", smtpWriter.TLSMode(), smtpWriter.UsesAuthentication())
+	}
+}
+
+func TestBuildAuthServiceUsesAuthenticatedSMTPDeliveryWriterWhenConfigured(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+auth:
+  challengeTokenPepper: "pepper"
+  sessionCookieSecret: "session-secret"
+email:
+  provider: "smtp"
+  smtpHost: "smtp.example.test"
+  smtpPort: 587
+  smtpUsername: "mailer"
+  smtpPassword: "smtp-secret"
+  smtpTLSMode: "starttls"
+  fromAddress: "noreply@example.test"
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	db, _, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New: %v", err)
+	}
+	defer db.Close()
+
+	_, writer, err := buildAuthService(loader, db)
+	if err != nil {
+		t.Fatalf("buildAuthService: %v", err)
+	}
+	smtpWriter, ok := writer.(*auth.SMTPDeliveryWriter)
+	if !ok {
+		t.Fatalf("delivery writer type = %T, want SMTP", writer)
+	}
+	if smtpWriter.TLSMode() != auth.SMTPTLSStartTLS || !smtpWriter.UsesAuthentication() {
+		t.Fatalf("smtp writer mode/auth = %q/%v", smtpWriter.TLSMode(), smtpWriter.UsesAuthentication())
+	}
+}
+
+func TestBuildAuthServiceRejectsUnknownEmailProvider(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+auth:
+  challengeTokenPepper: "pepper"
+  sessionCookieSecret: "session-secret"
+email:
+  provider: "ses"
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	service, writer, err := buildAuthService(loader, nil)
+	if err == nil || !strings.Contains(err.Error(), "EMAIL_PROVIDER") {
+		t.Fatalf("buildAuthService error = %v", err)
+	}
+	if service != nil || writer != nil {
+		t.Fatal("unknown provider must not construct auth service")
 	}
 }
 

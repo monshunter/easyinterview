@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.21
+> **版本**: 1.22
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -121,3 +121,12 @@
 - [x] 12.3 Lifecycle/docs/skill：根与 `deploy/dev-stack` Makefile 实现 `dev-container-up/down/doctor/logs`，`.env.example` 增加 `FULL_CONTAINER_FRONTEND_HOST_PORT=10800` / `FULL_CONTAINER_API_HOST_PORT=10801`；更新 dev-stack/scenario README 与 scenario-env/redeploy skill；focused lifecycle contract pytest、根/子 Make help 和 `git diff --check` 已通过。
 - [x] 12.4 Static/regression gate：root `make test`（Python 561 passed / 4481 subtests、backend Go、frontend 126 files / 1004 tests）、`make build`、`make docs-check`、context validator、doc index check、full-container compose config 和 `git diff --check` 全部通过；代码 gate 与真实环境验收分层报告。
 - [x] 12.5 Live/Chrome gate：`make dev-container-up` 已部署当前工作树，migrations 成功，doctor 6/6 OK，10800 frontend 与 10801 runtime-config 均返回 200；Chrome 在 10800 使用 E2E.P0.101 标准 synthetic 邮箱完成验证码登录、资料补全、简历 AI 解析、JD/面试计划、真实 AI 问答与报告生成，未使用 mock/interception且 console warning/error 为 0；脱敏截图保存于 `.test-output/full-container-chrome/01-auth-profile-home.png`、`02-resume-ready.png`、`03-live-practice.png`、`04-report-complete.png`，报告页与环境保持运行供接管。
+
+## Phase 13: Mailpit / external SMTP provider switch
+
+- [x] 13.1 RED: scenario env contract 要求 root/dev-stack env 模板与 Compose 包含 provider、host/port、username/password、TLS mode/from 透传，且外部 SMTP host 不被 `mailpit-dev` 硬编码覆盖。
+  <!-- verified: 2026-07-16 method=focused-red evidence="new scenario env contract failed before x-backend-environment exposed provider-selectable SMTP variables" -->
+- [x] 13.2 GREEN: 更新 env 模板、Compose、Make target 与 runbook；Mailpit 仅切 provider 即由 full-container 自动使用 `mailpit-dev:1025`，SMTP 使用用户 `.env` endpoint/secret；切换前停止仓库 PID 文件管理的 host-run app，避免 runner 竞争；focused contract、compose config、`make lint-config` 通过。
+  <!-- verified: 2026-07-16 method=focused-green evidence="scenario env contract 10/10, compose config, env dictionary, terminology and secret scan pass" -->
+- [x] 13.3 LIVE: full-container 先以 Mailpit 完成真实发码/收码，再以用户 `.env` 标准 SMTP 完成 TLS/auth/实发；检查 backend/doctor/compose evidence 不包含 secret、完整收件人或 raw code。MVP 只运行一个 active backend 实例。
+  <!-- verified: 2026-07-16 evidence="dev-container-up stopped repo-managed host-run PID files and reported 6/6 healthy; EMAIL_PROVIDER=mailpit alone resolved mailpit-dev:1025 and delivered in one attempt; fresh external SMTP service accepted authenticated implicit-TLS delivery and application job succeeded once; user confirmed EMAIL_FROM_ADDRESS inbox received EasyInterview sign-in code; redacted artifacts contain no recipient, code, or credential" -->

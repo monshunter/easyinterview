@@ -1,14 +1,14 @@
 # Local Dev Stack Spec
 
-> **版本**: 1.26
-> **状态**: active
+> **版本**: 1.27
+> **状态**: completed
 > **更新日期**: 2026-07-16
 
 ## 1 背景与目标
 
 [engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将原始 A2 `local-dev-stack` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 A1 已锁定并委托的 `make dev-up` / `make dev-down` target；当前执行口径锁定本地开发栈的最小依赖、应用组件启动契约、Make target 行为与健康检查口径，真实「克隆仓库 → 一条命令 → 本项目本地环境启动完成」由 A2 child `001` plan 验证。
 
-本地开发环境不是生产观测环境的缩小版。默认 `make dev-up` 只启动开发 P0 闭环必须的外部依赖；当前仓库内可运行的 backend / frontend 组件默认在宿主机用 dev command 管理。需要验证容器构建、容器内服务发现与部署形态时，开发者可显式启动同一 Compose 中的 `full-container` profile；该模式不改变默认 host-run 工作流，也不引入第二套 network、volume 或 env truth source。
+本地开发环境不是生产观测环境的缩小版。默认 `make dev-up` 只启动开发 P0 闭环必须的外部依赖；当前仓库内可运行的 backend / frontend 组件默认在宿主机用 dev command 管理。需要验证容器构建、容器内服务发现与部署形态时，开发者可显式启动同一 Compose 中的 `full-container` profile；该入口会停止仓库 PID 文件管理的 host-run app，防止两个 backend 竞争同一异步队列，但不改变默认 `dev-up` 工作流，也不引入第二套 network、volume 或 env truth source。
 
 目标是：
 
@@ -41,7 +41,7 @@
 - 文档：`deploy/dev-stack/README.md` 一屏说明 + 故障排查 + 本地 Mailpit 登录边界 + 与 `test/scenarios/` 真实 API/UI 场景契约的 cross-link。
 - 场景环境入口：`test/scenarios/env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-cleanup.sh` / `env-redeploy.sh` 作为 framework-owned 环境生命周期入口；根 `Makefile` 提供 `scenario-env-*` target 委派这些脚本，供 `/scenario-env` 和 `/scenario-redeploy` skill 调用。
 - 一键调试入口：根 `Makefile` 提供 `scenario-env-reset-redeploy`，按 `env-cleanup.sh --with-volumes` → `env-setup.sh --with-migrations` → `env-redeploy.sh all` → `env-verify.sh` 顺序组合现有 framework-owned 脚本；支持 `ARGS=--dry-run` 用于无副作用预览。
-- 全容器入口：根 `Makefile` 提供 `dev-container-up` / `dev-container-down` / `dev-container-doctor` / `dev-container-logs`，委派 `deploy/dev-stack/Makefile` 管理同一 Compose 的 `full-container` profile；frontend/backend 默认通过 `127.0.0.1:10800/10801` 对外提供服务。
+- 全容器入口：根 `Makefile` 提供 `dev-container-up` / `dev-container-down` / `dev-container-doctor` / `dev-container-logs`，委派 `deploy/dev-stack/Makefile` 停止仓库管理的 host-run app 并管理同一 Compose 的 `full-container` profile；frontend/backend 默认通过 `127.0.0.1:10800/10801` 对外提供服务。
 
 ### 2.2 Out of Scope
 
@@ -68,13 +68,14 @@
 | D-8 | 本地观测口径 | 默认依赖容器日志与应用 `/metrics`；`make dev-logs` 汇总容器日志，`make dev-doctor` 可检查已启用 HTTP 组件的 `/metrics` | F1 可以消费这些出口，但不能要求 A2 默认安装观测栈 |
 | D-9 | 本地 AI provider 配置 | `deploy/dev-stack/.env.example` 必须列出 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml`、`AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml` 与 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` env ref；启用 AIClient 的非测试项目组件启动时缺少 catalog path 或当前 provider endpoint / key 必须 fail-fast；A2 不启动 AI provider 容器 | 本地 app run 验证真实 LLM 服务，同时保持 A2 依赖最小化 |
 | D-10 | 本地邮件 sink | 默认依赖包含 Mailpit；`deploy/dev-stack/.env.example` 必须列出 `MAILPIT_WEB_HOST_PORT` / `MAILPIT_SMTP_HOST_PORT` 与 C1/A4 邮件 env（`EMAIL_PROVIDER=mailpit`、SMTP host/port、from、verify base URL）。host-run backend 默认通过 `127.0.0.1:1025` 投递 code-only 邮件到 Mailpit，正文只包含 6 位验证码和 5 分钟过期提示，不包含 frontend `/auth/verify?token=...` 或 backend verify API 链接；`EMAIL_VERIFY_BASE_URL` 仅作为本地 frontend origin / dev CORS 推导来源保留，人工通过 `http://127.0.0.1:8025` 收信并在前端验证页输入 code | 本地测试不依赖真实外部邮箱服务或真实邮箱账号；账号验收走真实 email-code flow，不需要场景专属 backend cmd |
+| D-19 | 可切换邮件 provider | host-run 与 full-container backend 都从同一 `deploy/dev-stack/.env` 读取 `EMAIL_PROVIDER` 与 `EMAIL_SMTP_*`。`mailpit` 时 host-run 使用 `127.0.0.1`、全容器使用可配置的 Compose SMTP host（默认 `mailpit-dev`）；`smtp` 时必须透传用户配置的外部 host/port/username/password/TLS mode/from，不再被 compose 硬编码覆盖 | 切换 provider 只需修改环境变量并重建 backend；不得把密码写进镜像、compose config 输出、doctor 或日志 |
 | D-11 | 独立场景环境生命周期 | `test/scenarios/env-setup.sh` 调 `make dev-up` 并可选执行 migrations；`env-status.sh` / `env-verify.sh` 消费 `make dev-doctor`；`env-cleanup.sh` 默认 `make dev-down`，显式 `--with-volumes` 才走 `DEV_RESET_FORCE=1 make dev-reset`；`env-redeploy.sh` 支持 `deps` / `backend` / `frontend` / `all`，其中 `backend` / `frontend` / `all` 必须在 build artifact 刷新后重启对应 host-run 进程 | 环境管理与具体业务场景分离；skill 可按用户意图只管理环境、重建并重启组件，或再交给真实 API/UI 验收 |
 | D-12 | 单一真实 env 来源 | `deploy/dev-stack/.env.example` 必须列出真实本地联调所需的 backend auth secrets、AI provider、邮件、共享依赖、frontend real-mode env；`deploy/dev-stack/.env` 是唯一被 host-run backend/frontend 与 hybrid 场景读取的本地真实 env 文件 | 防止每个场景复制独立 `.env`，保证本地测试环境和真实联调环境通过同一配置构建 |
 | D-13 | local raw output debug 默认开启 | `config/dev.yaml`、`config/test.yaml` 与 `deploy/dev-stack/.env.example` 必须默认 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；`config/config.yaml`、staging、prod 仍默认 false；本地 hybrid 场景 preflight 必须拒绝未开启 raw debug 的真实 provider run | 支持 AI Agent 以本机 raw log 调试 schema/格式问题，同时不扩大生产或共享持久化泄露面 |
 | D-14 | 环境调试摘要 | `env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-redeploy.sh` 必须输出本地调试摘要：frontend dev URL、backend API base、Mailpit URL、MinIO Console URL、`.test-output/local-dev/{backend,frontend}.log`、`.pid` 文件和 `make dev-logs SERVICE=<name>` 容器日志入口 | 开发者能在 Agent 启动环境后直接接管浏览器和日志，不需要猜端口、查进程或追问调试入口 |
 | D-15 | Host-run backend loopback 监听 | `env-redeploy.sh backend|all` 通过 `test/scenarios/_shared/scripts/local-dev-runtime.sh` 启动宿主机 backend 时，若 `deploy/dev-stack/.env` 中 `APP_LISTEN_ADDR` 是 `:8080` 或 `0.0.0.0:8080` 这类通配地址，必须在启动前导出 `APP_LISTEN_ADDR=127.0.0.1:${API_HOST_PORT:-8080}`；已显式设置为其它具体地址时保留用户配置 | 本地前端与场景脚本始终访问 loopback backend API；不得因为无关 bridge listener 占用非 loopback 8080 而启动失败，也不得为了规避冲突杀掉不属于本仓库的 listener |
 | D-16 | 一键 reset/redeploy Make target | `make scenario-env-reset-redeploy` 是当前唯一的全量调试闭环入口；它必须复用顶层 env scripts，先显式清空 named volumes，再带 migrations 重建依赖，随后 `env-redeploy.sh all` 重编译并重启 host-run backend/frontend，最后 `env-verify.sh` 验证 readiness；`ARGS=--dry-run` 必须预览四段命令且不清理数据 | 避免每次人工重复组合清理、迁移、编译、重启、验证命令，也避免在 Makefile 中复制脚本逻辑造成 lifecycle 漂移 |
-| D-17 | 可选全容器 profile | `make dev-container-up` 构建并启动同一 Compose 的 `full-container` profile：一次性 migrations 成功后启动 backend，frontend 以同源 `/api/v1` 代理访问 backend；frontend/backend 默认对外端口为 10800/10801。`dev-container-down` 保留命名卷，`dev-container-doctor` 复用结构化 doctor，`dev-container-logs` 读取同一项目日志 | 默认 `make dev-up` 仍只启动外部依赖；全容器模式不复制 compose、network、volume、fixture 或 `.env`，也不启动 AI provider / 观测栈 |
+| D-17 | 可选全容器 profile | `make dev-container-up` 先停止仓库 PID 文件管理的 host-run backend/frontend，再构建并启动同一 Compose 的 `full-container` profile：一次性 migrations 成功后启动 backend，frontend 以同源 `/api/v1` 代理访问 backend；frontend/backend 默认对外端口为 10800/10801。`dev-container-down` 保留命名卷，`dev-container-doctor` 复用结构化 doctor，`dev-container-logs` 读取同一项目日志 | 默认 `make dev-up` 仍只启动外部依赖；全容器模式不杀无关进程，不复制 compose、network、volume、fixture 或 `.env`，也不启动 AI provider / 观测栈 |
 
 ### 3.2 待确认事项
 
@@ -151,7 +152,8 @@
 | C-15 | 可接管调试信息 | 开发者或 Agent 创建、验证或重建共享本地环境 | 执行 `test/scenarios/env-setup.sh`、`env-status.sh`、`env-verify.sh` 或 `env-redeploy.sh all` | 输出 frontend/backend/Mailpit/MinIO 地址、backend/frontend 日志路径、PID 文件和容器日志命令；`env-redeploy.sh all` 后浏览器访问的 frontend origin 和 Mailpit code-only 邮件验证页入口均来自当前 `deploy/dev-stack/.env` | 001 developer debug handoff revision |
 | C-16 | Bridge listener 不阻断 backend 重启 | `.env` 仍使用 `APP_LISTEN_ADDR=:8080`，且本机存在不属于 easyinterview 的非 loopback bridge listener 占用 8080 | 执行 `test/scenarios/env-redeploy.sh backend` 或 `make scenario-env-redeploy TARGET=backend` | 脚本不杀掉无关 listener；host-run backend 用 `127.0.0.1:${API_HOST_PORT:-8080}` 成功启动并写入 PID/log；`http://127.0.0.1:${API_HOST_PORT:-8080}/api/v1/runtime-config` 可访问，首次登录用户访问简历列表不再因 stale / down backend 返回 500 | 001 developer debug handoff revision |
 | C-17 | 一键清数据重编译重部署 | 开发者需要从干净本地数据状态重新加载当前代码，避免每次手工输入多段命令 | `make scenario-env-reset-redeploy`；若只想预览则执行 `make scenario-env-reset-redeploy ARGS=--dry-run` | 实际执行时依次清空 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`、重建依赖并跑 migrations、重编译并重启 backend/frontend、执行 shared env verify；dry-run 输出 `env-cleanup --with-volumes`、`env-setup --with-migrations`、`env-redeploy all`、`env-verify` 四段命令且不改变环境 | 001 Phase 10 one-click reset/redeploy revision |
-| C-18 | 全容器本地部署验收 | `deploy/dev-stack/.env` 已补齐本地 auth secrets 与真实 AI provider 配置，Docker/Compose 满足版本要求 | 执行 `make dev-container-up`，再访问 `http://127.0.0.1:10800/` 与 `http://127.0.0.1:10801/api/v1/runtime-config`，并通过 Chrome 执行当前产品主流程 | 依赖、migrations、backend、frontend 均在同一 `easyinterview-dev` Compose 项目中就绪；doctor 报全部启用服务 OK；frontend 同源 API 请求落到真实 backend；Chrome 主流程不使用 mock/interception；默认 host-run `dev-up` 语义保持不变 | 001 Phase 12 full-container revision |
+| C-18 | 全容器本地部署验收 | `deploy/dev-stack/.env` 已补齐本地 auth secrets 与真实 AI provider 配置，Docker/Compose 满足版本要求 | 执行 `make dev-container-up`，再访问 `http://127.0.0.1:10800/` 与 `http://127.0.0.1:10801/api/v1/runtime-config`，并通过 Chrome 执行当前产品主流程 | 仓库 PID 文件管理的 host-run app 已停止；依赖、migrations、backend、frontend 均在同一 `easyinterview-dev` Compose 项目中就绪；doctor 报全部启用服务 OK；frontend 同源 API 请求落到真实 backend；Chrome 主流程不使用 mock/interception；默认 host-run `dev-up` 语义保持不变 | 001 Phase 12 full-container revision |
+| C-19 | Mailpit / external SMTP deployment | `.env` 选择 `mailpit` 或 `smtp` 并补齐对应 A4 字段；MVP 只运行一个 active backend 实例 | 重建 backend 后发起真实 email-code challenge | full-container Mailpit 仅切 provider 即自动使用 `mailpit-dev:1025` 并收到 code-only 邮件；SMTP 模式通过配置的 TLS/auth 外部服务实发且 Compose 不覆盖外部 endpoint；两种模式日志和证据均不泄露密码、完整邮箱或 raw code | 001 Phase 13 provider switch revision |
 
 ## 7 关联计划
 

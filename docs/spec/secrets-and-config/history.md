@@ -1,10 +1,12 @@
 # Secrets and Config History
 
-> **版本**: 2.16
-> **状态**: active
-> **更新日期**: 2026-07-13
+> **版本**: 2.19
+> **状态**: completed
+> **更新日期**: 2026-07-16
 
 ## 1 修订记录
+
+| 2026-07-16 | 2.19 | 支持 `mailpit|smtp`，新增 SMTP username/password/TLS mode 条件合同并删除未消费的 provider API key。 | backend-auth/001 Phase 11 |
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|

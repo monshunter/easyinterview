@@ -1,8 +1,8 @@
 # Secrets and Config Spec
 
-> **版本**: 2.18
-> **状态**: active
-> **更新日期**: 2026-07-14
+> **版本**: 2.19
+> **状态**: completed
+> **更新日期**: 2026-07-16
 
 ## 1 背景与目标
 
@@ -98,12 +98,14 @@
 | `POSTHOG_SELF_HOSTED` | 条件 | `false` | staging / prod 使用 PostHog 时必须为 `true`；防止误接 PostHog Cloud | A4（F2 owner） |
 | `POSTHOG_PROJECT_API_KEY` | 条件 | `(空)` | secret | A4（F2 owner） |
 | `POSTHOG_PUBLIC_KEY` | 条件 | `(空；local dev 可填 public key)` | 暴露给前端的 public key；仅前端 analytics 初始化需要 | A4（F2 owner） |
-| `EMAIL_PROVIDER` | prod 必填 | `mailpit`（local dev） | email-code 发件方；local dev 默认走 Mailpit，本地测试不依赖外部邮箱服务 | A4（C1 owner，ADR-Q1） |
-| `EMAIL_SMTP_HOST` | 条件 | `127.0.0.1` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP host | A4（C1 owner） |
-| `EMAIL_SMTP_PORT` | 条件 | `1025` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP port | A4（C1 owner） |
+| `EMAIL_PROVIDER` | 是 | `mailpit`（local dev） | `mailpit|smtp`；staging/prod 只允许 `smtp` | A4（C1 owner，ADR-Q1） |
+| `EMAIL_SMTP_HOST` | 条件 | `127.0.0.1` | `mailpit|smtp` 均必填；全容器 Mailpit 使用 Compose service name，生产使用外部 SMTP host | A4（C1 owner） |
+| `EMAIL_SMTP_PORT` | 条件 | `1025` | `mailpit|smtp` 均必填，范围 `1..65535` | A4（C1 owner） |
+| `EMAIL_SMTP_USERNAME` | 条件 | `(空)` | `smtp` 必填；认证用户名，不进入日志/runtime-config | A4（C1 owner） |
+| `EMAIL_SMTP_PASSWORD` | 条件 | `(空)` | secret；`smtp` 必填，只能通过 runtime secret/env 注入 | A4（C1 owner） |
+| `EMAIL_SMTP_TLS_MODE` | 条件 | `none`（local Mailpit） | `none|starttls|tls`；`smtp` 只允许 `starttls|tls`，staging/prod 禁止 `none` | A4（C1 owner） |
 | `EMAIL_FROM_ADDRESS` | 条件 | `noreply@easyinterview.local` | email-code 邮件 envelope/header From；不得写个人邮箱 | A4（C1 owner） |
 | `EMAIL_VERIFY_BASE_URL` | 条件 | `http://127.0.0.1:5173/auth/verify` | local dev frontend origin / dev CORS 推导来源；当前 code-only 邮件正文不得拼入该 URL | A4（C1 owner） |
-| `EMAIL_PROVIDER_API_KEY` | prod 必填 | `(空)` | secret | A4（C1 owner） |
 
 #### 3.1.2 Canonical config schema 分类
 
@@ -131,8 +133,8 @@
 | `auth.sessionCookieSecret` | `SESSION_COOKIE_SECRET` | 是 | prod required；dev init generated | 否 | A4 + C1 |
 | `auth.sessionCookieName` | `(无 env key；ADR-Q1 固定)` | 否 | fixed literal `ei_session` | 否 | ADR-Q1 + A4 + C1 |
 | `auth.challengeTokenPepper` | `AUTH_CHALLENGE_TOKEN_PEPPER` | 是 | prod required；dev init generated | 否 | A4 + C1 |
-| `email.provider` / `email.providerApiKey` | `EMAIL_PROVIDER` / `EMAIL_PROVIDER_API_KEY` | provider 否；apiKey 是 | prod required；dev Mailpit 可不需要 apiKey | 否 | A4 + C1 |
-| `email.smtpHost` / `email.smtpPort` / `email.fromAddress` / `email.verifyBaseURL` | `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` | 否 | required when `EMAIL_PROVIDER=mailpit` 或 SMTP writer 启用；local dev SMTP defaults point to Mailpit on `127.0.0.1:1025`，`email.verifyBaseURL` 仅保留为 frontend origin / dev CORS 推导来源 | 否 | A4 + C1 + local-dev-stack |
+| `email.provider` | `EMAIL_PROVIDER` | 否 | always；`mailpit|smtp`，staging/prod only `smtp` | 否 | A4 + C1 |
+| `email.smtpHost` / `email.smtpPort` / `email.smtpUsername` / `email.smtpPassword` / `email.smtpTLSMode` / `email.fromAddress` / `email.verifyBaseURL` | 对应 `EMAIL_SMTP_*` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` | password 是，其余否 | `mailpit` 要求 host/port/from + `none` 且不得配置认证；`smtp` 要求 host/port/from/username/password + `starttls|tls`；`email.verifyBaseURL` 仅保留为 frontend origin / dev CORS 推导来源 | 否 | A4 + C1 + local-dev-stack |
 | `ai.providerRegistryPath` | `AI_PROVIDER_REGISTRY_PATH` | 否 | always | 否 | A4 + A3 |
 | `ai.defaultProviderBaseURL` / `ai.defaultProviderApiKey` | `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` | baseURL 否；apiKey 是 | required only when provider registry references these env names and the corresponding AIClient-enabled component starts；`APP_ENV=test` may use stub | 否 | A4 + A3 |
 | `ai.doubaoSpeechBaseURL` / `ai.doubaoSpeechApiKey` | `DOUBAO_SPEECH_BASE_URL` / `DOUBAO_SPEECH_API_KEY` | baseURL 否；apiKey 是 | required only when doubao_speech provider is selected；`APP_ENV=test` may use stub | 否 | A4 + A3 |

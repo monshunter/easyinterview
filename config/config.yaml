@@ -65,9 +65,11 @@ auth:
 
 email:
   provider: ""
-  providerApiKey: ""
   smtpHost: "127.0.0.1"
   smtpPort: 1025
+  smtpUsername: ""
+  smtpPassword: ""
+  smtpTLSMode: "none"
   fromAddress: "noreply@easyinterview.local"
   verifyBaseURL: "http://127.0.0.1:5173/auth/verify"
 

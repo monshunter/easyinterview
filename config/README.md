@@ -60,6 +60,12 @@ flag；非当前错题本、成长看板与双轨 mock session flag 已随 produ
 4. 跑 `make lint-config`：三方求差集（`.env.example` / 代码侧 `os.Getenv` /
    spec §3.1.1 表）必须全部对齐，否则 lint 失败。
 
+## 邮件 provider
+
+- 本地 Mailpit：`EMAIL_PROVIDER=mailpit`、`EMAIL_SMTP_TLS_MODE=none`，host-run backend 使用 `EMAIL_SMTP_HOST=127.0.0.1`；full-container backend 使用 `EMAIL_SMTP_HOST=mailpit-dev`。
+- 标准 SMTP：`EMAIL_PROVIDER=smtp`，配置 `EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_SMTP_USERNAME` / `EMAIL_SMTP_PASSWORD` / `EMAIL_FROM_ADDRESS`，并按服务商选择 `EMAIL_SMTP_TLS_MODE=starttls`（常见 587）或 `tls`（常见 465）。`EMAIL_FROM_ADDRESS` 必须是服务商已验证或授权的发件地址；它不一定与登录用户名相同，错误配置会在 SMTP `MAIL FROM` 阶段被拒绝。
+- staging/prod 只允许标准 SMTP 和加密模式；密码只通过 runtime secret/env 注入。未知 provider、明文生产 SMTP、缺认证字段或非法端口会在启动时 fail-fast，错误只列变量名。
+
 `async.queueWeights` 是 config-only 字段（spec D-9），不进 env 字典；新增
 config-only 字段同样需要先递增 spec 版本再同步 `config.yaml`。
 

@@ -1,10 +1,12 @@
 # Local Dev Stack History
 
-> **版本**: 1.26
-> **状态**: active
+> **版本**: 1.27
+> **状态**: completed
 > **更新日期**: 2026-07-16
 
 ## 1 修订记录
+
+| 2026-07-16 | 1.27 | host-run/full-container 通过同一 env 合同切换 Mailpit 与标准 SMTP；full-container Mailpit 自动解析容器别名、SMTP 保留外部 endpoint，并在拓扑切换时停止仓库管理的 host-run app，避免 runner 竞争。 | backend-auth/001 Phase 11 |
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|

@@ -82,7 +82,12 @@ func setCompleteProdRuntimeEnv(t *testing.T) {
 	t.Setenv("AI_MODEL_PROFILE_PATH", "/etc/easyinterview/ai-profiles.yaml")
 	t.Setenv("FEATURE_FLAG_SOURCE", "posthog")
 	t.Setenv("POSTHOG_HOST", "https://posthog")
-	t.Setenv("EMAIL_PROVIDER", "ses")
+	t.Setenv("EMAIL_PROVIDER", "smtp")
+	t.Setenv("EMAIL_SMTP_HOST", "smtp.example.test")
+	t.Setenv("EMAIL_SMTP_PORT", "587")
+	t.Setenv("EMAIL_SMTP_USERNAME", "mailer")
+	t.Setenv("EMAIL_SMTP_TLS_MODE", "starttls")
+	t.Setenv("EMAIL_FROM_ADDRESS", "noreply@example.test")
 }
 
 func TestDefaultEnvDictionaryOmitsWorkerListenAddr(t *testing.T) {
@@ -177,30 +182,95 @@ func TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments(t *testing
 	}
 }
 
-func TestDefaultEmailDictionaryIncludesMailpitSMTPBindings(t *testing.T) {
+func TestDefaultEmailDictionaryIncludesSMTPProviderBindings(t *testing.T) {
 	envBindings := config.DefaultEnvBindings()
 	for key, want := range map[string]string{
-		"EMAIL_PROVIDER":         "email.provider",
-		"EMAIL_SMTP_HOST":        "email.smtpHost",
-		"EMAIL_SMTP_PORT":        "email.smtpPort",
-		"EMAIL_FROM_ADDRESS":     "email.fromAddress",
-		"EMAIL_VERIFY_BASE_URL":  "email.verifyBaseURL",
-		"EMAIL_PROVIDER_API_KEY": "email.providerApiKey",
+		"EMAIL_PROVIDER":        "email.provider",
+		"EMAIL_SMTP_HOST":       "email.smtpHost",
+		"EMAIL_SMTP_PORT":       "email.smtpPort",
+		"EMAIL_SMTP_USERNAME":   "email.smtpUsername",
+		"EMAIL_SMTP_PASSWORD":   "email.smtpPassword",
+		"EMAIL_SMTP_TLS_MODE":   "email.smtpTLSMode",
+		"EMAIL_FROM_ADDRESS":    "email.fromAddress",
+		"EMAIL_VERIFY_BASE_URL": "email.verifyBaseURL",
 	} {
 		if got := envBindings[key]; got != want {
 			t.Fatalf("%s binding = %q, want %q", key, got, want)
 		}
 	}
+	if _, ok := envBindings["EMAIL_PROVIDER_API_KEY"]; ok {
+		t.Fatal("EMAIL_PROVIDER_API_KEY must not remain in the current email dictionary")
+	}
+	if got := config.DefaultSecretBindings()["email.smtpPassword"]; got != "EMAIL_SMTP_PASSWORD" {
+		t.Fatalf("email.smtpPassword secret binding = %q", got)
+	}
+}
+
+func TestValidateEmailProviderContractInDev(t *testing.T) {
+	tests := []struct {
+		name     string
+		provider string
+		host     string
+		port     string
+		username string
+		password string
+		tlsMode  string
+		wantKey  string
+	}{
+		{name: "mailpit plain without auth", provider: "mailpit", host: "127.0.0.1", port: "1025", tlsMode: "none"},
+		{name: "smtp starttls with auth", provider: "smtp", host: "smtp.example.test", port: "587", username: "mailer", password: "secret", tlsMode: "starttls"},
+		{name: "smtp implicit tls with auth", provider: "smtp", host: "smtp.example.test", port: "465", username: "mailer", password: "secret", tlsMode: "tls"},
+		{name: "unknown provider", provider: "ses", host: "smtp.example.test", port: "587", username: "mailer", password: "secret", tlsMode: "starttls", wantKey: "EMAIL_PROVIDER"},
+		{name: "smtp rejects none tls", provider: "smtp", host: "smtp.example.test", port: "587", username: "mailer", password: "secret", tlsMode: "none", wantKey: "EMAIL_SMTP_TLS_MODE"},
+		{name: "smtp requires username", provider: "smtp", host: "smtp.example.test", port: "587", password: "secret", tlsMode: "starttls", wantKey: "EMAIL_SMTP_USERNAME"},
+		{name: "smtp requires password", provider: "smtp", host: "smtp.example.test", port: "587", username: "mailer", tlsMode: "starttls", wantKey: "EMAIL_SMTP_PASSWORD"},
+		{name: "rejects invalid port", provider: "mailpit", host: "127.0.0.1", port: "70000", tlsMode: "none", wantKey: "EMAIL_SMTP_PORT"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("EMAIL_PROVIDER", tt.provider)
+			t.Setenv("EMAIL_SMTP_HOST", tt.host)
+			t.Setenv("EMAIL_SMTP_PORT", tt.port)
+			t.Setenv("EMAIL_SMTP_USERNAME", tt.username)
+			t.Setenv("EMAIL_SMTP_TLS_MODE", tt.tlsMode)
+			t.Setenv("EMAIL_FROM_ADDRESS", "noreply@example.test")
+			loader, err := config.LoadCanonical(config.CanonicalOptions{
+				AppEnv:    "dev",
+				ConfigDir: filepath.Clean("../../../../config"),
+				SecretSource: mapSecret{
+					"EMAIL_SMTP_PASSWORD": tt.password,
+				},
+			})
+			if err != nil {
+				t.Fatalf("LoadCanonical: %v", err)
+			}
+			err = loader.Validate()
+			if tt.wantKey == "" {
+				if err != nil {
+					t.Fatalf("Validate: %v", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.wantKey) {
+				t.Fatalf("Validate error = %v, want key %s", err, tt.wantKey)
+			}
+			if tt.password != "" && strings.Contains(err.Error(), tt.password) {
+				t.Fatal("validation error leaked SMTP password")
+			}
+		})
+	}
 }
 
 func TestValidateProdMissingSecretFailsFast(t *testing.T) {
+	setCompleteProdRuntimeEnv(t)
 	loader := newProdLoader(t, mapSecret{})
 	err := loader.Validate()
 	if err == nil {
 		t.Fatal("expected validate error in prod with missing secrets")
 	}
 	msg := err.Error()
-	for _, key := range []string{"SESSION_COOKIE_SECRET", "AUTH_CHALLENGE_TOKEN_PEPPER", "EMAIL_PROVIDER_API_KEY"} {
+	for _, key := range []string{"SESSION_COOKIE_SECRET", "AUTH_CHALLENGE_TOKEN_PEPPER", "EMAIL_SMTP_PASSWORD"} {
 		if !strings.Contains(msg, key) {
 			t.Errorf("error missing key %s: %s", key, msg)
 		}
@@ -216,7 +286,7 @@ func TestValidateProdAllSecretsPasses(t *testing.T) {
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
 		"AI_PROVIDER_API_KEY":         "key",
-		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"EMAIL_SMTP_PASSWORD":         "smtp-secret",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
 	}, "https://provider.example")
 	if err := loader.Validate(); err != nil {
@@ -230,7 +300,7 @@ func TestValidateProdDoesNotRequireDefaultProviderSecretGlobally(t *testing.T) {
 	loader := newProdLoader(t, mapSecret{
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
-		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"EMAIL_SMTP_PASSWORD":         "smtp-secret",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
 	})
 
@@ -245,7 +315,7 @@ func TestValidateProdMissingAIRegistryPathFailsFast(t *testing.T) {
 	loader := newProdLoader(t, mapSecret{
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
-		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"EMAIL_SMTP_PASSWORD":         "smtp-secret",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
 	})
 
@@ -264,7 +334,7 @@ func TestDefaultProviderSecretBindingIsStillAvailableWhenRegistryReferencesIt(t 
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
 		"AI_PROVIDER_API_KEY":         "provider-key",
-		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"EMAIL_SMTP_PASSWORD":         "smtp-secret",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
 	})
 
@@ -278,7 +348,7 @@ func TestValidateProdRejectsDevDefaultDeploymentDependencies(t *testing.T) {
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
 		"AI_PROVIDER_API_KEY":         "key",
-		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"EMAIL_SMTP_PASSWORD":         "smtp-secret",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
 	}, "https://provider.example")
 
@@ -309,7 +379,7 @@ func TestValidateProdMissingAIModelProfilePathFailsFast(t *testing.T) {
 	loader := newProdLoader(t, mapSecret{
 		"SESSION_COOKIE_SECRET":       "secret",
 		"AUTH_CHALLENGE_TOKEN_PEPPER": "pepper",
-		"EMAIL_PROVIDER_API_KEY":      "ek",
+		"EMAIL_SMTP_PASSWORD":         "smtp-secret",
 		"POSTHOG_PROJECT_API_KEY":     "ph-key",
 	})
 
@@ -358,6 +428,13 @@ ai:
   providerRegistryPath: "config/ai-providers.yaml"
   defaultProviderBaseURL: "https://provider.example"
   modelProfilePath: "config/ai-profiles.yaml"
+email:
+  provider: smtp
+  smtpHost: smtp.example.test
+  smtpPort: 587
+  smtpUsername: mailer
+  smtpTLSMode: starttls
+  fromAddress: noreply@example.test
 featureFlag:
   source: posthog
   posthogSelfHosted: false
@@ -375,14 +452,14 @@ async:
 			"auth.sessionCookieSecret":         "SESSION_COOKIE_SECRET",
 			"auth.challengeTokenPepper":        "AUTH_CHALLENGE_TOKEN_PEPPER",
 			"ai.defaultProviderApiKey":         "AI_PROVIDER_API_KEY",
-			"email.providerApiKey":             "EMAIL_PROVIDER_API_KEY",
+			"email.smtpPassword":               "EMAIL_SMTP_PASSWORD",
 			"featureFlag.posthogProjectApiKey": "POSTHOG_PROJECT_API_KEY",
 		},
 		SecretSource: mapSecret{
 			"SESSION_COOKIE_SECRET":       "x",
 			"AUTH_CHALLENGE_TOKEN_PEPPER": "x",
 			"AI_PROVIDER_API_KEY":         "x",
-			"EMAIL_PROVIDER_API_KEY":      "x",
+			"EMAIL_SMTP_PASSWORD":         "smtp-secret",
 			"POSTHOG_PROJECT_API_KEY":     "x",
 		},
 	})

@@ -35,7 +35,11 @@ func TestAuthConfigConsumesA4SecretsWithoutNewRuntimeKnobs(t *testing.T) {
 		"SESSION_COOKIE_SECRET",
 		"AUTH_CHALLENGE_TOKEN_PEPPER",
 		"EMAIL_PROVIDER",
-		"EMAIL_PROVIDER_API_KEY",
+		"EMAIL_SMTP_HOST",
+		"EMAIL_SMTP_PORT",
+		"EMAIL_SMTP_USERNAME",
+		"EMAIL_SMTP_PASSWORD",
+		"EMAIL_SMTP_TLS_MODE",
 	} {
 		if env[key] == "" {
 			t.Fatalf("A4 env dictionary missing %s", key)

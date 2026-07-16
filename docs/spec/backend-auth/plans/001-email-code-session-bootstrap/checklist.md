@@ -1,15 +1,15 @@
 # Email-Code Session Bootstrap Checklist
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
 ## Phase 1: Storage and config boundaries
 
 - [x] 1.1 锁定 auth storage；验证: store tests 覆盖 `users`、`user_settings`、`auth_challenges`、`sessions` 表读写，确认 `external_identities` 仅作为 P1 SSO 空表槽存在且 C1 不提供 P0 读写 store 方法，确认无需新增 migration；滑动续期使用 `sessions.updated_at`；若需 `last_seen_at` 或 schema 变更，先停止并修订 ADR-Q1 / B4 owner spec
-- [x] 1.2 锁定 config / secret 边界；验证: config tests 覆盖 `SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`EMAIL_PROVIDER`、`EMAIL_PROVIDER_API_KEY` 缺失时 fail-fast，固定 `ei_session` cookie name，且 15 分钟 challenge TTL / 30 天 session TTL / 1 分钟第 3 次 rate-limit / dev mail sink 默认值作为 C1 代码常量有测试和包级文档；若需新增配置先停止并修订 A4
+- [x] 1.2 锁定 config / secret 边界；验证: config tests 覆盖 `SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER` 与当时的 email provider 缺失 fail-fast，固定 `ei_session` cookie name，且 15 分钟 challenge TTL / 30 天 session TTL / 1 分钟第 3 次 rate-limit / dev mail sink 默认值作为 C1 代码常量有测试和包级文档；生产 SMTP 的当前配置合同由 Phase 11 与 A4 最新修订取代
 - [x] 1.3 锁定 generated Auth surface 和 session middleware；验证: compile / contract tests 断言 B2 generated `ServerInterface` 的 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`deleteMe`、`logout`、`getRuntimeConfig` 均被 C1/A4 wiring 覆盖，public endpoints 为 auth start / verify / runtime-config，logout 为 optional-session / always-clear-cookie 特例，其余 protected endpoint 走 first-party session middleware
 
 ## Phase 2: Challenge issue and delivery
@@ -80,3 +80,16 @@
 - [x] 10.4 MIGRATION/HANDOFF: B4 001 Phase 13 drops ui/practice-language/region/timezone with analytics retained；frontend/mock typed consumers compile with `email` and without defaults/aliases before B2 re-freeze.
 - [x] 10.5 BDD-GATE: update `BDD.AUTH.EMAIL.001` static owner evidence and `E2E.P0.101` settings handoff；account-delete behavior remains backend contract + frontend Settings BDD, not a new E2E.
 - [x] 10.6 REGRESSION-GATE: focused auth/store/runtime-config, root `make test`, generated/codegen, migration, contexts/docs/diff and production old-field zero-reference gates pass before restoring `completed`.
+
+## Phase 11: Production SMTP delivery
+
+- [x] 11.1 A4-HANDOFF: `secrets-and-config/001` 配置 owner 以 RED/GREEN 覆盖 `EMAIL_PROVIDER=mailpit|smtp`、host/port/from、username/password secret、`none|starttls|tls`；staging/prod 禁止 Mailpit/none，删除 `EMAIL_PROVIDER_API_KEY` 当前合同并通过 `make lint-config` 与 zero-reference gate。
+  <!-- verified: 2026-07-16 method=a4-phase14 evidence="all four A4 Phase 14 checklist items and focused/lint gates pass" -->
+- [x] 11.2 SMTP-TRANSPORT: `backend/internal/auth` RED/GREEN tests 覆盖 Mailpit plain/no-auth、STARTTLS、隐式 TLS、AUTH、TLS >=1.2、unsupported STARTTLS、invalid address 和脱敏错误；实现可注入 transport，不把凭据、邮箱或 raw code写入错误/log/job payload。
+  <!-- verified: 2026-07-16 method=focused-auth evidence="SMTP writer and TLS config tests pass for no-auth, STARTTLS, implicit TLS, TLS1.2 floor, injected transport and redacted failures" -->
+- [x] 11.3 RUNTIME-WIRING: `backend/cmd/api` RED/GREEN tests 证明 `mailpit` 与 `smtp` 都选择 SMTP writer，标准 SMTP 读取 secret password 并传递 TLS mode/username，未知 provider fail-fast 且不回落 dev sink；Compose/env 模板允许同一组变量选择本地 Mailpit 或外部 SMTP。
+  <!-- verified: 2026-07-16 method=focused-api+compose evidence="cmd/api chooses Mailpit none/no-auth or SMTP STARTTLS/auth, rejects unknown provider, and Compose passes provider variables" -->
+- [x] 11.4 BDD-Gate: 验证 `BDD.AUTH.EMAIL.002` 通过；domain behavior tests 证明 provider selection、TLS/auth path、delivery failure 与隐私红线，代码层结果不冒充 E2E。
+  <!-- verified: 2026-07-16 method=domain-behavior bddChecklist=complete -->
+- [x] 11.5 LIVE/REGRESSION: 根 `make test`、`make build`、`make lint-config`、docs/context/diff gates 通过；真实 Mailpit 登录收码闭环 PASS；用户 `.env` 标准 SMTP 完成 TLS/auth/实发，收件人和证据脱敏。MVP 明确只运行一个 active backend 实例。
+  <!-- verified: 2026-07-16 evidence="make test/build/lint-config/docs/context/compose/scenario-env gates pass; provider-only full-container Mailpit start->receive-code->verify->session->me passes with host-run app stopped; fresh external SMTP implicit TLS/auth/MAIL FROM/RCPT/DATA and application job succeeded in one attempt; user confirmed EMAIL_FROM_ADDRESS inbox received EasyInterview sign-in code; redacted artifacts record no recipient, code, or credential" -->

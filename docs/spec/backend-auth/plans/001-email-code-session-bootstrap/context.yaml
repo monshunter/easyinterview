@@ -5,10 +5,10 @@ metadata:
   name: 001-email-code-session-bootstrap
   sequence: 1
   baseBranch: main
-  branch: settings-simplification
+  branch: backend-auth-production-smtp
   specVersion:
-    from: 2.1
-    to: 2.2
+    from: 2.3
+    to: 2.4
 spec:
   defaultTarget: backend
   discovery:
@@ -28,6 +28,11 @@ spec:
       - email_dispatch
       - email_dispatch runner
       - dev mail sink delivery
+      - EMAIL_PROVIDER mailpit smtp
+      - EMAIL_SMTP_USERNAME
+      - EMAIL_SMTP_PASSWORD
+      - EMAIL_SMTP_TLS_MODE
+      - production smtp starttls implicit tls
       - protected session middleware
       - unified email login
       - profileCompletionRequired

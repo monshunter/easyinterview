@@ -142,6 +142,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0178](./BUG-0178.md) | host-run backend claimed full-container email jobs without the delivery secret | medium | resolved | 2026-07-16 | `feat(auth): add production smtp delivery (BUG-0178)` |
 | [BUG-0155](./BUG-0155.md) | change-intake overcounted generic terms and ignored exact scenario owners | medium | resolved | 2026-07-10 | `fix(change-intake): prioritize exact owner evidence (BUG-0155)` |
 | [BUG-0127](./BUG-0127.md) | host-run backend wildcard bind left resume page on stale 500 | medium | resolved | 2026-06-15 | `fix(local-dev-stack): bind host backend to loopback (BUG-0127)` |
 | [BUG-0114](./BUG-0114.md) | auth registration treated display name as account identity boundary | high | resolved | 2026-05-27 | `fix(auth): enforce email identity semantics (BUG-0114)` |

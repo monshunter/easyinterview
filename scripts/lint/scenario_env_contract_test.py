@@ -183,6 +183,35 @@ def test_optional_full_container_runtime_contract() -> None:
     assert "proxy_pass http://backend-dev:8080" in nginx
 
 
+def test_full_container_email_provider_environment_contract() -> None:
+    compose = yaml.safe_load(
+        (ROOT / "deploy" / "dev-stack" / "docker-compose.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    environment = compose["x-backend-environment"]
+    assert environment["EMAIL_SMTP_HOST"] == "${EMAIL_SMTP_HOST:-mailpit-dev}"
+    assert environment["EMAIL_SMTP_PORT"] == "${EMAIL_SMTP_PORT:-1025}"
+    assert environment["EMAIL_SMTP_USERNAME"] == "${EMAIL_SMTP_USERNAME:-}"
+    assert environment["EMAIL_SMTP_PASSWORD"] == "${EMAIL_SMTP_PASSWORD:-}"
+    assert environment["EMAIL_SMTP_TLS_MODE"] == "${EMAIL_SMTP_TLS_MODE:-none}"
+    assert "EMAIL_PROVIDER_API_KEY" not in environment
+
+    stack_makefile = (ROOT / "deploy" / "dev-stack" / "Makefile").read_text(
+        encoding="utf-8"
+    )
+    container_up = stack_makefile.split("\ncontainer-up:", 1)[1].split(
+        "\ncontainer-down:", 1
+    )[0]
+    assert 'provider="$${EMAIL_PROVIDER:-$$(awk' in container_up
+    assert 'if [ "$$provider" = "mailpit" ]' in container_up
+    assert "EMAIL_SMTP_HOST=mailpit-dev EMAIL_SMTP_PORT=1025" in container_up
+    assert '$(MAKE) -s -C "$(DEV_STACK_DIR)" _stop_host_runtimes' in container_up
+    assert "_stop_host_runtimes:" in stack_makefile
+    assert ".test-output/local-dev/backend.pid" in stack_makefile
+    assert ".test-output/local-dev/frontend.pid" in stack_makefile
+
+
 def test_optional_full_container_lifecycle_contract() -> None:
     root_makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     stack_makefile = (ROOT / "deploy" / "dev-stack" / "Makefile").read_text(

@@ -25,6 +25,13 @@ type failingDeliveryWriter struct {
 
 func (w *failingDeliveryWriter) Write(jobs.EmailDispatchPayload) error { return w.err }
 
+type safeDeliveryStageError struct {
+	message string
+}
+
+func (e safeDeliveryStageError) Error() string       { return "provider detail must remain private" }
+func (e safeDeliveryStageError) SafeMessage() string { return e.message }
+
 type recordingDeliveryWriter struct {
 	delivered []jobs.EmailDispatchPayload
 }
@@ -86,6 +93,19 @@ func TestEmailDispatchHandler_RetriesOnWriteError(t *testing.T) {
 	out := h.Handle(context.Background(), runner.ClaimedJob{Payload: validEmailDispatchPayloadJSON(t, "challenge-1")})
 	if out.Succeeded || !out.Retryable {
 		t.Fatalf("outcome = %+v, want retryable", out)
+	}
+}
+
+func TestEmailDispatchHandler_ReportsSafeDeliveryStage(t *testing.T) {
+	h := auth.NewEmailDispatchHandler(&failingDeliveryWriter{
+		err: safeDeliveryStageError{message: "smtp auth failed"},
+	})
+	out := h.Handle(context.Background(), runner.ClaimedJob{Payload: validEmailDispatchPayloadJSON(t, "challenge-1")})
+	if out.ErrorMessage != "smtp auth failed" {
+		t.Fatalf("error message = %q, want safe SMTP stage", out.ErrorMessage)
+	}
+	if strings.Contains(out.ErrorMessage, "provider detail") {
+		t.Fatalf("handler outcome leaked provider detail: %s", out.ErrorMessage)
 	}
 }
 
