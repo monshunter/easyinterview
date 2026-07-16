@@ -6,7 +6,7 @@
  *               + bdd-checklist.md.
  *
  * Given a user without a session in a workspace plan context, clicking
- * `立即面试` while signed-out must redirect to `auth_login`. After
+ * `开始模拟面试` while signed-out must redirect to `auth_login`. After
  * `verifyAuthEmailChallenge` succeeds, App must restore the `practice` route
  * with all five interview-context params (planId / targetJobId / jdId /
  * resumeId / roundId) intact.
@@ -31,7 +31,7 @@ import { useRequestAuth } from "../auth";
 
 const PRACTICE_PENDING_ACTION: PendingAction = {
   type: "start_practice",
-  label: "立即面试",
+  label: "开始模拟面试",
   route: "practice",
   params: {
     sessionId: "01918fa0-0000-7000-8000-000000005000",
@@ -51,7 +51,7 @@ const WorkspaceTrigger: FC = () => {
       data-testid="workspace-start-practice"
       onClick={() => requestAuth(PRACTICE_PENDING_ACTION)}
     >
-      立即面试
+      开始模拟面试
     </button>
   );
 };
@@ -70,7 +70,7 @@ function buildClient(): EasyInterviewClient {
 }
 
 describe("auth pending-action resume", () => {
-  it("redirects to auth_login when signed-out user clicks 立即面试 and restores practice context after verify", async () => {
+  it("redirects to auth_login when signed-out user clicks 开始模拟面试 and restores practice context after verify", async () => {
     window.history.replaceState(null, "", "/");
     const client = buildClient();
     const getPracticeSession = vi.spyOn(client, "getPracticeSession");

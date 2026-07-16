@@ -143,7 +143,7 @@ describe("Home resume selection", () => {
     renderHome(client);
 
     expect(screen.queryByTestId("home-hero-sub")).not.toBeInTheDocument();
-    expect(screen.getByTestId("home-jd-submit")).toHaveTextContent("立即面试");
+    expect(screen.getByTestId("home-jd-submit")).toHaveTextContent("开始模拟面试");
     expect(screen.queryByText("解析并确认面试")).not.toBeInTheDocument();
 
     await waitFor(() => {
@@ -281,7 +281,7 @@ describe("Home resume selection", () => {
 
     renderHome(client);
 
-    expect(await screen.findByText("简历暂时无法读取，请稍后重试。")).toBeInTheDocument();
+    expect(await screen.findByText("简历加载失败，请稍后再试。")).toBeInTheDocument();
     expect(screen.queryByText("HTTP 503 RESUME_PROVIDER_UNAVAILABLE")).not.toBeInTheDocument();
     expect(screen.getByTestId("home-jd-submit")).toBeDisabled();
   });

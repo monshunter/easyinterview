@@ -106,7 +106,7 @@ describe("RouteShellScreen card skeleton (Phase 5.2)", () => {
         />,
       ),
     );
-    expect(container.querySelector("h1")?.textContent).toMatch(/Route shell|页面壳/);
+    expect(container.querySelector("h1")?.textContent).toMatch(/Page|页面壳/);
   });
 });
 

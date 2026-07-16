@@ -236,7 +236,7 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
   it("encodePendingAction never carries raw markers even when caller passes them", () => {
     const encoded = encodePendingAction({
       type: "start_practice",
-      label: "立即面试",
+      label: "开始模拟面试",
       route: "practice",
       params: {
         planId: "plan-1",
@@ -264,7 +264,7 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
             name: "auth_login",
             params: encodePendingAction({
               type: "start_practice",
-              label: "立即面试",
+              label: "开始模拟面试",
               route: "practice",
               params: {
                 planId: "plan-1",

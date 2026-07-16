@@ -174,7 +174,7 @@ describe("HomeImport — paste-only", () => {
     await userEvent.click(screen.getByTestId("home-jd-submit"));
 
     expect(await screen.findByTestId("home-import-error")).toHaveTextContent(
-      "暂时无法创建面试规划，请稍后重试。",
+      "面试规划创建失败，请稍后再试。",
     );
     expect(screen.queryByText("HTTP 422: VALIDATION_FAILED")).not.toBeInTheDocument();
     expect(textarea).toHaveValue("Senior Frontend Engineer needed");

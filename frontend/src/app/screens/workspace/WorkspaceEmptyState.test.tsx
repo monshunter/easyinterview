@@ -166,7 +166,7 @@ describe("WorkspaceEmptyState", () => {
     expect((cardFooter as HTMLElement).style.borderTop).toBe("1px solid var(--ei-color-rule-strong)");
     expect((cardFooter as HTMLElement).style.background).toBe("var(--ei-color-bg-card)");
     expect((cardFooter as HTMLElement).style.justifyContent).toBe("flex-end");
-    expect(cardFooter).toHaveTextContent("Start interview now");
+    expect(cardFooter).toHaveTextContent("Start mock interview");
     expect(cardFooter).not.toHaveTextContent("Open plan");
     expect(
       cardFooter.querySelector(
@@ -387,7 +387,7 @@ describe("WorkspaceEmptyState", () => {
     await user.click(start);
 
     expect(await screen.findByTestId("workspace-plan-list-start-error")).toHaveTextContent(
-      "The interview cannot be started right now. Please try again.",
+      "We couldn't start the mock interview. Try again in a moment.",
     );
     expect(screen.queryByText("HTTP 503 PRACTICE_STORE_UNAVAILABLE")).not.toBeInTheDocument();
     expect(start).toBeEnabled();
@@ -478,7 +478,7 @@ describe("WorkspaceEmptyState", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("workspace-plan-list-delete-error")).toHaveTextContent(
-        "The interview plan could not be deleted. Please try again.",
+        "We couldn't delete the interview plan. Try again in a moment.",
       );
     });
     expect(screen.queryByText("archive failed")).not.toBeInTheDocument();

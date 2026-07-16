@@ -40,9 +40,9 @@ describe("AuthLoginScreen", () => {
       </DisplayPreferencesProvider>,
     );
     const zhHelp = screen.getByTestId("auth-login-help");
-    expect(zhHelp).toHaveTextContent("一个邮箱只能对应一个账号。");
+    expect(zhHelp).toHaveTextContent("每个邮箱对应一个账号。");
     expect(zhHelp).toHaveTextContent(
-      "收不到验证码？下一步可以重新发送，或换一个邮箱重试。",
+      "没有收到验证码？可以重新发送，或换一个邮箱。",
     );
     zh.unmount();
 
@@ -56,9 +56,9 @@ describe("AuthLoginScreen", () => {
       </DisplayPreferencesProvider>,
     );
     const enHelp = screen.getByTestId("auth-login-help");
-    expect(enHelp).toHaveTextContent("One email can only own one account.");
+    expect(enHelp).toHaveTextContent("Each email is linked to one account.");
     expect(enHelp).toHaveTextContent(
-      "Code not arriving? You can resend it or switch email on the next step.",
+      "Didn't get a code? Send it again or use a different email.",
     );
   });
 
@@ -73,7 +73,7 @@ describe("AuthLoginScreen", () => {
             returnTo: "/practice?planId=out-of-scope-return-to",
             pendingRoute: "practice",
             pendingType: "start_practice",
-            pendingLabel: "立即面试",
+            pendingLabel: "开始模拟面试",
             planId: "plan-tj-1",
           },
         }}
@@ -119,7 +119,7 @@ describe("AuthProfileSetupScreen", () => {
           params: {
             pendingRoute: "practice",
             pendingType: "start_practice",
-            pendingLabel: "立即面试",
+            pendingLabel: "开始模拟面试",
             planId: "plan-tj-1",
           },
         }}
@@ -166,7 +166,7 @@ describe("AuthProfileSetupScreen", () => {
 
     await expect(
       screen.findByTestId("auth-profile-status"),
-    ).resolves.toHaveTextContent("failed");
+    ).resolves.toHaveTextContent("couldn't save");
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
@@ -182,7 +182,7 @@ describe("AuthProfileSetupScreen", () => {
           params: {
             pendingRoute: "practice",
             pendingType: "start_practice",
-            pendingLabel: "立即面试",
+            pendingLabel: "开始模拟面试",
             planId: "plan-tj-1",
           },
         }}
@@ -202,7 +202,7 @@ describe("AuthProfileSetupScreen", () => {
     });
     await expect(
       screen.findByTestId("auth-profile-status"),
-    ).resolves.toHaveTextContent("failed");
+    ).resolves.toHaveTextContent("couldn't save");
     expect(onNavigate).not.toHaveBeenCalled();
   });
 });
@@ -255,7 +255,7 @@ describe("AuthVerifyScreen", () => {
             email: "alice@example.com",
             pendingRoute: "practice",
             pendingType: "start_practice",
-            pendingLabel: "立即面试",
+            pendingLabel: "开始模拟面试",
             planId: "plan_1",
           },
         }}

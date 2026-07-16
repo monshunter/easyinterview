@@ -61,7 +61,7 @@ describe("PracticeScreen continuous conversation", () => {
     const reason = screen.getByTestId("practice-finish-disabled-reason");
     expect(finish).toBeDisabled();
     expect(finish).toHaveAttribute("aria-describedby", reason.id);
-    expect(reason).toHaveTextContent("请先完成至少一次回答");
+    expect(reason).toHaveTextContent("至少回答一个问题后才能结束面试");
     fireEvent.click(finish);
     expect(complete).not.toHaveBeenCalled();
   });
@@ -173,7 +173,7 @@ describe("PracticeScreen continuous conversation", () => {
 
     await screen.findByText("你好，我们直接开始。先聊聊你最近最有代表性的项目。");
     fireEvent.click(screen.getByTestId("practice-finish-cta"));
-    expect(await screen.findByText("We could not finish the interview and start the report. Please try again.")).toBeInTheDocument();
+    expect(await screen.findByText("We couldn't end the interview or create its report. Try again in a moment.")).toBeInTheDocument();
     expect(screen.queryByText("HTTP 503 completion unavailable")).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("practice-error-state-retry"));
 
@@ -247,7 +247,7 @@ describe("PracticeScreen continuous conversation", () => {
       targetJobId: "01918fa0-0000-7000-8000-000000002000",
     } }} />);
 
-    expect(await screen.findByText("The interview session is temporarily unavailable. Please try again.")).toBeInTheDocument();
+    expect(await screen.findByText("We couldn't load this interview. Try again in a moment.")).toBeInTheDocument();
     expect(screen.queryByText("HTTP 503 session unavailable")).not.toBeInTheDocument();
     expect(screen.getByTestId("practice-input-textarea")).toBeDisabled();
     expect(screen.getByTestId("practice-input-send")).toBeDisabled();
@@ -860,7 +860,7 @@ describe("PracticeScreen continuous conversation", () => {
     expect(await screen.findByText(pendingText)).toBeInTheDocument();
     act(() => window.dispatchEvent(new Event("focus")));
 
-    expect(await screen.findByText("The interview session is temporarily unavailable. Please try again.")).toBeInTheDocument();
+    expect(await screen.findByText("We couldn't load this interview. Try again in a moment.")).toBeInTheDocument();
     expect(getSession).toHaveBeenCalledTimes(2);
     expect(screen.getByText(pendingText)).toBeInTheDocument();
     expect(screen.getByTestId("practice-interviewer-thinking")).toBeInTheDocument();
@@ -1006,8 +1006,8 @@ describe("PracticeScreen continuous conversation", () => {
   });
 
   it.each([
-    ["zh", "本次回复未能完成。", "请返回当前面试规划，准备好后重新开始一场面试。", "返回当前面试规划"],
-    ["en", "This reply could not be completed.", "Return to this interview plan, then start a new session when you are ready.", "Return to this interview plan"],
+    ["zh", "面试官的回复中断了", "请返回当前面试规划，重新开始一场模拟面试。", "返回当前面试规划"],
+    ["en", "The interviewer's reply was interrupted", "Return to this interview plan and start a new mock interview.", "Return to this interview plan"],
   ] as const)("renders the %s terminal state with one safe exact current-plan CTA", async (lang, title, description, ctaLabel) => {
     const practiceSource = readFileSync(resolve(__dirname, "PracticeScreen.tsx"), "utf8");
     expect(practiceSource).toContain('navigate({ name: "workspace", params: { targetJobId } })');
@@ -1124,7 +1124,7 @@ describe("PracticeScreen continuous conversation", () => {
 
     expect(await screen.findByTestId("practice-terminal-recovery")).toBeInTheDocument();
     expect(screen.queryByTestId("practice-error-state")).not.toBeInTheDocument();
-    expect(screen.queryByText("This message was not accepted. Check it before sending again.")).not.toBeInTheDocument();
+    expect(screen.queryByText("We couldn't send that message. Check it and try again.")).not.toBeInTheDocument();
     expect(screen.queryByText(/technical mismatch detail|IDEMPOTENCY_KEY_MISMATCH/u)).not.toBeInTheDocument();
     expect(screen.queryByTestId("practice-message-retry")).not.toBeInTheDocument();
   });
@@ -1189,10 +1189,10 @@ describe("PracticeScreen continuous conversation", () => {
           details: { field: "clientMessageId" },
         },
       }),
-      "这条消息未被接受，请检查内容后重新发送。",
+      "这条消息无法发送，请检查内容后再试。",
     ],
-    ["abort", new ApiClientError("abort", null, null), "请求已中断，请确认当前面试状态后再继续。"],
-    ["unknown", new Error("HTTP 503 provider stack: secret backend diagnostic"), "这条消息未能发送，请稍后再试。"],
+    ["abort", new ApiClientError("abort", null, null), "发送已中断，请确认面试仍在进行后再试。"],
+    ["unknown", new Error("HTTP 503 provider stack: secret backend diagnostic"), "消息发送失败，请稍后再试。"],
   ])("localizes non-retryable %s feedback without exposing technical details or rendering a row retry", async (_label, failure, feedback) => {
     localStorage.setItem("ei-lang", "zh");
     const client = createDevMockClient();
@@ -1253,7 +1253,7 @@ describe("PracticeScreen continuous conversation", () => {
     fireEvent.change(screen.getByTestId("practice-input-textarea"), { target: { value: "locally uncertain answer" } });
     fireEvent.click(screen.getByTestId("practice-input-send"));
 
-    expect(await screen.findByText("This message was not accepted. Check it before sending again.")).toBeInTheDocument();
+    expect(await screen.findByText("We couldn't send that message. Check it and try again.")).toBeInTheDocument();
     expect(screen.queryByTestId("practice-message-retry")).not.toBeInTheDocument();
     expect(screen.getByTestId("practice-input-send")).toBeDisabled();
     fireEvent.click(screen.getByTestId("practice-error-state-retry"));
@@ -1282,7 +1282,7 @@ describe("PracticeScreen continuous conversation", () => {
     await screen.findByText(base.messages[0]!.content);
     fireEvent.change(screen.getByTestId("practice-input-textarea"), { target: { value: "missing ID must stay locked" } });
     fireEvent.click(screen.getByTestId("practice-input-send"));
-    expect(await screen.findByText("This message could not be sent. Please try again later.")).toBeInTheDocument();
+    expect(await screen.findByText("We couldn't send your message. Try again in a moment.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("practice-error-state-retry"));
     await waitFor(() => expect(getSession).toHaveBeenCalledTimes(3));
@@ -1320,7 +1320,7 @@ describe("PracticeScreen continuous conversation", () => {
     fireEvent.change(screen.getByTestId("practice-input-textarea"), { target: { value: "Preserved next draft" } });
     fireEvent.click(retry);
 
-    expect(await screen.findByText("This message was not accepted. Check it before sending again.")).toBeInTheDocument();
+    expect(await screen.findByText("We couldn't send that message. Check it and try again.")).toBeInTheDocument();
     expect(send).toHaveBeenCalledTimes(2);
     expect(send.mock.calls[1]![1]).toEqual(originalBody);
     expect(screen.getAllByText(text)).toHaveLength(1);
@@ -1403,7 +1403,7 @@ describe("PracticeScreen continuous conversation", () => {
     const plainClient = createDevMockClient();
     vi.spyOn(plainClient, "getPracticeSession").mockRejectedValue(new Error("HTTP 404 plain text is not a typed status"));
     const first = renderPractice(plainClient);
-    expect(await screen.findByText("The interview session is temporarily unavailable. Please try again.")).toBeInTheDocument();
+    expect(await screen.findByText("We couldn't load this interview. Try again in a moment.")).toBeInTheDocument();
     expect(screen.queryByText("HTTP 404 plain text is not a typed status")).not.toBeInTheDocument();
     expect(screen.queryByTestId("practice-session-lost")).not.toBeInTheDocument();
     first.unmount();

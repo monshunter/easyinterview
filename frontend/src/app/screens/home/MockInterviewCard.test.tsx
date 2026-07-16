@@ -236,7 +236,7 @@ describe("MockInterviewCard", () => {
         railTestId="workspace-plan-list-rail-job-001"
         footerTestId="workspace-plan-list-card-footer-job-001"
         primaryAction={{
-          label: "Start interview now",
+          label: "Start mock interview",
           testId: "workspace-plan-list-start-job-001",
           onClick: start,
         }}
@@ -259,7 +259,7 @@ describe("MockInterviewCard", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByTestId("workspace-plan-list-card-footer-job-001"),
-    ).toHaveTextContent("Start interview now");
+    ).toHaveTextContent("Start mock interview");
     expect(
       screen.getByTestId("workspace-plan-list-card-footer-job-001"),
     ).not.toHaveTextContent("Open plan");
@@ -289,7 +289,7 @@ describe("MockInterviewCard", () => {
       <MockInterviewCard
         job={mockJob}
         primaryAction={{
-          label: "Start interview now",
+          label: "Start mock interview",
           testId: "home-recent-mock-start-job-001",
           onClick: () => {},
         }}
@@ -298,7 +298,7 @@ describe("MockInterviewCard", () => {
 
     expect(
       screen.getByTestId("home-recent-mock-start-job-001"),
-    ).toHaveTextContent("Start interview now");
+    ).toHaveTextContent("Start mock interview");
     expect(
       screen.queryByTestId("home-recent-mock-delete-job-001"),
     ).toBeNull();

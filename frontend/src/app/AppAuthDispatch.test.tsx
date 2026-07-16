@@ -227,7 +227,7 @@ describe("App auth route dispatch", () => {
           params: {
             pendingRoute: "practice",
             pendingType: "start_practice",
-            pendingLabel: "立即面试",
+            pendingLabel: "开始模拟面试",
             planId: "plan-1",
           },
         }}
@@ -374,7 +374,7 @@ describe("App auth route dispatch", () => {
           params: {
             pendingRoute: "practice",
             pendingType: "start_practice",
-            pendingLabel: "立即面试",
+            pendingLabel: "开始模拟面试",
             planId: "plan-1",
           },
         }}

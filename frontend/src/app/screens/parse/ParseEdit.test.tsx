@@ -107,7 +107,7 @@ describe("Workspace detail — readonly plan receipt", () => {
       screen.queryByTestId("parse-requirement-must_have-0-toggle"),
     ).not.toBeInTheDocument();
     expect(req0.querySelector("button")).toBeNull();
-    expect(req0.textContent).toMatch(/HIT|命中/);
+    expect(req0.textContent).toMatch(/Match|命中/);
   });
 
   it("renders hidden signals and round assumptions without edit controls", async () => {

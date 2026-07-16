@@ -108,13 +108,13 @@ describe("HomeScreen", () => {
     );
 
     expect(screen.getByTestId("home-hero-label")).toHaveTextContent(
-      "HOME · MOCK INTERVIEWS",
+      "Mock interviews",
     );
     expect(screen.getByTestId("home-hero-title")).toHaveTextContent(
-      "Let's win the interview you already care about.",
+      "Practice for the interview that's already on your calendar.",
     );
     expect(screen.getByTestId("home-jd-submit")).toHaveTextContent(
-      "Start interview now",
+      "Start a mock interview",
     );
   });
 

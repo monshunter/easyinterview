@@ -190,7 +190,7 @@ describe("WorkspaceScreen route split", () => {
     const footer = screen.getByTestId(
       "workspace-plan-list-card-footer-01918fa0-0000-7000-8000-000000002000",
     );
-    expect(footer).toHaveTextContent("Start interview now");
+    expect(footer).toHaveTextContent("Start mock interview");
     expect(footer).not.toHaveTextContent("Open plan");
     expect(
       footer.querySelector(

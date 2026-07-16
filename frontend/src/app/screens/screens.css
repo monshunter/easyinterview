@@ -327,12 +327,13 @@
 .ei-resume-workshop-card-open {
   min-height: 36px;
   padding: 7px 14px;
-  color: var(--ei-color-fg-secondary);
-  background: transparent;
-  border: 1px solid var(--ei-color-rule-strong);
+  color: #fff;
+  background: var(--ei-color-accent);
+  border: 1px solid var(--ei-color-accent);
   border-radius: 2px;
   font-family: var(--ei-font-sans);
   font-size: 12px;
+  cursor: pointer;
 }
 
 .ei-resume-workshop-card-delete {

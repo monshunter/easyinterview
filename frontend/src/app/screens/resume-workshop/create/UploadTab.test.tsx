@@ -148,7 +148,7 @@ describe("UploadTab pre-check + presign + register", () => {
     });
     expect(
       screen.getByTestId("resume-create-upload-error"),
-    ).toHaveTextContent(/不支持|Unsupported/);
+    ).toHaveTextContent(/不支持|isn't supported/i);
     expect(presignSpy).not.toHaveBeenCalled();
     expect(registerSpy).not.toHaveBeenCalled();
   });
@@ -179,7 +179,7 @@ describe("UploadTab pre-check + presign + register", () => {
     });
     expect(
       screen.getByTestId("resume-create-upload-error"),
-    ).toHaveTextContent(/不支持|Unsupported/);
+    ).toHaveTextContent(/不支持|isn't supported/i);
     expect(presignSpy).not.toHaveBeenCalled();
     expect(registerSpy).not.toHaveBeenCalled();
   });

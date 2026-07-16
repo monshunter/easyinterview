@@ -146,7 +146,7 @@ const PracticePendingTrigger: FC = () => {
       onClick={() => {
         const action: PendingAction = {
           type: "start_practice",
-          label: "立即面试",
+          label: "开始模拟面试",
           route: "practice",
           params: {
             sessionId: "01918fa0-0000-7000-8000-000000005000",
@@ -163,7 +163,7 @@ const PracticePendingTrigger: FC = () => {
         requestAuth(action);
       }}
     >
-      立即面试
+      开始模拟面试
     </button>
   );
 };

@@ -300,7 +300,7 @@ describe("ReportsScreen", () => {
 
     const differentReady = screen.getByTestId("reports-round-1");
     expect(differentReady).toHaveTextContent("Architecture · 50m");
-    expect(differentReady).toHaveTextContent("The latest generation is ready");
+    expect(differentReady).toHaveTextContent("The latest report is ready");
     expect(within(differentReady).getAllByRole("button")).toHaveLength(2);
     fireEvent.click(within(differentReady).getByTestId("reports-current").querySelector("button")!);
     expect(navigate).toHaveBeenLastCalledWith({
@@ -315,12 +315,12 @@ describe("ReportsScreen", () => {
     });
 
     const failed = screen.getByTestId("reports-round-2");
-    expect(failed).toHaveTextContent("The latest generation failed");
+    expect(failed).toHaveTextContent("The last report failed");
     expect(failed).not.toHaveTextContent("AI_PROVIDER_TIMEOUT");
     expect(within(failed).queryByRole("button", { name: /retry/i })).toBeNull();
 
     const generating = screen.getByTestId("reports-round-3");
-    expect(generating).toHaveTextContent("A new report is being prepared");
+    expect(generating).toHaveTextContent("Generating a new report");
     fireEvent.click(
       within(within(generating).getByTestId("reports-generating")).getByRole(
         "button",
@@ -354,7 +354,7 @@ describe("ReportsScreen", () => {
     render(view(client, TARGET_A_ID));
 
     expect(await screen.findByTestId("reports-empty")).toHaveTextContent(
-      "NO REPORTS YET",
+      "No reports yet",
     );
     expect(screen.queryByTestId("reports-current")).toBeNull();
     expect(screen.queryByTestId("reports-generating")).toBeNull();
@@ -369,7 +369,7 @@ describe("ReportsScreen", () => {
     render(view(client, TARGET_A_ID));
 
     const row = await screen.findByTestId("reports-round-3");
-    expect(row).toHaveTextContent("A new report is being prepared");
+    expect(row).toHaveTextContent("Generating a new report");
     expect(within(row).getByTestId("reports-generating")).toBeInTheDocument();
   });
 
@@ -403,7 +403,7 @@ describe("ReportsScreen", () => {
     const rendered = render(view(failedClient, TARGET_A_ID));
 
     expect(await screen.findByTestId("reports-error")).toHaveTextContent(
-      "This plan's reports could not be verified",
+      "We couldn't load the reports for this plan",
     );
     expect(screen.getByTestId("reports-screen")).not.toHaveTextContent(
       "SECRET-UPSTREAM-DETAIL",

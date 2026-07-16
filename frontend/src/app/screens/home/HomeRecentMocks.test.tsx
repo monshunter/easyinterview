@@ -119,7 +119,7 @@ describe("HomeRecentMocks", () => {
 
     renderHome(client);
 
-    expect(await screen.findByText("Recent interview plans cannot be loaded right now. Try again later.")).toBeInTheDocument();
+    expect(await screen.findByText("We couldn't load your recent interview plans. Try again in a moment.")).toBeInTheDocument();
     expect(screen.queryByText("HTTP 503 TARGET_JOB_STORE_UNAVAILABLE")).not.toBeInTheDocument();
   });
 
@@ -236,7 +236,7 @@ describe("HomeRecentMocks", () => {
 
     expect(
       screen.getByTestId("home-recent-mock-start-01918fa0-0000-7000-8000-000000002000"),
-    ).toHaveTextContent("Start interview now");
+    ).toHaveTextContent("Start a mock interview");
     expect(
       screen.queryByTestId("home-recent-mock-delete-01918fa0-0000-7000-8000-000000002000"),
     ).toBeNull();
@@ -319,7 +319,7 @@ describe("HomeRecentMocks", () => {
     await user.click(start);
 
     expect(await screen.findByTestId("home-recent-start-error")).toHaveTextContent(
-      "The interview cannot be started right now. Please try again.",
+      "We couldn't start the mock interview. Try again in a moment.",
     );
     expect(screen.queryByText("HTTP 503 PRACTICE_STORE_UNAVAILABLE")).not.toBeInTheDocument();
     expect(start).toBeEnabled();

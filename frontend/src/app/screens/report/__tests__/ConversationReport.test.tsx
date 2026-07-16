@@ -255,8 +255,8 @@ describe("grounded direct-semantic feedback report", () => {
       overflowWrap: "anywhere",
       wordBreak: "normal",
     });
-    expect(screen.getByTestId("report-dimensions")).toHaveTextContent("Strong · High confidence");
-    expect(screen.getByTestId("report-dimensions")).toHaveTextContent("Needs work · Medium confidence");
+    expect(screen.getByTestId("report-dimensions")).toHaveTextContent("Strong · Strong evidence");
+    expect(screen.getByTestId("report-dimensions")).toHaveTextContent("Needs work · Some evidence");
     expect(document.body.textContent).not.toMatch(/answer_structure|technical_tradeoffs|needs_work|\bhigh\b|\bmedium\b/);
     expect(getTargetJob).not.toHaveBeenCalled();
     expect(getResume).not.toHaveBeenCalled();

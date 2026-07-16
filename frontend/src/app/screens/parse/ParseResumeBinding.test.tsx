@@ -100,7 +100,7 @@ describe("ParseResumeBinding", () => {
     const { navigate } = await renderReadyParse(client);
 
     const resumeLink = await screen.findByTestId("parse-resume-link");
-    expect(resumeLink).toHaveTextContent("Bound resume");
+    expect(resumeLink).toHaveTextContent("Resume for this interview");
     expect(screen.queryByTestId("parse-launch")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-binding")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker-toggle")).not.toBeInTheDocument();
@@ -224,8 +224,8 @@ describe("ParseResumeBinding", () => {
     const actions = await screen.findByTestId("parse-leading-actions");
     const buttons = Array.from(actions.querySelectorAll("button"));
     expect(buttons.map((button) => button.textContent?.trim())).toEqual([
-      "Start interview now",
-      "INTERVIEW REPORTS",
+      "Start mock interview",
+      "Interview reports",
     ]);
     expect(actions).toHaveStyle({ justifyContent: "flex-start" });
     expect(screen.queryByTestId("parse-launch")).not.toBeInTheDocument();
@@ -241,7 +241,7 @@ describe("ParseResumeBinding", () => {
     fireEvent.click(await screen.findByTestId("parse-action-start-interview"));
 
     expect(await screen.findByTestId("parse-confirm-error")).toHaveTextContent(
-      "The interview cannot be started right now. Please try again.",
+      "We couldn't start the mock interview. Try again in a moment.",
     );
     expect(screen.queryByText("HTTP 503 PRACTICE_STORE_UNAVAILABLE")).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();

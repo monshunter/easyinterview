@@ -100,7 +100,7 @@ describe("frontend-report-dashboard/001 i18n coverage", () => {
     expect(zh["report.failureState.backToWorkspace"]).toBe("返回面试");
     expect(en["generating.errors.backToReports"]).toBe("Back to interview reports");
     expect(en["report.failureState.backToReports"]).toBe("Back to interview reports");
-    expect(en["generating.errors.backToWorkspace"]).toBe("Back to workspace");
-    expect(en["report.failureState.backToWorkspace"]).toBe("Back to workspace");
+    expect(en["generating.errors.backToWorkspace"]).toBe("Back to interviews");
+    expect(en["report.failureState.backToWorkspace"]).toBe("Back to interviews");
   });
 });

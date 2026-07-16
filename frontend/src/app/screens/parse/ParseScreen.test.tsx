@@ -145,7 +145,7 @@ describe("ParseScreen", () => {
     expect(screen.getByTestId("parse-basics-title").querySelector("input")).toBeNull();
     expect(screen.getByTestId("unified-plan-detail")).toBeInTheDocument();
     expect(screen.getByTestId("unified-plan-detail-title")).toHaveTextContent(
-      "Interview plan detail",
+      "Review your interview plan",
     );
     expect(document.body).not.toHaveTextContent("这是我从 JD 里读出来的内容");
     expect(document.body).not.toHaveTextContent("Here's what I read from the JD");
@@ -166,10 +166,10 @@ describe("ParseScreen", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByTestId("parse-requirement-must_have-0"),
-    ).toHaveTextContent(/HIT|命中/);
+    ).toHaveTextContent(/Match|命中/);
     expect(
       screen.getByTestId("parse-requirement-nice_to_have-0"),
-    ).toHaveTextContent(/PARTIAL|部分/);
+    ).toHaveTextContent(/Partial match|部分/);
     expect(screen.getByTestId("parse-hidden-signal-0")).toHaveTextContent(
       "Hiring team values architecture influence",
     );

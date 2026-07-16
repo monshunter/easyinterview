@@ -9,7 +9,7 @@ import {
 
 const SAMPLE: PendingAction = {
   type: "start_practice",
-  label: "立即面试",
+  label: "开始模拟面试",
   route: "practice",
   params: {
     planId: "plan-tj-1",
@@ -26,7 +26,7 @@ describe("pendingAction encode/decode", () => {
     expect(encoded).toMatchObject({
       pendingRoute: "practice",
       pendingType: "start_practice",
-      pendingLabel: "立即面试",
+      pendingLabel: "开始模拟面试",
       planId: "plan-tj-1",
       targetJobId: "tj-1",
       jdId: "jd-tj-1",
@@ -86,7 +86,7 @@ describe("pendingAction encode/decode", () => {
     const decoded = decodePendingActionRoute({
       pendingRoute: "practice",
       pendingType: "start_practice",
-      pendingLabel: "立即面试",
+      pendingLabel: "开始模拟面试",
       returnTo: "/practice",
       email: "alice@example.com",
       displayName: "Alice",
@@ -102,7 +102,7 @@ describe("pendingAction encode/decode", () => {
   it("drops raw payload / AI prompt / auth secret keys at encode (plan 004 §3.1)", () => {
     const encoded = encodePendingAction({
       type: "start_practice",
-      label: "立即面试",
+      label: "开始模拟面试",
       route: "practice",
       params: {
         planId: "plan-1",
@@ -116,7 +116,7 @@ describe("pendingAction encode/decode", () => {
     expect(encoded).toMatchObject({
       pendingRoute: "practice",
       pendingType: "start_practice",
-      pendingLabel: "立即面试",
+      pendingLabel: "开始模拟面试",
       planId: "plan-1",
     });
     expect(encoded.rawText).toBeUndefined();

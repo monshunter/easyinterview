@@ -307,7 +307,7 @@ describe("serializeRouteToUrl", () => {
           email: "alice@example.com",
           pendingRoute: "workspace",
           pendingType: "start_practice",
-          pendingLabel: "立即面试",
+          pendingLabel: "开始模拟面试",
           planId: "plan-1",
           targetJobId: "tj-1",
           jdId: "jd-1",
@@ -317,7 +317,7 @@ describe("serializeRouteToUrl", () => {
         },
       }),
     ).toBe(
-      "/auth/login?email=alice%40example.com&next=%2Fworkspace&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&targetJobId=tj-1",
+      "/auth/login?email=alice%40example.com&next=%2Fworkspace&pendingLabel=%E5%BC%80%E5%A7%8B%E6%A8%A1%E6%8B%9F%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&targetJobId=tj-1",
     );
   });
 
@@ -343,12 +343,12 @@ describe("serializeRouteToUrl", () => {
           token: "123456",
           pendingRoute: "workspace",
           pendingType: "start_practice",
-          pendingLabel: "立即面试",
+          pendingLabel: "开始模拟面试",
           targetJobId: "tj-1",
         },
       }),
     ).toBe(
-      "/auth/verify?email=alice%40example.com&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&targetJobId=tj-1",
+      "/auth/verify?email=alice%40example.com&pendingLabel=%E5%BC%80%E5%A7%8B%E6%A8%A1%E6%8B%9F%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&targetJobId=tj-1",
     );
     expect(
       formatRouteUrl({
@@ -366,14 +366,14 @@ describe("serializeRouteToUrl", () => {
           email: "alice@example.com",
           pendingRoute: "practice",
           pendingType: "start_practice",
-          pendingLabel: "立即面试",
+          pendingLabel: "开始模拟面试",
           planId: "plan-1",
           displayName: "Alice",
           token: "123456",
         },
       }),
     ).toBe(
-      "/auth/profile?email=alice%40example.com&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=practice&pendingType=start_practice&planId=plan-1",
+      "/auth/profile?email=alice%40example.com&pendingLabel=%E5%BC%80%E5%A7%8B%E6%A8%A1%E6%8B%9F%E9%9D%A2%E8%AF%95&pendingRoute=practice&pendingType=start_practice&planId=plan-1",
     );
   });
 
@@ -432,7 +432,7 @@ describe("serializeRouteToUrl", () => {
         params: {
           pendingRoute: "workspace",
           pendingType: "start_practice",
-          pendingLabel: "立即面试",
+          pendingLabel: "开始模拟面试",
           targetJobId: "tj-1",
           [key]: "leaked-value",
         },
@@ -536,14 +536,14 @@ describe("parseUrlToRoute", () => {
   it("parses auth pendingAction restore URL", () => {
     expect(
       parseUrlToRoute(
-        "/auth/login?pendingRoute=workspace&pendingType=start_practice&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&planId=plan-1&targetJobId=tj-1",
+        "/auth/login?pendingRoute=workspace&pendingType=start_practice&pendingLabel=%E5%BC%80%E5%A7%8B%E6%A8%A1%E6%8B%9F%E9%9D%A2%E8%AF%95&planId=plan-1&targetJobId=tj-1",
       ),
     ).toEqual({
       name: "auth_login",
       params: {
         pendingRoute: "workspace",
         pendingType: "start_practice",
-        pendingLabel: "立即面试",
+        pendingLabel: "开始模拟面试",
         targetJobId: "tj-1",
       },
     });

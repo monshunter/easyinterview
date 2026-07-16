@@ -58,7 +58,7 @@ describe("D1 shell i18n", () => {
       "Settings & privacy",
     );
     expect(screen.getByTestId("route-workspace")).toHaveTextContent(
-      "Workspace",
+      "Interview plans",
     );
 
     expect(screen.getByTestId("route-auth_login")).toHaveAttribute(

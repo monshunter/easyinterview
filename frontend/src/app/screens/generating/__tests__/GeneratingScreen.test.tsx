@@ -138,7 +138,7 @@ describe("GeneratingScreen honest state projection", () => {
     render(<App client={client} initialRoute={{ name: "generating", params: { reportId: REPORT_ID } }} />);
 
     await waitFor(() => expect(screen.getByTestId("generating-screen")).toHaveAttribute("data-report-status", "generating"));
-    expect(screen.getByTestId("generating-header-title")).toHaveTextContent("正在生成证据化报告");
+    expect(screen.getByTestId("generating-header-title")).toHaveTextContent("正在生成面试报告");
     expect(screen.queryByTestId("generating-progress")).not.toBeInTheDocument();
     expect(screen.queryByTestId("generating-phase-list")).not.toBeInTheDocument();
     expect(screen.queryByTestId("generating-live-stream")).not.toBeInTheDocument();
@@ -179,8 +179,8 @@ describe("GeneratingScreen honest state projection", () => {
     const state = await screen.findByTestId("generating-error-state");
     expect(state).toHaveAttribute("data-error-kind", "contextTooLarge");
     expect(screen.getByTestId("generating-header-eyebrow")).toHaveTextContent("报告不可用");
-    expect(screen.getByTestId("generating-header-title")).toHaveTextContent("本次材料与对话过长");
-    expect(screen.getByTestId("generating-error-desc")).toHaveTextContent("缩短输入");
+    expect(screen.getByTestId("generating-header-title")).toHaveTextContent("材料和对话内容太长");
+    expect(screen.getByTestId("generating-error-desc")).toHaveTextContent("精简输入");
     expect(screen.queryByTestId("generating-error-retry")).not.toBeInTheDocument();
     expect(screen.getByTestId("generating-error-back-to-workspace")).toBeInTheDocument();
   });

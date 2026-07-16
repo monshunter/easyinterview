@@ -198,9 +198,9 @@ describe("report-owned readonly conversation", () => {
     expect(screen.getByTestId("report-conversation-context-strip")).toContainElement(
       screen.getByTestId("report-context-strip"),
     );
-    expect(screen.getByTestId("report-conversation-empty")).toHaveTextContent("NO MESSAGES");
+    expect(screen.getByTestId("report-conversation-empty")).toHaveTextContent("No messages");
     expect(screen.getByTestId("report-conversation-empty")).toHaveTextContent(
-      "This verified interview record does not contain any messages.",
+      "There are no messages in this interview record.",
     );
     expect(screen.queryByTestId("report-conversation-message-1")).not.toBeInTheDocument();
   });
@@ -212,10 +212,10 @@ describe("report-owned readonly conversation", () => {
     render(viewConversation(client, REPORT_ID, navigate));
 
     expect(await screen.findByTestId("report-conversation-loading")).toHaveTextContent(
-      "LOADING RECORD",
+      "Loading interview record",
     );
     expect(screen.getByRole("status")).toHaveTextContent(
-      "The conversation will appear only after its report context is verified.",
+      "The conversation will appear once we confirm it belongs to this report.",
     );
     fireEvent.click(screen.getByTestId("report-conversation-loading-back"));
     expect(navigate).toHaveBeenCalledWith({ name: "workspace", params: {} });

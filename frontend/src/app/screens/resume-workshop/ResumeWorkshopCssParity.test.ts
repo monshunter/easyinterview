@@ -68,6 +68,13 @@ describe("Resume Workshop source-level CSS parity", () => {
     }
   });
 
+  it("uses the active theme color for the card Open action", () => {
+    const source = css();
+    expect(source).toMatch(
+      /\.ei-resume-workshop-card-open\s*\{[^}]*color:\s*#fff[^}]*background:\s*var\(--ei-color-accent\)[^}]*border:\s*1px solid var\(--ei-color-accent\)/s,
+    );
+  });
+
   it("does not keep out-of-scope tree/version/branch styling after D-20", () => {
     const source = css();
     for (const selector of [

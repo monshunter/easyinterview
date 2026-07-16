@@ -19,7 +19,7 @@ import { useRequestAuth } from "./useRequestAuth";
 
 const SAMPLE_ACTION: PendingAction = {
   type: "start_practice",
-  label: "立即面试",
+  label: "开始模拟面试",
   route: "practice",
   params: {
     sessionId: "01918fa0-0000-7000-8000-000000005000",
@@ -39,7 +39,7 @@ const TriggerProbe: FC = () => {
       data-testid="probe-start-practice"
       onClick={() => requestAuth(SAMPLE_ACTION)}
     >
-      立即面试
+      开始模拟面试
     </button>
   );
 };
