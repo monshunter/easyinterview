@@ -7,8 +7,8 @@ metadata:
   baseBranch: main
   branch: design/resume-interview-report-layout
   specVersion:
-    from: 1.45
-    to: 1.46
+    from: 1.46
+    to: 1.47
 spec:
   defaultTarget: frontend
   discovery:
@@ -69,6 +69,8 @@ spec:
       - resume_versions saved resumeId detail navigation
       - leading start reports action row
       - no standalone resume binding launch block
+      - no lifecycle status on interview plan card
+      - no empty location placeholder
       - 一级面试入口
       - E2E.P0.098
   targets:

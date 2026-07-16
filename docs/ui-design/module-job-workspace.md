@@ -1,8 +1,8 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.41
+> **版本**: 1.42
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-17
 
 ## 1 文档目的
 
@@ -103,7 +103,7 @@
   点击立即面试 -> start practice session
 ```
 
-一级 `面试` 入口不得默认展示“没有 JD 上下文”的死胡同；query-free `/workspace` 展示面试规划列表，列表候选来自当前 `listTargetJobs(analysisStatus=ready)` 契约。列表必须以卡片承载每个规划：卡片主体与 Home 最近模拟面试卡片同源，包含公司/状态 eyebrow、岗位、地点和 mini round rail；workspace 只在卡片底部追加 `立即面试` 主按钮，并把删除图标固定在卡片右上角。桌面端响应式多列，移动端单列；桌面端卡片列必须使用固定最大列宽，1 张、2 张或 3 张规划卡片的规格保持一致，不得因为 `auto-fit + 1fr` 拉伸成整行宽卡；不得退化为没有容器感的文本列。卡片信息必须保持简洁，不得展示 `sourceType`、目标语言、`手动输入` 等导入元信息；解析失败、非 ready 或空标题 JD 不得显示为面试规划卡片。卡片主体点击进入 `/workspace?targetJobId=...` 统一只读详情；底部 `立即面试` 按钮使用主题 accent 样式并直接启动 practice；右上角删除按钮使用简历列表同款 trash 图标样式，调用 generated `archiveTargetJob` 软归档 TargetJob，成功后从当前列表移除，失败时保留卡片并展示错误。首次导入主路径为 `Home 粘贴 JD -> 选择已有简历 -> POST import -> Parse queued/processing -> ready replace Workspace 详情 -> practice`；回访既有 ready 规划直接进入 Workspace 详情，不经过 Parse 动画。
+一级 `面试` 入口不得默认展示“没有 JD 上下文”的死胡同；query-free `/workspace` 展示面试规划列表，列表候选来自当前 `listTargetJobs(analysisStatus=ready)` 契约。列表必须以卡片承载每个规划：卡片主体与 Home 最近模拟面试卡片同源，包含公司、岗位、可选真实地点和 mini round rail；不得展示 TargetJob lifecycle `status` 文案或徽标，`locationText` 缺失或为空时不得渲染占位行。workspace 只在卡片底部追加 `立即面试` 主按钮，并把删除图标固定在卡片右上角。桌面端响应式多列，移动端单列；桌面端卡片列必须使用固定最大列宽，1 张、2 张或 3 张规划卡片的规格保持一致，不得因为 `auto-fit + 1fr` 拉伸成整行宽卡；不得退化为没有容器感的文本列。卡片信息必须保持简洁，不得展示 `sourceType`、目标语言、`手动输入` 等导入元信息；解析失败、非 ready 或空标题 JD 不得显示为面试规划卡片。卡片主体点击进入 `/workspace?targetJobId=...` 统一只读详情；底部 `立即面试` 按钮使用主题 accent 样式并直接启动 practice；右上角删除按钮使用简历列表同款 trash 图标样式，调用 generated `archiveTargetJob` 软归档 TargetJob，成功后从当前列表移除，失败时保留卡片并展示错误。首次导入主路径为 `Home 粘贴 JD -> 选择已有简历 -> POST import -> Parse queued/processing -> ready replace Workspace 详情 -> practice`；回访既有 ready 规划直接进入 Workspace 详情，不经过 Parse 动画。
 
 ### 4.2 切换或新建规划
 
@@ -252,7 +252,7 @@ Resume
 
 1. 顶部导航文案为 `面试`；英文为 `Interview`。
 2. `/workspace` 无 `targetJobId` 时展示 `面试规划列表`；`/workspace?targetJobId=...` 展示该规划只读详情。`planId` / `resumeId` 不是详情 locator，必须清理或忽略；不得再用 `当前岗位` 表示一级模块。
-3. 面试规划列表必须是列表卡片式：每个规划复用 Home 最近模拟面试卡片主体（公司/状态 eyebrow、岗位、地点、mini round rail），并在底部追加明确的主题 accent `立即面试` 按钮，删除图标按钮固定在卡片右上角；桌面卡片采用固定最大列宽，单卡不得铺满整行，数量从 1 到 3 变化时卡片规格保持稳定；卡片不展示来源类型、目标语言或 `手动输入` 等导入元信息；列表只展示 `analysisStatus=ready` 且标题非空的 TargetJob。
+3. 面试规划列表必须是列表卡片式：每个规划复用 Home 最近模拟面试卡片主体（公司、岗位、可选真实地点、mini round rail），并在底部追加明确的主题 accent `立即面试` 按钮，删除图标按钮固定在卡片右上角；桌面卡片采用固定最大列宽，单卡不得铺满整行，数量从 1 到 3 变化时卡片规格保持稳定；卡片不展示 TargetJob lifecycle `status`、空地点占位、来源类型、目标语言或 `手动输入` 等低价值元信息；列表只展示 `analysisStatus=ready` 且标题非空的 TargetJob。
 4. 列表卡片不展示可见的 `进入规划` / `Open plan` 按钮；点击卡片主体进入 `/workspace?targetJobId=...` 详情且不得触发 import/poll/Parse animation，点击 `立即面试` 启动 practice，点击右上角删除图标调用 generated `archiveTargetJob`，成功后隐藏当前卡片且刷新后不回灌。
 5. 真实面试轮次、已绑定简历和启动面试只出现在 Workspace 只读详情或后续 owner；Workspace 详情 round assumptions 与 Home 最近模拟面试卡片的迷你轮次轨道遵循本文档的同一视觉语义，但轮次数量、type/name、duration 和 focus 必须来自同一个 `TargetJob.summary.interviewRounds[]` mapper。该数组由后端 LLM 根据 JD、岗位级别、公司/行业性质、团队/业务上下文和招聘流程线索推断；前端不得用静态 4 轮、静态 HR/技术/经理面或静态分钟数 fallback。Workspace 规划列表保持紧凑卡片，但进入详情的 handoff 不得生成另一套静态 round name。
    当前/已完成状态必须来自 `TargetJob.practiceProgress`：`completedRounds` 画为完成态，`currentRound` 画为当前态，全部完成时所有节点为完成态且 `立即面试` disabled。缺失、跳轮、重复或 pair 不匹配时不高亮/不启动；禁止读取 lifecycle `status`、自由文本 `nextRound`、URL 或浏览器存储做轮次 fallback。mini rail 的 DOM、间距、颜色、节点几何以正式前端当前 token 和 component contract 为准。Workspace 详情的 round assumption 卡同步表达同一事实：done 显示“已进行”并使用 success-soft 背景/成功色边框，current 显示“即将进行”并使用 accent-soft 背景/主题色边框，pending 显示“未进行”并使用 neutral-soft 背景/规则线边框；三态必须有 `data-round-state`，不能只靠颜色传达。
@@ -266,6 +266,7 @@ Resume
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-17 | 1.42 | 面试规划卡片移除重复且不可操作的 lifecycle status；地点缺失时不再显示 `Location not set` 占位。 |
 | 2026-07-16 | 1.41 | 普通失败报告提供同 report 重新生成与查看记录；超限失败只保留只读面试记录恢复入口。 |
 | 2026-07-15 | 1.40 | 将 selectable 简历锁定为 Workspace 及其报告后动作的强制上下文；历史缺绑规划视为异常并全链路 fail closed，不提供无简历降级。 |
 | 2026-07-15 | 1.39 | 删除 Workspace 详情独立 Interview Launch/绑定简历大卡片；标题旁新增绑定简历详情链接，并将立即面试与面试报告移到左对齐首行动作行。 |

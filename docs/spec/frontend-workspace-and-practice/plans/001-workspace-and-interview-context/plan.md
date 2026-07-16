@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.44
+> **版本**: 1.45
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-17
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -20,14 +20,14 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 本次 v1.18 原地修订修复面试列表准入与顶栏导航回归：no-context workspace 必须只以当前 route params 判定，不得继承 stale `InterviewContext`；列表请求 `listTargetJobs` 必须带 `analysisStatus=ready`，并过滤 failed / 空标题 TargetJob，防止解析失败脏数据进入面试列表。
 历史 v1.19 曾把 `workspace` 收敛为纯列表并让卡片导航 Parse；该结论已由本计划 Phase 26 明确 supersede，不再作为当前实现合同。
 本次 v1.20 原地修订修复面试列表卡片规格回归：desktop plan-list grid 必须使用固定最大列宽，1/2/3 张卡片的规格保持稳定，不得因单卡数量被拉伸为整行宽卡。
-本次 v1.21 原地修订融合 Home 最近模拟面试与 workspace 面试列表卡片：workspace 卡片必须复用 Home recent card 的主体结构、公司/状态 eyebrow、岗位/地点层级和 mini round rail。本次 v1.22 原地修订把列表卡片的 `进入规划` 可见 footer CTA 改为点击卡片主体承接，并增加 `立即面试` 主按钮和使用简历列表 trash 图标样式的删除能力；Home recent 复用同一卡片动作模型但不展示删除按钮。
+本次 v1.21 原地修订融合 Home 最近模拟面试与 workspace 面试列表卡片：workspace 卡片必须复用 Home recent card 的主体结构、公司、岗位、可选真实地点和 mini round rail。本次 v1.22 原地修订把列表卡片的 `进入规划` 可见 footer CTA 改为点击卡片主体承接，并增加 `立即面试` 主按钮和使用简历列表 trash 图标样式的删除能力；Home recent 复用同一卡片动作模型但不展示删除按钮。本次 v1.45 原地修订移除同一 `TargetJob.status` 的重复展示和空地点 `Location not set` 占位，真实地点仍按原层级展示。
 本次 v1.38 原地修订收口结构化轮次目录与时长一致性：`TargetJob.summary.interviewRounds[]` 是轮次顺序和规划时长的唯一来源；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照，Practice Top Bar 从 plan 读取预算；报告下一轮只取有序列表的紧邻后一项，末轮、空/未知轮次、加载失败和重复点击 fail closed，不再使用固定 `25:00`、固定轮次表或默认回退。当前轮的持久化事实由 v1.39 `practiceProgress` 接管。
 本次 v1.39 按方案 A 把轮次进度事实收回后端：Home/Workspace/Parse/Report 只消费 `TargetJob.practiceProgress`，不再用 TargetJob lifecycle `status`、自由文本、时长或浏览器状态猜测当前轮；计划只按 exact round pair 复用，全部完成后启动 fail closed。
 
 - TopBar `workspace` 文案改为 `面试` / `Interview`，route/testid 仍保持 `workspace`。
 - `/workspace` 无 target 时使用 generated `listTargetJobs(analysisStatus=ready)` 渲染列表；有 target 时使用 generated `getTargetJob` 渲染统一只读详情。
-- 面试规划列表每个 plan item 必须具备独立卡片容器，并以 Home 最近模拟面试卡片主体为主：公司/状态 eyebrow、岗位、地点和 mini round rail 保持同源；desktop 使用固定最大列宽的响应式多列，1/2/3 张卡片规格保持稳定，mobile 折叠为单列；workspace 只在同一卡片底部追加 `立即面试` 主按钮，删除图标固定在卡片右上角。
-- 面试规划列表卡片只展示对继续规划有决策价值的信息：状态、更新时间、岗位、公司和地点；不展示 `手动输入` / 来源类型 / 目标语言等导入元信息；不展示可见的 `进入规划` footer button。
+- 面试规划列表每个 plan item 必须具备独立卡片容器，并以 Home 最近模拟面试卡片主体为主：公司、岗位、可选真实地点和 mini round rail 保持同源；desktop 使用固定最大列宽的响应式多列，1/2/3 张卡片规格保持稳定，mobile 折叠为单列；workspace 只在同一卡片底部追加 `立即面试` 主按钮，删除图标固定在卡片右上角。
+- 面试规划列表卡片只展示对继续规划有决策价值的信息：岗位、公司、非空真实地点和 backend `practiceProgress` 轮次；不展示 TargetJob lifecycle `status`、`Location not set`、`手动输入` / 来源类型 / 目标语言等导入元信息；不展示可见的 `进入规划` footer button。
 - 面试规划列表只展示已解析成功且具备岗位标题的 TargetJob：generated `listTargetJobs` 请求必须带 `analysisStatus=ready`，UI 层必须防御性排除 failed / processing / queued / 空标题记录。
 - 顶栏 `面试` 进入 query-free `/workspace` 列表；卡片主体进入 `/workspace?targetJobId=...` 详情。`planId`/`resumeId`/auto-start 等非安全 query 被 shell 剔除。
 - 卡片详情 route 只携带 `targetJobId`；绑定 resume/plan/round 事实由 detail `getTargetJob` response 恢复，不从 list item/query 复制。
@@ -65,7 +65,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 - **Plan 类型**: `feature-behavior + contract + frontend-ui + BDD`。
 - **TDD 策略**: 适用。Vitest 覆盖 route hydration、InterviewContext reducer、ordered round resolver、plan time-budget create/reuse、Practice plan budget display、report next-round/last-round/unknown-round/double-click handoff、generated client body/header、auth pendingAction、privacy and out-of-scope negative gates。
-- **BDD 策略**: `BDD.WORKSPACE.CONTEXT.001` 由代码层 owner tests 验证 list/detail、后端 progress 投影、exact-plan reuse 与 fail-closed 行为，并由仓库根 `make test` 统一回归；`E2E.P0.098` 仅作为 completion/progress refresh 的独立真实环境 handoff，只有显式运行后才产生 PASS，且不承接 quick-start/session start/next-round。
+- **BDD 策略**: `BDD.WORKSPACE.CONTEXT.001` 由代码层 owner tests 验证 list/detail、后端 progress 投影、exact-plan reuse 与 fail-closed 行为；`BDD.WORKSPACE.CARD.003` 由共享卡片 domain behavior test 验证无 lifecycle status 与无空地点占位。两者由仓库根 `make test` 统一回归；`E2E.P0.098` 仅作为 completion/progress refresh 的独立真实环境 handoff，只有显式运行后才产生 PASS，且不承接 quick-start/session start/next-round。
 - **替代验证 gate**:
   - `pnpm --filter @easyinterview/frontend test src/app/screens/workspace src/app/screens/parse/ParseResumeBinding.test.tsx src/app/screens/report/__tests__/ReplayCta.test.tsx src/app/App.test.tsx`
   - `pnpm --filter @easyinterview/frontend test`
@@ -267,6 +267,12 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - ACTIONS：标题下方首行动作行左对齐“立即面试” primary 与“面试报告” secondary；desktop 同排，mobile 保持 DOM/阅读顺序并在不足时换行。Report 只携带可信 `targetJobId`；Start 继续使用 saved resume + strict current progress。启动错误紧邻 action row，不阻断报告入口。
 - CLOSEOUT：focused Vitest 只作开发反馈；执行根 `make test`、frontend typecheck/build、desktop/mobile DOM/style/bbox/no-overflow、owner contexts、`sync-doc-index --check`、`make docs-check`、`git diff --check` 与旧标题右侧/独立 binding/footer action/孤儿 locale key 负向搜索，完成后恢复 `completed`。
 
+### Phase 29: Interview-plan card metadata pruning
+
+- RED-GREEN：扩展 `MockInterviewCard.test.tsx`，对 lifecycle `status` 使用非默认值锁定卡片无对应状态文案/徽标；分别验证非空 `locationText` 仍显示、空值与空白值不产生 `Location not set` 或空地点节点。随后从共享卡片删除 `statusLabel`、`statusTone`、状态 badge 与 fallback 文案，不改 generated `TargetJob` 类型、后端状态机或接口字段。
+- BDD：`BDD.WORKSPACE.CARD.003` 使用共享卡片组件测试作为 domain behavior test，覆盖 Home 最近面试与 Workspace 规划列表的同源可见行为；不新增 E2E。
+- CLOSEOUT：执行 focused card/workspace/home tests、仓库根 `make test`、frontend typecheck、owner context、文档/index 与 diff gate；确认共享卡片源中无 lifecycle 状态展示和 `Location not set` 残留后恢复 `completed`。
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -283,11 +289,13 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 | A-18 | Home/Workspace/Parse/Report consume backend-persisted progress, reuse only exact current round plans, and fail closed after final/invalid progress without browser business-state persistence | repository-root `make test`; focused mapper/start/Parse/Report tests only for development feedback; storage negative gate and UI parity |
 | A-20 | Real login plus completion survives Home/Workspace/TargetJob refresh and detail read | `E2E.P0.098`; explicitly excludes Parse, chat, plan creation and session start |
 | A-21 | Workspace detail starts with title-adjacent bound-resume link and a left-aligned Start/Reports action row; no standalone binding/launch block or footer Start remains | `ParseScreen.test.tsx`, `ParseResumeBinding.test.tsx`, `App.test.tsx`, responsive/a11y owner gates; root `make test` |
+| A-22 | Shared Home/Workspace interview-plan cards omit TargetJob lifecycle status and empty-location placeholders while preserving real locations and the persisted-progress rail | `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`; root `make test` |
 
 ## 6 变更记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-17 | 1.45 | Reopen Phase 29 to remove duplicated lifecycle status and empty-location placeholders from the shared interview-plan card. |
 | 2026-07-15 | 1.44 | Reopen Phase 28 to replace the standalone resume-binding launch block with a title-adjacent resume link and a leading Start/Reports action row. |
 | 2026-07-14 | 1.43 | Separate code-owned Workspace behavior BDD from the Ready-only P0.098 real progress-refresh handoff. |
 | 2026-07-14 | 1.42 | Add Phase 27 rail-consistent done/current/pending treatments to Workspace detail round assumptions. |

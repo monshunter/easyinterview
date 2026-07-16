@@ -1,66 +1,12 @@
 import type { FC, MouseEvent, ReactNode } from "react";
 
-import type { TargetJob, TargetJobStatus } from "../../../api/generated/types";
+import type { TargetJob } from "../../../api/generated/types";
 import { useI18n } from "../../i18n/messages";
 import {
   buildTargetJobRoundAssumptions,
   resolveTargetJobPracticeProgress,
 } from "../../interview-context/roundAssumptions";
 import { ResumeWorkshopIcon } from "../resume-workshop/components/ResumeWorkshopIcon";
-
-function statusTone(
-  status: TargetJobStatus,
-): "muted" | "amber" | "neutral" {
-  switch (status) {
-    case "draft":
-    case "preparing":
-      return "muted";
-    case "applied":
-    case "interviewing":
-      return "amber";
-    case "offer":
-    case "rejected":
-    case "archived":
-      return "neutral";
-  }
-}
-
-function statusLabel(status: TargetJobStatus): string {
-  switch (status) {
-    case "draft":
-      return "Draft";
-    case "preparing":
-      return "Preparing";
-    case "applied":
-      return "Applied";
-    case "interviewing":
-      return "Interviewing";
-    case "offer":
-      return "Offer";
-    case "rejected":
-      return "Rejected";
-    case "archived":
-      return "Archived";
-  }
-}
-
-const statusColorMap: Record<
-  string,
-  { bg: string; fg: string }
-> = {
-  amber: {
-    bg: "var(--ei-color-amber-soft)",
-    fg: "var(--ei-color-amber)",
-  },
-  neutral: {
-    bg: "var(--ei-color-bg-soft)",
-    fg: "var(--ei-color-fg-secondary)",
-  },
-  muted: {
-    bg: "transparent",
-    fg: "var(--ei-color-fg-tertiary)",
-  },
-};
 
 // ─── MiniRoundRail ────────────────────────────────────────────────
 
@@ -222,11 +168,10 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
   deleteAction,
 }) => {
   const { t } = useI18n();
-  const tone = statusTone(job.status);
-  const colors = statusColorMap[tone] ?? { bg: "transparent", fg: "var(--ei-color-fg-tertiary)" };
   const rounds = buildTargetJobRoundAssumptions(job, t);
   const ci = resolveTargetJobPracticeProgress(job).currentIndex;
   const hasFooter = Boolean(footer || primaryAction);
+  const location = job.locationText?.trim();
 
   const runAction = (
     event: MouseEvent<HTMLButtonElement>,
@@ -277,7 +222,6 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
         data-testid={bodyTestId}
         style={{
           display: "flex",
-          justifyContent: "space-between",
           gap: 12,
           background: "var(--ei-color-bg-card)",
           paddingRight: deleteAction ? 44 : undefined,
@@ -292,8 +236,7 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
               marginBottom: 4,
             }}
           >
-            {job.companyName.toUpperCase()} ·{" "}
-            {statusLabel(job.status)}
+            {job.companyName.toUpperCase()}
           </div>
           <div
             style={{
@@ -305,29 +248,17 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
           >
             {job.title}
           </div>
-          <div
-            style={{
-              fontSize: 12.5,
-              color: "var(--ei-color-fg-tertiary)",
-              marginTop: 4,
-            }}
-          >
-            {job.locationText || "Location not set"}
-          </div>
-        </div>
-        <div
-          style={{
-            padding: "3px 8px",
-            height: "fit-content",
-            background: colors.bg,
-            color: colors.fg,
-            fontSize: 11,
-            fontFamily: "var(--ei-font-mono)",
-            borderRadius: 2,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {statusLabel(job.status)}
+          {location ? (
+            <div
+              style={{
+                fontSize: 12.5,
+                color: "var(--ei-color-fg-tertiary)",
+                marginTop: 4,
+              }}
+            >
+              {location}
+            </div>
+          ) : null}
         </div>
       </div>
       <div data-testid={railTestId ?? `home-recent-mock-rail-${job.id}`}>

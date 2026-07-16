@@ -1,8 +1,8 @@
 # Workspace and Interview Context BDD Checklist
 
-> **版本**: 1.28
+> **版本**: 1.29
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-17
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -23,6 +23,13 @@
 - [x] 标题旁“绑定简历”只使用 `TargetJob.resumeId` 导航对应 Resume 详情；缺失绑定不提供链接、不从 route/list/recent resume 兜底。
 - [x] “立即面试”与“面试报告”在标题下首行动作行左对齐，desktop 同排、mobile 同序响应式换行；Start/Report route 与错误隔离保持。
 - [x] 独立 Interview Launch/绑定简历 block、标题右侧 Report 与页尾 Start 的正式 DOM/source 负向 gate 为零；根 `make test` 和独立 responsive/a11y gates 通过。
+
+## `BDD.WORKSPACE.CARD.003` 规划卡片可见元信息
+
+- [x] 确认验证入口为 `MockInterviewCard.test.tsx` domain behavior test，不声明真实 E2E。
+- [x] 执行 owner test，验证 lifecycle status 任意变化都不产生状态文案或徽标。
+- [x] 执行 owner test，验证非空真实地点保留，缺失、空或空白地点不产生占位行。
+- [x] 记录 focused domain behavior test 证据；仓库根 `make test` 由主 checklist Phase 29 post-pass 独立承接。（验证：2026-07-17 `MockInterviewCard.test.tsx` 13/13 PASS）
 
 ## 真实环境证据边界
 

@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.44
+> **版本**: 1.45
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-17
 
 **关联计划**: [plan](./plan.md)
 
@@ -202,3 +202,12 @@
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.WORKSPACE.DETAIL.002` 由 [BDD checklist](./bdd-checklist.md) 关联标题旁简历查看、首行动作行、缺失绑定与 route 事实源行为；不把代码 gate 声明为真实 E2E PASS。
+
+## Phase 29: Interview-plan card metadata pruning
+
+- [x] 29.1 RED-GREEN：`MockInterviewCard.test.tsx` 先以非默认 lifecycle status 复现两处状态文案，并以空/空白地点复现 `Location not set`；随后共享卡片移除全部 lifecycle status 展示和地点 fallback，非空真实地点、round rail、点击/启动/删除行为保持通过。
+  <!-- verified: 2026-07-17 method=red-green evidence="RED 2 failing card cases; GREEN MockInterviewCard 13/13 and shared Home/Workspace 41/41 PASS; source residuals zero" -->
+- [x] 29.2 BDD-Gate: `BDD.WORKSPACE.CARD.003` 由 [BDD checklist](./bdd-checklist.md) 通过 domain behavior test 验证 Home/Workspace 同源卡片的可见元信息。
+  <!-- verified: 2026-07-17 method=domain-behavior bddChecklist=complete -->
+- [x] 29.3 POST-PASS：focused card/Home/Workspace tests、仓库根 `make test`、frontend typecheck、owner context、`sync-doc-index --check`、`make docs-check`、`git diff --check` 通过；共享卡片源中 lifecycle status 展示和 `Location not set` 残留为零。
+  <!-- verified: 2026-07-17 method=full-regression evidence="backend 584 tests/4583 subtests; frontend 126 files/1027 tests; typecheck/context/index/docs/diff/residual gates PASS" -->

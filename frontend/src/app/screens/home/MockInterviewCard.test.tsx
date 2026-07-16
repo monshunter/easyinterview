@@ -48,6 +48,14 @@ describe("MockInterviewCard", () => {
     expect(screen.getByText(/ACME CORP/)).toBeInTheDocument();
   });
 
+  it("does not expose the target-job lifecycle status", () => {
+    render(
+      <MockInterviewCard job={mockJob} onClick={() => {}} />,
+    );
+
+    expect(screen.queryAllByText("Preparing")).toHaveLength(0);
+  });
+
   it("displays location or fallback", () => {
     render(
       <MockInterviewCard job={mockJob} onClick={() => {}} />,
@@ -56,13 +64,18 @@ describe("MockInterviewCard", () => {
     expect(screen.getByText("San Francisco, CA")).toBeInTheDocument();
   });
 
-  it("shows fallback location when locationText is empty", () => {
-    const noLocationJob = { ...mockJob, locationText: "" };
-    render(
-      <MockInterviewCard job={noLocationJob} onClick={() => {}} />,
+  it("omits the location row when locationText is missing, empty, or blank", () => {
+    const { rerender } = render(
+      <MockInterviewCard job={{ ...mockJob, locationText: null }} onClick={() => {}} />,
     );
 
-    expect(screen.getByText("Location not set")).toBeInTheDocument();
+    expect(screen.queryByText("Location not set")).not.toBeInTheDocument();
+
+    rerender(<MockInterviewCard job={{ ...mockJob, locationText: "" }} onClick={() => {}} />);
+    expect(screen.queryByText("Location not set")).not.toBeInTheDocument();
+
+    rerender(<MockInterviewCard job={{ ...mockJob, locationText: "   " }} onClick={() => {}} />);
+    expect(screen.queryByText("Location not set")).not.toBeInTheDocument();
   });
 
   it("renders MiniRoundRail testid", () => {

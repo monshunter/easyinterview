@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-17](2026-07-17.md) | `fix(frontend): remove stale plan card metadata (BUG-0184)` | #fix #ui #test #docs |
 | [2026-07-17](2026-07-17.md) | `fix(report): harden regeneration and local diagnostics (BUG-0182, BUG-0183)` | #fix #api #ui #test #docs #bdd |
 | [2026-07-17](2026-07-17.md) | `fix(auth): encode localized smtp messages as mime` | #fix #test #docs |
 | [2026-07-16](2026-07-16.md) | `refactor(ai): adopt openai-go and restore quality gates (BUG-0181)` | #refactor #test #docs |

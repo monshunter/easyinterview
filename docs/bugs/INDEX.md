@@ -96,6 +96,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0184](./BUG-0184.md) | interview plan cards duplicated an inactive lifecycle status and empty-location placeholder | low | resolved | 2026-07-17 | `fix(frontend): remove stale plan card metadata (BUG-0184)` |
 | [BUG-0176](./BUG-0176.md) | settings review exposed fixture auth and failure-evidence gaps | medium | resolved | 2026-07-15 | `fix(settings): close review regressions (BUG-0176)` |
 | [BUG-0170](./BUG-0170.md) | Duplicate safe reads and mixed command/detail route ownership | high | resolved | 2026-07-14 | `fix(core-flow): separate read paths and dedupe requests (BUG-0170)` |
 | [BUG-0161](./BUG-0161.md) | practice timing and report progression ignored structured round context | high | resolved | 2026-07-12 | `fix(frontend): align round timing and progression (BUG-0161)` |
