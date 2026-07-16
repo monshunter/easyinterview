@@ -1,10 +1,11 @@
 // Package aiclient is the provider-neutral entry point for every LLM,
 // STT call inside the easyinterview backend.
 //
-// Business code MUST depend on this package only — never on a vendor SDK such
-// as openai-go, anthropic-sdk-go, cohere-go, or generative-ai-go. ADR-Q6 §3.1
-// and the AI provider spec §6 (C-2) treat any vendor SDK import inside
-// backend/ as a hard violation.
+// Business code MUST depend on this package only and never on a vendor SDK.
+// The official openai-go/v3 dependency is private to the OpenAI-compatible
+// provider adapters and their exact provider-internal helper; it must not leak
+// into this package's public types, business packages, config, or observability.
+// Other vendor SDKs remain forbidden by ADR-Q6 and the A3 spec.
 //
 // AICallMeta is owned by this package; callers receive it as the second
 // return value alongside the structured response and cannot construct or

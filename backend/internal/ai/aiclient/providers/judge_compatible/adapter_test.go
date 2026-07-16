@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
@@ -115,6 +116,40 @@ func TestCompletePostsAndParses(t *testing.T) {
 	}
 	if meta.InputTokens != 5 || meta.OutputTokens != 4 {
 		t.Fatalf("token usage not propagated: in=%d out=%d", meta.InputTokens, meta.OutputTokens)
+	}
+}
+
+func TestCompleteRetriesTransientProviderErrorsWithinProfileTimeout(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if calls.Add(1) < 3 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"error":{"message":"temporary failure"}}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"model":"deepseek-v4-pro","choices":[{"message":{"content":"{\"scores\":[]}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":4}}`))
+	}))
+	defer server.Close()
+
+	adapter, err := judgecompatible.New(judgecompatible.Options{Provider: resolved(server.URL, "k")})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	response, _, err := adapter.Complete(
+		context.Background(),
+		judgeProfile(5000),
+		aiclient.CompletePayload{Messages: []aiclient.Message{{Role: "user", Content: "score this"}}},
+	)
+	if err != nil {
+		t.Fatalf("Complete after transient errors: %v", err)
+	}
+	if response.Content == "" {
+		t.Fatal("expected non-empty content")
+	}
+	if got := calls.Load(); got != 3 {
+		t.Fatalf("provider calls=%d, want 3 (initial request plus two retries)", got)
 	}
 }
 

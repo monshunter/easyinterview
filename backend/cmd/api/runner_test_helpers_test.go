@@ -10,12 +10,3 @@ import (
 func testRunnerConfig() runner.Config {
 	return runner.ConfigFromSeconds(5, 300, 0, 10, runner.QueueWeights{Critical: 6, Default: 3, Low: 1})
 }
-
-// newTestKernel builds a kernel over db and registers the provided handler maps.
-func newTestKernel(store runner.LeaseStore, handlerMaps ...map[string]runner.Handler) *runner.Runtime {
-	kernel := runner.New(runner.Options{Store: store, Config: testRunnerConfig()})
-	for _, handlers := range handlerMaps {
-		registerRunnerHandlers(kernel, handlers)
-	}
-	return kernel
-}

@@ -1,8 +1,8 @@
 # ADR-Q6 · AI Provider 与模型路由
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: accepted
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-16
 
 ## 1 背景
 
@@ -16,7 +16,7 @@
 
 仓库现状：
 
-- 没有任何业务代码 import 厂商 SDK
+- 没有任何业务代码 import 厂商 SDK；A3 adapter 仍是唯一 provider transport implementation boundary
 - `engineering-roadmap/spec.md` §5.1 A3 已重命名为 `ai-provider-and-model-routing`，明确 P0 必须交付 `provider-neutral AIClient` + `Provider Registry` + `Capability Model Profile` + OpenAI-compatible / stub provider
 - 部署与测试形态由 ADR-Q4 锁定为 Docker Compose 外部依赖 + 宿主机 app runtime + repo-tracked 本地 scenario runner；K8s / Kind / Helm 不再是当前 P0 默认前提
 
@@ -32,7 +32,7 @@
 
 **Pros**：
 
-- 业务代码只依赖 1 个抽象 + profile name，**零厂商 SDK 入侵**
+- 业务代码只依赖 1 个抽象 + profile name，**零厂商 SDK 入侵**；A3 adapter 内部可使用经锁版和测试的官方协议 SDK，且不得向 public type 或业务 package 泄漏 SDK 类型
 - 多模型 / 多 provider / fallback / token rate limit / cost cap 由 A3 provider registry、profile 与运维 secret 注入共同表达；代码不变
 - 单元测试用 `stub` provider（hash-based 确定性输出）；非测试本地 app run、未来 staging / prod 部署必须配置真实 OpenAI-compatible provider 或 provider endpoint
 - `AI_PROVIDER_REGISTRY_PATH` + provider-specific secret env ref 是 provider 配置入口；`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只可作为默认 provider ref 引用的 env 名，不是全局唯一 contract
@@ -81,7 +81,7 @@
 
 ## 3 决策
 
-**P0 锁定选项 A**。2026-05-06 经执行者确认，为避免后续 `backend-practice`、production voice 与 F3 schema 接入时重复改造 AI 底座，原先在 §5 中列为“触发后评估”的 Tools / provider streaming / STT 能力提前纳入 A3 当前底座实施。该激活不推翻 provider-neutral 抽象，仍保持业务只依赖 `AIClient` + profile name，不引入厂商 SDK。
+**P0 锁定选项 A**。2026-05-06 经执行者确认，为避免后续 `backend-practice`、production voice 与 F3 schema 接入时重复改造 AI 底座，原先在 §5 中列为“触发后评估”的 Tools / provider streaming / STT 能力提前纳入 A3 当前底座实施。2026-07-16 进一步锁定：provider-neutral 抽象与业务零 SDK 边界不变，A3 的 OpenAI-compatible adapter 内部改用官方 `openai-go/v3` 维护通用 wire；SDK 不得越过 adapter/internal helper。
 
 本 ADR 把 §3.2 Q-6 已确认方向固化为以下 9 项硬约束：
 
@@ -99,7 +99,7 @@
    - 仅用于单元测试、离线 contract 测试或显式 mock 场景
    - 输入 → 输出 hash-based 确定性映射；可被 OpenAPI fixtures 反向喂养（与 E1 `mock-contract-suite` 同源）
    - 单元测试默认走 `stub`；非测试本地 app run、未来 staging / prod 不允许默认降级到 stub，缺少 provider registry、model profile path 或选中 provider 的 secret env ref 时必须 fail-fast
-5. **Provider endpoint 边界**：本 ADR 不锁死供应商、托管形态或代理实现，只锁 provider registry / profile / OpenAI-compatible API 子集和应用侧 secret ref 连接参数。当前可执行 OpenAI-compatible 子集包含 Chat Completions、chat streaming SSE 与 Audio Transcriptions；`judge_compatible` 由 F3 004 + A3 registry 承接；realtime multimodal 仍需 owner 后续递增 spec 后打开
+5. **Provider endpoint / SDK 边界**：本 ADR 不锁死供应商、托管形态或代理实现，只锁 provider registry / profile / OpenAI-compatible API 子集和应用侧 secret ref 连接参数。当前可执行 OpenAI-compatible 子集包含 Chat Completions、chat streaming SSE 与 Audio Transcriptions；`judge_compatible` 由 F3 004 + A3 registry 承接；realtime multimodal 仍需 owner 后续递增 spec 后打开。A3 adapter 内部固定使用 `openai-go/v3 v3.43.0`，通过自定义 base URL 与注入 HTTP client 连接兼容 provider；同 provider 瞬时错误重试由 SDK 承担，跨 provider/model fallback 仍只由 AIClient profile chain 承担。业务 package、public A3 type、profile/config schema 与 observability contract 不得 import 或暴露 SDK 类型
 6. **F3 解耦**：`prompt-rubric-registry` 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组；不持有 provider / model 字符串
 7. **可观测性**（F1 owner）
    - 每次 `AIClient.*` 调用必须落 `ai_task_runs_total` + `ai_task_latency_seconds` + `ai_task_input/output_tokens_total` + `ai_task_cost_usd_total` + `ai_output_validation_failures_total` + `ai_fallback_total`
@@ -109,7 +109,7 @@
 
 ## 4 影响范围
 
-- **A3 `ai-provider-and-model-routing`** —— 落地 `AIClient` + Provider Registry + Capability Model Profile schema + stub provider + OpenAI-compatible adapter
+- **A3 `ai-provider-and-model-routing`** —— 落地 `AIClient` + Provider Registry + Capability Model Profile schema + stub provider + OpenAI-compatible adapter，并独占 adapter-internal `openai-go/v3` 依赖边界
 - **A4 `secrets-and-config`** —— `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` / provider-specific secret env ref 配置项；非测试本地 app run 与未来部署必须能注入真实 provider 凭证
 - **F1 `observability-stack`** —— `ai_*` 指标与 dashboard
 - **F3 `prompt-rubric-registry`** —— 引用 `model_profile_name`；baseline prompt/rubric 与后续真实 model profile 切换
@@ -144,6 +144,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-16 | 2.7 | 保持选项 A 与业务零 SDK 边界，允许 A3 OpenAI-compatible adapter 内部固定使用 `openai-go/v3 v3.43.0`；明确同 provider retry、AIClient 跨 provider fallback、SDK import 与 public type 边界。 |
 | 2026-07-10 | 2.6 | 将 provider-proxy 和 async owner 负向边界统一为范围外口径；行为不变。 |
 | 2026-07-10 | 2.5 | 将 STT/realtime/judge 旧口径收敛为 fail-closed profile 与 runnable judge_compatible provider 当前事实。 |
 | 2026-07-07 | 2.3 | 对齐当前 backend AI owner 范围，删除范围外 async owner 影响范围。 |

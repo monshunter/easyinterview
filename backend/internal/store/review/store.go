@@ -19,10 +19,3 @@ func (r *Repository) checkDB() error {
 	}
 	return nil
 }
-
-func nullableString(s string) any {
-	if s == "" {
-		return nil
-	}
-	return s
-}

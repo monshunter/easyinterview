@@ -1,7 +1,6 @@
 package openaicompatible
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -9,18 +8,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"mime/multipart"
 	"net/http"
-	"net/textproto"
 	"strings"
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/internal/openaisdk"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/internal/responsebody"
 	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/packages/param"
+	"github.com/openai/openai-go/v3/packages/ssestream"
+	"github.com/openai/openai-go/v3/shared"
 )
 
 // Name is the adapter protocol name. Concrete Adapter instances identify
@@ -51,11 +53,8 @@ type Options struct {
 
 // Adapter is the concrete aiclient.Provider implementation.
 type Adapter struct {
-	providerRef          string
-	baseURL              string
-	apiKey               string
-	client               *http.Client
-	maxResponseBodyBytes int64
+	providerRef string
+	sdkClient   openai.Client
 }
 
 // New constructs an Adapter from a Provider Registry entry materialized by A4
@@ -81,11 +80,8 @@ func New(opts Options) (*Adapter, error) {
 		opts.MaxResponseBodyBytes = platformconfig.DefaultContentLimits().AIProviderMaxResponseBodyBytes
 	}
 	return &Adapter{
-		providerRef:          opts.Provider.Entry.Name,
-		baseURL:              normalizeBaseURL(opts.Provider.BaseURL),
-		apiKey:               opts.Provider.APIKey,
-		client:               hc,
-		maxResponseBodyBytes: opts.MaxResponseBodyBytes,
+		providerRef: opts.Provider.Entry.Name,
+		sdkClient:   openaisdk.NewClient(opts.Provider.BaseURL, opts.Provider.APIKey, hc, opts.MaxResponseBodyBytes),
 	}, nil
 }
 
@@ -98,54 +94,45 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, errors.New("openai_compatible: profile is nil")
 	}
 
-	req := chatCompletionsRequest{
-		Model:          profile.Default.Model,
-		Messages:       convertMessages(payload.Messages),
-		Stream:         false,
-		Tools:          convertTools(payload.Tools),
-		ToolChoice:     convertToolChoice(payload.ToolChoice),
-		ResponseFormat: responseFormatForPayload(payload),
-	}
-	if profile.MaxTokens > 0 {
-		req.MaxTokens = profile.MaxTokens
-	}
-	if err := applyParams(profile.Default.Params, &req); err != nil {
+	req, requestOptions, err := sdkCompleteRequest(profile, payload)
+	if err != nil {
 		errCode := stableError(sharederrors.CodeAiProviderConfigInvalid)
 		return aiclient.CompleteResponse{}, a.errMeta(profile, nil, 0, errCode), errCode
 	}
+	if requestID := aiclient.RequestIDFromContext(ctx); requestID != "" {
+		requestOptions = append(requestOptions, option.WithHeader(HeaderRequestID, requestID))
+	}
 
 	start := time.Now()
-	resp, status, headers, err := a.postJSON(ctx, profile.TimeoutMs, PathChatCompletions, req)
+	requestContext := ctx
+	if profile.TimeoutMs > 0 {
+		var cancel context.CancelFunc
+		requestContext, cancel = context.WithTimeout(ctx, time.Duration(profile.TimeoutMs)*time.Millisecond)
+		defer cancel()
+	}
+	var rawResponse *http.Response
+	requestOptions = append(requestOptions, option.WithResponseInto(&rawResponse))
+	completion, err := a.sdkClient.Chat.Completions.New(requestContext, req, requestOptions...)
 	latencyMs := time.Since(start).Milliseconds()
+	headers := responseHeaders(rawResponse)
 	if err != nil {
-		return aiclient.CompleteResponse{}, a.errMeta(profile, headers, latencyMs, err), err
-	}
-
-	if status >= 400 {
-		errCode := mapHTTPError(status, resp)
+		errCode := mapSDKError(requestContext, rawResponse, err)
 		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.CompleteResponse{}, meta, errCode
 	}
-
-	var body chatCompletionsResponse
-	if err := json.Unmarshal(resp, &body); err != nil {
-		errCode := stableError(sharederrors.CodeAiOutputInvalid)
-		meta := a.errMeta(profile, headers, latencyMs, errCode)
-		return aiclient.CompleteResponse{}, meta, errCode
-	}
-	if len(body.Choices) == 0 {
+	if completion == nil || len(completion.Choices) == 0 {
 		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "openai_compatible: response missing choices", false)
 		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.CompleteResponse{}, meta, errCode
 	}
 
-	choice := body.Choices[0]
+	choice := completion.Choices[0]
 	out := aiclient.CompleteResponse{
 		Content:      choice.Message.Content,
 		FinishReason: safeFinishReason(choice.FinishReason),
-		ToolCalls:    convertToolCalls(choice.Message.ToolCalls),
+		ToolCalls:    convertSDKToolCalls(choice.Message.ToolCalls),
 	}
-	meta := a.buildMeta(profile, headers, latencyMs, body.Usage.PromptTokens, body.Usage.CompletionTokens, out.ToolCalls)
+	meta := a.buildMeta(profile, headers, latencyMs, int(completion.Usage.PromptTokens), int(completion.Usage.CompletionTokens), out.ToolCalls)
 	return out, meta, nil
 }
 
@@ -156,41 +143,44 @@ func (a *Adapter) Transcribe(ctx context.Context, profile *aiclient.ModelProfile
 		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, errors.New("openai_compatible: profile is nil")
 	}
 
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-	if err := writeTranscriptionForm(writer, profile.Default.Model, input); err != nil {
-		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, err
+	request := openai.AudioTranscriptionNewParams{
+		File:  openai.File(bytes.NewReader(input.Audio), input.Filename, input.ContentType),
+		Model: profile.Default.Model,
 	}
-	if err := writer.Close(); err != nil {
-		return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, fmt.Errorf("openai_compatible: close transcription multipart: %w", err)
+	if input.Language != "" {
+		request.Language = openai.String(input.Language)
+	}
+	if input.Prompt != "" {
+		request.Prompt = openai.String(input.Prompt)
 	}
 
+	requestContext := ctx
+	if profile.TimeoutMs > 0 {
+		var cancel context.CancelFunc
+		requestContext, cancel = context.WithTimeout(ctx, time.Duration(profile.TimeoutMs)*time.Millisecond)
+		defer cancel()
+	}
+	var rawResponse *http.Response
+	requestOptions := []option.RequestOption{option.WithResponseInto(&rawResponse)}
+	if requestID := aiclient.RequestIDFromContext(ctx); requestID != "" {
+		requestOptions = append(requestOptions, option.WithHeader(HeaderRequestID, requestID))
+	}
 	start := time.Now()
-	resp, status, headers, err := a.postMultipart(ctx, profile.TimeoutMs, PathTranscriptions, writer.FormDataContentType(), &buf)
+	response, err := a.sdkClient.Audio.Transcriptions.New(requestContext, request, requestOptions...)
 	latencyMs := time.Since(start).Milliseconds()
+	headers := responseHeaders(rawResponse)
 	if err != nil {
-		return aiclient.TranscriptionResponse{}, a.errMeta(profile, headers, latencyMs, err), err
-	}
-
-	if status >= 400 {
-		errCode := mapHTTPError(status, resp)
+		errCode := mapSDKError(requestContext, rawResponse, err)
 		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.TranscriptionResponse{}, meta, errCode
 	}
-
-	var body transcriptionResponse
-	if err := json.Unmarshal(resp, &body); err != nil {
-		errCode := stableError(sharederrors.CodeAiOutputInvalid)
-		meta := a.errMeta(profile, headers, latencyMs, errCode)
-		return aiclient.TranscriptionResponse{}, meta, errCode
-	}
-	if body.Text == "" {
+	if response == nil || response.Text == "" {
 		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "openai_compatible: transcription response missing text", false)
 		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.TranscriptionResponse{}, meta, errCode
 	}
 
-	out := aiclient.TranscriptionResponse{Text: body.Text}
+	out := aiclient.TranscriptionResponse{Text: response.Text}
 	meta := a.buildMeta(profile, headers, latencyMs, len(input.Audio), len(out.Text), nil)
 	return out, meta, nil
 }
@@ -202,19 +192,12 @@ func (a *Adapter) Stream(ctx context.Context, profile *aiclient.ModelProfile, pa
 	if profile == nil {
 		return nil, errors.New("openai_compatible: profile is nil")
 	}
-	req := chatCompletionsRequest{
-		Model:          profile.Default.Model,
-		Messages:       convertMessages(payload.Messages),
-		Stream:         true,
-		Tools:          convertTools(payload.Tools),
-		ToolChoice:     convertToolChoice(payload.ToolChoice),
-		ResponseFormat: responseFormatForPayload(payload),
-	}
-	if profile.MaxTokens > 0 {
-		req.MaxTokens = profile.MaxTokens
-	}
-	if err := applyParams(profile.Default.Params, &req); err != nil {
+	req, requestOptions, err := sdkCompleteRequest(profile, payload)
+	if err != nil {
 		return nil, stableError(sharederrors.CodeAiProviderConfigInvalid)
+	}
+	if requestID := aiclient.RequestIDFromContext(ctx); requestID != "" {
+		requestOptions = append(requestOptions, option.WithHeader(HeaderRequestID, requestID))
 	}
 
 	streamCtx := ctx
@@ -224,99 +207,36 @@ func (a *Adapter) Stream(ctx context.Context, profile *aiclient.ModelProfile, pa
 	}
 
 	start := time.Now()
-	resp, err := a.postStream(streamCtx, PathChatCompletions, req)
+	var rawResponse *http.Response
+	requestOptions = append(requestOptions, option.WithResponseInto(&rawResponse))
+	stream := a.sdkClient.Chat.Completions.NewStreaming(streamCtx, req, requestOptions...)
 	latencyMs := time.Since(start).Milliseconds()
 	ch := make(chan aiclient.AIStreamEvent, 4)
-	if err != nil {
+	if err := stream.Err(); err != nil {
+		_ = stream.Close()
 		if cancel != nil {
 			cancel()
 		}
-		ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: errorCodeOf(err)}
+		mapped := mapSDKError(streamCtx, rawResponse, err)
+		ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: errorCodeOf(mapped)}
 		close(ch)
 		return ch, nil
 	}
-	go a.consumeStream(streamCtx, cancel, resp, profile, latencyMs, ch)
+	go a.consumeSDKStream(streamCtx, cancel, stream, responseHeaders(rawResponse), profile, latencyMs, ch)
 	return ch, nil
 }
 
-// Synthesize implements aiclient.Provider. The openai_compatible protocol does
-// not support TTS synthesis; speech adapters use doubao_speech / minimax_speech.
-func (a *Adapter) Synthesize(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
-	return aiclient.SynthesisResponse{}, a.errMeta(profile, nil, 0, sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "openai_compatible protocol does not support TTS synthesis", false)), sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "openai_compatible protocol does not support TTS synthesis", false)
-}
-
-func (a *Adapter) postStream(ctx context.Context, path string, body any) (*http.Response, error) {
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, fmt.Errorf("openai_compatible: marshal request: %w", err)
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+path, bytes.NewReader(buf))
-	if err != nil {
-		return nil, fmt.Errorf("openai_compatible: build request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "text/event-stream")
-	req.Header.Set("Authorization", "Bearer "+a.apiKey)
-	if rid := aiclient.RequestIDFromContext(ctx); rid != "" {
-		req.Header.Set(HeaderRequestID, rid)
-	}
-	resp, err := a.client.Do(req)
-	if err != nil {
-		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
-			return nil, stableError(sharederrors.CodeAiProviderTimeout)
-		}
-		return nil, stableError(sharederrors.CodeAiProviderTimeout)
-	}
-	return resp, nil
-}
-
-func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, resp *http.Response, profile *aiclient.ModelProfile, latencyMs int64, ch chan<- aiclient.AIStreamEvent) {
+func (a *Adapter) consumeSDKStream(ctx context.Context, cancel context.CancelFunc, stream *ssestream.Stream[openai.ChatCompletionChunk], headers http.Header, profile *aiclient.ModelProfile, latencyMs int64, ch chan<- aiclient.AIStreamEvent) {
 	defer close(ch)
-	defer resp.Body.Close()
+	defer stream.Close()
 	if cancel != nil {
 		defer cancel()
 	}
 
-	if resp.StatusCode >= 400 {
-		body, err := readResponseBody(resp, a.maxResponseBodyBytes)
-		if err != nil {
-			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: errorCodeOf(err)}
-			return
-		}
-		ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: errorCodeOf(mapHTTPError(resp.StatusCode, body))}
-		return
-	}
-
-	limitedBody := &io.LimitedReader{R: resp.Body, N: a.maxResponseBodyBytes}
-	scanner := bufio.NewScanner(limitedBody)
-	maxInt := int(^uint(0) >> 1)
-	maxTokenBytes := maxInt
-	if a.maxResponseBodyBytes < int64(maxInt) {
-		maxTokenBytes = int(a.maxResponseBodyBytes)
-	}
-	scanner.Buffer(nil, maxTokenBytes)
-	limitChecked := false
-	responseLimitFailed := func() bool {
-		if limitedBody.N != 0 || limitChecked {
-			return false
-		}
-		extra, err := io.ReadAll(io.LimitReader(resp.Body, 1))
-		if err != nil {
-			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharederrors.CodeAiProviderTimeout}
-			return true
-		}
-		limitChecked = true
-		if len(extra) > 0 {
-			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharederrors.CodeAiOutputInvalid}
-			return true
-		}
-		return false
-	}
 	inputTokens := 0
 	outputTokens := 0
 	outputChars := 0
 	emittedDone := false
-
 	emitDone := func(errorCode, partialReason string) {
 		if emittedDone {
 			return
@@ -324,7 +244,7 @@ func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, 
 		if outputTokens == 0 {
 			outputTokens = outputChars
 		}
-		meta := a.buildMeta(profile, resp.Header, latencyMs, inputTokens, outputTokens, nil)
+		meta := a.buildMeta(profile, headers, latencyMs, inputTokens, outputTokens, nil)
 		if errorCode != "" {
 			meta.ValidationStatus = aiclient.ValidationStatusInvalid
 			meta.ErrorCode = errorCode
@@ -334,36 +254,13 @@ func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, 
 		emittedDone = true
 	}
 
-	for scanner.Scan() {
-		if responseLimitFailed() {
-			return
-		}
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, ":") {
-			continue
-		}
-		if !strings.HasPrefix(line, "data:") {
-			continue
-		}
-		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-		if data == "[DONE]" {
-			emitDone("", "")
-			continue
-		}
-		var chunk streamChunk
-		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
-			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharederrors.CodeAiOutputInvalid}
-			return
-		}
-		if chunk.Error.Code != "" {
-			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharedOrOutputInvalid(chunk.Error.Code)}
-			return
-		}
+	for stream.Next() {
+		chunk := stream.Current()
 		if chunk.Usage.PromptTokens > 0 {
-			inputTokens = chunk.Usage.PromptTokens
+			inputTokens = int(chunk.Usage.PromptTokens)
 		}
 		if chunk.Usage.CompletionTokens > 0 {
-			outputTokens = chunk.Usage.CompletionTokens
+			outputTokens = int(chunk.Usage.CompletionTokens)
 		}
 		for _, choice := range chunk.Choices {
 			if choice.Delta.Content != "" {
@@ -379,95 +276,191 @@ func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, 
 		emitDone(sharederrors.CodeAiProviderTimeout, "context_cancelled")
 		return
 	}
-	if responseLimitFailed() {
-		return
-	}
-	if err := scanner.Err(); err != nil {
-		ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharederrors.CodeAiProviderTimeout}
+	if err := stream.Err(); err != nil {
+		ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sdkStreamErrorCode(err)}
 		return
 	}
 	emitDone("", "")
 }
 
-func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body any) ([]byte, int, http.Header, error) {
-	if timeoutMs > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutMs)*time.Millisecond)
-		defer cancel()
+func sdkStreamErrorCode(err error) string {
+	if errors.Is(err, responsebody.ErrInvalid) {
+		return sharederrors.CodeAiOutputInvalid
 	}
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, 0, nil, stableError(sharederrors.CodeAiProviderConfigInvalid)
+	if errors.Is(err, responsebody.ErrRead) {
+		return sharederrors.CodeAiProviderTimeout
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+path, bytes.NewReader(buf))
-	if err != nil {
-		return nil, 0, nil, stableError(sharederrors.CodeAiProviderConfigInvalid)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+a.apiKey)
-	if rid := aiclient.RequestIDFromContext(ctx); rid != "" {
-		req.Header.Set(HeaderRequestID, rid)
-	}
-
-	resp, err := a.client.Do(req)
-	if err != nil {
-		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
-			return nil, 0, nil, stableError(sharederrors.CodeAiProviderTimeout)
+	var streamError *ssestream.StreamError
+	if errors.As(err, &streamError) {
+		var envelope struct {
+			Error struct {
+				Code string `json:"code"`
+			} `json:"error"`
 		}
-		return nil, 0, nil, stableError(sharederrors.CodeAiProviderTimeout)
+		if json.Unmarshal(streamError.Event.Data, &envelope) == nil && envelope.Error.Code != "" {
+			return sharedOrOutputInvalid(envelope.Error.Code)
+		}
+		return sharederrors.CodeAiOutputInvalid
 	}
-	defer resp.Body.Close()
-	respBody, err := readResponseBody(resp, a.maxResponseBodyBytes)
-	if err != nil {
-		return nil, resp.StatusCode, resp.Header, err
-	}
-	return respBody, resp.StatusCode, resp.Header, nil
+	return sharederrors.CodeAiOutputInvalid
 }
 
-func (a *Adapter) postMultipart(ctx context.Context, timeoutMs int, path, contentType string, body io.Reader) ([]byte, int, http.Header, error) {
-	if timeoutMs > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutMs)*time.Millisecond)
-		defer cancel()
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+path, body)
-	if err != nil {
-		return nil, 0, nil, stableError(sharederrors.CodeAiProviderConfigInvalid)
-	}
-	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("Authorization", "Bearer "+a.apiKey)
-	if rid := aiclient.RequestIDFromContext(ctx); rid != "" {
-		req.Header.Set(HeaderRequestID, rid)
-	}
-
-	resp, err := a.client.Do(req)
-	if err != nil {
-		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
-			return nil, 0, nil, stableError(sharederrors.CodeAiProviderTimeout)
-		}
-		return nil, 0, nil, stableError(sharederrors.CodeAiProviderTimeout)
-	}
-	defer resp.Body.Close()
-	respBody, err := readResponseBody(resp, a.maxResponseBodyBytes)
-	if err != nil {
-		return nil, resp.StatusCode, resp.Header, err
-	}
-	return respBody, resp.StatusCode, resp.Header, nil
+// Synthesize implements aiclient.Provider. The openai_compatible protocol does
+// not support TTS synthesis; speech adapters use doubao_speech / minimax_speech.
+func (a *Adapter) Synthesize(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
+	return aiclient.SynthesisResponse{}, a.errMeta(profile, nil, 0, sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "openai_compatible protocol does not support TTS synthesis", false)), sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "openai_compatible protocol does not support TTS synthesis", false)
 }
 
-func mapHTTPError(status int, body []byte) error {
-	if status >= 500 {
+func sdkCompleteRequest(profile *aiclient.ModelProfile, payload aiclient.CompletePayload) (openai.ChatCompletionNewParams, []option.RequestOption, error) {
+	request := openai.ChatCompletionNewParams{
+		Model:    profile.Default.Model,
+		Messages: convertSDKMessages(payload.Messages),
+	}
+	if profile.MaxTokens > 0 {
+		request.MaxTokens = openai.Int(int64(profile.MaxTokens))
+	}
+	if value, ok := profile.Default.Params["temperature"]; ok {
+		if number, valid := toFloat(value); valid {
+			request.Temperature = openai.Float(number)
+		}
+	}
+	if value, ok := profile.Default.Params["top_p"]; ok {
+		if number, valid := toFloat(value); valid {
+			request.TopP = openai.Float(number)
+		}
+	}
+
+	tools, err := convertSDKTools(payload.Tools)
+	if err != nil {
+		return openai.ChatCompletionNewParams{}, nil, err
+	}
+	request.Tools = tools
+	request.ToolChoice = convertSDKToolChoice(payload.ToolChoice)
+	if responseFormatForPayload(payload) != nil {
+		format := shared.NewResponseFormatJSONObjectParam()
+		request.ResponseFormat.OfJSONObject = &format
+	}
+
+	var requestOptions []option.RequestOption
+	if raw, ok := profile.Default.Params["thinking"]; ok {
+		mode, valid := raw.(string)
+		if !valid || (mode != "enabled" && mode != "disabled") {
+			return openai.ChatCompletionNewParams{}, nil, errors.New("thinking must be enabled or disabled")
+		}
+		requestOptions = append(requestOptions, option.WithJSONSet("thinking", map[string]string{"type": mode}))
+	}
+	return request, requestOptions, nil
+}
+
+func convertSDKMessages(messages []aiclient.Message) []openai.ChatCompletionMessageParamUnion {
+	out := make([]openai.ChatCompletionMessageParamUnion, 0, len(messages))
+	for _, message := range messages {
+		switch message.Role {
+		case "system":
+			out = append(out, openai.SystemMessage(message.Content))
+		case "user":
+			out = append(out, openai.UserMessage(message.Content))
+		case "assistant":
+			out = append(out, openai.AssistantMessage(message.Content))
+		case "developer":
+			out = append(out, openai.DeveloperMessage(message.Content))
+		default:
+			out = append(out, param.Override[openai.ChatCompletionMessageParamUnion](map[string]string{
+				"role":    message.Role,
+				"content": message.Content,
+			}))
+		}
+	}
+	return out
+}
+
+func convertSDKTools(tools []aiclient.Tool) ([]openai.ChatCompletionToolUnionParam, error) {
+	if len(tools) == 0 {
+		return nil, nil
+	}
+	out := make([]openai.ChatCompletionToolUnionParam, 0, len(tools))
+	for _, tool := range tools {
+		definition := shared.FunctionDefinitionParam{Name: tool.Name}
+		if tool.Description != "" {
+			definition.Description = openai.String(tool.Description)
+		}
+		if len(tool.Parameters) > 0 {
+			var parameters map[string]any
+			if err := json.Unmarshal(tool.Parameters, &parameters); err != nil {
+				return nil, err
+			}
+			definition.Parameters = parameters
+		}
+		out = append(out, openai.ChatCompletionFunctionTool(definition))
+	}
+	return out, nil
+}
+
+func convertSDKToolChoice(choice *aiclient.ToolChoice) openai.ChatCompletionToolChoiceOptionUnionParam {
+	if choice == nil {
+		return openai.ChatCompletionToolChoiceOptionUnionParam{}
+	}
+	switch choice.Mode {
+	case aiclient.ToolChoiceModeAuto:
+		return openai.ChatCompletionToolChoiceOptionUnionParam{OfAuto: openai.String("auto")}
+	case aiclient.ToolChoiceModeNone:
+		return openai.ChatCompletionToolChoiceOptionUnionParam{OfAuto: openai.String("none")}
+	case aiclient.ToolChoiceModeTool:
+		return openai.ToolChoiceOptionFunctionToolChoice(openai.ChatCompletionNamedToolChoiceFunctionParam{Name: choice.Name})
+	default:
+		return openai.ChatCompletionToolChoiceOptionUnionParam{}
+	}
+}
+
+func convertSDKToolCalls(calls []openai.ChatCompletionMessageToolCallUnion) []aiclient.ToolCall {
+	if len(calls) == 0 {
+		return nil
+	}
+	out := make([]aiclient.ToolCall, 0, len(calls))
+	for _, call := range calls {
+		if call.Type != "" && call.Type != "function" {
+			continue
+		}
+		arguments := json.RawMessage(call.Function.Arguments)
+		if len(arguments) == 0 {
+			arguments = nil
+		}
+		out = append(out, aiclient.ToolCall{ID: call.ID, Name: call.Function.Name, Arguments: arguments})
+	}
+	return out
+}
+
+func mapSDKError(ctx context.Context, response *http.Response, err error) error {
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(ctx.Err(), context.Canceled) {
 		return stableError(sharederrors.CodeAiProviderTimeout)
 	}
-	// 4xx: accept only a registered stable error code; provider prose is never
-	// returned or persisted. Unknown envelopes fail closed as AI_OUTPUT_INVALID.
-	var env errorEnvelope
-	if json.Unmarshal(body, &env) == nil && env.Error.Code != "" {
-		if meta, ok := sharederrors.CodeRegistry[env.Error.Code]; ok {
-			return sharederrors.Wrap(env.Error.Code, meta.Message, meta.Retryable)
+	if errors.Is(err, responsebody.ErrInvalid) {
+		return stableError(sharederrors.CodeAiOutputInvalid)
+	}
+	if errors.Is(err, responsebody.ErrRead) {
+		return stableError(sharederrors.CodeAiProviderTimeout)
+	}
+	var apiError *openai.Error
+	if errors.As(err, &apiError) {
+		if apiError.StatusCode >= http.StatusInternalServerError {
+			return stableError(sharederrors.CodeAiProviderTimeout)
 		}
+		if metadata, ok := sharederrors.CodeRegistry[apiError.Code]; ok {
+			return sharederrors.Wrap(apiError.Code, metadata.Message, metadata.Retryable)
+		}
+		return stableError(sharederrors.CodeAiOutputInvalid)
+	}
+	if response == nil {
+		return stableError(sharederrors.CodeAiProviderTimeout)
 	}
 	return stableError(sharederrors.CodeAiOutputInvalid)
+}
+
+func responseHeaders(response *http.Response) http.Header {
+	if response == nil {
+		return nil
+	}
+	return response.Header
 }
 
 func (a *Adapter) errMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int64, err error) aiclient.AICallMeta {
@@ -517,17 +510,6 @@ func mergeFallbackHeaders(profile *aiclient.ModelProfile, _ http.Header, meta *a
 	if profile != nil {
 		meta.Route = profile.Route
 	}
-}
-
-func readResponseBody(resp *http.Response, maxResponseBodyBytes int64) ([]byte, error) {
-	body, err := responsebody.Read(resp, maxResponseBodyBytes)
-	if err == nil {
-		return body, nil
-	}
-	if errors.Is(err, responsebody.ErrRead) {
-		return nil, stableError(sharederrors.CodeAiProviderTimeout)
-	}
-	return nil, stableError(sharederrors.CodeAiOutputInvalid)
 }
 
 func stableError(code string) *sharederrors.APIError {
@@ -584,53 +566,6 @@ func allDigits(s string) bool {
 	return s != ""
 }
 
-func convertMessages(in []aiclient.Message) []wireMessage {
-	out := make([]wireMessage, len(in))
-	for i, m := range in {
-		out[i] = wireMessage{Role: m.Role, Content: m.Content}
-	}
-	return out
-}
-
-func convertTools(in []aiclient.Tool) []wireTool {
-	if len(in) == 0 {
-		return nil
-	}
-	out := make([]wireTool, len(in))
-	for i, tool := range in {
-		out[i] = wireTool{
-			Type: "function",
-			Function: wireFunction{
-				Name:        tool.Name,
-				Description: tool.Description,
-				Parameters:  tool.Parameters,
-			},
-		}
-	}
-	return out
-}
-
-func convertToolChoice(choice *aiclient.ToolChoice) any {
-	if choice == nil {
-		return nil
-	}
-	switch choice.Mode {
-	case aiclient.ToolChoiceModeAuto:
-		return "auto"
-	case aiclient.ToolChoiceModeNone:
-		return "none"
-	case aiclient.ToolChoiceModeTool:
-		return map[string]any{
-			"type": "function",
-			"function": map[string]string{
-				"name": choice.Name,
-			},
-		}
-	default:
-		return nil
-	}
-}
-
 func responseFormatForPayload(payload aiclient.CompletePayload) any {
 	if len(payload.Metadata.OutputSchema) == 0 {
 		return nil
@@ -647,83 +582,6 @@ func responseFormatForPayload(payload aiclient.CompletePayload) any {
 	return map[string]string{"type": "json_object"}
 }
 
-func convertToolCalls(in []wireToolCall) []aiclient.ToolCall {
-	if len(in) == 0 {
-		return nil
-	}
-	out := make([]aiclient.ToolCall, 0, len(in))
-	for _, call := range in {
-		if call.Type != "" && call.Type != "function" {
-			continue
-		}
-		args := json.RawMessage(call.Function.Arguments)
-		if len(args) == 0 {
-			args = nil
-		}
-		out = append(out, aiclient.ToolCall{
-			ID:        call.ID,
-			Name:      call.Function.Name,
-			Arguments: args,
-		})
-	}
-	return out
-}
-
-func writeTranscriptionForm(writer *multipart.Writer, model string, input aiclient.TranscriptionInput) error {
-	if err := writer.WriteField("model", model); err != nil {
-		return fmt.Errorf("openai_compatible: write transcription model: %w", err)
-	}
-	if input.Language != "" {
-		if err := writer.WriteField("language", input.Language); err != nil {
-			return fmt.Errorf("openai_compatible: write transcription language: %w", err)
-		}
-	}
-	if input.Prompt != "" {
-		if err := writer.WriteField("prompt", input.Prompt); err != nil {
-			return fmt.Errorf("openai_compatible: write transcription prompt: %w", err)
-		}
-	}
-	header := textproto.MIMEHeader{}
-	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, escapeMultipartValue(input.Filename)))
-	header.Set("Content-Type", input.ContentType)
-	part, err := writer.CreatePart(header)
-	if err != nil {
-		return fmt.Errorf("openai_compatible: create transcription file part: %w", err)
-	}
-	if _, err := part.Write(input.Audio); err != nil {
-		return fmt.Errorf("openai_compatible: write transcription audio: %w", err)
-	}
-	return nil
-}
-
-func escapeMultipartValue(s string) string {
-	return strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(s)
-}
-
-func applyParams(params map[string]any, req *chatCompletionsRequest) error {
-	if params == nil {
-		return nil
-	}
-	if v, ok := params["temperature"]; ok {
-		if f, ok := toFloat(v); ok {
-			req.Temperature = &f
-		}
-	}
-	if v, ok := params["top_p"]; ok {
-		if f, ok := toFloat(v); ok {
-			req.TopP = &f
-		}
-	}
-	if raw, ok := params["thinking"]; ok {
-		mode, ok := raw.(string)
-		if !ok || (mode != "enabled" && mode != "disabled") {
-			return errors.New("thinking must be enabled or disabled")
-		}
-		req.Thinking = &thinkingMode{Type: mode}
-	}
-	return nil
-}
-
 func toFloat(v any) (float64, bool) {
 	switch t := v.(type) {
 	case float64:
@@ -736,9 +594,4 @@ func toFloat(v any) (float64, bool) {
 		return float64(t), true
 	}
 	return 0, false
-}
-
-func normalizeBaseURL(raw string) string {
-	base := strings.TrimRight(raw, "/")
-	return strings.TrimSuffix(base, "/v1")
 }

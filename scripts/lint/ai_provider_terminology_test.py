@@ -92,6 +92,62 @@ class AIProviderTerminologyLintTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_rejects_openai_go_import_outside_provider_adapter_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            allowed_import = 'import "github.com/openai/openai-go/v3"\n'
+            write(
+                repo
+                / "backend"
+                / "internal"
+                / "ai"
+                / "aiclient"
+                / "providers"
+                / "openai_compatible"
+                / "adapter.go",
+                "package openaicompatible\n" + allowed_import,
+            )
+            write(
+                repo
+                / "backend"
+                / "internal"
+                / "ai"
+                / "aiclient"
+                / "providers"
+                / "judge_compatible"
+                / "adapter.go",
+                "package judgecompatible\n" + allowed_import,
+            )
+            write(
+                repo
+                / "backend"
+                / "internal"
+                / "ai"
+                / "aiclient"
+                / "providers"
+                / "internal"
+                / "openaisdk"
+                / "client.go",
+                "package openaisdk\n" + allowed_import,
+            )
+            disallowed = (
+                repo
+                / "backend"
+                / "internal"
+                / "practice"
+                / "provider_client.go"
+            )
+            write(disallowed, "package practice\n" + allowed_import)
+
+            result = run_lint(repo)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("OpenAI SDK import boundary", result.stderr)
+            self.assertIn(str(disallowed.relative_to(repo)), result.stderr)
+            self.assertNotIn("providers/openai_compatible/adapter.go", result.stderr)
+            self.assertNotIn("providers/judge_compatible/adapter.go", result.stderr)
+            self.assertNotIn("providers/internal/openaisdk/client.go", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

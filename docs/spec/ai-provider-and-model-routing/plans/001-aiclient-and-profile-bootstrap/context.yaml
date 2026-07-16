@@ -4,9 +4,10 @@ metadata:
   subspec: ai-provider-and-model-routing
   name: 001-aiclient-and-profile-bootstrap
   sequence: 1
+  baseBranch: main
   specVersion:
-    from: 2.19
-    to: 2.22
+    from: 2.29
+    to: 2.30
 spec:
   defaultTarget: backend
   discovery:
@@ -23,6 +24,9 @@ spec:
       - model profile
       - profile catalog
       - openai compatible
+      - openai-go v3
+      - sdk import boundary
+      - same-provider retry
       - stub provider
       - ai call meta
       - ai task runs
@@ -35,8 +39,12 @@ spec:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
+      references:
+        - ../../history.md
+        - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
       discovery:
         packages:
+          - backend/go.mod
           - backend/internal/ai/aiclient
           - config/ai-profiles.yaml
           - config/ai-providers.yaml

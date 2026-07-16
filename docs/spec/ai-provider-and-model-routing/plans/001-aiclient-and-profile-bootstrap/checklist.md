@@ -1,8 +1,8 @@
 # AIClient and Profile Bootstrap Checklist
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -115,3 +115,14 @@
   <!-- verified: 2026-07-10 method=observability-privacy-scan-helper evidence="Complete and TTS tests retain their exact names and capability/metric/audit sanity assertions while one helper scans all planted tokens across six counter families, logs, task runs and audit metadata. Focused tests pass, privacy_test.go dupl is zero and staticcheck passes." -->
 - [x] 14.3 Run exact privacy tests, scoped dupl, observability/AIClient/full backend, vet/staticcheck and owner/product/docs/pruning gates; then restore the owner to `completed`.
   <!-- verified: 2026-07-10 method=observability-privacy-scan-consolidation evidence="Exact Complete/TTS privacy tests pass with their capability/metric/audit sanity checks intact; privacy_test.go scoped dupl is zero. Full observability/AIClient/registry/backend tests and go vet/staticcheck pass, as do A3/product contexts and final docs/index/link/diff/pruning gates with real_residuals=0. No privacy surface was removed and no Bug/retrospective report or environment operation was needed." -->
+
+## Phase 15: Official openai-go transport migration
+
+- [x] 15.1 RED/GREEN SDK dependency boundary：在 `scripts/lint/ai_provider_terminology_test.py` 新增失败测试证明 `github.com/openai/openai-go/v3` 在 allowlist 外会被拒绝；固定 `v3.43.0`，只允许 `providers/openai_compatible`、`providers/judge_compatible` 与精确的 `providers/internal/openaisdk` helper import，并同步 A3 README/package docs（验证：`python3 scripts/lint/ai_provider_terminology_test.py` RED/GREEN、`cd backend && go list -m github.com/openai/openai-go/v3`、repo-wide import search）
+  <!-- verified: 2026-07-16 method=tdd-red-green evidence="RED: the new out-of-boundary openai-go import test returned 0. GREEN: 5 lint tests and the 534-file active-surface scan pass; go list resolves github.com/openai/openai-go/v3 v3.43.0 with Go 1.22, and production Go imports remain empty before adapter migration." -->
+- [x] 15.2 RED/GREEN Complete + judge：先补 contract tests 锁定 custom base URL、HTTP client、auth、messages/tools/JSON/DeepSeek thinking、usage/headers、4xx/5xx/timeout/retry、missing/empty/reasoning-only 与 response cap，再切换到 SDK Chat Completions（验证：`cd backend && go test ./internal/ai/aiclient/providers/openai_compatible ./internal/ai/aiclient/providers/judge_compatible ./internal/ai/aiclient -count=1`）
+  <!-- verified: 2026-07-16 method=openai-go-chat-completions-green evidence="Both adapters fail RED on transient 503 without retry, then pass through openai-go v3 Chat Completions with custom base URL/client/auth, initial-plus-two same-provider retries inside the profile timeout, tools/JSON/DeepSeek thinking, canonical error privacy, trusted metadata and bounded non-streaming response bodies. Focused OpenAI-compatible, judge, core AIClient tests and active SDK import-boundary lint PASS." -->
+- [x] 15.3 RED/GREEN streaming + STT：先补 SSE delta/error/done、cancel/partial meta、malformed/oversized event 与 multipart filename/content-type/language/prompt/response-cap tests，再切换 SDK streaming / Audio Transcriptions 并映射回冻结 public contract；stream event limit 与 non-streaming body cap 分开保持（验证：`cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -count=1`）
+  <!-- verified: 2026-07-16 method=openai-go-streaming-stt-green evidence="RED proves manual streaming/STT stop at the first transient 503 and the old stream cap incorrectly applies to the whole response. GREEN uses SDK NewStreaming and Audio Transcriptions with initial-plus-two retries, frozen delta/error/done and cancellation partial-meta mapping, multipart filename/content-type/language/prompt, per-event SSE bounds and separate non-streaming body bounds. Full provider tests and active import-boundary lint PASS." -->
+- [x] 15.4 删除被 SDK 覆盖的手写通用 OpenAI wire/post/SSE/multipart transport，保留 project mapping/extras/error/meta/privacy/response-cap glue；运行 SDK import/旧符号负向搜索、AIClient/config/lint、`go vet`、`staticcheck`、根 `make test`、`make build`、owner context/docs/index/diff gates并恢复 completed
+  <!-- verified: 2026-07-16 method=openai-go-cleanup-and-baseline-remediation evidence="Manual generic wire/post/SSE/multipart runtime symbols are absent outside contract mockserver fixtures; openai-go v3.43.0 imports remain restricted to the two compatible adapters and their internal helper. Full staticcheck and UI Demo pruning were restored to zero by relocating an integration-only helper, deleting two zero-reference helpers, applying one equivalent score-level conversion and replacing one stale UI truth-source heading. Focused packages, integration-tag compile, go vet, make test (Python 567/4481 subtests, Go all packages, frontend 126 files/1004 tests), make build, AI terminology/profile/config lint, context/docs/index/mod/diff and pruning gates PASS." -->

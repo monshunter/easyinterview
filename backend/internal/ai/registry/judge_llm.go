@@ -299,11 +299,7 @@ func (j *LLMJudge) buildPayload(featureKey, promptVersion, rubricVersion string,
 	for _, d := range rubric.Dimensions {
 		levels := make([]judgeRequestScoreLevel, 0, len(d.ScoreLevels))
 		for _, level := range d.ScoreLevels {
-			levels = append(levels, judgeRequestScoreLevel{
-				Label:       level.Label,
-				Threshold:   level.Threshold,
-				Description: level.Description,
-			})
+			levels = append(levels, judgeRequestScoreLevel(level))
 		}
 		dims = append(dims, judgeRequestDim{Name: d.Name, Weight: d.Weight, Description: d.Description, ScoreLevels: levels})
 	}

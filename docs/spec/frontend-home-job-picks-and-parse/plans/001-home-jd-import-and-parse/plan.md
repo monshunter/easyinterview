@@ -342,7 +342,7 @@ Focused tests 只作开发反馈；执行根 `make test`、frontend typecheck/bu
 
 ### Phase 24: Required Resume product-contract reconciliation
 
-#### 24.1 Product and UI truth sources
+#### 24.1 Product and design contracts
 
 原地修订 product-scope 与 Home/Resume/Workspace 用户流程，把 selectable Resume 锁定为当前及未来 `importTargetJob`、Practice、Reports、复练和下一轮的强制前置。selectable 延用正式代码合同：未归档且 `parseStatus=ready` 或已有可读正文/结构化证据。无该类简历的用户只进入 `resume_versions(flow=create)`；形成可读证据后返回 Home 显式选择，不自动绑定最近简历。
 

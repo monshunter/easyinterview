@@ -150,6 +150,28 @@ func TestStreamSuccessBodyLimit(t *testing.T) {
 	}
 }
 
+func TestStreamLimitAppliesPerEventInsteadOfWholeResponse(t *testing.T) {
+	delta := strings.Repeat("a", 120)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		for range 2 {
+			_, _ = io.WriteString(w, `data: {"model":"ignored","choices":[{"delta":{"content":"`+delta+`"}}]}`+"\n\n")
+		}
+		_, _ = io.WriteString(w, "data: [DONE]\n\n")
+	}))
+	defer server.Close()
+
+	adapter := newAdapterAt(t, server.URL, server.Client())
+	channel, err := adapter.Stream(context.Background(), chatProfile(5000), samplePayload())
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	events := collectStreamEvents(t, channel)
+	if len(events) != 3 || events[0].Delta != delta || events[1].Delta != delta || events[2].Type != aiclient.StreamEventDone {
+		t.Fatalf("events=%+v, want two individually bounded deltas and done", events)
+	}
+}
+
 func TestCompleteDoesNotExposeTransportReadOrParseErrors(t *testing.T) {
 	const rawMarker = "PRIVATE-URL-AND-BODY-RAW-MARKER"
 	tests := []struct {

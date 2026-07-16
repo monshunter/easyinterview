@@ -1,13 +1,14 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.27
+> **版本**: 2.30
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-16
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-16 | 2.30 | 原地重开 001，以官方 `openai-go/v3 v3.43.0` 替换 OpenAI-compatible chat/judge/stream/STT 自维护通用 wire；SDK 只允许位于 provider adapter/internal helper，同 provider retry 与 AIClient 跨 provider fallback 分层，保留 DeepSeek thinking、response cap、error/meta/privacy 合同。 | 001 Phase 15 |
 | 2026-07-13 | 2.27 | 真实 report generation 暴露 DeepSeek V4 默认 thinking 消耗 final JSON budget；003 Phase 10 将 report profile 显式设为 `thinking=disabled`，openai-compatible adapter 映射官方 thinking object，loader/adapter/lint 对非法值 fail-closed，同时保持 `response_format` 由 output schema 驱动。 | 003 Phase 10 + backend-review/001 + P0.100 |
 | 2026-07-12 | 2.26 | P0.100 真实 judge 复现 DeepSeek V4 默认 thinking 用满 2,048 output tokens、`length` 且 final content 为空；003 Phase 9 将 judge profile 改为 non-thinking JSON / 6,144 / v1.2.0，adapter 增加不泄漏 reasoning 的 empty-final fail-closed，真实 smoke 恢复 `stop`。 | 003 Phase 9 + F3/004 + P0.100 |
 | 2026-07-12 | 2.25 | 将报告单请求 context capacity 与 TPM 吞吐彻底分离：profile 新增 1M context-window contract，offline framing reserve 与 real-provider usage/token-count smoke 共同验证 48k/6144 边界。 | 003 Phase 8 + backend-review/001 + P0.100 |

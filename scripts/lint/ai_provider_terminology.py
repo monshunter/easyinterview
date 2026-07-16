@@ -74,6 +74,13 @@ OUT_OF_SCOPE_PATTERNS = [
     OutOfScopePattern("gateway terminology", re.compile(r"\bgateway\b", re.IGNORECASE)),
 ]
 
+OPENAI_GO_IMPORT = re.compile(r'"github\.com/openai/openai-go/v3(?:/[^"\s]*)?"')
+OPENAI_GO_ALLOWED_PREFIXES = (
+    Path("backend/internal/ai/aiclient/providers/openai_compatible"),
+    Path("backend/internal/ai/aiclient/providers/judge_compatible"),
+    Path("backend/internal/ai/aiclient/providers/internal/openaisdk"),
+)
+
 
 def is_text_path(path: Path) -> bool:
     return path.name in TEXT_NAMES or path.suffix in TEXT_SUFFIXES
@@ -108,6 +115,15 @@ def scan_file(repo: Path, path: Path) -> list[str]:
     findings: list[str] = []
     rel = path.relative_to(repo)
     for lineno, line in enumerate(text.splitlines(), start=1):
+        if (
+            path.suffix == ".go"
+            and OPENAI_GO_IMPORT.search(line)
+            and not any(rel == prefix or prefix in rel.parents for prefix in OPENAI_GO_ALLOWED_PREFIXES)
+        ):
+            findings.append(
+                f"{rel}:{lineno}: OpenAI SDK import boundary: {line.strip()}"
+            )
+            continue
         scan_line = line.replace("host-gateway", "")
         for pattern in OUT_OF_SCOPE_PATTERNS:
             if pattern.pattern.search(scan_line):

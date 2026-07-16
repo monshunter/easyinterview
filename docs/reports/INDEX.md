@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-16](./2026-07-16-openai-go-transport-migration-assessment.md) | OpenAI-Go Transport Migration 交付复盘 | #assessment #ai #BUG-0181 |
 | [2026-07-16](./2026-07-16-smtp-lifecycle-and-pid-ownership-assessment.md) | SMTP Lifecycle and PID Ownership 交付复盘 | #assessment #platform #BUG-0180 |
 | [2026-07-16](./2026-07-16-redis-email-delivery-and-eval-marker-assessment.md) | Redis Email Delivery and Eval Marker 交付复盘 | #assessment #auth #eval #BUG-0179 |
 | [2026-07-16](./2026-07-16-production-smtp-delivery-assessment.md) | Production SMTP Delivery 交付复盘 | #assessment #auth #BUG-0178 |

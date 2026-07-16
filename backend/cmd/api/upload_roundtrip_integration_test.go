@@ -32,6 +32,14 @@ import (
 	uploadstore "github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
 
+func newTestKernel(store runner.LeaseStore, handlerMaps ...map[string]runner.Handler) *runner.Runtime {
+	kernel := runner.New(runner.Options{Store: store, Config: testRunnerConfig()})
+	for _, handlers := range handlerMaps {
+		registerRunnerHandlers(kernel, handlers)
+	}
+	return kernel
+}
+
 func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 	live := requireUploadLiveConfig(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

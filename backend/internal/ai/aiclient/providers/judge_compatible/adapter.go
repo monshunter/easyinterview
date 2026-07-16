@@ -11,7 +11,6 @@
 package judgecompatible
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -22,9 +21,14 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/internal/openaisdk"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/internal/responsebody"
 	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/packages/param"
+	"github.com/openai/openai-go/v3/shared"
 )
 
 // Name is the adapter protocol name. Concrete adapters identify themselves by
@@ -43,11 +47,8 @@ type Options struct {
 
 // Adapter is the concrete aiclient.Provider implementation for judge calls.
 type Adapter struct {
-	providerRef          string
-	baseURL              string
-	apiKey               string
-	client               *http.Client
-	maxResponseBodyBytes int64
+	providerRef string
+	sdkClient   openai.Client
 }
 
 // New constructs an Adapter from a Provider Registry entry materialized by A4
@@ -74,11 +75,8 @@ func New(opts Options) (*Adapter, error) {
 		opts.MaxResponseBodyBytes = platformconfig.DefaultContentLimits().AIProviderMaxResponseBodyBytes
 	}
 	return &Adapter{
-		providerRef:          opts.Provider.Entry.Name,
-		baseURL:              normalizeBaseURL(opts.Provider.BaseURL),
-		apiKey:               opts.Provider.APIKey,
-		client:               hc,
-		maxResponseBodyBytes: opts.MaxResponseBodyBytes,
+		providerRef: opts.Provider.Entry.Name,
+		sdkClient:   openaisdk.NewClient(opts.Provider.BaseURL, opts.Provider.APIKey, hc, opts.MaxResponseBodyBytes),
 	}, nil
 }
 
@@ -92,47 +90,39 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, errors.New("judge_compatible: profile is nil")
 	}
 
-	req := chatCompletionsRequest{
-		Model:    profile.Default.Model,
-		Messages: convertMessages(payload.Messages),
-		Stream:   false,
-	}
-	if profile.MaxTokens > 0 {
-		req.MaxTokens = profile.MaxTokens
-	}
-	if err := applyParams(profile.Default.Params, &req); err != nil {
-		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "judge_compatible: invalid profile params: "+err.Error(), false)
+	req, requestOptions, err := sdkJudgeRequest(profile, payload)
+	if err != nil {
+		errCode := stableError(sharederrors.CodeAiOutputInvalid)
 		return aiclient.CompleteResponse{}, a.errMeta(profile, 0, errCode), errCode
 	}
 
 	start := time.Now()
-	resp, status, err := a.postJSON(ctx, profile.TimeoutMs, PathChatCompletions, req)
+	requestContext := ctx
+	if profile.TimeoutMs > 0 {
+		var cancel context.CancelFunc
+		requestContext, cancel = context.WithTimeout(ctx, time.Duration(profile.TimeoutMs)*time.Millisecond)
+		defer cancel()
+	}
+	var rawResponse *http.Response
+	requestOptions = append(requestOptions, option.WithResponseInto(&rawResponse))
+	completion, err := a.sdkClient.Chat.Completions.New(requestContext, req, requestOptions...)
 	latencyMs := time.Since(start).Milliseconds()
 	if err != nil {
-		return aiclient.CompleteResponse{}, a.errMeta(profile, latencyMs, err), err
-	}
-	if status >= 400 {
-		errCode := mapHTTPError(status)
+		errCode := mapJudgeSDKError(requestContext, rawResponse, err)
 		return aiclient.CompleteResponse{}, a.errMeta(profile, latencyMs, errCode), errCode
 	}
-
-	var body chatCompletionsResponse
-	if err := json.Unmarshal(resp, &body); err != nil {
-		errCode := stableError(sharederrors.CodeAiOutputInvalid)
-		return aiclient.CompleteResponse{}, a.errMeta(profile, latencyMs, errCode), errCode
-	}
-	if len(body.Choices) == 0 {
+	if completion == nil || len(completion.Choices) == 0 {
 		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "judge_compatible: response missing choices", false)
 		return aiclient.CompleteResponse{}, a.errMeta(profile, latencyMs, errCode), errCode
 	}
 
-	choice := body.Choices[0]
+	choice := completion.Choices[0]
 	meta := aiclient.AICallMeta{
 		Provider:     a.providerRef,
 		ModelID:      profile.Default.Model,
 		Capability:   aiclient.CapabilityJudge,
-		InputTokens:  body.Usage.PromptTokens,
-		OutputTokens: body.Usage.CompletionTokens,
+		InputTokens:  int(completion.Usage.PromptTokens),
+		OutputTokens: int(completion.Usage.CompletionTokens),
 		LatencyMs:    latencyMs,
 	}
 	if strings.TrimSpace(choice.Message.Content) == "" {
@@ -142,8 +132,8 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 			fmt.Sprintf(
 				"judge_compatible: empty response content finish_reason=%s completion_tokens=%d reasoning_content_present=%t",
 				finishReason,
-				body.Usage.CompletionTokens,
-				choice.Message.ReasoningContent != "",
+				completion.Usage.CompletionTokens,
+				reasoningContentPresent(choice.Message),
 			),
 			false,
 		)
@@ -176,34 +166,86 @@ func (a *Adapter) Synthesize(_ context.Context, profile *aiclient.ModelProfile, 
 	return aiclient.SynthesisResponse{}, a.errMeta(profile, 0, nil), sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "judge_compatible does not support synthesis", false)
 }
 
-func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, payload any) ([]byte, int, error) {
-	raw, err := json.Marshal(payload)
-	if err != nil {
-		return nil, 0, stableError(sharederrors.CodeAiProviderConfigInvalid)
+func sdkJudgeRequest(profile *aiclient.ModelProfile, payload aiclient.CompletePayload) (openai.ChatCompletionNewParams, []option.RequestOption, error) {
+	request := openai.ChatCompletionNewParams{
+		Model:    profile.Default.Model,
+		Messages: convertJudgeSDKMessages(payload.Messages),
 	}
-	reqCtx := ctx
-	if timeoutMs > 0 {
-		var cancel context.CancelFunc
-		reqCtx, cancel = context.WithTimeout(ctx, time.Duration(timeoutMs)*time.Millisecond)
-		defer cancel()
+	if profile.MaxTokens > 0 {
+		request.MaxTokens = openai.Int(int64(profile.MaxTokens))
 	}
-	httpReq, err := http.NewRequestWithContext(reqCtx, http.MethodPost, a.baseURL+path, bytes.NewReader(raw))
-	if err != nil {
-		return nil, 0, stableError(sharederrors.CodeAiProviderConfigInvalid)
+	if temperature, ok := floatParam(profile.Default.Params, "temperature"); ok {
+		request.Temperature = openai.Float(temperature)
 	}
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+a.apiKey)
 
-	resp, err := a.client.Do(httpReq)
-	if err != nil {
-		return nil, 0, stableError(sharederrors.CodeAiProviderTimeout)
+	var requestOptions []option.RequestOption
+	if raw, ok := profile.Default.Params["thinking"]; ok {
+		mode, valid := raw.(string)
+		if !valid || (mode != "enabled" && mode != "disabled") {
+			return openai.ChatCompletionNewParams{}, nil, errors.New("thinking must be enabled or disabled")
+		}
+		requestOptions = append(requestOptions, option.WithJSONSet("thinking", map[string]string{"type": mode}))
 	}
-	defer resp.Body.Close()
-	body, err := readResponseBody(resp, a.maxResponseBodyBytes)
-	if err != nil {
-		return nil, resp.StatusCode, err
+	if raw, ok := profile.Default.Params["response_format"]; ok {
+		format, valid := raw.(string)
+		if !valid || format != "json_object" {
+			return openai.ChatCompletionNewParams{}, nil, errors.New("response_format must be json_object")
+		}
+		responseFormat := shared.NewResponseFormatJSONObjectParam()
+		request.ResponseFormat.OfJSONObject = &responseFormat
 	}
-	return body, resp.StatusCode, nil
+	return request, requestOptions, nil
+}
+
+func convertJudgeSDKMessages(messages []aiclient.Message) []openai.ChatCompletionMessageParamUnion {
+	out := make([]openai.ChatCompletionMessageParamUnion, 0, len(messages))
+	for _, message := range messages {
+		switch message.Role {
+		case "system":
+			out = append(out, openai.SystemMessage(message.Content))
+		case "user":
+			out = append(out, openai.UserMessage(message.Content))
+		case "assistant":
+			out = append(out, openai.AssistantMessage(message.Content))
+		case "developer":
+			out = append(out, openai.DeveloperMessage(message.Content))
+		default:
+			out = append(out, param.Override[openai.ChatCompletionMessageParamUnion](map[string]string{
+				"role":    message.Role,
+				"content": message.Content,
+			}))
+		}
+	}
+	return out
+}
+
+func reasoningContentPresent(message openai.ChatCompletionMessage) bool {
+	var raw map[string]json.RawMessage
+	if json.Unmarshal([]byte(message.RawJSON()), &raw) != nil {
+		return false
+	}
+	value, ok := raw["reasoning_content"]
+	return ok && len(value) > 0 && string(value) != "null" && string(value) != `""`
+}
+
+func mapJudgeSDKError(ctx context.Context, response *http.Response, err error) error {
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(ctx.Err(), context.Canceled) {
+		return stableError(sharederrors.CodeAiProviderTimeout)
+	}
+	if errors.Is(err, responsebody.ErrInvalid) {
+		return stableError(sharederrors.CodeAiOutputInvalid)
+	}
+	if errors.Is(err, responsebody.ErrRead) {
+		return stableError(sharederrors.CodeAiProviderTimeout)
+	}
+	var apiError *openai.Error
+	if errors.As(err, &apiError) && apiError.StatusCode >= http.StatusInternalServerError {
+		return stableError(sharederrors.CodeAiProviderTimeout)
+	}
+	if response == nil {
+		return stableError(sharederrors.CodeAiProviderTimeout)
+	}
+	return stableError(sharederrors.CodeAiOutputInvalid)
 }
 
 func (a *Adapter) errMeta(profile *aiclient.ModelProfile, latencyMs int64, err error) aiclient.AICallMeta {
@@ -223,13 +265,6 @@ func (a *Adapter) errMeta(profile *aiclient.ModelProfile, latencyMs int64, err e
 	return meta
 }
 
-func mapHTTPError(status int) error {
-	if status >= 500 {
-		return stableError(sharederrors.CodeAiProviderTimeout)
-	}
-	return stableError(sharederrors.CodeAiOutputInvalid)
-}
-
 func errorCode(err error) string {
 	if err == nil {
 		return ""
@@ -239,17 +274,6 @@ func errorCode(err error) string {
 		return apiErr.Code
 	}
 	return ""
-}
-
-func readResponseBody(resp *http.Response, maxResponseBodyBytes int64) ([]byte, error) {
-	body, err := responsebody.Read(resp, maxResponseBodyBytes)
-	if err == nil {
-		return body, nil
-	}
-	if errors.Is(err, responsebody.ErrRead) {
-		return nil, stableError(sharederrors.CodeAiProviderTimeout)
-	}
-	return nil, stableError(sharederrors.CodeAiOutputInvalid)
 }
 
 func stableError(code string) *sharederrors.APIError {
@@ -266,18 +290,6 @@ func safeFinishReason(value string) string {
 	}
 }
 
-func normalizeBaseURL(raw string) string {
-	return strings.TrimRight(raw, "/")
-}
-
-func convertMessages(messages []aiclient.Message) []wireMessage {
-	out := make([]wireMessage, len(messages))
-	for i, m := range messages {
-		out[i] = wireMessage{Role: m.Role, Content: m.Content}
-	}
-	return out
-}
-
 func floatParam(params map[string]any, key string) (float64, bool) {
 	if params == nil {
 		return 0, false
@@ -290,64 +302,4 @@ func floatParam(params map[string]any, key string) (float64, bool) {
 	default:
 		return 0, false
 	}
-}
-
-func applyParams(params map[string]any, req *chatCompletionsRequest) error {
-	if params == nil {
-		return nil
-	}
-	if temp, ok := floatParam(params, "temperature"); ok {
-		req.Temperature = &temp
-	}
-	if raw, ok := params["thinking"]; ok {
-		mode, ok := raw.(string)
-		if !ok || (mode != "enabled" && mode != "disabled") {
-			return errors.New("thinking must be enabled or disabled")
-		}
-		req.Thinking = &thinkingConfig{Type: mode}
-	}
-	if raw, ok := params["response_format"]; ok {
-		format, ok := raw.(string)
-		if !ok || format != "json_object" {
-			return errors.New("response_format must be json_object")
-		}
-		req.ResponseFormat = &responseFormat{Type: format}
-	}
-	return nil
-}
-
-type wireMessage struct {
-	Role             string `json:"role"`
-	Content          string `json:"content"`
-	ReasoningContent string `json:"reasoning_content,omitempty"`
-}
-
-type thinkingConfig struct {
-	Type string `json:"type"`
-}
-
-type responseFormat struct {
-	Type string `json:"type"`
-}
-
-type chatCompletionsRequest struct {
-	Model          string          `json:"model"`
-	Messages       []wireMessage   `json:"messages"`
-	MaxTokens      int             `json:"max_tokens,omitempty"`
-	Stream         bool            `json:"stream"`
-	Temperature    *float64        `json:"temperature,omitempty"`
-	Thinking       *thinkingConfig `json:"thinking,omitempty"`
-	ResponseFormat *responseFormat `json:"response_format,omitempty"`
-}
-
-type chatCompletionsResponse struct {
-	Model   string `json:"model"`
-	Choices []struct {
-		Message      wireMessage `json:"message"`
-		FinishReason string      `json:"finish_reason"`
-	} `json:"choices"`
-	Usage struct {
-		PromptTokens     int `json:"prompt_tokens"`
-		CompletionTokens int `json:"completion_tokens"`
-	} `json:"usage"`
 }

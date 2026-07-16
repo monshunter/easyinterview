@@ -616,11 +616,6 @@ func liveReportActionOnlyJSON(t *testing.T, label string) string {
 	return liveReportActionOnlyJSONForLanguage(t, "en", label)
 }
 
-func liveReportActionTypeJSON(t *testing.T, actionType, label string) string {
-	t.Helper()
-	return liveReportJSON(t, "en", liveReportDefaultSummary("en"), actionType, label)
-}
-
 func liveReportActionOnlyJSONForLanguage(t *testing.T, language, label string) string {
 	t.Helper()
 	return liveReportJSON(t, language, liveReportDefaultSummary(language), "retry_current_round", label)

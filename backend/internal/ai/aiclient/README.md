@@ -12,10 +12,13 @@ ADR authority: [docs/spec/engineering-roadmap/decisions/ADR-Q6-ai-provider-and-m
 
 ## Hard rules
 
-- **Zero vendor SDK.** Business code MUST depend only on the `aiclient`
-  package and a Model Profile name. Importing `openai-go`,
-  `anthropic-sdk-go`, `cohere-go`, `generative-ai-go`, or any other vendor
-  SDK from anywhere inside `backend/` is a hard violation (spec §6 C-2).
+- **Adapter-private SDK boundary.** Business code MUST depend only on the
+  `aiclient` package and a Model Profile name. The pinned official
+  `openai-go/v3` dependency is allowed only inside `providers/openai_compatible`,
+  `providers/judge_compatible`, or the exact shared
+  `providers/internal/openaisdk` helper. Public A3 types, business packages,
+  config/profile contracts, observability code, and speech adapters MUST NOT
+  import or expose SDK types. Other vendor SDKs remain forbidden.
 - **AICallMeta is owned here.** Callers receive it as the second return
   value alongside the structured response and cannot mutate it. New
   fields require a spec version bump.

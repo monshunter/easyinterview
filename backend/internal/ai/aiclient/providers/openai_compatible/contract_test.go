@@ -8,7 +8,10 @@ import (
 	"io"
 	"mime"
 	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -269,6 +272,43 @@ func TestTranscribe_MissingTextReturnsAIOutputInvalid(t *testing.T) {
 	}
 }
 
+func TestTranscribe_RetriesTransientProviderErrorsWithinProfileTimeout(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != openaicompatible.PathTranscriptions {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		if calls.Add(1) < 3 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"error":{"message":"temporary failure"}}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"text":"recovered transcript"}`))
+	}))
+	defer server.Close()
+
+	adapter, err := openaicompatible.New(openaicompatible.Options{Provider: resolvedProvider(server.URL)})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	response, _, err := adapter.Transcribe(context.Background(), sttProfile(5000), aiclient.TranscriptionInput{
+		Audio:       []byte("fake-audio"),
+		Filename:    "answer.webm",
+		ContentType: "audio/webm",
+	})
+	if err != nil {
+		t.Fatalf("Transcribe after transient errors: %v", err)
+	}
+	if response.Text != "recovered transcript" {
+		t.Fatalf("text=%q, want recovered transcript", response.Text)
+	}
+	if got := calls.Load(); got != 3 {
+		t.Fatalf("provider calls=%d, want 3 (initial request plus two retries)", got)
+	}
+}
+
 func TestComplete_MapsToolsAndParsesToolCalls(t *testing.T) {
 	srv := mockserver.New()
 	srv.SetChatBodyOverride(func() string {
@@ -487,6 +527,39 @@ func TestComplete_5xxMapsToAIProviderTimeout(t *testing.T) {
 	}
 }
 
+func TestComplete_RetriesTransientProviderErrorsWithinProfileTimeout(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != openaicompatible.PathChatCompletions {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		if calls.Add(1) < 3 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"error":{"message":"temporary failure"}}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"model":"chat-primary-2026-05-05","choices":[{"message":{"content":"recovered"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":2}}`))
+	}))
+	defer server.Close()
+
+	adapter, err := openaicompatible.New(openaicompatible.Options{Provider: resolvedProvider(server.URL)})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	response, _, err := adapter.Complete(context.Background(), chatProfile(5000), samplePayload())
+	if err != nil {
+		t.Fatalf("Complete after transient errors: %v", err)
+	}
+	if response.Content != "recovered" {
+		t.Fatalf("content=%q, want recovered", response.Content)
+	}
+	if got := calls.Load(); got != 3 {
+		t.Fatalf("provider calls=%d, want 3 (initial request plus two retries)", got)
+	}
+}
+
 func TestComplete_4xxParsesErrorEnvelope(t *testing.T) {
 	srv := mockserver.New()
 	srv.SetChatBehavior(mockserver.Behavior{
@@ -621,6 +694,40 @@ func TestStream_ParsesSSEDeltaAndDone(t *testing.T) {
 	}
 	if events[2].Meta.InputTokens != 5 || events[2].Meta.OutputTokens != 2 {
 		t.Fatalf("usage meta mismatch: %+v", events[2].Meta)
+	}
+}
+
+func TestStream_RetriesTransientProviderErrorsWithinProfileTimeout(t *testing.T) {
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != openaicompatible.PathChatCompletions {
+			t.Fatalf("unexpected path %s", r.URL.Path)
+		}
+		if calls.Add(1) < 3 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"error":{"message":"temporary failure"}}`))
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = io.WriteString(w, `data: {"model":"ignored","choices":[{"delta":{"content":"recovered"},"finish_reason":"stop"}]}`+"\n\n"+`data: [DONE]`+"\n\n")
+	}))
+	defer server.Close()
+
+	adapter, err := openaicompatible.New(openaicompatible.Options{Provider: resolvedProvider(server.URL)})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	channel, err := adapter.Stream(context.Background(), chatProfile(5000), samplePayload())
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	events := collectStreamEvents(t, channel)
+	if len(events) != 2 || events[0].Type != aiclient.StreamEventDelta || events[0].Delta != "recovered" || events[1].Type != aiclient.StreamEventDone {
+		t.Fatalf("events=%+v, want recovered delta and done", events)
+	}
+	if got := calls.Load(); got != 3 {
+		t.Fatalf("provider calls=%d, want 3 (initial request plus two retries)", got)
 	}
 }
 
