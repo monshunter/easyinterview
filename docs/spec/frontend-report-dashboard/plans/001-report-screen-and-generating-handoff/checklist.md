@@ -1,8 +1,8 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 3.8
+> **版本**: 4.2
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -78,6 +78,21 @@
   <!-- verified: 2026-07-15 method=domain-behavior bddChecklist=complete -->
 - [x] 13.5 E2E-HANDOFF: P0.099 remains the real API/UI owner; this merge does not claim a new scenario PASS unless explicitly run.
   <!-- verified: 2026-07-15 method=static-handoff-only evidence="scenario evidence unit tests 7 PASS; no E2E run claimed" -->
+
+## Phase 14: Failed report recovery actions
+
+- [x] 14.1 RED: failed-only、old-ready/new-failed、oversize、double-click、unknown outcome、stale target and malformed response tests fail before implementation.<!-- verified: 2026-07-16 method=frontend-regenerate-red evidence="generated-client 16/16 PASS; focused UI 19 expected RED across failed actions, same-ID envelope, single-flight, idempotency outcome, stale refetch, owner fence and trusted failed-conversation back route; typecheck/diff-check PASS" -->
+- [x] 14.2 GREEN: generated client sends bodyless POST + IK, matching queued response navigates to same reportId Generating, and explicit terminal errors stay localized in-row.<!-- verified: 2026-07-16 method=frontend-regenerate-green evidence="same-ID five-field 202 validation, single-flight, outcome-aware IK reuse/rotation, typed conflict target+overview refetch and owner fence pass in 65 focused tests; devMock fixture parity raises focused total to 74/74; typecheck PASS" -->
+- [x] 14.3 A11Y/PRIVACY: failed/current actions use distinct accessible names, conversation remains available during regenerate, and no raw error/provider/report ID enters visible/a11y text.<!-- verified: 2026-07-16 method=frontend-a11y-privacy-green evidence="old-ready/new-failed exposes four distinct actions, oversize keeps transcript only, localized row error hides raw/provider/id, and failed conversation hides Back while owner is resolving before routing trusted target owner to Reports or a resolved untrusted outcome to workspace; focused report-conversation 19/19 plus recovery suite and frontend diff-check PASS" -->
+- [x] 14.4 BDD-Gate/REGRESSION: `BDD.REPORT.REGENERATE.UI.001`, focused frontend tests, typecheck/build and root `make test` pass.<!-- verified: 2026-07-16 method=focused+root-regression evidence="failed recovery/report conversation focused suites PASS including owner-resolving Back fence; typecheck/build PASS; root frontend 126 files/1026 tests with full Python/Go regression PASS" -->
+- [x] 14.5 CHROME: current-run Chrome skill verifies the real local failed-report conversation + same-ID regenerate path and its transition through generating to ready；this scoped evidence does not mark P0.099 PASS.<!-- verified: 2026-07-16 method=chrome-real-local evidence="failed row exposed regenerate and latest-attempt conversation; transcript opened; same report entered generating and then ready against the real backend without interception" -->
+
+## Phase 15: Completed-session conversation action is status-independent
+
+- [x] 15.1 RED: queued/generating ReportsScreen tests fail until progress and the distinct latest-attempt conversation action coexist and navigate by the latest report locator.<!-- verified: 2026-07-16 method=frontend-conversation-availability-red evidence="ReportsScreen focused run produced exactly 2 expected missing-entry failures while the remaining 29 tests passed" -->
+- [x] 15.2 GREEN/A11Y: every distinct latestAttempt, including queued/generating/latest-ready, exposes a localized conversation action；same-ID ready deduplicates and empty round exposes none.<!-- verified: 2026-07-16 method=frontend-conversation-availability-green evidence="status-neutral latest-attempt conversation action covers queued/generating/failed/latest-ready; same-ID ready deduplicates; ReportsScreen and language-switch focused tests 34/34 PASS; typecheck PASS" -->
+- [x] 15.3 BDD/REGRESSION: focused ReportsScreen/i18n tests, typecheck/build and root `make test` pass.<!-- verified: 2026-07-16 method=focused+root-regression evidence="ReportsScreen/i18n status-independent actions PASS; typecheck/build PASS; make test Python 584/4583 subtests, Go all packages, frontend 126/1026 PASS" -->
+- [x] 15.4 CHROME: real local queued/generating row shows “查看生成进度” plus “查看面试记录”, and the latter opens the report-owned transcript；do not claim P0.099 PASS.<!-- verified: 2026-07-16 method=chrome-real-local evidence="queued/generating row displayed both localized actions; conversation opened the same report-owned readonly transcript; the row later became ready" -->
 
 ## Historical Closeout through Phase 11
 

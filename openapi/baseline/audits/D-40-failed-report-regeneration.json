@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "D-40",
+  "mode": "exact-additive-set",
+  "authority": {
+    "specDecision": "D-40",
+    "historyVersion": "1.65",
+    "productDecision": "Scheme A"
+  },
+  "baselineSource": "git:ab3749cf1db51bb7be5b26c9a050d5cf4634d22d:openapi/baseline/openapi-v1.0.0.yaml",
+  "currentSource": "openapi/openapi.yaml",
+  "baselineSha256": "921fbc2d82344a2efbf55652d87b0d9ef089b4c3f09732c40bc124bc1b6d5a44",
+  "currentSha256": "545a5925fb58cd6d77612b10f3b67298f01c8f3cd7cecd83deffdd0928e69c5b",
+  "inventory": {
+    "baselineOperations": 37,
+    "currentOperations": 38,
+    "tags": 10
+  },
+  "summary": {
+    "breaking": 0,
+    "additive": 2,
+    "informational": 0
+  },
+  "expectedFindingCount": 2,
+  "findingCount": 2,
+  "findings": [
+    {
+      "kind": "endpoint-added",
+      "severity": "additive",
+      "path": "/reports/{reportId}/regenerate"
+    },
+    {
+      "kind": "enum-value-added",
+      "severity": "additive",
+      "where": "components.schemas.ApiErrorCode",
+      "value": "REPORT_INVALID_STATE_TRANSITION"
+    }
+  ],
+  "errors": []
+}

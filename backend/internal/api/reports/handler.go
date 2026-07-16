@@ -20,6 +20,10 @@ type reportService interface {
 	ListTargetJobReports(ctx context.Context, in reviewdomain.ListTargetJobReportsRequest) (reviewdomain.TargetJobReportsOverviewRecord, error)
 }
 
+type reportRegenerationService interface {
+	RegenerateReport(ctx context.Context, in reviewdomain.RegenerateReportRequest) (reviewdomain.RegenerateReportResult, error)
+}
+
 type HandlerOptions struct {
 	Service reportService
 	Session SessionResolver

@@ -5,9 +5,9 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   specVersion:
-    from: 2.18
-    to: 2.19
-  branch: backend-auth-production-smtp
+    from: 2.19
+    to: 2.21
+  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
 spec:
   defaultTarget: platform-config
   discovery:
@@ -26,6 +26,9 @@ spec:
       - readiness signals flag
       - posthog self host
       - runtime config
+      - APP_LISTEN_ADDR
+      - EMAIL_VERIFY_BASE_URL
+      - local app port defaults
       - secret scan
       - gitleaks
       - env example
@@ -44,11 +47,18 @@ spec:
       - resume paste upload limits
       - target job raw text limit
       - AI provider response body
+      - AI_DEBUG_CAPTURE_RAW_IO
+      - AI_DEBUG_RAW_IO_PATH
+      - local AI raw NDJSON capture
+      - debug raw I/O privacy boundary
   targets:
     platform-config:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
+      references:
+        - ../../../ai-provider-and-model-routing/plans/001-aiclient-and-profile-bootstrap/plan.md
+        - ../../../local-dev-stack/plans/001-bootstrap/plan.md
       discovery:
         packages:
           - backend/internal/platform/config

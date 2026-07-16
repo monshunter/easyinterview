@@ -1,8 +1,8 @@
 # 001 — Grounded Conversation Report Generation
 
-> **版本**: 2.29
+> **版本**: 2.32
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -20,6 +20,7 @@
 | `report_generate` job | N/A | generating poll | runner/review service/store | feedback_reports/async_jobs/outbox_events/audit_events/ai_task_runs | report.generate | focused service/store/integration + independent eval + P0.099 visible result |
 | `getFeedbackReport` | `Reports/getFeedbackReport.json`: queued/generating/ready-needs-practice/ready-well-prepared/failed/invalid-contract/long-content | generating + report dashboard | reports handler/review read | feedback_reports + frozen context projection | none | focused handler/consumer contract + P0.099 real API/UI |
 | `getReportConversation` | `Reports/getReportConversation.json`: ready/queued/generating/failed/empty-messages/missing/invalid-order | report-conversation readonly page | reports handler/review read | feedback_reports.session_id -> practice_messages ordered read | none | focused handler/store/auth/order/privacy/no-store + BDD.REPORT.CONVERSATION.API.001 + P0.099 real click/load/back |
+| `regenerateFeedbackReport` | `Reports/regenerateFeedbackReport.json` | ReportsScreen failed recovery | reports handler + review regeneration service | same report row + fresh job + idempotency/audit；no migration | async `report.generate` after 202 | focused handler/service/store/concurrency + BDD.REPORT.REGENERATE.001 |
 | `listTargetJobReports` | `Reports/listTargetJobReports.json` | target-scoped ReportsScreen only; no Parse/generating/report consumer | reports handler/review read | feedback_reports + current TargetJob canonical summary | none | focused handler/store/consumer contract |
 
 `completePracticeSession` 与 `createPracticePlan` 只作为 references/marker handoff：本 plan 不拥有其 API、fixture、handler/store 或 scenario directory。
@@ -41,6 +42,7 @@
 | 8 | `backend-practice/004 Phase 3` | generic-empty-focus retry, issue-backed non-empty focus, next successor, isolation + IK markers | report replay CTA and code-level consumer gates |
 | 9 | code owners + `e2e-scenarios-p0` P0.099 | code owners complete unit/integration/eval gates；P0.099 is reserved for an explicitly run real report/generating/conversation API/UI acceptance | final closeout |
 | 10 | `openapi-v1-contract` 001/002/003 + `backend-practice/001` | replace listPracticeSessions with closed getReportConversation contract/fixture/generated types and remove public list handler | backend report-owned read + frontend ReportConversation |
+| 11 | `shared-conventions-codified/001` + `openapi-v1-contract` 001/002/003 | canonical `REPORT_INVALID_STATE_TRANSITION`、`regenerateFeedbackReport` fixture/codegen and additive-contract gates | Phase 13 same-report regeneration implementation |
 
 `backend-review/001` 只拥有 `backend/internal/api/reports`、`backend/internal/review`、`backend/internal/store/review`；B2/B4/F3/backend-practice/frontend/scenario 均通过 context references 与 marker handoff。它不重复领取 completion、derived replay、migration、prompt/eval 或 scenario checklist。GeneratingScreen 不在本 plan 写入范围。
 
@@ -48,7 +50,7 @@
 
 - **Plan 类型**: feature-behavior + contract + async backend + migration + AI quality。
 - **TDD 策略**: `/implement` → `/tdd`；本 owner 只为 frozen-context consumption、report validator/repair、persistence/provenance 与 reports API 建立 RED/GREEN；OpenAPI、completion、derived replay、prompt/eval、frontend 与 scenarios 只消费对应 owner gate。每个 checklist item 写明聚焦断言入口。
-- **BDD 策略**: `BDD.REPORT.GENERATE.001` 验证生成合同；`BDD.REPORT.CONVERSATION.API.001` 验证 reportId-owned 四状态 transcript、hidden 404、strict order/role 与无内部 locator。`E2E.P0.099` 增补真实 click/load/back 和 API/DB binding，但不改变 exact-six screenshots；provider/judge reliability 仍属于独立 eval gate。
+- **BDD 策略**: `BDD.REPORT.GENERATE.001` 验证生成合同；`BDD.REPORT.CONVERSATION.API.001` 验证 reportId-owned 四状态 transcript、hidden 404、strict order/role 与无内部 locator；`BDD.REPORT.REGENERATE.001` 验证失败报告同 ID 重排队、幂等重放、并发单 job 与 typed zero-write rejection。`E2E.P0.099` 增补真实 click/load/back 和 API/DB binding，但不改变 exact-six screenshots；provider/judge reliability 仍属于独立 eval gate。
 - **替代验证 gate**: prompt/schema drift、migration up/down/up、OpenAPI/codegen/fixture、privacy/negative lint、focused tests 与独立内容核对表；阶段完成由根 `make test` 统一回归 backend/frontend 单测。
 
 ## 4 Coverage Matrix
@@ -67,6 +69,7 @@
 | spec C-12 | canonical-round overview | 10 | focused handler/store/API/consumer tests | paginated full-report list / mutable round inference / partial response |
 | spec C-13 | primary/alternate | 12 | handler/store/domain behavior tests + P0.099 real API/UI | ready-only transcript / getPracticeSession fallback |
 | spec C-13 | privacy/failure/boundary | 12 | owned-empty-200, hidden-404, empty-identity/blank-content/order/role/closed-projection and pre-auth no-store tests | session/message/client IDs, partial/reordered corruption, raw log/audit payload, cacheable transcript/error response |
+| spec C-14 | failure/recovery/idempotency | 13 | handler/service/store/real-PostgreSQL concurrency tests + BDD.REPORT.REGENERATE.001 | new report ID, duplicate active job, transcript mutation, oversize retry, cross-user disclosure, raw-content audit |
 | current-scope | regression | 8 | repo negative search | `dimension_scores`, `retry_round`, stale question fields |
 | D-29 | regression/non-current | 12 | code/spec/fixture/generated/runtime search | listPracticeSessions endpoint/handler/fixture/consumer; new relation table |
 
@@ -110,7 +113,7 @@ Action `maxLength=200` code points只作fuse。纯label schema200和/或24/64 vi
 
 #### 7.3 Action-scoped generation retries
 
-每次用户发起 report generation 动作时，Service 创建会话内 retry context：initial 后最多重试3次；invalid后每轮动态scope并完整复验，retryable provider/protocol failure重试同一scope；三次重试前精确等待10s/20s/40s。动作返回后计数销毁，用户重新操作从0计数。`feedback_reports` 不保存计数；`async_jobs.attempts/max_attempts`只负责lease与基础设施恢复，不参与产品retry计算。当前 OpenAPI 不提供 failed-report regenerate endpoint，因此本 plan 只证明独立 `GenerateReport` invocation 会重置，不虚称已存在用户可见重试入口。
+每次用户发起 report generation 动作时，Service 创建会话内 retry context：initial 后最多重试3次；invalid后每轮动态scope并完整复验，retryable provider/protocol failure重试同一scope；三次重试前精确等待10s/20s/40s。动作返回后计数销毁，用户重新操作从0计数。`feedback_reports` 不保存计数；`async_jobs.attempts/max_attempts`只负责lease与基础设施恢复，不参与产品retry计算。这里“不提供 failed-report regenerate endpoint”是 Phase 7 的历史合同，已由 Phase 13 和当前 OpenAPI 的 `regenerateFeedbackReport` 同报告恢复操作取代。
 
 每次claim的`AsyncJob.Attempts`是lease generation。Success persistence必须在同一事务先校验/锁定`async_jobs.status='running' AND attempts=claimed`，再写ready report、outbox、audit与job succeeded；failure persistence也必须在写report/outbox/audit前校验同一generation，随后kernel finalize再次fence。Reaper/takeover后旧worker的success/retry/failure全部typed stale，不能产生任何report/outbox/audit/job副作用。
 
@@ -136,7 +139,7 @@ Reliability eval 曾暴露 generic replay rubric 与完整 runtime validator 未
 
 ### Phase 9: Action-local retry contract refresh
 
-在不新增OpenAPI regenerate operation的前提下，按TDD删除`feedback_reports.llm_attempt_count`、pre-call durable reservation与`report_generate.max_attempts=4`产品额度耦合；注入context-aware waiter，证明每次`GenerateReport` invocation独立执行initial+最多3次retry及10s/20s/40s，返回时销毁状态，下一次独立invocation从0开始。`AsyncJob.Attempts`继续仅作lease generation，stale worker仍不得提交report/outbox/audit/job副作用。证据保留在 review/store/runner 的 focused unit/integration tests，不生成伪 E2E artifact。
+Phase 9 当时在不新增 OpenAPI regenerate operation 的前提下，按 TDD 删除`feedback_reports.llm_attempt_count`、pre-call durable reservation与`report_generate.max_attempts=4`产品额度耦合；注入context-aware waiter，证明每次`GenerateReport` invocation独立执行initial+最多3次retry及10s/20s/40s，返回时销毁状态，下一次独立invocation从0开始。`AsyncJob.Attempts`继续仅作lease generation，stale worker仍不得提交report/outbox/audit/job副作用。该历史范围已由 Phase 13 补充为当前 failed-report 同 ID 重生成操作；两者分别拥有动作内 provider 重试和用户显式恢复，不能混为同一计数。
 
 ### Phase 10: Canonical-round report overview
 
@@ -184,15 +187,33 @@ Inject A4 `report.maxFramedInputBytes` into the report service/context builder. 
 
 证明 response/错误/可观测面没有 sessionId、message UUID、clientMessageId、replyStatus/replyGeneration 或 raw transcript。Scoped negative 要求 current OpenAPI/generated/handler/router/fixture/mock/frontend positive surface 不再存在 `listPracticeSessions`；历史/accepted decision 与 exact negative declarations可保留文字。P0.099 只增加真实 transcript API/DB binding 和浏览器 click/load/back，不修改 exact-six visual manifest。
 
+### Phase 13: Atomic failed report regeneration
+
+- **RED**: handler/service/store tests require auth + IK, same-report `202 + ReportWithJob`, exact replay, hidden 404, non-failed invalid state, oversize rejection, active-job retryable conflict and zero side effects on every rejection.
+- **GREEN**: add a domain regeneration service and one SQL transaction that locks active report jobs before the owned report row, clears every ready-only field, requeues the same row, inserts a fresh `report_generate` job with stable session dedupe and writes bounded audit metadata. Do not add a migration or outbox event.
+- **CONCURRENCY**: real PostgreSQL coverage proves concurrent different keys create at most one active job and the terminal-failure/finalize window never double-generates or deadlocks. The idempotency route must use report-specific pending semantics and replay private no-store responses.
+- **BDD-Gate**: `BDD.REPORT.REGENERATE.001` covers transcript preservation, same-ID requeue, one job, exact same-key replay and typed zero-write failures. Phase completion runs focused tests and root `make test`.
+
+### Phase 14: Actionable semantic repair
+
+- **RED/FORENSICS**: a current real retry proves provider/schema success but repeated `not_user_message` because the model anchors evidence to terminal assistant seqNo 7；the old repair only exposed opaque path/code coordinates. Focused tests also enumerate every reachable validation code and a literal boundary-marker collision before implementation.
+- **GREEN/PRIVACY**: whole-report repair groups every present violation into explicit structural / anchor / evidence / readiness / action / text intent and appends all groups to the trusted system message. Before serialization, trusted coordinates validate restricted JSON-path grammar, code/path family compatibility and positive/unique/strictly-ascending candidate-user sequence numbers；anchor repair additionally requires a non-empty allowlist. Unknown or incompatible coordinates fail before another provider call；untrusted JSON escapes marker characters；no raw content, previous LLM output or unvalidated role claim is promoted, and no anchor is mutated deterministically.
+- **REGRESSION**: focused runtime/evalkit serializer tests, root `make test`, build and docs gates pass；tests assert the concrete actionable rule for every family plus unsafe coordinate rejection, not merely a non-empty family label.
+- **REAL**: redeploy the current backend and retry the same failed report. The report must reach ready under the same ID；raw DEBUG pairs may prove stop/schema results, safe anchor coordinates and meaningful repair intent, but raw transcript/report content remains outside tracked evidence.
+
 ## 6 验收标准
 
 - Ready report 来自冻结完整上下文，模型最终语义经严格 validator 后无损持久化/API 返回。
 - 任一 evidence 有同 session candidate-user anchor；未回答追问不产生能力负面推断。
+- 每个当前可达 semantic/schema validation code 都映射为明确纠错 family；同轮多类错误不得被 first-match / `break` 丢弃，未知 code 在 provider 调用前 fail closed。
+- `not_user_message` repair 使用服务端已验证 role 派生的 user seqNo allowlist 给出可执行纠错信息；只传数字，不传正文，不从 assistant anchor 猜测替代 user anchor。
+- Untrusted frozen context / transcript 中的 marker characters 必须 JSON Unicode escape；repair request 仍只有 trusted system + 语义相同且采用相同 escaping 的 untrusted user context，不能把前一轮 LLM 输出加入下一轮消息。
 - Product generation 每次用户动作最多4次调用：计数只在该次 `GenerateReport` invocation 内存在，三次重试前依次等待10s/20s/40s；每轮完整验证与动态scope；attempt4 invalid或retryable failure结束本次动作，nonretryable零重试；新的独立 invocation 从0计数。
 - Judge/evaluator独立最多4次调用：仅retryable provider或protocol/schema invalid重试；结构合法negative verdict typed terminal FAIL且不重采样。
 - Focused code tests覆盖product provider transient→session retry success、invalid→targeted/whole多轮成功、attempt4仍错终止、nonretryable零重试与独立 invocation 清零；evalkit tests覆盖generation/judge max4、judge invalid retry和valid negative不retry。
 - 新生成报告的 generic empty focus 只用于 exact single `answer_depth` brief 或 exact single `answer_relevance` control-only issue；其他 retry focus 精确等于全部 same-code needs-work issue codes 的升序唯一集合，禁止 subset/superset。已有 ready report 的 derived-plan 空 focus 合法性仍由 backend-practice/004 owner 合同承接。
 - `getReportConversation` 对四种报告状态返回同一报告唯一 ordered closed transcript；跨用户/缺失/identity 或 sequence/role corruption fail closed，成功、业务错误和鉴权拒绝都以 `private, no-store` 响应，且零内部 ID/正文可观测泄漏、零 AI/写入/新表。
+- 非超限 terminal failed 报告允许携带 `Idempotency-Key` 原子重排同一 report ID：清空 ready-only 结果与 provenance、复用 frozen context/transcript、只创建一个 fresh `report_generate` job；同 key 精确重放，不同 key 并发、active old job、非 failed、超限和跨用户均 typed fail closed且零写入。
 - 200仅fuse；P0.099 desktop+390证明合法24/64完整换行，超限typed invalid/no raw；18/52不作为UI门禁。
 - OpenAPI、generated、fixture、DB、prompt/schema/eval、frontend consumer 与 BDD 无旧 numeric-score/unknown-action 漂移。
 - Provider/eval 可靠性结果作为独立诊断记录，不转成应用 E2E。P0.099 的 desktop/mobile zh/en full-page 截图由其自身 current-run DB/API/content/action/screenshot/report/session/context 摘要闭合，并完整覆盖满足 `<=24 whitespace words` / `<=64 Unicode code points` 的实际 action；确定性 boundary fixture 由代码层测试证明恰好24/64。
@@ -217,6 +238,9 @@ Inject A4 `report.maxFramedInputBytes` into the report service/context builder. 
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-16 | 2.32 | Expand Phase 14 to meaningful multi-family repair, exhaustive reachable-code coverage, unknown-code fail-closed behavior, marker escaping and same-report real recovery evidence. |
+| 2026-07-16 | 2.31 | Reopen Phase 14 after real retry forensics proved repeated assistant anchors; require trusted user-sequence repair guidance and same-report real verification. |
+| 2026-07-16 | 2.30 | Reopen Phase 13 for same-report failed regeneration with atomic job creation and idempotent API recovery. |
 | 2026-07-15 | 2.29 | Align C-13 with the UI projection validator: empty arrays remain 200, but a projected message body must be non-blank and createdAt present. |
 | 2026-07-15 | 2.28 | Require pre-auth `private, no-store`/`Pragma: no-cache` for every report-conversation outcome, including middleware rejection. |
 | 2026-07-15 | 2.27 | Align Phase 12 with C-22/OpenAPI: an owned report may project an empty messages array as 200; only empty identity and corrupt bindings/projections fail closed. |

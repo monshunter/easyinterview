@@ -132,7 +132,7 @@ dev-logs: ## Tail dev-stack container logs (SERVICE=<name> to scope)
 dev-pull: ## Pre-pull dev-stack pinned images for slow-network bootstrap
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" pull
 
-dev-container-up: ## Build and start the full-container local stack (frontend :10800, backend :10801)
+dev-container-up: ## Build and start the full-container local stack (frontend :10900, backend :10901)
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" container-up
 
 dev-container-down: ## Stop the full-container local stack; named volumes preserved

@@ -51,7 +51,7 @@ python3 "$VALIDATOR" --sanitize-output "$OUT" >/dev/null
 for marker in "SCENARIO_RUNNER=E2E.P0.099" "SCENARIO_MODE=hybrid"; do
   grep -Fq -- "$marker" "$LOG"
 done
-! grep -Eq -- 'independent live HTTP capture failed|current backend run emitted forbidden AI raw output markers' "$LOG"
+! grep -Eq -- 'independent live HTTP capture failed' "$LOG"
 
 RESULT_STATE="$(jq -r '.result' "$RESULT")"
 case "$RESULT_STATE" in
@@ -59,7 +59,6 @@ case "$RESULT_STATE" in
     RUN_ID="$(sed -n 's/^RUN_ID=//p' "$SETUP")"
     python3 "$VALIDATOR" --output-dir "$OUT" --run-id "$RUN_ID" >/dev/null
     grep -Fq -- "P0_099_SIX_SCREENSHOT_PASS" "$LOG"
-    grep -Fq -- "P0_099_CURRENT_RUN_RAW_DEBUG_ABSENT_PASS" "$LOG"
     grep -Fq -- "P0_099_LIVE_CAPTURE_PASS reports=3 conversation=1 privacy=redacted" "$LOG"
     grep -Fq -- "P0_099_LIVE_CAPTURE_BOUND_PASS" "$LOG"
     grep -Fq -- "P0_099_CONVERSATION_NAVIGATION_BOUND_PASS" "$LOG"

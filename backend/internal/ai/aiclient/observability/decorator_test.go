@@ -1,7 +1,6 @@
 package observability_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -890,51 +889,6 @@ func TestDecorator_OutputSchemaInvalidEmitsAIOutputInvalid(t *testing.T) {
 	}
 	if !gotEvent {
 		t.Errorf("expected ai.output.validation_failed log event")
-	}
-}
-
-func TestDecorator_RawOutputDebugWriterPrintsInvalidCompleteResponse(t *testing.T) {
-	var debug bytes.Buffer
-	wrap, _, _, runs, audit := newTestStack(t, observability.WithRawOutputDebugWriter(&debug))
-
-	payload := samplePayload()
-	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object"}`)
-
-	_, meta, err := wrap.Complete(context.Background(), "practice.chat.default", payload)
-	if err == nil {
-		t.Fatalf("expected output schema validation error")
-	}
-	if meta.ErrorCode != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("expected %s, got %q", sharederrors.CodeAiOutputInvalid, meta.ErrorCode)
-	}
-
-	out := debug.String()
-	for _, want := range []string{
-		"AI_RAW_OUTPUT_DEBUG_BEGIN",
-		"AI_RAW_OUTPUT_DEBUG_END",
-		"model_profile=practice.chat.default",
-		"feature_key=practice.session.chat",
-		"validation_status=invalid",
-		"error_code=AI_OUTPUT_INVALID",
-		"stub:practice.chat.default:",
-	} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("debug output missing %q: %s", want, out)
-		}
-	}
-	if strings.Contains(out, "tell me about yourself") {
-		t.Fatalf("debug output must contain raw response only, not prompt text: %s", out)
-	}
-
-	for _, row := range runs.Rows() {
-		if anyTaskRunContains(row, "stub:practice.chat.default:") {
-			t.Fatalf("ai_task_runs must keep raw output out of persisted rows: %+v", row)
-		}
-	}
-	for _, row := range audit.Rows() {
-		if strings.Contains(row.Metadata.ResponseHash, "stub:practice.chat.default:") {
-			t.Fatalf("audit row must keep hashed response only: %+v", row.Metadata)
-		}
 	}
 }
 

@@ -1,8 +1,8 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.31
-> **状态**: completed
-> **更新日期**: 2026-07-15
+> **版本**: 1.32
+> **状态**: active
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 落地当前 B2 OpenAPI v1 contract bootstrap：
 
-- `openapi/openapi.yaml` is the single HTTP contract truth source for current 37 operations / 10 tags.
+- `openapi/openapi.yaml` is the single HTTP contract truth source for current 38 operations / 10 tags.
 - Go generated server/types live in `backend/internal/api/generated/`.
 - TypeScript generated client/types live in `frontend/src/api/generated/`.
 - Root Make targets provide `codegen-openapi`, `codegen-check`, `lint-openapi`, and `docs-openapi`.
@@ -24,7 +24,7 @@ This owner plan remains the executable contract/codegen evidence index；Phase 1
 
 | Surface | Current contract | Gate |
 |---------|------------------|------|
-| OpenAPI inventory | 10 tags, 37 operations, `/api/v1` prefix, session-cookie auth, public/protected operation security | `make lint-openapi`, inventory tests |
+| OpenAPI inventory | Phase 20 后为 10 tags / 38 operations；`/api/v1` prefix、session-cookie auth、public/protected operation security 保持不变 | `make lint-openapi`, inventory tests |
 | Error envelope | B1 `ApiError` inner object + B2 `ApiErrorResponse` wire envelope | generator tests, codegen-check |
 | Shared types | B1 enum/page/error conventions are reused; OpenAPI does not duplicate shared enum ownership | conventions drift and generated tests |
 | Codegen | Go server/types and TS client/types are reproducible from `openapi/openapi.yaml` | `make codegen-openapi`, `make codegen-check` |
@@ -162,11 +162,11 @@ After OPENAPI-001 is accepted and the B1 conventions gate passes, update the pro
 
 Under approved方案 A，`ReportNextAction.label.maxLength=200` code points is only a malformed-output fuse。F3/runtime/frontend enforce English `<=24` whitespace words / zh-CN `<=64` Unicode code points；targeted action-label repair uses an internal 18/52 generation margin and is revalidated against 200+24/64。Downstream UI owner proves desktop/mobile wrapping and typed-invalid/no-raw behavior。Old baseline clean PASS is invalid until new audit/re-freeze；codegen-check remains separately pending。
 
-Generation/judge max4，attempt_count/retry_count/reason/scope and business/outbox backoff are internal runtime/eval contracts。Do not add HTTP fields、progress or retry-generation operation。`FeedbackReport` remains queued/generating/ready/failed；frontend maxAttempts49 exhaustion is a client continue-check state，not an API failed transition。This decision creates no additional expected finding beyond the existing maxLength200 correction。
+Generation/judge max4，attempt_count/retry_count/reason/scope and business/outbox backoff are internal runtime/eval contracts。Phase 12 当时不增加 HTTP fields、progress 或 retry-generation operation；该历史限制已由 Phase 20 精确补充为 failed report 的同 ID `regenerateFeedbackReport`，仍不公开内部 attempt/progress。`FeedbackReport` remains queued/generating/ready/failed；frontend maxAttempts49 exhaustion is a client continue-check state，not an API failed transition。
 
 ### 12.2 Generated artifacts and inventory
 
-Regenerate Go/TS artifacts and add exact inventory/negative tests that reject old report fields and unknown object properties. The operation/tag inventory remains 37/10; no endpoint or status changes.
+Phase 12 当时重新生成 Go/TS artifacts，并以 37 operations / 10 tags 锁定无 endpoint/status 变化；当前 inventory 已由 Phase 20 的单一 additive `regenerateFeedbackReport` 更新为 38/10，旧 37/10 仅作历史证据。
 
 ### 12.3 Handoff
 
@@ -180,7 +180,7 @@ After [OPENAPI-002](../../decisions/OPENAPI-002-targetjob-paste-only.md) is acce
 
 ### 13.2 GREEN source, codegen and freeze invariant
 
-Delete all five `TargetJobImportSource*` schemas, flatten and constrain `ImportTargetJobRequest`, remove TargetJob source provenance properties and remove only the TargetJob attachment enum value. The same correction removes source-only `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` from `ApiErrorCode` while retaining `VALIDATION_FAILED` / `TARGET_IMPORT_FAILED`; both removals are independent entries in the exact 17-finding oracle. Regenerate Go/TS artifacts and assert no compatibility union, discriminator, alias or legacy generated type remains. `importTargetJob` remains operationId `importTargetJob`, `POST /api/v1/targets/import`, `202 + TargetJobWithJob`; `createUploadPresign` remains operationId `createUploadPresign`, `POST /api/v1/uploads/presign`, `201 + UploadPresign`; inventory remains 37 operations / 10 tags. The current baseline cannot be edited until 003 Phase 6 preserves the exact old-baseline audit and all downstream gates pass.
+This historical Phase 13 deleted all five `TargetJobImportSource*` schemas, flattened and constrained `ImportTargetJobRequest`, removed TargetJob source provenance properties and removed only the TargetJob attachment enum value. The same correction removed source-only `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` from `ApiErrorCode` while retaining `VALIDATION_FAILED` / `TARGET_IMPORT_FAILED`; both removals were independent entries in the exact 17-finding oracle. `importTargetJob` remains operationId `importTargetJob`, `POST /api/v1/targets/import`, `202 + TargetJobWithJob`; `createUploadPresign` remains operationId `createUploadPresign`, `POST /api/v1/uploads/presign`, `201 + UploadPresign`. Its 37 operations / 10 tags inventory is historical and is superseded by Phase 20's current 38/10 inventory.
 
 ### 13.3 Operation matrix
 
@@ -240,7 +240,7 @@ Consumer contract tests must fail on `error.message` regex/string parsing；retr
 
 ### 14.5 Contract audit and downstream handoff
 
-This union/persistence correction changes existing Practice message validation semantics. D-35 + history 1.54 + the product-approved 方案 A remain the sole governance authority. 003 must use a separate Practice machine oracle as D-35's executable five-key finding projection—not as a third `OPENAPI-NNN` ADR—and must never merge those findings into OPENAPI-002's exact 17 allowset. Preserve both owner-specific artifacts before baseline mutation, then wait for 002 fixture matrix、mock-contract-suite parity、backend-practice persistence and frontend-workspace-and-practice typed consumer tests before re-freeze. Operation/tag inventory stays 37/10；no retry endpoint, client-side business-state store or compatibility message schema is allowed.
+This union/persistence correction changes existing Practice message validation semantics. D-35 + history 1.54 + the product-approved 方案 A remain the sole governance authority. 003 must use a separate Practice machine oracle as D-35's executable five-key finding projection—not as a third `OPENAPI-NNN` ADR—and must never merge those findings into OPENAPI-002's exact 17 allowset. Preserve both owner-specific artifacts before baseline mutation, then wait for 002 fixture matrix、mock-contract-suite parity、backend-practice persistence and frontend-workspace-and-practice typed consumer tests before re-freeze. 该阶段的 operation/tag inventory 为 37/10，现由 Phase 20 更新为 38/10；仍禁止独立 Practice message retry endpoint、client-side business-state store 或 compatibility message schema。
 
 ## 15 OPENAPI-004 TargetJob canonical-round report overview
 
@@ -330,3 +330,21 @@ Set `UserContext.additionalProperties: false` and make it a required four-field 
 | `deleteMe` | unchanged `Auth/deleteMe.json` | Settings destructive action | backend-auth delete handoff | user soft delete/session revoke/privacy job | none | `BDD.SHELL.SETTINGS.DELETE.001` + backend contract |
 
 002 Phase 13 updates Auth fixtures and mock parity；003 Phase 12 owns exact old-baseline findings and guarded re-freeze；backend-auth/001 Phase 10 removes old mapper/store fields；frontend-shell/001 consumes runtime user without a second `getMe`；B4 001 Phase 13 drops the four obsolete `user_settings` columns while retaining `analytics_opt_in`。Production OpenAPI/generated/backend/frontend/mock must have zero positive old-field references；accepted ADR/history/plans and explicit negative tests are allowed。
+
+## 20 Failed report manual regeneration
+
+### 20.1 RED contract
+
+Focused inventory/schema/generated-client tests fail until protected `POST /api/v1/reports/{reportId}/regenerate` exists as `regenerateFeedbackReport`, requires `Idempotency-Key`, has no request body, and returns `202 + ReportWithJob`. The response must preserve the path report ID and expose a queued `report_generate` job whose resource is the same feedback report. Current inventory becomes exactly 38 operations / 10 tags.
+
+### 20.2 GREEN source and generated artifacts
+
+Add the operation and additive `REPORT_INVALID_STATE_TRANSITION` enum value to the OpenAPI source, then regenerate embedded Go server/types and TypeScript client/types/spec. Generated clients accept only `reportId` plus request options and send no body. Preserve the four report states and do not expose attempt/retry/progress fields.
+
+### 20.3 Operation matrix and handoff
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|----------|
+| `regenerateFeedbackReport` | `Reports/regenerateFeedbackReport.json` | ReportsScreen failed latest-attempt recovery | Reports handler → review regeneration service | same `feedback_reports` row + fresh `async_jobs` + idempotency/audit | asynchronous `report.generate`; no provider call in HTTP handler | `BDD.REPORT.REGENERATE.001` + focused contract/domain tests |
+
+002 Phase 14 owns fixtures and dev-mock parity；003 Phase 13 proves the additive path/error-code diff and guarded re-freeze；backend/frontend owners implement behavior. BDD remains downstream-owned; this contract phase closes with inventory, fixture, codegen, diff and root regression gates.

@@ -110,6 +110,11 @@ def valid_data() -> dict:
                 "retryable": False,
             },
             {
+                "code": "REPORT_INVALID_STATE_TRANSITION",
+                "message": "report state transition is not allowed",
+                "retryable": False,
+            },
+            {
                 "code": "RESUME_EXPORT_NOT_AVAILABLE",
                 "message": "resume version export is not available in P0",
                 "retryable": False,
@@ -376,6 +381,21 @@ class ConventionsYAMLTest(unittest.TestCase):
 
         self.assertTrue(
             any("duplicate error code" in err and "REPORT_CONTEXT_TOO_LARGE" in err for err in errs),
+            errs,
+        )
+
+    def test_requires_report_invalid_state_transition_error(self) -> None:
+        data = copy.deepcopy(valid_data())
+        data["errors"] = [
+            entry
+            for entry in data["errors"]
+            if entry["code"] != "REPORT_INVALID_STATE_TRANSITION"
+        ]
+
+        errs = self.linter.validate(data)
+
+        self.assertTrue(
+            any("REPORT_INVALID_STATE_TRANSITION" in err for err in errs),
             errs,
         )
 

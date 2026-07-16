@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
-	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
@@ -29,21 +28,19 @@ type TailorStore interface {
 }
 
 type TailorHandlerOptions struct {
-	Store      TailorStore
-	Registry   PromptRegistryClient
-	AI         aiclient.AIClient
-	AITaskRuns aiclient.AITaskRunWriter
-	NewID      func() string
-	Now        func() time.Time
+	Store    TailorStore
+	Registry PromptRegistryClient
+	AI       aiclient.AIClient
+	NewID    func() string
+	Now      func() time.Time
 }
 
 type TailorHandler struct {
-	store      TailorStore
-	registry   PromptRegistryClient
-	ai         aiclient.AIClient
-	aiTaskRuns aiclient.AITaskRunWriter
-	newID      func() string
-	now        func() time.Time
+	store    TailorStore
+	registry PromptRegistryClient
+	ai       aiclient.AIClient
+	newID    func() string
+	now      func() time.Time
 }
 
 func NewTailorHandler(opts TailorHandlerOptions) *TailorHandler {
@@ -56,12 +53,11 @@ func NewTailorHandler(opts TailorHandlerOptions) *TailorHandler {
 		newID = idx.NewID
 	}
 	return &TailorHandler{
-		store:      opts.Store,
-		registry:   opts.Registry,
-		ai:         opts.AI,
-		aiTaskRuns: opts.AITaskRuns,
-		newID:      newID,
-		now:        now,
+		store:    opts.Store,
+		registry: opts.Registry,
+		ai:       opts.AI,
+		newID:    newID,
+		now:      now,
 	}
 }
 
@@ -97,7 +93,6 @@ func (h *TailorHandler) Handle(ctx context.Context, job runner.ClaimedJob) runne
 		ResourceID:          tailorCtx.TailorRunID,
 		OutputSchemaVersion: "resume.tailor.v1",
 	}
-	startedAt := h.now().UTC()
 	metadata := aiclient.CallMetadata{
 		FeatureKey:        featureKey,
 		PromptVersion:     resolution.PromptVersion,
@@ -114,22 +109,18 @@ func (h *TailorHandler) Handle(ctx context.Context, job runner.ClaimedJob) runne
 		Messages: buildTailorPromptMessages(resolution, tailorCtx),
 		Metadata: metadata,
 	})
-	completedAt := h.now().UTC()
 	meta = enrichTailorMeta(meta, resolution, featureKey, tailorCtx.Language, "")
 	if err != nil {
 		code, retryable := translateAIClientError(err)
 		meta = enrichTailorMeta(meta, resolution, featureKey, tailorCtx.Language, code)
-		h.writeTaskRun(ctx, meta, taskCtx, startedAt, completedAt, err)
 		return h.fail(code, err.Error(), retryable)
 	}
 	parsed, err := decodeTailorAIResponse(complete.Content)
 	if err != nil {
 		meta = enrichTailorMeta(meta, resolution, featureKey, tailorCtx.Language, sharederrors.CodeAiOutputInvalid)
 		meta.ValidationStatus = aiclient.ValidationStatusInvalid
-		h.writeTaskRun(ctx, meta, taskCtx, startedAt, completedAt, fmt.Errorf("%s: %w", sharederrors.CodeAiOutputInvalid, err))
 		return h.fail(sharederrors.CodeAiOutputInvalid, err.Error(), false)
 	}
-	h.writeTaskRun(ctx, meta, taskCtx, startedAt, completedAt, nil)
 
 	outboxPayload, err := json.Marshal(events.ResumeTailorCompletedPayload{
 		TailorRunID: tailorCtx.TailorRunID,
@@ -175,17 +166,6 @@ func (h *TailorHandler) fail(code, message string, retryable bool) runner.JobOut
 		ErrorMessage: safeFailureMessage(code, message),
 		Retryable:    retryable,
 	}
-}
-
-func (h *TailorHandler) writeTaskRun(ctx context.Context, meta aiclient.AICallMeta, taskCtx aiclient.AITaskRunContext, startedAt, completedAt time.Time, callErr error) {
-	if h == nil || h.aiTaskRuns == nil {
-		return
-	}
-	row, err := observability.AITaskRunRowFromMeta(meta, taskCtx, aiclient.AuditMetadata{}, startedAt, completedAt, callErr)
-	if err != nil {
-		return
-	}
-	_ = h.aiTaskRuns.WriteAITaskRun(ctx, row)
 }
 
 type tailorJobPayload struct {

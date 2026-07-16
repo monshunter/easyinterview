@@ -18,6 +18,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
@@ -695,7 +696,18 @@ func renderCaseRepairMessages(res registry.PromptResolution, c eval.Case, issues
 	if err != nil {
 		return nil, err
 	}
-	return review.BuildReportRepairPromptMessages(res.UserMessageTemplate, c.Language, contextJSON, transcriptJSON, issues)
+	_, messages, err := liveReportValidationInputs(c)
+	if err != nil {
+		return nil, err
+	}
+	candidateUserSeqNos := make([]int, 0, len(messages))
+	for _, message := range messages {
+		if message.Role == "user" {
+			candidateUserSeqNos = append(candidateUserSeqNos, message.SeqNo)
+		}
+	}
+	sort.Ints(candidateUserSeqNos)
+	return review.BuildReportRepairPromptMessages(res.UserMessageTemplate, c.Language, contextJSON, transcriptJSON, issues, candidateUserSeqNos)
 }
 
 func marshalReportCaseContext(c eval.Case) (json.RawMessage, json.RawMessage, error) {

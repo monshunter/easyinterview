@@ -1,8 +1,8 @@
 # Backend Review Spec
 
-> **版本**: 1.30
+> **版本**: 1.33
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 ## 1 背景与目标
 
@@ -18,6 +18,7 @@
 |------------------------|-------------------|-------------|---------------|--------------|
 | `getFeedbackReport` | generating/report | `feedback_reports` | none on read | focused handler/store/consumer tests + `E2E.P0.099` real API/UI |
 | `getReportConversation` | report-conversation read-only page | `feedback_reports.session_id` + `practice_messages` | none on read | focused handler/store/auth/order/privacy/no-store tests + `BDD.REPORT.CONVERSATION.API.001` + `E2E.P0.099` real API/UI |
+| `regenerateFeedbackReport` | ReportsScreen failed latest-attempt recovery | same `feedback_reports` row + fresh `async_jobs` + idempotency/audit | none in HTTP handler；runner later uses `report.generate` | focused handler/service/store/idempotency/concurrency tests + `BDD.REPORT.REGENERATE.001` |
 | `listTargetJobReports` | target-scoped ReportsScreen | `feedback_reports` + current TargetJob canonical round summary | none on read | focused handler/store/consumer contract tests |
 | `report_generate` | async runner | `feedback_reports`, jobs/outbox/audit/task-runs | `report.generate` | focused service/store/integration tests + independent eval gate + `E2E.P0.099` visible report |
 
@@ -116,6 +117,9 @@ OpenAPI ready read model 对用户返回相同业务 shape 与最小 frozen `con
 - 同一次动作内，invalid output 与 retryable provider/protocol failure 都消耗一次本地调用并在下一次调用前依次等待 `10s/20s/40s`；attempt4 仍失败即结束本次动作。non-retryable config/secret/unsupported/context-too-large/cancel 立即终止。等待必须响应 context cancellation，测试通过注入无等待 recorder 验证精确序列。
 - `async_jobs.attempts` 只表示 runner lease/基础设施执行代次，不是产品 retry count。success/failure 持久化仍必须先验证当前 `async_jobs.status='running' AND attempts=claimed.Attempts`，并保持 report/outbox/audit/job 的既有事务与 stale-worker fencing；不得再用该 lease generation 预占或累计产品 LLM retry budget。
 - 每轮输出都复用同一个产品完整 validator，并按该轮当前 violations 重新选择 scope：sole action-label schema200/24-64 使用 `action_labels`，targeted prompt 内部目标18/52且只 merge labels；其它任意 schema、semantic 或 mixed 使用 `whole_report`。Initial output、每次 targeted merge 与每次 whole-report replacement 都执行完整 schema+semantic 复验；attempt4 仍 invalid 才 terminal fail-close，不持久化 partial ready。
+- Whole-report repair 不能只回传不透明 path/code。所有当前 validator 可达的 schema / anchor / evidence / readiness / action / text violation code 必须映射为明确的纠错意图；同一轮出现多个 family 时必须合并全部意图，不能只保留首个错误。受信 repair coordinate 必须先校验受限 JSON path 语法、code/path family 兼容性以及 candidate-user seqNo 的正数、唯一、严格升序和 anchor allowlist 非空条件；未知或不兼容 coordinate 必须在再次调用 provider 前 fail closed，避免无意义重采样或把任意文本提升到 system message。
+- `not_user_message` repair 必须从已校验的服务端 message role 投影出升序候选人 `user` seqNo allowlist，只把该数字集合与“assistant 不可作 anchor”的固定语义加入 trusted repair guidance；不得从模型输出或未校验的 untrusted role claim 提升事实，也不得加入消息正文。每轮 replacement 仍完整复验，不能把 assistant anchor 启发式改成前一条 user message。
+- Frozen context 与 transcript 始终只位于 untrusted user message。序列化时必须把 untrusted JSON 中的 `<` / `>` / `&` 转为 JSON Unicode escape，保证正文无法构造第二组 trust-boundary marker；修复轮不得追加前一轮 LLM 输出或把其内容提升为 system instruction。
 - Report 的 `10s/20s/40s` 属于单次用户动作内的 LLM 重试节奏，不复用 runner business job 的 `10s/20s/40s/80s` 调度，也不使用 outbox/infra 的 `30s/2m/10m/1h/6h`。只有尚未调用 provider 的基础设施失败可交给 runner 恢复；不得把 runner replay 当作同一产品重试计数的持久化延续。
 - 生成审计以脱敏 bounded coordinate 记录 `attempt_count`、`retry_count`、每轮 `reason` 与 `scope`，并聚合所有调用的 token usage 与 latency；不得保存 raw prompt/output、secret 或候选人正文。label-only 结果只原样 merge 到目标 label，非 label 字段保持不变；服务端不截断、压缩、代写或启发式改写。
 - Evalkit 与产品 runtime 都使用动作会话内 generation budget=4 并复用相同 validator/scope 状态机；manifest 输出 attempt/retry/reason/scope 脱敏审计和聚合 usage/latency，但不得把它描述为 report 生命周期持久化额度。
@@ -169,6 +173,17 @@ Response 为 closed `ReportConversation`：`reportId`、`reportStatus`、frozen 
 - read path 不调用 AI、不修改 report/session/message，不写正文到 audit/log/metric/task-run/outbox，不提供 cursor/pagination/list endpoint。
 - `listPracticeSessions` 随本次未上线 contract correction 删除；`getPracticeSession` 仅保留给进行中会话恢复，不作为报告记录 consumer。
 
+### 2.11 Failed report manual regeneration
+
+`POST /reports/{reportId}/regenerate` 是用户在会话已经结束、报告生成 terminal failed 后的独立生成动作。它必须复用同一 `feedback_reports.id` 与冻结 `generation_context`，不创建第二份报告或历史版本；`REPORT_CONTEXT_TOO_LARGE` 不可重新生成，因为同一冻结输入不会变小。
+
+- request 只接受 path `reportId` 与 required `Idempotency-Key`。同一 key 重放完全相同的 `202 + ReportWithJob`；response 的 `reportId`、`job.resourceId` 与 path ID 相同，job 为 queued `report_generate/feedback_report`。
+- store 在一个事务内按 `active report_generate job -> feedback_reports` 的稳定顺序加锁，避免与 failure persistence 的 `job -> report` 锁序形成死锁。旧 job 尚处于 queued/running 的短窗口返回 retryable `REPORT_NOT_READY`；不得创建第二个 active job或吞掉 unique violation。
+- owned report 必须为 `failed` 且 `error_code != REPORT_CONTEXT_TOO_LARGE`。queued/generating/ready 返回 `REPORT_INVALID_STATE_TRANSITION`；missing/cross-user 返回 hidden `REPORT_NOT_FOUND`，且所有拒绝路径零写入。
+- 成功时同一 report 原子更新为 `queued`，清空 `error_code/generated_at` 以及全部 ready-only summary、preparedness、dimensions、evidence、actions、focus、prompt/rubric/model/provider provenance；保留 user/session/target、language、created_at 与完整 frozen generation context。
+- 新 job 使用 fresh job ID、`attempts=0` 与稳定 `dedupe_key=sessionId`，payload 仍只含 report/session/target IDs；写入 bounded user-actor audit `feedback_report.regeneration_requested`，不删除旧 job、task-run、outbox 或 audit history，也不写 raw prompt/output。
+- 每个成功的用户动作重新获得独立 `1 + 3` provider-call budget。HTTP handler 不同步调用 provider，不新增 outbox event；当前 runner 已直接消费 `async_jobs(report_generate)`，避免写入无人消费的 `report.generation.requested`。
+
 ## 3 模块边界
 
 | 边界 | Owner | 说明 |
@@ -198,6 +213,8 @@ Response 为 closed `ReportConversation`：`reportId`、`reportStatus`、frozen 
 | C-11 | Report job/fencing | report job创建、reap/takeover、迟到worker | generation persistence/finalize | async `max_attempts`只约束基础设施执行恢复；仅running+claimed attempt可写report/outbox/audit/job，stale worker零领域副作用；不得充当产品retry counter | 001 + backend-async-runner/001 |
 | C-12 | TargetJob 轮次报告概览 | owned ready TargetJob 含 canonical rounds，且各轮可有 ready / queued / generating / failed 历史 | 调用 `listTargetJobReports` | 无分页地返回每个 canonical round 的 `PracticeRoundRef + currentReport + latestAttempt`；两个指针按各自稳定顺序独立选择，非法 ownership/context/round identity 整体 fail closed，不返回完整报告内容 | 001 |
 | C-13 | Report-owned transcript | owned report 为 queued/generating/ready/failed，且 completion session 的消息数组可为空或严格有序 | 调用 `getReportConversation(reportId)` | 从唯一 report-session 关系返回 closed ordered projection；空数组为 200、每条 message content 非空白；无 session/message/client IDs，无写入/AI；missing/cross-user/corruption hidden 404 或 fail closed | 001 |
+| C-14 | Failed report manual regeneration | owned non-oversize report 为 failed，frozen context/transcript 仍存在 | 携带 IK 调用 `regenerateFeedbackReport`，可能重放或并发 | 同一 report 原子回到 queued，所有 ready-only 字段清空且仅创建一个 fresh job；同 key 重放；invalid/active/oversize/cross-user typed zero-write，transcript 始终可读 | 001 |
+| C-15 | Actionable semantic repair | initial/repair output 命中一个或多个 schema / anchor / evidence / readiness / action / text violation；服务端已知候选人 user seqNo 集合 | 执行 whole-report repair | 每个可达 code 都产生清晰意图且同轮全部 family 合并；anchor guidance 只加入经校验的严格升序 user seqNo 数字 allowlist，不加入正文；不安全 path、code/path 不兼容、空 anchor allowlist 或未知 code 在 provider 前 fail closed；untrusted marker 被转义且前一轮输出不进入下一轮上下文；真实同报告重试可进入 ready | 001 |
 
 ## 5 关联计划
 
@@ -207,6 +224,9 @@ Response 为 closed `ReportConversation`：`reportId`、`reportStatus`、frozen 
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-16 | 1.33 | Generalize repair from one opaque assistant-anchor code to explicit schema/anchor/evidence/readiness/action/text intent families, fail closed on unknown codes, and escape untrusted prompt boundary markers. |
+| 2026-07-16 | 1.32 | Make `not_user_message` repair actionable with a trusted server-derived candidate-user sequence allowlist while preserving full regeneration and content privacy. |
+| 2026-07-16 | 1.31 | Add atomic same-report manual regeneration for non-oversize terminal failures, with idempotency, stable lock order and transcript preservation. |
 | 2026-07-15 | 1.30 | Correct C-13 so an owned empty messages array is legal, while blank message content, missing createdAt and malformed message identity fail closed; require no-store verification before auth reads. |
 | 2026-07-15 | 1.29 | Add report-owned getReportConversation read-side over the existing unique report-session FK; expose a closed ordered message projection for all report statuses, remove listPracticeSessions product dependency, and require hidden-404/privacy/corruption fail-closed gates without a migration. |
 | 2026-07-14 | 1.28 | Remove the cross-unit byte/token capacity formula; keep the 917,504-byte input guard and the 1M/16K profile contract as independently owned configuration facts. |

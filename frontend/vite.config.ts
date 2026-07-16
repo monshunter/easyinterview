@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-const devServerPort = envPort("FRONTEND_HOST_PORT", 5173);
+const devServerPort = envPort("FRONTEND_HOST_PORT", 10900);
 const previewServerPort = envPort("FRONTEND_PREVIEW_PORT", 4173);
 
 function envPort(name: string, fallback: number): number {

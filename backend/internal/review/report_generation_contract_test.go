@@ -84,6 +84,54 @@ func TestGenerateReportRepairsInvalidOutputAndKeepsRetriesActionLocal(t *testing
 		t.Log("REPORT_OUTPUT_RETRY_PASS")
 	})
 
+	t.Run("assistant anchor repair exposes only trusted user sequence coordinates", func(t *testing.T) {
+		reportCtx := validGenerationReportContext("en")
+		reportCtx.FrozenContext.Conversation.MessageCount = 7
+		reportCtx.FrozenContext.Conversation.LastMessageSeqNo = 7
+		reportCtx.Messages = []MessageSnapshot{
+			{Role: "assistant", Content: "PRIVATE-QUESTION-1", SeqNo: 1},
+			{Role: "user", Content: "PRIVATE-ANSWER-2", SeqNo: 2},
+			{Role: "assistant", Content: "PRIVATE-QUESTION-3", SeqNo: 3},
+			{Role: "user", Content: "PRIVATE-ANSWER-4", SeqNo: 4},
+			{Role: "assistant", Content: "PRIVATE-QUESTION-5", SeqNo: 5},
+			{Role: "user", Content: "PRIVATE-ANSWER-6", SeqNo: 6},
+			{Role: "assistant", Content: "PRIVATE-QUESTION-7", SeqNo: 7},
+		}
+		invalid := strings.Replace(validDirectReportJSON("en"), `"sourceMessageSeqNos":[2]`, `"sourceMessageSeqNos":[7]`, 1)
+		invalid = strings.Replace(invalid, `"preparednessLevel":"needs_practice"`, `"preparednessLevel":"basically_ready"`, 1)
+		ai := &conversationReportAI{results: []conversationAIResult{
+			{response: aiclient.CompleteResponse{Content: invalid, FinishReason: "stop"}, meta: validReportCallMeta("en")},
+			{response: aiclient.CompleteResponse{Content: validDirectReportJSON("en"), FinishReason: "stop"}, meta: validReportCallMeta("en")},
+		}}
+		repo := &conversationReportRepository{ctx: reportCtx}
+		outcome := newConversationReportService(ai, repo).GenerateReport(context.Background(), AsyncJob{
+			JobID: testUUID(8), ResourceID: reportCtx.Session.ReportID, Attempts: 1, MaxAttempts: 4,
+		})
+		if !outcome.Succeeded || len(ai.payloads) != 2 {
+			t.Fatalf("assistant-anchor repair outcome=%+v calls=%d", outcome, len(ai.payloads))
+		}
+		initial, repair := ai.payloads[0].Messages, ai.payloads[1].Messages
+		if repair[1].Content != initial[1].Content {
+			t.Fatal("assistant-anchor repair changed the untrusted context payload")
+		}
+		const allowlist = "Valid candidate user message sequence numbers for evidence anchors: [2,4,6]."
+		if !strings.Contains(repair[0].Content, allowlist) {
+			t.Fatalf("assistant-anchor repair guidance missing trusted allowlist %q: %s", allowlist, repair[0].Content)
+		}
+		const readinessIntent = "A basically_ready report cannot contain any needs_work dimension."
+		if !strings.Contains(repair[0].Content, readinessIntent) {
+			t.Fatalf("assistant-anchor repair guidance missing readiness intent %q: %s", readinessIntent, repair[0].Content)
+		}
+		for _, forbidden := range []string{
+			"PRIVATE-QUESTION-1", "PRIVATE-ANSWER-2", "PRIVATE-QUESTION-3", "PRIVATE-ANSWER-4",
+			"PRIVATE-QUESTION-5", "PRIVATE-ANSWER-6", "PRIVATE-QUESTION-7",
+		} {
+			if strings.Contains(repair[0].Content, forbidden) {
+				t.Fatalf("assistant-anchor trusted guidance leaked message content %q", forbidden)
+			}
+		}
+	})
+
 	t.Run("four invalid outputs fail without partial ready", func(t *testing.T) {
 		reportCtx := validGenerationReportContext("en")
 		ai := &conversationReportAI{results: []conversationAIResult{

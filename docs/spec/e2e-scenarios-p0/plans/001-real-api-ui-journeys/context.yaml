@@ -5,10 +5,10 @@ metadata:
   name: 001-real-api-ui-journeys
   sequence: 1
   baseBranch: main
-  branch: settings-simplification
+  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
   specVersion:
-    from: 2.15
-    to: 2.16
+    from: 2.17
+    to: 2.18
 spec:
   defaultTarget: scenario
   discovery:
@@ -32,6 +32,9 @@ spec:
       - P0.101 settings gear real account logout
       - no deleteMe shared scenario
       - current-run evidence
+      - AI_DEBUG_CAPTURE_RAW_IO
+      - AI_DEBUG_RAW_IO_PATH
+      - raw NDJSON outside evidence
   targets:
     scenario:
       plan: ./plan.md
@@ -42,6 +45,9 @@ spec:
       references:
         - ../../../backend-review/plans/001-report-generation-baseline/bdd-plan.md
         - ../../../frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-plan.md
+        - ../../../ai-provider-and-model-routing/plans/001-aiclient-and-profile-bootstrap/plan.md
+        - ../../../secrets-and-config/plans/001-bootstrap/plan.md
+        - ../../../local-dev-stack/plans/001-bootstrap/plan.md
         - ../../../backend-auth/plans/001-email-code-session-bootstrap/bdd-plan.md
         - ../../../frontend-shell/plans/001-app-shell-auth-settings/bdd-plan.md
       discovery:

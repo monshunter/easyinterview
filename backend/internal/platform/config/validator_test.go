@@ -116,8 +116,14 @@ func TestDefaultAIDictionaryUsesProviderRegistryPaths(t *testing.T) {
 	if got := envBindings["AI_MODEL_PROFILE_PATH"]; got != "ai.modelProfilePath" {
 		t.Fatalf("AI_MODEL_PROFILE_PATH binding = %q", got)
 	}
-	if got := envBindings["AI_DEBUG_PRINT_RAW_OUTPUT"]; got != "ai.debugPrintRawOutput" {
-		t.Fatalf("AI_DEBUG_PRINT_RAW_OUTPUT binding = %q", got)
+	if got := envBindings["AI_DEBUG_CAPTURE_RAW_IO"]; got != "ai.debugCaptureRawIO" {
+		t.Fatalf("AI_DEBUG_CAPTURE_RAW_IO binding = %q", got)
+	}
+	if got := envBindings["AI_DEBUG_RAW_IO_PATH"]; got != "ai.debugRawIOPath" {
+		t.Fatalf("AI_DEBUG_RAW_IO_PATH binding = %q", got)
+	}
+	if _, exists := envBindings["AI_DEBUG_PRINT_RAW_OUTPUT"]; exists {
+		t.Fatalf("legacy AI_DEBUG_PRINT_RAW_OUTPUT binding remains: %+v", envBindings)
 	}
 
 	secretBindings := config.DefaultSecretBindings()
@@ -129,15 +135,18 @@ func TestDefaultAIDictionaryUsesProviderRegistryPaths(t *testing.T) {
 	}
 }
 
-func TestAIDebugPrintRawOutputEnvBindingOverridesDefault(t *testing.T) {
+func TestAIDebugRawCaptureEnvBindingsOverrideDefaults(t *testing.T) {
 	dir := t.TempDir()
 	writeYAML(t, filepath.Join(dir, "config.yaml"), `
 app:
   listenAddr: ":8080"
 ai:
-  debugPrintRawOutput: false
+  debugCaptureRawIO: false
+  debugRawIOPath: .test-output/local-dev/ai-raw.ndjson
 `)
-	t.Setenv("AI_DEBUG_PRINT_RAW_OUTPUT", "true")
+	wantPath := filepath.Join(t.TempDir(), "override.ndjson")
+	t.Setenv("AI_DEBUG_CAPTURE_RAW_IO", "true")
+	t.Setenv("AI_DEBUG_RAW_IO_PATH", wantPath)
 
 	loader, err := config.Load(config.Options{
 		AppEnv:      "test",
@@ -147,12 +156,15 @@ ai:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if got := loader.GetBool("ai.debugPrintRawOutput"); !got {
-		t.Fatalf("AI_DEBUG_PRINT_RAW_OUTPUT env binding = %v", got)
+	if got := loader.GetBool("ai.debugCaptureRawIO"); !got {
+		t.Fatalf("AI_DEBUG_CAPTURE_RAW_IO env binding = %v", got)
+	}
+	if got := loader.GetString("ai.debugRawIOPath"); got != wantPath {
+		t.Fatalf("AI_DEBUG_RAW_IO_PATH env binding = %q, want %q", got, wantPath)
 	}
 }
 
-func TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments(t *testing.T) {
+func TestRepoLocalConfigEnablesRawCaptureOnlyForLocalEnvironments(t *testing.T) {
 	configDir := filepath.Clean("../../../../config")
 
 	for _, appEnv := range []string{"dev", "test"} {
@@ -163,8 +175,11 @@ func TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments(t *testing
 		if err != nil {
 			t.Fatalf("Load(%s): %v", appEnv, err)
 		}
-		if got := loader.GetBool("ai.debugPrintRawOutput"); !got {
-			t.Fatalf("%s ai.debugPrintRawOutput = %v, want true", appEnv, got)
+		if got := loader.GetBool("ai.debugCaptureRawIO"); !got {
+			t.Fatalf("%s ai.debugCaptureRawIO = %v, want true", appEnv, got)
+		}
+		if got := loader.GetString("ai.debugRawIOPath"); !filepath.IsAbs(got) {
+			t.Fatalf("%s ai.debugRawIOPath = %q, want absolute path", appEnv, got)
 		}
 	}
 
@@ -176,8 +191,8 @@ func TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments(t *testing
 		if err != nil {
 			t.Fatalf("Load(%s): %v", appEnv, err)
 		}
-		if got := loader.GetBool("ai.debugPrintRawOutput"); got {
-			t.Fatalf("%s ai.debugPrintRawOutput = %v, want false", appEnv, got)
+		if got := loader.GetBool("ai.debugCaptureRawIO"); got {
+			t.Fatalf("%s ai.debugCaptureRawIO = %v, want false", appEnv, got)
 		}
 	}
 }
@@ -582,4 +597,108 @@ func TestUploadConfigDoesNotAddEnvDictionaryKeys(t *testing.T) {
 			t.Fatalf("backend-upload must not add unregistered env key %s", key)
 		}
 	}
+}
+
+func TestLocalAIRawCaptureConfigContract(t *testing.T) {
+	t.Run("canonical env dictionary replaces stderr debug key", func(t *testing.T) {
+		bindings := config.DefaultEnvBindings()
+		if got := bindings["AI_DEBUG_CAPTURE_RAW_IO"]; got != "ai.debugCaptureRawIO" {
+			t.Fatalf("AI_DEBUG_CAPTURE_RAW_IO binding = %q", got)
+		}
+		if got := bindings["AI_DEBUG_RAW_IO_PATH"]; got != "ai.debugRawIOPath" {
+			t.Fatalf("AI_DEBUG_RAW_IO_PATH binding = %q", got)
+		}
+		if _, exists := bindings["AI_DEBUG_PRINT_RAW_OUTPUT"]; exists {
+			t.Fatalf("legacy stderr raw-output binding remains: %+v", bindings)
+		}
+	})
+
+	t.Run("repo dev and test default enabled with ConfigDir parent anchor", func(t *testing.T) {
+		t.Setenv("AI_DEBUG_CAPTURE_RAW_IO", "")
+		t.Setenv("AI_DEBUG_RAW_IO_PATH", "")
+		configDir, err := filepath.Abs(filepath.Clean("../../../../config"))
+		if err != nil {
+			t.Fatalf("resolve repo config dir: %v", err)
+		}
+		wantPath := filepath.Join(filepath.Dir(configDir), ".test-output", "local-dev", "ai-raw.ndjson")
+		for _, appEnv := range []string{"dev", "test"} {
+			loader, err := config.LoadCanonical(config.CanonicalOptions{AppEnv: appEnv, ConfigDir: configDir})
+			if err != nil {
+				t.Fatalf("LoadCanonical(%s): %v", appEnv, err)
+			}
+			if !loader.GetBool("ai.debugCaptureRawIO") {
+				t.Errorf("%s ai.debugCaptureRawIO = false, want true", appEnv)
+			}
+			if got := loader.GetString("ai.debugRawIOPath"); got != wantPath {
+				t.Errorf("%s effective raw path = %q, want ConfigDir-parent anchored %q", appEnv, got, wantPath)
+			}
+		}
+	})
+
+	t.Run("repo staging and prod default disabled", func(t *testing.T) {
+		t.Setenv("AI_DEBUG_CAPTURE_RAW_IO", "")
+		t.Setenv("AI_DEBUG_RAW_IO_PATH", "")
+		configDir := filepath.Clean("../../../../config")
+		for _, appEnv := range []string{"staging", "prod"} {
+			loader, err := config.LoadCanonical(config.CanonicalOptions{AppEnv: appEnv, ConfigDir: configDir})
+			if err != nil {
+				t.Fatalf("LoadCanonical(%s): %v", appEnv, err)
+			}
+			if loader.GetBool("ai.debugCaptureRawIO") {
+				t.Errorf("%s ai.debugCaptureRawIO = true, want false", appEnv)
+			}
+		}
+	})
+
+	t.Run("test accepts an absolute override", func(t *testing.T) {
+		dir := t.TempDir()
+		writeYAML(t, filepath.Join(dir, "config.yaml"), "ai:\n  debugCaptureRawIO: false\n  debugRawIOPath: .test-output/local-dev/ai-raw.ndjson\n")
+		wantPath := filepath.Join(t.TempDir(), "custom-ai-raw.ndjson")
+		t.Setenv("AI_DEBUG_CAPTURE_RAW_IO", "true")
+		t.Setenv("AI_DEBUG_RAW_IO_PATH", wantPath)
+		loader, err := config.LoadCanonical(config.CanonicalOptions{AppEnv: "test", ConfigDir: dir})
+		if err != nil {
+			t.Fatalf("LoadCanonical: %v", err)
+		}
+		if !loader.GetBool("ai.debugCaptureRawIO") || loader.GetString("ai.debugRawIOPath") != wantPath {
+			t.Fatalf("legal override not applied: enabled=%v path=%q", loader.GetBool("ai.debugCaptureRawIO"), loader.GetString("ai.debugRawIOPath"))
+		}
+		if err := loader.Validate(); err != nil {
+			t.Fatalf("valid test raw capture override rejected: %v", err)
+		}
+	})
+
+	t.Run("enabled capture requires a path", func(t *testing.T) {
+		dir := t.TempDir()
+		writeYAML(t, filepath.Join(dir, "config.yaml"), "ai:\n  debugCaptureRawIO: true\n  debugRawIOPath: \"\"\n")
+		loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+		if err != nil {
+			t.Fatalf("Load: %v", err)
+		}
+		if err := loader.Validate(); err == nil || !strings.Contains(err.Error(), "AI_DEBUG_RAW_IO_PATH") {
+			t.Fatalf("enabled empty raw path error = %v, want AI_DEBUG_RAW_IO_PATH", err)
+		}
+	})
+
+	t.Run("staging and prod reject explicit enable", func(t *testing.T) {
+		for _, appEnv := range []string{"staging", "prod"} {
+			t.Run(appEnv, func(t *testing.T) {
+				dir := t.TempDir()
+				writeYAML(t, filepath.Join(dir, "config.yaml"), `
+ai:
+  debugCaptureRawIO: false
+  debugRawIOPath: .test-output/local-dev/ai-raw.ndjson
+`)
+				t.Setenv("AI_DEBUG_CAPTURE_RAW_IO", "true")
+				t.Setenv("AI_DEBUG_RAW_IO_PATH", filepath.Join(t.TempDir(), "forbidden.ndjson"))
+				loader, err := config.LoadCanonical(config.CanonicalOptions{AppEnv: appEnv, ConfigDir: dir})
+				if err != nil {
+					t.Fatalf("LoadCanonical: %v", err)
+				}
+				if err := loader.Validate(); err == nil || !strings.Contains(err.Error(), "AI_DEBUG_CAPTURE_RAW_IO") {
+					t.Fatalf("%s explicit capture error = %v, want AI_DEBUG_CAPTURE_RAW_IO", appEnv, err)
+				}
+			})
+		}
+	})
 }

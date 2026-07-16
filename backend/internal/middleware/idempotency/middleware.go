@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	HeaderName   = "Idempotency-Key"
-	ReplayHeader = "X-Idempotency-Replay"
-	DefaultTTL   = 24 * time.Hour
+	HeaderName               = "Idempotency-Key"
+	ReplayHeader             = "X-Idempotency-Replay"
+	DefaultTTL               = 24 * time.Hour
+	defaultCompletionTimeout = 5 * time.Second
 
 	resourceTypeHeader = "X-Idempotency-Resource-Type"
 	resourceIDHeader   = "X-Idempotency-Resource-ID"
@@ -112,6 +113,15 @@ type Middleware struct {
 
 type UserIDResolver func(r *http.Request) (userID string, ok bool)
 
+type CompletionContextFactory func(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc)
+
+type HandlerOptions struct {
+	PendingCode              string
+	PendingMessage           string
+	CompletionTimeout        time.Duration
+	CompletionContextFactory CompletionContextFactory
+}
+
 func New(opts MiddlewareOptions) *Middleware {
 	now := opts.Now
 	if now == nil {
@@ -147,6 +157,11 @@ func (m *Middleware) TTL() time.Duration {
 }
 
 func (m *Middleware) Handler(domain, operation string, resolveUser UserIDResolver, next http.Handler) http.Handler {
+	return m.HandlerWithOptions(domain, operation, resolveUser, next, HandlerOptions{})
+}
+
+func (m *Middleware) HandlerWithOptions(domain, operation string, resolveUser UserIDResolver, next http.Handler, opts HandlerOptions) http.Handler {
+	opts = normalizeHandlerOptions(opts)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if m == nil || m.store == nil {
 			writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "idempotency middleware is not configured")
@@ -186,7 +201,7 @@ func (m *Middleware) Handler(domain, operation string, resolveUser UserIDResolve
 			RequestBodyByteSize: len(body),
 		})
 		if err != nil {
-			writeReservationError(w, err)
+			writeReservationError(w, err, opts)
 			return
 		}
 		if reservation.State == StateReplay {
@@ -213,11 +228,13 @@ func (m *Middleware) Handler(domain, operation string, resolveUser UserIDResolve
 		}
 		buffer.header.Del(resourceTypeHeader)
 		buffer.header.Del(resourceIDHeader)
+		completionCtx, cancelCompletion := opts.CompletionContextFactory(r.Context(), opts.CompletionTimeout)
+		defer cancelCompletion()
 		var completeErr error
 		if status >= 200 && status < 300 {
-			completeErr = m.store.MarkSucceeded(r.Context(), complete)
+			completeErr = m.store.MarkSucceeded(completionCtx, complete)
 		} else {
-			completeErr = m.store.MarkFailed(r.Context(), complete)
+			completeErr = m.store.MarkFailed(completionCtx, complete)
 		}
 		if completeErr != nil {
 			writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "idempotency response could not be persisted")
@@ -225,6 +242,24 @@ func (m *Middleware) Handler(domain, operation string, resolveUser UserIDResolve
 		}
 		buffer.flushTo(w)
 	})
+}
+
+func normalizeHandlerOptions(opts HandlerOptions) HandlerOptions {
+	if strings.TrimSpace(opts.PendingCode) == "" {
+		opts.PendingCode = sharederrors.CodePracticeSessionConflict
+	}
+	if strings.TrimSpace(opts.PendingMessage) == "" {
+		opts.PendingMessage = "request with this Idempotency-Key is still pending"
+	}
+	if opts.CompletionTimeout <= 0 {
+		opts.CompletionTimeout = defaultCompletionTimeout
+	}
+	if opts.CompletionContextFactory == nil {
+		opts.CompletionContextFactory = func(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+			return context.WithTimeout(context.WithoutCancel(parent), timeout)
+		}
+	}
+	return opts
 }
 
 func SetResponseResource(w http.ResponseWriter, resourceType, resourceID string) {
@@ -251,10 +286,10 @@ func readAndRestoreBody(r *http.Request, maxBytes int64) ([]byte, error) {
 	return body, nil
 }
 
-func writeReservationError(w http.ResponseWriter, err error) {
+func writeReservationError(w http.ResponseWriter, err error, opts HandlerOptions) {
 	switch {
 	case stderrs.Is(err, ErrPending):
-		writeAPIError(w, http.StatusConflict, sharederrors.CodePracticeSessionConflict, "request with this Idempotency-Key is still pending")
+		writeAPIError(w, http.StatusConflict, opts.PendingCode, opts.PendingMessage)
 	case stderrs.Is(err, ErrFingerprintMismatch):
 		writeAPIError(w, http.StatusConflict, sharederrors.CodeIdempotencyKeyMismatch, "Idempotency-Key was already used with a different request")
 	case stderrs.Is(err, ErrIdempotencyKeyRequired):

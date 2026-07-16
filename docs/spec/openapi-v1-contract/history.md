@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.63
+> **版本**: 1.65
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 ## 1 修订规则
 
@@ -30,6 +30,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-16 | 1.65 | 用户确认方案 A：additive 新增 protected `POST /api/v1/reports/{reportId}/regenerate` / `regenerateFeedbackReport`，必带 `Idempotency-Key`、无 request body、返回同 report ID 的 `202 + ReportWithJob`；`ApiErrorCode` 新增 `REPORT_INVALID_STATE_TRANSITION`，inventory 37→38 operations / 10 tags，内部 attempt/progress 仍不公开。 | D-40 + openapi-v1-contract/001/002/003 + backend-review/001 + frontend-report-dashboard/001 |
 | 2026-07-15 | 1.63 | 接受 OPENAPI-007：`UserContext` 删除无正式消费者的 required `uiLanguage/preferredPracticeLanguage`，保留四字段 closed current-user 投影；Auth method/path/status 与 session/profile/delete 语义不变，全部 consumer/migration 同批迁移后才 re-freeze。 | OPENAPI-007 + openapi-v1-contract/001/002/003 + backend-auth/001 + frontend-shell/001 + db-migrations-baseline/001 |
 | 2026-07-15 | 1.64 | 用户确认 authenticated Settings 正常显示完整账号 email；OPENAPI-007 四字段投影以 `email` 替换 `emailMasked`，无兼容 alias，日志与 E2E 证据仍脱敏。 | OPENAPI-007 + openapi-v1-contract/001/002/003 + backend-auth/001 + frontend-shell/001 + e2e-scenarios-p0/001 |
 | 2026-07-15 | 1.62 | 收紧 `ReportConversationMessage.content` 为 `minLength: 1` + `pattern: \S`，使 OpenAPI、后端投影、前端 fail-closed 和 fixture validator 一致；仍只影响 D-21 的 report-owned conversation additive schema finding。 | openapi-v1-contract/001 + 002 + 003 |

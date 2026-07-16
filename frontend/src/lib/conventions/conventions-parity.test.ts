@@ -75,6 +75,11 @@ describe('cross-language conventions parity fixture', () => {
       message: 'report context exceeds supported generation size',
       retryable: false,
     });
+    expect(ERROR_CODES.REPORT_INVALID_STATE_TRANSITION).toBe('REPORT_INVALID_STATE_TRANSITION');
+    expect(ERROR_REGISTRY.REPORT_INVALID_STATE_TRANSITION).toEqual({
+      message: 'report state transition is not allowed',
+      retryable: false,
+    });
     expect(ERROR_CODES.IDEMPOTENCY_KEY_MISMATCH).toBe('IDEMPOTENCY_KEY_MISMATCH');
     expect(ERROR_CODES.RESUME_EXPORT_NOT_AVAILABLE).toBe('RESUME_EXPORT_NOT_AVAILABLE');
   });

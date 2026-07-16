@@ -1,6 +1,6 @@
 # Mock Contract Suite Spec
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -45,7 +45,7 @@
 | D-2 | Prototype 数据定位 | `frontend/src` 只做 baseline 映射参考 | 实现不能直接 import prototype data |
 | D-3 | Mock 范围 | P0 happy path + 高风险错误态 | 不扩展当前范围外的空壳 |
 | D-4 | Drift gate | mock runtime 必须跑 fixture coverage、OpenAPI diff / validation 和 current-scope negative search | 后续 UI / API 改动要先更新 owner truth source |
-| D-5 | Frontend dev preview 默认行为 | Vite dev 默认 fixture-backed；`VITE_EI_API_MODE=real` 必须同时提供 `VITE_EI_API_BASE_URL` 才打真实 backend | 避免本地开发时大量真实接口报错导致页面不可见，且避免相对 `/api/v1` 隐式打到 frontend 5173 |
+| D-5 | Frontend dev preview 默认行为 | Vite dev 默认 fixture-backed；`VITE_EI_API_MODE=real` 必须同时提供 `VITE_EI_API_BASE_URL` 才打真实 backend | 避免本地开发时大量真实接口报错导致页面不可见，且避免相对 `/api/v1` 隐式打到当前 frontend origin；具体端口由 local-dev-stack 配置拥有 |
 | D-6 | TargetJob mock paste-only | `importTargetJob` mock request 只接受 flattened `{rawText,targetLanguage,resumeId}`；TargetJob fixture/generated mock response 不含 `sourceType` / `sourceUrl`；URL/file/manual_form 与 `target_job_attachment` 不得作为正向 mock 能力 | 保留通用 `createUploadPresign` 及 resume/privacy purpose；由 registry、frontend transport、backend mockruntime 与 boundary tests 证明代码层 parity |
 | D-7 | Practice recovery mock parity | mock runtime 原样消费 B2 role-discriminated messages 与 typed failure fixtures：user 有 `clientMessageId/replyStatus`，assistant 无；get-session 覆盖四种 durable status，send 覆盖 validation/auth/not-found/conflict/mismatch/retryable failure 与 same-ID retry success | 不复制本地 recovery DTO/错误表；unknown scenario 继续 fail loudly；由 fixture-backed frontend/backend tests 证明 exact parity 与 replay semantics |
 | D-8 | Report conversation mock replacement | registry 删除 `listPracticeSessions` 并原样消费 `getReportConversation` fixture；只返回 reportId/status/frozen context/ordered messages，不暴露内部 locator | frontend/backend mock 选择同一 Reports fixture；old operation/path/scenario unknown 并 fail loudly；总 coverage 仍为 37/37，不复制本地 transcript DTO |
@@ -58,7 +58,7 @@
 - seed profile 必须覆盖未登录、已登录、缺 session、缺简历、报告生成中、隐私删除请求等 P0 状态；消费者按 `openapi/fixtures/README.md` 的 scenario selection contract 读取，未知 scenario 必须 fail loudly，不能静默回落到 `default`。
 - 后端 mock runtime 的 named scenario 回归测试必须以 `openapi/fixtures/<tag>/<operationId>.json` 中的 scenario response 为断言真理源，不得复制一套 hard-coded status / error code / response field 期望；否则 fixture 更新后会出现测试消费者漂移。
 - 前端 dev preview mock client 必须从当前 generated operation inventory 反查 fixture 覆盖；新增 operation 后，如果 fixture 没接入 dev mock，应由测试失败暴露，而不是在浏览器里变成真实接口错误。
-- 前端 dev preview 必须保留显式真实 backend 逃生口：`VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=<url> pnpm --filter @easyinterview/frontend dev` 使用默认 generated client + real `fetch`；dev real 模式不得隐式使用相对 `/api/v1` 打到 frontend 5173，也不得在缺少 `VITE_EI_API_BASE_URL` 时猜测 backend 地址。
+- 前端 dev preview 必须保留显式真实 backend 逃生口：`VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=<url> pnpm --filter @easyinterview/frontend dev` 使用默认 generated client + real `fetch`；dev real 模式不得隐式使用相对 `/api/v1` 打到当前 frontend origin，也不得在缺少 `VITE_EI_API_BASE_URL` 时猜测 backend 地址或复制 local-dev-stack 端口默认值。
 - Mock response 必须只覆盖当前 `openapi/openapi.yaml` inventory、当前 fixtures 与 product-scope current contract；禁止新增当前范围之外的 route、tag、operationId、schema key 或 runtime config path。
 - tag / fixture 目录拦截必须覆盖目录名本身，包括空目录和 Git 不跟踪的目录；`openapi/fixtures/` 下只允许当前 10 个 tag 目录。
 - TargetJob mock 必须原样消费 OPENAPI-002 迁移后的 fixture/generated types：`importTargetJob` request 精确为 `rawText` / `targetLanguage` / `resumeId`，read response 不含 `sourceType` / `sourceUrl`。旧能力在 positive/runtime mock surface 中必须 zero-reference；accepted ADR/oracle 与 exact negative declarations 可保留 rejected token，禁止 whole-file/directory exclusion。

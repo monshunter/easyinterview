@@ -11,7 +11,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
     def test_product_scope_v21_inventory_includes_delete_me(self) -> None:
         # Current v1.0.0 pre-launch freeze after D-17 JD match removal and
         # D-20 flat resume contract.
-        self.assertEqual(37, len(inventory.EXPECTED_OPERATIONS))
+        self.assertEqual(38, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(("Auth", "delete", "/me", "deleteMe"), inventory.EXPECTED_OPERATIONS)
         self.assertIn(("delete", "/me"), inventory.IK_REQUIRED)
 
@@ -72,7 +72,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertEqual(4, len([line for line in user_context_go.splitlines() if "`json:" in line]))
 
     def test_report_conversation_replaces_the_public_practice_session_list(self) -> None:
-        self.assertEqual(37, len(inventory.EXPECTED_OPERATIONS))
+        self.assertEqual(38, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(
             ("Reports", "get", "/reports/{reportId}/conversation", "getReportConversation"),
             inventory.EXPECTED_OPERATIONS,
@@ -184,6 +184,70 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertNotIn("ListPracticeSessions", go_server)
         self.assertIn(
             "GetReportConversation(w http.ResponseWriter, r *http.Request, reportId string)",
+            go_server,
+        )
+
+    def test_failed_report_regeneration_is_protected_header_only_and_idempotent(self) -> None:
+        expected = (
+            "Reports",
+            "post",
+            "/reports/{reportId}/regenerate",
+            "regenerateFeedbackReport",
+        )
+        self.assertIn(expected, inventory.EXPECTED_OPERATIONS)
+        self.assertIn(("post", "/reports/{reportId}/regenerate"), inventory.IK_REQUIRED)
+
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        operation = data["paths"]["/reports/{reportId}/regenerate"]["post"]
+        self.assertEqual("regenerateFeedbackReport", operation["operationId"])
+        self.assertNotIn("requestBody", operation)
+        self.assertEqual(
+            ["reportId"],
+            [parameter["name"] for parameter in operation["parameters"] if "name" in parameter],
+        )
+        self.assertEqual(
+            [
+                "#/components/parameters/IdempotencyKey",
+                "#/components/parameters/XRequestID",
+                "#/components/parameters/Traceparent",
+                "#/components/parameters/AcceptLanguage",
+                "#/components/parameters/XClientVersion",
+            ],
+            [parameter["$ref"] for parameter in operation["parameters"] if "$ref" in parameter],
+        )
+        self.assertEqual(
+            "#/components/schemas/ReportWithJob",
+            operation["responses"]["202"]["content"]["application/json"]["schema"]["$ref"],
+        )
+        self.assertEqual(
+            "#/components/headers/XIdempotencyReplay",
+            operation["responses"]["202"]["headers"]["X-Idempotency-Replay"]["$ref"],
+        )
+        self.assertIn("default", operation["responses"])
+        self.assertIn(
+            "REPORT_INVALID_STATE_TRANSITION",
+            data["components"]["schemas"]["ApiErrorCode"]["enum"],
+        )
+
+        generated = yaml.safe_load(
+            Path("backend/internal/api/generated/openapi.yaml").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            "regenerateFeedbackReport",
+            generated["paths"]["/reports/{reportId}/regenerate"]["post"]["operationId"],
+        )
+        self.assertEqual(
+            "#/components/headers/XIdempotencyReplay",
+            generated["paths"]["/reports/{reportId}/regenerate"]["post"]["responses"]["202"]["headers"]["X-Idempotency-Replay"]["$ref"],
+        )
+        ts_client = Path("frontend/src/api/generated/client.ts").read_text(encoding="utf-8")
+        go_server = Path("backend/internal/api/generated/server.gen.go").read_text(encoding="utf-8")
+        self.assertIn(
+            "async regenerateFeedbackReport(reportId: string, opts?: RequestOptions): Promise<Types.ReportWithJob>",
+            ts_client,
+        )
+        self.assertIn(
+            "RegenerateFeedbackReport(w http.ResponseWriter, r *http.Request, reportId string)",
             go_server,
         )
 
@@ -407,7 +471,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
                 )
                 self.assertTrue(errors, body)
 
-        self.assertEqual(37, len(inventory.EXPECTED_OPERATIONS))
+        self.assertEqual(38, len(inventory.EXPECTED_OPERATIONS))
         self.assertEqual(10, len(inventory.EXPECTED_TAGS))
 
     def test_targetjob_report_overview_semantic_linter_rejects_legacy_and_open_shapes(self) -> None:
@@ -870,7 +934,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
             "#/components/schemas/UploadPresign",
             presign_operation["responses"]["201"]["content"]["application/json"]["schema"]["$ref"],
         )
-        self.assertEqual(37, len(inventory.EXPECTED_OPERATIONS))
+        self.assertEqual(38, len(inventory.EXPECTED_OPERATIONS))
         self.assertEqual(10, len(inventory.EXPECTED_TAGS))
 
     def test_targetjob_paste_only_semantic_linter_rejects_source_compatibility(self) -> None:

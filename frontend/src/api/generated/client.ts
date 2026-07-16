@@ -427,6 +427,16 @@ export class EasyInterviewClient {
 		);
 	}
 
+	/** regenerateFeedbackReport — post /reports/{reportId}/regenerate: Regenerate a failed feedback report */
+	async regenerateFeedbackReport(reportId: string, opts?: RequestOptions): Promise<Types.ReportWithJob> {
+		return this.request<Types.ReportWithJob>(
+			"POST",
+			buildPath("/reports/{reportId}/regenerate", { reportId: reportId }),
+			undefined,
+			opts,
+		);
+	}
+
 	/** requestResumeTailor — post /resume/tailor: Start a resume-tailoring run for a target job */
 	async requestResumeTailor(body: Types.RequestResumeTailorRequest, opts?: RequestOptions): Promise<Types.ResumeTailorRunWithJob> {
 		return this.request<Types.ResumeTailorRunWithJob>(
@@ -630,6 +640,7 @@ export const ALL_OPERATION_IDS = [
 	"getPrivacyRequest",
 	"getFeedbackReport",
 	"getReportConversation",
+	"regenerateFeedbackReport",
 	"requestResumeTailor",
 	"getResumeTailorRun",
 	"listResumes",
@@ -678,6 +689,7 @@ export const ALL_ROUTES = [
 	{ operationId: "getPrivacyRequest", method: "GET", path: "/privacy/requests/{privacyRequestId}" },
 	{ operationId: "getFeedbackReport", method: "GET", path: "/reports/{reportId}" },
 	{ operationId: "getReportConversation", method: "GET", path: "/reports/{reportId}/conversation" },
+	{ operationId: "regenerateFeedbackReport", method: "POST", path: "/reports/{reportId}/regenerate" },
 	{ operationId: "requestResumeTailor", method: "POST", path: "/resume/tailor" },
 	{ operationId: "getResumeTailorRun", method: "GET", path: "/resume/tailor-runs/{tailorRunId}" },
 	{ operationId: "listResumes", method: "GET", path: "/resumes" },

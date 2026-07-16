@@ -1,12 +1,12 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.20
-> **状态**: completed
+> **版本**: 1.21
+> **状态**: active
 > **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
-> Phase 1-12 的已勾选项只保留为历史交付证据；Phase 13 是当前内容大小配置、代码缺省与最小验证合同。旧 Phase 中出现的附件配置、散落硬编码或配置专用场景不构成当前实现、验收或兼容要求。
+> Phase 1-14 的已勾选项只保留为历史交付证据；Phase 15 是当前本地 AI raw I/O 配置与隐私边界合同。旧 Phase 中出现的附件配置、散落硬编码、配置专用场景或 stderr raw-output 开关不构成当前实现、验收或兼容要求。
 
 ## Phase 1: Three-tier config loader 与 redactor
 
@@ -124,3 +124,15 @@
   <!-- verified: 2026-07-16 method=env-dictionary+compose-contract evidence="35-key env dictionary, provider terminology, secret scan, full-container email contract, and compose config pass" -->
 - [x] 14.4 BDD-N/A/REGRESSION: focused owner tests、`make lint-config`、secret redaction 与 `EMAIL_PROVIDER_API_KEY` current-scope zero-reference 通过；用户行为交给 backend-auth `BDD.AUTH.EMAIL.002`。
   <!-- verified: 2026-07-16 method=substitute-gates evidence="platform config package and lint-config pass; removed key remains only in explicit negative assertions and plan verification wording" -->
+
+## Phase 15: Local AI raw I/O capture config
+
+- [x] 15.1 RED-CONFIG: owner table tests 覆盖 dev/test 缺省开启、staging/prod 缺省关闭、staging/prod 显式开启拒绝、capture 开启但 path 为空拒绝、合法 override 与 resolved-ConfigDir-parent 相对路径锚点。<!-- verified: 2026-07-16 method=raw-config-focused-red evidence="owner loader/validator tests fail on missing new bindings/defaults/prod fail-fast/effective ConfigDir-parent path and runtime-config negative contract" -->
+- [x] 15.2 GREEN-CONFIG: 落地 `ai.debugCaptureRawIO` / `ai.debugRawIOPath` typed bindings、env bindings、YAML 默认、effective absolute path 和 validator；dev/test 默认路径为 `.test-output/local-dev/ai-raw.ndjson`.<!-- verified: 2026-07-16 method=raw-config-green evidence="platform/config package PASS for dev/test defaults, ConfigDir-parent absolute resolution, legal override, empty-path rejection and staging/prod fail-fast" -->
+- [x] 15.3 PRIVACY/DICTIONARY: 同步根与 dev-stack `.env.example`、config README 与 `make lint-config`；runtime-config/config dump 不暴露开关、路径或内容。<!-- verified: 2026-07-16 method=raw-config-privacy evidence="lint-config PASS with 36-key env/spec parity and secret scan; runtime-config negative test and active README/env dictionary use only the dedicated capture/path contract" -->
+- [x] 15.4 BDD-N/A/REGRESSION: focused owner tests、`make lint-config`、runtime-config negative contract 与旧 stderr key current-scope zero-reference 通过；真实 recorder 由 A3 Phase 16 验证。<!-- verified: 2026-07-16 method=raw-config-regression evidence="platform/config, lint-config, observability and scenario contract gates PASS; legacy token remains only in explicit negative assertions/spec gates and allowed historical evidence" -->
+
+## Phase 16: local app port defaults
+
+- [x] 16.1 DICTIONARY/YAML: `APP_LISTEN_ADDR=:10901`、`EMAIL_VERIFY_BASE_URL=http://127.0.0.1:10900/auth/verify` 在 A4 spec、root/dev-stack env 与 canonical YAML 一致；不新增 env key。<!-- verified: 2026-07-16 method=config-contract evidence="A4 dictionary and YAML align with A2 unified external endpoints; container-internal 8080 remains A2-owned" -->
+- [ ] 16.2 REGRESSION: platform config owner tests、`make lint-config`、scenario port contract、backend runtime-config smoke 与 docs/context/index/diff gates 通过；BDD 不适用。

@@ -6,7 +6,8 @@ log:
   level: debug
 
 ai:
-  debugPrintRawOutput: true
+  debugCaptureRawIO: true
+  debugRawIOPath: ".test-output/local-dev/ai-raw.ndjson"
 
 featureFlag:
   source: file

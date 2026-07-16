@@ -43,7 +43,11 @@ if [ "${VITE_EI_API_MODE:-}" != "real" ]; then
   echo "setup: E2E.P0.101 requires VITE_EI_API_MODE=real" >&2
   exit 1
 fi
-if [ "${VITE_EI_API_BASE_URL:-}" != "http://127.0.0.1:8080/api/v1" ]; then
+API_HOST_PORT="${API_HOST_PORT:-10901}"
+FRONTEND_HOST_PORT="${FRONTEND_HOST_PORT:-10900}"
+API_BASE_URL="http://127.0.0.1:${API_HOST_PORT}/api/v1"
+FRONTEND_ORIGIN="http://127.0.0.1:${FRONTEND_HOST_PORT}"
+if [ "${VITE_EI_API_BASE_URL:-}" != "$API_BASE_URL" ]; then
   echo "setup: E2E.P0.101 requires the frontend API base to match the live backend" >&2
   exit 1
 fi
@@ -65,8 +69,8 @@ fi
   echo "scenario=E2E.P0.101"
   echo "RUN_ID=$RUN_ID"
   echo "AUTH_EMAIL=$AUTH_EMAIL"
-  echo "FRONTEND_ORIGIN=http://127.0.0.1:5173"
-  echo "API_BASE_URL=http://127.0.0.1:8080/api/v1"
+  echo "FRONTEND_ORIGIN=$FRONTEND_ORIGIN"
+  echo "API_BASE_URL=$API_BASE_URL"
   echo "MAILPIT_BASE_URL=$MAILPIT_BASE_URL"
   echo "setup_at=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 } > "$OUTPUT_DIR/setup.env"
@@ -74,13 +78,13 @@ fi
 {
   echo "SCENARIO_RUNNER=E2E.P0.101"
   echo "RUN_ID=$RUN_ID"
-  echo "frontend=http://127.0.0.1:5173"
-  echo "backend=http://127.0.0.1:8080/api/v1"
+  echo "frontend=$FRONTEND_ORIGIN"
+  echo "backend=$API_BASE_URL"
   echo "mailpit=$MAILPIT_BASE_URL"
   echo "VITE_EI_API_MODE=real"
   echo "VITE_EI_API_BASE_URL=$VITE_EI_API_BASE_URL"
-  curl -fsS --max-time 5 "http://127.0.0.1:5173/" >/dev/null
-  curl -fsS --max-time 5 "http://127.0.0.1:8080/api/v1/runtime-config" >/dev/null
+  curl -fsS --max-time 5 "$FRONTEND_ORIGIN/" >/dev/null
+  curl -fsS --max-time 5 "$API_BASE_URL/runtime-config" >/dev/null
   curl -fsS --max-time 5 "$MAILPIT_BASE_URL/readyz" >/dev/null
   echo "setup: ok"
 } 2>&1 | tee "$OUTPUT_DIR/setup.log"

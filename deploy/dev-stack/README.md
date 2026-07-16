@@ -1,6 +1,6 @@
 # Local Dev Stack
 
-> **版本**: 1.9
+> **版本**: 1.11
 > **状态**: active
 > **更新日期**: 2026-07-16
 
@@ -37,7 +37,7 @@ backend 复用唯一的 `redis-dev` 保存共享加密 delivery secret：produce
 
 ### 2.2 项目组件
 
-项目组件不进入默认 compose 启动集合。backend / frontend 本地开发仍优先使用宿主机 dev command；`full-container` profile 提供可复现的 `backend-dev`、一次性 `migrate-dev` 和 `frontend-dev`，默认分别暴露 `10801`、无 host port、`10800`。frontend nginx 将 `/api/*` 同源代理到 `backend-dev:8080`，其余路径回退到 SPA `index.html`。
+项目组件不进入默认 compose 启动集合。backend / frontend 本地开发仍优先使用宿主机 dev command；`full-container` profile 提供可复现的 `backend-dev`、一次性 `migrate-dev` 和 `frontend-dev`，宿主机入口与 host-run 统一为 backend `10901`、frontend `10900`。frontend nginx 将 `/api/*` 同源代理到容器内 `backend-dev:8080`，其余路径回退到 SPA `index.html`。
 
 | label | 含义 |
 |-------|------|
@@ -57,7 +57,7 @@ backend 复用唯一的 `redis-dev` 保存共享加密 delivery secret：produce
 | `make dev-reset` | 停止容器并 **删除** 三个命名卷（C-5）；交互式 `read` 确认；`DEV_RESET_FORCE=1` 跳过确认 |
 | `make dev-logs` | 汇总打印近期容器日志；`SERVICE=<name>` 限定到单个 service |
 | `make dev-pull` | 预拉锁定 tag 的依赖镜像（慢网络） |
-| `make dev-container-up` | 校验本地 secret，停止由仓库 PID 文件管理的 host-run backend/frontend，构建镜像、执行 migration 并启动完整容器栈；frontend `10800`，backend `10801` |
+| `make dev-container-up` | 校验本地 secret，停止由仓库 PID 文件管理的 host-run backend/frontend，构建镜像、执行 migration 并启动完整容器栈；frontend `10900`，backend `10901` |
 | `make dev-container-down` | 停止完整容器栈并保留命名卷 |
 | `make dev-container-doctor` | 检查外部依赖与容器化前后端健康状态 |
 | `make dev-container-logs` | 输出容器化前后端日志；`SERVICE=backend-dev|frontend-dev` 可缩小范围 |
@@ -81,27 +81,27 @@ backend 复用唯一的 `redis-dev` 保存共享加密 delivery secret：produce
 host-run backend 必须从同一个 `.env` 读取：
 
 - `APP_ENV=dev`
-- `APP_LISTEN_ADDR=:8080`（应用默认值；`test/scenarios/env-redeploy.sh backend|all` 会在启动 host-run backend 前把 `:8080` / `0.0.0.0:8080` 收敛为 `127.0.0.1:${API_HOST_PORT:-8080}`）
-- `API_HOST_PORT=8080`
+- `APP_LISTEN_ADDR=:10901`（应用默认值；`test/scenarios/env-redeploy.sh backend|all` 会在启动 host-run backend 前把通配地址收敛为 `127.0.0.1:${API_HOST_PORT:-10901}`）
+- `API_HOST_PORT=10901`
 - `SESSION_COOKIE_SECRET`
 - `AUTH_CHALLENGE_TOKEN_PEPPER`
 - `REDIS_URL=redis://127.0.0.1:${REDIS_HOST_PORT:-6379}/0`（host-run）；full-container 固定使用 `redis://redis-dev:6379/0`
 
 frontend real mode 也必须从同一个 `.env` 读取：
 
-- `FRONTEND_HOST_PORT=5173`（Vite dev server 端口；可按本机占用调整）
+- `FRONTEND_HOST_PORT=10900`（Vite dev server 端口；可按本机占用调整）
 - `FRONTEND_PREVIEW_PORT=4173`（Vite preview 端口；可按本机占用调整）
 - `VITE_EI_API_MODE=real`
-- `VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1`
+- `VITE_EI_API_BASE_URL=http://127.0.0.1:10901/api/v1`
 
-完整容器模式使用同一文件中的 `FULL_CONTAINER_FRONTEND_HOST_PORT=10800` 与 `FULL_CONTAINER_API_HOST_PORT=10801`。`SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`AI_PROVIDER_BASE_URL`、`AI_PROVIDER_API_KEY` 为空时 `make dev-container-up` 会在构建前失败且只报告缺失字段名，不输出任何 secret 值。
+完整容器模式使用同一文件中的 `FULL_CONTAINER_FRONTEND_HOST_PORT=10900` 与 `FULL_CONTAINER_API_HOST_PORT=10901`，与 host-run 的外部入口一致；容器内部仍使用 `8080`。`SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`AI_PROVIDER_BASE_URL`、`AI_PROVIDER_API_KEY` 为空时 `make dev-container-up` 会在构建前失败且只报告缺失字段名，不输出任何 secret 值。
 
 ### 4.1.1 服务地址与调试入口
 
 `test/scenarios/env-setup.sh`、`env-status.sh`、`env-verify.sh` 和 `env-redeploy.sh` 会输出同一组本地调试摘要。默认地址为：
 
-- Frontend dev：`http://127.0.0.1:5173/`（由 `FRONTEND_HOST_PORT` 控制）
-- Backend API：`http://127.0.0.1:8080/api/v1`（由 `APP_LISTEN_ADDR` / `API_HOST_PORT` 控制）
+- Frontend dev：`http://127.0.0.1:10900/`（由 `FRONTEND_HOST_PORT` 控制）
+- Backend API：`http://127.0.0.1:10901/api/v1`（由 `APP_LISTEN_ADDR` / `API_HOST_PORT` 控制）
 - Mailpit：`http://127.0.0.1:8025`（由 `MAILPIT_WEB_HOST_PORT` 控制）
 - MinIO Console：`http://127.0.0.1:9001`（由 `MINIO_CONSOLE_HOST_PORT` 控制）
 
@@ -126,7 +126,7 @@ make dev-logs SERVICE=mailpit-dev
 test/scenarios/env-redeploy.sh all
 ```
 
-如果本机存在不属于 easyinterview 的 Docker / Kind bridge listener 占用非 loopback 8080，场景 redeploy 不会尝试杀掉它；host-run backend 会改用 `127.0.0.1:${API_HOST_PORT:-8080}` 监听，frontend real-mode API base 仍保持 `http://127.0.0.1:${API_HOST_PORT:-8080}/api/v1`。
+默认 host-run backend 使用 `127.0.0.1:${API_HOST_PORT:-10901}`，避免与常见的 `8080` 服务冲突。若用户显式覆盖为其它端口且该端口已有无关 listener，场景 redeploy 不会尝试杀掉它；frontend real-mode API base 必须同步使用同一个 `API_HOST_PORT`。
 
 ### 4.2 AI provider 配置
 
@@ -135,7 +135,7 @@ test/scenarios/env-redeploy.sh all
 - 必须保留 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml` 与 `AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml`，本地组件从单一 provider registry / profile catalog 加载 AI 路由。
 - 必须设置 `AI_PROVIDER_BASE_URL=https://api.deepseek.com`，与 `deepseek` provider ref 对齐。
 - 必须设置 `AI_PROVIDER_API_KEY` 为对应 provider 的真实 key。
-- `AI_DEBUG_PRINT_RAW_OUTPUT=true` 是本地测试与本地真实联调默认值，会把 LLM `Complete` 原始响应打印到 backend stderr，便于确认真实 provider 输出格式；raw 内容不进入 `ai_task_runs` / `audit_events` / 场景验收报告。staging / prod 必须保持关闭。
+- `AI_DEBUG_CAPTURE_RAW_IO=true` 与 `AI_DEBUG_RAW_IO_PATH=.test-output/local-dev/ai-raw.ndjson` 是本地测试/真实联调默认值；backend 将 provider-neutral `Complete` 请求/响应成对追加到 backend-only、mode-`0600` 的独立 NDJSON，`callId` 等于 `ai_task_runs.id`。raw 内容不进入 backend log、audit、runtime-config 或场景 evidence；staging/prod 显式开启会拒绝启动。
 - 缺 registry/profile 路径或当前 profile 选中的 provider secret 时，启用 AIClient 的组件 fail-fast，`make dev-doctor` 对该组件报 DOWN/DEGRADED 且 reason 指向缺真实 AI provider 配置（C-9）。
 - **不允许** 把本地部署降级到单元测试 stub。stub 仅在 `APP_ENV=test`（单元测试 / 离线契约测试）下使用，由 [A3 ai-provider-and-model-routing](../../docs/spec/ai-provider-and-model-routing/spec.md) 承接。
 
@@ -148,11 +148,13 @@ test/scenarios/env-redeploy.sh all
 - `EMAIL_SMTP_PORT=1025`
 - `EMAIL_SMTP_TLS_MODE=none`
 - `EMAIL_FROM_ADDRESS=noreply@easyinterview.local`
-- `EMAIL_VERIFY_BASE_URL=http://127.0.0.1:5173/auth/verify`（当前仅作为本地 frontend origin / dev CORS 推导来源保留，不拼入邮件正文）
+- `EMAIL_VERIFY_BASE_URL=http://127.0.0.1:10900/auth/verify`（当前仅作为本地 frontend origin / dev CORS 推导来源保留，不拼入邮件正文）
+
+默认 `MAILPIT_SMTP_HOST_PORT` 与 host-run `EMAIL_SMTP_PORT` 都是 `1025`。如果在 `deploy/dev-stack/.env` override `MAILPIT_SMTP_HOST_PORT`，必须把 host-run `EMAIL_SMTP_PORT` 同步为同一个有效 host mapping；`scenario-env-redeploy backend|all` 会在 backend 启动前校验两者，不一致时 fail fast。该规则只适用于 Mailpit + loopback host；full-container 始终使用容器网络内 `mailpit-dev:1025`，标准外部 SMTP endpoint 不受影响。
 
 Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启动后，`startAuthEmailChallenge` 会通过 `email_dispatch` handler 向 Mailpit SMTP 投递 code-only 邮件；邮件正文只包含 6 位验证码和过期提示，不包含 `/auth/verify?token=...` 链接或 backend verify API URL。人工 UAT 使用 synthetic `.example.test` 邮箱即可完成注册/登录，不需要真实邮箱账号：在前端验证页输入邮件中的 6 位 code 后，由前端调用 `GET /api/v1/auth/email/verify` 兑换 session。backend dev CORS allowlist 仍从 `EMAIL_VERIFY_BASE_URL` 解析 frontend origin，避免前端端口和 CORS 端口分裂。若使用 `vite preview --port 4174` 作为唯一前端入口，本地 `.env` 的 `EMAIL_VERIFY_BASE_URL` 应同步改为 `http://127.0.0.1:4174/auth/verify`。
 
-切换到标准邮件服务时，在同一个 `deploy/dev-stack/.env` 中设置 `EMAIL_PROVIDER=smtp`，并填写 `EMAIL_SMTP_HOST`、`EMAIL_SMTP_PORT`、`EMAIL_SMTP_USERNAME`、`EMAIL_SMTP_PASSWORD`、`EMAIL_FROM_ADDRESS` 与 `EMAIL_SMTP_TLS_MODE=starttls|tls`。`EMAIL_FROM_ADDRESS` 必须是服务商已验证或授权的发件地址；不要默认任意 `noreply` 地址都可用。随后重建 backend：full-container 执行 `make dev-container-up`，host-run 执行 `make scenario-env-redeploy TARGET=backend`。Compose 会原样透传标准 SMTP endpoint；当 `EMAIL_PROVIDER=mailpit` 时，`dev-container-up` 自动把容器内 endpoint 切换为 `mailpit-dev:1025`，host-run `.env` 仍保留 `127.0.0.1:1025`，用户无需来回改 host。`dev-container-up` 同时停止仓库 PID 文件管理的 host-run backend/frontend，避免本地开发时多个 runner 重复消费；但共享 Redis 已保证跨 backend 获取验证码，投递正确性不依赖停止 host-run backend。该命令不会停止无关进程或删除数据卷。日志、doctor 输出和验收证据都不得记录密码、完整收件邮箱或验证码。
+切换到标准邮件服务时，在同一个 `deploy/dev-stack/.env` 中设置 `EMAIL_PROVIDER=smtp`，并填写 `EMAIL_SMTP_HOST`、`EMAIL_SMTP_PORT`、`EMAIL_SMTP_USERNAME`、`EMAIL_SMTP_PASSWORD`、`EMAIL_FROM_ADDRESS` 与 `EMAIL_SMTP_TLS_MODE=starttls|tls`。`EMAIL_FROM_ADDRESS` 必须是服务商已验证或授权的发件地址；不要默认任意 `noreply` 地址都可用。随后重建 backend：full-container 执行 `make dev-container-up`，host-run 执行 `make scenario-env-redeploy TARGET=backend`。Compose 会原样透传标准 SMTP endpoint；当 `EMAIL_PROVIDER=mailpit` 时，`dev-container-up` 自动把容器内 endpoint 切换为 `mailpit-dev:1025`，host-run 使用 loopback + 当前有效 host mapping。`dev-container-up` 同时停止仓库 PID 文件管理的 host-run backend/frontend，避免本地开发时多个 runner 重复消费；但共享 Redis 已保证跨 backend 获取验证码，投递正确性不依赖停止 host-run backend。该命令不会停止无关进程或删除数据卷。日志、doctor 输出和验收证据都不得记录密码、完整收件邮箱或验证码。
 
 ## 5 与场景测试的关系
 
@@ -161,6 +163,7 @@ Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启
 - 应用 dev → 用 `make dev-up` 启动 Postgres / Redis / MinIO / Mailpit 依赖；backend/frontend 进程默认在宿主机单独启动并消费这些连接串。
 - BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。共享环境生命周期由 `test/scenarios/env-setup.sh` / `test/scenarios/env-status.sh` / `test/scenarios/env-verify.sh` / `test/scenarios/env-cleanup.sh` / `test/scenarios/env-redeploy.sh` 管理，根 Makefile 提供 `make scenario-env-*` 等价入口；这些入口独立于具体场景目录。E2E 只通过真实 HTTP API，或由浏览器访问真实 frontend 并让业务请求落到真实 backend；不得在场景脚本中编排包测试、Vitest、pytest、lint、build 或 package smoke。场景专属依赖不得新增正式 `backend/cmd` / Go helper 进程，不要求 Kind / K8s / Helm 环境。
 - 本地前后端联调 / manual UAT → 先用 `make scenario-env-setup` 准备 host-run 依赖环境；`make scenario-env-redeploy TARGET=backend|frontend|all` / `test/scenarios/env-redeploy.sh backend|frontend|all` 会重新构建并重启对应 host-run backend/frontend 进程，同时输出服务地址、PID 与日志路径，供开发者继续调试。
+- 从 full-container 切回 host-run → redeploy 在 dependency doctor 前停止并移除目标 app container record，只保留外部依赖与命名卷；因此已停的 `backend-dev` / `frontend-dev` 不会在 backend build 前被 doctor 误报为 `DOWN`。
 - 需要干净数据重新调试 → 使用 `make scenario-env-reset-redeploy`，它等价于 `env-cleanup.sh --with-volumes` → `env-setup.sh --with-migrations` → `env-redeploy.sh all` → `env-verify.sh`。普通“重启 / 重新加载当前代码”不清数据，应继续使用 `make scenario-env-redeploy TARGET=all`。
 - 需要真实 AI provider 的应用部署不得降级到单元测试 stub；`APP_ENV=test` 以外缺真实 provider config 时必须 fail-fast。
 
@@ -173,7 +176,8 @@ Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启
 | MinIO 启动报 `volume not writable` | macOS Docker Desktop 偶发权限缓存问题；`docker volume rm easyinterview-minio-data` 后重新 up |
 | 镜像首次拉取超过 60s healthy 预算 | 先 `make dev-pull` 预热再 `make dev-up`；预算只针对 image 已在本地的稳态 |
 | `make dev-doctor` 对启用 AIClient 的组件报 DOWN | 检查 `.env` 中 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 是否指向 repo 内 catalog，并确认 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 填了真实 provider；勿提交真实 key |
-| Mailpit 收不到邮件 | 确认 `make dev-doctor` 中 `mailpit-dev` 为 OK；backend env 包含 `EMAIL_PROVIDER=mailpit` / `EMAIL_SMTP_HOST=127.0.0.1` / `EMAIL_SMTP_PORT=1025`；若本机 1025 或 8025 被占用，用 `.env` 调整 `MAILPIT_*_HOST_PORT` 并同步 backend email env |
+| `scenario-env-redeploy TARGET=all` 在 backend build 前以 `doctor` 失败 | 当前脚本会先移除 stopped full-container app records 再检查依赖；若仍复现，先运行 `make scenario-env-status` 并以 JSON 中具体 dependency 的 `reason` 为准，不要把末级 Make 错误误判为 Go 编译失败 |
+| Mailpit 收不到邮件 | 确认 `make dev-doctor` 中 `mailpit-dev` 为 OK；backend env 包含 `EMAIL_PROVIDER=mailpit` 与 loopback `EMAIL_SMTP_HOST`；检查 `EMAIL_SMTP_PORT` 是否等于当前有效 `MAILPIT_SMTP_HOST_PORT`。若 override `MAILPIT_*_HOST_PORT`，同步 host-run endpoint 后执行 `make scenario-env-redeploy TARGET=backend`；不要把 host override 写入 full-container 的内部 `mailpit-dev:1025` endpoint |
 | macOS Docker Desktop 端口冲突看似没冲突 | docker-desktop 用 IPv6 监听，纯 IPv4 squatter 不冲突；用 `python3 -c "...AF_INET6 + IPV6_V6ONLY=0..."` 或绑双栈监听才会触发真实冲突 |
 
 ## 7 升级与扩展

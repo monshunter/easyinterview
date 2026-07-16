@@ -1,8 +1,8 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.31
-> **状态**: completed
-> **更新日期**: 2026-07-15
+> **版本**: 1.32
+> **状态**: active
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -158,3 +158,11 @@ git diff --check
 - [x] 19.4 HANDOFF-GATE: backend-auth/001 Phase 10, frontend-shell/001 Phase 14, B4 001 Phase 13 and mock consumers compile/pass before baseline edit；Settings reuses runtime user without duplicate `getMe`.
 - [x] 19.5 AUDIT/RE-FREEZE: 003 Phase 12 generates and exact-matches all 9 findings, including the `emailMasked` → `email` replacement and closed-object contract, from unchanged merge-base baseline；preserve the audit and re-freeze only after all consumers pass. Clean current diff alone is insufficient.
 - [x] 19.6 BDD-HANDOFF/REGRESSION: reference Settings BDD + extended `E2E.P0.101` without creating B2 E2E；run lint/fixtures/codegen/diff, root `make test`, contexts/docs/diff and scoped old-field zero-reference gates.
+
+## Phase 20: Failed report manual regeneration
+
+- [x] 20.1 RED: inventory/schema/generated tests require exact protected POST path, operationId, required IK, body absence and `202 + ReportWithJob`; current inventory is 38/10.
+  <!-- verified: 2026-07-16 method=focused-red evidence="inventory test failed because regenerateFeedbackReport was absent from EXPECTED_OPERATIONS before source mutation" -->
+- [x] 20.2 GREEN: update OpenAPI source and regenerate Go/TS artifacts with `REPORT_INVALID_STATE_TRANSITION` parity and no attempt/progress fields.<!-- verified: 2026-07-16 method=openapi-codegen-green evidence="protected bodyless POST + IK + 202 ReportWithJob generated in embedded Go and typed TS clients; conventions parity and 30-test inventory PASS; scoped attempt/progress search empty" -->
+- [x] 20.3 HANDOFF: 002 Phase 14, 003 Phase 13, backend-review and frontend-report-dashboard consume the exact operation matrix.<!-- verified: 2026-07-16 method=operation-handoff evidence="38/38 source/fixture/generated operation matrix; backend handler/store and frontend client/devMock consumers PASS; preserved D-40 audit exact" -->
+- [ ] 20.4 BDD-N/A/REGRESSION: contract gates plus downstream BDD references, `make lint-openapi validate-fixtures codegen-check openapi-diff` and root `make test` pass.

@@ -71,6 +71,7 @@ func main() {
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	slog.SetDefault(logger)
 
 	appEnv := os.Getenv("APP_ENV")
 	if appEnv == "" {
@@ -108,6 +109,17 @@ func main() {
 		return
 	}
 
+	rawCapture, err := openAIRawCapture(loader)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: AI raw capture init: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if err := rawCapture.Close(); err != nil {
+			logger.Warn("api: AI raw capture close failed")
+		}
+	}()
+
 	flagsClient, err := buildFlagsClient(loader, logger)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: feature flag init: %v\n", err)
@@ -141,23 +153,23 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: upload runtime init: %v\n", err)
 		os.Exit(1)
 	}
-	targetJobRuntime, err := buildTargetJobRuntime(loader, db, logger, uploadRoutes.Service)
+	targetJobRuntime, err := buildTargetJobRuntime(loader, db, logger, uploadRoutes.Service, rawCapture)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: target job runtime init: %v\n", err)
 		os.Exit(1)
 	}
-	resumeRuntime, err := buildResumeRuntime(loader, db, uploadRoutes, targetJobRuntime.AI.Client)
+	resumeRuntime, err := buildResumeRuntime(loader, db, uploadRoutes, targetJobRuntime.AI.Client, rawCapture)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: resume runtime init: %v\n", err)
 		os.Exit(1)
 	}
 	defer targetJobRuntime.Close()
-	practiceRoutes, err := buildPracticeRoutes(loader, db, targetJobRuntime.AI.Client)
+	practiceRoutes, err := buildPracticeRoutes(loader, db, targetJobRuntime.AI.Client, rawCapture)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: practice runtime init: %v\n", err)
 		os.Exit(1)
 	}
-	reportRuntime, err := buildReportRuntime(loader, db, targetJobRuntime.AI.Client)
+	reportRuntime, err := buildReportRuntime(loader, db, targetJobRuntime.AI.Client, rawCapture)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: report runtime init: %v\n", err)
 		os.Exit(1)
@@ -372,7 +384,8 @@ type practiceRoutes struct {
 }
 
 type reportRoutes struct {
-	Handler *apireports.Handler
+	Handler     *apireports.Handler
+	Idempotency *idempotency.Middleware
 }
 
 type jobsRoutes struct {
@@ -385,16 +398,23 @@ func (discardAIAuditWriter) WriteAuditEvent(context.Context, aiclient.AuditEvent
 	return nil
 }
 
-func aiObservabilityOptions(loader *config.Loader, taskRuns aiclient.AITaskRunWriter, resolver aiclient.ProfileResolver) []observability.Option {
+func openAIRawCapture(loader *config.Loader) (*observability.FileRawIOCapture, error) {
+	if loader == nil || !loader.GetBool("ai.debugCaptureRawIO") {
+		return nil, nil
+	}
+	return observability.OpenRawIOCapture(loader.GetString("ai.debugRawIOPath"))
+}
+
+func aiObservabilityOptions(taskRuns aiclient.AITaskRunWriter, resolver aiclient.ProfileResolver, rawCapture observability.RawIOCapture) []observability.Option {
 	opts := []observability.Option{
 		observability.WithRegisterer(observability.NewInMemoryRegistry()),
-		observability.WithLogger(observability.NewMemoryLogger()),
+		observability.WithLogger(observability.NewSlogLogger(slog.Default())),
 		observability.WithAITaskRunWriter(taskRuns),
 		observability.WithAuditEventWriter(discardAIAuditWriter{}),
 		observability.WithProfileResolver(resolver),
 	}
-	if loader != nil && loader.GetBool("ai.debugPrintRawOutput") {
-		opts = append(opts, observability.WithRawOutputDebugWriter(os.Stderr))
+	if rawCapture != nil {
+		opts = append(opts, observability.WithRawIOCapture(rawCapture))
 	}
 	return opts
 }
@@ -506,6 +526,29 @@ func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagC
 			w.Header().Set("Pragma", "no-cache")
 			reportConversation.ServeHTTP(w, r)
 		}))
+		regenerateReport := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			reports.Handler.RegenerateFeedbackReport(w, r, r.PathValue("reportId"))
+		})
+		if reports.Idempotency != nil {
+			regenerateReport = reports.Idempotency.HandlerWithOptions(
+				"reports",
+				"regenerateFeedbackReport",
+				requestUserFromContext,
+				regenerateReport,
+				idempotency.HandlerOptions{
+					PendingCode:    sharederrors.CodeReportNotReady,
+					PendingMessage: "report is not ready yet",
+				},
+			).ServeHTTP
+		} else {
+			regenerateReport = requireIdempotencyKey(http.StatusBadRequest, regenerateReport).ServeHTTP
+		}
+		regenerateReportWithSession := auth.SessionMiddleware(authService, "regenerateFeedbackReport", regenerateReport)
+		mux.Handle("POST /api/v1/reports/{reportId}/regenerate", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "private, no-store")
+			w.Header().Set("Pragma", "no-cache")
+			regenerateReportWithSession.ServeHTTP(w, r)
+		}))
 		mux.Handle("GET /api/v1/targets/{targetJobId}/reports", auth.SessionMiddleware(authService, "listTargetJobReports", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			reports.Handler.ListTargetJobReports(w, r, r.PathValue("targetJobId"))
 		})))
@@ -561,19 +604,20 @@ func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagC
 }
 
 type reportRuntime struct {
-	Handler  *apireports.Handler
-	Handlers map[string]runner.Handler
-	Service  *domainreview.Service
+	Handler     *apireports.Handler
+	Idempotency *idempotency.Middleware
+	Handlers    map[string]runner.Handler
+	Service     *domainreview.Service
 }
 
 func (r *reportRuntime) Routes() reportRoutes {
 	if r == nil {
 		return reportRoutes{}
 	}
-	return reportRoutes{Handler: r.Handler}
+	return reportRoutes{Handler: r.Handler, Idempotency: r.Idempotency}
 }
 
-func buildReportRuntime(loader *config.Loader, db *sql.DB, ai aiclient.AIClient) (*reportRuntime, error) {
+func buildReportRuntime(loader *config.Loader, db *sql.DB, ai aiclient.AIClient, rawCapture observability.RawIOCapture) (*reportRuntime, error) {
 	if ai == nil {
 		return nil, fmt.Errorf("report AI client is required")
 	}
@@ -595,7 +639,7 @@ func buildReportRuntime(loader *config.Loader, db *sql.DB, ai aiclient.AIClient)
 		Resolver() aiclient.ProfileResolver
 	}); ok {
 		wrapped, err := observability.New(ai,
-			aiObservabilityOptions(loader, taskRuns, resolverProvider.Resolver())...,
+			aiObservabilityOptions(taskRuns, resolverProvider.Resolver(), rawCapture)...,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("build report AI observability: %w", err)
@@ -614,6 +658,12 @@ func buildReportRuntime(loader *config.Loader, db *sql.DB, ai aiclient.AIClient)
 		Handler: apireports.NewHandler(apireports.HandlerOptions{
 			Service: service,
 			Session: currentUserFromContext,
+		}),
+		Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+			Store:               idempotency.NewSQLStore(db),
+			KeyPepper:           loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+			TTL:                 time.Duration(sharedtypes.IdempotencyKeyTTLSeconds) * time.Second,
+			MaxRequestBodyBytes: limits.HTTPMaxRequestBodyBytes,
 		}),
 		Handlers: map[string]runner.Handler{
 			string(jobs.JobTypeReportGenerate): domainreview.NewGenerateHandler(domainreview.GenerateHandlerOptions{
@@ -681,7 +731,7 @@ func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) 
 	}, nil
 }
 
-func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient) (practiceRoutes, error) {
+func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient, rawCapture observability.RawIOCapture) (practiceRoutes, error) {
 	limits, err := loader.ContentLimits()
 	if err != nil {
 		return practiceRoutes{}, err
@@ -700,7 +750,7 @@ func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient
 		Resolver() aiclient.ProfileResolver
 	}); ok {
 		wrapped, err := observability.New(ai,
-			aiObservabilityOptions(loader, taskRuns, resolverProvider.Resolver())...,
+			aiObservabilityOptions(taskRuns, resolverProvider.Resolver(), rawCapture)...,
 		)
 		if err != nil {
 			return practiceRoutes{}, fmt.Errorf("build practice AI observability: %w", err)
@@ -762,7 +812,7 @@ func (r *resumeRuntime) Routes() resumeRoutes {
 	return resumeRoutes{Handler: r.Handler, Idempotency: r.Idempotency}
 }
 
-func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, ai aiclient.AIClient) (*resumeRuntime, error) {
+func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, ai aiclient.AIClient, rawCapture observability.RawIOCapture) (*resumeRuntime, error) {
 	if ai == nil {
 		return nil, fmt.Errorf("resume AI client is required")
 	}
@@ -778,38 +828,37 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, 
 	if err != nil {
 		return nil, fmt.Errorf("build resume prompt registry: %w", err)
 	}
-	parseAI := ai
+	var observedAI aiclient.AIClient = ai
 	if targetjob.IsTestAppEnv(loader.AppEnv()) {
-		parseAI = resumejobs.NewDeterministicParseAIClient(parseAI)
+		observedAI = resumejobs.NewDeterministicParseAIClient(observedAI)
 	}
 	if db != nil {
 		if resolverProvider, ok := ai.(interface {
 			Resolver() aiclient.ProfileResolver
 		}); ok {
-			wrapped, err := observability.New(parseAI,
-				aiObservabilityOptions(loader, storeai.NewTaskRunWriter(db), resolverProvider.Resolver())...,
+			wrapped, err := observability.New(observedAI,
+				aiObservabilityOptions(storeai.NewTaskRunWriter(db), resolverProvider.Resolver(), rawCapture)...,
 			)
 			if err != nil {
 				return nil, fmt.Errorf("build resume parse AI observability: %w", err)
 			}
-			parseAI = wrapped
+			observedAI = wrapped
 		}
 	}
 	parseHandler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
 		Store:                 store,
 		Registry:              resumejobs.NewRegistryAdapter(registryClient),
-		AI:                    parseAI,
+		AI:                    observedAI,
 		Objects:               upload.Objects,
 		NewID:                 idx.NewID,
 		MaxInputBytes:         limits.ResumeUploadBytes,
 		MaxExtractedTextBytes: limits.ResumeMaxExtractedTextBytes,
 	})
 	tailorHandler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
-		Store:      store,
-		Registry:   resumejobs.NewRegistryAdapter(registryClient),
-		AI:         ai,
-		AITaskRuns: storeai.NewTaskRunWriter(db),
-		NewID:      idx.NewID,
+		Store:    store,
+		Registry: resumejobs.NewRegistryAdapter(registryClient),
+		AI:       observedAI,
+		NewID:    idx.NewID,
 	})
 	handlers := map[string]runner.Handler{
 		string(jobs.JobTypeResumeParse):  parseHandler,
@@ -836,11 +885,11 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, 
 			MaxRequestBodyBytes: limits.HTTPMaxRequestBodyBytes,
 		}),
 		Handlers: handlers,
-		ParseAI:  parseAI,
+		ParseAI:  observedAI,
 	}, nil
 }
 
-func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, uploadFiles privacyrunner.UploadFileDeleter) (*targetJobRuntime, error) {
+func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, uploadFiles privacyrunner.UploadFileDeleter, rawCapture observability.RawIOCapture) (*targetJobRuntime, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -873,7 +922,7 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 	taskRuns := storeai.NewTaskRunWriter(db)
 	if db != nil {
 		wrapped, err := observability.New(parseAI,
-			aiObservabilityOptions(loader, taskRuns, aiRuntime.Client.Resolver())...,
+			aiObservabilityOptions(taskRuns, aiRuntime.Client.Resolver(), rawCapture)...,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("build targetjob AI observability: %w", err)

@@ -1,8 +1,8 @@
 # Shared Conventions Bootstrap
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -113,6 +113,12 @@ Phase 1-9 保留为历史完成证据；Phase 10 是本轮 current net-state own
 - **GREEN**: remove only the two source-specific entries from `shared/conventions.yaml`, regenerate Go/TS artifacts, and hand off the same exact enum subtraction to B2 OpenAPI codegen/parity. Do not add compatibility aliases or replacement source-specific codes.
 - **BDD 不适用**: this is an internal cross-language vocabulary contraction rather than a standalone user flow. Substitute gates are conventions lint, generator unit/parity tests, two-pass idempotent codegen, Go/TS focused tests, OpenAPI parity handoff, and exact zero-reference searches for both removed literals with positive retained-code probes.
 
+### Phase 11: failed report regeneration state vocabulary
+
+- **RED**: extend the single conventions owner matrix so a missing, misspelled, retryable or message-divergent `REPORT_INVALID_STATE_TRANSITION` fails while retained `REPORT_NOT_READY` remains retryable.
+- **GREEN**: add exactly one canonical YAML entry, regenerate Go/TS registries and parity fixtures, and hand the additive enum value to B2 OpenAPI without aliases.
+- **BDD 不适用**: this phase owns cross-language vocabulary only. Substitute gates are conventions lint, focused generator/parity tests, two-pass codegen idempotency and B2 enum parity; backend-review owns the user recovery behavior.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -125,11 +131,13 @@ Phase 1-9 保留为历史完成证据；Phase 10 是本轮 current net-state own
 | A-6 | Current product-scope enum values stay aligned across generated surfaces | conventions parity tests and pruning-surface lint |
 | A-7 | `REPORT_CONTEXT_TOO_LARGE` is single-source and non-retryable before B2 consumption | conventions lint/codegen + Go/TS parity + owner context validation |
 | A-8 | TargetJob paste-only vocabulary removes both source-specific errors while retaining generic validation and retryable import-failure semantics | conventions RED/GREEN + codegen idempotency + Go/TS/OpenAPI parity + exact zero-reference/positive-presence probes |
+| A-9 | report regeneration invalid-state vocabulary is single-source and non-retryable while active generation remains `REPORT_NOT_READY` retryable | conventions RED/GREEN + generated Go/TS parity + B2 handoff |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-16 | 1.13 | Reopen Phase 11 for canonical failed-report regeneration state vocabulary. |
 | 2026-07-14 | 1.12 | Replace the stale 48,000-byte downstream boundary wording with the A4-injected report limit and minimal focused consumer evidence. |
 | 2026-07-13 | 1.11 | Reopen Phase 10 to contract TargetJob errors to the paste-only vocabulary and require generated/OpenAPI zero-reference closure. |
 | 2026-07-12 | 1.10 | Remove the B1/B2 cycle: B1 source-ready marker covers YAML/Go/TS only; B2 independently proves OpenAPI parity/oracle. |

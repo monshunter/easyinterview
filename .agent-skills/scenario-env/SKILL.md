@@ -37,8 +37,9 @@ In this repo the default environment is host-run: Docker Compose provides extern
 dependencies, backend/frontend processes are managed as host-run commands, and
 repo-tracked scenario runners consume that environment. When the user explicitly
 requests a full-container deployment, use `make dev-container-up`, whose default
-frontend/backend host ports are `10800` and `10801`; use the matching
-`dev-container-doctor`, `dev-container-logs`, and `dev-container-down` targets.
+frontend/backend endpoints are resolved by the current repo configuration; use
+the matching `dev-container-doctor`, `dev-container-logs`, and
+`dev-container-down` targets.
 `redeploy/rebuild
 backend|frontend|all` is a closed-loop local redeploy: it rebuilds artifacts,
 restarts the matching host-run process from `deploy/dev-stack/.env`, then
@@ -59,8 +60,8 @@ or printing secret values.
   `make scenario-env-verify`, `make scenario-env-cleanup`, and
   `make scenario-env-redeploy`.
 - Use `make dev-container-up` only for an explicitly requested full-container
-  topology; verify the live frontend on `10800` and backend on `10801` before
-  browser acceptance.
+  topology; take the live frontend/backend endpoints from the command output or
+  current environment README before browser acceptance.
 - Do not extract shared environment bootstrap from a specific scenario
   directory. Specific scenario scripts may consume the environment, but they do
   not own shared setup/status/verify/cleanup/redeploy.

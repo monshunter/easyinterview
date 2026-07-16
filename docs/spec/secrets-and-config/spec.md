@@ -1,7 +1,7 @@
 # Secrets and Config Spec
 
-> **版本**: 2.19
-> **状态**: completed
+> **版本**: 2.21
+> **状态**: active
 > **更新日期**: 2026-07-16
 
 ## 1 背景与目标
@@ -27,7 +27,7 @@
 
 - **配置文件落点**：
   - `config/config.yaml`（默认值，所有环境共享）
-  - `config/dev.yaml` / `config/staging.yaml` / `config/prod.yaml`（环境 override，不含 secrets）
+  - `config/dev.yaml` / `config/test.yaml` / `config/staging.yaml` / `config/prod.yaml`（环境 override，不含 secrets）
   - `.env.example`（仓库版本化的 env key 示例，列出所有合法 env key）
   - `config/feature-flags.yaml`（FileFlagProvider 的本地源，dev 默认值）
 - **Go 包**：`backend/internal/platform/config/`（loader + validator + redactor）；`backend/internal/platform/secrets/`（`SecretSource` 接口与 env provider）；`backend/internal/platform/featureflag/`（`FeatureFlagClient` 接口与 file / posthog provider）。
@@ -66,13 +66,14 @@
 | D-14 | Runner kernel 时序（additive） | additive 新增 config-only 节点 `async.leaseTimeoutSeconds`(300) / `async.shutdownGraceSeconds`(10) / `async.reaperIntervalSeconds`(60) / `async.scanIntervalSeconds`(5)；不因 runner 时序新增 env key；缺失或非正数 fail-fast，不得静默回退为代码常量 | 由 active [`backend-async-runner/001`](../backend-async-runner/spec.md) D-5 / D-8 / D-14 消费，作为 kernel lease loop / reaper / graceful shutdown 时序源 |
 | D-10 | 上传基础配置 | `objectStorage.provider=minio|filesystem`、`upload.presignTTLSeconds` 默认 600、`upload.maxBytes.resume=10485760`、`upload.maxBytes.privacyExport=5242880` 均为 config-only path；JD intake 只接收 raw text，不拥有附件上传配额；P0 不新增 `UPLOAD_*` / `OBJECT_STORE_*` env key | backend-upload 通过 typed config 注入 provider / TTL / 当前 per-purpose size limit，继续复用现有 `OBJECT_STORAGE_*` secret/env 字典 |
 | D-15 | 内容大小配置与代码缺省 | 所有运行时可配置内容大小均先由 typed code defaults 提供，再由 `config/config.yaml` / 环境文件覆盖；缺失配置使用代码缺省，显式 `0`、负数或跨字段非法组合启动失败。默认值：`http.maxRequestBodyBytes=10485760`、`upload.maxBytes.resume=10485760`、`upload.maxBytes.privacyExport=5242880`、`resume.maxActive=10`、`resume.maxExtractedTextBytes=393216`、`resume.maxPasteTextBytes=393216`、`targetJob.maxRawTextBytes=98304`、`practice.maxMessageBytes=32768`、`practice.maxSessionTextBytes=262144`、`report.maxFramedInputBytes=917504`、`ai.maxResponseBodyBytes=4194304` | 统一 byte 口径，删除 48,000-byte report、2MiB frontend upload、8,000-rune message、8MiB parse read与 provider 4MiB 重复常量漂移；业务构造器消费注入值并保留同一 code default，profile catalog 的 token 缺省由 A3 owner 独立维护 |
+| D-16 | 本地 AI 原始输入输出捕获 | 用 `ai.debugCaptureRawIO` / `AI_DEBUG_CAPTURE_RAW_IO` 控制 `AIClient.Complete` 边界的 provider-neutral request/response 捕获，用 `ai.debugRawIOPath` / `AI_DEBUG_RAW_IO_PATH` 指定独立 NDJSON 文件；dev/test 与本地联调默认开启，staging/prod 默认关闭且显式开启必须 fail-fast。相对路径以 resolved `ConfigDir` 的父目录为锚点并输出绝对 effective path | A3 打开时逐组件拒绝 symlink/non-regular target，并把 dedicated parent/既有 regular file 收紧为 `0700/0600`；以进程内互斥 append 和 UUIDv7 `callId == ai_task_runs.id` 关联 request/response。recorder 不新增 Authorization/API key/Cookie、音频或 reasoning 字段，不进入 stderr、业务日志、审计、runtime-config、场景证据或上传产物；删除旧 `AI_DEBUG_PRINT_RAW_OUTPUT`，不保留 alias |
 
 #### 3.1.1 P0 必备 env key 字典
 
 | Key | 必填 | 默认值 | 用途 | Owner subspec |
 |-----|------|--------|------|---------------|
-| `APP_ENV` | 是 | `dev` | `dev` / `staging` / `prod`；驱动 `config/{env}.yaml` 加载 | A4 |
-| `APP_LISTEN_ADDR` | 是 | `:8080` | API 进程 HTTP 监听 | A4 |
+| `APP_ENV` | 是 | `dev` | `dev` / `test` / `staging` / `prod`；驱动 `config/{env}.yaml` 加载 | A4 |
+| `APP_LISTEN_ADDR` | 是 | `:10901` | API 进程 HTTP 监听；local host-run 默认由 A2 收敛到 loopback 10901 | A4 |
 | `DATABASE_URL` | 是 | `postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable` | Postgres 连接串 | A4（A2 锁本地默认） |
 | `REDIS_URL` | 是 | `redis://localhost:6379/0` | Redis 连接串 | A4 |
 | `OBJECT_STORAGE_ENDPOINT` | 是 | `http://localhost:9000` | MinIO / S3 endpoint | A4 |
@@ -91,7 +92,8 @@
 | `MINIMAX_SPEECH_BASE_URL` | 条件 | `(空；仅 minimax_speech provider 被选中时需要)` | MiniMax 语音 provider-specific base URL | A4（A3 owner） |
 | `MINIMAX_SPEECH_API_KEY` | 条件 | `(空；仅 minimax_speech provider 被选中时需要)` | secret | A4（A3 owner） |
 | `AI_MODEL_PROFILE_PATH` | 是 | `config/ai-profiles.yaml` | Model Profile catalog 文件路径 | A4（A3 owner） |
-| `AI_DEBUG_PRINT_RAW_OUTPUT` | 否 | local dev/test 与本地联调默认 `true`；staging/prod 默认 `false` | 本地调试开关；为 `true` 时 backend 仅把 LLM `Complete` 原始响应打印到 stderr，用于排查 schema/格式问题；不得进入持久化审计、runtime-config 或 staging/prod 默认配置 | A4（A3 owner） |
+| `AI_DEBUG_CAPTURE_RAW_IO` | 否 | local dev/test 与本地联调默认 `true`；staging/prod 默认 `false` | 本地 `AIClient.Complete` provider-neutral request/response NDJSON 捕获开关；staging/prod 显式 `true` 必须 fail-fast | A4（A3 owner） |
+| `AI_DEBUG_RAW_IO_PATH` | 条件 | `.test-output/local-dev/ai-raw.ndjson` | `AI_DEBUG_CAPTURE_RAW_IO=true` 时必填；相对值以 resolved `ConfigDir` 的父目录为锚点；仅允许写独立本地调试文件，不得复用 backend stderr、业务日志、审计或 E2E evidence 路径 | A4（A3 owner） |
 | `FEATURE_FLAG_SOURCE` | 是 | `file` | `file` 或 `posthog` | A4 |
 | `FEATURE_FLAG_FILE_PATH` | 条件 | `config/feature-flags.yaml` | `FEATURE_FLAG_SOURCE=file` 时必填 | A4 |
 | `POSTHOG_HOST` | 条件 | `(空)` | `FEATURE_FLAG_SOURCE=posthog` 时必填；指向自托管 PostHog；普通本地 dev 默认不填 | A4（F2 owner） |
@@ -105,7 +107,7 @@
 | `EMAIL_SMTP_PASSWORD` | 条件 | `(空)` | secret；`smtp` 必填，只能通过 runtime secret/env 注入 | A4（C1 owner） |
 | `EMAIL_SMTP_TLS_MODE` | 条件 | `none`（local Mailpit） | `none|starttls|tls`；`smtp` 只允许 `starttls|tls`，staging/prod 禁止 `none` | A4（C1 owner） |
 | `EMAIL_FROM_ADDRESS` | 条件 | `noreply@easyinterview.local` | email-code 邮件 envelope/header From；不得写个人邮箱 | A4（C1 owner） |
-| `EMAIL_VERIFY_BASE_URL` | 条件 | `http://127.0.0.1:5173/auth/verify` | local dev frontend origin / dev CORS 推导来源；当前 code-only 邮件正文不得拼入该 URL | A4（C1 owner） |
+| `EMAIL_VERIFY_BASE_URL` | 条件 | `http://127.0.0.1:10900/auth/verify` | local dev frontend origin / dev CORS 推导来源；当前 code-only 邮件正文不得拼入该 URL | A4（C1 owner） |
 
 #### 3.1.2 Canonical config schema 分类
 
@@ -140,7 +142,8 @@
 | `ai.doubaoSpeechBaseURL` / `ai.doubaoSpeechApiKey` | `DOUBAO_SPEECH_BASE_URL` / `DOUBAO_SPEECH_API_KEY` | baseURL 否；apiKey 是 | required only when doubao_speech provider is selected；`APP_ENV=test` may use stub | 否 | A4 + A3 |
 | `ai.minimaxSpeechBaseURL` / `ai.minimaxSpeechApiKey` | `MINIMAX_SPEECH_BASE_URL` / `MINIMAX_SPEECH_API_KEY` | baseURL 否；apiKey 是 | required only when minimax_speech provider is selected；`APP_ENV=test` may use stub | 否 | A4 + A3 |
 | `ai.modelProfilePath` | `AI_MODEL_PROFILE_PATH` | 否 | always | 否 | A4 + A3 |
-| `ai.debugPrintRawOutput` | `AI_DEBUG_PRINT_RAW_OUTPUT` | 否 | optional；local dev/test 与本地真实联调默认 `true`；staging/prod 默认 `false`；仅写 backend stderr 调试区块 | 否 | A4 + A3 |
+| `ai.debugCaptureRawIO` | `AI_DEBUG_CAPTURE_RAW_IO` | 否 | dev/test 与本地真实联调默认 `true`；staging/prod 默认 `false` 且显式开启必须 fail-fast | 否 | A4 + A3 |
+| `ai.debugRawIOPath` | `AI_DEBUG_RAW_IO_PATH` | 否 | capture 开启时必填；默认 `.test-output/local-dev/ai-raw.ndjson`，相对路径按 resolved `ConfigDir` parent 解析 | 否 | A4 + A3 |
 | `featureFlag.source` / `featureFlag.filePath` | `FEATURE_FLAG_SOURCE` / `FEATURE_FLAG_FILE_PATH` | 否 | always；filePath required when source=file | 否 | A4 |
 | `featureFlag.posthogHost` / `featureFlag.posthogSelfHosted` | `POSTHOG_HOST` / `POSTHOG_SELF_HOSTED` | 否 | required when source=posthog; staging/prod must self-host | 否 | A4 + F2 |
 | `featureFlag.posthogProjectApiKey` | `POSTHOG_PROJECT_API_KEY` | 是 | required when source=posthog | 否 | A4 + F2 |
@@ -164,6 +167,7 @@
 - 上传配置、typed binding 与 validator 只承认 Resume 和 Privacy Export 两个当前 maxBytes path；旧 TargetJob attachment maxBytes key 不得出现在 active config、validator、composition binding 或 current owner contract。该负向 gate 不删除 Resume 上传，也不改变 privacy export 限额。
 - 内容大小 code defaults 是缺省真理源，repo-tracked YAML 必须与其精确一致但可由环境配置文件覆盖；缺失 key 不得解析为 Go 零值，显式非正数不得被静默改写为缺省值。`resume.maxPasteTextBytes <= resume.maxExtractedTextBytes`、`practice.maxMessageBytes <= practice.maxSessionTextBytes` 必须由启动期 validator 锁定。
 - `runtime-config.contentLimits` 必须精确包含 `resumeUploadBytes`、`resumePasteTextBytes`、`targetJobRawTextBytes`、`practiceMessageBytes`、`practiceSessionTextBytes`；不得公开 `report.maxFramedInputBytes`、`http.maxRequestBodyBytes`、`ai.maxResponseBodyBytes`、AI profile token budget 或任意 secret。
+- AI raw I/O 调试配置只允许在 backend 启动期消费；`runtime-config`、config dump、结构化业务日志和 audit payload 都不得投影开关、路径或捕获内容。捕获内容必须在写入前剔除 Authorization/API key/Cookie、音频二进制与 provider reasoning；旧 `AI_DEBUG_PRINT_RAW_OUTPUT` / `ai.debugPrintRawOutput` 在 current config、env 字典与生产代码中保持零引用。
 - PostHog provider 启动时必须校验 `FEATURE_FLAG_SOURCE=posthog` 时 `POSTHOG_HOST` / `POSTHOG_PROJECT_API_KEY` 存在，且 staging/prod `POSTHOG_SELF_HOSTED=true`；启动后 PostHog 临时不可用时只允许回退到 last-known-good 内存缓存并输出 warn，不允许静默切回 file provider 造成 prod flag 口径漂移。
 - `runtime-config` 只能序列化 §3.1.2 标记为可暴露的字段；`featureFlags` 只包含 `config/feature-flags.yaml` 或 PostHog 中显式标记 `public=true` 的 flag，`ai_fallback_model_enabled` 等 operator-only flag 不得进入 public response。
 
@@ -212,15 +216,17 @@
 | C-9 | env 字典覆盖 | `.env.example` 中缺 `AI_PROVIDER_REGISTRY_PATH` 或 registry 引用的 provider secret env | `make lint-config` | 报错：env key 在代码或 registry truth source 出现但 `.env.example` 缺失 | A4 后续 001 + A3 003 |
 | C-10 | AI provider 本地运行校验 | `APP_ENV=dev` 且启用了需要 AIClient 的 backend 运行路径，但 provider registry 缺失或选中 provider secret 缺失 | 启动宿主机 backend runtime 或已显式接入 compose 的 optional app service | 进程启动失败并报告缺失 provider registry / secret；`APP_ENV=test` 的单元测试仍可走 stub | A4 后续 001 + A3 003 + A2 |
 | C-11 | config schema 分类 | `SESSION_COOKIE_SECRET` 标记为 secret，`runtime.defaultUiLanguage` 标记为 public | `make lint-config` / runtime-config schema check | secret 字段缺 redaction 或出现在 runtime-config schema 时失败；public 字段缺 runtime-config schema 时失败 | A4 后续 001 |
+| C-15 | 本地 AI raw I/O 配置边界 | 分别加载 dev/test、staging/prod，并覆盖 capture=true/false、空路径、相对/绝对路径 | typed loader + validator 解析 `AI_DEBUG_CAPTURE_RAW_IO` / `AI_DEBUG_RAW_IO_PATH` | dev/test 缺省开启且相对路径稳定解析到 resolved `ConfigDir` parent 下的独立 NDJSON；staging/prod 缺省关闭并拒绝显式开启；capture 开启但路径为空时 fail-fast；两个字段与捕获内容不进入 runtime-config/config dump，旧 key current-scope 零引用。symlink/non-regular/mode open gate 由 A3 recorder owner 承接 | A4 001 Phase 15 + A3 001 Phase 16 |
 
 ## 7 关联计划
 
-A4 当前暂无 active impl plan；后续由 A4 自身的 `001-bootstrap` 承接：
+A4 当前由 reopened `001-bootstrap` Phase 15 承接本地 AI raw I/O 配置边界：
 
 - 落地 `internal/platform/{config,secrets,featureflag}/` Go 包与默认 provider。
 - 落地 `config/*.yaml`、`.env.example`、`config/feature-flags.yaml`。
 - 落地 `async.queueWeights` typed config，并由 backend internal runner 在后续 plan 中消费。
 - 落地 lint 规则与 pre-commit hook（接入 A1 `scripts/git-hooks/`）。
 - 提供 backend runtime-config builder/handler 与公开字段 allowlist；前端由 D1 `AppRuntimeProvider` 通过 B2 generated client 消费。
+- 以 typed loader/validator 锁定 raw capture 的环境默认、生产禁用、路径必填、非公开投影和旧 key 零引用。
 
 后续 P1 升级（Vault / SOPS / platform secret / K8s Secret provider）由本 spec 修订递增版本后追加 plan，不创建 sibling spec。

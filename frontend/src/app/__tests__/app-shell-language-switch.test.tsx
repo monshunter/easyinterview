@@ -26,7 +26,7 @@ function jsonResponse(body: unknown, init?: ResponseInit): Response {
 
 function buildClient(
   seen: Array<{ url: string; acceptLanguage: string | null }>,
-  auth: "authenticated" | "unauthenticated",
+  auth: "authenticated" | "unauthenticated" | "loading" | "error",
 ): EasyInterviewClient {
   return new EasyInterviewClient({
     fetch: async (input, init) => {
@@ -42,6 +42,22 @@ function buildClient(
         });
       }
       if (url.endsWith("/me")) {
+        if (auth === "loading") {
+          return new Promise<Response>(() => undefined);
+        }
+        if (auth === "error") {
+          return jsonResponse(
+            {
+              error: {
+                code: "VALIDATION_FAILED",
+                message: "auth probe unavailable",
+                requestId: "req-language-gate-error",
+                retryable: false,
+              },
+            },
+            { status: 503, statusText: "Service Unavailable" },
+          );
+        }
         if (auth === "authenticated") {
           return jsonResponse({
             id: "01918fa0-0000-7000-8000-000000000100",
@@ -71,7 +87,42 @@ function buildClient(
 }
 
 describe("app shell language switch", () => {
+  it.each([
+    ["loading", "正在检查登录状态", "正在验证当前会话，请稍候。"],
+    ["error", "需要登录", "请先登录，再打开面试工作区。"],
+  ] as const)(
+    "localizes the protected-route auth %s gate without mounting the business screen",
+    async (auth, expectedTitle, expectedBody) => {
+      localStorage.setItem("ei-lang", "zh");
+      setNavigatorLanguages("zh-CN", ["zh-CN", "en-US"]);
+      const seen: Array<{ url: string; acceptLanguage: string | null }> = [];
+      const user = userEvent.setup();
+      render(
+        <App
+          client={buildClient(seen, auth)}
+          initialRoute={{ name: "resume_versions", params: {} }}
+        />,
+      );
+
+      const gate = await screen.findByTestId("auth-route-gate");
+      expect(gate).toHaveTextContent("登录状态");
+      expect(gate).toHaveTextContent(expectedTitle);
+      expect(gate).toHaveTextContent(expectedBody);
+      expect(gate).not.toHaveTextContent(/AUTH|Checking sign-in|Sign-in required|Please sign in|Please wait/);
+      expect(screen.queryByTestId("resume-workshop-screen")).not.toBeInTheDocument();
+      expect(seen.some((request) => request.url.includes("/resumes"))).toBe(false);
+
+      await user.click(screen.getByTestId("topbar-lang-toggle"));
+      await user.click(screen.getByTestId("topbar-lang-option-en"));
+      expect(gate).toHaveTextContent("Authentication");
+      expect(gate).toHaveTextContent(
+        auth === "loading" ? "Checking sign-in" : "Sign-in required",
+      );
+    },
+  );
+
   it("switches D1 shell copy to English and sends Accept-Language", async () => {
+    localStorage.setItem("ei-lang", "zh");
     setNavigatorLanguages("zh-CN", ["zh-CN", "en-US"]);
     const seen: Array<{ url: string; acceptLanguage: string | null }> = [];
     const user = userEvent.setup();

@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.24
+> **版本**: 1.26
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -68,7 +68,7 @@
 
 ## Phase 7: local raw output debug default revision
 
-- [x] 7.1 默认开启本地 raw output debug：`config/dev.yaml` / `config/test.yaml` / 根 `.env.example` / `deploy/dev-stack/.env.example` 使用 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，`config/config.yaml` 与 staging/prod 默认保持关闭；真实 provider preflight 从 `deploy/dev-stack/.env` 校验 true；代码层阶段收口执行根 `make test`。
+- [x] 7.1 历史本地 raw debug 默认已由 Phase 15 独立 NDJSON capture/path 合同取代；当前配置与 preflight 不保留 stderr 输出入口，代码层阶段收口仍由根 `make test` 承接。
 
 ## Phase 8: developer debug handoff revision
 
@@ -141,3 +141,25 @@
   <!-- verified: 2026-07-16 evidence="real Redis cross-client integration PASS; Mailpit Chrome login/profile PASS; SMTP job succeeded once; doctor 6/6; Compose/scenario contract and root make test/build/lint-config/docs/context/index/diff gates PASS" -->
 - [x] 14.4 PID-OWNERSHIP-REMEDIATION: RED/GREEN pytest 使用真实无关子进程与陈旧 pidfile，证明 `_stop_host_runtimes` 在命令不匹配时不发送 TERM/KILL、只清理 pidfile；匹配逻辑仅接受当前 repo-managed backend/frontend 命令，scenario contract 与 shell/Make gates 通过。
   <!-- verified: 2026-07-16 method=tdd commands="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; make test" evidence="RED killed unrelated sleep process; GREEN 13 scenario-env contract tests PASS for both stale-unowned preservation and owned-backend termination; root Python 566 tests/4481 subtests PASS" -->
+
+## Phase 15: local AI raw I/O capture and single-runner guard
+
+- [x] 15.1 RED-CONTRACT: scenario env contract 要求新 capture/path keys、旧 stderr key 零引用、resolved/realpath P0.099 raw path 不进入 evidence、backend-only full-container host bind，并要求已登记/手工 host 与 container 同 role 互斥。<!-- verified: 2026-07-16 method=scenario-env-focused-red evidence="contract tests fail on absent new keys/backend-only bind/raw hardening and host-container role mutual exclusion while retaining never-kill-unowned rule" -->
+- [x] 15.2 GREEN-ENV: 同步 dev-stack `.env.example` / README / Compose / preflight，默认 `AI_DEBUG_CAPTURE_RAW_IO=true`、path 为 `.test-output/local-dev/ai-raw.ndjson`；预建/收紧 host raw directory，container recreate 后文件仍在，raw 不进入 backend log 或场景 evidence。<!-- verified: 2026-07-16 method=raw-env-green evidence="21 scenario contract tests PASS for new env keys, backend-only rw bind, ConfigDir-parent/realpath/path-mode guards and evidence exclusion; Compose config and shell syntax PASS in the implementation run" -->
+- [x] 15.3 SINGLE-RUNNER: `env-redeploy.sh backend|frontend|all` 启动 host role 前停止对应 `backend-dev` / `frontend-dev` app service并保留依赖/卷；`env-verify.sh` 结合 repo PID、bounded process/listener inspection 和 Compose state 对同 role host/container 并存 fail closed，且不杀手工/无关进程。<!-- verified: 2026-07-16 method=single-runner-green evidence="scenario contract uses real unrelated processes/stale pidfiles to prove command plus repo-cwd ownership before TERM/KILL, and host/container same-role conflict detection preserves manual/unowned listeners" -->
+- [x] 15.4 REGRESSION: focused scenario-env contract、shell syntax、dry-run/isolated process tests、A4 config gates、P0.099 preflight negative cases和旧 key current-scope zero-reference 通过；BDD 不适用。<!-- verified: 2026-07-16 method=raw-env-regression evidence="21 pytest cases, bash -n, Compose config --quiet, backend redeploy dry-run, platform/config and lint-config PASS; no E2E run or PASS is claimed" -->
+- [x] 15.5 DOCTOR-ORDER-REGRESSION: RED dry-run contract 复现 `all` 在 app role 切换前先执行 dependency doctor；GREEN 改为在 doctor 前 `docker compose rm -sf backend-dev frontend-dev`，保留依赖/卷，并以真实 `scenario-env-redeploy TARGET=all` + `scenario-env-verify` 证明 backend/frontend build、监听与 4/4 dependency readiness。<!-- verified: 2026-07-16 method=tdd-live commands="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; make scenario-env-redeploy TARGET=all; make scenario-env-verify" evidence="RED failed because rm-before-doctor order was absent; GREEN 22 tests PASS; stopped app records removed; backend 8080 and frontend 5173 started; dependency doctor 4/4 OK" -->
+
+## Phase 16: unified config-owned local app ports
+
+- [x] 16.1 RED-CONTRACT: scenario env contract 将 host-run/full-container 宿主机默认入口锁为 frontend 10900/backend 10901，覆盖 A4 env/YAML、Compose external mapping、Vite fallback 与 lifecycle fallback；实施前 focused pytest 因旧 5173/8080/10800/10801 默认而失败。<!-- verified: 2026-07-16 method=focused-red evidence="three focused contracts failed on old host-run env, full-container mapping and lifecycle docs before implementation" -->
+- [x] 16.2 CONFIG/RUNTIME: root/dev-stack env、canonical YAML、Compose host mapping/label/email origin、Vite、host runtime、P0.099/P0.101 与 Playwright defaults 已统一；容器内部 8080 不变。<!-- verified: 2026-07-16 method=static-green evidence="runtime sources use 10900/10901 external defaults while Compose mapping right side, Dockerfile/nginx and container health retain internal 8080" -->
+- [x] 16.3 SKILL-BOUNDARY: `scenario-env` / `scenario-redeploy` Skill 不包含具体 app 端口，只按 README、environment config 与 lifecycle command 输出定位 endpoint；focused contract 拒绝 Skill 重新耦合 10800/10801/10900/10901。<!-- verified: 2026-07-16 method=user-correction evidence="skills contain no app port literals and scenario contract verifies config-owned endpoint consumption" -->
+- [x] 16.4 LIVE/CHROME: scenario/config/Compose/shell/build gates全绿；真实 `scenario-env-redeploy TARGET=all` + verify 后 frontend/backend 分别监听 10900/10901，runtime-config 200；Chrome 使用脚本输出的 frontend endpoint 完成中文 auth gate 与失败报告恢复验收。<!-- verified: 2026-07-16 method=live-chrome evidence="scenario env focused gates and build passed; host-run frontend/backend served 10900/10901 with runtime-config 200; Chrome verified localized auth gate, failed-report recovery, generating progress plus conversation, and ready report without mock/interception" -->
+
+## Phase 17: host Mailpit SMTP route fail-fast
+
+- [x] 17.1 RED-CONTRACT: provider 为 Mailpit、SMTP host 为 loopback 且 `EMAIL_SMTP_PORT` 与 `MAILPIT_SMTP_HOST_PORT` 不一致时，focused contract 要求 backend 进程启动前失败。<!-- verified: 2026-07-16 method=focused-red evidence="runtime contract reproduced the host mapping mismatch that left Mailpit empty and required a pre-start rejection" -->
+- [x] 17.2 GREEN-RUNTIME: `local-dev-runtime.sh` 的 `assert_host_mailpit_smtp_route` 校验动态有效 host mapping；只报告字段名/端口，不输出 secret；full-container internal Mailpit 与 external SMTP 不受影响。<!-- verified: 2026-07-16 method=focused-green evidence="25 scenario_env_contract pytest cases passed; guard is called after env load and before host backend start; no port or email business configuration was added to Skills" -->
+- [x] 17.3 LIVE-MAILPIT: 同步 host-run endpoint 后 redeploy backend，发起 fresh email-code challenge，Mailpit 收到一封新邮件；证据不记录完整邮箱或验证码。<!-- verified: 2026-07-16 method=chrome-live evidence="Mailpit mailbox changed from empty to one fresh code-only message and the matching browser login completed against the real backend" -->
+- [x] 17.4 REGRESSION/DOCS: focused pytest、shell syntax、root gates、docs/context/INDEX/diff 全绿；BDD 不适用。<!-- verified: 2026-07-16 method=full-regression evidence="25 scenario environment contract tests and shell syntax PASS; live Mailpit delivery + Chrome login PASS; make test/build, context/docs/index and diff gates PASS" -->

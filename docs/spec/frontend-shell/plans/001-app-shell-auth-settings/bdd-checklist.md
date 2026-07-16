@@ -1,8 +1,8 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.20
-> **状态**: completed
-> **更新日期**: 2026-07-15
+> **版本**: 1.21
+> **状态**: active
+> **更新日期**: 2026-07-16
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -34,3 +34,9 @@
 
 - [x] Component/backend contract tests 覆盖 dialog focus/Escape/取消零副作用、pending 禁止关闭/去重、recoverable 失败恢复/同 key 重试、`401` auth probe、`202` 后 `refreshAuth()` 重探测 `/me` 并提交 unauthenticated，以及 probe 网络错误的 honest auth error；不把该破坏性路径加入共享登录 E2E。
 - [x] Default `createDevMockClient` regression 覆盖 verify/profile/deleteMe 后的 `getMe` 401，证明 fixture preview 与真实 backend 的删除后 auth transition 一致。
+
+## `BDD.SHELL.AUTH.LOCALE.001` Auth route gate 本地化
+
+- [ ] 中文 loading/error gate 的 eyebrow/title/body 无英文硬编码；英文切换使用同一 typed keys。
+- [ ] Protected business screen/API 仍不在 auth probe 完成前挂载；focused 与根回归通过。
+- [ ] Chrome extension automation skill 在 current-run 真实本地页面验证中文 gate 与英文切换；该证据不标记新的 E2E ID。

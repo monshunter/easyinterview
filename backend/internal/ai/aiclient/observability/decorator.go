@@ -4,11 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
@@ -32,8 +31,7 @@ type Wrap struct {
 	auditWriter aiclient.AuditEventWriter
 	now         func() time.Time
 
-	rawOutputDebugWriter io.Writer
-	rawOutputDebugMu     sync.Mutex
+	rawIOCapture RawIOCapture
 }
 
 // Options configure New.
@@ -45,7 +43,7 @@ type options struct {
 	auditWriter aiclient.AuditEventWriter
 	now         func() time.Time
 
-	rawOutputDebugWriter io.Writer
+	rawIOCapture RawIOCapture
 }
 
 // Option mutates Wrap construction.
@@ -78,11 +76,11 @@ func WithProfileResolver(r aiclient.ProfileResolver) Option {
 // WithNow injects a clock for deterministic latency tests.
 func WithNow(now func() time.Time) Option { return func(o *options) { o.now = now } }
 
-// WithRawOutputDebugWriter writes raw Complete responses to w for explicit
-// local debugging. It intentionally does not alter metrics, structured logs,
-// ai_task_runs, or audit_events privacy behavior.
-func WithRawOutputDebugWriter(w io.Writer) Option {
-	return func(o *options) { o.rawOutputDebugWriter = w }
+// WithRawIOCapture attaches the one process-shared local Complete recorder.
+// The capture is an explicit dev/test diagnostic exception; all ordinary
+// metrics/log/task-run/audit privacy behaviour remains unchanged.
+func WithRawIOCapture(capture RawIOCapture) Option {
+	return func(o *options) { o.rawIOCapture = capture }
 }
 
 // New constructs a decorator. inner, registry, logger, runWriter,
@@ -121,12 +119,27 @@ func New(inner aiclient.AIClient, opts ...Option) (*Wrap, error) {
 		auditWriter: o.auditWriter,
 		now:         o.now,
 
-		rawOutputDebugWriter: o.rawOutputDebugWriter,
+		rawIOCapture: o.rawIOCapture,
 	}, nil
 }
 
 // Complete implements aiclient.AIClient.
 func (w *Wrap) Complete(ctx context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+	if payload.Metadata.TaskRun.ID == "" {
+		payload.Metadata.TaskRun.ID = idx.NewID()
+	}
+	w.captureRawComplete(RawCompleteRecord{
+		Type:        RawCompleteRequestType,
+		CallID:      payload.Metadata.TaskRun.ID,
+		ProfileName: profileName,
+		Payload: RawCompleteRequestPayload{
+			Messages:     append([]aiclient.Message(nil), payload.Messages...),
+			Tools:        append([]aiclient.Tool(nil), payload.Tools...),
+			ToolChoice:   payload.ToolChoice,
+			OutputSchema: append(json.RawMessage(nil), payload.Metadata.OutputSchema...),
+			Routing:      w.rawCompleteRouting(profileName),
+		},
+	})
 	start := w.now()
 	resp, meta, err := w.inner.Complete(ctx, profileName, payload)
 	completed := w.now()
@@ -143,6 +156,20 @@ func (w *Wrap) Complete(ctx context.Context, profileName string, payload aiclien
 		}
 	}
 	meta = enrichErrorMeta(meta, err)
+	meta = w.enrichMeta(profileName, meta, payload.Metadata)
+	w.captureRawComplete(RawCompleteRecord{
+		Type:        RawCompleteResponseType,
+		CallID:      payload.Metadata.TaskRun.ID,
+		ProfileName: profileName,
+		Payload: RawCompleteResponsePayload{
+			Content:          resp.Content,
+			FinishReason:     resp.FinishReason,
+			ToolCalls:        append([]aiclient.ToolCall(nil), resp.ToolCalls...),
+			ValidationStatus: string(meta.ValidationStatus),
+			ErrorCode:        meta.ErrorCode,
+			Meta:             rawResponseMeta(meta),
+		},
+	})
 
 	recordErr := w.recordCompleteCall(ctx, profileName, payload, resp.Content, meta, start, completed, err)
 	return resp, meta, joinRecordError(err, recordErr)
@@ -217,7 +244,6 @@ func enrichErrorMeta(meta aiclient.AICallMeta, err error) aiclient.AICallMeta {
 
 func (w *Wrap) recordCompleteCall(ctx context.Context, profileName string, payload aiclient.CompletePayload, responseContent string, meta aiclient.AICallMeta, start, completed time.Time, err error) error {
 	meta = w.enrichMeta(profileName, meta, payload.Metadata)
-	w.writeRawOutputDebug(meta, responseContent)
 	w.recordMetricsAndLog(meta, err)
 	auditRow := w.buildAuditRow(profileName, joinMessages(payload.Messages), responseContent)
 	return errors.Join(
@@ -408,26 +434,26 @@ func (w *Wrap) buildLogFields(meta aiclient.AICallMeta) LogFields {
 	}
 }
 
-func (w *Wrap) writeRawOutputDebug(meta aiclient.AICallMeta, responseContent string) {
-	if w.rawOutputDebugWriter == nil || responseContent == "" {
+func (w *Wrap) captureRawComplete(record RawCompleteRecord) {
+	if w == nil || w.rawIOCapture == nil {
 		return
 	}
-	w.rawOutputDebugMu.Lock()
-	defer w.rawOutputDebugMu.Unlock()
+	if err := w.rawIOCapture.RecordRawComplete(record); err != nil {
+		// Runtime capture failure is diagnostic-only. The stable event carries no
+		// path, raw content or underlying error text and never changes AI outcome.
+		w.logger.Log(EventRawCaptureWriteFailed, LogFields{})
+	}
+}
 
-	_, _ = fmt.Fprintf(
-		w.rawOutputDebugWriter,
-		"AI_RAW_OUTPUT_DEBUG_BEGIN provider=%s model_profile=%s model_id=%s route=%s feature_key=%s validation_status=%s error_code=%s response_chars=%d\n%s\nAI_RAW_OUTPUT_DEBUG_END\n",
-		emptyOrUnknown(meta.Provider),
-		emptyOrUnknown(meta.ModelProfileName),
-		emptyOrUnknown(meta.ModelID),
-		emptyOrUnknown(meta.Route),
-		emptyOrUnknown(strings.TrimSpace(meta.FeatureKey)),
-		emptyOrUnknown(string(meta.ValidationStatus)),
-		emptyOrUnknown(meta.ErrorCode),
-		len(responseContent),
-		responseContent,
-	)
+func (w *Wrap) rawCompleteRouting(profileName string) *RawCompleteRouting {
+	if w == nil || w.resolver == nil || profileName == "" {
+		return nil
+	}
+	profile, err := w.resolver.Resolve(profileName)
+	if err != nil {
+		return nil
+	}
+	return rawRouting(profile)
 }
 
 // AITaskRunRowFromMeta builds the typed ai_task_runs row directly from

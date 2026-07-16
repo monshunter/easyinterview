@@ -48,6 +48,7 @@ import {
   useInterviewContext,
 } from "./interview-context/InterviewContext";
 import { TopBar } from "./topbar/TopBar";
+import { useI18n } from "./i18n/messages";
 
 export interface AppProps {
   /**
@@ -350,60 +351,65 @@ function isProtectedRouteName(name: RouteName): boolean {
 const AuthRouteGate: FC<{ status: "loading" | "error"; route: Route }> = ({
   status,
   route,
-}) => (
-  <section
-    data-testid="auth-route-gate"
-    data-route-name={route.name}
-    className="ei-screen-shell"
-    style={{ padding: "48px 56px 96px" }}
-  >
-    <div
-      style={{
-        maxWidth: 520,
-        background: "var(--ei-color-bg-card)",
-        border: "1px solid var(--ei-color-rule-strong)",
-        borderRadius: 3,
-        padding: 24,
-      }}
+}) => {
+  const { t } = useI18n();
+  return (
+    <section
+      data-testid="auth-route-gate"
+      data-route-name={route.name}
+      className="ei-screen-shell"
+      style={{ padding: "48px 56px 96px" }}
     >
       <div
         style={{
-          color: "var(--ei-color-fg-tertiary)",
-          marginBottom: 8,
-          fontSize: 11,
-          fontWeight: 500,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          fontFamily: "var(--ei-font-mono)",
+          maxWidth: 520,
+          background: "var(--ei-color-bg-card)",
+          border: "1px solid var(--ei-color-rule-strong)",
+          borderRadius: 3,
+          padding: 24,
         }}
       >
-        AUTH
+        <div
+          style={{
+            color: "var(--ei-color-fg-tertiary)",
+            marginBottom: 8,
+            fontSize: 11,
+            fontWeight: 500,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            fontFamily: "var(--ei-font-mono)",
+          }}
+        >
+          {t("auth.routeGate.eyebrow")}
+        </div>
+        <div
+          style={{
+            fontSize: 22,
+            color: "var(--ei-color-fg-primary)",
+            fontFamily: "var(--ei-font-serif)",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {status === "loading"
+            ? t("auth.routeGate.loadingTitle")
+            : t("auth.routeGate.errorTitle")}
+        </div>
+        <p
+          style={{
+            color: "var(--ei-color-fg-secondary)",
+            fontSize: 14,
+            lineHeight: 1.55,
+            margin: "8px 0 0",
+          }}
+        >
+          {status === "loading"
+            ? t("auth.routeGate.loadingBody")
+            : t("auth.routeGate.errorBody")}
+        </p>
       </div>
-      <div
-        style={{
-          fontSize: 22,
-          color: "var(--ei-color-fg-primary)",
-          fontFamily: "var(--ei-font-serif)",
-          letterSpacing: "-0.02em",
-        }}
-      >
-        {status === "loading" ? "Checking sign-in" : "Sign-in required"}
-      </div>
-      <p
-        style={{
-          color: "var(--ei-color-fg-secondary)",
-          fontSize: 14,
-          lineHeight: 1.55,
-          margin: "8px 0 0",
-        }}
-      >
-        {status === "loading"
-          ? "Please wait while we verify this session."
-          : "Please sign in before opening interview workspace routes."}
-      </p>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export const InterviewContextRouteSync: FC<{ route: Route }> = ({ route }) => {
   const { dispatch } = useInterviewContext();

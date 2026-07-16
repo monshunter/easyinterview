@@ -16,6 +16,7 @@ const (
 	CodeReportNotFound               = "REPORT_NOT_FOUND"
 	CodeReportNotReady               = "REPORT_NOT_READY"
 	CodeReportContextTooLarge        = "REPORT_CONTEXT_TOO_LARGE"
+	CodeReportInvalidStateTransition = "REPORT_INVALID_STATE_TRANSITION"
 	CodeResumeExportNotAvailable     = "RESUME_EXPORT_NOT_AVAILABLE"
 	CodeValidationFailed             = "VALIDATION_FAILED"
 	CodeResourceNotFound             = "RESOURCE_NOT_FOUND"
@@ -41,6 +42,7 @@ var AllCodes = []string{
 	CodeReportNotFound,
 	CodeReportNotReady,
 	CodeReportContextTooLarge,
+	CodeReportInvalidStateTransition,
 	CodeResumeExportNotAvailable,
 	CodeValidationFailed,
 	CodeResourceNotFound,
@@ -72,6 +74,7 @@ var CodeRegistry = map[string]CodeMeta{
 	CodeReportNotFound:               {Message: "feedback report not found or not accessible", Retryable: false},
 	CodeReportNotReady:               {Message: "report is not ready yet", Retryable: true},
 	CodeReportContextTooLarge:        {Message: "report context exceeds supported generation size", Retryable: false},
+	CodeReportInvalidStateTransition: {Message: "report state transition is not allowed", Retryable: false},
 	CodeResumeExportNotAvailable:     {Message: "resume version export is not available in P0", Retryable: false},
 	CodeValidationFailed:             {Message: "request validation failed", Retryable: false},
 	CodeResourceNotFound:             {Message: "requested resource not found or not accessible", Retryable: false},

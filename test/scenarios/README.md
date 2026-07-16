@@ -4,7 +4,7 @@
 
 本目录只承载操作真实运行环境的端到端场景测试约定。BDD 文档中的 domain behavior test 留在代码 owner，不因使用 Given/When/Then 就进入本目录。
 
-当前仓库只维护一套本地场景契约。阶段差异通过场景编号和产品阶段表达，不通过多套环境拆分；默认场景编排只使用 shell / Python，外部依赖按需由 `make dev-up` 提供。明确要求完整容器部署时，使用 `make dev-container-up` 启动 frontend `http://127.0.0.1:10800` 与 backend `http://127.0.0.1:10801/api/v1`；这只是同一真实环境的可选部署形态。E2E 只接收针对真实运行环境的 HTTP API 调用，或针对真实运行前后端的浏览器 UI 操作；场景不得把包测试、源码检查或构建包装成 E2E。
+当前仓库只维护一套本地场景契约。阶段差异通过场景编号和产品阶段表达，不通过多套环境拆分；默认场景编排只使用 shell / Python，外部依赖按需由 `make dev-up` 提供。Host-run 与完整容器部署对外统一使用 frontend `http://127.0.0.1:10900` 与 backend `http://127.0.0.1:10901/api/v1`；完整容器形态通过 `make dev-container-up` 显式启动。E2E 只接收针对真实运行环境的 HTTP API 调用，或针对真实运行前后端的浏览器 UI 操作；场景不得把包测试、源码检查或构建包装成 E2E。
 
 当前标准套件：
 
@@ -72,7 +72,7 @@ test/scenarios/
 
 `make scenario-env-reset-redeploy` 是显式清数据调试入口，会删除本地 named volumes。普通重启或仅重新加载当前代码时使用 `make scenario-env-redeploy TARGET=all`，不得把“重启”默认解释为 reset。
 
-具体场景的 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 只负责场景数据、runner 执行证据和场景自有清理，不得把共享环境 bootstrap 私有化，也不得引用另一个具体场景作为环境前提。默认仍由 `/scenario-env setup` 或 `make scenario-env-setup` 准备依赖、宿主机运行前后端；当请求明确指定全容器部署时，改用 `make dev-container-up`，该入口会先停止仓库 PID 文件管理的 host-run backend/frontend，避免两个 backend 竞争同一异步队列，再以 `10800` / `10801` 的真实 UI/API 入口完成同一场景验收。
+具体场景的 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 只负责场景数据、runner 执行证据和场景自有清理，不得把共享环境 bootstrap 私有化，也不得引用另一个具体场景作为环境前提。默认仍由 `/scenario-env setup` 或 `make scenario-env-setup` 准备依赖、宿主机运行前后端；当请求明确指定全容器部署时，改用 `make dev-container-up`，该入口会先停止仓库 PID 文件管理的 host-run backend/frontend，避免两个 backend 竞争同一异步队列，再以 `10900` / `10901` 的统一真实 UI/API 入口完成同一场景验收。
 
 ## 4 首次使用
 

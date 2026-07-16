@@ -1,8 +1,8 @@
 # E2E Scenarios P0 Spec
 
-> **版本**: 2.17
+> **版本**: 2.18
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 ## 1 目标
 
@@ -38,6 +38,7 @@
 | D-5 | 共享环境由顶层 `test/scenarios/env-*.sh` 管理 | 场景目录不私有化环境 bootstrap，setup/cleanup 只隔离自身数据 |
 | D-6 | P0.101 保持独立 auth/settings owner | E2E suite 原地扩展同一真实环境资产与运行状态；backend-auth/frontend-shell 拥有 email-code/profile/Settings 行为，不创建第二个设置场景，也不把破坏性的账号删除加入共享登录生命周期 |
 | D-7 | Privacy gate 只识别用户数据与 secret | transcript、JD、简历、Cookie、验证码、密钥和可还原正文必须 fail closed；无用户内容的 PNG `iCCP` 等技术元数据属于开发过程，不作为隐私失败条件 |
+| D-8 | P0.099 raw I/O 与 evidence 隔离 | 真实 provider preflight 使用与 backend 相同的 ConfigDir-parent anchor 解析 raw path，并在 realpath 后要求其位于场景 evidence 目录外；路径组件含 symlink、target 非普通文件或 evidence 可达时 fail closed。场景脚本和 verifier 不读取、不复制、不摘要 raw NDJSON，场景 evidence 仍只保留有界 digest/status/route 事实 |
 
 ## 5 Operation Matrix
 
@@ -61,6 +62,7 @@ Resume/JD/plan/chat/provider 的业务与可靠性由各代码 owner 测试或 e
 - P0.099 对当前 run 的 en/zh ready report 与 generating state 捕获精确六张 `fullPage: true` 图片；每个 row 绑定当前 DB/API 状态、canonical content digest、action/content audit、screenshot digest 与 report/session/context digest。
 - P0.099 的两张 390x844 ready report 图片完整覆盖 action 区域，实际 English / zh-CN label 分别满足 `<=24 whitespace words` / `<=64 Unicode code points` 且无 clipping、ellipsis、hidden content 或横向溢出；这不替代代码层 exact boundary test。
 - P0.099 还从 ready Report 点击“查看本次面试记录”，验证 URL 只含 `reportId`、真实 API 返回同一 report/context 与 DB 绑定 session 的严格有序消息，并按 Back 回到该 Report；conversation 不新增截图、不抄录正文，只记录 route/status/count/sequence digest、report/session/context digest 与返回目标。公共 `listPracticeSessions` route/API 请求必须为零。
+- P0.099 preflight 要求 `AI_DEBUG_CAPTURE_RAW_IO=true`，并按 backend 同一 anchor/realpath 规则证明 `AI_DEBUG_RAW_IO_PATH` 是 evidence 目录外、无 symlink 且 target regular-or-absent 的独立文件；raw request/response 仅供本机故障调查，trigger/verify/manifest/privacy scanner 都不得读取、复制或把它计入 PASS evidence。
 - P0.101 经真实 Mailpit 收取验证码并完成首次 profile setup；点击唯一设置齿轮后显示同一账号的姓名/完整邮箱且不出现旧账号下拉/设置 tab，随后通过 Settings 进入 logout；完整邮箱只在页面断言，不写入 trigger/result 证据；完成账号再次登录不重复补全，且浏览器请求不被 fixture/mock transport 接管。账号删除不在该共享场景执行。
 - 三个场景都只接受当前真实环境证据；cookie、邮箱验证码、完整 prompt/response、JD、简历和 transcript 不写入 tracked docs 或验收 evidence。
 - 技术元数据可以保留，前提是其中不携带上述用户数据、认证材料或 secret；校验器必须按内容风险判断，不能把普通开发过程信息等同于隐私数据。
@@ -73,5 +75,6 @@ Resume/JD/plan/chat/provider 的业务与可靠性由各代码 owner 测试或 e
 | 2026-07-15 | 2.16 | Extend P0.101 in place with the single settings gear, real `/me` account fields and Settings-owned logout；keep delete-account destructive coverage in domain/contract tests. |
 | 2026-07-15 | 2.15 | Narrow evidence privacy gates to project user data and secrets; allow benign development metadata such as PNG color profiles. |
 | 2026-07-15 | 2.14 | Extend P0.099 with real report-owned Conversation navigation/API/DB binding and deleted-session-list negative evidence; retain the exact-six screenshot contract by using bounded non-image evidence. |
+| 2026-07-16 | 2.18 | Require P0.099 local raw I/O capture while keeping its NDJSON strictly outside scenario evidence and PASS markers. |
 | 2026-07-14 | 2.13 | 将 P0.101 作为独立 auth owner 的真实 E2E 资产纳入 suite 清单，保持业务合同不复制；统一三项场景的 current-run evidence 边界。 |
 | 2026-07-14 | 2.12 | 将 E2E 收敛为真实 API/UI：P0.098 只承接 completion/progress，P0.099 只承接 report/generating；删除 provider CLI/eval 场景 owner。 |

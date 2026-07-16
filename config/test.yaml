@@ -3,4 +3,5 @@
 # Secret fields MUST remain empty here.
 
 ai:
-  debugPrintRawOutput: true
+  debugCaptureRawIO: true
+  debugRawIOPath: ".test-output/local-dev/ai-raw.ndjson"

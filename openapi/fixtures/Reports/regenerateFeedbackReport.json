@@ -1,0 +1,163 @@
+{
+  "operationId": "regenerateFeedbackReport",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-regenerate-report-2026-07-16-default"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req-regenerate-report-default"
+        },
+        "body": {
+          "reportId": "01918fa0-0079-7000-8000-000000000079",
+          "job": {
+            "id": "01918fa0-00b9-7000-8000-0000000000b9",
+            "jobType": "report_generate",
+            "status": "queued",
+            "resourceType": "feedback_report",
+            "resourceId": "01918fa0-0079-7000-8000-000000000079",
+            "errorCode": null,
+            "createdAt": "2026-07-16T08:00:00Z",
+            "updatedAt": "2026-07-16T08:00:00Z"
+          }
+        }
+      }
+    },
+    "replay": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-regenerate-report-2026-07-16-default"
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "X-Request-ID": "req-regenerate-report-replay",
+          "X-Idempotency-Replay": "true"
+        },
+        "body": {
+          "reportId": "01918fa0-0079-7000-8000-000000000079",
+          "job": {
+            "id": "01918fa0-00b9-7000-8000-0000000000b9",
+            "jobType": "report_generate",
+            "status": "queued",
+            "resourceType": "feedback_report",
+            "resourceId": "01918fa0-0079-7000-8000-000000000079",
+            "errorCode": null,
+            "createdAt": "2026-07-16T08:00:00Z",
+            "updatedAt": "2026-07-16T08:00:00Z"
+          }
+        }
+      }
+    },
+    "hidden-not-found": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-regenerate-report-2026-07-16-hidden"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req-regenerate-report-hidden"
+        },
+        "body": {
+          "error": {
+            "code": "REPORT_NOT_FOUND",
+            "message": "feedback report not found or not accessible",
+            "requestId": "req-regenerate-report-hidden",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "invalid-state": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-regenerate-report-2026-07-16-invalid-state"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req-regenerate-report-invalid-state"
+        },
+        "body": {
+          "error": {
+            "code": "REPORT_INVALID_STATE_TRANSITION",
+            "message": "report state transition is not allowed",
+            "requestId": "req-regenerate-report-invalid-state",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "active-job-not-ready": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-regenerate-report-2026-07-16-active-job"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req-regenerate-report-active-job"
+        },
+        "body": {
+          "error": {
+            "code": "REPORT_NOT_READY",
+            "message": "report is not ready yet",
+            "requestId": "req-regenerate-report-active-job",
+            "retryable": true
+          }
+        }
+      }
+    },
+    "context-too-large": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-regenerate-report-2026-07-16-context-too-large"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req-regenerate-report-context-too-large"
+        },
+        "body": {
+          "error": {
+            "code": "REPORT_CONTEXT_TOO_LARGE",
+            "message": "report context exceeds supported generation size",
+            "requestId": "req-regenerate-report-context-too-large",
+            "retryable": false
+          }
+        }
+      }
+    },
+    "idempotency-mismatch": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "idem-regenerate-report-2026-07-16-mismatch"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-ID": "req-regenerate-report-idempotency-mismatch"
+        },
+        "body": {
+          "error": {
+            "code": "IDEMPOTENCY_KEY_MISMATCH",
+            "message": "idempotency key was reused with a different request body",
+            "requestId": "req-regenerate-report-idempotency-mismatch",
+            "retryable": false
+          }
+        }
+      }
+    }
+  }
+}

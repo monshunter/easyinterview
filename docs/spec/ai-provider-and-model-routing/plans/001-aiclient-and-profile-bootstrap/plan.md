@@ -1,6 +1,6 @@
 # AIClient and Profile Bootstrap
 
-> **版本**: 2.6
+> **版本**: 2.9
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -174,6 +174,24 @@
 
 删除被 SDK 覆盖的 request/response/SSE/multipart struct 与手写 post helper，只保留 provider-neutral mapping、DeepSeek controlled extras、project error/meta/privacy/response-cap glue。负向搜索确认业务代码无 SDK import、旧通用 wire/helper 无运行时消费者；运行 focused adapter/AIClient/config/lint、`go vet`、`staticcheck`、根 `make test`、`make build`、context/docs/index/diff gates 后恢复 completed。
 
+### Phase 16: Secure local raw Complete I/O capture
+
+#### 16.1 Recorder RED/GREEN
+
+Add tests for versioned request/response two-phase NDJSON with UUIDv7 call ID, `callId == ai_task_runs.id`, schema-invalid raw response, provider-error request preservation, append reopen/cross-restart ID non-collision, 100 concurrent calls without line interleaving, stable ConfigDir-parent path resolution, per-component symlink/non-regular rejection, existing 0644→0600 tightening, dedicated parent/file `0700/0600`, and explicit absence of header/credential/audio/reasoning/internal-identity fields. Privacy assertions parse the NDJSON schema and plant tokens only in non-allowlisted inputs；they must not reject arbitrary words inside the intentionally preserved message/content/tool-argument values. Implement one mutex-protected process-shared recorder that marshals a complete line before one append write.
+
+#### 16.2 Decorator/runtime wiring
+
+Replace `WithRawOutputDebugWriter` and stderr markers with `WithRawIOCapture`. Capture only `Complete` at the provider-neutral boundary: allocate/fill the TaskRun UUIDv7 before the provider call, write `ai.complete.raw.v1` request, then write response after schema validation/meta enrichment. API startup opens one recorder and passes it to report/practice/resume/targetjob/resume-tailor decorators；resume-tailor must stop hand-writing a duplicate task run. Open/close occurs once. Startup open failure is fatal；runtime write failure emits a process-visible structured WARN using only the stable event and closed safe fields, excludes underlying path/error/raw content, and never changes the AI business result.
+
+#### 16.3 Privacy/config handoff
+
+Consume A4 `ai.debugCaptureRawIO` / `ai.debugRawIOPath`. Dev/test default enabled；staging/prod force disabled and reject an env override. Delete current-scope `AI_DEBUG_PRINT_RAW_OUTPUT` without alias. Raw NDJSON remains under ignored `.test-output`, never enters logs/DB/audit/runtime-config/E2E evidence, and excludes Transcribe/Synthesize/Stream content. Full-container binds the dedicated host raw directory read-write into backend only, so container recreation does not erase evidence.
+
+#### 16.4 Substitute gates
+
+BDD is not applicable because this is an internal developer diagnostic. Run focused observability/config/runtime tests, privacy negative searches, lint-config, P0.099 evidence-isolation static tests, root `make test` and build/context/docs gates.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -198,11 +216,14 @@
 | A-18 | Chat and judge Complete preserve tools/JSON/thinking/usage/header/error/meta/privacy contracts while SDK owns same-provider retry and AIClient owns cross-provider fallback | openai/judge adapter contract tests, AIClient fallback tests, privacy tests |
 | A-19 | SDK streaming and Audio Transcriptions preserve `AIStreamEvent`, cancellation/partial meta, multipart and response-cap contracts | openai-compatible stream/STT contract tests |
 | A-20 | Hand-written generic OpenAI wire/transport is removed without changing public A3/config/business contracts | negative symbol/import search, full AIClient/backend/root gates |
+| A-21 | Local Complete request/response can be diagnosed from a secure independent NDJSON file without leaking secrets/content into ordinary observability or production | recorder concurrency/permissions/privacy tests + A4/A2/P0.099 handoff gates |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-16 | 2.9 | Make raw-capture runtime write failures process-visible through a content-free structured warning while preserving the AI result. |
+| 2026-07-16 | 2.8 | Reopen Phase 16 to replace stderr response-only debug with secure process-shared Complete request/response NDJSON capture. |
 | 2026-07-16 | 2.6 | Replace self-maintained OpenAI-compatible transport with adapter-private `openai-go/v3 v3.43.0` while preserving AIClient, profile, fallback, metadata, privacy and response-cap contracts. |
 | 2026-07-10 | 2.5 | Consolidate repeated observability privacy leak assertions. |
 | 2026-07-10 | 2.4 | Consolidate repeated AIClient invalid-input error and metadata assertions. |

@@ -56,7 +56,7 @@ class PrismFixtureSmokeTest(unittest.TestCase):
         rows = {row[0]: row for row in smoke.SMOKE_MATRIX}
 
         self.assertTrue(
-            {"getFeedbackReport", "getReportConversation", "listTargetJobReports", "createPracticePlan"}
+            {"getFeedbackReport", "getReportConversation", "regenerateFeedbackReport", "listTargetJobReports", "createPracticePlan"}
             <= set(rows)
         )
         self.assertEqual(
@@ -68,6 +68,16 @@ class PrismFixtureSmokeTest(unittest.TestCase):
                 "openapi/fixtures/Reports/getReportConversation.json",
             ),
             rows["getReportConversation"],
+        )
+        self.assertEqual(
+            (
+                "regenerateFeedbackReport",
+                "POST",
+                "/reports/01918fa0-0079-7000-8000-000000000079/regenerate",
+                202,
+                "openapi/fixtures/Reports/regenerateFeedbackReport.json",
+            ),
+            rows["regenerateFeedbackReport"],
         )
 
     def test_target_job_report_pointer_removal_matrix_covers_all_affected_defaults(self) -> None:

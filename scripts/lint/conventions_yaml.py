@@ -50,6 +50,7 @@ REQUIRED_ERROR_CODES = {
     "TARGET_IMPORT_FAILED",
     "PRACTICE_SESSION_CONFLICT",
     "REPORT_NOT_READY",
+    "REPORT_INVALID_STATE_TRANSITION",
     "RESUME_EXPORT_NOT_AVAILABLE",
     "VALIDATION_FAILED",
     "RATE_LIMITED",
@@ -151,7 +152,7 @@ def validate(data: dict[str, Any]) -> list[str]:
     missing_error_codes = REQUIRED_ERROR_CODES - seen_error_codes
     if missing_error_codes:
         errors.append(
-            "errors must include all 6 shared error-code examples from the owner spec; "
+            "errors must include all required shared error codes from the owner spec; "
             f"missing {sorted(missing_error_codes)}"
         )
     report_context_errors = [

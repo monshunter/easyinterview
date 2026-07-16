@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.7
+> **版本**: 3.11
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -53,3 +53,21 @@
 - [x] OpenAPI fixture/codegen/inventory/diff gates pass and `listPracticeSessions` has no active fixture/generated/runtime consumer.
 - [x] Root `make test` passes while deleted Demo/prototype-sync assets remain absent.
   <!-- verified: 2026-07-15 method=focused+root-regression evidence="frontend 989; Python 551+4493 subtests; Go all packages; build/docs/codegen/pruning PASS" -->
+
+## Phase 14 failed report recovery
+
+- [x] Generated-client bodyless POST/IK/typed response contract test passes.
+- [x] ReportsScreen failed state, locator separation, oversize, pending/double-click/key/stale/malformed matrices pass.
+- [x] Accessibility and raw-error/internal-ID negative tests pass.
+- [x] Failed conversation hides Back while its report owner is resolving, then routes a trusted target to Reports or a resolved untrusted result to Workspace.
+  <!-- verified: 2026-07-16 method=focused-vitest evidence="ReportConversationScreen 19/19 PASS; the RED first exposed an immediate workspace Back while getFeedbackReport was pending" -->
+- [x] Focused frontend, typecheck/build and root `make test` pass after GREEN.
+  <!-- verified: 2026-07-16 evidence="focused report recovery/conversation/client suites, typecheck and build PASS; root frontend 126/1026 PASS" -->
+
+## Phase 15 completed-session conversation availability
+
+- [x] RED captures missing latest-attempt conversation action beside queued/generating progress.
+- [x] queued/generating/latest-ready/current/same-ID/empty action matrix passes with localized distinct a11y names.
+- [x] Focused frontend, typecheck/build and Chrome real-environment acceptance pass after GREEN.
+- [x] Root `make test` passes after GREEN.
+  <!-- verified: 2026-07-16 evidence="Python 584/4583 subtests, Go all packages, frontend 126/1026 PASS" -->

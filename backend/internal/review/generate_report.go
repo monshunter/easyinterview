@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -31,6 +32,8 @@ const (
 )
 
 var reportActionRetryDelays = [...]time.Duration{10 * time.Second, 20 * time.Second, 40 * time.Second}
+
+var reportRepairCoordinatePathPattern = regexp.MustCompile(`^\$(?:(?:\.[A-Za-z][A-Za-z0-9_]*)|(?:\[[0-9]+\]))*$`)
 
 var (
 	ErrReviewAIOutputInvalid         = errors.New("review: ai output invalid")
@@ -344,7 +347,14 @@ func reportCompletePayload(resolution registry.PromptResolution, reportCtx Repor
 	if err != nil {
 		return aiclient.CompletePayload{}, fmt.Errorf("marshal report messages: %w", err)
 	}
-	messages, err := buildReportPromptMessages(resolution.UserMessageTemplate, language, frozenRaw, messagesRaw, repairIssues)
+	messages, err := buildReportPromptMessages(
+		resolution.UserMessageTemplate,
+		language,
+		frozenRaw,
+		messagesRaw,
+		repairIssues,
+		candidateUserMessageSeqNos(ordered),
+	)
 	if err != nil {
 		return aiclient.CompletePayload{}, err
 	}
@@ -373,25 +383,32 @@ func reportCompletePayload(resolution registry.PromptResolution, reportCtx Repor
 // never promotes any part of that data into the trusted system role; callers
 // must not log it or persist it outside explicitly content-bearing surfaces.
 func BuildReportPromptMessages(template, language string, frozenContext, conversationMessages json.RawMessage) ([]aiclient.Message, error) {
-	return buildReportPromptMessages(template, language, frozenContext, conversationMessages, nil)
+	return buildReportPromptMessages(template, language, frozenContext, conversationMessages, nil, nil)
 }
 
 // BuildReportRepairPromptMessages is the narrow live-evaluation handoff for
 // the product report repair serializer. It preserves the exact untrusted
-// context message and adds only bounded path/code coordinates to the trusted
-// policy. Callers must never pass raw model output as a repair coordinate.
+// context message and adds bounded path/code coordinates plus, when needed,
+// trusted candidate-user message sequence numbers to the policy. Callers must
+// never pass raw model output or unvalidated role claims as repair coordinates.
 func BuildReportRepairPromptMessages(
 	template, language string,
 	frozenContext, conversationMessages json.RawMessage,
 	repairIssues []ReportValidationIssue,
+	candidateUserSeqNos []int,
 ) ([]aiclient.Message, error) {
 	if len(repairIssues) == 0 {
 		return nil, fmt.Errorf("report.generate repair requires at least one path/code coordinate")
 	}
-	return buildReportPromptMessages(template, language, frozenContext, conversationMessages, repairIssues)
+	return buildReportPromptMessages(template, language, frozenContext, conversationMessages, repairIssues, candidateUserSeqNos)
 }
 
-func buildReportPromptMessages(template, language string, frozenContext, conversationMessages json.RawMessage, repairIssues []ReportValidationIssue) ([]aiclient.Message, error) {
+func buildReportPromptMessages(
+	template, language string,
+	frozenContext, conversationMessages json.RawMessage,
+	repairIssues []ReportValidationIssue,
+	candidateUserSeqNos []int,
+) ([]aiclient.Message, error) {
 	language, err := canonicalReportLanguage(language)
 	if err != nil {
 		return nil, err
@@ -408,40 +425,248 @@ func buildReportPromptMessages(template, language string, frozenContext, convers
 	}
 	system := strings.ReplaceAll(systemTemplate, "{{language}}", language)
 	if len(repairIssues) > 0 {
+		if err := validateReportRepairInputs(repairIssues, candidateUserSeqNos); err != nil {
+			return nil, err
+		}
 		repairRaw, err := json.Marshal(repairIssueCoordinates(repairIssues))
 		if err != nil {
 			return nil, fmt.Errorf("marshal repair coordinates: %w", err)
 		}
 		system += "\n\nThe previous attempt violated the output contract. Generate the complete report again from the same untrusted context. Do not repeat these path/code violations: " + string(repairRaw)
-		for _, issue := range repairIssues {
-			if issue.Code == "missing_evidence" {
-				system += " Every dimensionAssessment must be referenced by at least one highlight or issue using the exact same dimensionCode. If a dimension cannot be supported by such an evidence item, remove that dimension instead of inventing evidence."
-				break
+		intent, err := buildReportRepairIntent(language, repairIssues, candidateUserSeqNos)
+		if err != nil {
+			return nil, err
+		}
+		system += " " + intent
+	}
+	user := strings.ReplaceAll(userTemplate, "{{frozen_context}}", escapeUntrustedJSONForPrompt(frozenContext))
+	user = strings.ReplaceAll(user, "{{conversation_messages}}", escapeUntrustedJSONForPrompt(conversationMessages))
+	return []aiclient.Message{{Role: "system", Content: strings.TrimSpace(system)}, {Role: "user", Content: strings.TrimSpace(user)}}, nil
+}
+
+func escapeUntrustedJSONForPrompt(raw json.RawMessage) string {
+	return strings.NewReplacer("&", `\u0026`, "<", `\u003c`, ">", `\u003e`).Replace(string(raw))
+}
+
+func candidateUserMessageSeqNos(messages []MessageSnapshot) []int {
+	seqNos := make([]int, 0, len(messages))
+	for _, message := range messages {
+		if message.Role == "user" && message.SeqNo > 0 {
+			seqNos = append(seqNos, message.SeqNo)
+		}
+	}
+	sort.Ints(seqNos)
+	return seqNos
+}
+
+func validateReportRepairInputs(issues []ReportValidationIssue, candidateUserSeqNos []int) error {
+	hasAnchorIssue := false
+	for _, issue := range issues {
+		if len(issue.Path) > 256 || !reportRepairCoordinatePathPattern.MatchString(issue.Path) {
+			return fmt.Errorf("%w: unsafe repair coordinate path", ErrReviewAIOutputInvalid)
+		}
+		family, err := reportRepairFamilyForIssue(issue)
+		if err != nil {
+			return err
+		}
+		switch family {
+		case reportRepairFamilyAnchors:
+			hasAnchorIssue = true
+			if !strings.Contains(issue.Path, ".sourceMessageSeqNos") {
+				return fmt.Errorf("%w: anchor repair code has incompatible path", ErrReviewAIOutputInvalid)
 			}
-			if issue.Code == "output_schema_invalid" {
-				system += " Recheck every required field against the rendered output contract, including type, enum, string-length, and array-item bounds." + reportActionLabelRepairGuidance(language) + " Return a fully compliant report."
-				break
+		case reportRepairFamilyEvidence:
+			if !hasAnyReportRepairPathPrefix(issue.Path, "$.dimensionAssessments", "$.highlights", "$.issues") {
+				return fmt.Errorf("%w: evidence repair code has incompatible path", ErrReviewAIOutputInvalid)
 			}
-			if issue.Code == "max_length" {
-				system += " The field at the supplied path exceeds its maximum length; shorten it to the bound in the rendered output contract."
-				if strings.Contains(issue.Path, "nextActions") {
-					system += reportActionLabelRepairGuidance(language)
-				}
-				break
+		case reportRepairFamilyReadiness:
+			if issue.Path != "$.preparednessLevel" && !hasAnyReportRepairPathPrefix(issue.Path, "$.dimensionAssessments", "$.highlights", "$.issues") {
+				return fmt.Errorf("%w: readiness repair code has incompatible path", ErrReviewAIOutputInvalid)
 			}
-			if issue.Code == "max_words" {
-				system += fmt.Sprintf(" For the English action label at the supplied path, count words with whitespace delimiters and rewrite it to at most %d words while preserving the same supported action meaning.", reportActionLabelEnglishWordLimit)
-				break
+		case reportRepairFamilyActions:
+			if !hasAnyReportRepairPathPrefix(issue.Path, "$.nextActions", "$.retryFocusDimensionCodes") {
+				return fmt.Errorf("%w: action repair code has incompatible path", ErrReviewAIOutputInvalid)
 			}
-			if issue.Code == "max_code_points" {
-				system += fmt.Sprintf(" For the zh-CN action label at the supplied path, count Unicode code points and rewrite it to at most %d characters while preserving the same supported action meaning.", reportActionLabelChineseRuneLimit)
-				break
+		case reportRepairFamilyText:
+			if issue.Path != "$.language" && issue.Path != "$.summary" && !hasAnyReportRepairPathPrefix(issue.Path, "$.dimensionAssessments", "$.highlights", "$.issues", "$.nextActions") {
+				return fmt.Errorf("%w: text repair code has incompatible path", ErrReviewAIOutputInvalid)
 			}
 		}
 	}
-	user := strings.ReplaceAll(userTemplate, "{{frozen_context}}", string(frozenContext))
-	user = strings.ReplaceAll(user, "{{conversation_messages}}", string(conversationMessages))
-	return []aiclient.Message{{Role: "system", Content: strings.TrimSpace(system)}, {Role: "user", Content: strings.TrimSpace(user)}}, nil
+	previous := 0
+	for index, seqNo := range candidateUserSeqNos {
+		if seqNo <= 0 || (index > 0 && seqNo <= previous) {
+			return fmt.Errorf("%w: candidate user message sequence numbers must be positive, unique and ascending", ErrReviewAIOutputInvalid)
+		}
+		previous = seqNo
+	}
+	if hasAnchorIssue && len(candidateUserSeqNos) == 0 {
+		return fmt.Errorf("%w: anchor repair requires at least one validated candidate user message sequence number", ErrReviewAIOutputInvalid)
+	}
+	return nil
+}
+
+func hasAnyReportRepairPathPrefix(path string, prefixes ...string) bool {
+	for _, prefix := range prefixes {
+		if path == prefix || strings.HasPrefix(path, prefix+"[") || strings.HasPrefix(path, prefix+".") {
+			return true
+		}
+	}
+	return false
+}
+
+type reportRepairFamily string
+
+const (
+	reportRepairFamilyStructural reportRepairFamily = "structural"
+	reportRepairFamilyAnchors    reportRepairFamily = "anchors"
+	reportRepairFamilyEvidence   reportRepairFamily = "evidence"
+	reportRepairFamilyReadiness  reportRepairFamily = "readiness"
+	reportRepairFamilyActions    reportRepairFamily = "actions"
+	reportRepairFamilyText       reportRepairFamily = "text"
+)
+
+func buildReportRepairIntent(language string, issues []ReportValidationIssue, candidateUserSeqNos []int) (string, error) {
+	families := make(map[reportRepairFamily]struct{}, len(issues))
+	for _, issue := range issues {
+		family, err := reportRepairFamilyForIssue(issue)
+		if err != nil {
+			return "", err
+		}
+		families[family] = struct{}{}
+	}
+	intents := make([]string, 0, len(families))
+	for _, family := range []reportRepairFamily{
+		reportRepairFamilyStructural,
+		reportRepairFamilyAnchors,
+		reportRepairFamilyEvidence,
+		reportRepairFamilyReadiness,
+		reportRepairFamilyActions,
+		reportRepairFamilyText,
+	} {
+		if _, present := families[family]; !present {
+			continue
+		}
+		switch family {
+		case reportRepairFamilyStructural:
+			intent := "Return exactly one complete, stop-terminated JSON object that satisfies the rendered closed output contract at every listed path: include every required non-blank field, use the required types, enums and formats, remove duplicates and unknown fields, and do not return a patch or a targeted-repair envelope. Produce 1 to 6 dimensionAssessments, at most 4 highlights, at most 4 issues, 1 to 6 combined highlight/issue evidence items, 1 or 2 nextActions, and at most 6 retryFocusDimensionCodes. Dimension and focus codes must match ^[a-z][a-z0-9_]{1,63}$."
+			if hasReportValidationCode(issues, "output_schema_invalid") {
+				intent += " Recheck every required field against the rendered output contract, including type, enum, string-length, and array-item bounds." + reportActionLabelRepairGuidance(language)
+			}
+			if hasReportValidationCode(issues, "max_length") {
+				intent += " The field at the supplied path exceeds its maximum length; shorten it to the bound in the rendered output contract."
+			}
+			intents = append(intents, intent)
+		case reportRepairFamilyAnchors:
+			allowedRaw, err := json.Marshal(candidateUserSeqNos)
+			if err != nil {
+				return "", fmt.Errorf("marshal candidate user message sequence numbers: %w", err)
+			}
+			intents = append(intents, "Every highlight and issue must contain at least one evidence anchor. Evidence anchors must be positive, unique, ascending, within the frozen transcript, and must reference candidate user messages rather than assistant messages. Valid candidate user message sequence numbers for evidence anchors: "+string(allowedRaw)+". Use only supported numbers from this list; remove an unsupported evidence item and its unsupported dimension instead of guessing or deterministically changing an anchor.")
+		case reportRepairFamilyEvidence:
+			intents = append(intents, "Make every evidence item reference an existing dimensionCode exactly. Every dimensionAssessment must be referenced by at least one highlight or issue using the exact same dimensionCode. A strong dimension needs a highlight, a needs_work dimension needs an issue, and an issue must not target a non-needs_work dimension. If a dimension cannot be supported by such an evidence item, remove that dimension instead of inventing evidence.")
+		case reportRepairFamilyReadiness:
+			intents = append(intents, "preparednessLevel must be one of not_ready, needs_practice, basically_ready, or well_prepared. Every dimension status must be strong, meets_bar, or needs_work, and every confidence must be high, medium, or low. A basically_ready report cannot contain any needs_work dimension. It must contain at least one meets_bar or strong dimension with medium or high confidence. Choose preparedness from supported candidate evidence: if a material gap exists or no supported usable dimension exists, use a lower tier, keep an issue for the same needs_work dimension, and make retry_current_round the first action; otherwise remove unsupported needs_work dimensions and issues. A well_prepared report requires at least two strong, high-confidence dimensions, no issues, and highlights grounded in at least two candidate user messages. Low confidence cannot support strong, needs_work, or issue claims. Do not change the tier mechanically just to pass validation.")
+		case reportRepairFamilyActions:
+			intents = append(intents, "Return 1 or 2 nextActions with unique types chosen only from retry_current_round, next_round, and review_evidence. Make nextActions and retryFocusDimensionCodes consistent with readiness and hasNextRound: lower tiers start with retry_current_round; do not use next_round when unavailable or with a lower tier; include retry focus only with a retry action and make it the unique ascending exact set of issue-backed needs_work dimension codes, except the documented single generic answer-depth/relevance case requires an empty focus list.")
+		case reportRepairFamilyText:
+			intent := "Rewrite text at the listed paths in " + language + " using concise original wording. Do not copy transcript text or make forbidden hiring-probability, ranking, speech, emotion, or personality claims."
+			switch {
+			case hasReportValidationCode(issues, "max_words"):
+				intent += fmt.Sprintf(" For the English action label at the supplied path, count words with whitespace delimiters and rewrite it to at most %d words while preserving the same supported action meaning.", reportActionLabelEnglishWordLimit)
+			case hasReportValidationCode(issues, "max_code_points"):
+				intent += fmt.Sprintf(" For the zh-CN action label at the supplied path, count Unicode code points and rewrite it to at most %d characters while preserving the same supported action meaning.", reportActionLabelChineseRuneLimit)
+			case hasActionLabelLimitIssue(language, issues):
+				intent += reportActionLabelRepairGuidance(language)
+			}
+			intents = append(intents, intent)
+		}
+	}
+	return strings.Join(intents, " "), nil
+}
+
+func reportRepairFamilyForIssue(issue ReportValidationIssue) (reportRepairFamily, error) {
+	anchorPath := strings.Contains(issue.Path, ".sourceMessageSeqNos")
+	focusPath := strings.HasPrefix(issue.Path, "$.retryFocusDimensionCodes")
+	actionPath := strings.HasPrefix(issue.Path, "$.nextActions")
+	readinessPath := issue.Path == "$.preparednessLevel" || strings.HasSuffix(issue.Path, ".status") || strings.HasSuffix(issue.Path, ".confidence")
+
+	switch issue.Code {
+	case "not_user_message", "not_positive", "out_of_range":
+		return reportRepairFamilyAnchors, nil
+	case "not_ascending":
+		if anchorPath {
+			return reportRepairFamilyAnchors, nil
+		}
+		if focusPath {
+			return reportRepairFamilyActions, nil
+		}
+		return reportRepairFamilyStructural, nil
+	case "duplicate", "min_items":
+		if anchorPath {
+			return reportRepairFamilyAnchors, nil
+		}
+		if focusPath || actionPath {
+			return reportRepairFamilyActions, nil
+		}
+		return reportRepairFamilyStructural, nil
+	case "invalid_enum":
+		if actionPath {
+			return reportRepairFamilyActions, nil
+		}
+		if readinessPath {
+			return reportRepairFamilyReadiness, nil
+		}
+		return reportRepairFamilyStructural, nil
+	case "max_length":
+		if strings.Contains(issue.Path, "nextActions") {
+			return reportRepairFamilyText, nil
+		}
+		return reportRepairFamilyStructural, nil
+	case "empty_json", "invalid_json", "closed_schema_invalid", "output_schema_invalid",
+		"required", "invalid_type", "unknown_field", "min_length", "max_items",
+		"invalid_format", "finish_reason_not_stop", "invalid_utf8", "replacement_set_mismatch":
+		return reportRepairFamilyStructural, nil
+	case "missing_evidence", "strong_requires_highlight", "needs_work_requires_issue":
+		return reportRepairFamilyEvidence, nil
+	case "unknown_reference", "not_needs_work", "not_issue_backed":
+		if focusPath {
+			return reportRepairFamilyActions, nil
+		}
+		return reportRepairFamilyEvidence, nil
+	case "requires_needs_work", "forbids_needs_work", "requires_supported_usable_dimension",
+		"low_confidence_status_invalid", "low_confidence_issue_invalid", "well_prepared_min_items",
+		"well_prepared_requires_strong", "well_prepared_requires_high_confidence",
+		"well_prepared_forbids_issues", "well_prepared_requires_two_user_messages":
+		return reportRepairFamilyReadiness, nil
+	case "retry_current_round_required", "next_round_inconsistent_with_readiness",
+		"next_round_unavailable", "retry_action_required", "retry_focus_mismatch",
+		"generic_exception_requires_empty_focus":
+		return reportRepairFamilyActions, nil
+	case "forbidden_claim", "copied_message_text", "language_mismatch", "max_words",
+		"max_code_points", "unsupported_language":
+		return reportRepairFamilyText, nil
+	default:
+		return "", fmt.Errorf("%w: no safe repair intent for validation code %q", ErrReviewAIOutputInvalid, issue.Code)
+	}
+}
+
+func hasActionLabelLimitIssue(language string, issues []ReportValidationIssue) bool {
+	for _, issue := range issues {
+		if strings.Contains(issue.Path, "nextActions") && isActionLabelLimitCode(language, issue.Code) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasReportValidationCode(issues []ReportValidationIssue, code string) bool {
+	for _, issue := range issues {
+		if issue.Code == code {
+			return true
+		}
+	}
+	return false
 }
 
 func reportActionLabelRepairGuidance(language string) string {

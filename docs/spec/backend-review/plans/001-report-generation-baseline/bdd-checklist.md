@@ -1,15 +1,17 @@
 # Grounded Conversation Report BDD Checklist
 
-> **版本**: 2.25
+> **版本**: 2.27
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
 ## `BDD.REPORT.GENERATE.001` Grounded report generation
 
 - [x] Owner behavior tests 覆盖 frozen context、validator/repair/retry、persistence、replay、input guard 与 privacy/fencing。
-- [x] 根 `make test` 已执行对应 Go tests；该结果是代码层行为证据，不是 `E2E.P0.099` PASS。
+- [x] Focused behavior tests 覆盖所有可达 validation code 的明确 intent family、多 family 合并、可信 user-seq allowlist、unknown-code provider-before-call failure 与 literal marker escaping。
+- [x] Phase 14 后重新执行根 `make test`；该结果是代码层行为证据，不是 `E2E.P0.099` PASS。
+  <!-- verified: 2026-07-16 evidence="Python 584/4583 subtests, Go all packages, frontend 126/1026 PASS; no new P0.099 PASS claimed" -->
 
 ## E2E.P0.099 静态资产审计
 
@@ -35,3 +37,11 @@
 - [x] Validator、repair/retry、persistence、canonical-round overview and small injected input guard are covered by owner code/integration tests.
 - [x] Provider/judge reliability is covered by independent eval; it is not an E2E scenario and is not a prerequisite for P0.099.
 - [x] Root `make test` remains the complete backend/frontend unit regression gate outside E2E；this classification does not claim a scenario run.
+
+## `BDD.REPORT.REGENERATE.001` Same-report recovery
+
+- [x] Same report ID、frozen context and transcript survive requeue；all ready-only output/provenance fields reset atomically.
+- [x] Same key replays one response/job；different-key concurrency and terminal-failure finalize window create at most one active job without deadlock.
+- [x] Non-failed、active old job、oversize、missing/cross-user paths return typed errors with zero writes and no raw content.
+- [x] Root `make test` executes the owner behavior tests；this remains code-level behavior evidence, not an E2E marker.
+  <!-- verified: 2026-07-16 evidence="same-report recovery owner tests included in root PASS; Chrome scoped acceptance reported separately" -->

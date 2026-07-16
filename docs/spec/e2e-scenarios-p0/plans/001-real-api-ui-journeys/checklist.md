@@ -1,8 +1,8 @@
 # 001 Real API/UI Journeys Checklist
 
-> **版本**: 4.3
+> **版本**: 4.4
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -53,3 +53,10 @@
   <!-- verified: 2026-07-15 run_id="e2e-p0-101-20260715114513-19516" evidence="logoutRelogin lifecycle PASS; completed account relogin skips setup; deleteMeRequests=0" -->
 - [x] 5.4 PRIVACY/STATIC-GATE: evidence excludes full email/code/cookie and remains `Ready` until explicit scenario run；syntax/interception/docs/index checks pass without wrapping code tests.
   <!-- verified: 2026-07-15 method=red-green-privacy-verify evidence="verify first rejected URL-encoded current-run email, then PASS after finalUrl redaction and exact plain/encoded leak checks; static INDEX remains Ready" -->
+
+## Phase 6: P0.099 raw I/O evidence isolation
+
+- [x] 6.1 RED-PREFLIGHT: scenario-local tests fail when capture is disabled, path is empty, resolved/real path falls under current run evidence, any component is symlink, target is non-regular, or trigger/verify/manifest references raw NDJSON.<!-- verified: 2026-07-16 method=p0-099-raw-isolation-red evidence="scenario contract tests fail on missing resolved/realpath evidence isolation, component symlink/non-regular guards and raw-reference negative rules" -->
+- [x] 6.2 GREEN-PREFLIGHT: P0.099 uses the backend ConfigDir-parent anchor and realpath rules to require `AI_DEBUG_CAPTURE_RAW_IO=true` plus an evidence-external `AI_DEBUG_RAW_IO_PATH`; old stderr key is rejected.<!-- verified: 2026-07-16 method=p0-099-raw-preflight-green evidence="21 scenario contract tests PASS for disabled/empty/evidence-contained/symlink/non-regular/root path rejections and canonical ConfigDir-parent resolution" -->
+- [x] 6.3 EVIDENCE-GATE: trigger/verify/privacy/manifest never read, copy, summarize or mark raw NDJSON as PASS evidence; existing exact-six and bounded conversation evidence remain unchanged.<!-- verified: 2026-07-16 method=p0-099-raw-evidence-negative evidence="scenario source contract PASS; raw path/content is absent from trigger/verify/manifest evidence while exact-six and bounded conversation schemas remain owned by existing validators" -->
+- [x] 6.4 REGRESSION: scenario-local static/negative tests、shell syntax 与既有 evidence schema/verification contract 通过；recorder/config tests 保持独立 code gate，且不创建或标记新 E2E ID。<!-- verified: 2026-07-16 method=p0-099-raw-static-regression evidence="21 scenario contract tests and bash syntax PASS; existing exact-six validators remain unchanged, raw NDJSON is excluded, and no current scenario run/PASS is claimed" -->

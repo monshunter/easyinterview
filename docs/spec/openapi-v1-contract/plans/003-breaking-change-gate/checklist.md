@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
-> **版本**: 1.24
-> **状态**: completed
-> **更新日期**: 2026-07-15
+> **版本**: 1.25
+> **状态**: active
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -117,3 +117,10 @@
   <!-- verified: 2026-07-15 method=oracle-contract-consumer evidence="OpenAPI007OracleTests 2/2, inventory contract, Auth fixtures, backend handlers and Settings focused consumers PASS" -->
 - [x] 12.4 HANDOFF-GATE: 001/002, backend-auth, frontend-shell, B4 migration, mock and downstream Settings BDD pass before baseline edit with production old-field references at zero.
 - [x] 12.5 RE-FREEZE/REGRESSION: preserve audit, re-freeze, then independently run diff/lint/fixture/codegen/consumer/migration/root-test/contexts/docs gates；clean current diff alone is insufficient.
+
+## Phase 13: Failed report regeneration additive gate
+
+- [x] 13.1 RED/AUDIT: proposed source yields only the declared additive path/operation/error-enum findings while baseline stays unchanged.<!-- verified: 2026-07-16 method=generic-diff-preserved-audit evidence="unchanged baseline 921fbc2... vs proposed 545a592... yields exactly endpoint-added + enum-value-added, breaking=0; preserved as D-40-failed-report-regeneration.json" -->
+- [x] 13.2 INVARIANT-GATE: inventory is exactly 38/10；existing report read/conversation/completion contracts and absence of attempt/progress fields remain locked.<!-- verified: 2026-07-16 method=inventory-invariant evidence="openapi inventory suite 30/30 PASS; scoped generated/source search has zero attemptCount/retryCount/generationAttempt/retryReason" -->
+- [x] 13.3 HANDOFF: 001 Phase 20, 002 Phase 14, backend/frontend report owners and generated consumers pass before baseline edit.<!-- verified: 2026-07-16 method=coordinated-handoff evidence="001 operation contract, 002 fixture parity, backend atomic regeneration and frontend recovery consumers PASS; D-40 preserved audit records exactly two additive findings and zero breaking findings before re-freeze" -->
+- [ ] 13.4 RE-FREEZE/REGRESSION: preserve audit, re-freeze and independently run diff/lint/fixture/codegen/root-test/context/docs gates.

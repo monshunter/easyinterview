@@ -19,6 +19,7 @@ import requestPrivacyExportFixture from "../../../openapi/fixtures/Privacy/reque
 import getFeedbackReportFixture from "../../../openapi/fixtures/Reports/getFeedbackReport.json";
 import getReportConversationFixture from "../../../openapi/fixtures/Reports/getReportConversation.json";
 import listTargetJobReportsFixture from "../../../openapi/fixtures/Reports/listTargetJobReports.json";
+import regenerateFeedbackReportFixture from "../../../openapi/fixtures/Reports/regenerateFeedbackReport.json";
 import getResumeTailorRunFixture from "../../../openapi/fixtures/ResumeTailor/getResumeTailorRun.json";
 import requestResumeTailorFixture from "../../../openapi/fixtures/ResumeTailor/requestResumeTailor.json";
 import archiveResumeFixture from "../../../openapi/fixtures/Resumes/archiveResume.json";
@@ -68,6 +69,7 @@ const DEV_MOCK_FIXTURES = [
 	getPrivacyRequestFixture,
 	getFeedbackReportFixture,
 	getReportConversationFixture,
+	regenerateFeedbackReportFixture,
 	requestResumeTailorFixture,
 	getResumeTailorRunFixture,
 	listResumesFixture,

@@ -13,6 +13,7 @@ import { useI18n } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
+import { useReportRegeneration } from "./hooks/useReportRegeneration";
 
 interface ReportsScreenProps {
   route: Route;
@@ -95,13 +96,30 @@ const SecondaryButton: FC<{
   onClick: () => void;
   size?: "sm" | "md";
   icon?: boolean;
+  ariaBusy?: boolean;
+  ariaLabel?: string;
+  disabled?: boolean;
+  testId?: string;
   children: ReactNode;
-}> = ({ onClick, size = "md", icon = false, children }) => {
+}> = ({
+  onClick,
+  size = "md",
+  icon = false,
+  ariaBusy,
+  ariaLabel,
+  disabled = false,
+  testId,
+  children,
+}) => {
   const compact = size === "sm";
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-busy={ariaBusy}
+      aria-label={ariaLabel}
+      data-testid={testId}
+      disabled={disabled}
       onMouseDown={(event) => {
         event.currentTarget.style.transform = "translateY(0.5px)";
       }}
@@ -124,7 +142,8 @@ const SecondaryButton: FC<{
         color: "var(--ei-color-fg-primary)",
         border: "1px solid var(--ei-color-rule-strong)",
         borderRadius: 2,
-        cursor: "pointer",
+        cursor: disabled ? "wait" : "pointer",
+        opacity: disabled ? 0.62 : 1,
         fontFamily: "var(--ei-font-sans)",
         letterSpacing: "-0.005em",
         transition: "transform .08s ease, opacity .15s",
@@ -160,10 +179,18 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
   const runtime = useAppRuntimeOptional();
   const targetJobId = routeTargetJobId(route);
   const requestSequence = useRef(0);
+  const [refreshNonce, setRefreshNonce] = useState(0);
   const [state, setState] = useState<ReportsState>(() => ({
     status: "loading",
     ownerTargetJobId: targetJobId,
   }));
+  const regeneration = useReportRegeneration({
+    client: runtime?.client ?? null,
+    targetJobId,
+    onAccepted: (reportId) =>
+      navigate({ name: "generating", params: { reportId } }),
+    onStaleState: () => setRefreshNonce((current) => current + 1),
+  });
 
   useEffect(() => {
     if (targetJobId) return;
@@ -246,7 +273,7 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
     return () => {
       active = false;
     };
-  }, [runtime?.auth.status, runtime?.client, targetJobId]);
+  }, [refreshNonce, runtime?.auth.status, runtime?.client, targetJobId]);
 
   const renderedState: ReportsState =
     targetJobId && state.ownerTargetJobId === targetJobId
@@ -438,6 +465,17 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
               const showFailed = latestIsDifferent && latestStatus === "failed";
               const showLatestReady =
                 latestIsDifferent && latestStatus === "ready";
+              const failedAttempt = showFailed ? item.latestAttempt : null;
+              const latestConversationAttempt = latestIsDifferent
+                ? item.latestAttempt
+                : null;
+              const regenerationState = failedAttempt
+                ? regeneration.stateFor(failedAttempt.id)
+                : null;
+              const canRegenerate = Boolean(
+                failedAttempt &&
+                  failedAttempt.errorCode !== "REPORT_CONTEXT_TOO_LARGE",
+              );
 
               return (
                 <div
@@ -497,51 +535,104 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
                       ) : null}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {item.currentReport ? (
-                      <span data-testid="reports-current" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                        <SecondaryButton
-                          size="sm"
-                          icon
-                          onClick={() =>
-                            navigate({
-                              name: "report",
-                              params: { reportId: item.currentReport!.id },
-                            })
-                          }
-                        >
-                          {t("reports.openCurrent")}
-                        </SecondaryButton>
+                  <div style={{ display: "grid", gap: 7, justifyItems: "end" }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      {item.currentReport ? (
+                        <span data-testid="reports-current" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                          <SecondaryButton
+                            size="sm"
+                            icon
+                            ariaLabel={t("reports.openCurrentA11y")}
+                            onClick={() =>
+                              navigate({
+                                name: "report",
+                                params: { reportId: item.currentReport!.id },
+                              })
+                            }
+                          >
+                            {t("reports.openCurrent")}
+                          </SecondaryButton>
+                          <button
+                            aria-label={t("reports.viewCurrentConversationA11y")}
+                            data-testid="reports-conversation-entry"
+                            type="button"
+                            onClick={() =>
+                              navigate({
+                                name: "report_conversation",
+                                params: { reportId: item.currentReport!.id },
+                              })
+                            }
+                            style={{ border: 0, padding: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", fontSize: 12, fontFamily: "var(--ei-font-sans)", cursor: "pointer" }}
+                          >
+                            {t("reports.viewConversation")}
+                          </button>
+                        </span>
+                      ) : null}
+                      {showGenerating && item.latestAttempt ? (
+                        <span data-testid="reports-generating">
+                          <SecondaryButton
+                            size="sm"
+                            icon
+                            onClick={() =>
+                              navigate({
+                                name: "generating",
+                                params: { reportId: item.latestAttempt!.id },
+                              })
+                            }
+                          >
+                            {t("reports.viewGeneration")}
+                          </SecondaryButton>
+                        </span>
+                      ) : null}
+                      {failedAttempt ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                          {canRegenerate ? (
+                            <SecondaryButton
+                              size="sm"
+                              ariaBusy={regenerationState?.pending || undefined}
+                              ariaLabel={t("reports.regenerateFailedA11y")}
+                              disabled={regenerationState?.pending ?? false}
+                              testId="reports-failed-regenerate"
+                              onClick={() => void regeneration.regenerate(failedAttempt.id)}
+                            >
+                              {regenerationState?.pending
+                                ? t("reports.regenerateFailedPending")
+                                : t("reports.regenerateFailed")}
+                            </SecondaryButton>
+                          ) : null}
+                        </span>
+                      ) : null}
+                      {latestConversationAttempt ? (
                         <button
-                          data-testid="reports-conversation-entry"
+                          aria-label={t("reports.viewLatestConversationA11y")}
+                          data-testid="reports-latest-conversation-entry"
                           type="button"
                           onClick={() =>
                             navigate({
                               name: "report_conversation",
-                              params: { reportId: item.currentReport!.id },
+                              params: { reportId: latestConversationAttempt.id },
                             })
                           }
                           style={{ border: 0, padding: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", fontSize: 12, fontFamily: "var(--ei-font-sans)", cursor: "pointer" }}
                         >
                           {t("reports.viewConversation")}
                         </button>
-                      </span>
-                    ) : null}
-                    {showGenerating && item.latestAttempt ? (
-                      <span data-testid="reports-generating">
-                        <SecondaryButton
-                          size="sm"
-                          icon
-                          onClick={() =>
-                            navigate({
-                              name: "generating",
-                              params: { reportId: item.latestAttempt!.id },
-                            })
-                          }
-                        >
-                          {t("reports.viewGeneration")}
-                        </SecondaryButton>
-                      </span>
+                      ) : null}
+                    </div>
+                    {failedAttempt && regenerationState?.error ? (
+                      <div
+                        data-testid="reports-regenerate-error"
+                        role="alert"
+                        style={{
+                          color: "var(--ei-color-danger)",
+                          fontSize: 11.5,
+                          lineHeight: 1.5,
+                          maxWidth: 300,
+                          textAlign: "right",
+                        }}
+                      >
+                        {t("reports.regenerateError")}
+                      </div>
                     ) : null}
                   </div>
                 </div>

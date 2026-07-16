@@ -17,12 +17,12 @@ for Prism / docs-site consumption.
 openapi/fixtures/
 ├── README.md
 └── <Tag>/
-    └── <operationId>.json        # one fixture per operation (37 in the current contract)
+    └── <operationId>.json        # one fixture per operation (38 in the current contract)
 ```
 
 The 10 tag directories follow
 [spec §2.1](../../docs/spec/openapi-v1-contract/spec.md#2-范围) declaration
-order; the 37 operationIds are listed in
+order; the 38 operationIds are listed in
 [spec §3.1.1](../../docs/spec/openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表).
 
 ## File shape
@@ -90,7 +90,7 @@ mock to pick it up.
 
 | Target | Purpose |
 |--------|---------|
-| `make validate-fixtures` | Schema-validates every scenario against `openapi.yaml`, enforces AI-schema provenance, runs the privacy allowlist + UUIDv7 + `tmp_` scans, and verifies all 37 operationIds are present. |
+| `make validate-fixtures` | Schema-validates every scenario against `openapi.yaml`, enforces AI-schema provenance, runs the privacy allowlist + UUIDv7 + `tmp_` scans, and verifies all 38 operationIds are present. |
 Fixtures and consumer-owned scenarios are maintained directly in this directory.
 `make validate-fixtures` is the authoritative schema, inventory and privacy gate.
 
@@ -135,7 +135,7 @@ hard gate, but it returns `401 Unauthorized` with the documented error
 envelope when a cookie is missing — the smoke calls below therefore include
 `Cookie: ei_session=fake` to exercise the success branch.
 
-### Live smoke matrix (14 fixed operations)
+### Live smoke matrix (16 fixed operations)
 
 The repeatable smoke matches all selected defaults byte-for-byte. It retains
 the original read/handoff checks and also covers the Resume summary-list/full-detail
@@ -146,6 +146,7 @@ the declared response.
 | operationId | Method/path | Expected |
 |-------------|-------------|----------|
 | `getMe` | `GET /me` | 200 |
+| `completeMyProfile` | `PATCH /me` | 200 |
 | `listResumes` | `GET /resumes` | 200 |
 | `getResume` | `GET /resumes/{resumeId}` | 200 |
 | `listTargetJobs` | `GET /targets` | 200 |
@@ -156,6 +157,7 @@ the declared response.
 | `getPracticeSession` | `GET /practice/sessions/{sessionId}` | 200 |
 | `getFeedbackReport` | `GET /reports/{reportId}` | 200 |
 | `getReportConversation` | `GET /reports/{reportId}/conversation` | 200 |
+| `regenerateFeedbackReport` | `POST /reports/{reportId}/regenerate` | 202 |
 | `listTargetJobReports` | `GET /targets/{targetJobId}/reports` | 200 |
 | `createPracticePlan` | `POST /practice/plans` | 201 |
 | `requestPrivacyExport` | `POST /privacy/exports` | 501 |

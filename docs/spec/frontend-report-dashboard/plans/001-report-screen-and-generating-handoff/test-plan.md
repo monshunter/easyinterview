@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.7
+> **版本**: 3.10
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 ## 1 Unit-test ownership
 
@@ -35,7 +35,7 @@
 ## 5 ReportsScreen and route recovery
 
 - Table tests cover current-target canonical join、current/latest-only display、loading/empty/error、cross-target/mismatch fail closed and stale response fences.
-- Route tests cover trusted target Back to Reports、untrusted fallback to Workspace、reportId-only report routes and Reports Back directly to targetJobId-only Workspace detail without Parse detour.
+- Route tests cover trusted target Back to Reports、resolved untrusted fallback to Workspace、failed owner resolving without an actionable Back、reportId-only report routes and Reports Back directly to targetJobId-only Workspace detail without Parse detour.
 - Source negatives prove ReportsScreen is the sole list consumer and no TopBar/global/history report entry or compatibility query is introduced.
 
 ## 6 Real E2E handoff
@@ -46,7 +46,19 @@
 
 ## 7 Report conversation integration
 
-- `ReportConversationScreen` tests cover loading/empty/ready/unavailable states, reportId switch stale fences, strict closed projection, safe Markdown/GFM and ready/non-ready Back destinations.
+- `ReportConversationScreen` tests cover loading/empty/ready/unavailable states, reportId switch stale fences, strict closed projection, safe Markdown/GFM, ready/non-ready Back destinations and the failed-owner resolving fence before any Back action is rendered.
 - `ReportsScreen` and `ReportDashboard` tests prove both entry points navigate to the same reportId-only route without adding a Header CTA.
 - Backend service/store/handler tests cover owner authorization, malformed locator no-read, report-to-session binding, strict ordered projection and `Cache-Control: no-store`.
 - OpenAPI/fixture/codegen and deleted-session-list negatives prove `getReportConversation` is the only public read surface; root `make test` is the aggregate code regression.
+
+## 8 Failed report recovery
+
+- Generated-client tests lock bodyless POST, required IK, credentials and typed `ReportWithJob` response.
+- ReportsScreen tests cover failed-only and old-ready/new-failed rows, oversize exclusion, pending accessibility, double-click suppression, stable-key uncertain retry, explicit-error key reset, target-switch stale fencing and strict response identity validation.
+- Error tests prove localization uses typed codes only and never renders provider body, request ID, raw message or report UUID.
+
+## 9 Completed-session conversation availability
+
+- Table tests cover queued/generating/latest-ready-different-current with an independent latest conversation action bound to `latestAttempt.id`.
+- same-ID current/latest ready renders one conversation action；both-null renders none；existing failed/oversize/current locator tests remain unchanged.
+- zh/en a11y assertions and real Chrome prove progress/regenerate actions never replace the visible interview-record action.

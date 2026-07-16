@@ -52,7 +52,7 @@ class ValidatorCliTest(unittest.TestCase):
     def test_clean_fixtures_exit_zero(self) -> None:
         out = _run_validator(self.repo)
         self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
-        self.assertIn("37", out.stdout)
+        self.assertIn("38", out.stdout)
 
     # ---- §1.3.5 missing operation ----
     def test_missing_fixture_fails(self) -> None:
@@ -180,7 +180,7 @@ class ValidatorCliTest(unittest.TestCase):
         out = _run_validator(self.repo)
 
         self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
-        self.assertIn("38", out.stdout)
+        self.assertIn("39", out.stdout)
 
     def test_fixture_without_openapi_operation_fails(self) -> None:
         extra = self.repo / "openapi/fixtures/Growth/getGrowthOverview.json"

@@ -5,9 +5,10 @@ metadata:
   name: 001-aiclient-and-profile-bootstrap
   sequence: 1
   baseBranch: main
+  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
   specVersion:
-    from: 2.29
-    to: 2.30
+    from: 2.30
+    to: 2.32
 spec:
   defaultTarget: backend
   discovery:
@@ -34,6 +35,14 @@ spec:
       - fail fast
       - hot reload
       - provider-neutral terminology
+      - AI_DEBUG_CAPTURE_RAW_IO
+      - AI_DEBUG_RAW_IO_PATH
+      - NDJSON raw request response capture
+      - mode 0600 debug file
+      - Complete callId correlation
+      - no stderr raw output
+      - process visible raw capture failure warning
+      - diagnostic only capture failure
   targets:
     backend:
       plan: ./plan.md
@@ -42,6 +51,9 @@ spec:
       references:
         - ../../history.md
         - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
+        - ../../../secrets-and-config/plans/001-bootstrap/plan.md
+        - ../../../local-dev-stack/plans/001-bootstrap/plan.md
+        - ../../../e2e-scenarios-p0/plans/001-real-api-ui-journeys/plan.md
       discovery:
         packages:
           - backend/go.mod

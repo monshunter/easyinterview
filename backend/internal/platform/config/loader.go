@@ -33,6 +33,7 @@ type Loader struct {
 	required     map[string]bool
 	runtimeBound map[string]bool
 	appEnv       string
+	configDir    string
 }
 
 // AppEnv returns the active environment label, e.g. "dev"/"staging"/"prod".
@@ -71,16 +72,25 @@ func Load(opts Options) (*Loader, error) {
 	if opts.ConfigDir == "" {
 		return nil, fmt.Errorf("config: ConfigDir is required")
 	}
+	configDir, err := filepath.Abs(opts.ConfigDir)
+	if err != nil {
+		return nil, fmt.Errorf("config: resolve ConfigDir: %w", err)
+	}
+	if resolved, resolveErr := filepath.EvalSymlinks(configDir); resolveErr == nil {
+		configDir = resolved
+	} else if !errors.Is(resolveErr, os.ErrNotExist) {
+		return nil, fmt.Errorf("config: resolve ConfigDir symlinks: %w", resolveErr)
+	}
 	k := koanf.New(".")
 	parser := yaml.Parser()
 
-	base := filepath.Join(opts.ConfigDir, "config.yaml")
+	base := filepath.Join(configDir, "config.yaml")
 	if err := loadYAMLIfExists(k, base, parser); err != nil {
 		return nil, fmt.Errorf("config: load base: %w", err)
 	}
 
 	if opts.AppEnv != "" {
-		envFile := filepath.Join(opts.ConfigDir, opts.AppEnv+".yaml")
+		envFile := filepath.Join(configDir, opts.AppEnv+".yaml")
 		if err := loadYAMLIfExists(k, envFile, parser); err != nil {
 			return nil, fmt.Errorf("config: load %s override: %w", opts.AppEnv, err)
 		}
@@ -94,6 +104,9 @@ func Load(opts Options) (*Loader, error) {
 			}
 			runtimeBound[dotPath] = true
 		}
+	}
+	if err := applyLocalAIRawCaptureDefaults(k, opts.AppEnv, configDir); err != nil {
+		return nil, err
 	}
 
 	secretValues := make(map[string]string, len(opts.SecretBindings))
@@ -127,7 +140,34 @@ func Load(opts Options) (*Loader, error) {
 		required:     required,
 		runtimeBound: runtimeBound,
 		appEnv:       opts.AppEnv,
+		configDir:    configDir,
 	}, nil
+}
+
+func applyLocalAIRawCaptureDefaults(k *koanf.Koanf, appEnv, configDir string) error {
+	env := strings.ToLower(strings.TrimSpace(appEnv))
+	if !k.Exists("ai.debugCaptureRawIO") {
+		if err := k.Set("ai.debugCaptureRawIO", env == "dev" || env == "test"); err != nil {
+			return fmt.Errorf("config: default ai.debugCaptureRawIO: %w", err)
+		}
+	}
+	if !k.Exists("ai.debugRawIOPath") {
+		if err := k.Set("ai.debugRawIOPath", ".test-output/local-dev/ai-raw.ndjson"); err != nil {
+			return fmt.Errorf("config: default ai.debugRawIOPath: %w", err)
+		}
+	}
+	rawPath := strings.TrimSpace(k.String("ai.debugRawIOPath"))
+	if rawPath == "" {
+		return nil
+	}
+	if !filepath.IsAbs(rawPath) {
+		rawPath = filepath.Join(filepath.Dir(configDir), rawPath)
+	}
+	rawPath = filepath.Clean(rawPath)
+	if err := k.Set("ai.debugRawIOPath", rawPath); err != nil {
+		return fmt.Errorf("config: resolve ai.debugRawIOPath: %w", err)
+	}
+	return nil
 }
 
 func loadYAMLIfExists(k *koanf.Koanf, path string, parser koanf.Parser) error {

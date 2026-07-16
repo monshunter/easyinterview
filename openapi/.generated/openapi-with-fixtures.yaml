@@ -1816,6 +1816,73 @@ paths:
                       retryable: false
         default:
           $ref: '#/components/responses/ApiErrorResponse'
+  /reports/{reportId}/regenerate:
+    post:
+      tags:
+      - Reports
+      operationId: regenerateFeedbackReport
+      summary: Regenerate a failed feedback report
+      description: Requeues the same failed feedback report with a fresh report_generate job. Requires Idempotency-Key. Only
+        non-context-too-large failed reports are eligible; queued, generating, ready, and permanently oversized reports are
+        rejected without creating a job.
+      parameters:
+      - name: reportId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '202':
+          description: The existing feedback report was reset to queued and a fresh generation job was created.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+            X-Idempotency-Replay:
+              $ref: '#/components/headers/XIdempotencyReplay'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportWithJob'
+              examples:
+                default:
+                  summary: Default fixture for regenerateFeedbackReport
+                  value:
+                    reportId: 01918fa0-0079-7000-8000-000000000079
+                    job:
+                      id: 01918fa0-00b9-7000-8000-0000000000b9
+                      jobType: report_generate
+                      status: queued
+                      resourceType: feedback_report
+                      resourceId: 01918fa0-0079-7000-8000-000000000079
+                      errorCode: null
+                      createdAt: '2026-07-16T08:00:00Z'
+                      updatedAt: '2026-07-16T08:00:00Z'
+        '404':
+          description: Feedback report not found or not accessible (`REPORT_NOT_FOUND`).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        '409':
+          description: Report is not eligible, an old generation job is still active, or the idempotency key conflicts.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
   /reports/{reportId}/conversation:
     get:
       tags:
@@ -2324,6 +2391,12 @@ components:
       description: Server-confirmed correlation id; matches `error.requestId` on error responses.
       schema:
         type: string
+    XIdempotencyReplay:
+      description: Set to `true` when the response was replayed from a completed idempotency record.
+      schema:
+        type: string
+        enum:
+        - 'true'
   responses:
     ApiErrorResponse:
       description: Error envelope per `ApiError` schema.
@@ -2359,6 +2432,7 @@ components:
       - REPORT_NOT_FOUND
       - REPORT_NOT_READY
       - REPORT_CONTEXT_TOO_LARGE
+      - REPORT_INVALID_STATE_TRANSITION
       - RESUME_EXPORT_NOT_AVAILABLE
       - VALIDATION_FAILED
       - RESOURCE_NOT_FOUND

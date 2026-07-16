@@ -18,8 +18,10 @@ ENV_EXAMPLE := $(DEV_STACK_DIR)/.env.example
 ENV_FILE := $(DEV_STACK_DIR)/.env
 HOST_BACKEND_PID := $(REPO_ROOT)/.test-output/local-dev/backend.pid
 HOST_FRONTEND_PID := $(REPO_ROOT)/.test-output/local-dev/frontend.pid
+RAW_CAPTURE_DIR := $(REPO_ROOT)/.test-output/local-dev
+RAW_CAPTURE_FILE := $(RAW_CAPTURE_DIR)/ai-raw.ndjson
 
-.PHONY: up down doctor reset logs pull container-up container-down container-doctor container-logs help _ensure_env _check_container_env _check_postgres_volume _stop_host_runtimes _wait_init _all_healthy
+.PHONY: up down doctor reset logs pull container-up container-down container-doctor container-logs help _ensure_env _check_container_env _check_postgres_volume _prepare_raw_capture_dir _stop_host_runtimes _wait_init _all_healthy
 
 help: ## List dev-stack make targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -47,6 +49,26 @@ _check_postgres_volume:
 		"$(POSTGRES_VOLUME_GUARD)"; \
 	fi
 
+_prepare_raw_capture_dir:
+	@raw_root="$(REPO_ROOT)/.test-output"; \
+	for component in "$$raw_root" "$(RAW_CAPTURE_DIR)"; do \
+		if [ -L "$$component" ]; then \
+			echo "[dev-stack] raw capture path contains a symlink component" >&2; \
+			exit 1; \
+		fi; \
+	done; \
+	mkdir -p "$(RAW_CAPTURE_DIR)"; \
+	chmod 700 "$(RAW_CAPTURE_DIR)"; \
+	if [ -L "$(RAW_CAPTURE_FILE)" ]; then \
+		echo "[dev-stack] raw capture target must not be a symlink" >&2; \
+		exit 1; \
+	fi; \
+	if [ -e "$(RAW_CAPTURE_FILE)" ] && [ ! -f "$(RAW_CAPTURE_FILE)" ]; then \
+		echo "[dev-stack] raw capture target must be a regular file or absent" >&2; \
+		exit 1; \
+	fi; \
+	if [ -f "$(RAW_CAPTURE_FILE)" ]; then chmod 600 "$(RAW_CAPTURE_FILE)"; fi
+
 _stop_host_runtimes:
 	@for pid_file in "$(HOST_BACKEND_PID)" "$(HOST_FRONTEND_PID)"; do \
 		if [ ! -s "$$pid_file" ]; then continue; fi; \
@@ -61,7 +83,12 @@ _stop_host_runtimes:
 			*) expected_command="" ;; \
 		esac; \
 		command="$$(ps -p "$$pid" -o command= 2>/dev/null || true)"; \
-		if [ -z "$$expected_command" ] || [[ "$$command" != *"$$expected_command"* ]]; then \
+		cwd="$$(readlink "/proc/$$pid/cwd" 2>/dev/null || true)"; \
+		if [ -z "$$cwd" ] && command -v lsof >/dev/null 2>&1; then \
+			cwd="$$(lsof -a -p "$$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -n 1)"; \
+		fi; \
+		case "$$cwd" in "$(REPO_ROOT)"|"$(REPO_ROOT)"/*) repo_owned=yes ;; *) repo_owned=no ;; esac; \
+		if [ -z "$$expected_command" ] || [[ "$$command" != *"$$expected_command"* ]] || [ "$$repo_owned" != "yes" ]; then \
 			echo "[dev-stack] removing stale pidfile without stopping unowned pid $$pid: $${pid_file#$(REPO_ROOT)/}" >&2; \
 			rm -f "$$pid_file"; \
 			continue; \
@@ -132,7 +159,7 @@ up: _ensure_env _check_postgres_volume ## Start dev stack (idempotent; skip if a
 	fi; \
 	echo "[dev-stack] up complete"
 
-container-up: _check_container_env _check_postgres_volume ## Build and start dependencies plus containerized backend/frontend
+container-up: _check_container_env _check_postgres_volume _prepare_raw_capture_dir ## Build and start dependencies plus containerized backend/frontend
 	@$(MAKE) -s -C "$(DEV_STACK_DIR)" up
 	@$(MAKE) -s -C "$(DEV_STACK_DIR)" _stop_host_runtimes
 	@echo "[dev-stack] building and starting full-container application services"
@@ -145,8 +172,8 @@ container-up: _check_container_env _check_postgres_volume ## Build and start dep
 		$(COMPOSE) --profile $(FULL_CONTAINER_PROFILE) up -d --build --wait --wait-timeout 180 $(FULL_CONTAINER_SERVICES); \
 	fi
 	@$(MAKE) -s -C "$(DEV_STACK_DIR)" container-doctor
-	@echo "[dev-stack] frontend: http://127.0.0.1:$${FULL_CONTAINER_FRONTEND_HOST_PORT:-10800}"
-	@echo "[dev-stack] backend:  http://127.0.0.1:$${FULL_CONTAINER_API_HOST_PORT:-10801}/api/v1"
+	@echo "[dev-stack] frontend: http://127.0.0.1:$${FULL_CONTAINER_FRONTEND_HOST_PORT:-10900}"
+	@echo "[dev-stack] backend:  http://127.0.0.1:$${FULL_CONTAINER_API_HOST_PORT:-10901}/api/v1"
 
 container-down: ## Stop the full-container stack; named volumes preserved
 	@$(COMPOSE) --profile $(FULL_CONTAINER_PROFILE) down

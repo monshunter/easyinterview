@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-16](./2026-07-16-report-retry-and-local-diagnostics-assessment.md) | Report Retry and Local Diagnostics 交付复盘 | #assessment #BUG-0182 #BUG-0183 |
 | [2026-07-16](./2026-07-16-localized-smtp-mime-remediation-assessment.md) | Localized SMTP MIME Remediation 交付复盘 | #assessment #auth #ai |
 | [2026-07-16](./2026-07-16-openai-go-transport-migration-assessment.md) | OpenAI-Go Transport Migration 交付复盘 | #assessment #ai #BUG-0181 |
 | [2026-07-16](./2026-07-16-smtp-lifecycle-and-pid-ownership-assessment.md) | SMTP Lifecycle and PID Ownership 交付复盘 | #assessment #platform #BUG-0180 |

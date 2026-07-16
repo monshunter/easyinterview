@@ -794,6 +794,12 @@ OPENAPI_002_SOURCE_SCHEMAS = (
     "TargetJobImportSourceManualForm",
     "TargetJobImportSource",
 )
+OPENAPI_002_REMOVED_ERROR_CODES = frozenset(
+    {
+        "TARGET_IMPORT_SOURCE_INVALID",
+        "TARGET_IMPORT_SOURCE_UNAVAILABLE",
+    }
+)
 CONSTRAINT_KEYS = (
     "minLength",
     "maxLength",
@@ -1491,7 +1497,7 @@ def normalize_openapi_002_findings(
 
     The Practice message correction is intentionally audited by its separate
     decision gate. This normalizer covers every OPENAPI-002-owned schema
-    surface plus ApiErrorCode deltas sourced by the TargetJob cleanup. A newly
+    surface plus the two ApiErrorCode removals owned by the TargetJob cleanup. A newly
     required property carries its initial constraints in one signature, so
     rawText does not also produce a second constraint_added finding.
     """
@@ -1644,17 +1650,10 @@ def normalize_openapi_002_findings(
     current_error_codes = list((current_schemas.get("ApiErrorCode") or {}).get("enum") or [])
     error_path = _json_pointer("components", "schemas", "ApiErrorCode", "enum")
     for value in base_error_codes:
-        if value not in current_error_codes:
+        if value in OPENAPI_002_REMOVED_ERROR_CODES and value not in current_error_codes:
             findings.append(
                 _normalized_finding(
                     "breaking", error_path, "enum_value_removed", str(value), "absent"
-                )
-            )
-    for value in current_error_codes:
-        if value not in base_error_codes:
-            findings.append(
-                _normalized_finding(
-                    "additive", error_path, "enum_value_added", "absent", str(value)
                 )
             )
 

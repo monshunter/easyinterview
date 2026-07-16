@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	"github.com/monshunter/easyinterview/backend/internal/runner"
@@ -30,13 +31,13 @@ func TestResumeTailorRunnerIntegration(t *testing.T) {
 		MaxAttempts:  5,
 	}}
 	taskRuns := &apiTailorTaskRuns{}
+	observedAI := newAPIObservedTailorAI(t, &apiTailorAI{responses: []aiclient.CompleteResponse{{Content: apiValidTailorJSON}}}, taskRuns, now)
 	handler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
-		Store:      store,
-		Registry:   apiTailorRegistry{},
-		AI:         &apiTailorAI{responses: []aiclient.CompleteResponse{{Content: apiValidTailorJSON}}},
-		AITaskRuns: taskRuns,
-		NewID:      apiFixedIDs("0195f2d0-4a44-7fc2-8f77-1f9c4cfa0101", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0102", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0103", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0104", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0105"),
-		Now:        func() time.Time { return now },
+		Store:    store,
+		Registry: apiTailorRegistry{},
+		AI:       observedAI,
+		NewID:    apiFixedIDs("0195f2d0-4a44-7fc2-8f77-1f9c4cfa0101", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0102", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0103", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0104", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0105"),
+		Now:      func() time.Time { return now },
 	})
 	kernel := newIntegrationJobRuntime(asyncStore, func() time.Time { return now }, map[string]runner.Handler{
 		string(jobs.JobTypeResumeTailor): handler,
@@ -83,21 +84,21 @@ func TestResumeTailorRunnerFailureIntegration(t *testing.T) {
 		apiTailorClaimedJob(retryRunID, resumeID, 2),
 	}}
 	taskRuns := &apiTailorTaskRuns{}
+	observedAI := newAPIObservedTailorAI(t, &apiTailorAI{
+		errs: []error{
+			errors.New(sharederrors.CodeAiProviderTimeout + " provider slow"),
+			nil,
+			errors.New(sharederrors.CodeAiProviderTimeout + " provider slow"),
+		},
+		responses: []aiclient.CompleteResponse{
+			{Content: `not-json`},
+			{Content: apiValidTailorJSON},
+		},
+	}, taskRuns, now)
 	handler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
 		Store:    store,
 		Registry: apiTailorRegistry{},
-		AI: &apiTailorAI{
-			errs: []error{
-				errors.New(sharederrors.CodeAiProviderTimeout + " provider slow"),
-				nil,
-				errors.New(sharederrors.CodeAiProviderTimeout + " provider slow"),
-			},
-			responses: []aiclient.CompleteResponse{
-				{Content: `not-json`},
-				{Content: apiValidTailorJSON},
-			},
-		},
-		AITaskRuns: taskRuns,
+		AI:       observedAI,
 		NewID: apiFixedIDs(
 			"0195f2d0-4a44-7fc2-8f77-1f9c4cfb0101", "0195f2d0-4a44-7fc2-8f77-1f9c4cfb0102",
 			"0195f2d0-4a44-7fc2-8f77-1f9c4cfb0103", "0195f2d0-4a44-7fc2-8f77-1f9c4cfb0104",
@@ -210,12 +211,14 @@ func (s *apiTailorStore) CompleteTailorRunSuccess(_ context.Context, in resumest
 type apiTailorRegistry struct{}
 
 func (apiTailorRegistry) Resolve(context.Context, string, string) (resumejobs.PromptResolution, error) {
+	outputSchema := json.RawMessage(`{"type":"object","required":["matchSummary"],"properties":{"matchSummary":{"type":"object"}}}`)
 	return resumejobs.PromptResolution{
 		PromptVersion:       "v0.1.0",
 		RubricVersion:       "v0.1.0",
 		ModelProfileName:    "resume.tailor.default",
 		DataSourceVersion:   "registry.v1",
 		FeatureFlag:         "none",
+		OutputSchema:        &outputSchema,
 		UserMessageTemplate: "Resume summary: {{resume_summary}}\nJD summary: {{jd_summary}}\nTarget seniority: {{target_seniority}}\nLanguage: {{language}}",
 	}, nil
 }
@@ -275,6 +278,28 @@ type apiTailorTaskRuns struct {
 func (w *apiTailorTaskRuns) WriteAITaskRun(_ context.Context, row aiclient.AITaskRunRow) error {
 	w.rows = append(w.rows, row)
 	return nil
+}
+
+type apiTailorAuditWriter struct{}
+
+func (apiTailorAuditWriter) WriteAuditEvent(context.Context, aiclient.AuditEventRow) error {
+	return nil
+}
+
+func newAPIObservedTailorAI(t *testing.T, inner aiclient.AIClient, taskRuns aiclient.AITaskRunWriter, now time.Time) aiclient.AIClient {
+	t.Helper()
+	observed, err := observability.New(
+		inner,
+		observability.WithRegisterer(observability.NewInMemoryRegistry()),
+		observability.WithLogger(observability.NewMemoryLogger()),
+		observability.WithAITaskRunWriter(taskRuns),
+		observability.WithAuditEventWriter(apiTailorAuditWriter{}),
+		observability.WithNow(func() time.Time { return now }),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+	return observed
 }
 
 const apiValidTailorJSON = `{

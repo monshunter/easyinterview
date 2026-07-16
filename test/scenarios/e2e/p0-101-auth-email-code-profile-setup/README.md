@@ -10,8 +10,8 @@
 
 本地共享环境已通过 `test/scenarios/env-setup.sh --with-migrations` 应用当前 schema，并通过 `test/scenarios/env-redeploy.sh all` 或等价 `/scenario-env redeploy all` 刷新并启动：
 
-- frontend dev server: `http://127.0.0.1:5173`
-- backend API: `http://127.0.0.1:8080/api/v1`
+- frontend dev server: `http://127.0.0.1:10900`
+- backend API: `http://127.0.0.1:10901/api/v1`
 - Mailpit Web/API: `http://127.0.0.1:${MAILPIT_WEB_HOST_PORT:-8025}`，端口从 `deploy/dev-stack/.env` 解析
 - `deploy/dev-stack/.env` 中 `VITE_EI_API_MODE=real` 且 `VITE_EI_API_BASE_URL` 指向 backend。
 - Postgres `users` 表包含 `profile_completed_at` 与 `terms_accepted_at`，否则 `setup.sh` 会在消费验证码前失败并提示先运行 migrations。

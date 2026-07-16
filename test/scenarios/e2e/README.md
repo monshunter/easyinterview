@@ -14,14 +14,14 @@
 - 共享环境 lifecycle 首选顶层入口：`test/scenarios/env-setup.sh` / `test/scenarios/env-status.sh` / `test/scenarios/env-verify.sh` / `test/scenarios/env-cleanup.sh` / `test/scenarios/env-redeploy.sh`，或根 Makefile 等价入口 `make scenario-env-*`。这些入口独立于任何具体场景目录。
 - 创建、验证或重建共享环境后，顶层入口必须输出开发者可接管的服务地址和调试入口；`env-redeploy.sh backend|frontend|all` 必须重新启动当前 host-run backend/frontend，而不只刷新构建产物。
 - 需要清理数据并从当前代码重新调试时，使用 `make scenario-env-reset-redeploy`；该入口组合 `env-cleanup.sh --with-volumes`、`env-setup.sh --with-migrations`、`env-redeploy.sh all`、`env-verify.sh`。普通重启不清数据，使用 `make scenario-env-redeploy TARGET=all`。
-- 明确要求全容器验收时，使用 `make dev-container-up` 构建并启动真实 frontend/backend，默认入口为 `http://127.0.0.1:10800` 与 `http://127.0.0.1:10801/api/v1`；健康检查、日志与停止分别使用 `dev-container-doctor`、`dev-container-logs`、`dev-container-down`。
+- 明确要求全容器验收时，使用 `make dev-container-up` 构建并启动真实 frontend/backend，默认入口与 host-run 统一为 `http://127.0.0.1:10900` 与 `http://127.0.0.1:10901/api/v1`；健康检查、日志与停止分别使用 `dev-container-doctor`、`dev-container-logs`、`dev-container-down`。
 - 具体场景 `setup.sh` 只做场景数据准备和输出目录初始化，不得私有化共享环境 bootstrap，也不得把某个具体场景作为另一个场景的环境前置。
 - 运行场景前必须先准备并验证共享环境；不同场景可在各自 README 中声明额外本地配置，例如真实 provider secret、host-run backend/frontend 进程或浏览器操作证据。
 - `hybrid` 场景仍是标准 `e2e` 场景：AI Agent 先运行 setup/trigger/verify/cleanup，若缺少真实凭证或人工观察，结果应为 `MANUAL_REQUIRED`，后续由人工或浏览器 Agent 在同一输出目录补齐证据后重跑。
 
 ### 2.1 手动引导
 
-当顶层 env 脚本不可用时，默认手动引导顺序是：`make dev-up` → `make dev-doctor` → 按目标场景 README 启动 repo-tracked runner。明确指定全容器验收时，直接使用 `make dev-container-up` → `make dev-container-doctor`，并在 `10800` 上操作真实 UI、确认业务请求到达 `10801` backend；真实 secret 只放在未跟踪本地文件中。
+当顶层 env 脚本不可用时，默认手动引导顺序是：`make dev-up` → `make dev-doctor` → 按目标场景 README 启动 repo-tracked runner。明确指定全容器验收时，直接使用 `make dev-container-up` → `make dev-container-doctor`，并在 `10900` 上操作真实 UI、确认业务请求到达 `10901` backend；真实 secret 只放在未跟踪本地文件中。
 
 ## 3 场景设计要求
 

@@ -11,7 +11,6 @@ RESULT="$OUT/result.json"
 VALIDATOR="$ROOT/test/scenarios/e2e/p0-099-report-generating-live-ui/scripts/validate_evidence.py"
 LIVE_CAPTURE_RUNNER="$ROOT/test/scenarios/e2e/p0-099-report-generating-live-ui/scripts/capture_live_evidence.py"
 MANUAL_AUDIT="$OUT/manual-visual-audit.json"
-BACKEND_LOG="$ROOT/.test-output/local-dev/backend.log"
 DEV_ENV="$ROOT/deploy/dev-stack/.env"
 EVIDENCE_RETAINABLE=0
 LIVE_SESSION_COOKIE="${P0_099_SESSION_COOKIE:-}"
@@ -69,19 +68,13 @@ if [ -z "$RUN_ID" ]; then
   echo "trigger: setup.env has no RUN_ID" >&2
   exit 1
 fi
-BACKEND_LOG_START_BYTES="$(sed -n 's/^backend_log_start_bytes=//p' "$SETUP")"
-if ! [[ "$BACKEND_LOG_START_BYTES" =~ ^[0-9]+$ ]]; then
-  echo "trigger: setup.env has no backend_log_start_bytes" >&2
-  exit 1
-fi
-
 exec > >(tee "$OUT/trigger.log") 2>&1
 
 echo "SCENARIO_RUNNER=E2E.P0.099"
 echo "SCENARIO_MODE=hybrid"
 echo "RUN_ID=$RUN_ID"
 API_HOST_PORT="$(sed -n 's/^API_HOST_PORT=//p' "$DEV_ENV" | head -n 1)"
-API_HOST_PORT="${API_HOST_PORT:-8080}"
+API_HOST_PORT="${API_HOST_PORT:-10901}"
 LIVE_API_BASE_URL="${P0_099_API_BASE_URL:-http://127.0.0.1:${API_HOST_PORT}/api/v1}"
 if [ -z "$LIVE_DATABASE_URL" ]; then
   LIVE_DATABASE_URL="$(
@@ -105,25 +98,6 @@ unset LIVE_DATABASE_URL LIVE_SESSION_COOKIE
 
 cd "$ROOT"
 test/scenarios/env-verify.sh
-
-if python3 - "$BACKEND_LOG" "$BACKEND_LOG_START_BYTES" <<'PY'
-import sys
-from pathlib import Path
-
-path = Path(sys.argv[1])
-offset = int(sys.argv[2])
-with path.open("rb") as handle:
-    handle.seek(offset)
-    current_run = handle.read()
-if b"AI_RAW_OUTPUT_DEBUG_BEGIN" in current_run or b"AI_RAW_OUTPUT_DEBUG_END" in current_run:
-    raise SystemExit(1)
-PY
-then
-  echo "P0_099_CURRENT_RUN_RAW_DEBUG_ABSENT_PASS"
-else
-  write_nonpass_result "FAIL" "current backend run emitted forbidden AI raw output markers"
-  exit 0
-fi
 
 if ! python3 "$VALIDATOR" --sanitize-output "$OUT" >/dev/null; then
   write_nonpass_result "FAIL" "sensitive evidence was deleted before result evaluation"

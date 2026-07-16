@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	"github.com/monshunter/easyinterview/backend/internal/runner"
@@ -46,11 +47,11 @@ func TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox(t *
 	  ]
 	}`}}
 	taskRuns := &memTaskRunWriter{}
+	observedAI := newObservedTailorAI(t, ai, taskRuns, now)
 	handler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
-		Store:      store,
-		Registry:   tailorRegistry{},
-		AI:         ai,
-		AITaskRuns: taskRuns,
+		Store:    store,
+		Registry: tailorRegistry{},
+		AI:       observedAI,
 		NewID: idSeq(
 			"0195f2d0-4a44-7fc2-8f77-1f9c4cf7b001",
 			"0195f2d0-4a44-7fc2-8f77-1f9c4cf7b002",
@@ -177,12 +178,12 @@ func TestAuditPrivacyForTailorHandler(t *testing.T) {
 		t.Fatalf("marshal audit metadata: %v", err)
 	}
 	assertNoTailorPrivacyLeak(t, "audit metadata", string(raw))
-	if rows[0].Metadata.PromptHash != "" ||
-		rows[0].Metadata.ResponseHash != "" ||
-		rows[0].Metadata.PromptCharLength != 0 ||
-		rows[0].Metadata.ResponseCharLength != 0 ||
-		rows[0].Metadata.ProfileName != "" {
-		t.Fatalf("tailor handler should not persist prompt/response audit metadata directly: %+v", rows[0].Metadata)
+	if rows[0].Metadata.PromptHash == "" ||
+		rows[0].Metadata.ResponseHash == "" ||
+		rows[0].Metadata.PromptCharLength <= 0 ||
+		rows[0].Metadata.ResponseCharLength <= 0 ||
+		rows[0].Metadata.ProfileName != "resume.tailor.gap_review" {
+		t.Fatalf("observed tailor metadata must retain only hashes, lengths, and profile: %+v", rows[0].Metadata)
 	}
 }
 
@@ -254,11 +255,11 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			store := &fakeTailorStore{ctx: baseCtx}
 			taskRuns := &memTaskRunWriter{}
+			observedAI := newObservedTailorAI(t, tc.ai, taskRuns, now)
 			handler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
-				Store:      store,
-				Registry:   tailorRegistry{},
-				AI:         tc.ai,
-				AITaskRuns: taskRuns,
+				Store:    store,
+				Registry: tailorRegistry{},
+				AI:       observedAI,
 				NewID: idSeq(
 					"0195f2d0-4a44-7fc2-8f77-1f9c4cf8b001",
 					"0195f2d0-4a44-7fc2-8f77-1f9c4cf8b002",
@@ -334,9 +335,8 @@ func TestTailorHandlerBulletSuggestionsCanonicalKeysRoundTrip(t *testing.T) {
 		    }
 		  ]
 		}`}},
-		AITaskRuns: &memTaskRunWriter{},
-		NewID:      idSeq("0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca06", "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca07"),
-		Now:        func() time.Time { return now },
+		NewID: idSeq("0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca06", "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca07"),
+		Now:   func() time.Time { return now },
 	})
 
 	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
@@ -389,9 +389,8 @@ func TestTailorHandlerSuccessPersistenceFailureMarksRetryable(t *testing.T) {
 		  "matchSummary": {"strengths":["Has backend depth"],"gaps":[]},
 		  "suggestions": [{"originalBullet":"Built services.","suggestedBullet":"Built reliable services.","reason":"Adds outcome."}]
 		}`}},
-		AITaskRuns: &memTaskRunWriter{},
-		NewID:      idSeq("0195f2d0-4a44-7fc2-8f77-1f9c4cf8e001", "0195f2d0-4a44-7fc2-8f77-1f9c4cf8e002", "0195f2d0-4a44-7fc2-8f77-1f9c4cf8e003"),
-		Now:        func() time.Time { return now },
+		NewID: idSeq("0195f2d0-4a44-7fc2-8f77-1f9c4cf8e001", "0195f2d0-4a44-7fc2-8f77-1f9c4cf8e002", "0195f2d0-4a44-7fc2-8f77-1f9c4cf8e003"),
+		Now:   func() time.Time { return now },
 	})
 
 	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
@@ -452,12 +451,29 @@ func (tailorRegistry) Resolve(_ context.Context, featureKey string, language str
 		}, nil
 	case resumejobs.FeatureKeyResumeTailorBulletSuggestions:
 		return resumejobs.PromptResolution{
-			PromptVersion:       "v0.1.0",
-			RubricVersion:       "v0.1.0",
-			ModelProfileName:    "resume.tailor.bullet_suggestions",
-			DataSourceVersion:   "target_job.v1",
-			FeatureFlag:         "none",
-			OutputSchema:        rawSchema(`{"type":"object","required":["suggestions"],"properties":{"suggestions":{"type":"array"}}}`),
+			PromptVersion:     "v0.1.0",
+			RubricVersion:     "v0.1.0",
+			ModelProfileName:  "resume.tailor.bullet_suggestions",
+			DataSourceVersion: "target_job.v1",
+			FeatureFlag:       "none",
+			OutputSchema: rawSchema(`{
+			  "type":"object",
+			  "required":["suggestions"],
+			  "properties":{
+			    "suggestions":{
+			      "type":"array",
+			      "items":{
+			        "type":"object",
+			        "required":["originalBullet","suggestedBullet","reason"],
+			        "properties":{
+			          "originalBullet":{"type":"string"},
+			          "suggestedBullet":{"type":"string"},
+			          "reason":{"type":"string"}
+			        }
+			      }
+			    }
+			  }
+			}`),
 			UserMessageTemplate: "Original bullet: {{original_bullet}}\nTarget context: {{jd_context}}\nTone: {{tone}}\nLanguage: {{language}}",
 		}, nil
 	default:
@@ -487,6 +503,9 @@ func (c *captureTailorAI) Complete(_ context.Context, profileName string, payloa
 			FallbackChain:       []string{"stub/fixture-model:resume-tailor"},
 			ValidationStatus:    aiclient.ValidationStatusOK,
 		}
+	}
+	if c.err != nil && strings.Contains(c.err.Error(), sharederrors.CodeAiProviderTimeout) {
+		meta.ErrorCode = sharederrors.CodeAiProviderTimeout
 	}
 	return c.resp, meta, c.err
 }
@@ -529,14 +548,14 @@ func runTailorPrivacyFixture(t *testing.T) tailorPrivacyFixture {
 		OriginalBullet:    "PRIVATE_ORIGINAL_BULLET",
 	}}
 	taskRuns := &memTaskRunWriter{}
+	observedAI := newObservedTailorAI(t, &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
+	  "matchSummary": {"strengths":["PRIVATE_MATCH_SUMMARY"],"gaps":["PRIVATE_MODEL_RAW_RESPONSE"]},
+	  "suggestions": [{"originalBullet":"PRIVATE_ORIGINAL_BULLET","suggestedBullet":"PRIVATE_SUGGESTED_BULLET","reason":"PRIVATE_SUGGESTION_REASON"}]
+	}`}}, taskRuns, now)
 	handler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
 		Store:    store,
 		Registry: tailorRegistry{},
-		AI: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
-		  "matchSummary": {"strengths":["PRIVATE_MATCH_SUMMARY"],"gaps":["PRIVATE_MODEL_RAW_RESPONSE"]},
-		  "suggestions": [{"originalBullet":"PRIVATE_ORIGINAL_BULLET","suggestedBullet":"PRIVATE_SUGGESTED_BULLET","reason":"PRIVATE_SUGGESTION_REASON"}]
-		}`}},
-		AITaskRuns: taskRuns,
+		AI:       observedAI,
 		NewID: idSeq(
 			"0195f2d0-4a44-7fc2-8f77-1f9cfaa0b001",
 			"0195f2d0-4a44-7fc2-8f77-1f9cfaa0b002",
@@ -557,6 +576,22 @@ func runTailorPrivacyFixture(t *testing.T) tailorPrivacyFixture {
 		t.Fatalf("Handle outcome = %+v", outcome)
 	}
 	return tailorPrivacyFixture{store: store, taskRuns: taskRuns}
+}
+
+func newObservedTailorAI(t *testing.T, inner aiclient.AIClient, taskRuns aiclient.AITaskRunWriter, now time.Time) aiclient.AIClient {
+	t.Helper()
+	observed, err := observability.New(
+		inner,
+		observability.WithRegisterer(observability.NewInMemoryRegistry()),
+		observability.WithLogger(observability.NewMemoryLogger()),
+		observability.WithAITaskRunWriter(taskRuns),
+		observability.WithAuditEventWriter(discardAuditWriter{}),
+		observability.WithNow(func() time.Time { return now }),
+	)
+	if err != nil {
+		t.Fatalf("observability.New: %v", err)
+	}
+	return observed
 }
 
 func assertNoTailorPrivacyLeak(t *testing.T, label string, raw string) {

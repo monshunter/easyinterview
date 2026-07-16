@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -14,6 +15,12 @@ import (
 	"testing"
 	"time"
 )
+
+func TestMiddlewareExposesOperationSpecificHandlerOptions(t *testing.T) {
+	if _, ok := reflect.TypeOf((*Middleware)(nil)).MethodByName("HandlerWithOptions"); !ok {
+		t.Fatal("idempotency middleware must expose HandlerWithOptions for operation-specific pending semantics")
+	}
+}
 
 func TestMiddlewareRejectsConcurrentPendingLock(t *testing.T) {
 	now := time.Date(2026, 5, 9, 10, 0, 0, 0, time.UTC)
@@ -51,6 +58,69 @@ func TestMiddlewareRejectsConcurrentPendingLock(t *testing.T) {
 	<-done
 	if rec1.Code != http.StatusCreated {
 		t.Fatalf("first request status: want %d, got %d", http.StatusCreated, rec1.Code)
+	}
+}
+
+func TestMiddlewareUsesReportNotReadyForPendingRegeneration(t *testing.T) {
+	store := reservationErrorStore{err: ErrPending}
+	mw := newTestMiddleware(store, func() time.Time {
+		return time.Date(2026, 7, 16, 9, 0, 0, 0, time.UTC)
+	})
+	handler := mw.HandlerWithOptions(
+		"reports",
+		"regenerateFeedbackReport",
+		userFromHeader,
+		http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+			t.Fatal("pending idempotency reservation must not execute the report regeneration handler")
+		}),
+		HandlerOptions{PendingCode: "REPORT_NOT_READY", PendingMessage: "report is not ready yet"},
+	)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/reports/report-1/regenerate", nil)
+	request.Header.Set("X-Test-User", "user-1")
+	request.Header.Set(HeaderName, "report-regenerate-key")
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	var response struct {
+		Error struct {
+			Code      string `json:"code"`
+			Retryable bool   `json:"retryable"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Error.Code != "REPORT_NOT_READY" || !response.Error.Retryable {
+		t.Fatalf("pending regeneration error=%+v body=%s", response.Error, recorder.Body.String())
+	}
+}
+
+func TestMiddlewareCompletesSucceededReservationAfterRequestCancellation(t *testing.T) {
+	store := &completionContextStore{}
+	mw := newTestMiddleware(store, func() time.Time {
+		return time.Date(2026, 7, 16, 9, 0, 0, 0, time.UTC)
+	})
+	requestContext, cancel := context.WithCancel(context.Background())
+	handler := mw.Handler("reports", "regenerateFeedbackReport", userFromHeader, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		cancel()
+		writeJSONForTest(t, w, http.StatusAccepted, map[string]string{"reportId": "report-1"})
+	}))
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/reports/report-1/regenerate", nil).WithContext(requestContext)
+	request.Header.Set("X-Test-User", "user-1")
+	request.Header.Set(HeaderName, "report-regenerate-key")
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusAccepted {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if store.completionContextErr != nil {
+		t.Fatalf("completion inherited canceled request context: %v", store.completionContextErr)
 	}
 }
 
@@ -276,6 +346,35 @@ func writeJSONForTest(t *testing.T, w http.ResponseWriter, status int, value any
 type memoryStore struct {
 	mu      sync.Mutex
 	records map[string]memoryRecord
+}
+
+type reservationErrorStore struct {
+	err error
+}
+
+func (s reservationErrorStore) Reserve(context.Context, ReservationInput) (Reservation, error) {
+	return Reservation{}, s.err
+}
+
+func (reservationErrorStore) MarkSucceeded(context.Context, CompletionInput) error { return nil }
+func (reservationErrorStore) MarkFailed(context.Context, CompletionInput) error    { return nil }
+
+type completionContextStore struct {
+	completionContextErr error
+}
+
+func (*completionContextStore) Reserve(context.Context, ReservationInput) (Reservation, error) {
+	return Reservation{State: StateExecute, RecordID: "record-report-regenerate"}, nil
+}
+
+func (s *completionContextStore) MarkSucceeded(ctx context.Context, _ CompletionInput) error {
+	s.completionContextErr = ctx.Err()
+	return s.completionContextErr
+}
+
+func (s *completionContextStore) MarkFailed(ctx context.Context, _ CompletionInput) error {
+	s.completionContextErr = ctx.Err()
+	return s.completionContextErr
 }
 
 type memoryRecord struct {

@@ -18,13 +18,15 @@ governance violation — it bypasses the audit trail and produces silent
 incompatibility for downstream consumers (Go DTOs, TS client, Prism mock,
 docs site).
 
-Current `openapi-v1.0.0.yaml` inventory: 37 operations across 10 tags:
+Current `openapi-v1.0.0.yaml` inventory: 38 operations across 10 tags:
 Auth, Uploads, Resumes, TargetJobs, PracticePlans, PracticeSessions, Reports,
 ResumeTailor, Jobs, and Privacy. It includes `DELETE /api/v1/me`
 (`operationId=deleteMe`), flat Resume operations including PDF source preview,
 TargetJob archive (`operationId=archiveTargetJob`), Practice session / voice
 contracts, and Auth `completeMyProfile`
 profile-completion endpoint. The
+freeze also includes protected failed-report same-ID regeneration
+(`operationId=regenerateFeedbackReport`). The
 project is still in a pre-launch P0 phase. A `v1.0.0 pre-release correction`
 may re-freeze this file in place only when all of the following hold: explicit
 product-owner authorization, an accepted OPENAPI ADR, a merge-base old-baseline

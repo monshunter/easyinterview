@@ -1,8 +1,8 @@
 # Grounded Conversation Report Test Plan
 
-> **版本**: 2.26
+> **版本**: 2.28
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 ## 1 Owner test boundary
 
@@ -21,6 +21,7 @@
 
 - Table tests cover wire fuse、24/64 language bounds、English delimiter parity、cross-field/focus/action invariants and typed invalid output without raw echo.
 - Invocation-local retry tests inject a no-wait recorder and cover attempts 2/3/4 success、attempt4 terminal failure、dynamic scope/full revalidation、retryable provider/protocol errors、non-retryable immediate failure、cancellation and a second independent invocation reset.
+- Repair serializer tests enumerate every reachable validation code, assert concrete structural/anchor/evidence/readiness/action/text rules and multi-family retention, require unknown/unsafe/incompatible coordinate failure before the next provider call, bind anchor guidance to a positive unique strictly ascending non-empty user-seq allowlist, and prove untrusted literal marker text cannot create a second trust boundary or promote the previous model output.
 - Store/runner integration tests prove `async_jobs.attempts/max_attempts` are infrastructure-only and stale workers cannot write report/outbox/audit/job side effects.
 
 ## 4 Eval reliability
@@ -49,3 +50,9 @@
 - Positive tests cover an owned empty `messages` array as a 200 projection. Negative tests cover hidden 404, report/session/user/target mismatch, empty identity, blank message content, missing createdAt, duplicate/non-increasing sequence, unknown role and any internal/additional response field.
 - Privacy tests assert no session/message/client IDs, reply state or raw transcript in errors/logs/audit/metrics/task payloads; successful, business-error and session-middleware rejection responses all set `Cache-Control: private, no-store` before any report read; read count is bounded to the report lookup plus ordered messages query without list/pagination.
 - Scoped removal tests reject `listPracticeSessions` in current OpenAPI/generated/router/handler/fixture/mock/frontend positive surfaces and prove no migration/table/compatibility layer is introduced.
+
+## 8 Failed report regeneration
+
+- Handler/service tests cover auth/IK, identity validation, exact same-ID `ReportWithJob`, report-specific idempotency pending/replay headers and safe typed errors.
+- SQL tests cover job-before-report lock order, full ready-field reset, stable session dedupe, fresh action IDs, audit-only side effects and rollback on every write failure.
+- Real PostgreSQL tests cover concurrent different keys, the failure-persist/job-finalize window, one active report job and frozen-context reuse to ready. Oversize/non-failed/cross-user cases prove zero writes/provider calls.

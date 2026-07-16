@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 37-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 38-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue an email-code challenge
@@ -71,6 +71,9 @@ type ServerInterface interface {
 
 	// getReportConversation — get /reports/{reportId}/conversation: Get the read-only conversation record for a feedback report
 	GetReportConversation(w http.ResponseWriter, r *http.Request, reportId string)
+
+	// regenerateFeedbackReport — post /reports/{reportId}/regenerate: Regenerate a failed feedback report
+	RegenerateFeedbackReport(w http.ResponseWriter, r *http.Request, reportId string)
 
 	// requestResumeTailor — post /resume/tailor: Start a resume-tailoring run for a target job
 	RequestResumeTailor(w http.ResponseWriter, r *http.Request)
@@ -159,6 +162,7 @@ var AllRoutes = []Route{
 	{OperationID: "getPrivacyRequest", Method: "get", Path: "/privacy/requests/{privacyRequestId}", PathParams: []string{"privacyRequestId"}},
 	{OperationID: "getFeedbackReport", Method: "get", Path: "/reports/{reportId}", PathParams: []string{"reportId"}},
 	{OperationID: "getReportConversation", Method: "get", Path: "/reports/{reportId}/conversation", PathParams: []string{"reportId"}},
+	{OperationID: "regenerateFeedbackReport", Method: "post", Path: "/reports/{reportId}/regenerate", PathParams: []string{"reportId"}},
 	{OperationID: "requestResumeTailor", Method: "post", Path: "/resume/tailor", PathParams: nil},
 	{OperationID: "getResumeTailorRun", Method: "get", Path: "/resume/tailor-runs/{tailorRunId}", PathParams: []string{"tailorRunId"}},
 	{OperationID: "listResumes", Method: "get", Path: "/resumes", PathParams: nil},

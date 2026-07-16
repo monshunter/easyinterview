@@ -163,10 +163,10 @@ def test_optional_full_container_runtime_contract() -> None:
         "service_completed_successfully"
     )
     assert services["backend-dev"]["ports"] == [
-        "127.0.0.1:${FULL_CONTAINER_API_HOST_PORT:-10801}:8080"
+        "127.0.0.1:${FULL_CONTAINER_API_HOST_PORT:-10901}:8080"
     ]
     assert services["frontend-dev"]["ports"] == [
-        "127.0.0.1:${FULL_CONTAINER_FRONTEND_HOST_PORT:-10800}:8080"
+        "127.0.0.1:${FULL_CONTAINER_FRONTEND_HOST_PORT:-10900}:8080"
     ]
     for service_name in ("backend-dev", "frontend-dev"):
         assert services[service_name]["labels"]["easyinterview.dev-stack.role"] == "app"
@@ -244,7 +244,55 @@ def test_stop_host_runtimes_does_not_kill_reused_unowned_pid(tmp_path: Path) -> 
             process.wait(timeout=5)
 
 
-def test_stop_host_runtimes_stops_owned_backend_pid(tmp_path: Path) -> None:
+def test_host_runtime_pidfile_requires_repo_owned_cwd(tmp_path: Path) -> None:
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            "import time; time.sleep(30)",
+            "go run ./backend/cmd/api -config-dir config",
+        ],
+        cwd=tmp_path,
+        start_new_session=True,
+    )
+    pid_file = tmp_path / "backend.pid"
+    pid_file.write_text(str(process.pid), encoding="utf-8")
+    helper = SCENARIO_ROOT / "_shared" / "scripts" / "local-dev-runtime.sh"
+    probe = r'''
+set -euo pipefail
+REPO_ROOT="$1"
+. "$2"
+pid_command_matches_role() { return 0; }
+stop_pidfile_process_group "$3" backend-dev
+'''
+    try:
+        result = subprocess.run(
+            [
+                "bash",
+                "-c",
+                probe,
+                "repo-cwd-probe",
+                str(ROOT),
+                str(helper),
+                str(pid_file),
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert process.poll() is None, "same-name process outside the repo was stopped"
+        assert not pid_file.exists()
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, 15)
+            process.wait(timeout=5)
+
+
+def test_stop_host_runtimes_stops_only_inspectable_owned_backend_pid(
+    tmp_path: Path,
+) -> None:
     process = subprocess.Popen(
         [
             sys.executable,
@@ -259,6 +307,42 @@ def test_stop_host_runtimes_stops_owned_backend_pid(tmp_path: Path) -> None:
     backend_pid = tmp_path / "backend.pid"
     frontend_pid = tmp_path / "frontend.pid"
     backend_pid.write_text(str(process.pid), encoding="utf-8")
+    try:
+        ownership_probe = subprocess.run(
+            ["ps", "-p", str(process.pid), "-o", "command="],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except PermissionError:
+        ownership_is_inspectable = False
+    else:
+        command_is_inspectable = (
+            ownership_probe.returncode == 0
+            and "go run ./backend/cmd/api" in ownership_probe.stdout
+        )
+        try:
+            inspected_cwd = Path(os.readlink(f"/proc/{process.pid}/cwd"))
+        except OSError:
+            try:
+                cwd_probe = subprocess.run(
+                    ["lsof", "-a", "-p", str(process.pid), "-d", "cwd", "-Fn"],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+            except (FileNotFoundError, PermissionError):
+                inspected_cwd = None
+            else:
+                cwd_lines = [
+                    line[1:] for line in cwd_probe.stdout.splitlines() if line.startswith("n")
+                ]
+                inspected_cwd = Path(cwd_lines[0]) if cwd_lines else None
+        ownership_is_inspectable = (
+            command_is_inspectable
+            and inspected_cwd is not None
+            and (inspected_cwd == ROOT or ROOT in inspected_cwd.parents)
+        )
     try:
         result = subprocess.run(
             [
@@ -277,7 +361,10 @@ def test_stop_host_runtimes_stops_owned_backend_pid(tmp_path: Path) -> None:
 
         assert result.returncode == 0, result.stderr
         waiter.join(timeout=1)
-        assert process.returncode is not None, "owned backend process was not stopped"
+        if ownership_is_inspectable:
+            assert process.returncode is not None, "owned backend process was not stopped"
+        else:
+            assert process.poll() is None, "unverifiable process must not be stopped"
         assert not backend_pid.exists()
     finally:
         if process.poll() is None:
@@ -333,16 +420,313 @@ def test_optional_full_container_lifecycle_contract() -> None:
     default_up = stack_makefile.split("\nup:", 1)[1].split("\ncontainer-up:", 1)[0]
     assert "full-container" not in default_up
 
-    assert "FULL_CONTAINER_FRONTEND_HOST_PORT=10800" in env_example
-    assert "FULL_CONTAINER_API_HOST_PORT=10801" in env_example
+    assert "FULL_CONTAINER_FRONTEND_HOST_PORT=10900" in env_example
+    assert "FULL_CONTAINER_API_HOST_PORT=10901" in env_example
 
     for relative in (
         "deploy/dev-stack/README.md",
         "test/scenarios/README.md",
+    ):
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        assert "dev-container-up" in text, relative
+        assert "10900" in text, relative
+        assert "10901" in text, relative
+
+    for relative in (
         ".agent-skills/scenario-env/SKILL.md",
         ".agent-skills/scenario-redeploy/SKILL.md",
     ):
         text = (ROOT / relative).read_text(encoding="utf-8")
         assert "dev-container-up" in text, relative
-        assert "10800" in text, relative
-        assert "10801" in text, relative
+        assert "command output" in text or "current README" in text, relative
+        for coupled_port in ("10800", "10801", "10900", "10901"):
+            assert coupled_port not in text, relative
+
+
+def test_host_and_full_container_defaults_share_10900_10901_ports() -> None:
+    root_env = (ROOT / ".env.example").read_text(encoding="utf-8")
+    stack_env = (
+        ROOT / "deploy" / "dev-stack" / ".env.example"
+    ).read_text(encoding="utf-8")
+    base_config = (ROOT / "config" / "config.yaml").read_text(encoding="utf-8")
+    compose = (ROOT / "deploy" / "dev-stack" / "docker-compose.yaml").read_text(
+        encoding="utf-8"
+    )
+    vite = (ROOT / "frontend" / "vite.config.ts").read_text(encoding="utf-8")
+    runtime = (
+        SCENARIO_ROOT / "_shared" / "scripts" / "local-dev-runtime.sh"
+    ).read_text(encoding="utf-8")
+
+    for env_text in (root_env, stack_env):
+        assert "APP_LISTEN_ADDR=:10901" in env_text
+        assert "EMAIL_VERIFY_BASE_URL=http://127.0.0.1:10900/auth/verify" in env_text
+    assert "API_HOST_PORT=10901" in stack_env
+    assert "FRONTEND_HOST_PORT=10900" in stack_env
+    assert "FULL_CONTAINER_FRONTEND_HOST_PORT=10900" in stack_env
+    assert "FULL_CONTAINER_API_HOST_PORT=10901" in stack_env
+    assert "VITE_EI_API_BASE_URL=http://127.0.0.1:10901/api/v1" in stack_env
+    assert 'listenAddr: ":10901"' in base_config
+    assert 'verifyBaseURL: "http://127.0.0.1:10900/auth/verify"' in base_config
+    assert "${FULL_CONTAINER_FRONTEND_HOST_PORT:-10900}" in compose
+    assert "${FULL_CONTAINER_API_HOST_PORT:-10901}" in compose
+    assert 'envPort("FRONTEND_HOST_PORT", 10900)' in vite
+    assert 'APP_LISTEN_ADDR:-:10901' in runtime
+    assert 'FRONTEND_HOST_PORT:-10900' in runtime
+
+
+def test_local_ai_raw_capture_config_and_backend_only_bind_contract() -> None:
+    base = yaml.safe_load((ROOT / "config" / "config.yaml").read_text(encoding="utf-8"))
+    dev = yaml.safe_load((ROOT / "config" / "dev.yaml").read_text(encoding="utf-8"))
+    test = yaml.safe_load((ROOT / "config" / "test.yaml").read_text(encoding="utf-8"))
+    staging = yaml.safe_load(
+        (ROOT / "config" / "staging.yaml").read_text(encoding="utf-8")
+    )
+    prod = yaml.safe_load((ROOT / "config" / "prod.yaml").read_text(encoding="utf-8"))
+
+    assert base["ai"]["debugCaptureRawIO"] is False
+    assert base["ai"]["debugRawIOPath"] == (
+        ".test-output/local-dev/ai-raw.ndjson"
+    )
+    for local in (dev, test):
+        assert local["ai"]["debugCaptureRawIO"] is True
+        assert local["ai"]["debugRawIOPath"] == (
+            ".test-output/local-dev/ai-raw.ndjson"
+        )
+    for deployment in (staging, prod):
+        assert deployment.get("ai", {}).get("debugCaptureRawIO", False) is False
+
+    env_example = (ROOT / "deploy" / "dev-stack" / ".env.example").read_text(
+        encoding="utf-8"
+    )
+    assert "AI_DEBUG_CAPTURE_RAW_IO=true" in env_example
+    assert "AI_DEBUG_RAW_IO_PATH=.test-output/local-dev/ai-raw.ndjson" in env_example
+
+    compose = yaml.safe_load(
+        (ROOT / "deploy" / "dev-stack" / "docker-compose.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    environment = compose["x-backend-environment"]
+    assert environment["AI_DEBUG_CAPTURE_RAW_IO"] == (
+        "${AI_DEBUG_CAPTURE_RAW_IO:-true}"
+    )
+    assert str(environment["AI_DEBUG_RAW_IO_PATH"]).endswith(
+        "/app/.test-output/local-dev/ai-raw.ndjson}"
+    ) or environment["AI_DEBUG_RAW_IO_PATH"] == (
+        "/app/.test-output/local-dev/ai-raw.ndjson"
+    )
+
+    raw_target = "/app/.test-output/local-dev"
+
+    def volume_target(volume: object) -> str:
+        if isinstance(volume, dict):
+            return str(volume.get("target", ""))
+        parts = str(volume).split(":")
+        return parts[1] if len(parts) >= 2 else ""
+
+    backend_volumes = compose["services"]["backend-dev"].get("volumes", [])
+    assert any(
+        volume_target(volume) == raw_target and str(volume).endswith(":rw")
+        for volume in backend_volumes
+    ), backend_volumes
+    for service_name, service in compose["services"].items():
+        if service_name == "backend-dev":
+            continue
+        assert all(
+            volume_target(volume) != raw_target
+            for volume in service.get("volumes", [])
+        ), service_name
+
+
+def test_raw_capture_preflight_rejects_filesystem_root_parent() -> None:
+    helper = SCENARIO_ROOT / "_shared" / "scripts" / "local-dev-runtime.sh"
+    probe = r'''
+set -euo pipefail
+REPO_ROOT="$1"
+. "$2"
+AI_DEBUG_CAPTURE_RAW_IO=true
+AI_DEBUG_RAW_IO_PATH=/ai-raw-contract-probe.ndjson
+export AI_DEBUG_CAPTURE_RAW_IO AI_DEBUG_RAW_IO_PATH
+secure_raw_capture_path
+'''
+    result = subprocess.run(
+        ["bash", "-c", probe, "raw-root-probe", str(ROOT), str(helper)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "filesystem or volume root" in result.stderr
+
+
+def test_dev_stack_pidfile_stop_requires_command_and_repo_cwd() -> None:
+    makefile = (ROOT / "deploy" / "dev-stack" / "Makefile").read_text(
+        encoding="utf-8"
+    )
+    stop_target = makefile.split("\n_stop_host_runtimes:", 1)[1].split(
+        "\n_all_healthy:", 1
+    )[0]
+
+    assert 'ps -p "$$pid" -o command=' in stop_target
+    assert 'lsof -a -p "$$pid" -d cwd' in stop_target
+    assert 'repo_owned" != "yes"' in stop_target
+
+
+def test_local_ai_raw_capture_old_stderr_key_has_zero_current_runtime_references() -> None:
+    current_runtime_files = (
+        ROOT / "config" / "config.yaml",
+        ROOT / "config" / "dev.yaml",
+        ROOT / "config" / "test.yaml",
+        ROOT / "config" / "staging.yaml",
+        ROOT / "config" / "prod.yaml",
+        ROOT / "deploy" / "dev-stack" / ".env.example",
+        ROOT / "deploy" / "dev-stack" / "docker-compose.yaml",
+        ROOT / "backend" / "internal" / "platform" / "config" / "bindings.go",
+        ROOT / "backend" / "cmd" / "api" / "main.go",
+    )
+    for path in current_runtime_files:
+        text = path.read_text(encoding="utf-8")
+        assert "AI_DEBUG_PRINT_RAW_OUTPUT" not in text, path
+        assert "ai.debugPrintRawOutput" not in text, path
+        assert "AI_RAW_OUTPUT_DEBUG_BEGIN" not in text, path
+        assert "AI_RAW_OUTPUT_DEBUG_END" not in text, path
+
+
+def test_p0099_requires_raw_capture_but_keeps_raw_file_outside_evidence() -> None:
+    scenario = E2E_ROOT / "p0-099-report-generating-live-ui"
+    setup = (scenario / "scripts" / "setup.sh").read_text(encoding="utf-8")
+    trigger = (scenario / "scripts" / "trigger.sh").read_text(encoding="utf-8")
+    verify = (scenario / "scripts" / "verify.sh").read_text(encoding="utf-8")
+
+    assert "AI_DEBUG_CAPTURE_RAW_IO" in setup
+    assert "AI_DEBUG_RAW_IO_PATH" in setup
+    assert re.search(r"AI_DEBUG_CAPTURE_RAW_IO[^\n]*(?:true|=1)", setup)
+    assert "resolve" in setup or "realpath" in setup
+    assert "symlink" in setup.lower()
+    assert "regular" in setup.lower()
+    assert "AI_DEBUG_PRINT_RAW_OUTPUT" not in setup
+    assert "raw debug disabled" not in setup.lower()
+
+    # Trigger and verifier may inspect bounded status/digests, but must never
+    # read, copy, summarize, or attach the dedicated raw Complete file.
+    for script in (trigger, verify):
+        assert "AI_DEBUG_RAW_IO_PATH" not in script
+        assert re.search(r"\b(?:cat|cp|mv|tee|sed|awk|grep)\b[^\n]*ai-raw", script) is None
+
+
+def test_host_and_full_container_app_runners_are_mutually_exclusive() -> None:
+    helper = (
+        SCENARIO_ROOT / "_shared" / "scripts" / "local-dev-runtime.sh"
+    ).read_text(encoding="utf-8")
+    redeploy = (SCENARIO_ROOT / "env-redeploy.sh").read_text(encoding="utf-8")
+    verify = (SCENARIO_ROOT / "env-verify.sh").read_text(encoding="utf-8")
+    combined_redeploy = helper + "\n" + redeploy
+    combined_verify = helper + "\n" + verify
+
+    assert re.search(
+        r"(?:docker\s+compose|\$\{?COMPOSE\}?)[^\n]*(?:stop|rm)[^\n]*backend-dev",
+        combined_redeploy,
+    )
+    assert re.search(
+        r"(?:docker\s+compose|\$\{?COMPOSE\}?)[^\n]*(?:stop|rm)[^\n]*frontend-dev",
+        combined_redeploy,
+    )
+    for role in ("backend-dev", "frontend-dev"):
+        assert role in combined_verify
+    assert re.search(
+        r"(?:conflict|multiple|coexist|double|more than one|并存|冲突)",
+        combined_verify,
+        re.IGNORECASE,
+    )
+
+
+def test_all_redeploy_removes_full_container_roles_before_dependency_doctor() -> None:
+    result = subprocess.run(
+        [str(SCENARIO_ROOT / "env-redeploy.sh"), "all", "--dry-run"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    output = result.stdout
+    backend_remove = output.index("docker compose rm -sf backend-dev")
+    frontend_remove = output.index("docker compose rm -sf frontend-dev")
+    dependency_up = output.index("make dev-up")
+    dependency_doctor = output.index("make dev-doctor")
+    assert backend_remove < dependency_up
+    assert frontend_remove < dependency_up
+    assert dependency_up < dependency_doctor
+
+
+def test_single_runner_guard_fails_closed_without_stopping_processes() -> None:
+    helper = SCENARIO_ROOT / "_shared" / "scripts" / "local-dev-runtime.sh"
+    probe = r'''
+set -euo pipefail
+REPO_ROOT="$1"
+. "$2"
+load_dev_stack_env() { :; }
+compose_app_role_running() { [ "$1" = "backend-dev" ]; }
+host_app_role_running() { [ "$1" = "backend-dev" ]; }
+assert_single_app_runners
+'''
+    result = subprocess.run(
+        ["bash", "-c", probe, "single-runner-probe", str(ROOT), str(helper)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "runner conflict" in result.stderr
+    assert "backend-dev" in result.stderr
+
+
+def test_host_mailpit_smtp_route_mismatch_fails_before_backend_start() -> None:
+    helper = SCENARIO_ROOT / "_shared" / "scripts" / "local-dev-runtime.sh"
+    probe = r'''
+set -euo pipefail
+REPO_ROOT="$1"
+. "$2"
+EMAIL_PROVIDER=mailpit
+EMAIL_SMTP_HOST=127.0.0.1
+EMAIL_SMTP_PORT=1025
+MAILPIT_SMTP_HOST_PORT=11025
+export EMAIL_PROVIDER EMAIL_SMTP_HOST EMAIL_SMTP_PORT MAILPIT_SMTP_HOST_PORT
+assert_host_mailpit_smtp_route
+'''
+    result = subprocess.run(
+        ["bash", "-c", probe, "mailpit-route-probe", str(ROOT), str(helper)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "EMAIL_SMTP_PORT=1025" in result.stderr
+    assert "MAILPIT_SMTP_HOST_PORT=11025" in result.stderr
+
+
+def test_host_mailpit_smtp_route_accepts_matching_host_mapping() -> None:
+    helper = SCENARIO_ROOT / "_shared" / "scripts" / "local-dev-runtime.sh"
+    probe = r'''
+set -euo pipefail
+REPO_ROOT="$1"
+. "$2"
+EMAIL_PROVIDER=mailpit
+EMAIL_SMTP_HOST=127.0.0.1
+EMAIL_SMTP_PORT=11025
+MAILPIT_SMTP_HOST_PORT=11025
+export EMAIL_PROVIDER EMAIL_SMTP_HOST EMAIL_SMTP_PORT MAILPIT_SMTP_HOST_PORT
+assert_host_mailpit_smtp_route
+'''
+    result = subprocess.run(
+        ["bash", "-c", probe, "mailpit-route-probe", str(ROOT), str(helper)],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr

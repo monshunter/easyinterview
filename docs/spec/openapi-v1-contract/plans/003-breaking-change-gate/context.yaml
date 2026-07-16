@@ -5,10 +5,10 @@ metadata:
   name: 003-breaking-change-gate
   sequence: 3
   baseBranch: main
-  branch: settings-simplification
+  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
   specVersion:
-    from: 1.62
-    to: 1.64
+    from: 1.64
+    to: 1.65
 spec:
   defaultTarget: contract
   discovery:
@@ -18,7 +18,7 @@ spec:
       - openapi-diff
       - additive-only
       - v1-freeze
-      - 37 operations
+      - 38 operations
       - 10 tags
       - breaking-change-linter
       - baseline-snapshot
@@ -49,7 +49,9 @@ spec:
       - OPENAPI-001 v1.7 report conversation exact oracle
       - delete listPracticeSessions breaking finding
       - add getReportConversation additive findings
-      - preserve 37 operations 10 tags
+      - preserve 38 operations 10 tags
+      - regenerateFeedbackReport additive operation
+      - REPORT_INVALID_STATE_TRANSITION additive enum
       - OPENAPI-007 settings UserContext exact oracle
       - replace emailMasked with complete email
       - remove uiLanguage preferredPracticeLanguage
@@ -95,6 +97,7 @@ spec:
           - importTargetJob
           - createUploadPresign
           - getFeedbackReport
+          - regenerateFeedbackReport
           - getReportConversation
           - listTargetJobReports
           - createPracticePlan

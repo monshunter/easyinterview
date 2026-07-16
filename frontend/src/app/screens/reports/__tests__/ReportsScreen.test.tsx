@@ -10,8 +10,13 @@ import {
 import { useLayoutEffect, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { EasyInterviewClient } from "../../../../api/generated/client";
+import {
+  ApiClientError,
+  type EasyInterviewClient,
+} from "../../../../api/generated/client";
 import type {
+  ApiErrorCode,
+  ReportWithJob,
   TargetJob,
   TargetJobReportsOverview,
 } from "../../../../api/generated/types";
@@ -183,6 +188,49 @@ function emptyOverview(targetJobId = TARGET_A_ID): TargetJobReportsOverview {
   };
 }
 
+function failedOnlyOverview(
+  errorCode: ApiErrorCode = "AI_PROVIDER_TIMEOUT",
+  targetJobId = TARGET_A_ID,
+  prefix: keyof typeof REPORT_IDS = "a",
+): TargetJobReportsOverview {
+  const value = emptyOverview(targetJobId);
+  value.rounds[1]!.latestAttempt = {
+    id: REPORT_IDS[prefix].failed,
+    status: "failed",
+    errorCode,
+    createdAt: "2026-07-14T09:14:00Z",
+  };
+  return value;
+}
+
+function queuedRegeneration(
+  reportId: string = REPORT_IDS.a.failed,
+): ReportWithJob {
+  return {
+    reportId,
+    job: {
+      id: "01918fa0-0000-7000-8000-000000008102",
+      jobType: "report_generate",
+      resourceType: "feedback_report",
+      resourceId: reportId,
+      status: "queued",
+      createdAt: "2026-07-14T09:16:00Z",
+      updatedAt: "2026-07-14T09:16:00Z",
+    },
+  };
+}
+
+function apiFailure(status: number, code: ApiErrorCode): ApiClientError {
+  return new ApiClientError("http", status, {
+    error: {
+      code,
+      message: "private server detail must not render",
+      requestId: "req_report_regenerate",
+      retryable: code === "REPORT_NOT_READY",
+    },
+  });
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -196,19 +244,27 @@ function deferred<T>() {
 function clientWith({
   getTargetJob = async (id: string) => targetJob(id),
   listTargetJobReports = async (id: string) => overview(id),
+  regenerateFeedbackReport = async (reportId: string) =>
+    queuedRegeneration(reportId),
 }: {
   getTargetJob?: (targetJobId: string) => Promise<TargetJob>;
   listTargetJobReports?: (
     targetJobId: string,
   ) => Promise<TargetJobReportsOverview>;
+  regenerateFeedbackReport?: (
+    reportId: string,
+    opts?: { idempotencyKey?: string },
+  ) => Promise<ReportWithJob>;
 } = {}): EasyInterviewClient & {
   getTargetJob: ReturnType<typeof vi.fn>;
   listTargetJobReports: ReturnType<typeof vi.fn>;
   listTargetJobs: ReturnType<typeof vi.fn>;
+  regenerateFeedbackReport: ReturnType<typeof vi.fn>;
 } {
   return {
     getTargetJob: vi.fn(getTargetJob),
     listTargetJobReports: vi.fn(listTargetJobReports),
+    regenerateFeedbackReport: vi.fn(regenerateFeedbackReport),
     listTargetJobs: vi.fn(async () => {
       throw new Error("global target list is forbidden");
     }),
@@ -216,6 +272,7 @@ function clientWith({
     getTargetJob: ReturnType<typeof vi.fn>;
     listTargetJobReports: ReturnType<typeof vi.fn>;
     listTargetJobs: ReturnType<typeof vi.fn>;
+    regenerateFeedbackReport: ReturnType<typeof vi.fn>;
   };
 }
 
@@ -301,7 +358,7 @@ describe("ReportsScreen", () => {
     const differentReady = screen.getByTestId("reports-round-1");
     expect(differentReady).toHaveTextContent("Architecture · 50m");
     expect(differentReady).toHaveTextContent("The latest report is ready");
-    expect(within(differentReady).getAllByRole("button")).toHaveLength(2);
+    expect(within(differentReady).getAllByRole("button")).toHaveLength(3);
     fireEvent.click(within(differentReady).getByTestId("reports-current").querySelector("button")!);
     expect(navigate).toHaveBeenLastCalledWith({
       name: "report",
@@ -313,14 +370,59 @@ describe("ReportsScreen", () => {
       name: "report_conversation",
       params: { reportId: REPORT_IDS.a.current },
     });
+    const latestReadyConversation = within(differentReady).getByTestId(
+      "reports-latest-conversation-entry",
+    );
+    expect(latestReadyConversation).toHaveAccessibleName(
+      "View latest interview record",
+    );
+    fireEvent.click(latestReadyConversation);
+    expect(navigate).toHaveBeenLastCalledWith({
+      name: "report_conversation",
+      params: { reportId: REPORT_IDS.a.latestReady },
+    });
 
     const failed = screen.getByTestId("reports-round-2");
     expect(failed).toHaveTextContent("The last report failed");
     expect(failed).not.toHaveTextContent("AI_PROVIDER_TIMEOUT");
-    expect(within(failed).queryByRole("button", { name: /retry/i })).toBeNull();
+    expect(within(failed).getAllByRole("button")).toHaveLength(4);
+
+    const currentReport = within(failed)
+      .getByTestId("reports-current")
+      .querySelector("button")!;
+    const currentConversation = within(failed).getByTestId(
+      "reports-conversation-entry",
+    );
+    const failedRegenerate = within(failed).getByTestId(
+      "reports-failed-regenerate",
+    );
+    const failedConversation = within(failed).getByTestId(
+      "reports-latest-conversation-entry",
+    );
+    expect(currentReport).toHaveAccessibleName("View current report");
+    expect(currentConversation).toHaveAccessibleName(
+      "View current report interview record",
+    );
+    expect(failedRegenerate).toHaveAccessibleName("Regenerate failed report");
+    expect(failedConversation).toHaveAccessibleName("View latest interview record");
+
+    fireEvent.click(currentConversation);
+    expect(navigate).toHaveBeenLastCalledWith({
+      name: "report_conversation",
+      params: { reportId: REPORT_IDS.a.currentSecond },
+    });
+    fireEvent.click(failedConversation);
+    expect(navigate).toHaveBeenLastCalledWith({
+      name: "report_conversation",
+      params: { reportId: REPORT_IDS.a.failed },
+    });
 
     const generating = screen.getByTestId("reports-round-3");
     expect(generating).toHaveTextContent("Generating a new report");
+    const generatingConversation = within(generating).getByTestId(
+      "reports-latest-conversation-entry",
+    );
+    expect(generatingConversation).toHaveAccessibleName("View latest interview record");
     fireEvent.click(
       within(within(generating).getByTestId("reports-generating")).getByRole(
         "button",
@@ -328,6 +430,11 @@ describe("ReportsScreen", () => {
     );
     expect(navigate).toHaveBeenLastCalledWith({
       name: "generating",
+      params: { reportId: REPORT_IDS.a.generating },
+    });
+    fireEvent.click(generatingConversation);
+    expect(navigate).toHaveBeenLastCalledWith({
+      name: "report_conversation",
       params: { reportId: REPORT_IDS.a.generating },
     });
 
@@ -360,17 +467,308 @@ describe("ReportsScreen", () => {
     expect(screen.queryByTestId("reports-generating")).toBeNull();
   });
 
-  it("uses the same actionable status for queued and generating attempts", async () => {
+  it("keeps both progress and interview record available for queued and generating attempts", async () => {
+    const navigate = vi.fn();
     const queued = overview();
     queued.rounds[2]!.latestAttempt!.status = "queued";
     const client = clientWith({
       listTargetJobReports: async () => queued,
     });
-    render(view(client, TARGET_A_ID));
+    render(view(client, TARGET_A_ID, navigate));
 
     const row = await screen.findByTestId("reports-round-3");
     expect(row).toHaveTextContent("Generating a new report");
     expect(within(row).getByTestId("reports-generating")).toBeInTheDocument();
+    const conversation = within(row).getByTestId(
+      "reports-latest-conversation-entry",
+    );
+    expect(conversation).toHaveAccessibleName("View latest interview record");
+    fireEvent.click(conversation);
+    expect(navigate).toHaveBeenLastCalledWith({
+      name: "report_conversation",
+      params: { reportId: REPORT_IDS.a.generating },
+    });
+  });
+
+  it.each([
+    ["ordinary failure", "AI_PROVIDER_TIMEOUT", true],
+    ["oversize failure", "REPORT_CONTEXT_TOO_LARGE", false],
+  ] as const)(
+    "keeps the failed interview record recoverable for %s and gates regeneration",
+    async (_label, errorCode, canRegenerate) => {
+      const navigate = vi.fn();
+      const client = clientWith({
+        listTargetJobReports: async () => failedOnlyOverview(errorCode),
+      });
+      render(view(client, TARGET_A_ID, navigate));
+
+      const row = await screen.findByTestId("reports-round-2");
+      const conversation = within(row).getByTestId(
+        "reports-latest-conversation-entry",
+      );
+      expect(conversation).toHaveAccessibleName("View latest interview record");
+      fireEvent.click(conversation);
+      expect(navigate).toHaveBeenLastCalledWith({
+        name: "report_conversation",
+        params: { reportId: REPORT_IDS.a.failed },
+      });
+
+      if (canRegenerate) {
+        expect(
+          within(row).getByTestId("reports-failed-regenerate"),
+        ).toBeInTheDocument();
+      } else {
+        expect(
+          within(row).queryByTestId("reports-failed-regenerate"),
+        ).toBeNull();
+      }
+    },
+  );
+
+  it("suppresses double submit and enters same-ID Generating only after a matching queued job", async () => {
+    const pending = deferred<ReportWithJob>();
+    const navigate = vi.fn();
+    const client = clientWith({
+      listTargetJobReports: async () => failedOnlyOverview(),
+      regenerateFeedbackReport: async () => pending.promise,
+    });
+    render(view(client, TARGET_A_ID, navigate));
+
+    const row = await screen.findByTestId("reports-round-2");
+    const regenerate = within(row).getByTestId("reports-failed-regenerate");
+    fireEvent.click(regenerate);
+    fireEvent.click(regenerate);
+
+    expect(client.regenerateFeedbackReport).toHaveBeenCalledTimes(1);
+    expect(client.regenerateFeedbackReport).toHaveBeenCalledWith(
+      REPORT_IDS.a.failed,
+      {
+        idempotencyKey: expect.stringMatching(
+          /^v1\.\d+\.[0-9a-f-]{36}$/,
+        ),
+      },
+    );
+    expect(regenerate).toBeDisabled();
+    expect(regenerate).toHaveAttribute("aria-busy", "true");
+    expect(navigate).not.toHaveBeenCalled();
+
+    await act(async () => pending.resolve(queuedRegeneration()));
+    expect(navigate).toHaveBeenCalledWith({
+      name: "generating",
+      params: { reportId: REPORT_IDS.a.failed },
+    });
+  });
+
+  const malformedRegenerationCases: Array<[
+    string,
+    (value: ReportWithJob) => unknown,
+  ]> = [
+    ["reportId", (value) => ({ ...value, reportId: REPORT_IDS.a.current })],
+    [
+      "jobType",
+      (value) => ({ ...value, job: { ...value.job, jobType: "resume_parse" } }),
+    ],
+    [
+      "job status",
+      (value) => ({ ...value, job: { ...value.job, status: "running" } }),
+    ],
+    [
+      "resourceType",
+      (value) => ({ ...value, job: { ...value.job, resourceType: "target_job" } }),
+    ],
+    [
+      "resourceId",
+      (value) => ({
+        ...value,
+        job: { ...value.job, resourceId: REPORT_IDS.a.current },
+      }),
+    ],
+  ];
+
+  it.each(malformedRegenerationCases)(
+    "fails closed when the 202 response has a mismatched %s",
+    async (_label, mutate) => {
+      const navigate = vi.fn();
+      const client = clientWith({
+        listTargetJobReports: async () => failedOnlyOverview(),
+        regenerateFeedbackReport: async () =>
+          mutate(queuedRegeneration()) as ReportWithJob,
+      });
+      render(view(client, TARGET_A_ID, navigate));
+
+      const row = await screen.findByTestId("reports-round-2");
+      fireEvent.click(within(row).getByTestId("reports-failed-regenerate"));
+
+      expect(
+        await within(row).findByTestId("reports-regenerate-error"),
+      ).toHaveAttribute("role", "alert");
+      expect(navigate).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    [
+      "transport rejection",
+      () =>
+        Promise.reject(
+          new ApiClientError(
+            "transport",
+            null,
+            null,
+            new TypeError("SECRET transport detail"),
+          ),
+        ),
+    ],
+    [
+      "HTTP 5xx",
+      () => Promise.reject(apiFailure(503, "AI_PROVIDER_TIMEOUT")),
+    ],
+    [
+      "malformed accepted body",
+      () =>
+        Promise.resolve({
+          ...queuedRegeneration(),
+          reportId: REPORT_IDS.a.current,
+        }),
+    ],
+  ] as const)(
+    "reuses the idempotency key after an unknown %s outcome",
+    async (_label, outcome) => {
+      const client = clientWith({
+        listTargetJobReports: async () => failedOnlyOverview(),
+        regenerateFeedbackReport: outcome,
+      });
+      render(view(client, TARGET_A_ID));
+
+      const row = await screen.findByTestId("reports-round-2");
+      fireEvent.click(within(row).getByTestId("reports-failed-regenerate"));
+      await within(row).findByTestId("reports-regenerate-error");
+      const firstKey = client.regenerateFeedbackReport.mock.calls[0]?.[1]
+        ?.idempotencyKey;
+
+      fireEvent.click(within(row).getByTestId("reports-failed-regenerate"));
+      await waitFor(() =>
+        expect(client.regenerateFeedbackReport).toHaveBeenCalledTimes(2),
+      );
+      const secondKey = client.regenerateFeedbackReport.mock.calls[1]?.[1]
+        ?.idempotencyKey;
+      expect(firstKey).toBeTruthy();
+      expect(secondKey).toBe(firstKey);
+    },
+  );
+
+  it("rotates the idempotency key only after an explicit HTTP 4xx rejection", async () => {
+    const client = clientWith({
+      listTargetJobReports: async () => failedOnlyOverview(),
+      regenerateFeedbackReport: async () => {
+        throw apiFailure(422, "VALIDATION_FAILED");
+      },
+    });
+    render(view(client, TARGET_A_ID));
+
+    const row = await screen.findByTestId("reports-round-2");
+    fireEvent.click(within(row).getByTestId("reports-failed-regenerate"));
+    await within(row).findByTestId("reports-regenerate-error");
+    const firstKey = client.regenerateFeedbackReport.mock.calls[0]?.[1]
+      ?.idempotencyKey;
+
+    fireEvent.click(within(row).getByTestId("reports-failed-regenerate"));
+    await waitFor(() =>
+      expect(client.regenerateFeedbackReport).toHaveBeenCalledTimes(2),
+    );
+    const secondKey = client.regenerateFeedbackReport.mock.calls[1]?.[1]
+      ?.idempotencyKey;
+    expect(firstKey).toBeTruthy();
+    expect(secondKey).toBeTruthy();
+    expect(secondKey).not.toBe(firstKey);
+  });
+
+  it.each([
+    ["REPORT_INVALID_STATE_TRANSITION", false],
+    ["REPORT_NOT_READY", true],
+  ] as const)(
+    "refreshes the target and overview after typed stale-state %s",
+    async (code, retryable) => {
+      const refreshed = failedOnlyOverview();
+      refreshed.rounds[1]!.latestAttempt = {
+        id: REPORT_IDS.a.failed,
+        status: "queued",
+        errorCode: null,
+        createdAt: "2026-07-14T09:17:00Z",
+      };
+      let overviewRead = 0;
+      const client = clientWith({
+        listTargetJobReports: async () =>
+          overviewRead++ === 0 ? failedOnlyOverview() : refreshed,
+        regenerateFeedbackReport: async () => {
+          const failure = apiFailure(409, code);
+          expect(failure.apiError?.error.retryable).toBe(retryable);
+          throw failure;
+        },
+      });
+      render(view(client, TARGET_A_ID));
+
+      const row = await screen.findByTestId("reports-round-2");
+      fireEvent.click(within(row).getByTestId("reports-failed-regenerate"));
+
+      await waitFor(() => {
+        expect(client.getTargetJob).toHaveBeenCalledTimes(2);
+        expect(client.listTargetJobReports).toHaveBeenCalledTimes(2);
+      });
+      expect(
+        within(screen.getByTestId("reports-round-2")).getByTestId(
+          "reports-generating",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("reports-failed-regenerate"),
+      ).toBeNull();
+    },
+  );
+
+  it("does not expose raw regeneration failures in the localized row error", async () => {
+    const client = clientWith({
+      listTargetJobReports: async () => failedOnlyOverview(),
+      regenerateFeedbackReport: async () => {
+        throw new Error("SECRET-UPSTREAM-PROVIDER-BODY");
+      },
+    });
+    render(view(client, TARGET_A_ID));
+
+    const row = await screen.findByTestId("reports-round-2");
+    fireEvent.click(within(row).getByTestId("reports-failed-regenerate"));
+    const alert = await within(row).findByTestId("reports-regenerate-error");
+    expect(alert).toHaveAttribute("role", "alert");
+    expect(alert.textContent?.trim()).toBeTruthy();
+    expect(alert).not.toHaveTextContent("SECRET-UPSTREAM-PROVIDER-BODY");
+    expect(alert).not.toHaveTextContent("private server detail must not render");
+  });
+
+  it("fences a late regeneration result after the target switches", async () => {
+    const pending = deferred<ReportWithJob>();
+    const navigate = vi.fn();
+    const client = clientWith({
+      getTargetJob: async (id) => targetJob(id),
+      listTargetJobReports: async (id) =>
+        id === TARGET_A_ID
+          ? failedOnlyOverview("AI_PROVIDER_TIMEOUT", TARGET_A_ID, "a")
+          : failedOnlyOverview("AI_PROVIDER_TIMEOUT", TARGET_B_ID, "b"),
+      regenerateFeedbackReport: async () => pending.promise,
+    });
+    const rendered = render(view(client, TARGET_A_ID, navigate));
+
+    const aRow = await screen.findByTestId("reports-round-2");
+    fireEvent.click(within(aRow).getByTestId("reports-failed-regenerate"));
+    rendered.rerender(view(client, TARGET_B_ID, navigate));
+    expect(await screen.findByTestId("reports-target-title")).toHaveTextContent(
+      "Backend Engineer B",
+    );
+
+    await act(async () => pending.resolve(queuedRegeneration(REPORT_IDS.a.failed)));
+    expect(screen.getByTestId("reports-target-title")).toHaveTextContent(
+      "Backend Engineer B",
+    );
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("keeps the valid current-plan Back path available while data is loading", async () => {

@@ -5,10 +5,10 @@ metadata:
   name: 002-fixtures-and-mock-source
   sequence: 2
   baseBranch: main
-  branch: settings-simplification
+  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
   specVersion:
-    from: 1.62
-    to: 1.64
+    from: 1.64
+    to: 1.65
 spec:
   defaultTarget: contract
   discovery:
@@ -23,8 +23,8 @@ spec:
     keywords:
       - fixtures
       - deleteMe fixture
-      - 37 operations
-      - 37 fixtures
+      - 38 operations
+      - 38 fixtures
       - default scenario
       - validate-fixtures
       - generation provenance
@@ -59,7 +59,9 @@ spec:
       - report conversation fixture
       - delete listPracticeSessions fixture
       - getReportConversation Prism parity
-      - 37 fixture one for one replacement
+      - 38 fixture one for one contract
+      - regenerateFeedbackReport fixture
+      - failed report regeneration idempotency scenarios
       - OPENAPI-007 settings UserContext fixtures
       - getMe four fields
       - completeMyProfile four fields
@@ -94,6 +96,7 @@ spec:
           - listTargetJobs
           - getTargetJob
           - getFeedbackReport
+          - regenerateFeedbackReport
           - getReportConversation
           - listTargetJobReports
           - createPracticePlan

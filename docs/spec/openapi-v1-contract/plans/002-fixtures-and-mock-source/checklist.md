@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.22
+> **版本**: 1.23
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -134,3 +134,11 @@
 - [x] 13.3 PARITY-GATE: fixture validation, rendered examples, live Prism and dev-mock byte parity pass for getMe/completeMyProfile with 37 fixtures/operations unchanged.
 - [x] 13.4 HANDOFF/BDD-N/A: frontend runtime/settings typed builders and backend mapping consume exact full-email fixtures；user behavior remains in frontend-shell Settings BDD + `E2E.P0.101`, not a fixture E2E.
 - [x] 13.5 REGRESSION-GATE: root `make test`, lint/fixture/codegen/diff, contexts/docs/diff and production fixture/mock old-field zero-reference gates pass.
+
+## Phase 14: Failed report regeneration fixtures
+
+- [x] 14.1 RED: fixture coverage fails until `regenerateFeedbackReport` has header-only default/error/replay scenarios and 38/38 inventory.
+  <!-- verified: 2026-07-16 method=focused-red evidence="fixture owner tests failed at 37/38 inventory and missing Reports/regenerateFeedbackReport.json" -->
+- [x] 14.2 GREEN: add schema-valid matching `ReportWithJob` and typed hidden/invalid/not-ready/context-too-large/idempotency errors.<!-- verified: 2026-07-16 method=fixture-green evidence="Reports/regenerateFeedbackReport.json supplies default/replay/hidden/invalid/not-ready/context-too-large/idempotency scenarios; focused fixture validation and 38/38 operation coverage PASS" -->
+- [x] 14.3 PARITY-GATE: fixture validation, rendered examples, Prism and dev-mock operation parity pass without raw AI content.<!-- verified: 2026-07-16 method=fixture-parity evidence="38 fixtures validate; example projection sha256 refreshed; live Prism 16/16 byte-equal including regenerateFeedbackReport; devMock and generated client tests included in root PASS; raw AI content absent" -->
+- [x] 14.4 BDD-N/A/HANDOFF: backend/frontend report BDD consumes markers；root regression and context/docs gates pass.<!-- verified: 2026-07-16 method=handoff-regression evidence="backend/frontend regeneration BDD owner checks complete; make test Python 584/4583 subtests, Go all packages, frontend 126/1026; context/docs/index PASS" -->

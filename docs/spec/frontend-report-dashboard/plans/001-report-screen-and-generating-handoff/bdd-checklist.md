@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.9
+> **版本**: 3.13
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -52,3 +52,20 @@
 - [x] Backend owner tests prove report-to-session authorization/binding, malformed locator no-read and hidden-404 semantics.
 - [x] Root `make test` is rerun after conflict resolution; P0.099 remains a separate real API/UI handoff and is not claimed by these code tests.
   <!-- verified: 2026-07-15 method=domain-behavior+root-regression evidence="code-owner behavior PASS; no real E2E run claimed" -->
+
+## Phase 14 `BDD.REPORT.REGENERATE.UI.001`
+
+- [x] Failed-only and old-ready/new-failed rows expose correctly bound regenerate/conversation actions；oversize exposes conversation only.
+- [x] Pending/double-click/unknown-outcome IK reuse/explicit-terminal new-key behavior is covered without duplicate POST.
+- [x] Matching queued response alone navigates to same-ID Generating；failed conversation exposes no Back while owner resolution is pending, then returns a trusted owner to target-scoped ReportsScreen or a resolved untrusted outcome to Workspace；target switch, malformed response and raw errors fail closed.
+- [x] Multi-tab `REPORT_INVALID_STATE_TRANSITION` / `REPORT_NOT_READY` refetches current TargetJob + overview and removes stale failed actions without guessing state.
+- [x] Root `make test` reruns after GREEN；real E2E remains a separate explicit handoff.
+  <!-- verified: 2026-07-16 evidence="root code regression PASS after owner-resolving Back race fix; scoped Chrome evidence remains separate from P0.099" -->
+- [x] Chrome extension automation skill verifies the current-run real local failed-row regenerate/conversation path；this manual evidence does not mark P0.099 PASS.
+
+## Phase 15 `BDD.REPORT.CONVERSATION.001` availability correction
+
+- [x] RED proves queued/generating progress currently suppresses the latest-attempt conversation action.
+- [x] queued/generating/latest-ready-different-current expose a distinct record action；same-ID ready deduplicates and both-null exposes none.
+- [x] zh/en visible and accessible labels remain localized and no report/session ID enters DOM text or attributes.
+- [x] Chrome extension automation verifies the real queued/generating record path without claiming a complete P0.099 run.

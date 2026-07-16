@@ -180,9 +180,11 @@ func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
 	mustContain(t, tsClient, "text = await response.text()")
 	mustContain(t, tsClient, "if (response.status === 204 || text.trim() === \"\")")
 	mustContain(t, tsClient, "async createPracticeVoiceTurn(sessionId: string, body: Types.CreatePracticeVoiceTurnRequest, opts?: RequestOptions): Promise<unknown>")
+	mustContain(t, tsClient, "async regenerateFeedbackReport(reportId: string, opts?: RequestOptions): Promise<Types.ReportWithJob>")
 
 	goServer := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/server.gen.go"))
-	mustContain(t, goServer, "// 37-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
+	mustContain(t, goServer, "// 38-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
+	mustContain(t, goServer, "RegenerateFeedbackReport(w http.ResponseWriter, r *http.Request, reportId string)")
 	mustNotContain(t, goServer, "// 35-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 	mustNotContain(t, goServer, "// 43-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 	mustNotContain(t, goServer, "// 59-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")

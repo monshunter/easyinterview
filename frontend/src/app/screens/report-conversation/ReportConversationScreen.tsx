@@ -7,6 +7,7 @@ import type { Route } from "../../routes";
 import { PracticeMessageBody } from "../practice/components/PracticeMessageBody";
 import { ReportContextStrip } from "../report/components/ReportContextStrip";
 import { isValidReportConversation } from "./conversationContract";
+import { useFailedConversationBackRoute } from "./hooks/useFailedConversationBackRoute";
 import { useReportConversation } from "./hooks/useReportConversation";
 
 interface ReportConversationScreenProps {
@@ -22,6 +23,10 @@ export const ReportConversationScreen: FC<ReportConversationScreenProps> = ({ ro
   const validConversation = isValidReportConversation(conversation.data, reportId)
     ? conversation.data
     : null;
+  const failedBackRoute = useFailedConversationBackRoute(
+    reportId,
+    validConversation?.reportStatus === "failed",
+  );
 
   if (conversation.state === "loading") {
     return <ReportConversationLoading onBack={() => navigate({ name: "workspace", params: {} })} />;
@@ -30,9 +35,13 @@ export const ReportConversationScreen: FC<ReportConversationScreenProps> = ({ ro
     return <ReportConversationUnavailable onBack={() => navigate({ name: "workspace", params: {} })} />;
   }
 
-  const backRoute = validConversation.reportStatus === "ready"
+  const backRoute: Route | null = validConversation.reportStatus === "ready"
     ? { name: "report" as const, params: { reportId } }
-    : { name: "generating" as const, params: { reportId } };
+    : validConversation.reportStatus === "failed"
+      ? failedBackRoute.status === "resolved"
+        ? failedBackRoute.route
+        : null
+      : { name: "generating" as const, params: { reportId } };
 
   return (
     <main
@@ -40,14 +49,16 @@ export const ReportConversationScreen: FC<ReportConversationScreenProps> = ({ ro
       className="ei-fadein"
       style={{ maxWidth: 880, margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}
     >
-      <button
-        data-testid="report-conversation-back-button"
-        type="button"
-        onClick={() => navigate(backRoute)}
-        style={{ border: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", cursor: "pointer", marginBottom: 20, padding: 0 }}
-      >
-        ← {t("report.conversation.back")}
-      </button>
+      {backRoute ? (
+        <button
+          data-testid="report-conversation-back-button"
+          type="button"
+          onClick={() => navigate(backRoute)}
+          style={{ border: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", cursor: "pointer", marginBottom: 20, padding: 0 }}
+        >
+          ← {t("report.conversation.back")}
+        </button>
+      ) : null}
 
       <header style={{ marginBottom: 24 }}>
         <div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 8 }}>

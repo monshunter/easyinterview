@@ -1,8 +1,8 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.40
+> **版本**: 1.41
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 ## 1 文档目的
 
@@ -166,7 +166,7 @@ workspace 统一详情标题下方首行动作行中的“面试报告”
   -> 独立 ReportsScreen 按当前 TargetJob canonical rounds 展示
      ├─ currentReport -> report?reportId=...
      ├─ latestAttempt queued/generating -> generating?reportId=...
-     ├─ latestAttempt failed -> 本地化失败状态，无同 report Retry
+     ├─ latestAttempt failed -> 普通失败提供同 report 重新生成 + 查看记录；超限失败只查看记录
      └─ 都为空 -> 该轮暂无报告
 ```
 
@@ -260,12 +260,13 @@ Resume
 7. Workspace detail 是首次导入 ready 后和既有规划回访的同一只读母版；不得另设第二个 ready 确认页面，详情页不提供“仅保存规划”。
 8. `/parse?targetJobId=...` 只保留新导入 queued/processing 的四步进度、当前步处理动画与面向用户的等待说明；ready 必须 replace 到 `/workspace?targetJobId=...`，既有 ready 卡片不得进入 Parse。内部 model/provider、rubric/prompt/version/hash、provenance、typical latency 不得出现在 prototype、formal DOM 或 desktop/mobile 截图中。
 9. Home JD intake 只接受粘贴文本；prototype、formal DOM、OpenAPI 请求与 desktop/mobile 截图不得出现平行 JD 导入控件、弹窗或 source discriminator。Resume 上传能力属于 Resume owner，必须继续保留。
-10. Workspace detail 标题下方首行动作行从左依次提供“立即面试”和“面试报告”，后者精确导航 `/reports?targetJobId=...`；两者 desktop 同排，mobile 同序响应式换行，均不进入 TopBar 或页尾。Parse ready 详情、内嵌列表、列表请求和 `section=reports` 兼容逻辑必须为零。独立 ReportsScreen 逐项覆盖当前 TargetJob canonical rounds；display 只来自当前 TargetJob，overview 只提供 `PracticeRoundRef/currentReport/latestAttempt`；ready 链接 report、queued/generating 链接 generating、failed 无 Retry，loading/empty/error/identity mismatch 完整 fail closed，且不展开历史版本。
+10. Workspace detail 标题下方首行动作行从左依次提供“立即面试”和“面试报告”，后者精确导航 `/reports?targetJobId=...`；两者 desktop 同排，mobile 同序响应式换行，均不进入 TopBar 或页尾。Parse ready 详情、内嵌列表、列表请求和 `section=reports` 兼容逻辑必须为零。独立 ReportsScreen 逐项覆盖当前 TargetJob canonical rounds；display 只来自当前 TargetJob，overview 只提供 `PracticeRoundRef/currentReport/latestAttempt`；ready 链接 report、queued/generating 链接 generating、普通 failed 提供同报告重新生成与查看记录、超限 failed 只查看记录；loading/empty/error/identity mismatch 完整 fail closed，且不展开历史版本。
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-16 | 1.41 | 普通失败报告提供同 report 重新生成与查看记录；超限失败只保留只读面试记录恢复入口。 |
 | 2026-07-15 | 1.40 | 将 selectable 简历锁定为 Workspace 及其报告后动作的强制上下文；历史缺绑规划视为异常并全链路 fail closed，不提供无简历降级。 |
 | 2026-07-15 | 1.39 | 删除 Workspace 详情独立 Interview Launch/绑定简历大卡片；标题旁新增绑定简历详情链接，并将立即面试与面试报告移到左对齐首行动作行。 |
 | 2026-07-14 | 1.38 | Workspace 详情轮次假设复用列表 rail 的 persisted progress，增加已进行/即将进行/未进行三种背景、边框、标签与状态属性。 |

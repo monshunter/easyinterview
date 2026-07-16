@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.24
+> **版本**: 1.28
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -11,7 +11,7 @@
 
 把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，承接 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 锁定的 `make dev-up` / `make dev-down` 根入口并接入真实实现，新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。1.15 revision 仅收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。1.17 revision 新增一键 `scenario-env-reset-redeploy` Make target，用于调试时按固定顺序清理数据、重跑迁移、重编译并重启 host-run backend/frontend、再执行环境 verify。1.18 revision 收敛 A1 根入口表述：A2 承接 repo-scaffold 已锁定的 `dev-up` / `dev-down` 入口，不再使用早期切换口径。1.19 revision 将 `.env.example` 描述收敛为空值示例 / 示例默认值，不改变 dev-stack env 合同。1.21 revision 在同一 Compose 中新增显式 `full-container` profile 与根 `dev-container-*` target，锁定 frontend/backend 默认对外端口 10800/10801、migration 前置和 Chrome 主流程部署验收，同时保留默认 host-run 模式。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。1.15 revision 仅收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。1.17 revision 新增一键 `scenario-env-reset-redeploy` Make target，用于调试时按固定顺序清理数据、重跑迁移、重编译并重启 host-run backend/frontend、再执行环境 verify。1.18 revision 收敛 A1 根入口表述：A2 承接 repo-scaffold 已锁定的 `dev-up` / `dev-down` 入口，不再使用早期切换口径。1.19 revision 将 `.env.example` 描述收敛为空值示例 / 示例默认值，不改变 dev-stack env 合同。1.21 revision 在同一 Compose 中新增显式 `full-container` profile 与根 `dev-container-*` target，锁定 frontend/backend 当时的默认对外端口 10800/10801、migration 前置和 Chrome 主流程部署验收，同时保留默认 host-run 模式。1.25 revision 用独立 raw I/O NDJSON 替代 stderr raw-output，并让 host-run/full-container app role 在切换与 verify 时保持互斥。1.26 revision 修复 host-run `all` 切换时 stopped full-container app record 在 backend build 前触发 dependency doctor 失败的问题。1.27 revision 将两种拓扑的宿主机入口统一为 frontend 10900 / backend 10901，并明确 Skill 只消费配置解析后的 endpoint，不持有端口真理源。1.28 revision 让 host-run Mailpit SMTP endpoint 跟随 Compose 有效 host mapping，并在 backend 启动前拒绝不一致配置。
 
 ## 2 背景
 
@@ -264,20 +264,20 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - Skill contract：focused pytest 断言 `scenario-env` / `scenario-redeploy` skill 使用顶层 env scripts，并支持 redeploy/rebuild 意图。
 - Live gate：执行 `test/scenarios/env-setup.sh`、`test/scenarios/env-verify.sh`、`test/scenarios/env-cleanup.sh`，证明环境可独立启动/验证/清理；若 Docker/端口/镜像阻塞，记录具体 blocker，不用具体场景 runner 代替。
 
-### Phase 7: local raw output debug default revision
+### Phase 7: historical local raw debug default (superseded by Phase 15)
 
 #### 7.1 dev/test config defaults
 
-`config/dev.yaml` 与 `config/test.yaml` 必须默认 `ai.debugPrintRawOutput=true`；`config/config.yaml` 与 staging/prod overrides 不得把该默认扩大到非本地环境。根 `.env.example` 与 `deploy/dev-stack/.env.example` 必须将 `AI_DEBUG_PRINT_RAW_OUTPUT=true` 作为 local test/integration 默认值。
+Phase 7 当时建立的本地调试默认已由 Phase 15 的独立 raw I/O NDJSON 合同完整取代；当前配置、README 与 preflight 只接受 Phase 15 的 capture/path keys，不保留 stderr 输出实现或兼容入口。
 
 #### 7.2 真实 provider preflight
 
-真实 provider 手工/评估 preflight 必须从 `deploy/dev-stack/.env` 校验 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；缺失或非 true 时输出 `MANUAL_REQUIRED`，防止无法调试 raw output 时给出 false-green。该 preflight 不映射为 E2E 场景。
+真实 provider 手工/评估 preflight 的当前要求统一见 Phase 15：校验独立 capture/path、权限、realpath 与 evidence 隔离。该 preflight 不映射为 E2E 场景。
 
 #### 7.3 Phase 7 自检
 
-- Red/green config test：`go test ./backend/internal/platform/config -run TestRepoLocalConfigEnablesRawOutputDebugOnlyForLocalEnvironments -count=1`。
-- Red/green environment contract：验证真实 provider preflight 只读取 `deploy/dev-stack/.env`。
+- Red/green config test 与 environment contract 已由 Phase 15 的 raw capture owner tests 取代。
+- 真实 provider preflight 只读取 `deploy/dev-stack/.env`，不读取场景私有副本。
 - 真实 provider 调试不属于 local-dev-stack 完成 gate；环境只保证 secret/config 可被宿主机进程读取且缺失时 fail fast。
 
 ### Phase 8: developer debug handoff revision
@@ -421,9 +421,27 @@ Phase 13 交付时采用的单实例 MVP 边界由 Phase 14 取代。`dev-contai
 
 L2 remediation 追加 PID ownership gate：先用真实子进程 + 陈旧 pidfile RED test 证明旧实现会终止不属于 easyinterview 的进程；GREEN 在发送 TERM/KILL 前读取当前命令并匹配 backend `go run ./backend/cmd/api` 或 frontend `pnpm --filter @easyinterview/frontend dev`。PID 已复用、命令不匹配或无法读取时只清理 pidfile 并输出安全提示，不杀进程；不新增 daemon、lock service 或场景 E2E。
 
+### Phase 15: local AI raw I/O capture and single-runner guard
+
+先扩展 `scripts/lint/scenario_env_contract_test.py` 建立 RED：dev-stack env 必须声明新 capture/path keys且拒绝旧 stderr key；backend full-container 必须把 host `.test-output/local-dev` rw bind 到固定 container path；`env-redeploy.sh` 启动 host role 前停止并移除同一 Compose 对应 app container record，`all` 必须在 dependency doctor 前完成 backend/frontend role 切换；`env-verify.sh` 结合 repo PID、bounded process/listener inspection 与 container state 检测已登记或手工同 role 并存并非零退出。GREEN 同步 `.env.example`、README、Compose、scenario preflight/runtime scripts，预建/收紧 raw directory，保留依赖与命名卷，不杀无关进程。
+
+P0.099 真实 provider preflight 必须按与 backend 相同的 ConfigDir-parent anchor 解析 capture path，在 realpath 后要求其位于 evidence 目录外并拒绝 symlink/non-regular target；raw NDJSON 不读取、不复制进场景 evidence。BDD 不适用：这是开发调试与进程拓扑约束，替代 gate 为 focused scenario-env contract、shell syntax、dry-run/isolated process tests、config owner tests、Compose bind/permission assertions与人工冲突 verify。
+
+### Phase 16: unified config-owned local app ports
+
+将 host-run 与 `full-container` 的宿主机入口统一为 frontend `10900`、backend `10901`，以避开常见的 5173/8080 开发进程冲突；容器内部 backend/frontend 端口继续为 8080。端口真理源只在 A4 默认配置、`deploy/dev-stack/.env(.example)`、Compose 映射和 `local-dev-runtime.sh` fallback 中维护；`scenario-env` / `scenario-redeploy` Skill 不写死端口，只读取 README 并消费 lifecycle command 输出的 effective endpoint。
+
+BDD 不适用：该修订只改变本地环境默认配置，不新增产品用户行为。替代 gate 为 focused scenario-env/config contract、Compose config、shell syntax、frontend build、真实 `scenario-env-redeploy TARGET=all` + verify、backend runtime-config smoke，以及 Chrome 对 lifecycle 输出 frontend endpoint 的真实 UI 验收。
+
+### Phase 17: host Mailpit SMTP route fail-fast
+
+先以 `scripts/lint/scenario_env_contract_test.py` 建立 RED：当 provider 为 Mailpit、SMTP host 为 loopback 且 `EMAIL_SMTP_PORT` 与有效 `MAILPIT_SMTP_HOST_PORT` 不一致时，host-run backend 必须在进程启动前失败。GREEN 在 repo-owned `local-dev-runtime.sh` 中解析动态配置并执行 `assert_host_mailpit_smtp_route`；full-container 的内部 `mailpit-dev:1025` 与标准外部 SMTP endpoint 均保持原合同。LIVE 使用 override host mapping 发起 fresh email-code challenge，确认 Mailpit 收到新邮件且证据脱敏。
+
+BDD 不适用：这是本地启动配置的失败语义与真实依赖连通性修复，不新增产品用户流程。替代 gate 为 focused Python contract、shell syntax、真实 host-run backend redeploy 与 Mailpit live smoke；Skill 继续只调用 README/Make/shell 所定义的环境入口，不持有端口或邮件业务配置。
+
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-19 全部成立，证据贴入工作日志或当前 `.test-output/`。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-22 全部成立，证据贴入工作日志或当前 `.test-output/`；raw NDJSON 本身不进入 evidence。
 - 本 plan checklist 全部勾选；Phase 3 / Phase 4 的 `make dev-*` 自检命令日志贴入工作日志。
 - engineering-roadmap rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
 
@@ -437,8 +455,8 @@ L2 remediation 追加 PID ownership gate：先用真实子进程 + 陈旧 pidfil
 | 默认端口（5432 / 6379 / 9000 / 9001 / 项目组件端口）与开发者本机已运行的服务冲突 | C-2 已覆盖端口冲突报错路径；README 提示用 `.env` override `*_HOST_PORT` 字段，不修改容器内端口；本 plan 不实现 host port 自动避让 |
 | init 脚本中 MinIO bucket 创建在 image 升级后字段格式漂移 | 镜像 tag 锁定在 spec D-2；任何 major 升级走 spec 修订流程而非本 plan 静默 bump |
 | 未来组件没有 Dockerfile 或稳定 dev command，导致无法纳入 `make dev-up` | 默认不纳入 compose：对应组件先提供宿主机 dev command；只有确实需要 optional app service 时，组件 plan 才补齐 Dockerfile、健康检查与资源预算后声明受 `make dev-up` 覆盖 |
-| 全容器 frontend 把宿主机 API 地址固化进 bundle，端口 override 后请求失效 | production bundle 使用相对 `/api/v1`，由 frontend 容器代理到 Compose `backend-dev`；10801 只作为宿主机直连/诊断入口 |
-| `.env` 仍使用 localhost 依赖地址导致 backend 容器启动失败 | Compose 为 backend/migrations 显式注入容器网络地址；Mailpit 由 `dev-container-up` 自动切换到 `mailpit-dev:1025`，标准 SMTP 原样透传；host-run `.env` 值保持不变，避免两种模式互相污染 |
+| 全容器 frontend 把宿主机 API 地址固化进 bundle，端口 override 后请求失效 | production bundle 使用相对 `/api/v1`，由 frontend 容器代理到 Compose `backend-dev`；10901 只作为宿主机直连/诊断入口 |
+| `.env` 中 Mailpit host mapping 与 host-run SMTP endpoint 不一致导致投递失败 | host-run redeploy 在 backend 启动前校验 `EMAIL_SMTP_PORT == MAILPIT_SMTP_HOST_PORT`；full-container 仍自动使用内部 `mailpit-dev:1025`，标准 SMTP 原样透传且不应用本校验 |
 | host-run 与 full-container backend 同时消费 `email_dispatch` | `dev-container-up` 仍停止仓库 PID 文件管理的 host-run backend/frontend，避免本地并发 runner 干扰调试；即使存在多个 backend，delivery secret 也由同一 Redis store 跨实例读取 |
 | Redis 不可用导致 challenge 无法投递 | 复用现有 doctor set/get/del probe 与 backend startup ping fail closed；不通过另建 Redis service 绕过同一依赖故障 |
 | 陈旧 pidfile 中的 PID 已被无关进程复用 | TERM/KILL 前校验当前命令属于对应 repo-managed role；不匹配或无法证明归属时只清理 pidfile并保留进程 |
@@ -447,7 +465,11 @@ L2 remediation 追加 PID ownership gate：先用真实子进程 + 陈旧 pidfil
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-16 | 1.28 | Host-run Mailpit SMTP endpoint 跟随有效 Compose host mapping；不一致时 backend 启动前 fail fast，Skill 保持业务配置无关。 | Mailpit no-delivery investigation |
+| 2026-07-16 | 1.27 | Host-run/full-container 宿主机入口统一为 frontend 10900/backend 10901；Skill 改为只消费 effective endpoint。 | user port-conflict feedback |
+| 2026-07-16 | 1.26 | Host-run `all` 在 dependency doctor 前移除 stopped full-container app records，避免 build 前误报 DOWN。 | local environment startup failure |
 | 2026-07-16 | 1.24 | L2 remediation：停止 host-run runtime 前校验 PID 当前命令，拒绝终止 PID 已复用的无关进程。 | branch code review |
+| 2026-07-16 | 1.25 | 用独立 mode-0600 raw I/O NDJSON 取代 stderr raw-output，并增加 host/container 同 role 互斥与 verify fail-closed。 | report generation failure investigation |
 | 2026-07-16 | 1.23 | Redis sharing revision：backend-auth 复用现有 `redis-dev` / `REDIS_URL` 保存加密 delivery secret，取消邮件投递的单 backend 正确性前提。 | backend-auth/001 Phase 12 |
 | 2026-07-16 | 1.21 | Full-container revision：同一 Compose 增加 migrations/backend/frontend 可选 profile，新增 `dev-container-*` lifecycle，锁定 10800/10801 与 Chrome 主流程部署验收。 | user goal |
 | 2026-07-16 | 1.22 | Full-container 和 host-run 支持通过同一邮件变量切换 Mailpit / 标准 SMTP，不再硬编码 Mailpit endpoint。 | backend-auth production SMTP |

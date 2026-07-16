@@ -1,8 +1,8 @@
 # Grounded Conversation Report Test Checklist
 
-> **版本**: 2.26
+> **版本**: 2.28
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -16,6 +16,7 @@
 
 - [x] Wire、24/64、delimiter、focus/action and fail-closed table tests pass.
 - [x] Invocation-local initial+3、10s/20s/40s recorder、dynamic repair、cancellation and second-invocation reset tests pass.
+- [x] Every reachable validation code maps to a meaningful repair family；multi-family intent, trusted user-seq allowlist, unknown-code fail-closed and literal marker escaping tests pass.
 - [x] PostgreSQL lease-takeover tests preserve stale-worker zero report/outbox/audit/job side effects without a report-level retry counter.
 
 ## Eval and real UI separation
@@ -51,3 +52,13 @@
 - [x] Development uses focused tests for feedback; phase completion runs root `make test` for the complete backend/frontend unit regression.
 - [x] After Phase 12, root `make test` and contract/docs/context gates pass again before completion.
   <!-- verified: 2026-07-15 method=root-test+docs-context evidence="make test, make docs-check, both owner context validators, git diff --check PASS" -->
+- [x] After Phase 14, rerun root `make test`, build, docs/context/index and diff gates before restoring completed lifecycle.
+  <!-- verified: 2026-07-16 evidence="make test 584 Python/4583 subtests + Go all + frontend 126/1026; build/context/docs/index/diff PASS" -->
+
+## Failed report regeneration
+
+- [x] Handler/service/store RED covers same-ID success/replay and typed failure matrix.
+- [x] Atomic reset/job/audit and job-before-report lock-order tests pass.
+- [x] PostgreSQL concurrency/finalize-window tests prove one active job and no deadlock/duplicate generation.
+- [x] Focused owner tests and root `make test` pass with evidence recorded after GREEN.
+  <!-- verified: 2026-07-16 evidence="focused service/store/handler plus real PostgreSQL integration PASS; root regression PASS" -->

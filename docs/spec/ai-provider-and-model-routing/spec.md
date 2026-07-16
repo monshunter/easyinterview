@@ -1,6 +1,6 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.30
+> **版本**: 2.32
 > **状态**: active
 > **更新日期**: 2026-07-16
 
@@ -68,7 +68,7 @@
 | D-5 | Stub 触发条件 | 仅 `APP_ENV=test`、离线契约测试或显式 mock 场景允许走 stub；非测试本地 app run、未来 staging / prod 必须能通过 registry 解析真实 provider secret，缺失即 fail-fast | 单测稳定、可重放，同时防止本地运行或部署静默假数据 |
 | D-6 | Fallback 边界 | Fallback 由 AIClient 在 profile fallback chain 内集中执行，最多 2 跳；业务代码不得自行 retry-with-different-model；provider 自身返回的 fallback meta 也必须纳入同一 chain | 防止业务绕开 cost / rate limit / observability |
 | D-7 | 观测埋点强制 | A3 注册 7 个 metric family；每次调用必须产出 run / latency / token / cost 指标 + DB 行 + log；fallback / validation failure 指标只在对应事件发生时递增 | F1 dashboard 可信且 counter 语义正确 |
-| D-8 | 隐私字段红线 | log / metric / DB metadata 字段中绝不出现明文 prompt / response；只允许 hash / 长度 / profile | 与 ADR-Q5 / logging 标准对齐 |
+| D-8 | 隐私字段红线 | 普通 log / metric / DB metadata / audit 中绝不出现明文 prompt / response / tool arguments；只允许 hash / 长度 / profile 与 opaque call ID。本地 dev/test 明确开启的 mode-0600 raw recorder 是唯一受控例外，只写 provider-neutral `AIClient.Complete` request/response 到独立 ignored 文件 | 与 ADR-Q5 / logging 标准对齐，同时让本地失败可重放调查 |
 | D-9 | OpenAI-compatible API 协议子集 | 当前业务 chat 可执行 Chat Completions + chat streaming SSE + Audio Transcriptions + Chat tool-call wire 子集；provider-specific speech 由 `doubao_speech` / `minimax_speech` 独立实现；judge 通过 capability 隔离的 `judge_compatible` Complete-only adapter 执行，realtime 继续 fail-closed | 主流 chat provider 可即插即用，同时不把 speech / realtime / judge 伪装成同一业务 wire |
 | D-9a | 当前开发 provider / model | 当前开发主力 provider ref 为 `deepseek`；chat profile 的 model ID 集合固定为 `deepseek-v4-flash` / `deepseek-v4-pro`，其他 alias 由配置 lint 拒绝 | 本地开发与未来部署前的 AI 调用口径稳定且可审计 |
 | D-9b | OpenAI-compatible SDK 边界 | `openai_compatible` / `judge_compatible` adapter 内部固定使用 `openai-go/v3 v3.43.0` 的 Chat Completions、streaming 与 Audio Transcriptions client；自定义 base URL、注入 HTTP client、同 provider retry 和兼容扩展字段均封装在 adapter 内。业务包、AIClient 接口、profile、meta、schema validator 与跨 provider fallback 不 import 或暴露 SDK 类型 | 删除自维护通用 OpenAI wire，同时保留 provider-neutral 业务边界、DeepSeek `thinking`、响应上限、错误映射、隐私和可测试性 |
@@ -81,6 +81,7 @@
 | D-15a | Active profile minimum output budget | 六个 active profile `judge.default`、`practice.chat.default`、`report.generate.default`、`resume.parse.default`、`resume.tailor.default`、`target.import.default` 的 `max_tokens` 均不得低于 16,384；typed code defaults 当前使用 16,384。 | canonical coverage lint 只锁定 active 集合与 16K floor；profile loader owner package 保留一处 default / override / invalid 契约，不在 composition、domain 或 scenario 层复制配置传播测试。 |
 | D-16 | Report generation profile contract | `report.generate.default` 保持 `capability=chat`、1M context default、至少 16K output budget 与 `thinking=disabled`；`response_format` 仍只由调用 payload 的 object `output_schema` 驱动。profile loader 对缺失字段使用 typed code default，显式非法值 fail-closed。 | 配置合法性由 loader owner 契约与 active-budget floor lint 承接；bytes 与 tokens 不直接相加，不设离线容量公式或真实 provider 配置 gate。四个 provider adapter 的 response body 统一由 A4 `ai.maxResponseBodyBytes` 注入。 |
 | D-17 | Context-aware judge final-content contract | `judge.default` 使用 judge capability、至少 16K output budget、non-thinking JSON wire 与 fail-closed 空 final-content 处理。 | adapter contract test 验证 wire 和 reasoning-only/empty final failure，只保留脱敏 finish/token/presence 元数据，不以 exact profile coordinate 或真实 provider smoke 作为完成 gate。 |
+| D-18 | Local Complete raw capture correlation | 每次 `Complete` 在 provider 调用前获得 UUIDv7 `callId`；若业务未提供 TaskRun ID，则 client 补齐该 ID，并让 `callId == ai_task_runs.id`。NDJSON request/response 使用同一 ID，跨进程重启仍不碰撞 | 从 failed report resourceId 查询 task run 后可确定性定位 raw pair，无需按时间或正文猜测；raw 行本身不写 user/resource identity |
 
 ### 3.2 待确认事项
 
@@ -115,8 +116,13 @@
 ### 4.3 观测与隐私约束
 
 - 每次调用产生的 log（事件名 `ai.task.completed` / `ai.task.failed` / `ai.task.fallback` / `ai.output.validation_failed`）必须遵守 AI Log 字段集；明文红线见 §1 目标 5。
-- DB `ai_task_runs.metadata` 仅允许写入摘要字段（hash / 长度 / profile / provider ref / capability）；原始响应如需保存必须落对象存储并由业务隐私策略覆盖，不能写 PG metadata。
+- DB `ai_task_runs.metadata` 仅允许写入摘要字段（hash / 长度 / profile / provider ref / capability）；通用运行时若需长期保存 provider wire 原始响应，必须由对象存储与业务隐私策略另行承接，不能写 PG metadata。本地 dev/test 明确授权的短期 raw recorder 是独立诊断例外，不进入对象存储或 PG。
 - `audit_events.action='ai.call'` 必须由 client 内部写入，业务代码不得跳过。
+- 本地 dev/test 可通过 `AI_DEBUG_CAPTURE_RAW_IO=true` 在 `AIClient.Complete` 边界写入独立 append-only NDJSON；默认路径为 `.test-output/local-dev/ai-raw.ndjson`。相对路径以已解析 `ConfigDir` 的父目录（应用配置根）为锚点，不以任意进程 cwd 猜测。它记录 provider-neutral request 与 response 逻辑对象，不代表 SDK 最终 HTTP 字节流或 provider wire body。
+- 每行固定 `recordVersion=ai.complete.raw.v1`、`type=ai.complete.request|ai.complete.response`、UUIDv7 `callId`、UTC `capturedAt`、`profileName` 与方向对应 payload。request 必须在 provider 调用前落盘，response 在 schema validation/meta enrichment 后落盘；二者 `callId == ai_task_runs.id`，进程崩溃可只留下 request。
+- recorder 由进程只创建一次并由所有 Complete wrappers 共享；解析后的绝对路径必须逐组件 `Lstat` 拒绝 symlink，target 只能是 regular file；dedicated parent/target 统一收紧为 `0700/0600`（包括既有 0644 文件），打开失败 fail-fast。运行期单条写失败只产生不含正文、路径或 error 原文的安全事件，不改变业务 AI outcome。
+- request 完整记录 provider-neutral messages/tools/toolChoice/outputSchema 与 allowlisted routing coordinates（temperature/top_p/thinking/max_tokens），包括 message content 和 tool schema；response 完整记录 provider-neutral content/tool call arguments/finish reason、bounded meta、validation status 与稳定错误码。不得记录 headers、Authorization、API key、Cookie、provider URL、Go error 原文、reasoning content、TaskRun user/resource identity、STT/TTS 文本或音频。
+- raw NDJSON 不进入 structured logger、stderr、PostgreSQL、audit、task-run、object storage、runtime-config 或场景 evidence；staging/prod 即使通过 env 强制开启也必须拒绝启动。旧 `AI_DEBUG_PRINT_RAW_OUTPUT` 不保留 alias。
 
 ### 4.4 测试约束
 
@@ -127,7 +133,7 @@
 - 六个 active profile 的 `max_tokens` 不得低于 16,384；canonical coverage lint 只锁定 active 集合与 floor。纯配置测试只在 profile loader owner package 保留一组 default / override / invalid 表驱动契约，不在 bootstrap、domain、frontend 或 scenario 层复制同值传播断言。
 - `report.generate.default` 必须显式使用 `thinking=disabled`，1M context 与 16K output 使用 typed default；不通过 bytes+tokens 算术、默认尺寸材料、exact-profile lint 或真实 provider smoke 证明配置容量。四个 provider adapter 的 response body cap 必须消费 A4 注入，禁止 adapter-local hardcode。
 - `judge.default` 的 adapter request contract test 必须证明 non-thinking + JSON object wire；reasoning-only / empty-content 响应只返回脱敏 finish/token/presence 元数据并以 `AI_OUTPUT_INVALID` fail-closed。不要求真实 provider smoke 作为完成条件。
-- SDK import boundary test 必须证明 `openai-go/v3` 只存在于 A3 provider adapter/internal helper，且请求/响应日志、错误包装与 debug hook 不泄漏 API key、prompt、response、audio、tool arguments 或 reasoning content。
+- SDK import boundary test 必须证明 `openai-go/v3` 只存在于 A3 provider adapter/internal helper，且普通请求/响应日志、错误包装与 debug hook 不泄漏 API key、prompt、response、audio、tool arguments 或 reasoning content；只有 §4.3 明确授权且安全打开的 local raw recorder 可以在独立文件中保留 Complete 明文。
 
 ### 4.5 Product/UI AI Capability Catalog
 
@@ -185,13 +191,14 @@
 | C-19 | Active profile budgets and response cap | canonical catalog 包含六个 active profile | 运行 coverage floor lint、一处 loader default/override/invalid contract与 shared bounded-reader tests | 六个 active profile `max_tokens >= 16,384`；report 1M context 与 16K output 使用 typed default；不做 bytes+tokens 公式、exact-profile lint 或真实 provider配置 gate；四 adapter 共享注入 response cap | 003 Phase 11 + A4 Phase 13 |
 | C-20 | Judge final-content reliability | context-aware judge 需要 strict JSON | 运行 adapter request/response contract tests | 请求关闭 thinking 并要求 JSON object；reasoning-only/length/empty final fail-closed 且不泄漏 CoT | 003 + F3/004 |
 | C-21 | Official SDK transport boundary | OpenAI-compatible chat/judge/STT provider 使用自定义 base URL 与注入 HTTP client | 运行 adapter contract、SDK import boundary 与隐私测试 | Complete/Stream/Transcribe/tools/JSON/DeepSeek thinking/header/meta/error/timeout/response-cap 合同保持；同 provider retry 最多 2 次，跨 provider fallback 仍归 AIClient；`openai-go/v3` 不越过 provider adapter/internal helper | 001 Phase 15 |
+| C-22 | Local raw Complete I/O capture | dev/test 开启 capture，或 staging/prod 尝试强制开启 | 并发调用 Complete、schema invalid/provider failure、进程重启 append，并从 failed report 查询 `ai_task_runs` | `ai.complete.raw.v1` request/response 可按 UUIDv7 `callId == ai_task_runs.id` 确定性配对；崩溃中途至少保留 request；相对路径锚点一致、realpath/symlink/non-regular gate、0700/0600 收紧、append/并发无交错；recorder 不新增 header/credential/audio/reasoning/resource-identity 字段，普通日志/DB/evidence 仍无正文；runtime write failure 通过进程结构化 logger 发出稳定、无 path/error/raw content 的 WARN，并且不改变 AI 业务结果；privacy gate 解析字段结构而不误扫被授权保留的用户内容；生产强制开启 fail-fast | 001 Phase 16 + A4/A2 |
 | C-18 | Barge-in committed context | AI TTS 正在播放且用户插话 | 前端发出 barge-in / played chunk 事件 | 后端只把已完整播放 chunk 的 assistant 文本写入 committed context；未播放 draft 不进入下一轮 prompt；event log 可追溯 interrupted 状态 | practice-voice-mvp |
 
 ## 7 关联计划
 
 A3 当前计划已完成 foundation transport migration 与 capability/speech foundation：
 
-- [001-aiclient-and-profile-bootstrap](./plans/001-aiclient-and-profile-bootstrap/plan.md)（completed）：在既有 `AIClient`、profile、fallback、meta、observability 与 privacy 合同不变的前提下，以官方 `openai-go/v3` 替换 `openai_compatible` / `judge_compatible` 自维护通用 wire。
+- [001-aiclient-and-profile-bootstrap](./plans/001-aiclient-and-profile-bootstrap/plan.md)（completed）：Phase 16 以独立安全 NDJSON 捕获 Complete 原始请求/响应，替换旧 stderr response-only debug；既有 SDK transport 与 provider-neutral public contract 不变。
 - [002-tools-streaming-and-stt](./plans/002-tools-streaming-and-stt/plan.md)（completed）：已落地 Tools payload 扩展、provider-side streaming consumer 与 STT Audio Transcriptions 底座；realtime multimodal 仍保持 fail-closed。
 - [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（completed）：已完成 provider registry、capability profile、DeepSeek V4 Flash/Pro、typed defaults、thinking 与 shared response-cap 合同。
 - [004-cascaded-speech-provider-foundation](./plans/004-cascaded-speech-provider-foundation/plan.md)（completed）：已完成 `stt -> chat -> tts` provider-specific speech foundation；realtime S2S 继续 fail-closed。

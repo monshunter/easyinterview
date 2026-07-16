@@ -1,8 +1,8 @@
 # Shared Conventions Bootstrap Checklist
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -75,3 +75,10 @@
 - [x] 10.3 BDD-N/A-GATE: run conventions lint, focused generator/Go/TS tests, two-pass codegen idempotency, OpenAPI parity handoff and owner context validation as the internal-contract substitute gate.
   <!-- verified: 2026-07-13 commands="make lint-conventions; focused Go/TS parity; two-pass conventions codegen; isolated-index make codegen-check; validate_context shared-conventions/backend" result="PASS; generated hashes stable; OpenAPI B1 parity and 21-code inventory pass" -->
 - [ ] 10.4 ZERO-REF: exact searches find neither removed literal in current YAML/generated/OpenAPI/runtime consumers, while positive probes still find all four retained canonical codes.
+
+## Phase 11: failed report regeneration state vocabulary
+
+- [x] 11.1 RED: owner tests require exact non-retryable `REPORT_INVALID_STATE_TRANSITION` and retain retryable `REPORT_NOT_READY`.
+  <!-- verified: 2026-07-16 method=focused-red evidence="conventions YAML owner test failed because removing REPORT_INVALID_STATE_TRANSITION still produced no validation error" -->
+- [ ] 11.2 GREEN: update `shared/conventions.yaml`, regenerate Go/TS artifacts and parity fixtures, and prove two-pass codegen idempotency.
+- [ ] 11.3 BDD-N/A-GATE: conventions lint, focused parity tests, B2 enum handoff and owner context validation pass.

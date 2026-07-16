@@ -8,7 +8,7 @@
 
 app:
   env: dev
-  listenAddr: ":8080"
+  listenAddr: ":10901"
 
 runtime:
   appVersion: "0.0.0-dev"
@@ -71,7 +71,7 @@ email:
   smtpPassword: ""
   smtpTLSMode: "none"
   fromAddress: "noreply@easyinterview.local"
-  verifyBaseURL: "http://127.0.0.1:5173/auth/verify"
+  verifyBaseURL: "http://127.0.0.1:10900/auth/verify"
 
 ai:
   providerRegistryPath: "config/ai-providers.yaml"
@@ -79,7 +79,8 @@ ai:
   defaultProviderApiKey: ""
   modelProfilePath: "config/ai-profiles.yaml"
   maxResponseBodyBytes: 4194304
-  debugPrintRawOutput: false
+  debugCaptureRawIO: false
+  debugRawIOPath: ".test-output/local-dev/ai-raw.ndjson"
 
 featureFlag:
   source: file

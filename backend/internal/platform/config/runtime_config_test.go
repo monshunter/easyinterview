@@ -224,6 +224,36 @@ func TestRuntimeConfigHandlerReturnsAllowlistJSON(t *testing.T) {
 	}
 }
 
+func TestRuntimeConfigNeverProjectsLocalAIRawCaptureControls(t *testing.T) {
+	dir := t.TempDir()
+	rawPath := filepath.Join(dir, "private", "ai-raw.ndjson")
+	writeYAML(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  debugCaptureRawIO: true
+  debugRawIOPath: "`+rawPath+`"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	runtimeConfig := config.BuildRuntimeConfig(context.Background(), config.RuntimeConfigInput{
+		Loader: loader,
+		Flags:  stubFlags{snapshot: map[string]featureflag.FlagDecision{}},
+	})
+	body, err := json.Marshal(runtimeConfig)
+	if err != nil {
+		t.Fatalf("marshal runtime config: %v", err)
+	}
+	for _, forbidden := range []string{"debugCaptureRawIO", "debugRawIOPath", "AI_DEBUG_CAPTURE_RAW_IO", "AI_DEBUG_RAW_IO_PATH", rawPath, "ai-raw.ndjson"} {
+		if contains(string(body), forbidden) {
+			t.Errorf("runtime-config leaked raw capture control %q: %s", forbidden, body)
+		}
+	}
+}
+
 func contains(haystack, needle string) bool {
 	if needle == "" {
 		return true

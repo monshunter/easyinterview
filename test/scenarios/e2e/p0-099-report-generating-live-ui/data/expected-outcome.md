@@ -12,8 +12,9 @@
 - Setup, session, report, and capture microsecond timestamps prove
   `setup_at < session_created_at <= report_created_at <= captured_at` for all
   three report resources.
-- The active backend has raw debug disabled and emits no current-run
-  `AI_RAW_OUTPUT_DEBUG_BEGIN` / `AI_RAW_OUTPUT_DEBUG_END` marker.
+- The active backend has local raw I/O capture enabled at a resolved path
+  outside current-run evidence; neither backend logs nor scenario artifacts
+  contain captured request/response content.
 - Ready screenshots show one four-peer target/round/frozen-resume/interview-record
   Context Strip, a visible frozen-resume copy link, responsive detail-pair
   alignment (desktop equal-height rows with internal whitespace; mobile

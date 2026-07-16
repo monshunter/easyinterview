@@ -44,6 +44,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0182](./BUG-0182.md) | report retries repeatedly selected a terminal assistant message as evidence | high | resolved | 2026-07-16 | `fix(report): harden regeneration and local diagnostics (BUG-0182, BUG-0183)` |
 | [BUG-0173](./BUG-0173.md) | malformed report conversation ID reached the UUID database query | medium | resolved | 2026-07-15 | `feat(report): integrate readonly conversation record (BUG-0173, BUG-0174)` |
 | [BUG-0171](./BUG-0171.md) | report generation rejected valid context at a stale hardcoded byte limit | high | resolved | 2026-07-14 | `fix(runtime): centralize content size limits (BUG-0171)` |
 | [BUG-0166](./BUG-0166.md) | unpaired report prompt example leaked unsupported facts into live output | high | resolved | 2026-07-13 | `fix(report): ground report semantics and reliability (BUG-0164, BUG-0165, BUG-0166)` |
@@ -142,6 +143,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0183](./BUG-0183.md) | host-run SMTP port drift left the local Mailpit mailbox empty | medium | resolved | 2026-07-16 | `fix(report): harden regeneration and local diagnostics (BUG-0182, BUG-0183)` |
 | [BUG-0180](./BUG-0180.md) | production email review exposed delivery lifecycle and PID ownership gaps | high | resolved | 2026-07-16 | `fix(platform): harden smtp lifecycle and pid ownership (BUG-0180)` |
 | [BUG-0178](./BUG-0178.md) | host-run backend claimed full-container email jobs without the delivery secret | medium | resolved | 2026-07-16 | `feat(auth): add production smtp delivery (BUG-0178)` |
 | [BUG-0155](./BUG-0155.md) | change-intake overcounted generic terms and ignored exact scenario owners | medium | resolved | 2026-07-10 | `fix(change-intake): prioritize exact owner evidence (BUG-0155)` |

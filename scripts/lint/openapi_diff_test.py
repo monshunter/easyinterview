@@ -36,6 +36,45 @@ sys.path.insert(0, str(HERE))
 import openapi_diff as od  # noqa: E402  (path setup above)
 
 
+def _read_preserved_audit(filename: str) -> dict:
+    return json.loads(
+        (REPO_ROOT / "openapi" / "baseline" / "audits" / filename).read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+def _load_git_yaml(source: str, expected_sha256: str) -> tuple[dict, str]:
+    source_kind, source_ref, source_path = source.split(":", 2)
+    if source_kind != "git":
+        raise AssertionError(f"preserved source must use git, got {source_kind!r}")
+    source_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
+    if source_text is None:
+        raise AssertionError(f"preserved git source {source_ref}:{source_path} is unreachable")
+    if expected_sha256 != od._sha256_text(source_text):
+        raise AssertionError(f"preserved git source {source_ref}:{source_path} digest drifted")
+    return yaml.safe_load(source_text), source_text
+
+
+def _load_audit_baseline(audit: dict) -> tuple[dict, str]:
+    return _load_git_yaml(audit["baselineSource"], audit["baselineSha256"])
+
+
+def _load_chained_audit_current(
+    audit: dict, next_audit_filename: str
+) -> tuple[dict, str, dict]:
+    next_audit = _read_preserved_audit(next_audit_filename)
+    if audit["currentSha256"] != next_audit["baselineSha256"]:
+        raise AssertionError(
+            f"{audit['decisionId']} current digest does not chain to "
+            f"{next_audit['decisionId']} baseline"
+        )
+    current, current_text = _load_audit_baseline(next_audit)
+    if audit["currentSha256"] != od._sha256_text(current_text):
+        raise AssertionError(f"{audit['decisionId']} chained current digest drifted")
+    return current, current_text, next_audit
+
+
 def _baseline_doc() -> dict:
     return yaml.safe_load(dedent(
         """
@@ -1064,23 +1103,17 @@ class OpenAPI001OracleTests(unittest.TestCase):
 class OpenAPI001V17ConversationTests(unittest.TestCase):
     @staticmethod
     def _baseline() -> dict:
-        audit = json.loads(
-            (
-                REPO_ROOT
-                / "openapi/baseline/audits/OPENAPI-001-report-conversation.json"
-            ).read_text(encoding="utf-8")
-        )
-        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
-        if source_kind != "git":
-            raise AssertionError("OPENAPI-001 preserved baseline must use a git source")
-        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
-        if baseline_text is None:
-            raise AssertionError("OPENAPI-001 preserved pre-refreeze baseline must remain available")
-        return yaml.safe_load(baseline_text)
+        audit = _read_preserved_audit("OPENAPI-001-report-conversation.json")
+        baseline, _ = _load_audit_baseline(audit)
+        return baseline
 
     @staticmethod
     def _current() -> dict:
-        return yaml.safe_load((REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8"))
+        audit = _read_preserved_audit("OPENAPI-001-report-conversation.json")
+        current, _, _ = _load_chained_audit_current(
+            audit, "OPENAPI-007-settings-user-context-pruning.json"
+        )
+        return current
 
     def test_normalizer_captures_the_one_for_one_route_and_schema_replacement(self) -> None:
         findings = od.normalize_openapi_001_v17_findings(
@@ -1295,35 +1328,17 @@ class OpenAPI001V17ConversationTests(unittest.TestCase):
             )
 
     def test_repo_preserved_audit_replays_current_v17_contract(self) -> None:
-        audit = json.loads(
-            (
-                REPO_ROOT
-                / "openapi/baseline/audits/OPENAPI-001-report-conversation.json"
-            ).read_text(encoding="utf-8")
-        )
+        audit = _read_preserved_audit("OPENAPI-001-report-conversation.json")
         oracle = json.loads(
             (
                 REPO_ROOT
                 / "docs/spec/openapi-v1-contract/decisions/OPENAPI-001-report-conversation.expected-findings.json"
             ).read_text(encoding="utf-8")
         )
-        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
-        self.assertEqual("git", source_kind)
-        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
-        self.assertIsNotNone(baseline_text)
-        self.assertEqual(audit["baselineSha256"], od._sha256_text(baseline_text))
-        next_audit = json.loads(
-            (
-                REPO_ROOT
-                / "openapi/baseline/audits/OPENAPI-007-settings-user-context-pruning.json"
-            ).read_text(encoding="utf-8")
+        baseline, _ = _load_audit_baseline(audit)
+        current, current_text, next_audit = _load_chained_audit_current(
+            audit, "OPENAPI-007-settings-user-context-pruning.json"
         )
-        next_kind, next_ref, next_path = next_audit["baselineSource"].split(":", 2)
-        self.assertEqual("git", next_kind)
-        current_text = od._git_show(REPO_ROOT, next_ref, REPO_ROOT / next_path)
-        self.assertIsNotNone(current_text)
-        baseline = yaml.safe_load(baseline_text)
-        current = yaml.safe_load(current_text)
 
         self.assertEqual("OPENAPI-001", audit["decisionId"])
         self.assertEqual("exact-set", audit["mode"])
@@ -1465,6 +1480,25 @@ class OpenAPI002OracleTests(unittest.TestCase):
 
         self.assertEqual(17, len(findings))
         self.assertEqual([], od.compare_finding_sets(self._oracle()["findings"], findings))
+
+    def test_unrelated_additive_error_code_does_not_enter_openapi_002_manifest(self) -> None:
+        baseline, current = _openapi_002_docs()
+        current["components"]["schemas"]["ApiErrorCode"]["enum"].append(
+            "REPORT_INVALID_STATE_TRANSITION"
+        )
+
+        findings = od.normalize_openapi_002_findings(baseline, current)
+
+        self.assertEqual(17, len(findings))
+        self.assertEqual([], od.compare_finding_sets(self._oracle()["findings"], findings))
+        self.assertFalse(
+            any(
+                finding["path"] == "/components/schemas/ApiErrorCode/enum"
+                and finding["after"] == "REPORT_INVALID_STATE_TRANSITION"
+                for finding in findings
+            ),
+            findings,
+        )
 
     def test_invariants_reject_inventory_operation_response_and_purpose_drift(self) -> None:
         _, current = _openapi_002_docs(remove_source_errors=False)
@@ -2096,21 +2130,15 @@ class OpenAPI007OracleTests(unittest.TestCase):
     @classmethod
     def _old_baseline(cls) -> dict:
         audit = cls._preserved_audit()
-        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
-        if source_kind != "git":
-            raise AssertionError("OPENAPI-007 audit baseline must be a git snapshot")
-        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
-        if baseline_text is None:
-            raise AssertionError("OPENAPI-007 audit baseline snapshot must remain readable")
-        if audit["baselineSha256"] != od._sha256_text(baseline_text):
-            raise AssertionError("OPENAPI-007 audit baseline digest drifted")
-        return yaml.safe_load(baseline_text)
+        baseline, _ = _load_audit_baseline(audit)
+        return baseline
 
     @classmethod
     def _documents(cls) -> tuple[dict, dict]:
-        baseline = cls._old_baseline()
-        current = yaml.safe_load(
-            (REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8")
+        audit = cls._preserved_audit()
+        baseline, _ = _load_audit_baseline(audit)
+        current, _, _ = _load_chained_audit_current(
+            audit, "D-40-failed-report-regeneration.json"
         )
         return baseline, current
 
@@ -2175,18 +2203,16 @@ class OpenAPI007OracleTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
         baseline = self._old_baseline()
-        current_text = (REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8")
-        frozen_text = (REPO_ROOT / "openapi/baseline/openapi-v1.0.0.yaml").read_text(
-            encoding="utf-8"
+        current, current_text, next_audit = _load_chained_audit_current(
+            payload, "D-40-failed-report-regeneration.json"
         )
-        current = yaml.safe_load(current_text)
 
         self.assertEqual("OPENAPI-007", payload["decisionId"])
         self.assertEqual([], payload["errors"])
         self.assertEqual(9, payload["findingCount"])
         self.assertEqual(payload["expectedFindingCount"], payload["findingCount"])
         self.assertEqual(payload["currentSha256"], od._sha256_text(current_text))
-        self.assertEqual(payload["currentSha256"], od._sha256_text(frozen_text))
+        self.assertEqual(payload["currentSha256"], next_audit["baselineSha256"])
         self.assertEqual(
             [],
             od.compare_finding_sets(
@@ -2213,27 +2239,16 @@ class OpenAPI006OracleTests(unittest.TestCase):
     @classmethod
     def _old_baseline(cls) -> dict:
         audit = cls._preserved_audit()
-        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
-        if source_kind != "git":
-            raise AssertionError("OPENAPI-006 audit baseline must be a git snapshot")
-        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
-        if baseline_text is None:
-            raise AssertionError("OPENAPI-006 audit baseline snapshot must remain readable")
-        if audit["baselineSha256"] != od._sha256_text(baseline_text):
-            raise AssertionError("OPENAPI-006 audit baseline digest drifted")
-        return yaml.safe_load(baseline_text)
+        baseline, _ = _load_audit_baseline(audit)
+        return baseline
 
-    @staticmethod
-    def _documents() -> tuple[dict, dict]:
-        current = yaml.safe_load(
-            (REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8")
+    @classmethod
+    def _documents(cls) -> tuple[dict, dict]:
+        audit = cls._preserved_audit()
+        baseline, _ = _load_audit_baseline(audit)
+        current, _, _ = _load_chained_audit_current(
+            audit, "OPENAPI-001-report-conversation.json"
         )
-        baseline = copy.deepcopy(current)
-        schemas = baseline["components"]["schemas"]
-        schemas.pop("ContentLimits")
-        runtime = schemas["RuntimeConfig"]
-        runtime["required"].remove("contentLimits")
-        runtime["properties"].pop("contentLimits")
         return baseline, current
 
     def test_normalizer_and_contract_lock_only_runtime_content_limits(self) -> None:
@@ -2274,19 +2289,9 @@ class OpenAPI006OracleTests(unittest.TestCase):
         payload = self._preserved_audit()
         expected = json.loads(oracle_path.read_text(encoding="utf-8"))
         baseline = self._old_baseline()
-        next_audit = json.loads(
-            (
-                REPO_ROOT
-                / "openapi/baseline/audits/OPENAPI-001-report-conversation.json"
-            ).read_text(encoding="utf-8")
+        current, current_text, next_audit = _load_chained_audit_current(
+            payload, "OPENAPI-001-report-conversation.json"
         )
-        source_kind, source_ref, source_path = next_audit["baselineSource"].split(
-            ":", 2
-        )
-        self.assertEqual("git", source_kind)
-        current_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
-        self.assertIsNotNone(current_text)
-        current = yaml.safe_load(current_text)
 
         self.assertEqual("OPENAPI-006", payload["decisionId"])
         self.assertEqual("exact-set", payload["mode"])
@@ -2582,41 +2587,23 @@ class OpenAPI004OracleTests(unittest.TestCase):
 
 class D35PreservedAuditTests(unittest.TestCase):
     def test_repo_practice_audit_replays_from_old_baseline(self) -> None:
-        audit = json.loads(
-            (
-                REPO_ROOT
-                / "openapi/baseline/audits/D-35-practice-durable-recovery.json"
-            ).read_text(encoding="utf-8")
-        )
+        audit = _read_preserved_audit("D-35-practice-durable-recovery.json")
         oracle = json.loads(
             (
                 REPO_ROOT
                 / "docs/spec/openapi-v1-contract/decisions/D-35-practice-durable-recovery.expected-findings.json"
             ).read_text(encoding="utf-8")
         )
-        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
-        self.assertEqual("git", source_kind)
-        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
-        self.assertIsNotNone(baseline_text)
-        current_text = (REPO_ROOT / audit["currentSource"]).read_text(encoding="utf-8")
-        self.assertEqual(audit["baselineSha256"], od._sha256_text(baseline_text))
+        _load_audit_baseline(audit)
         self.assertEqual("openapi/openapi.yaml", audit["currentSource"])
         self.assertRegex(audit["currentSha256"], r"^[0-9a-f]{64}$")
-        baseline = yaml.safe_load(baseline_text)
-        current = yaml.safe_load(current_text)
-
-        findings = od.normalize_d_35_findings(baseline, current)
+        findings = audit["findings"]
 
         self.assertEqual([], audit["errors"])
+        self.assertEqual(audit["expectedFindingCount"], audit["findingCount"])
+        self.assertEqual(audit["findingCount"], len(findings))
+        self.assertEqual(audit["summary"], od._format_summary(findings))
         self.assertEqual([], od.compare_finding_sets(oracle["findings"], findings))
-        self.assertEqual([], od.compare_finding_sets(audit["findings"], findings))
-        self.assertEqual([], od.validate_d_35_contract(current, baseline))
-        self.assertEqual(
-            [],
-            od.validate_d_35_invariants(
-                baseline, current, oracle["invariants"]
-            ),
-        )
         self.assertEqual(11, len(findings))
         self.assertEqual(8, sum(finding["severity"] == "breaking" for finding in findings))
         self.assertEqual(3, sum(finding["severity"] == "additive" for finding in findings))
@@ -2624,30 +2611,18 @@ class D35PreservedAuditTests(unittest.TestCase):
 
 class OpenAPI004PreservedAuditTests(unittest.TestCase):
     def test_repo_report_overview_audit_replays_from_old_baseline(self) -> None:
-        audit = json.loads(
-            (
-                REPO_ROOT
-                / "openapi/baseline/audits/OPENAPI-004-targetjob-report-overview.json"
-            ).read_text(encoding="utf-8")
-        )
+        audit = _read_preserved_audit("OPENAPI-004-targetjob-report-overview.json")
         oracle = json.loads(
             (
                 REPO_ROOT
                 / "docs/spec/openapi-v1-contract/decisions/OPENAPI-004-targetjob-report-overview.expected-findings.json"
             ).read_text(encoding="utf-8")
         )
-        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
-        self.assertEqual("git", source_kind)
-        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
-        self.assertIsNotNone(baseline_text)
-        current_text = (REPO_ROOT / audit["currentSource"]).read_text(encoding="utf-8")
-        self.assertEqual(audit["baselineSha256"], od._sha256_text(baseline_text))
-        # The audit pins the proposal that introduced OPENAPI-004. Later accepted
-        # additive changes legitimately change the live source without rewriting
-        # this immutable historical record.
-        self.assertRegex(audit["currentSha256"], r"^[0-9a-f]{64}$")
-        baseline = yaml.safe_load(baseline_text)
-        current = yaml.safe_load(current_text)
+        baseline, _ = _load_audit_baseline(audit)
+        current, _ = _load_git_yaml(
+            "git:6dd4d0a928b5bcb358b26b1a5938728817e019a7:openapi/openapi.yaml",
+            audit["currentSha256"],
+        )
 
         findings = od.normalize_openapi_004_findings(baseline, current)
 
@@ -2674,35 +2649,54 @@ class OpenAPI004PreservedAuditTests(unittest.TestCase):
 
 class OpenAPI002PreservedAuditTests(unittest.TestCase):
     def test_repo_openapi_002_preserved_audit_replays_from_old_baseline(self) -> None:
-        audit = json.loads(
-            (
-                REPO_ROOT
-                / "openapi/baseline/audits/OPENAPI-002-targetjob-paste-only.json"
-            ).read_text(encoding="utf-8")
-        )
+        audit = _read_preserved_audit("OPENAPI-002-targetjob-paste-only.json")
         oracle = json.loads(
             (
                 REPO_ROOT
                 / "docs/spec/openapi-v1-contract/decisions/OPENAPI-002-targetjob-paste-only.expected-findings.json"
             ).read_text(encoding="utf-8")
         )
-        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
-        self.assertEqual("git", source_kind)
-        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
-        self.assertIsNotNone(baseline_text)
-        self.assertEqual(audit["baselineSha256"], od._sha256_text(baseline_text))
-        current_text = (REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8")
-        baseline = yaml.safe_load(baseline_text)
-        current = yaml.safe_load(current_text)
-
-        findings = od.normalize_openapi_002_findings(baseline, current)
+        _load_audit_baseline(audit)
+        self.assertEqual("openapi/openapi.yaml", audit["currentSource"])
+        self.assertRegex(audit["currentSha256"], r"^[0-9a-f]{64}$")
+        findings = audit["findings"]
 
         self.assertEqual([], audit["errors"])
+        self.assertEqual(audit["expectedFindingCount"], audit["findingCount"])
+        self.assertEqual(audit["findingCount"], len(findings))
+        self.assertEqual(audit["summary"], od._format_summary(findings))
         self.assertEqual([], od.compare_finding_sets(oracle["findings"], findings))
-        self.assertEqual([], od.compare_finding_sets(audit["findings"], findings))
-        self.assertEqual([], od.validate_openapi_002_invariants(current, oracle["invariants"]))
         self.assertEqual(17, len(findings))
         self.assertTrue(all(finding["severity"] == "breaking" for finding in findings))
+
+
+class D40PreservedAuditTests(unittest.TestCase):
+    def test_repo_failed_report_regeneration_audit_is_exactly_additive(self) -> None:
+        audit = _read_preserved_audit("D-40-failed-report-regeneration.json")
+        baseline, _ = _load_audit_baseline(audit)
+        current_text = (REPO_ROOT / audit["currentSource"]).read_text(encoding="utf-8")
+        self.assertEqual(audit["currentSha256"], od._sha256_text(current_text))
+        current = yaml.safe_load(current_text)
+
+        findings = od.diff_documents(baseline, current)
+
+        self.assertEqual("D-40", audit["decisionId"])
+        self.assertEqual("exact-additive-set", audit["mode"])
+        self.assertEqual([], audit["errors"])
+        self.assertEqual(audit["expectedFindingCount"], audit["findingCount"])
+        self.assertEqual(2, audit["findingCount"])
+        self.assertEqual(audit["findings"], findings)
+        self.assertEqual(
+            {"breaking": 0, "additive": 2, "informational": 0},
+            audit["summary"],
+        )
+        self.assertEqual(
+            {"baselineOperations": 37, "currentOperations": 38, "tags": 10},
+            audit["inventory"],
+        )
+        self.assertEqual(37, od._operation_count(baseline))
+        self.assertEqual(38, od._operation_count(current))
+        self.assertEqual(10, len(current["tags"]))
 
 
 class OpenAPI001PreservedAuditTests(unittest.TestCase):
@@ -2825,7 +2819,7 @@ class CLIWhitelistTests(unittest.TestCase):
             rc, payload, stderr = self._run(repo)
             self.assertEqual(rc, 0, msg=payload)
             self.assertEqual(payload["summary"]["breaking"], 0)
-            self.assertEqual(payload["inventory"]["expectedOperations"], 37)
+            self.assertEqual(payload["inventory"]["expectedOperations"], 38)
             self.assertEqual(payload["inventory"]["baselineOperations"], 3)
             self.assertEqual(payload["inventory"]["currentOperations"], 3)
             self.assertIn("wrapper-", stderr)

@@ -1,8 +1,8 @@
 # 001 — Grounded Conversation Report Generation Checklist
 
-> **版本**: 2.28
+> **版本**: 2.31
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -64,6 +64,20 @@
   <!-- verified: 2026-07-15 method=domain-behavior bddChecklist=complete -->
 - [x] 12.6 COMPLETION-GATE: focused Go tests, root `make test`, OpenAPI/fixture/codegen/mock, docs/context/index/diff and migration-zero-change audit pass.
   <!-- verified: 2026-07-15 method=full-code-gates evidence="focused Go PASS; make test PASS; 149 contract tests PASS; codegen-openapi second-run hashes unchanged; docs/context/index/diff PASS; no migration change" -->
+
+## Phase 13: Atomic failed report regeneration
+
+- [x] 13.1 RED: handler/service/store/idempotency tests fail until same-ID `202 + ReportWithJob`, replay and typed rejection contracts exist.<!-- verified: 2026-07-16 method=backend-regenerate-red evidence="focused compilable RED proves missing operation-specific idempotency behavior, handler/domain/store contracts, same-ID response, cancellation-safe completion, job-before-report reset, typed zero-write rejection and real-PostgreSQL concurrency gate; diff-check PASS" -->
+- [x] 13.2 GREEN: transaction locks job then report, resets all ready-only fields, enqueues one fresh stable-dedupe job and writes bounded audit without migration/outbox.<!-- verified: 2026-07-16 method=backend-regenerate-green evidence="focused idempotency/review/store/api packages PASS; same-report advisory serialization, active-job-first lock, ready-only reset, fresh queued job and bounded user audit are covered by sqlmock atomicity/rollback tests" -->
+- [x] 13.3 CONCURRENCY/PRIVACY: active old job, simultaneous different keys, cross-user, non-failed and oversize paths are race-safe, zero-write and raw-content-free.<!-- verified: 2026-07-16 method=real-postgresql-integration evidence="current local PostgreSQL ran both regeneration integration tests without skip: simultaneous different keys produced exactly one active job while preserving frozen input/transcript; active-old-job, non-failed, oversize and cross-user subtests all PASS with zero writes" -->
+- [x] 13.4 BDD-Gate: `BDD.REPORT.REGENERATE.001`, focused owner tests and root `make test` pass；checklist evidence records exact commands.<!-- verified: 2026-07-16 method=focused+root-regression evidence="go test internal/review, internal/store/review and internal/api/reports PASS; real PostgreSQL regeneration integration PASS without skip; make test Python 584/4583 subtests, Go all packages, frontend 126/1026 PASS" -->
+
+## Phase 14: Actionable semantic repair
+
+- [x] 14.1 FORENSICS/RED: current raw pairs and DB metadata prove six provider/schema-success calls, candidate user seqNos `2/4/6`, terminal assistant seqNo `7`, and repeated `not_user_message`; focused serializer/runtime tests must fail before guidance exists.<!-- verified: 2026-07-16 method=raw-db-forensics evidence="provider stop/schema-ok on 6 calls; repair coordinates repeatedly identify assistant anchor; redeploy interruption is secondary" -->
+- [x] 14.2 GREEN/PRIVACY: derive sorted candidate-user seqNo allowlist only from validated server/eval coordinates；map every reachable validation code into explicit structural/anchor/evidence/readiness/action/text intent, combine all present families, validate restricted path grammar + code/path compatibility + positive unique strictly ascending seqNos + non-empty anchor allowlist, fail closed on unsafe/unknown coordinates, escape untrusted marker characters, preserve the same JSON semantics and the same escaped untrusted user message across initial/repair attempts, and reject previous-output/raw/untrusted-role promotion.<!-- verified: 2026-07-16 method=backend-report-repair-green evidence="runtime and evalkit derive trusted sorted user seqNos; terminal unanswered assistant regression exposes only [2,4,6]; concrete family-rule, unsafe-coordinate and literal-marker tests pass in internal/review and cmd/evalkit" -->
+- [x] 14.3 REGRESSION: focused backend review/evalkit tests, root `make test`, build and context/docs gates pass.<!-- verified: 2026-07-16 method=full-regression evidence="focused review/evalkit repair tests PASS; make test Python 584/4583 subtests, Go all packages, frontend 126/1026 PASS; make build, context validators, docs/index and git diff --check PASS" -->
+- [x] 14.4 REAL: redeploy backend and regenerate report `019f6a70-0b24-7c7b-a1d3-1456503a2421`; same-ID report reaches ready and DEBUG evidence proves valid user anchors without exposing content.<!-- verified: 2026-07-16 method=real-provider-same-report evidence="same report reached ready; fresh job succeeded; three stop/schema-valid calls used only user anchors [4,6]; missing_evidence repair requests carried exact-dimension support/removal intent and the third response passed full validation" -->
 
 ## Closeout
 

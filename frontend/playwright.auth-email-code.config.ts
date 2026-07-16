@@ -13,7 +13,7 @@ const artifactRoot = path.join(
 );
 
 const frontendOrigin =
-  process.env.EI_AUTH_EMAIL_CODE_FRONTEND_ORIGIN ?? "http://127.0.0.1:5173";
+  process.env.EI_AUTH_EMAIL_CODE_FRONTEND_ORIGIN ?? "http://127.0.0.1:10900";
 const outputDir =
   process.env.EI_PLAYWRIGHT_OUTPUT_DIR ?? path.join(artifactRoot, "playwright");
 

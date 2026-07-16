@@ -52,6 +52,25 @@ describe("frontend dev fixture-backed mock client", () => {
 		});
 	});
 
+	it("serves failed-report regeneration through the generated fixture operation", async () => {
+		const client = createDevMockClient();
+		const reportId = "01918fa0-0079-7000-8000-000000000079";
+
+		await expect(
+			client.regenerateFeedbackReport(reportId, {
+				idempotencyKey: "idem-regenerate-report-2026-07-16-default",
+			}),
+		).resolves.toMatchObject({
+			reportId,
+			job: {
+				jobType: "report_generate",
+				status: "queued",
+				resourceType: "feedback_report",
+				resourceId: reportId,
+			},
+		});
+	});
+
 	it("keeps voice mode fail-closed in the generated fixture client", async () => {
 		const client = createDevMockClient();
 		const body = {

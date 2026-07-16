@@ -69,15 +69,18 @@ export AI_PROVIDER_REGISTRY_PATH=$(pwd)/config/ai-providers.yaml
 export AI_MODEL_PROFILE_PATH=$(pwd)/config/ai-profiles.yaml
 export AI_PROVIDER_BASE_URL=https://api.deepseek.com
 export AI_PROVIDER_API_KEY=sk-...                # NEVER commit
-export AI_DEBUG_PRINT_RAW_OUTPUT=true            # local test/integration default; keep staging/prod off
+export AI_DEBUG_CAPTURE_RAW_IO=true              # dev/test only; staging/prod reject true
+export AI_DEBUG_RAW_IO_PATH=.test-output/local-dev/ai-raw.ndjson
 ```
 
-When `AI_DEBUG_PRINT_RAW_OUTPUT=true`, backend observability prints raw
-`Complete` responses to stderr so schema and formatting failures can be
-debugged. Local test and local frontend/backend integration keep this enabled
-by default so agents can inspect real provider output shape. The output remains
-outside `ai_task_runs`, `audit_events`, metrics, and structured log fields, and
-staging/prod defaults must keep it off.
+When `AI_DEBUG_CAPTURE_RAW_IO=true`, backend observability appends the full
+provider-neutral `Complete` request/response pair to the dedicated NDJSON path.
+Local dev/test keep this enabled by default; relative paths resolve from the
+resolved config directory's parent. Each pair uses a UUIDv7 `callId` equal to
+`ai_task_runs.id`, while the file remains outside stderr, structured logs,
+audit events, runtime config, and scenario evidence. The directory/file are
+restricted to `0700`/`0600`; treat the content as sensitive local-only debug
+evidence and never upload or commit it. Staging/prod reject an enabled recorder.
 
 Smoke verification (run only when you want to exercise a real endpoint;
 `-tags smoke` is reserved so the smoke suite stays out of the default

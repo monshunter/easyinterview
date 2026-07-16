@@ -61,7 +61,7 @@ if grep -Eq -- "0 passed|0 tests|No tests found|skipped|failed|timed out|Error:"
 fi
 
 for forbidden in \
-  "http://127.0.0.1:8080/api/v1/auth/email/verify" \
+  "${API_BASE_URL}/auth/email/verify" \
   "auth/verify?token=" \
   "purpose=signup" \
   "purpose=login" \

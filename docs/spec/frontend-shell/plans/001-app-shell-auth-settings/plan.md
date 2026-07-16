@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.31
-> **状态**: completed
-> **更新日期**: 2026-07-15
+> **版本**: 1.32
+> **状态**: active
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -13,7 +13,7 @@
 
 本计划交付当前正式前端 App shell：默认 Home、三入口 TopBar、全局显示控制、email-code 认证页、资料补全 gate、`requestAuth(pendingAction)` 恢复、已登录设置齿轮、无 tab 的真实账号/隐私设置页、runtime / generated client bootstrap，以及面试业务 route 的登录前置保护。
 
-当前完成态文档只描述现行合同。任何新增可见页面、route、auth flow 或设置页能力，必须先更新 `frontend/` 静态原型、`docs/ui-design/` 和 `frontend-shell` spec，再修订本 owner 或派生明确边界的新 plan。
+当前 Phase 15 原地修复 auth route gate 的 locale 实现漂移，不新增页面、route 或 auth flow。任何新增可见页面、route、auth flow 或设置页能力，必须先更新 `docs/ui-design/` 和 `frontend-shell` spec，再修订本 owner。
 
 Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设置合同 owner，并取代其中关于账号 chip/dropdown、Settings tab 与 font preset 的旧正向描述。实施与验收不得把历史文字当作现行 UI 要求。
 
@@ -35,6 +35,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 - `pendingAction` 只保存 route name、canonical URL 和 safe params，不保存 JD 原文、简历原文、验证码、AI prompt/response 或解析正文。
 - Settings 为无 tab 单页：Account 复用 runtime user 展示只读 `displayName/email`（完整账号邮箱）并提供退出入口；Privacy 展示导出暂不可用状态和账号删除确认流程。
 - 显示偏好由前端持有：主题、暗色和语言下拉在登录前后保持稳定；默认主题与无效值 fallback 为 `ocean`。字体固定，不保留 preset 状态。
+- 统一 auth route gate 的 loading/error eyebrow、title、body 必须消费 typed locale keys；中文模式不得回退或混入英文硬编码。
 
 ### 2.3 StrictMode-safe GET orchestration
 
@@ -75,6 +76,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 - 面试业务 route 在 runtime auth loading / unauthenticated 状态下不挂载业务 screen，不调用受保护 API；Home 未登录态不请求账号记录。
 - Vite dev mock 从 unauthenticated 开始，verify 后 `/me` 变为 authenticated 或 profileIncomplete，logout 后回到 unauthenticated。
 - Auth verify 成功后的 `/me` refresh failure 不被渲染为验证码错误；App 离开 verify 页并在 route gate 中表达 auth/profile loading 或 error。
+- Auth loading/error route gate 的四段可见文案全部跟随当前 `zh`/`en` 显示偏好；切换语言不改变 route、auth probe 或业务 API gate。
 - StrictMode 下同 key safe-read GET 同时在途只发出一个底层 request；settle 后可重新读取。不同 client/query/header/epoch/auth、带 signal、非 GET 与 `/auth/email/verify` 保持独立；verify 成功推进 auth epoch，auth/locale 变化不会被旧 key 吞并。
 - UI 结构、文案、密度、主题和交互节奏可追溯到 `frontend/` 与 `docs/ui-design/`。
 
@@ -122,6 +124,10 @@ Account 区用只读语义行展示真实值并进入既有 `auth_logout`；Priv
 
 Review remediation 继续由本 Phase owning：默认 fixture-backed client 在 `deleteMe` 202 后必须把 auth state 切到 signed-out，使随后的 `refreshAuth()` / `getMe` 得到 401；`E2E.P0.101` 的邮箱断言不得把完整值写入 Playwright failure reporter，并在 reporter 输出进入 `trigger.log` 前同时过滤原文与 URL percent-encoded 表示。两项均先补当前可失败的 focused/code-level gate，再做最小实现；真实 E2E 主路径仍只覆盖 settings account/logout，不执行账号删除。
 
+### Phase 15: Auth route gate locale drift remediation
+
+先以 App shell locale behavior RED 复现：当前语言为中文且 `/me` probe loading/error 时，统一 `auth-route-gate` 仍渲染硬编码 `AUTH`、英文标题和英文说明。GREEN 仅把 eyebrow、loading/error title 与 body 接入现有 typed locale catalog；不改变 protected-route 判定、pendingAction、请求时序或 auth 状态机。中英文切换、业务 screen/API 不提前挂载、locale key reachability、typecheck/build 与根回归共同验收；current-run 还必须使用 Chrome extension automation skill 在真实本地前后端页面核对中文 gate 与英文切换，不新增或冒充 E2E ID。
+
 
 ## 7 风险与应对
 
@@ -138,6 +144,7 @@ Review remediation 继续由本 Phase owning：默认 fixture-backed client 在 
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-16 | 1.32 | Reopen Phase 15 to localize the shared auth loading/error route gate without changing auth behavior. |
 | 2026-07-15 | 1.31 | Complete Phase 14 review remediation for fixture delete auth state and failure-path evidence redaction. |
 | 2026-07-15 | 1.29 | Reopen Phase 14 for the approved single settings icon, real account/privacy page, logout relocation, deleteMe state machine and removal of static/font-preset surfaces. |
 | 2026-07-14 | 1.28 | Separate code-owned shell/auth BDD from the Ready-only P0.101 real API/UI handoff. |

@@ -64,8 +64,36 @@ IK_REQUIRED_OPERATION_IDS = {
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_thirty_seven_operations_expected(self) -> None:
-        self.assertEqual(len(EXPECTED_OPERATIONS), 37)
+    def test_thirty_eight_operations_expected(self) -> None:
+        self.assertEqual(len(EXPECTED_OPERATIONS), 38)
+
+    def test_regenerate_feedback_report_fixture_is_header_only_and_complete(self) -> None:
+        path = FIXTURES_ROOT / "Reports" / "regenerateFeedbackReport.json"
+        self.assertTrue(path.is_file(), f"missing fixture: {path.relative_to(ROOT)}")
+        data = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual("regenerateFeedbackReport", data.get("operationId"))
+        scenarios = data["scenarios"]
+        self.assertEqual("default", next(iter(scenarios)))
+        self.assertEqual(
+            {
+                "default",
+                "replay",
+                "hidden-not-found",
+                "invalid-state",
+                "active-job-not-ready",
+                "context-too-large",
+                "idempotency-mismatch",
+            },
+            set(scenarios),
+        )
+        for name, scenario in scenarios.items():
+            request = scenario.get("request") or {}
+            self.assertIn("Idempotency-Key", request.get("headers", {}), name)
+            self.assertNotIn("body", request, name)
+        self.assertEqual(
+            "true",
+            scenarios["replay"]["response"]["headers"].get("X-Idempotency-Replay"),
+        )
 
     def test_ten_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}

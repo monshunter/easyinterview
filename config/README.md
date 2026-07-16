@@ -82,10 +82,11 @@ config-only 字段同样需要先递增 spec 版本再同步 `config.yaml`。
   `deepseek-v4-flash` / `deepseek-v4-pro` 两个模型 ID。
 - `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只是 `deepseek` provider ref
   引用的 env 名，不是全局唯一 provider contract。
-- `AI_DEBUG_PRINT_RAW_OUTPUT` 在 local dev/test 和 `deploy/dev-stack/.env.example`
-  中默认开启，用于本地调试真实 provider 输出格式；raw output 只允许进入本机
-  backend stderr / `.test-output/` 调试日志，不得进入持久化审计、runtime-config、
-  staging 或 prod 默认配置。
+- `AI_DEBUG_CAPTURE_RAW_IO=true` 与
+  `AI_DEBUG_RAW_IO_PATH=.test-output/local-dev/ai-raw.ndjson` 在 local dev/test
+  中默认开启，将 provider-neutral `Complete` 请求/响应成对写入本机独立 NDJSON；
+  `callId` 与 `ai_task_runs.id` 对齐。raw 内容不得进入 stderr、结构化日志、持久化
+  审计、runtime-config、场景 evidence 或提交产物；staging/prod 显式开启会拒绝启动。
 - 新增 Product/UI AI 场景或 F3 feature_key 时，必须同步
   `docs/spec/ai-provider-and-model-routing/spec.md` §4.5、
   `docs/spec/prompt-rubric-registry/spec.md` §3.1.1 和

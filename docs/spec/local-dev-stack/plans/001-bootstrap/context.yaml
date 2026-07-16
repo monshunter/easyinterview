@@ -4,9 +4,11 @@ metadata:
   subspec: local-dev-stack
   name: 001-bootstrap
   sequence: 1
+  baseBranch: main
+  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
   specVersion:
-    from: null
-    to: 1.29
+    from: 1.29
+    to: 1.33
 spec:
   defaultTarget: repo
   discovery:
@@ -28,6 +30,10 @@ spec:
       - EMAIL_PROVIDER
       - EMAIL_SMTP_HOST
       - EMAIL_SMTP_PORT
+      - MAILPIT_SMTP_HOST_PORT
+      - host Mailpit SMTP route
+      - SMTP route mismatch fail-fast
+      - assert_host_mailpit_smtp_route
       - EMAIL_SMTP_USERNAME
       - EMAIL_SMTP_PASSWORD
       - EMAIL_SMTP_TLS_MODE
@@ -73,8 +79,9 @@ spec:
       - full-container
       - dev-container-up
       - dev-container-doctor
-      - "10800"
-      - "10801"
+      - "10900"
+      - "10901"
+      - unified local app ports
       - one-click reset redeploy
       - clean data rebuild redeploy
       - developer debug handoff
@@ -88,11 +95,21 @@ spec:
       - first-login resume 500
       - no kind
       - no k8s
+      - AI_DEBUG_CAPTURE_RAW_IO
+      - AI_DEBUG_RAW_IO_PATH
+      - ai-raw.ndjson
+      - single local app runner
+      - host container role exclusivity
+      - config-owned endpoints
   targets:
     repo:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
+      references:
+        - ../../../ai-provider-and-model-routing/plans/001-aiclient-and-profile-bootstrap/plan.md
+        - ../../../secrets-and-config/plans/001-bootstrap/plan.md
+        - ../../../e2e-scenarios-p0/plans/001-real-api-ui-journeys/plan.md
       discovery:
         packages:
           - deploy/dev-stack

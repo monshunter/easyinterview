@@ -5,10 +5,10 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   baseBranch: main
-  branch: settings-simplification
+  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
   specVersion:
-    from: 1.62
-    to: 1.64
+    from: 1.64
+    to: 1.65
 spec:
   defaultTarget: contract
   discovery:
@@ -31,7 +31,8 @@ spec:
       - all other schema semantic mixed whole report repair
       - generation and judge max4 internal only
       - no attempt retry reason scope HTTP fields
-      - no client retry generation endpoint
+      - unique same-report regeneration endpoint
+      - no internal retry attempt progress HTTP fields
       - queued generating ready failed unchanged
       - frontend poll timeout does not mean server failed
       - OPENAPI-002 target job paste only
@@ -60,11 +61,15 @@ spec:
       - report owned conversation
       - replace listPracticeSessions with getReportConversation
       - reportId only transcript locator
-      - preserve 37 operations 10 tags
+      - preserve 38 operations 10 tags
       - no list detail compatibility or N plus one
       - deterministic exact 24 words 64 code points parity
       - 10 tags
-      - 37 operations
+      - 38 operations
+      - regenerateFeedbackReport
+      - POST reports reportId regenerate
+      - failed report same identity regeneration
+      - REPORT_INVALID_STATE_TRANSITION
       - deleteMe
       - api/v1 prefix
       - codegen
@@ -131,6 +136,7 @@ spec:
           - listTargetJobs
           - getTargetJob
           - getFeedbackReport
+          - regenerateFeedbackReport
           - getReportConversation
           - getMe
           - completeMyProfile

@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.31
-> **状态**: completed
-> **更新日期**: 2026-07-15
+> **版本**: 1.32
+> **状态**: active
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -106,3 +106,9 @@
   <!-- verified: 2026-07-15 method=focused-dev-mock-delete evidence="Red: client getMe resolved and mounted App remained on Settings after deleteMe. Green: devMockClient plus mounted App focused tests pass 10/10; deleteMe transitions signedIn=false, post-delete getMe returns 401 and Settings replaces Home." -->
 - [x] 14.8 REVIEW-FIX-EVIDENCE: add a RED code-level regression proving a failed P0.101 email assertion and reporter stream cannot persist the raw or URL-encoded current-run email; replace raw-value matcher output and redact the stream before `trigger.log`, while retaining the real UI/API equality check and existing PASS markers.
   <!-- verified: 2026-07-15 method=p0101-failure-output-redaction evidence="Red: scenario contract test failed because no pre-log redactor existed. Green: scenario contract tests pass 7/7; synthetic raw and percent-encoded email are replaced before tee, boolean Playwright assertions retain UI/API equality without value-bearing matcher output, and a pipefail probe preserves exit code 23." -->
+
+## Phase 15: auth route gate locale drift remediation
+
+- [x] 15.1 RED: 中文 locale 下 auth loading/error route gate 测试必须先证明当前硬编码英文仍可见，并锁定业务 screen/API 不提前挂载.<!-- verified: 2026-07-16 method=focused-locale-red evidence="app-shell-language-switch produced 2 expected failures: Chinese loading/error gates rendered AUTH plus hard-coded English title/body; protected Resume screen/API remained unmounted" -->
+- [x] 15.2 GREEN: gate eyebrow、loading/error title 与 body 全部改为 typed locale keys；中文零英文残留，英文切换保持原文案语义。<!-- verified: 2026-07-16 method=focused-locale-green evidence="app-shell-language-switch passed 3/3; Chinese loading/error gates use typed locale keys with zero hard-coded English residue, and runtime switching preserves the English authentication copy" -->
+- [ ] 15.3 BDD/REGRESSION: `BDD.SHELL.AUTH.LOCALE.001`、focused locale/auth tests、locale reachability、typecheck/build、根 `make test` 与 current-run Chrome skill 真实本地页面验收通过后恢复 completed；Chrome 证据不得冒充独立 E2E ID。

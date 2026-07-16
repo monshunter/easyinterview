@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.24
-> **状态**: completed
-> **更新日期**: 2026-07-15
+> **版本**: 1.25
+> **状态**: active
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -232,3 +232,7 @@ The oracle exact-matches removal of `UserContext.uiLanguage`, `UserContext.prefe
 ### 12.2 Invariants and guarded re-freeze
 
 Audit locks 37 operations/10 tags；exact `getMe` / `completeMyProfile` / `deleteMe` method/path/operationId/status/security；four-field closed required `UserContext`；complete authenticated email and profile-completion semantics. `emailMasked` aliases are forbidden, while logs/E2E evidence remain redacted. Do not re-freeze until 001 Phase 19, 002 Phase 13, backend-auth/001 Phase 10, frontend-shell/001 Phase 14, B4 001 Phase 13 and mock/BDD handoffs pass. Preserve deterministic old-baseline audit before mutation；final proof requires clean current diff plus independent lint/fixture/codegen/consumer/migration/root-test gates.
+
+## 15 Phase 13: Failed report regeneration additive gate
+
+Compare the unchanged current baseline with the proposed source and require only additive findings for the new protected path/operation and `REPORT_INVALID_STATE_TRANSITION` enum value. Lock existing 37 operations plus the one new operation as exactly 38/10, unchanged report read/conversation/completion contracts, and no attempt/progress fields. Preserve the audit before re-freeze；do not edit the baseline until 001 Phase 20, 002 Phase 14 and downstream backend/frontend handoffs pass. This governance phase has no independent BDD.

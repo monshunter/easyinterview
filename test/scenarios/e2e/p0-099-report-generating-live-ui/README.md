@@ -11,8 +11,10 @@
 - **Given** the shared v19 environment, real frontend/backend/provider, and three
   isolated current report resources: Chinese `needs_practice`, English
   `well_prepared`, and honest `generating`. The active backend was redeployed
-  after setting `AI_DEBUG_PRINT_RAW_OUTPUT=false` in the local mode-`0600`
-  `deploy/dev-stack/.env`.
+  after setting `AI_DEBUG_CAPTURE_RAW_IO=true` and
+  `AI_DEBUG_RAW_IO_PATH=.test-output/local-dev/ai-raw.ndjson` in
+  `deploy/dev-stack/.env`; the mode-`0600` raw file stays outside scenario
+  evidence and this scenario never reads or copies it.
 - **When** a browser agent captures the exact desktop/mobile matrix with
   `fullPage: true`, records one provisional redacted `manifest.json` containing
   screenshot/ref/semantic-audit facts, opens one ready Report's Conversation
@@ -63,7 +65,7 @@ semantics and are never treated as OCR.
 Use a named session and never export browser state or cookies:
 
 ```bash
-agent-browser --session p0-099-report open 'http://127.0.0.1:5173/report?reportId=<opaque-report-ref>'
+agent-browser --session p0-099-report open 'http://127.0.0.1:10900/report?reportId=<opaque-report-ref>'
 agent-browser --session p0-099-report wait --load networkidle
 agent-browser --session p0-099-report set viewport 1440 1200
 agent-browser --session p0-099-report screenshot --full .test-output/e2e/p0-099-report-generating-live-ui/screenshots/<canonical-desktop-name>.png
@@ -279,9 +281,11 @@ validates the full automated contract again, binds the audit to the exact six
 files, appends `P0_099_MANUAL_VISUAL_AUDIT_BOUND_PASS`, and changes
 `result.json` to `PASS`.
 
-Setup records the current backend log byte boundary. Trigger rejects any
-`AI_RAW_OUTPUT_DEBUG_BEGIN` / `AI_RAW_OUTPUT_DEBUG_END` marker after that
-boundary, proving the current run did not write raw model output to its log.
+Setup resolves and validates the dedicated raw I/O path before capture: it must
+remain outside the current-run evidence tree, contain no symlink component, and
+be either absent or a regular file. Trigger and verifier never read or copy the
+raw NDJSON; backend logs and scenario artifacts therefore remain free of raw
+provider request/response content.
 
 The executable schema is owned by `scripts/validate_evidence.py`. Do not add
 `evidence.md`, cookie jars, browser state exports, raw API bodies, JD/resume/

@@ -3,6 +3,41 @@ import { describe, expect, it, vi } from "vitest";
 import { ApiClientError, EasyInterviewClient } from "./generated/client";
 
 describe("EasyInterviewClient response parsing", () => {
+	it("sends failed-report regeneration as a header-only POST and accepts the 202 envelope", async () => {
+		const reportId = "01918fa0-0000-7000-8000-000000007102";
+		const idempotencyKey =
+			"v1.1784163600.01918fa0-0000-7000-8000-000000008102";
+		const accepted = {
+			reportId,
+			job: {
+				id: "01918fa0-0000-7000-8000-000000008103",
+				jobType: "report_generate",
+				resourceType: "feedback_report",
+				resourceId: reportId,
+				status: "queued",
+				createdAt: "2026-07-16T09:00:00Z",
+				updatedAt: "2026-07-16T09:00:00Z",
+			},
+		};
+		const fetchSpy = vi.fn<typeof fetch>(async () => jsonResponse(accepted, 202));
+		const client = new EasyInterviewClient({ fetch: fetchSpy });
+
+		await expect(
+			client.regenerateFeedbackReport(reportId, { idempotencyKey }),
+		).resolves.toEqual(accepted);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, init] = fetchSpy.mock.calls[0]!;
+		expect(url).toBe(`/api/v1/reports/${reportId}/regenerate`);
+		expect(init).toMatchObject({
+			method: "POST",
+			credentials: "include",
+		});
+		expect(init?.body).toBeUndefined();
+		expect(new Headers(init?.headers).get("Idempotency-Key")).toBe(
+			idempotencyKey,
+		);
+	});
+
 	it("treats a 202 response with an empty body as success", async () => {
 		const fetchSpy = vi.fn<typeof fetch>(async () =>
 			new Response(null, {

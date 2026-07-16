@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -30,6 +31,17 @@ func (l *Loader) Validate() error {
 	var problems []string
 	if _, err := l.ContentLimits(); err != nil {
 		problems = append(problems, err.Error())
+	}
+	if l.GetBool("ai.debugCaptureRawIO") {
+		rawPath := strings.TrimSpace(l.GetString("ai.debugRawIOPath"))
+		if rawPath == "" {
+			problems = append(problems, "AI_DEBUG_RAW_IO_PATH is required when AI_DEBUG_CAPTURE_RAW_IO is enabled")
+		} else if !filepath.IsAbs(rawPath) {
+			problems = append(problems, "AI_DEBUG_RAW_IO_PATH must resolve to an absolute path")
+		}
+		if env == "staging" || env == "prod" {
+			problems = append(problems, "AI_DEBUG_CAPTURE_RAW_IO must be disabled in staging/prod")
+		}
 	}
 
 	if env == "staging" || env == "prod" {

@@ -1,8 +1,8 @@
 # Frontend Shell Spec
 
-> **版本**: 1.34
+> **版本**: 1.35
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 ## 1 背景与目标
 
@@ -66,6 +66,7 @@
 - 登录成功恢复 route 前必须检查最新 `/me.profileCompletionRequired`；仍为 true 时进入 `auth_profile_setup` 并保留 safe pendingAction。
 - `auth_verify` 只从受控 input 读取 6 位验证码；验证码不得进入 URL、pendingAction、storage 或 browser navigation chain。
 - `auth_verify` 的错误语义必须区分 code verification 与 post-verify profile context refresh；verify 成功后的 `/me` failure 由 route gate 表达，不渲染为验证码错误。
+- Protected route 的 auth loading/error gate 是用户可见 shell UI，eyebrow、title 与 body 必须全部来自当前 locale catalog；切换中文时不得残留 `AUTH`、`Checking sign-in`、`Sign-in required` 或英文说明。
 - 公共 auth route 可以跳过首次 `/me` probe，但 skip 在 provider lifecycle 内只能消费一次；`refreshAuth(user)` 后的 request options 变化必须执行真实 `/me` refresh。
 - Home 可未登录访问；账号记录数据只在 authenticated 状态请求和渲染。
 - Safe-read single-flight key 必须包含 client identity、HTTP method、path、canonical query、规范化的相关 request headers、normalized `okStatuses`、read/auth epoch 和 auth/session scope。只在 Promise 未 settle 时复用；resolve/reject 都删除 registry entry。caller `AbortSignal`、非 GET 与语义写入 GET 绕过合并，避免共享取消所有权或改变写请求语义。每个语义写请求必须在 dispatch 前推进一次 read epoch，并在 resolve/reject settle 后再次推进，确保 mutation 期间与 mutation 后的读请求都不能复用 mutation 前的 in-flight。`/auth/email/verify` 虽使用 GET wire method，但会消费 challenge/更新 session，必须按语义写请求 bypass；成功后还要推进 auth/session epoch，使后续 `/me` 与业务读取不复用认证前 scope。
@@ -106,6 +107,7 @@
 | C-13 | Parse/workspace route 分工 | TargetJob 为 queued/processing 或 ready | 打开 `/parse?targetJobId`、轮询转 ready、或打开 ready 卡片 | Parse 只在处理中展示进度；ready 使用 replace 进入 `/workspace?targetJobId`；无 target 的 workspace 仍为列表，详情不显示 Parse 动画 | 004-url-addressable-routing |
 | C-14 | Custom accent 最小选择器 | TopBar 主题菜单打开 | 用户调整自定义色或选择 Ocean / Plum | 只显示色相、饱和度；不显示 preview/value、恢复主题默认色按钮；选择预定义主题清晰退出 custom accent | 002-app-shell-visual-system |
 | C-15 | Settings 真实数据与隐私动作 | authenticated runtime 已取得 `/me` | 打开设置、查看导出状态、退出或删除账号 | 只显示真实 `displayName/email`，其中 email 完整显示但不进入 PASS/FAIL 日志或证据；不重复 `getMe`；导出显示暂不可用；删除流程具备确认/pending/failure/202 success；默认 fixture client 在删除后也返回 unauthenticated，且旧 tab/block/字段零引用 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
+| C-16 | Auth route gate 本地化 | 中文或英文显示偏好已生效，受保护 route 的 auth probe 为 loading/error | App 挂载统一 route gate 或用户切换语言 | eyebrow/title/body 全部跟随当前 locale，业务 screen/API 仍不提前挂载，中文模式无英文 fallback | 001-app-shell-auth-settings |
 
 ## 7 关联计划
 
@@ -118,6 +120,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.35 | 2026-07-16 | 修复统一 auth route gate 绕过 locale catalog 的实现漂移，锁定 loading/error 双语与中文零英文残留。 |
 | 1.34 | 2026-07-15 | 补齐 settings review remediation：fixture-backed deleteMe 后必须转 unauthenticated，并要求 P0.101 的失败 reporter 与落盘证据同样脱敏。 |
 | 1.32 | 2026-07-15 | 采用设置简化方案 A：TopBar 已登录态收敛为设置齿轮，Settings 改为真实账号/隐私单页，删除字体预设与静态冗余字段，并接入 logout/deleteMe 合同。 |
 | 1.31 | 2026-07-15 | 删除 UI Demo 与可运行原型权威来源合同；保留 `docs/ui-design/` 作为 UI 架构、流程、交互约束和设计决策 owner，正式前端直接实施和验证。 |

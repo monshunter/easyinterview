@@ -61,7 +61,9 @@ function conversation(
   };
 }
 
-function feedbackReport(): FeedbackReport {
+function feedbackReport(
+  overrides: Partial<FeedbackReport> = {},
+): FeedbackReport {
   return {
     id: REPORT_ID,
     sessionId: "01918fa0-0050-7000-8000-000000000050",
@@ -104,7 +106,26 @@ function feedbackReport(): FeedbackReport {
     },
     createdAt: "2026-07-15T08:00:00Z",
     updatedAt: "2026-07-15T08:01:00Z",
+    ...overrides,
   };
+}
+
+function failedFeedbackReport(
+  overrides: Partial<FeedbackReport> = {},
+): FeedbackReport {
+  return feedbackReport({
+    status: "failed",
+    errorCode: "AI_PROVIDER_TIMEOUT",
+    summary: null,
+    preparednessLevel: null,
+    provenance: null,
+    dimensionAssessments: [],
+    highlights: [],
+    issues: [],
+    nextActions: [],
+    retryFocusDimensionCodes: [],
+    ...overrides,
+  });
 }
 
 function runtimeValue(client: EasyInterviewClient): AppRuntimeValue {
@@ -139,10 +160,20 @@ function viewConversation(
   );
 }
 
-function conversationClient(value: unknown): EasyInterviewClient {
+function conversationClient(
+  value: unknown,
+  report: unknown = feedbackReport(),
+): EasyInterviewClient & {
+  getFeedbackReport: ReturnType<typeof vi.fn>;
+  getReportConversation: ReturnType<typeof vi.fn>;
+} {
   return {
     getReportConversation: vi.fn(async () => value),
-  } as unknown as EasyInterviewClient;
+    getFeedbackReport: vi.fn(async () => report),
+  } as unknown as EasyInterviewClient & {
+    getFeedbackReport: ReturnType<typeof vi.fn>;
+    getReportConversation: ReturnType<typeof vi.fn>;
+  };
 }
 
 function deferred<T>() {
@@ -162,7 +193,6 @@ describe("report-owned readonly conversation", () => {
     ["ready", "report"],
     ["queued", "generating"],
     ["generating", "generating"],
-    ["failed", "generating"],
   ] as const)("renders ordered readonly messages for %s and returns to %s", async (reportStatus, parentRoute) => {
     const client = conversationClient(conversation({ reportStatus }));
     const navigate = vi.fn();
@@ -187,6 +217,72 @@ describe("report-owned readonly conversation", () => {
       name: parentRoute,
       params: { reportId: REPORT_ID },
     });
+  });
+
+  it("returns a failed conversation to its trusted target-scoped reports list", async () => {
+    const client = conversationClient(
+      conversation({ reportStatus: "failed" }),
+      failedFeedbackReport(),
+    );
+    const navigate = vi.fn();
+    render(viewConversation(client, REPORT_ID, navigate));
+
+    await screen.findByTestId("report-conversation-screen");
+    await waitFor(() => {
+      expect(client.getFeedbackReport).toHaveBeenCalledWith(REPORT_ID);
+    });
+    fireEvent.click(screen.getByTestId("report-conversation-back-button"));
+    expect(navigate).toHaveBeenCalledWith({
+      name: "reports",
+      params: {
+        targetJobId: "01918fa0-0020-7000-8000-000000000020",
+      },
+    });
+  });
+
+  it("does not expose Back before a failed conversation owner is resolved", async () => {
+    const owner = deferred<FeedbackReport>();
+    const client = conversationClient(
+      conversation({ reportStatus: "failed" }),
+      owner.promise,
+    );
+    const navigate = vi.fn();
+    render(viewConversation(client, REPORT_ID, navigate));
+
+    await screen.findByTestId("report-conversation-screen");
+    expect(screen.queryByTestId("report-conversation-back-button")).not.toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      owner.resolve(failedFeedbackReport());
+    });
+    fireEvent.click(await screen.findByTestId("report-conversation-back-button"));
+    expect(navigate).toHaveBeenCalledWith({
+      name: "reports",
+      params: {
+        targetJobId: "01918fa0-0020-7000-8000-000000000020",
+      },
+    });
+  });
+
+  it("falls back to workspace when a failed conversation has no trusted report owner", async () => {
+    const client = conversationClient(
+      conversation({ reportStatus: "failed" }),
+      {
+        ...failedFeedbackReport(),
+        id: NEXT_REPORT_ID,
+        targetJobId: "private-untrusted-target",
+      },
+    );
+    const navigate = vi.fn();
+    render(viewConversation(client, REPORT_ID, navigate));
+
+    await screen.findByTestId("report-conversation-screen");
+    await waitFor(() => {
+      expect(client.getFeedbackReport).toHaveBeenCalledWith(REPORT_ID);
+    });
+    fireEvent.click(screen.getByTestId("report-conversation-back-button"));
+    expect(navigate).toHaveBeenCalledWith({ name: "workspace", params: {} });
   });
 
   it("keeps a legal empty transcript readable with its frozen report context", async () => {

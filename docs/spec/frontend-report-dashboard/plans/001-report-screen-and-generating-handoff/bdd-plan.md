@@ -1,15 +1,16 @@
 # Honest Grounded Report Screen BDD Plan
 
-> **版本**: 3.8
+> **版本**: 4.2
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 ## Domain behavior
 
 | Behavior ID | Given | When | Then | 验证入口 |
 |-------------|-------|------|------|----------|
 | `BDD.REPORT.UI.001` | report 处于 generating、ready、failed 或 identity/context 不合法 | 页面轮询、恢复、展示报告、打开冻结简历副本/面试记录或触发 replay/next/back | 状态与 CTA 只来自 API truth；ready desktop 按 `4/2/2/2/1` 展示，四项上下文同属一个 block，两组 detail panel 同行等高，mobile 同序单列；readiness 与唯一服务端 summary 位于四个内容区之后的全宽面试总评；typed failure/route recovery fail closed 且不泄露 private IDs | `frontend/src/app/screens/generating/__tests__/GeneratingScreen.test.tsx` + `frontend/src/app/screens/report/__tests__/ConversationReport.test.tsx`，由根 `make test` 承接 |
-| `BDD.REPORT.CONVERSATION.001` | owned report 存在，状态为 queued/generating/ready/failed，消息投影可为合法或损坏 | 用户从 Report 或 ReportsScreen 打开记录、切换 reportId 或返回父页 | 只以 reportId 读取并按 sequence 显示安全只读 Markdown；四状态返回正确父页；跨用户/乱序/非法 role/stale response 整体 fail closed，无 session list/live controls/internal IDs | `frontend/src/app/screens/report-conversation/__tests__/ReportConversationScreen.test.tsx` + `frontend/src/app/screens/reports/__tests__/ReportsScreen.test.tsx`，由根 `make test` 承接 |
+| `BDD.REPORT.CONVERSATION.001` | owned report 存在，状态为 queued/generating/ready/failed，消息投影可为合法或损坏 | 用户从 Report 或 ReportsScreen 打开记录、切换 reportId 或返回父页 | ReportsScreen 对每个不同 current/latest locator 独立显示记录入口，progress/regenerate 只作为并列动作；只以 reportId 读取并按 sequence 显示安全只读 Markdown；ready 返回 Report、queued/generating 返回 Generating、failed 以可信 target 直接返回 ReportsScreen；跨用户/乱序/非法 role/stale response 整体 fail closed，无 session list/live controls/internal IDs | `frontend/src/app/screens/report-conversation/__tests__/ReportConversationScreen.test.tsx` + `frontend/src/app/screens/reports/__tests__/ReportsScreen.test.tsx`，由根 `make test` 承接 |
+| `BDD.REPORT.REGENERATE.UI.001` | latest attempt 为普通 failed、超限 failed，或旧 ready 与更新 failed 并存 | 用户查看记录、点击重新生成、重试未知网络结果、另一 tab 已改变状态或切换 target | 普通 failed 使用同 reportId/稳定 IK 进入 matching Generating；双击单请求；超限仅记录；旧/新动作 locator 与 accessible name 可区分；typed state conflict 重读 current target + overview，stale/malformed/raw/unknown error fail closed | `frontend/src/app/screens/reports/__tests__/ReportsScreen.test.tsx` + generated-client contract tests，由根 `make test` 承接 |
 
 ## Real E2E handoff
 
@@ -23,3 +24,4 @@
 - Exact 24/64 boundary uses deterministic code-level fixtures. P0.099 only proves current legal real report content is fully visible at desktop/mobile.
 - Fixture transport、dev mock、jsdom、route interception、component test server or Playwright against mock data cannot satisfy P0.099.
 - Root `make test` runs the complete frontend/backend unit regression independently and is never an E2E step or PASS marker.
+- Phase 14/15 current-run Chrome extension automation skill must exercise the real local failed-row regenerate/conversation recovery path and queued/generating progress-plus-record coexistence；code-owner behavior additionally proves failed conversation cannot expose Back before its trusted owner resolves. Chrome evidence is required delivery evidence but does not by itself satisfy or mark `E2E.P0.099` PASS.

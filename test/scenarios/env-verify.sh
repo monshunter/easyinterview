@@ -39,10 +39,12 @@ done
 
 if [ "$DRY_RUN" -eq 1 ]; then
   echo "dry-run: make dev-doctor"
+  echo "dry-run: detect host/full-container backend-dev and frontend-dev runner conflicts"
   echo "dry-run: print local dev endpoints and debug commands" >&2
   exit 0
 fi
 
 secure_dev_stack_env
 (cd "$REPO_ROOT" && make dev-doctor)
+assert_single_app_runners
 local_dev_summary >&2

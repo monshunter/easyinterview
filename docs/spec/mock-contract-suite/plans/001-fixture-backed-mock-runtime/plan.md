@@ -1,6 +1,6 @@
 # Fixture-backed Mock Runtime
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: active
 > **更新日期**: 2026-07-15
 
@@ -44,7 +44,7 @@ Generated operation coverage is asserted against the keys of the real `createDev
 Dev preview defaults to fixture-backed mode so pages render without a real backend. Real backend mode is explicit only:
 
 ```sh
-VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=http://localhost:8080/api/v1 pnpm --filter @easyinterview/frontend dev
+VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=<backend-api-base> pnpm --filter @easyinterview/frontend dev
 ```
 
 ### 4.3 Backend mockruntime

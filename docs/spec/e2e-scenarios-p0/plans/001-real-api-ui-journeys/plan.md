@@ -1,8 +1,8 @@
 # 001 Real API/UI Journeys
 
-> **版本**: 3.11
+> **版本**: 3.12
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -62,11 +62,18 @@
 - 只在相应 owner 发生变化时独立运行 OpenAPI/codegen、migration、lint、build、prompt/eval gate；不把结果写成 E2E marker。
 - 静态校验场景目录、shell 语法、真实 Playwright 请求边界、docs/index/diff 与旧场景引用。真实环境运行由显式 `/scenario-run` 单独触发；未运行时场景保持 `Ready`，不记录 PASS。
 
+### Phase 6: P0.099 raw I/O evidence isolation
+
+- 扩展 P0.099 preflight：要求 `AI_DEBUG_CAPTURE_RAW_IO=true`，用与 backend 相同的 ConfigDir-parent anchor 解析 path，并在 realpath 后证明其不位于当前 run evidence 目录；symlink component 或 non-regular target fail closed，旧 `AI_DEBUG_PRINT_RAW_OUTPUT` 不再被识别。
+- `trigger.sh`、`verify.sh`、manifest 与 privacy scanner 不读取、不复制、不摘要 `.test-output/local-dev/ai-raw.ndjson`；raw 内容不能成为 PASS marker，场景仍只保留有界 API/DB/digest/route evidence。
+- 以 scenario-local static/negative tests 验证 disabled、空 path、resolved/real evidence 内 path、symlink/non-regular target 和 raw 文件被引用都会 fail；代码层 config/recorder tests 与真实 provider 内容诊断独立报告，不包装为 E2E。
+
 ## 6 验收标准
 
 - P0.098 脚本通过真实 completion 后读取 Home、Workspace 与 TargetJob API，并要求 reload 后下一轮一致为 current；没有 route interception 或 round-2 plan creation。
 - P0.099 runbook 要求 exact-six evidence 绑定当前 run 的 DB/API/report/session/context/screenshot digest，且真实 desktop/390 页面完整显示 report/generating 状态；同一 run 的 bounded evidence 另证明 Report → Conversation → Back、strict message ordering 与零公共 session-list 请求，不增加截图。
 - P0.099 的隐私 gate 必须按项目用户数据与 secret 的可泄露性判定，不能因 PNG 色彩配置等开发过程元数据单独失败。
+- P0.099 只在本地 raw capture 已开启且 resolved/real path 与 evidence 隔离、无 symlink/non-regular target 时运行；raw NDJSON 永不进入 scenario evidence、manifest 或 PASS marker。
 - P0.101 通过真实 Mailpit code 完成首次 profile setup，证明唯一设置齿轮/真实账号字段/Settings logout，并证明完成账号 relogin 后不重复补全；不执行账号删除。
 - 场景脚本不调用 `go test`、Vitest/npm test、pytest、lint、build 或 provider CLI/eval。
 - 根 `make test` 作为独立全量单测回归通过后才能阶段收口。
@@ -77,6 +84,7 @@
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-07-15 | 3.11 | Correct P0.101 to assert the complete authenticated account email in Settings while keeping scenario logs/evidence redacted. |
+| 2026-07-16 | 3.12 | Add P0.099 raw I/O preflight and strict NDJSON/evidence isolation without expanding the E2E evidence contract. |
 | 2026-07-15 | 3.10 | Extend P0.101 in place with Settings gear, real account fields and Settings-owned logout while excluding destructive account deletion. |
 | 2026-07-15 | 3.9 | Scope P0.099 privacy rejection to project user data and secrets while retaining independent PNG integrity and digest checks. |
 | 2026-07-15 | 3.8 | Extend P0.099 with report-owned Conversation navigation and API/DB binding while preserving the exact-six screenshot contract through bounded non-image evidence. |

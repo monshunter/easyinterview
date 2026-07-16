@@ -1,23 +1,23 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.22
+> **版本**: 1.23
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-维护 `openapi/fixtures/` 作为当前 HTTP mock 数据的唯一真理源：当前 10 个 tag / 37 个 operationId 必须各有一份 fixture，`default` scenario 覆盖规范响应，其它 named scenario 由对应 consumer owner 在同一 fixture 中维护，fixtures 再投影为 Prism / 文档站消费的 OpenAPI named examples。
+维护 `openapi/fixtures/` 作为当前 HTTP mock 数据的唯一真理源：当前 10 个 tag / 38 个 operationId 必须各有一份 fixture，`default` scenario 覆盖规范响应，其它 named scenario 由对应 consumer owner 在同一 fixture 中维护，fixtures 再投影为 Prism / 文档站消费的 OpenAPI named examples。
 
 本 plan 只拥有 fixture 数据、fixture validator、prototype sync、fixture example render、Prism byte-equal smoke 和对应文档。正式 mock server 运行壳、前端 MSW runtime、后端 handler、OpenAPI schema 变更与 breaking-change policy 分别归对应 owner；它们只能消费这里的 fixture truth source，不在这里重建第二份 example。
 
-当前 Phase 13 在不改变 37/37 inventory 的前提下承接 OPENAPI-007 Auth fixtures 的四字段 `UserContext` 投影；既有 Phase 12 report-conversation gates 保持有效，不因本次追加而跳过。
+当前 Phase 14 additive 增加 failed report regeneration fixture，inventory 变为 38/38；既有 Phase 12/13 gates 保持有效，不因本次追加而跳过。
 
 ## 2 当前合同
 
-- `openapi/fixtures/<tag>/<operationId>.json` 当前必须覆盖 `openapi/openapi.yaml` 的 37 个 operationId，目录 tag 顺序跟随 OpenAPI spec。
+- `openapi/fixtures/<tag>/<operationId>.json` 当前必须覆盖 `openapi/openapi.yaml` 的 38 个 operationId，目录 tag 顺序跟随 OpenAPI spec。
 - 每个 fixture 必须包含 `scenarios.default`，并且该 key 是 `scenarios` 的第一项。声明 requestBody 的 operation 必须给出 `request.body`；header-only idempotent operation 可只给 `request.headers`。
 - `response.status` 必须是 operation 声明的状态码，或被 `default` error response 覆盖。`requestPrivacyExport` 固定返回 `501 + PRIVACY_EXPORT_NOT_AVAILABLE`；`exportResume` 固定返回 `501 + RESUME_EXPORT_NOT_AVAILABLE`。
 - 所有 scenario 的 request/response body 必须按 `openapi/openapi.yaml` schema 校验通过。AI 生成相关 schema 必须带非空 `provenance`；隐私字段只能使用保留域名、保留电话号码和通用公司名；所有 UUID 字段使用 UUIDv7 字面量；`tmp_` id 直接失败。
@@ -35,7 +35,7 @@
 
 ### 4.1 Fixture inventory and validation
 
-`openapi/fixtures/` 当前保有 37 个 JSON fixture 文件，和 OpenAPI operationId 一一对应。`scripts/lint/validate_fixtures.py` 负责以下检查：
+`openapi/fixtures/` 在 Phase 14 前保有 37 个 JSON fixture；Phase 14 增加 `regenerateFeedbackReport` 后当前目标为 38 个，并始终与 OpenAPI operationId 一一对应。`scripts/lint/validate_fixtures.py` 负责以下检查：
 
 - fixture 文件名、`operationId` 字段和 OpenAPI operationId 一致。
 - 所有 operationId 都有 fixture，且没有 OpenAPI 不认识的 fixture。
@@ -50,7 +50,7 @@
 
 ### 4.3 Example projection and Prism smoke
 
-`make render-openapi-fixture-examples` 把每个 fixture 的 `scenarios.default.response.body` 投影到 `openapi/.generated/openapi-with-fixtures.yaml`。投影必须覆盖 37 个 operationId，并保证 named example body 与 fixture body 字节级一致。
+`make render-openapi-fixture-examples` 把每个 fixture 的 `scenarios.default.response.body` 投影到 `openapi/.generated/openapi-with-fixtures.yaml`。Phase 14 后投影必须覆盖 38 个 operationId，并保证 named example body 与 fixture body 字节级一致。
 
 Prism smoke 使用生成物启动本地 mock，并用固定 operation matrix 校验响应 body 与 fixture body 字节级一致。当前固定 matrix 包括 `getMe`、`listTargetJobs`、`getPracticeSession`、`getFeedbackReport`、`requestPrivacyExport`。
 
@@ -70,7 +70,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 ## 5 验收标准
 
-- `openapi/fixtures/` 覆盖当前 37 个 operationId，没有多余 operation fixture。
+- `openapi/fixtures/` 覆盖当前 38 个 operationId，没有多余 operation fixture。
 - `make validate-fixtures` 通过，并能拒绝缺 fixture、schema drift、缺 provenance、非保留隐私值、非 UUIDv7 id 和 `tmp_` id。
 - 所有 consumer-owned named scenarios 非空并 schema-valid，且不存在平行 mock 数据真理源。
 - `make render-openapi-fixture-examples` 通过，生成 examples 与 fixture body 字节级一致。
@@ -231,3 +231,7 @@ Render examples and run live byte-equal Prism/mock parity for `getReportConversa
 Update `Auth/getMe.json` authenticated/profileIncomplete responses and `Auth/completeMyProfile.json` success to exact `{id,email,displayName,profileCompletionRequired}`. The authenticated fixture uses a complete reserved-domain synthetic email under the existing fixture privacy allowlist because it is the contract value rendered by Settings；unauthenticated errors and all logs/E2E evidence remain email-free or redacted. Validator mutations must exercise the source `additionalProperties: false` closure and reject either old language field, `emailMasked`, any arbitrary extra field, a missing required field or a non-reserved real email domain.
 
 Regenerate OpenAPI examples and prove Prism/dev-mock byte parity for `getMe` and `completeMyProfile`. Frontend dev mock and typed builders must consume the same fixture projection；no fallback constants or compatibility scenarios. This phase has no independent BDD: it hands real account values to frontend-shell settings BDD and the existing `E2E.P0.101` extension.
+
+## 16 Phase 14: Failed report regeneration fixtures
+
+Add `Reports/regenerateFeedbackReport.json` with `default`, replay, hidden 404, invalid state, active-job not-ready, context-too-large and idempotency-mismatch scenarios. Every success returns the same path `reportId` and a matching queued report-generation job；header-only requests carry `Idempotency-Key` and no body. Validate all 38 fixtures, render examples, extend Prism/dev-mock operation parity and prove raw report/provider content is absent. User behavior remains in backend/frontend report BDD；this phase is fixture/codegen support only.

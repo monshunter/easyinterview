@@ -1,8 +1,8 @@
 # EasyInterview 目标用户流程
 
-> **版本**: 2.30
+> **版本**: 2.31
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-16
 
 ## 1 文档目的
 
@@ -102,7 +102,9 @@ Reports(targetJobId)
 ├─ 只显示当前规划 canonical rounds
 ├─ 当前可用报告 -> Report Dashboard
 ├─ 最新生成中 -> Generating
-├─ 空 / 加载 / 失败
+├─ 最新生成失败 -> 同 report 重新生成 + 查看面试记录
+├─ `REPORT_CONTEXT_TOO_LARGE` -> 仅查看面试记录 / 返回
+├─ 空 / 加载 / 请求失败
 └─ 返回 -> `/workspace?targetJobId` current plan detail
 ```
 
@@ -178,6 +180,7 @@ Auth
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-16 | 2.31 | Reports 增加已结束会话的 failed report 同 ID 重生成与只读面试记录恢复，超限失败保持不可重试。 |
 | 2026-07-15 | 2.30 | 将 selectable 简历设为 JD import、训练、报告及报告后动作的永久强制前置；历史缺绑规划统一 fail closed。 |
 | 2026-07-15 | 2.29 | 采用设置简化方案 A：已登录 TopBar 只保留设置齿轮，Settings 只承接真实账号字段、退出、导出不可用与账号删除。 |
 | 2026-07-15 | 2.28 | Workspace 详情将绑定简历改为标题旁详情链接，并把立即面试/面试报告合并为左对齐首行动作行。 |

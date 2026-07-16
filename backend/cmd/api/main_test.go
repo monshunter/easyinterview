@@ -29,6 +29,7 @@ import (
 	domainresume "github.com/monshunter/easyinterview/backend/internal/resume"
 	resumehandler "github.com/monshunter/easyinterview/backend/internal/resume/handler"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
+	domainreview "github.com/monshunter/easyinterview/backend/internal/review"
 	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
@@ -257,7 +258,7 @@ email:
 	if _, ok := origins["http://frontend.local:6180"]; !ok {
 		t.Fatalf("expected frontend origin from email.verifyBaseURL, got %#v", origins)
 	}
-	if _, ok := origins["http://127.0.0.1:5173"]; ok {
+	if _, ok := origins["http://127.0.0.1:10900"]; ok {
 		t.Fatalf("unexpected hard-coded frontend origin leaked into CORS origins: %#v", origins)
 	}
 }
@@ -728,6 +729,7 @@ runtime:
 	}{
 		{method: http.MethodGet, path: "/api/v1/reports/018f2a40-0000-7000-9000-0000000000a1"},
 		{method: http.MethodGet, path: "/api/v1/reports/018f2a40-0000-7000-9000-0000000000a1/conversation", wantPrivateCache: true},
+		{method: http.MethodPost, path: "/api/v1/reports/018f2a40-0000-7000-9000-0000000000a1/regenerate", wantPrivateCache: true},
 		{method: http.MethodGet, path: "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a2/reports"},
 	}
 	for _, tc := range cases {
@@ -750,6 +752,128 @@ runtime:
 				}
 			}
 		})
+	}
+}
+
+func TestRegenerateFeedbackReportHTTPContractUsesReportIdempotencyAndPrivateResponses(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	now := time.Date(2026, 7, 16, 10, 0, 0, 0, time.UTC)
+	authService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
+		Store: &apiAuthStore{
+			session: auth.SessionRecord{ID: "session-1", UserID: "user-1", Status: auth.SessionStatusActive, ExpiresAt: now.Add(time.Hour)},
+			user:    auth.UserContext{ID: "user-1", Email: "candidate@example.com"},
+		},
+		SessionCookieSecret: "session-secret",
+		Now:                 func() time.Time { return now },
+	})
+	service := &apiReportRegenerationService{result: domainreview.RegenerateReportResult{
+		ReportID: "report-1",
+		Job: domainreview.ReportJobRecord{
+			ID: "job-1", JobType: "report_generate", ResourceType: "feedback_report", ResourceID: "report-1",
+			Status: sharedtypes.JobStatusQueued, CreatedAt: now, UpdatedAt: now,
+		},
+	}}
+	idemStore := &apiIdempotencyStore{}
+	handler := buildAPIHandler(
+		loader, apiRuntimeFlags{}, authService, targetjob.NewHandler(), practiceRoutes{}, uploadRoutes{}, resumeRoutes{},
+		reportRoutes{
+			Handler: apireports.NewHandler(apireports.HandlerOptions{Service: service, Session: currentUserFromContext}),
+			Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+				Store: idemStore, Now: func() time.Time { return now }, NewID: func() string { return "idem-report-1" },
+			}),
+		},
+		jobsRoutes{},
+	)
+
+	t.Run("missing key", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, authenticatedAPIRequest(http.MethodPost, "/api/v1/reports/report-1/regenerate", "", ""))
+		assertAPIStatusCode(t, recorder, http.StatusBadRequest, sharederrors.CodeValidationFailed)
+		assertPrivateNoStoreResponse(t, recorder)
+		if service.calls != 0 {
+			t.Fatalf("service calls=%d", service.calls)
+		}
+	})
+
+	t.Run("success", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, authenticatedAPIRequest(http.MethodPost, "/api/v1/reports/report-1/regenerate", "", "idem-report"))
+		if recorder.Code != http.StatusAccepted {
+			t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+		}
+		assertPrivateNoStoreResponse(t, recorder)
+		if service.calls != 1 || service.input.UserID != "user-1" || service.input.ReportID != "report-1" {
+			t.Fatalf("service calls=%d input=%+v", service.calls, service.input)
+		}
+		if idemStore.completeIn.Operation != "regenerateFeedbackReport" || idemStore.completeIn.ResourceType != "feedback_report" || idemStore.completeIn.ResourceID != "report-1" {
+			t.Fatalf("idempotency completion=%+v", idemStore.completeIn)
+		}
+		var response api.ReportWithJob
+		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+			t.Fatal(err)
+		}
+		if response.ReportId != "report-1" || response.Job.ResourceId != "report-1" {
+			t.Fatalf("response=%+v", response)
+		}
+	})
+
+	t.Run("pending", func(t *testing.T) {
+		pendingHandler := buildAPIHandler(
+			loader, apiRuntimeFlags{}, authService, targetjob.NewHandler(), practiceRoutes{}, uploadRoutes{}, resumeRoutes{},
+			reportRoutes{
+				Handler: apireports.NewHandler(apireports.HandlerOptions{Service: service, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{
+					Store: &apiIdempotencyStore{err: idempotency.ErrPending}, Now: func() time.Time { return now },
+				}),
+			},
+			jobsRoutes{},
+		)
+		recorder := httptest.NewRecorder()
+		pendingHandler.ServeHTTP(recorder, authenticatedAPIRequest(http.MethodPost, "/api/v1/reports/report-1/regenerate", "", "idem-report-pending"))
+		assertAPIStatusCode(t, recorder, http.StatusConflict, sharederrors.CodeReportNotReady)
+		assertPrivateNoStoreResponse(t, recorder)
+		var response api.ApiErrorResponse
+		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil || !response.Error.Retryable {
+			t.Fatalf("response=%+v err=%v", response, err)
+		}
+	})
+
+	t.Run("replay", func(t *testing.T) {
+		replayService := &apiReportRegenerationService{result: service.result}
+		replayStore := &apiIdempotencyStore{reservation: idempotency.Reservation{
+			State: idempotency.StateReplay, RecordID: "idem-report-replay", ResponseStatus: http.StatusAccepted,
+			ResponseBody: []byte(`{"reportId":"report-1","job":{"id":"job-1","jobType":"report_generate","resourceType":"feedback_report","resourceId":"report-1","status":"queued","createdAt":"2026-07-16T10:00:00Z","updatedAt":"2026-07-16T10:00:00Z"}}`),
+		}}
+		replayHandler := buildAPIHandler(
+			loader, apiRuntimeFlags{}, authService, targetjob.NewHandler(), practiceRoutes{}, uploadRoutes{}, resumeRoutes{},
+			reportRoutes{
+				Handler:     apireports.NewHandler(apireports.HandlerOptions{Service: replayService, Session: currentUserFromContext}),
+				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: replayStore, Now: func() time.Time { return now }}),
+			},
+			jobsRoutes{},
+		)
+		recorder := httptest.NewRecorder()
+		replayHandler.ServeHTTP(recorder, authenticatedAPIRequest(http.MethodPost, "/api/v1/reports/report-1/regenerate", "", "idem-report-replay"))
+		if recorder.Code != http.StatusAccepted || recorder.Header().Get(idempotency.ReplayHeader) != "true" || replayService.calls != 0 {
+			t.Fatalf("status=%d replay=%q calls=%d body=%s", recorder.Code, recorder.Header().Get(idempotency.ReplayHeader), replayService.calls, recorder.Body.String())
+		}
+		assertPrivateNoStoreResponse(t, recorder)
+	})
+}
+
+func assertPrivateNoStoreResponse(t *testing.T, recorder *httptest.ResponseRecorder) {
+	t.Helper()
+	if recorder.Header().Get("Cache-Control") != "private, no-store" || recorder.Header().Get("Pragma") != "no-cache" {
+		t.Fatalf("private headers=%v", recorder.Header())
 	}
 }
 
@@ -841,6 +965,7 @@ auth:
 		nil,
 		uploadRoutes{Objects: objectstore.NewFilesystemStore(t.TempDir())},
 		&apiNoopAIClient{},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("buildResumeRuntime: %v", err)
@@ -886,7 +1011,8 @@ runtime:
 ai:
   promptsDir: "`+promptsDir+`"
   rubricsDir: "`+rubricsDir+`"
-  debugPrintRawOutput: false
+  debugCaptureRawIO: false
+  debugRawIOPath: .test-output/local-dev/ai-raw.ndjson
 auth:
   challengeTokenPepper: "pepper"
 `)
@@ -903,6 +1029,7 @@ auth:
 		db,
 		uploadRoutes{Objects: objectstore.NewFilesystemStore(t.TempDir())},
 		&apiResolvableAIClient{},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("buildResumeRuntime: %v", err)
@@ -950,11 +1077,11 @@ auth:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildReportRuntime(loader, nil, &apiNoopAIClient{})
+	runtime, err := buildReportRuntime(loader, nil, &apiNoopAIClient{}, nil)
 	if err != nil {
 		t.Fatalf("buildReportRuntime: %v", err)
 	}
-	if runtime.Handler == nil || runtime.Handlers == nil || runtime.Service == nil {
+	if runtime.Handler == nil || runtime.Idempotency == nil || runtime.Handlers == nil || runtime.Service == nil {
 		t.Fatalf("runtime missing handler/handlers/service wiring: %+v", runtime)
 	}
 	if _, ok := runtime.Handlers[string(jobs.JobTypeReportGenerate)]; !ok {
@@ -962,6 +1089,9 @@ auth:
 	}
 	if runtime.Routes().Handler != runtime.Handler {
 		t.Fatalf("Routes handler mismatch")
+	}
+	if runtime.Routes().Idempotency != runtime.Idempotency {
+		t.Fatalf("Routes idempotency mismatch")
 	}
 }
 
@@ -976,7 +1106,7 @@ runtime:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if _, err := buildReportRuntime(loader, nil, nil); err == nil {
+	if _, err := buildReportRuntime(loader, nil, nil, nil); err == nil {
 		t.Fatal("buildReportRuntime returned nil error for missing AI client")
 	}
 }
@@ -1025,7 +1155,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -1108,7 +1238,8 @@ ai:
   modelProfilePath: "`+profilesPath+`"
   promptsDir: "`+promptsDir+`"
   rubricsDir: "`+rubricsDir+`"
-  debugPrintRawOutput: false
+  debugCaptureRawIO: false
+  debugRawIOPath: .test-output/local-dev/ai-raw.ndjson
 `)
 	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
 	if err != nil {
@@ -1118,7 +1249,7 @@ ai:
 		WithArgs(anySQLArgs(30)...).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	runtime, err := buildTargetJobRuntime(loader, db, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	runtime, err := buildTargetJobRuntime(loader, db, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -1192,7 +1323,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{})
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{}, nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -1259,7 +1390,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, db, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{})
+	runtime, err := buildTargetJobRuntime(loader, db, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{}, nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -1359,7 +1490,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -1407,7 +1538,7 @@ email:
   smtpPort: 1025
   smtpTLSMode: "none"
   fromAddress: "noreply@easyinterview.local"
-  verifyBaseURL: "http://127.0.0.1:5173/auth/verify"
+  verifyBaseURL: "http://127.0.0.1:10900/auth/verify"
 `)
 	loader, err := config.Load(config.Options{ConfigDir: dir})
 	if err != nil {
@@ -1719,6 +1850,31 @@ type apiIdempotencyStore struct {
 	completeIn  idempotency.CompletionInput
 	reservation idempotency.Reservation
 	err         error
+}
+
+type apiReportRegenerationService struct {
+	result domainreview.RegenerateReportResult
+	err    error
+	input  domainreview.RegenerateReportRequest
+	calls  int
+}
+
+func (s *apiReportRegenerationService) RegenerateReport(_ context.Context, in domainreview.RegenerateReportRequest) (domainreview.RegenerateReportResult, error) {
+	s.calls++
+	s.input = in
+	return s.result, s.err
+}
+
+func (*apiReportRegenerationService) GetFeedbackReport(context.Context, string, string) (domainreview.FeedbackReportRecord, error) {
+	return domainreview.FeedbackReportRecord{}, nil
+}
+
+func (*apiReportRegenerationService) GetReportConversation(context.Context, string, string) (domainreview.ReportConversationRecord, error) {
+	return domainreview.ReportConversationRecord{}, nil
+}
+
+func (*apiReportRegenerationService) ListTargetJobReports(context.Context, domainreview.ListTargetJobReportsRequest) (domainreview.TargetJobReportsOverviewRecord, error) {
+	return domainreview.TargetJobReportsOverviewRecord{}, nil
 }
 
 func (s *apiIdempotencyStore) Reserve(_ context.Context, in idempotency.ReservationInput) (idempotency.Reservation, error) {

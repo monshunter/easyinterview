@@ -99,12 +99,18 @@ case "$TARGET" in
     redeploy_deps
     ;;
   backend)
+    stop_full_container_app_role backend-dev
     redeploy_backend
     ;;
   frontend)
+    stop_full_container_app_role frontend-dev
     redeploy_frontend
     ;;
   all)
+    # Remove inactive full-container app records before the dependency doctor.
+    # dev-doctor intentionally reports discovered stopped app containers as DOWN.
+    stop_full_container_app_role backend-dev
+    stop_full_container_app_role frontend-dev
     redeploy_deps
     redeploy_backend
     redeploy_frontend

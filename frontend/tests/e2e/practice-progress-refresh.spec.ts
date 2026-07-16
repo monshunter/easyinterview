@@ -20,9 +20,9 @@ interface TargetJobProgressResponse {
 }
 
 const FRONTEND_ORIGIN =
-  process.env.EI_P0_098_FRONTEND_ORIGIN ?? "http://127.0.0.1:5173";
+  process.env.EI_P0_098_FRONTEND_ORIGIN ?? "http://127.0.0.1:10900";
 const API_BASE_URL =
-  process.env.EI_P0_098_API_BASE_URL ?? "http://127.0.0.1:8080/api/v1";
+  process.env.EI_P0_098_API_BASE_URL ?? "http://127.0.0.1:10901/api/v1";
 const MAILPIT_BASE_URL =
   process.env.EI_P0_098_MAILPIT_BASE_URL ?? "http://127.0.0.1:8025";
 const AUTH_EMAIL =
