@@ -9,12 +9,14 @@ COMPOSE := docker compose -f $(DEV_STACK_DIR)/docker-compose.yaml --project-dire
 
 DEPENDENCY_SERVICES := postgres-dev redis-dev minio-dev mailpit-dev
 INIT_SERVICES := minio-init
+FULL_CONTAINER_PROFILE := full-container
+FULL_CONTAINER_SERVICES := backend-dev frontend-dev
 DOCTOR_SCRIPT := $(DEV_STACK_DIR)/scripts/dev-doctor.sh
 POSTGRES_VOLUME_GUARD := $(DEV_STACK_DIR)/scripts/check-postgres-volume-layout.sh
 ENV_EXAMPLE := $(DEV_STACK_DIR)/.env.example
 ENV_FILE := $(DEV_STACK_DIR)/.env
 
-.PHONY: up down doctor reset logs pull help _ensure_env _check_postgres_volume _wait_init _all_healthy
+.PHONY: up down doctor reset logs pull container-up container-down container-doctor container-logs help _ensure_env _check_container_env _check_postgres_volume _wait_init _all_healthy
 
 help: ## List dev-stack make targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -23,6 +25,18 @@ _ensure_env:
 	@if [ ! -f "$(ENV_FILE)" ]; then \
 		echo "[dev-stack] .env not found, copying from $(notdir $(ENV_EXAMPLE))"; \
 		cp "$(ENV_EXAMPLE)" "$(ENV_FILE)"; \
+	fi
+
+_check_container_env: _ensure_env
+	@set -a; source "$(ENV_FILE)"; set +a; \
+	missing=(); \
+	for key in SESSION_COOKIE_SECRET AUTH_CHALLENGE_TOKEN_PEPPER AI_PROVIDER_BASE_URL AI_PROVIDER_API_KEY; do \
+		if [ -z "$${!key:-}" ]; then missing+=("$$key"); fi; \
+	done; \
+	if [ "$${#missing[@]}" -ne 0 ]; then \
+		echo "[dev-stack] full-container runtime requires non-empty local values for: $${missing[*]}" >&2; \
+		echo "[dev-stack] set them in $(ENV_FILE); values will not be printed" >&2; \
+		exit 1; \
 	fi
 
 _check_postgres_volume:
@@ -83,6 +97,23 @@ up: _ensure_env _check_postgres_volume ## Start dev stack (idempotent; skip if a
 		}; \
 	fi; \
 	echo "[dev-stack] up complete"
+
+container-up: _check_container_env _check_postgres_volume ## Build and start dependencies plus containerized backend/frontend
+	@$(MAKE) -s -C "$(DEV_STACK_DIR)" up
+	@echo "[dev-stack] building and starting full-container application services"
+	@$(COMPOSE) --profile $(FULL_CONTAINER_PROFILE) up -d --build --wait --wait-timeout 180 $(FULL_CONTAINER_SERVICES)
+	@$(MAKE) -s -C "$(DEV_STACK_DIR)" container-doctor
+	@echo "[dev-stack] frontend: http://127.0.0.1:$${FULL_CONTAINER_FRONTEND_HOST_PORT:-10800}"
+	@echo "[dev-stack] backend:  http://127.0.0.1:$${FULL_CONTAINER_API_HOST_PORT:-10801}/api/v1"
+
+container-down: ## Stop the full-container stack; named volumes preserved
+	@$(COMPOSE) --profile $(FULL_CONTAINER_PROFILE) down
+
+container-doctor: ## Run the structured health probe for dependencies and application containers
+	@$(MAKE) -s -C "$(DEV_STACK_DIR)" doctor
+
+container-logs: ## Tail full-container logs; pass SERVICE=<name> to scope
+	@$(COMPOSE) --profile $(FULL_CONTAINER_PROFILE) logs --tail 200 --no-color $(if $(SERVICE),$(SERVICE),$(FULL_CONTAINER_SERVICES))
 
 _wait_init: # internal: wait until every init container exits 0 (timeout 60s)
 	@for svc in $(INIT_SERVICES); do \

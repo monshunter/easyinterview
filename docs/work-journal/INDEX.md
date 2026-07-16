@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-16](2026-07-16.md) | `feat(local-dev): add full-container runtime` | #feat #test #docs #e2e |
 | [2026-07-16](2026-07-16.md) | `fix(frontend): humanize product copy and align resume action` | #fix #ui #i18n #test |
 | [2026-07-15](2026-07-15.md) | `docs(interview): require selectable resume across training flow` | #docs #ui #test #bdd |
 | [2026-07-15](2026-07-15.md) | `feat(report): align context grid and acceptance (BUG-0177)` | #feat #ui #test #docs #bdd |

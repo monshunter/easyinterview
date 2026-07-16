@@ -1,10 +1,10 @@
 # Local Dev Stack
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-06-15
+> **更新日期**: 2026-07-16
 
-本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的外部依赖；backend / frontend 默认由宿主机 dev command 管理，只有组件 owner 明确接入 optional compose app service 时才进入本栈。**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**；本地邮件通过轻量 Mailpit 依赖承接。
+本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的外部依赖，backend / frontend 仍由宿主机 dev command 管理；显式 `make dev-container-up` 才启用 `full-container` profile，以容器方式构建并运行当前前后端。**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**；本地邮件通过轻量 Mailpit 依赖承接。
 
 ## 1 前置条件
 
@@ -35,7 +35,7 @@
 
 ### 2.2 项目组件
 
-当前没有项目组件接入默认 compose。backend / frontend 本地开发优先使用宿主机 dev command 直接运行，并连接本栈提供的 Postgres / Redis / MinIO。后续只有在组件 owner 明确需要可复现容器化 app service 时，才把 service 接入本 compose 文件并打 label：
+项目组件不进入默认 compose 启动集合。backend / frontend 本地开发仍优先使用宿主机 dev command；`full-container` profile 提供可复现的 `backend-dev`、一次性 `migrate-dev` 和 `frontend-dev`，默认分别暴露 `10801`、无 host port、`10800`。frontend nginx 将 `/api/*` 同源代理到 `backend-dev:8080`，其余路径回退到 SPA `index.html`。
 
 | label | 含义 |
 |-------|------|
@@ -55,6 +55,10 @@
 | `make dev-reset` | 停止容器并 **删除** 三个命名卷（C-5）；交互式 `read` 确认；`DEV_RESET_FORCE=1` 跳过确认 |
 | `make dev-logs` | 汇总打印近期容器日志；`SERVICE=<name>` 限定到单个 service |
 | `make dev-pull` | 预拉锁定 tag 的依赖镜像（慢网络） |
+| `make dev-container-up` | 校验本地 secret，构建镜像、执行 migration 并启动完整容器栈；frontend `10800`，backend `10801` |
+| `make dev-container-down` | 停止完整容器栈并保留命名卷 |
+| `make dev-container-doctor` | 检查外部依赖与容器化前后端健康状态 |
+| `make dev-container-logs` | 输出容器化前后端日志；`SERVICE=backend-dev|frontend-dev` 可缩小范围 |
 | `make scenario-env-setup` | 通过 `test/scenarios/env-setup.sh` 准备共享测试 / 本地联调环境 |
 | `make scenario-env-status` | 通过 `test/scenarios/env-status.sh` 输出共享环境状态 |
 | `make scenario-env-verify` | 通过 `test/scenarios/env-verify.sh` 验证共享环境 readiness |
@@ -86,6 +90,8 @@ frontend real mode 也必须从同一个 `.env` 读取：
 - `FRONTEND_PREVIEW_PORT=4173`（Vite preview 端口；可按本机占用调整）
 - `VITE_EI_API_MODE=real`
 - `VITE_EI_API_BASE_URL=http://127.0.0.1:8080/api/v1`
+
+完整容器模式使用同一文件中的 `FULL_CONTAINER_FRONTEND_HOST_PORT=10800` 与 `FULL_CONTAINER_API_HOST_PORT=10801`。`SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`AI_PROVIDER_BASE_URL`、`AI_PROVIDER_API_KEY` 为空时 `make dev-container-up` 会在构建前失败且只报告缺失字段名，不输出任何 secret 值。
 
 ### 4.1.1 服务地址与调试入口
 

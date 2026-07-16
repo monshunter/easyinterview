@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from urllib.parse import quote
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SCENARIO_ROOT = ROOT / "test" / "scenarios"
@@ -146,3 +148,74 @@ def test_top_level_scenario_environment_entrypoints_remain_independent() -> None
     for script, target in expected.items():
         assert (SCENARIO_ROOT / script).is_file()
         assert f"{target}:" in makefile
+
+
+def test_optional_full_container_runtime_contract() -> None:
+    compose_path = ROOT / "deploy" / "dev-stack" / "docker-compose.yaml"
+    compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
+
+    services = compose["services"]
+    for service_name in ("migrate-dev", "backend-dev", "frontend-dev"):
+        assert services[service_name]["profiles"] == ["full-container"]
+    assert services["backend-dev"]["depends_on"]["migrate-dev"]["condition"] == (
+        "service_completed_successfully"
+    )
+    assert services["backend-dev"]["ports"] == [
+        "127.0.0.1:${FULL_CONTAINER_API_HOST_PORT:-10801}:8080"
+    ]
+    assert services["frontend-dev"]["ports"] == [
+        "127.0.0.1:${FULL_CONTAINER_FRONTEND_HOST_PORT:-10800}:8080"
+    ]
+    for service_name in ("backend-dev", "frontend-dev"):
+        assert services[service_name]["labels"]["easyinterview.dev-stack.role"] == "app"
+        assert "healthcheck" in services[service_name]
+    for relative in (
+        "deploy/dev-stack/Dockerfile.backend",
+        "deploy/dev-stack/Dockerfile.frontend",
+        "deploy/dev-stack/frontend-nginx.conf",
+    ):
+        assert (ROOT / relative).is_file(), relative
+
+    nginx = (ROOT / "deploy" / "dev-stack" / "frontend-nginx.conf").read_text(
+        encoding="utf-8"
+    )
+    assert "try_files $uri $uri/ /index.html" in nginx
+    assert "proxy_pass http://backend-dev:8080" in nginx
+
+
+def test_optional_full_container_lifecycle_contract() -> None:
+    root_makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    stack_makefile = (ROOT / "deploy" / "dev-stack" / "Makefile").read_text(
+        encoding="utf-8"
+    )
+    env_example = (ROOT / "deploy" / "dev-stack" / ".env.example").read_text(
+        encoding="utf-8"
+    )
+
+    targets = (
+        "dev-container-up",
+        "dev-container-down",
+        "dev-container-doctor",
+        "dev-container-logs",
+    )
+    for target in targets:
+        assert f"{target}:" in root_makefile
+    for target in ("container-up", "container-down", "container-doctor", "container-logs"):
+        assert f"{target}:" in stack_makefile
+
+    default_up = stack_makefile.split("\nup:", 1)[1].split("\ncontainer-up:", 1)[0]
+    assert "full-container" not in default_up
+
+    assert "FULL_CONTAINER_FRONTEND_HOST_PORT=10800" in env_example
+    assert "FULL_CONTAINER_API_HOST_PORT=10801" in env_example
+
+    for relative in (
+        "deploy/dev-stack/README.md",
+        "test/scenarios/README.md",
+        ".agent-skills/scenario-env/SKILL.md",
+        ".agent-skills/scenario-redeploy/SKILL.md",
+    ):
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        assert "dev-container-up" in text, relative
+        assert "10800" in text, relative
+        assert "10801" in text, relative

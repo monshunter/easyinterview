@@ -1,0 +1,14 @@
+.git
+.test-output
+**/.DS_Store
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+**/dist
+**/bin
+**/.cache
+**/.vite
+**/*.log
+docs
+test

@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-16
 
 **关联计划**: [plan](./plan.md)
 
@@ -111,3 +111,13 @@
 
 - [x] 11.1 新增 README shared-script inventory contract，先证明 `common.sh` / `image-cache.sh` 引用指向不存在文件，再删除两处路径、无效首次使用命令和 fallback 说明；验证 focused/full scenario contract pytest、shell inventory、owner contexts 与 docs/diff/pruning gates。
   <!-- verified: 2026-07-10 method=scenario-shared-script-inventory-cleanup evidence="Focused RED named only missing common.sh and image-cache.sh. Removed both README entries, the nonexistent pull command and fallback prose; documented the three real shared helpers. Scenario env/script contracts pass 18 tests, eight shell entrypoints parse, reset/redeploy dry-run and owner contexts PASS." -->
+
+## Phase 12: optional full-container local deployment
+
+- [x] 12.1 Red contract：扩展 `scripts/lint/scenario_env_contract_test.py`，覆盖根/子 Makefile `dev-container-*`、同一 Compose `full-container` profile、migrations/backend/frontend、默认 10800/10801、Dockerfile/proxy/docs/skill 和默认 host-run 非回归；先运行 focused pytest 并确认因实现缺失而失败。
+  <!-- verified: 2026-07-16 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k optional_full_container_profile_contract" evidence="RED failed at missing root dev-container-up target before implementation" -->
+- [x] 12.2 Container runtime：新增 backend/frontend 多阶段 Dockerfile 与 frontend SPA/API proxy 配置；Compose 接入一次性 migrations、backend、frontend，使用真实依赖 service name、healthcheck、doctor app labels、loopback host port 和 AI/auth secret fail-fast；验证 focused contract、`docker compose config --quiet` 与两张镜像实际 build 通过。
+  <!-- verified: 2026-07-16 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k optional_full_container_runtime_contract; docker compose -f deploy/dev-stack/docker-compose.yaml --project-directory deploy/dev-stack --profile full-container config --quiet; docker compose ... build backend-dev frontend-dev" evidence="runtime contract and compose config pass; backend API/migrate and frontend TypeScript/Vite/nginx images built successfully for arm64" -->
+- [x] 12.3 Lifecycle/docs/skill：根与 `deploy/dev-stack` Makefile 实现 `dev-container-up/down/doctor/logs`，`.env.example` 增加 `FULL_CONTAINER_FRONTEND_HOST_PORT=10800` / `FULL_CONTAINER_API_HOST_PORT=10801`；更新 dev-stack/scenario README 与 scenario-env/redeploy skill；focused lifecycle contract pytest、根/子 Make help 和 `git diff --check` 已通过。
+- [x] 12.4 Static/regression gate：root `make test`（Python 561 passed / 4481 subtests、backend Go、frontend 126 files / 1004 tests）、`make build`、`make docs-check`、context validator、doc index check、full-container compose config 和 `git diff --check` 全部通过；代码 gate 与真实环境验收分层报告。
+- [x] 12.5 Live/Chrome gate：`make dev-container-up` 已部署当前工作树，migrations 成功，doctor 6/6 OK，10800 frontend 与 10801 runtime-config 均返回 200；Chrome 在 10800 使用 E2E.P0.101 标准 synthetic 邮箱完成验证码登录、资料补全、简历 AI 解析、JD/面试计划、真实 AI 问答与报告生成，未使用 mock/interception且 console warning/error 为 0；脱敏截图保存于 `.test-output/full-container-chrome/01-auth-profile-home.png`、`02-resume-ready.png`、`03-live-practice.png`、`04-report-complete.png`，报告页与环境保持运行供接管。

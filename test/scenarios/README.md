@@ -4,7 +4,7 @@
 
 本目录只承载操作真实运行环境的端到端场景测试约定。BDD 文档中的 domain behavior test 留在代码 owner，不因使用 Given/When/Then 就进入本目录。
 
-当前仓库只维护一套本地场景契约。阶段差异通过场景编号和产品阶段表达，不通过多套环境拆分；默认场景编排只使用 shell / Python，外部依赖按需由 `make dev-up` 提供。E2E 只接收针对真实运行环境的 HTTP API 调用，或针对真实运行前后端的浏览器 UI 操作；场景不得把包测试、源码检查或构建包装成 E2E。
+当前仓库只维护一套本地场景契约。阶段差异通过场景编号和产品阶段表达，不通过多套环境拆分；默认场景编排只使用 shell / Python，外部依赖按需由 `make dev-up` 提供。明确要求完整容器部署时，使用 `make dev-container-up` 启动 frontend `http://127.0.0.1:10800` 与 backend `http://127.0.0.1:10801/api/v1`；这只是同一真实环境的可选部署形态。E2E 只接收针对真实运行环境的 HTTP API 调用，或针对真实运行前后端的浏览器 UI 操作；场景不得把包测试、源码检查或构建包装成 E2E。
 
 当前标准套件：
 
@@ -65,13 +65,14 @@ test/scenarios/
 | `test/scenarios/env-verify.sh` | 验证共享环境 readiness | `make scenario-env-verify` |
 | `test/scenarios/env-cleanup.sh` | 清理共享环境，默认保留命名卷 | `make scenario-env-cleanup` |
 | `test/scenarios/env-redeploy.sh` | 按 `deps/backend/frontend/all` 刷新依赖或 build artifacts | `make scenario-env-redeploy TARGET=<target>` |
+| `deploy/dev-stack` 的 `full-container` profile | 构建并启动依赖、migration、backend、frontend | `make dev-container-up`；停止用 `make dev-container-down` |
 | `env-cleanup.sh --with-volumes` → `env-setup.sh --with-migrations` → `env-redeploy.sh all` → `env-verify.sh` | 清理数据、重跑迁移、重编译并重启 host-run backend/frontend，再验证 readiness | `make scenario-env-reset-redeploy` |
 
 `env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-redeploy.sh` 必须给出开发者可接管的信息：frontend/backend/Mailpit/MinIO 地址、`.test-output/local-dev/{backend,frontend}.log`、PID 文件以及容器日志命令。当前 host-run 口径下，`env-redeploy.sh backend|frontend|all` 不是只做 build；它必须重新启动对应宿主机前后端进程，保证用户在浏览器里看到的服务已经加载当前代码和 `deploy/dev-stack/.env`。
 
 `make scenario-env-reset-redeploy` 是显式清数据调试入口，会删除本地 named volumes。普通重启或仅重新加载当前代码时使用 `make scenario-env-redeploy TARGET=all`，不得把“重启”默认解释为 reset。
 
-具体场景的 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 只负责场景数据、runner 执行证据和场景自有清理，不得把共享环境 bootstrap 私有化，也不得引用另一个具体场景作为环境前提。开发者可以只执行 `/scenario-env setup` 或 `make scenario-env-setup` 构建环境，然后人工或由 Agent 运行目标场景；hybrid 场景与本地联调也遵循该边界，真实 backend/frontend 长驻进程仍按场景 README 在宿主机启动。
+具体场景的 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 只负责场景数据、runner 执行证据和场景自有清理，不得把共享环境 bootstrap 私有化，也不得引用另一个具体场景作为环境前提。默认仍由 `/scenario-env setup` 或 `make scenario-env-setup` 准备依赖、宿主机运行前后端；当请求明确指定全容器部署时，改用 `make dev-container-up`，并以 `10800` / `10801` 的真实 UI/API 入口完成同一场景验收。
 
 ## 4 首次使用
 

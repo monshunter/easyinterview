@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，承接 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 锁定的 `make dev-up` / `make dev-down` 根入口并接入真实实现，新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。1.15 revision 仅收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。1.17 revision 新增一键 `scenario-env-reset-redeploy` Make target，用于调试时按固定顺序清理数据、重跑迁移、重编译并重启 host-run backend/frontend、再执行环境 verify。1.18 revision 收敛 A1 根入口表述：A2 承接 repo-scaffold 已锁定的 `dev-up` / `dev-down` 入口，不再使用早期切换口径。1.19 revision 将 `.env.example` 描述收敛为空值示例 / 示例默认值，不改变 dev-stack env 合同。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。1.15 revision 仅收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。1.17 revision 新增一键 `scenario-env-reset-redeploy` Make target，用于调试时按固定顺序清理数据、重跑迁移、重编译并重启 host-run backend/frontend、再执行环境 verify。1.18 revision 收敛 A1 根入口表述：A2 承接 repo-scaffold 已锁定的 `dev-up` / `dev-down` 入口，不再使用早期切换口径。1.19 revision 将 `.env.example` 描述收敛为空值示例 / 示例默认值，不改变 dev-stack env 合同。1.21 revision 在同一 Compose 中新增显式 `full-container` profile 与根 `dev-container-*` target，锁定 frontend/backend 默认对外端口 10800/10801、migration 前置和 Chrome 主流程部署验收，同时保留默认 host-run 模式。
 
 ## 2 背景
 
@@ -382,9 +382,34 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 
 删除不存在的 `common.sh` / `image-cache.sh` 路径及首次使用命令，只保留当前三个真实 shared helpers 与五个顶层 env lifecycle scripts。首次使用直接进入当前 e2e 文档和 `scenario-env-*` lifecycle，不创建空实现或兼容说明。
 
+### Phase 12: optional full-container local deployment
+
+#### 12.1 Red contract
+
+扩展 `scripts/lint/scenario_env_contract_test.py`，先以失败断言锁定：根 `Makefile` 暴露 `dev-container-up/down/doctor/logs`；同一 `deploy/dev-stack/docker-compose.yaml` 包含 `full-container` profile 的 migrations/backend/frontend；默认 host ports 为 10800/10801；backend/frontend Dockerfile、frontend reverse-proxy 配置、README 与 scenario skill 均存在且不改变默认 `dev-up` host-run 语义。
+
+#### 12.2 Container runtime implementation
+
+- 为 backend 提供多阶段 Dockerfile，构建 API 与 migration binaries；运行镜像只携带 binaries、`config/`、`migrations/` 与 CA certificates，不携带源码或本地 secrets。
+- 为 frontend 提供多阶段 Dockerfile，执行 production build，并由轻量 HTTP server 提供 SPA fallback 与 `/api/` 到 `backend-dev` 的同源代理。
+- Compose 的 `migrate-dev` 必须在 backend 前成功退出；backend/frontend 必须有容器 healthcheck、`role=app` doctor labels 与固定内部端口；所有服务复用 `easyinterview-dev` network、named volumes 和 `deploy/dev-stack/.env`。
+- 全容器 backend 通过 service name 连接 Postgres/Redis/MinIO/Mailpit，且继续要求真实 AI provider 配置；frontend/backend 默认仅把 10800/10801 映射到 loopback。
+
+#### 12.3 Make, docs and skill lifecycle
+
+根 `Makefile` 与 `deploy/dev-stack/Makefile` 增加 `dev-container-up/down/doctor/logs` 委派和实现；`.env.example` 增加两项可覆盖 host port。更新 `deploy/dev-stack/README.md`、`test/scenarios/README.md`、`scenario-env` / `scenario-redeploy` skill，明确默认 host-run 与显式 full-container 两条模式、部署/停止/日志/验收命令和 secret fail-fast 边界。
+
+#### 12.4 Static and regression gates
+
+执行 focused scenario contract pytest、`docker compose config --quiet`、backend/frontend image build、root `make test`、`make build`、`make docs-check`、context validator、doc index check 与 `git diff --check`。代码 gate 与真实运行环境验收分别报告，不得放入 E2E 脚本包装。
+
+#### 12.5 Live deployment and Chrome acceptance
+
+使用 `make dev-container-up` 部署当前工作树，确认 `dev-container-doctor` 全绿、`http://127.0.0.1:10800/` 与 `http://127.0.0.1:10801/api/v1/runtime-config` 可访问、Compose 中 migrations 成功且 backend/frontend healthy。随后使用 Chrome 在 10800 frontend 上执行当前产品主流程，业务请求必须落到真实 backend 且不使用浏览器 mock/interception；保留截图和关键网络/页面状态证据，验收完成后环境保持运行供开发者接管。
+
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-17 全部成立，证据贴入工作日志或当前 `.test-output/`。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-18 全部成立，证据贴入工作日志或当前 `.test-output/`。
 - 本 plan checklist 全部勾选；Phase 3 / Phase 4 的 `make dev-*` 自检命令日志贴入工作日志。
 - engineering-roadmap rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
 
@@ -398,11 +423,14 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 | 默认端口（5432 / 6379 / 9000 / 9001 / 项目组件端口）与开发者本机已运行的服务冲突 | C-2 已覆盖端口冲突报错路径；README 提示用 `.env` override `*_HOST_PORT` 字段，不修改容器内端口；本 plan 不实现 host port 自动避让 |
 | init 脚本中 MinIO bucket 创建在 image 升级后字段格式漂移 | 镜像 tag 锁定在 spec D-2；任何 major 升级走 spec 修订流程而非本 plan 静默 bump |
 | 未来组件没有 Dockerfile 或稳定 dev command，导致无法纳入 `make dev-up` | 默认不纳入 compose：对应组件先提供宿主机 dev command；只有确实需要 optional app service 时，组件 plan 才补齐 Dockerfile、健康检查与资源预算后声明受 `make dev-up` 覆盖 |
+| 全容器 frontend 把宿主机 API 地址固化进 bundle，端口 override 后请求失效 | production bundle 使用相对 `/api/v1`，由 frontend 容器代理到 Compose `backend-dev`；10801 只作为宿主机直连/诊断入口 |
+| `.env` 仍使用 localhost 依赖地址导致 backend 容器启动失败 | Compose 为 backend/migrations 显式注入容器网络地址；host-run `.env` 值保持不变，避免两种模式互相污染 |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-16 | 1.21 | Full-container revision：同一 Compose 增加 migrations/backend/frontend 可选 profile，新增 `dev-container-*` lifecycle，锁定 10800/10801 与 Chrome 主流程部署验收。 | user goal |
 | 2026-07-10 | 1.20 | 删除场景 README 中两个不存在的 shared script 入口，并增加真实文件 inventory gate。 | tech-debt pruning |
 | 2026-07-10 | 1.19 | Wording cleanup：将 `.env.example` 的 secret / provider 描述从旧 scaffold wording 收敛为空值示例 / 示例默认值。 | tech-debt pruning |
 | 2026-07-10 | 1.18 | Wording cleanup：A2 承接 repo-scaffold 锁定的 `dev-up` / `dev-down` 根入口，不再使用早期切换口径。 | tech-debt pruning |

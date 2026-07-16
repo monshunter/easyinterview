@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.23
+    to: 1.26
 spec:
   defaultTarget: repo
   discovery:
@@ -66,6 +66,11 @@ spec:
       - scenario-env-setup
       - scenario-env-redeploy
       - scenario-env-reset-redeploy
+      - full-container
+      - dev-container-up
+      - dev-container-doctor
+      - "10800"
+      - "10801"
       - one-click reset redeploy
       - clean data rebuild redeploy
       - developer debug handoff
@@ -90,6 +95,9 @@ spec:
           - deploy/dev-stack/init
           - deploy/dev-stack/scripts
           - deploy/dev-stack/scripts/check-postgres-volume-layout.sh
+          - deploy/dev-stack/Dockerfile.backend
+          - deploy/dev-stack/Dockerfile.frontend
+          - deploy/dev-stack/frontend-nginx.conf
           - Makefile
           - backend/internal/auth
           - backend/cmd/api

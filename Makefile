@@ -14,7 +14,7 @@ SCENARIO_ENV_CLEANUP := $(ROOT_DIR)/test/scenarios/env-cleanup.sh
 SCENARIO_ENV_REDEPLOY := $(ROOT_DIR)/test/scenarios/env-redeploy.sh
 TARGET ?= all
 
-.PHONY: help fmt lint lint-go-mod-tidy lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-out-of-scope lint-runner-out-of-scope lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-ui-demo-pruning lint-secrets-pattern lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy scenario-env-reset-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-go-mod-tidy lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-out-of-scope lint-runner-out-of-scope lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-ui-demo-pruning lint-secrets-pattern lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull dev-container-up dev-container-down dev-container-doctor dev-container-logs scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy scenario-env-reset-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -131,6 +131,18 @@ dev-logs: ## Tail dev-stack container logs (SERVICE=<name> to scope)
 
 dev-pull: ## Pre-pull dev-stack pinned images for slow-network bootstrap
 	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" pull
+
+dev-container-up: ## Build and start the full-container local stack (frontend :10800, backend :10801)
+	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" container-up
+
+dev-container-down: ## Stop the full-container local stack; named volumes preserved
+	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" container-down
+
+dev-container-doctor: ## Verify dependency and full-container application health
+	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" container-doctor
+
+dev-container-logs: ## Tail full-container logs (SERVICE=<name> to scope)
+	@$(MAKE) -C "$(ROOT_DIR)/deploy/dev-stack" container-logs SERVICE="$(SERVICE)"
 
 scenario-env-setup: ## Setup shared scenario/local-integration environment (ARGS="--with-migrations")
 	@$(SCENARIO_ENV_SETUP) $(ARGS)

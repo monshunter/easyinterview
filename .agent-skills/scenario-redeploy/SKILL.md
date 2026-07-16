@@ -46,6 +46,12 @@ addresses plus `.test-output/local-dev/{backend,frontend}.log` and PID files so
 the developer can take over debugging. Keep secrets in ignored local files and
 never print secret values.
 
+An explicit full-container request is the documented exception: run
+`make dev-container-up`, then `make dev-container-doctor`; the default frontend
+and backend ports are `10800` and `10801`. Use `make dev-container-logs` for
+diagnostics and `make dev-container-down` for a volume-preserving stop. Do not
+route this explicit topology through the host-run `scenario-env-redeploy` path.
+
 ## Rules
 
 - Do not assume cluster types, Helm charts, namespaces, or component

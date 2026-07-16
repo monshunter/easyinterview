@@ -1,13 +1,14 @@
 # Local Dev Stack History
 
-> **版本**: 1.25
+> **版本**: 1.26
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-16
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-16 | 1.26 | 新增同 Compose `full-container` profile 与 `dev-container-*` 生命周期合同，锁定 frontend/backend 默认对外端口 10800/10801、migration 前置、同源 API 代理和 Chrome 主流程部署验收。 | local-dev-stack/001 Phase 12 |
 | 2026-07-10 | 1.25 | 收敛本地 AI provider env 说明：`.env.example` 传递 catalog path 与 provider endpoint/key env ref，删除旧模板字段描述。 | tech-debt pruning |
 | 2026-07-10 | 1.24 | 同步 A1 根 Make target 口径：`dev-up` / `dev-down` 已由 A1 锁定并委托给 A2，不再按空实现 target 表述。 | tech-debt pruning |
 | 2026-07-09 | 1.23 | 新增一键 `scenario-env-reset-redeploy` 调试入口合同：按清理数据卷、重跑迁移、重编译并重启 host-run backend/frontend、verify 的顺序复用顶层 env scripts。 | local-dev-stack/001 Phase 10 |

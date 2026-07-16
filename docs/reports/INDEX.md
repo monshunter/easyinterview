@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-16](./2026-07-16-local-dev-full-container-assessment.md) | Local Dev Full Container 交付复盘 | #assessment #local-dev #e2e |
 | [2026-07-15](./2026-07-15-mandatory-resume-contract-assessment.md) | Mandatory Resume Contract 交付复盘 | #assessment #product #ui |
 | [2026-07-15](./2026-07-15-report-context-grid-alignment-assessment.md) | Report Context Grid Alignment 交付复盘 | #assessment #ui #BUG-0177 |
 | [2026-07-15](./2026-07-15-settings-simplification-assessment.md) | Settings Simplification 交付复盘 | #assessment #BUG-0175 #BUG-0176 |
