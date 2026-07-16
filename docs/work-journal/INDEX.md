@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-17](2026-07-17.md) | `fix(auth): encode localized smtp messages as mime` | #fix #test #docs |
 | [2026-07-16](2026-07-16.md) | `refactor(ai): adopt openai-go and restore quality gates (BUG-0181)` | #refactor #test #docs |
 | [2026-07-16](2026-07-16.md) | `fix(platform): harden smtp lifecycle and pid ownership (BUG-0180)` | #fix #test #docs #bdd |
 | [2026-07-16](2026-07-16.md) | `feat(auth): use Redis for email delivery secrets (BUG-0179)` | #feat #fix #test #docs #bdd |

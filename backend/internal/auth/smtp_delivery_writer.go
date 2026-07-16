@@ -6,11 +6,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"mime"
+	"mime/quotedprintable"
 	"net"
 	"net/mail"
 	"net/smtp"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
@@ -293,7 +296,7 @@ func buildLoginCodeMessage(from string, to string, code string, locale string) (
 	}{
 		{name: "From", value: from},
 		{name: "To", value: to},
-		{name: "Subject", value: subject},
+		{name: "Subject", value: encodeMIMEHeader(subject)},
 		{name: "MIME-Version", value: "1.0"},
 		{name: "Content-Type", value: `multipart/alternative; boundary="ei_auth_code"`},
 	}
@@ -308,31 +311,45 @@ func buildLoginCodeMessage(from string, to string, code string, locale string) (
 		b.WriteString("\r\n")
 	}
 	b.WriteString("\r\n")
-	b.WriteString("--ei_auth_code\r\n")
-	b.WriteString("Content-Type: text/plain; charset=UTF-8\r\n\r\n")
-	b.WriteString(title)
-	b.WriteString("\r\n\r\n")
-	b.WriteString(code)
-	b.WriteString("\r\n\r\n")
-	b.WriteString(instruction)
-	b.WriteString("\r\n\r\n")
-	b.WriteString("--ei_auth_code\r\n")
-	b.WriteString("Content-Type: text/html; charset=UTF-8\r\n\r\n")
-	b.WriteString(`<!doctype html><html><body style="margin:0;background:#f7f3ea;font-family:Inter,Arial,sans-serif;color:#241f19;">`)
-	b.WriteString(`<div style="max-width:520px;margin:0 auto;padding:28px 24px;">`)
-	b.WriteString(`<p style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a6d3b;margin:0 0 12px;">EasyInterview</p>`)
-	b.WriteString(`<h1 style="font-size:22px;line-height:1.3;margin:0 0 18px;font-weight:650;">`)
-	b.WriteString(title)
-	b.WriteString(`</h1>`)
-	b.WriteString(`<div style="display:inline-block;border:1px solid #ded3bd;border-radius:8px;background:#fffaf0;padding:14px 18px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:32px;letter-spacing:6px;font-weight:700;">`)
-	b.WriteString(code)
-	b.WriteString(`</div>`)
-	b.WriteString(`<p style="font-size:14px;line-height:1.6;color:#665a4a;margin:18px 0 0;">`)
-	b.WriteString(instruction)
-	b.WriteString(`</p>`)
-	b.WriteString(`</div></body></html>`)
+	plainBody := title + "\r\n\r\n" + code + "\r\n\r\n" + instruction + "\r\n"
+	if err := writeQuotedPrintablePart(&b, "text/plain", plainBody); err != nil {
+		return "", err
+	}
+	htmlBody := `<!doctype html><html><body style="margin:0;background:#f7f3ea;font-family:Inter,Arial,sans-serif;color:#241f19;">` +
+		`<div style="max-width:520px;margin:0 auto;padding:28px 24px;">` +
+		`<p style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a6d3b;margin:0 0 12px;">EasyInterview</p>` +
+		`<h1 style="font-size:22px;line-height:1.3;margin:0 0 18px;font-weight:650;">` + title + `</h1>` +
+		`<div style="display:inline-block;border:1px solid #ded3bd;border-radius:8px;background:#fffaf0;padding:14px 18px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:32px;letter-spacing:6px;font-weight:700;">` + code + `</div>` +
+		`<p style="font-size:14px;line-height:1.6;color:#665a4a;margin:18px 0 0;">` + instruction + `</p>` +
+		`</div></body></html>`
+	if err := writeQuotedPrintablePart(&b, "text/html", htmlBody); err != nil {
+		return "", err
+	}
 	b.WriteString("\r\n--ei_auth_code--\r\n")
 	return b.String(), nil
+}
+
+func encodeMIMEHeader(value string) string {
+	if strings.IndexFunc(value, func(r rune) bool { return r > unicode.MaxASCII }) < 0 {
+		return value
+	}
+	return mime.QEncoding.Encode("UTF-8", value)
+}
+
+func writeQuotedPrintablePart(b *strings.Builder, contentType string, body string) error {
+	b.WriteString("--ei_auth_code\r\n")
+	b.WriteString("Content-Type: ")
+	b.WriteString(contentType)
+	b.WriteString("; charset=UTF-8\r\n")
+	b.WriteString("Content-Transfer-Encoding: quoted-printable\r\n\r\n")
+	encoder := quotedprintable.NewWriter(b)
+	if _, err := encoder.Write([]byte(body)); err != nil {
+		return fmt.Errorf("encode %s body: %w", contentType, err)
+	}
+	if err := encoder.Close(); err != nil {
+		return fmt.Errorf("close %s body encoder: %w", contentType, err)
+	}
+	return nil
 }
 
 var _ DeliveryWriter = (*SMTPDeliveryWriter)(nil)

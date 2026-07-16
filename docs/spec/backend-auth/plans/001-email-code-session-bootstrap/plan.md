@@ -1,6 +1,6 @@
 # Email-Code Session Bootstrap
 
-> **版本**: 2.8
+> **版本**: 2.9
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -234,6 +234,16 @@ Phase 11 的单实例 MVP 边界由 Phase 12 取代：验证码不进入 job pay
 
 以 RED tests 复现三条失败路径：SMTP 服务器建连后停滞时 runner context 无法取消；DATA 已返回最终成功但 QUIT 断连时 job 被误判为 retryable；Redis Put 失败时已创建的 challenge 污染一分钟 rate-limit。GREEN 只做最小生命周期修复：将 handler context 贯穿 DeliveryWriter/Redis/DB/SMTP，给完整 SMTP 会话设置有界 deadline，DATA 接受后的 QUIT 仅 best-effort；并在 Redis Put 成功后才创建 challenge，challenge 创建失败 best-effort 清理 secret。`BDD.AUTH.EMAIL.003` 继续作为 domain behavior owner，不新增 E2E。
 
+### Phase 13: Localized SMTP MIME remediation
+
+#### 13.1 RFC-compliant localized message TDD
+
+在 `backend/internal/auth/smtp_delivery_writer_test.go` 先补 RED，使用标准 MIME reader 解码 `zh-CN` 邮件并断言 RFC 2047 Subject、quoted-printable text/plain 与 text/html part 均保留中文标题、说明和同一 6 位验证码。GREEN 只调整 message builder：ASCII header 维持原形，非 ASCII Subject 使用 encoded-word；两种 UTF-8 body part 写入与声明一致的 transfer encoding，不改变 provider、TLS、Redis secret 或 delivery lifecycle。
+
+#### 13.2 Behavior and regression gate
+
+原地扩展 `BDD.AUTH.EMAIL.002` 的 domain behavior，证明本地化邮件通过标准 MIME parser 可无损读取；运行 focused auth test、auth package regression、根 `make test`、`make build`、SMTP/A3 owner context、docs/index/diff gates。该修复不新增 API、配置、持久化或真实 E2E 资产。
+
 ## 5 验收标准
 
 - 仓库根 `make test` 覆盖 `startAuthEmailChallenge`、`email_dispatch` delivery、`verifyAuthEmailChallenge`、session middleware、`getMe`、`deleteMe`、`logout` 与 runtime-config resolver；focused Go tests 只用于开发反馈。
@@ -245,6 +255,7 @@ Phase 11 的单实例 MVP 边界由 Phase 12 取代：验证码不进入 job pay
 - `backend/internal/auth` has no duplicate unauthenticated account-envelope test body at the scoped threshold.
 - `/me` and profile-completion success use exact OPENAPI-007 four-field `UserContext` with full authenticated `email` and no `emailMasked`; auth store no longer reads obsolete display/practice-language columns while runtime-config analytics behavior remains intact.
 - `mailpit` 与 `smtp` 均可通过 `EMAIL_PROVIDER` 选择；生产 SMTP 支持 STARTTLS / 隐式 TLS 和认证，staging/prod 对不安全或缺失配置 fail-fast，且凭据与 raw code 不泄露。
+- 中文 locale 的 SMTP Subject 符合 RFC 2047，text/plain 与 text/html 使用可由标准 MIME reader 解码的 UTF-8 transfer encoding。
 - 共享 Redis store 下，producer 与 consumer 位于不同 backend 实例时仍可投递同一 6 位验证码；Redis key/value、DB/job/log/audit 不暴露 raw code 或原始 secret ref。
 
 ## 6 风险与应对

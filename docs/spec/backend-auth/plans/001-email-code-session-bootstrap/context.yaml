@@ -8,7 +8,7 @@ metadata:
   branch: backend-auth-production-smtp
   specVersion:
     from: 2.3
-    to: 2.6
+    to: 2.7
 spec:
   defaultTarget: backend
   discovery:
@@ -33,6 +33,7 @@ spec:
       - EMAIL_SMTP_PASSWORD
       - EMAIL_SMTP_TLS_MODE
       - production smtp starttls implicit tls
+      - localized smtp mime rfc 2047 quoted printable
       - redis delivery secret
       - cross instance email dispatch
       - encrypted six digit code

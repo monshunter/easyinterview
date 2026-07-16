@@ -1,6 +1,6 @@
 # Backend Auth Spec
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
 > **更新日期**: 2026-07-16
 
@@ -50,7 +50,7 @@
 | D-8 | 邮箱账号唯一性与单入口登录 | 邮箱是唯一账号标识，用户只有一个邮箱验证码登录入口；`AuthEmailStartRequest` 不再暴露 `purpose=login/signup` 或 `displayName`，发码前不得泄露邮箱是否已存在；verify 时既有邮箱直接登录，新邮箱创建资料未补全账号并签发 session；displayName 不唯一、不参与账号唯一性判断 | 注册页不再是 live route；重复使用同一邮箱只会登录同一账号，不创建第二个用户；账号唯一性由 normalized email 保证 |
 | D-9 | 首次登录资料补全 | 新邮箱首次 verify 创建 `profile_completed_at IS NULL`、`terms_accepted_at IS NULL` 的账号；`/me.profileCompletionRequired=true` 是前端强制进入资料补全页的唯一后端信号；`PATCH /me` 只负责首次资料补全，保存 trimmed displayName、条款确认和完成时间 | 未补全账号即使关闭浏览器、换浏览器重新登录、退出后重新登录、刷新或直开业务 URL，登录后 `/me` 仍返回 profile completion required；完成后 `/me.profileCompletionRequired=false`，后续同邮箱登录直接进入正常登录态 |
 | D-10 | Minimal current-user context | accepted OPENAPI-007：`/me` 与 `PATCH /me` success 只返回 `id/email/displayName/profileCompletionRequired`；删除 `emailMasked` 与 UI/practice language 字段，不以 optional/default 保留 | Settings 复用 runtime `/me` 展示完整账号 email；该 authenticated PII 不写入日志/场景证据。TopBar language 和 practice language 由各自 owner 承接。内部 `analytics_opt_in` 仍供 runtime-config resolver 使用，不进入 `UserContext` |
-| D-11 | 生产 SMTP provider | `EMAIL_PROVIDER=mailpit` 使用无认证明文 SMTP，仅允许本地开发；`EMAIL_PROVIDER=smtp` 使用用户名/密码认证，并按 `EMAIL_SMTP_TLS_MODE=starttls|tls` 分别支持显式 STARTTLS 与隐式 TLS。staging/prod 禁止 `mailpit`、禁止 `none` TLS，SMTP TLS 最低 1.2；未知 provider / TLS mode、缺 host/port/from/username/password 均启动失败；完整 SMTP 会话受 runner context 与有界 deadline 约束 | 删除未消费的 `EMAIL_PROVIDER_API_KEY`；凭据只从 A4 secret source 读取，不进入日志、错误、job payload、audit 或 runtime-config；DATA 已获最终成功响应后，QUIT/连接清理失败不得触发重复投递 |
+| D-11 | 生产 SMTP provider | `EMAIL_PROVIDER=mailpit` 使用无认证明文 SMTP，仅允许本地开发；`EMAIL_PROVIDER=smtp` 使用用户名/密码认证，并按 `EMAIL_SMTP_TLS_MODE=starttls|tls` 分别支持显式 STARTTLS 与隐式 TLS。staging/prod 禁止 `mailpit`、禁止 `none` TLS，SMTP TLS 最低 1.2；未知 provider / TLS mode、缺 host/port/from/username/password 均启动失败；完整 SMTP 会话受 runner context 与有界 deadline 约束；非 ASCII `Subject` 使用 RFC 2047 encoded-word，UTF-8 text/plain 与 text/html part 使用声明一致的 MIME transfer encoding | 删除未消费的 `EMAIL_PROVIDER_API_KEY`；凭据只从 A4 secret source 读取，不进入日志、错误、job payload、audit 或 runtime-config；DATA 已获最终成功响应后，QUIT/连接清理失败不得触发重复投递 |
 | D-12 | Redis delivery secret | 非 test runtime 复用 `REDIS_URL` 建立共享 store；key 为 namespaced `SHA-256(deliverySecretRef)`，value 使用由 `AUTH_CHALLENGE_TOKEN_PEPPER` 经 HKDF-SHA256 固定 context 域隔离派生的 AES-GCM key 加密，TTL 固定为 `ChallengeTTL=5m`。producer 必须先成功写入 secret 才创建可计入限流的 challenge 并 enqueue；secret 写入失败不得留下 challenge，challenge 创建失败 best-effort 删除 secret；consumer 发送成功后删除，失败保留到 TTL 供 job retry；启动时 Redis URL/连接失败必须 fail closed | 多 backend 实例可消费同一任务；Redis、job payload、DB、log、audit 均不出现 raw code。pepper 轮换会使最多 5 分钟内的 pending delivery 失效，这是当前 clean-break 语义，不保留旧 key 兼容解密 |
 
 ## 4 设计约束
@@ -95,7 +95,7 @@
 | C-7 | Auth observability | challenge / verify / logout / failure 发生 | 记录 metrics / audit | 指标名已在 F1 baseline 或 F1 承接 gate 中登记，label 符合 F1，audit 只含 ID / hash / 状态，不含 secret / PII 明文 | 001-email-code-session-bootstrap |
 | C-9 | Unified email login and profile completion | 用户从单一邮箱验证码入口提交新邮箱或既有邮箱 | verify 后请求 `/me`；未补全用户调用 `PATCH /me` 提交 displayName + acceptedTerms | 发码前不泄露账号存在性；新邮箱创建资料未补全账号并返回 `profileCompletionRequired=true`；关闭浏览器、换浏览器重新登录、退出后重新登录、刷新或直开业务 URL 后仍必须先补全资料；补全成功后同邮箱后续登录返回 `profileCompletionRequired=false`；normalized email 唯一，displayName 不唯一 | 001-email-code-session-bootstrap |
 | C-10 | Minimal `/me` projection | authenticated 或 profile-incomplete 用户请求 `/me` / 完成 profile | handler mapping + generated contract | success body 精确包含 id、完整账号 email、display name、profile completion flag；无 `emailMasked`、旧语言字段或其他额外 PII；runtime config analytics 仍读取保留列 | 001-email-code-session-bootstrap Phase 10 + OPENAPI-007 + B4 001 Phase 13 |
-| C-11 | Mailpit / production SMTP delivery | 环境选择 `mailpit` 或 `smtp` 且配置满足 A4；生产 SMTP 凭据通过 secret source 注入 | 用户调用既有 `startAuthEmailChallenge`，internal runner 消费 `email_dispatch` | 两种 provider 都投递相同 code-only 邮件；Mailpit 使用本地无认证 SMTP，生产 SMTP 在 TLS 1.2+ 上认证；runner 取消或 deadline 能终止停滞会话；DATA 已被接受后的 QUIT 失败不重复发信；失败返回脱敏 delivery error，raw code、邮箱和凭据不进入持久化 payload / log / audit | 001-email-code-session-bootstrap Phase 11/12 |
+| C-11 | Mailpit / production SMTP delivery | 环境选择 `mailpit` 或 `smtp` 且配置满足 A4；生产 SMTP 凭据通过 secret source 注入 | 用户调用既有 `startAuthEmailChallenge`，internal runner 消费 `email_dispatch` | 两种 provider 都投递相同 code-only 邮件；Mailpit 使用本地无认证 SMTP，生产 SMTP 在 TLS 1.2+ 上认证；中文 locale 的主题和两种正文 part 可由标准 MIME reader 无损解码；runner 取消或 deadline 能终止停滞会话；DATA 已被接受后的 QUIT 失败不重复发信；失败返回脱敏 delivery error，raw code、邮箱和凭据不进入持久化 payload / log / audit | 001-email-code-session-bootstrap Phase 11/12/13 |
 | C-12 | Cross-instance Redis delivery | 两个 backend 实例共享同一 `REDIS_URL` 和 challenge pepper | 实例 A 创建 challenge/secret/job，实例 B lease `email_dispatch` 并发送 | 实例 B 解密并投递同一 6 位验证码；Redis key 有 5 分钟 TTL，value/key 不泄露 raw code/ref；secret Put 失败不创建 challenge 或消耗限流额度；成功后删除，Redis unavailable/miss/decrypt failure 均 fail closed 且错误脱敏 | 001-email-code-session-bootstrap Phase 12 |
 
 ## 7 关联计划

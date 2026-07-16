@@ -1,6 +1,6 @@
 # Email-Code Session Bootstrap Checklist
 
-> **版本**: 2.8
+> **版本**: 2.9
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -109,3 +109,10 @@
   <!-- verified: 2026-07-16 method=tdd evidence="TestStartEmailChallengeDoesNotEnqueueWhenDeliverySecretStorageFails and TestStartEmailChallengeDeletesDeliverySecretWhenChallengeCreationFails PASS; compensation remains active after request cancellation" -->
 - [x] 12.9 BDD-Gate: 重新验证 `BDD.AUTH.EMAIL.003` domain behavior，覆盖跨实例投递、SMTP cancel/accepted-once 与 Redis Put 失败无 challenge；聚焦测试和根 `make test` 通过后恢复 completed。
   <!-- verified: 2026-07-16 commands="go test ./internal/auth -count=1; REDIS_URL=redis://127.0.0.1:6379/0 go test -tags=integration ./internal/auth -run TestRedisDeliverySecretStoreCrossClientIntegration -count=1; make test; make build" evidence="focused Auth PASS; real Redis cross-client PASS; root Python 566 tests/4481 subtests, Go all packages and frontend 1004 tests PASS; build PASS" -->
+
+## Phase 13: Localized SMTP MIME remediation
+
+- [x] 13.1 SMTP-MIME-RED/GREEN: 标准 MIME reader 回归测试先复现 `zh-CN` 原始 UTF-8 Subject/body 的不合规输出，再实现 RFC 2047 Subject 与 quoted-printable text/plain/text/html；断言两种 part 解码后均保留中文标题、说明和同一 6 位验证码。
+  <!-- verified: 2026-07-16 method=tdd-red-green evidence="RED: TestSMTPDeliveryWriterEncodesLocalizedMessageAsStandardsCompliantMIME failed on raw UTF-8 Subject. GREEN: the same test, all SMTPDeliveryWriter tests and go test ./internal/auth -count=1 PASS with RFC 2047 Subject and decoded quoted-printable text/plain/text/html assertions." -->
+- [x] 13.2 BDD-Gate: 重新验证 `BDD.AUTH.EMAIL.002` domain behavior，覆盖本地化 MIME 无损解码；focused auth、auth package、根 `make test`、`make build`、owner context/docs/index/diff gates通过后恢复 completed。
+  <!-- verified: 2026-07-16 method=domain-behavior bddChecklist=complete evidence="TestSMTPDeliveryWriterEncodesLocalizedMessageAsStandardsCompliantMIME exists and PASS; go test ./internal/auth PASS; root make test PASS with Python 567 tests/4481 subtests, Go all packages and frontend 126 files/1004 tests; make build, A3 terminology lint, both owner contexts, docs-check and diff-check PASS. No E2E status changed." -->

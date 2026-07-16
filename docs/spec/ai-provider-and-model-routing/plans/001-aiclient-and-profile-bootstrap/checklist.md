@@ -28,7 +28,7 @@
 
 ## Phase 3: provider adapters
 
-- [x] 3.1 `openai_compatible` adapter uses standard library HTTP/JSON and does not import vendor SDKs（验证：provider terminology lint and adapter tests）
+- [x] 3.1 `openai_compatible` adapter keeps `openai-go/v3` imports private to the Phase 15 adapter/internal-helper allowlist and does not expose vendor SDK types or imports to business packages（验证：provider terminology lint、SDK import-boundary tests and adapter tests）
 - [x] 3.2 adapter supports chat completions, streaming SSE, Audio Transcriptions and tool-call wire subset（验证：`go test ./internal/ai/aiclient/providers/openai_compatible -count=1`）
 - [x] 3.3 provider base URLs normalize root and `/v1` inputs without duplicate path prefixes（验证：adapter contract tests）
 - [x] 3.4 provider errors map to B1 `AI_*` errors; unknown upstream codes are sanitized（验证：adapter error envelope tests）

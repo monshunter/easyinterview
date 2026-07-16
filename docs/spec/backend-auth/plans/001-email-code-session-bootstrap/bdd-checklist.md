@@ -1,6 +1,6 @@
 # Backend Auth BDD Checklist
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -23,6 +23,10 @@
 - [x] Owner behavior tests 覆盖 Mailpit plain/no-auth、SMTP STARTTLS/implicit TLS + AUTH、provider fail-fast、transport failure 与隐私红线。
 - [x] 根 `make test` 执行对应 Go tests；该结果是代码层行为证据，不是外部邮箱 E2E PASS。
   <!-- verified: 2026-07-16 method=domain-behavior evidence="auth/config/cmd-api behavior tests plus root make test pass; external SMTP receipt remains a separate live gate" -->
+- [x] Owner behavior test 使用标准 MIME reader 解码 `zh-CN` Subject、text/plain 与 text/html，并验证中文标题、说明和验证码无损保留。
+  <!-- verified: 2026-07-16 method=domain-behavior evidence="TestSMTPDeliveryWriterEncodesLocalizedMessageAsStandardsCompliantMIME parses the captured SMTP message with net/mail and mime/multipart, decodes RFC 2047 plus quoted-printable, and asserts both body alternatives preserve the localized title, instruction and code." -->
+- [x] 重新运行 focused auth test 与根 `make test`，记录本次 domain behavior 证据；不把代码 gate 包装成 E2E。
+  <!-- verified: 2026-07-16 method=domain-behavior evidence="Focused localized MIME test and go test ./internal/auth PASS; root make test PASS with Python 567 tests/4481 subtests, Go all packages and frontend 126 files/1004 tests. No scenario asset or E2E status changed." -->
 
 ## `BDD.AUTH.EMAIL.003` Cross-instance Redis delivery secret
 

@@ -1,8 +1,14 @@
 package auth_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
+	"mime"
+	"mime/multipart"
+	"mime/quotedprintable"
+	"net/mail"
 	"strings"
 	"testing"
 
@@ -79,6 +85,97 @@ func TestSMTPDeliveryWriterSendsLoginCodeThroughSMTP(t *testing.T) {
 	for _, forbidden := range []string{"auth_challenge:challenge-1", "deliverySecretRef"} {
 		if strings.Contains(captured.msg, forbidden) {
 			t.Fatalf("message leaked internal dispatch field %q:\n%s", forbidden, captured.msg)
+		}
+	}
+}
+
+func TestSMTPDeliveryWriterEncodesLocalizedMessageAsStandardsCompliantMIME(t *testing.T) {
+	secrets := auth.NewDevMailSink(auth.DevMailSinkOptions{})
+	if err := secrets.PutDeliverySecret(context.Background(), "auth_challenge:challenge-1", "123456", auth.ChallengeTTL); err != nil {
+		t.Fatalf("PutDeliverySecret: %v", err)
+	}
+	var message []byte
+	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
+		SMTPAddr:        "smtp.example.test:587",
+		FromAddress:     "noreply@example.test",
+		DeliverySecrets: secrets,
+		LookupChallengeEmail: func(context.Context, string) (string, error) {
+			return "candidate@example.test", nil
+		},
+		Send: func(_ context.Context, envelope auth.SMTPEnvelope) error {
+			message = append([]byte(nil), envelope.Message...)
+			return nil
+		},
+	})
+	payload, err := jobs.BuildEmailDispatchPayload(map[string]string{
+		"authChallengeId":   "challenge-1",
+		"templateKey":       "auth_login_code",
+		"locale":            "zh-CN",
+		"deliverySecretRef": "auth_challenge:challenge-1",
+		"dedupeKey":         "dedupe-hash",
+	})
+	if err != nil {
+		t.Fatalf("BuildEmailDispatchPayload: %v", err)
+	}
+
+	if err := writer.Write(context.Background(), payload); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	parsed, err := mail.ReadMessage(bytes.NewReader(message))
+	if err != nil {
+		t.Fatalf("ReadMessage: %v", err)
+	}
+	rawSubject := parsed.Header.Get("Subject")
+	if !strings.HasPrefix(rawSubject, "=?UTF-8?") {
+		t.Fatalf("localized Subject must use RFC 2047 encoded-word, got %q", rawSubject)
+	}
+	decodedSubject, err := new(mime.WordDecoder).DecodeHeader(rawSubject)
+	if err != nil {
+		t.Fatalf("DecodeHeader: %v", err)
+	}
+	if decodedSubject != "EasyInterview 登录验证码" {
+		t.Fatalf("decoded Subject = %q", decodedSubject)
+	}
+
+	mediaType, params, err := mime.ParseMediaType(parsed.Header.Get("Content-Type"))
+	if err != nil {
+		t.Fatalf("ParseMediaType: %v", err)
+	}
+	if mediaType != "multipart/alternative" {
+		t.Fatalf("Content-Type = %q", mediaType)
+	}
+	reader := multipart.NewReader(parsed.Body, params["boundary"])
+	decodedParts := make(map[string]string)
+	for {
+		part, err := reader.NextRawPart()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("NextRawPart: %v", err)
+		}
+		partType, _, err := mime.ParseMediaType(part.Header.Get("Content-Type"))
+		if err != nil {
+			t.Fatalf("parse part Content-Type: %v", err)
+		}
+		if got := part.Header.Get("Content-Transfer-Encoding"); got != "quoted-printable" {
+			t.Fatalf("%s Content-Transfer-Encoding = %q", partType, got)
+		}
+		body, err := io.ReadAll(quotedprintable.NewReader(part))
+		if err != nil {
+			t.Fatalf("decode %s: %v", partType, err)
+		}
+		decodedParts[partType] = string(body)
+	}
+	for _, partType := range []string{"text/plain", "text/html"} {
+		body, ok := decodedParts[partType]
+		if !ok {
+			t.Fatalf("missing MIME part %s", partType)
+		}
+		for _, want := range []string{"你的 EasyInterview 登录验证码", "123456", "请在 EasyInterview 输入这 6 位验证码。验证码 5 分钟内有效。"} {
+			if !strings.Contains(body, want) {
+				t.Fatalf("decoded %s missing %q: %s", partType, want, body)
+			}
 		}
 	}
 }
