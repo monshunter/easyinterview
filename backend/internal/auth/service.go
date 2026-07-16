@@ -145,6 +145,11 @@ func (s *EmailCodeService) StartEmailChallenge(ctx context.Context, in StartEmai
 		return StartEmailChallengeResult{}, err
 	}
 	tokenHash := hashWithPepper(s.challengePepper, token)
+	deliverySecretRef := "auth_challenge:" + challengeID
+	if err := s.deliverySecrets.PutDeliverySecret(ctx, deliverySecretRef, token, ChallengeTTL); err != nil {
+		s.recordAuthFailure(ctx, "start_challenge", "delivery_secret_error", "", challengeID)
+		return StartEmailChallengeResult{}, fmt.Errorf("delivery secret storage failed")
+	}
 	if err := s.store.CreateChallenge(ctx, ChallengeRecord{
 		ID:            challengeID,
 		Email:         email,
@@ -155,14 +160,9 @@ func (s *EmailCodeService) StartEmailChallenge(ctx context.Context, in StartEmai
 		ExpiresAt:     now.Add(ChallengeTTL),
 		CreatedAt:     now,
 	}); err != nil {
+		s.cleanupDeliverySecret(ctx, deliverySecretRef)
 		s.recordAuthFailure(ctx, "start_challenge", "store_error", "", challengeID)
 		return StartEmailChallengeResult{}, err
-	}
-
-	deliverySecretRef := "auth_challenge:" + challengeID
-	if err := s.deliverySecrets.PutDeliverySecret(ctx, deliverySecretRef, token, ChallengeTTL); err != nil {
-		s.recordAuthFailure(ctx, "start_challenge", "delivery_secret_error", "", challengeID)
-		return StartEmailChallengeResult{}, fmt.Errorf("delivery secret storage failed")
 	}
 	payload, err := jobs.BuildEmailDispatchPayload(map[string]string{
 		"authChallengeId":   challengeID,
@@ -172,17 +172,29 @@ func (s *EmailCodeService) StartEmailChallenge(ctx context.Context, in StartEmai
 		"dedupeKey":         hashWithPepper(s.challengePepper, "email:"+email),
 	})
 	if err != nil {
-		_ = s.deliverySecrets.DeleteDeliverySecret(ctx, deliverySecretRef)
+		s.cleanupDeliverySecret(ctx, deliverySecretRef)
 		s.recordAuthFailure(ctx, "start_challenge", "dispatch_payload_error", "", challengeID)
 		return StartEmailChallengeResult{}, err
 	}
 	if err := s.dispatcher.Enqueue(ctx, payload); err != nil {
-		_ = s.deliverySecrets.DeleteDeliverySecret(ctx, deliverySecretRef)
+		s.cleanupDeliverySecret(ctx, deliverySecretRef)
 		s.recordAuthFailure(ctx, "start_challenge", "dispatch_error", "", challengeID)
 		return StartEmailChallengeResult{}, err
 	}
 	s.recordChallengeStarted(ctx, challengeID, "accepted")
 	return StartEmailChallengeResult{ChallengeID: challengeID, Accepted: true}, nil
+}
+
+func (s *EmailCodeService) cleanupDeliverySecret(ctx context.Context, ref string) {
+	if s == nil || s.deliverySecrets == nil || ref == "" {
+		return
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+	defer cancel()
+	_ = s.deliverySecrets.DeleteDeliverySecret(cleanupCtx, ref)
 }
 
 func (s *EmailCodeService) VerifyEmailChallenge(ctx context.Context, in VerifyEmailChallengeInput) (VerifyEmailChallengeResult, error) {

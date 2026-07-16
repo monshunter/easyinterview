@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-16](2026-07-16.md) | `fix(platform): harden smtp lifecycle and pid ownership (BUG-0180)` | #fix #test #docs #bdd |
 | [2026-07-16](2026-07-16.md) | `feat(auth): use Redis for email delivery secrets (BUG-0179)` | #feat #fix #test #docs #bdd |
 | [2026-07-16](2026-07-16.md) | `feat(auth): add production smtp delivery (BUG-0178)` | #feat #fix #test #docs #bdd |
 | [2026-07-16](2026-07-16.md) | `feat(local-dev): add full-container runtime` | #feat #test #docs #e2e |

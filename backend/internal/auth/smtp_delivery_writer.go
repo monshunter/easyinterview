@@ -15,7 +15,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
 
-type ChallengeEmailLookup func(challengeID string) (string, error)
+type ChallengeEmailLookup func(context.Context, string) (string, error)
 
 type SMTPTLSMode string
 
@@ -35,7 +35,9 @@ type SMTPEnvelope struct {
 	TLSMode  SMTPTLSMode
 }
 
-type SMTPSendFunc func(SMTPEnvelope) error
+type SMTPSendFunc func(context.Context, SMTPEnvelope) error
+
+const smtpSessionTimeout = 30 * time.Second
 
 type safeDeliveryError struct{ stage string }
 
@@ -98,12 +100,12 @@ func (w *SMTPDeliveryWriter) UsesAuthentication() bool {
 }
 
 func SQLChallengeEmailLookup(db *sql.DB) ChallengeEmailLookup {
-	return func(challengeID string) (string, error) {
+	return func(ctx context.Context, challengeID string) (string, error) {
 		if db == nil {
 			return "", fmt.Errorf("auth challenge email lookup db is nil")
 		}
 		var email string
-		if err := db.QueryRowContext(context.Background(), `
+		if err := db.QueryRowContext(ctx, `
 select email from auth_challenges where id = $1`,
 			challengeID).Scan(&email); err != nil {
 			return "", err
@@ -112,9 +114,12 @@ select email from auth_challenges where id = $1`,
 	}
 }
 
-func (w *SMTPDeliveryWriter) Write(payload jobs.EmailDispatchPayload) error {
+func (w *SMTPDeliveryWriter) Write(ctx context.Context, payload jobs.EmailDispatchPayload) error {
 	if w == nil {
 		return fmt.Errorf("smtp delivery writer is nil")
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	challengeID := strings.TrimSpace(payload["authChallengeId"])
 	if challengeID == "" {
@@ -127,7 +132,7 @@ func (w *SMTPDeliveryWriter) Write(payload jobs.EmailDispatchPayload) error {
 	if w.deliverySecrets == nil {
 		return fmt.Errorf("delivery secret store unavailable")
 	}
-	token, ok, err := w.deliverySecrets.GetDeliverySecret(context.Background(), secretRef)
+	token, ok, err := w.deliverySecrets.GetDeliverySecret(ctx, secretRef)
 	if err != nil {
 		return fmt.Errorf("delivery secret lookup failed")
 	}
@@ -137,7 +142,7 @@ func (w *SMTPDeliveryWriter) Write(payload jobs.EmailDispatchPayload) error {
 	if w.lookupChallengeEmail == nil {
 		return fmt.Errorf("challenge email lookup unavailable")
 	}
-	recipient, err := w.lookupChallengeEmail(challengeID)
+	recipient, err := w.lookupChallengeEmail(ctx, challengeID)
 	if err != nil {
 		return fmt.Errorf("challenge recipient lookup failed")
 	}
@@ -156,7 +161,7 @@ func (w *SMTPDeliveryWriter) Write(payload jobs.EmailDispatchPayload) error {
 	if w.smtpAddr == "" {
 		return fmt.Errorf("smtp address missing")
 	}
-	if err := w.send(SMTPEnvelope{
+	if err := w.send(ctx, SMTPEnvelope{
 		Addr: w.smtpAddr, From: from, To: []string{to}, Message: []byte(msg),
 		Username: w.username, Password: w.password, TLSMode: w.tlsMode,
 	}); err != nil {
@@ -168,53 +173,60 @@ func (w *SMTPDeliveryWriter) Write(payload jobs.EmailDispatchPayload) error {
 	}
 	// Delivery succeeded. Cleanup is best-effort: a delete failure must not
 	// retry SMTP and send the same code twice; the store TTL is the fallback.
-	_ = w.deliverySecrets.DeleteDeliverySecret(context.Background(), secretRef)
+	_ = w.deliverySecrets.DeleteDeliverySecret(ctx, secretRef)
 	return nil
 }
 
-func sendSMTPEnvelope(envelope SMTPEnvelope) error {
+func sendSMTPEnvelope(ctx context.Context, envelope SMTPEnvelope) error {
 	host, _, err := net.SplitHostPort(envelope.Addr)
 	if err != nil {
 		return smtpFailure("connect")
 	}
-	tlsConfig := newSMTPTLSConfig(host)
-	dialer := &net.Dialer{Timeout: 10 * time.Second}
-	var client *smtp.Client
-	switch envelope.TLSMode {
-	case SMTPTLSNone:
-		conn, dialErr := dialer.Dial("tcp", envelope.Addr)
-		if dialErr != nil {
-			return smtpFailure("connect")
-		}
-		client, err = smtp.NewClient(conn, host)
-	case SMTPTLSStartTLS:
-		conn, dialErr := dialer.Dial("tcp", envelope.Addr)
-		if dialErr != nil {
-			return smtpFailure("connect")
-		}
-		client, err = smtp.NewClient(conn, host)
-		if err == nil {
-			if ok, _ := client.Extension("STARTTLS"); !ok {
-				client.Close()
-				return smtpFailure("starttls")
-			}
-			if err = client.StartTLS(tlsConfig); err != nil {
-				return smtpFailure("starttls")
-			}
-		}
-	case SMTPTLSImplicit:
-		conn, dialErr := tls.DialWithDialer(dialer, "tcp", envelope.Addr, tlsConfig)
-		if dialErr != nil {
-			return smtpFailure("connect")
-		}
-		client, err = smtp.NewClient(conn, host)
-	default:
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	sessionCtx, cancel := context.WithTimeout(ctx, smtpSessionTimeout)
+	defer cancel()
+	if envelope.TLSMode != SMTPTLSNone && envelope.TLSMode != SMTPTLSStartTLS && envelope.TLSMode != SMTPTLSImplicit {
 		return smtpFailure("tls-mode")
 	}
+	tlsConfig := newSMTPTLSConfig(host)
+	dialer := &net.Dialer{}
+	conn, err := dialer.DialContext(sessionCtx, "tcp", envelope.Addr)
+	if err != nil {
+		return smtpFailure("connect")
+	}
+	defer conn.Close()
+	if deadline, ok := sessionCtx.Deadline(); ok {
+		if err := conn.SetDeadline(deadline); err != nil {
+			return smtpFailure("connect")
+		}
+	}
+	stopCancellation := context.AfterFunc(sessionCtx, func() {
+		_ = conn.SetDeadline(time.Now())
+	})
+	defer stopCancellation()
+
+	if envelope.TLSMode == SMTPTLSImplicit {
+		tlsConn := tls.Client(conn, tlsConfig)
+		if err := tlsConn.HandshakeContext(sessionCtx); err != nil {
+			return smtpFailure("connect")
+		}
+		conn = tlsConn
+	}
+	client, err := smtp.NewClient(conn, host)
 	if err != nil {
 		return smtpFailure("greeting")
 	}
 	defer client.Close()
+	if envelope.TLSMode == SMTPTLSStartTLS {
+		if ok, _ := client.Extension("STARTTLS"); !ok {
+			return smtpFailure("starttls")
+		}
+		if err := client.StartTLS(tlsConfig); err != nil {
+			return smtpFailure("starttls")
+		}
+	}
 	if envelope.Username != "" {
 		if err := client.Auth(smtp.PlainAuth("", envelope.Username, envelope.Password, host)); err != nil {
 			return smtpFailure("auth")
@@ -239,9 +251,9 @@ func sendSMTPEnvelope(envelope SMTPEnvelope) error {
 	if err := w.Close(); err != nil {
 		return smtpFailure("data")
 	}
-	if err := client.Quit(); err != nil {
-		return smtpFailure("quit")
-	}
+	// DATA has been accepted. QUIT is only connection cleanup; retrying after
+	// a QUIT response failure can send the same code twice.
+	_ = client.Quit()
 	return nil
 }
 

@@ -1,6 +1,6 @@
 # Backend Auth BDD Checklist
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -32,3 +32,7 @@
   <!-- verified: 2026-07-16 method=integration evidence="REDIS_URL=redis://127.0.0.1:6379/0 go test -tags=integration ./internal/auth -run TestRedisDeliverySecretStoreCrossClientIntegration -count=1 PASS; covers encrypted raw value, near-5m TTL, cross-client Get/Delete and actual expiry" -->
 - [x] 根 `make test` 回归对应 domain behavior tests，并记录 full-container Mailpit/SMTP live evidence。
   <!-- verified: 2026-07-16 evidence="root make test includes auth/cmd-api domain behavior and integration contract tests; full-container Mailpit Chrome challenge->receive->verify->profile PASS with consoleIssues=0; Redis namespace empty after success; external SMTP job succeeded attempts=1" -->
+- [x] L2 remediation domain behavior tests 覆盖 runner cancel/SMTP deadline、DATA accepted 后 QUIT 失败仅成功一次、Redis Put 失败无 challenge/rate-limit 污染。
+  <!-- verified: 2026-07-16 evidence="runner context propagation, stalled SMTP cancellation, accepted DATA/failed QUIT success, Redis Put failure and canceled-request compensation tests PASS" -->
+- [x] 重新运行 owner focused tests 与根 `make test`，记录本次行为证据；不把代码 gate 包装成 E2E。
+  <!-- verified: 2026-07-16 evidence="internal/auth and real Redis cross-client integration PASS; root make test PASS with Python 566 tests/4481 subtests, Go all packages and frontend 1004 tests; no E2E status changed" -->

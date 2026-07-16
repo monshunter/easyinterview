@@ -21,7 +21,7 @@ type MailDispatcher interface {
 }
 
 type DeliveryWriter interface {
-	Write(jobs.EmailDispatchPayload) error
+	Write(context.Context, jobs.EmailDispatchPayload) error
 }
 
 type DevMailSinkOptions struct {
@@ -82,7 +82,7 @@ func (s *DevMailSink) DeleteDeliverySecret(_ context.Context, ref string) error 
 	return nil
 }
 
-func (s *DevMailSink) Write(payload jobs.EmailDispatchPayload) error {
+func (s *DevMailSink) Write(_ context.Context, payload jobs.EmailDispatchPayload) error {
 	if s == nil {
 		return fmt.Errorf("dev mail sink is nil")
 	}
@@ -170,11 +170,11 @@ func NewImmediateMailDispatcher(sink *DevMailSink) *ImmediateMailDispatcher {
 	return &ImmediateMailDispatcher{sink: sink}
 }
 
-func (d *ImmediateMailDispatcher) Enqueue(_ context.Context, payload jobs.EmailDispatchPayload) error {
+func (d *ImmediateMailDispatcher) Enqueue(ctx context.Context, payload jobs.EmailDispatchPayload) error {
 	if d == nil || d.sink == nil {
 		return fmt.Errorf("mail dispatcher sink is nil")
 	}
-	return d.sink.Write(payload)
+	return d.sink.Write(ctx, payload)
 }
 
 // Email delivery now flows through async_jobs(job_type=email_dispatch) via

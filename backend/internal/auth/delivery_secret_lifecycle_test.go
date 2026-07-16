@@ -48,11 +48,12 @@ func (c sharedDeliverySecretRedisClient) Del(_ context.Context, key string) erro
 }
 
 type lifecycleSecretStore struct {
-	putErr  error
-	getErr  error
-	delErr  error
-	secrets map[string]string
-	deleted []string
+	putErr            error
+	getErr            error
+	delErr            error
+	secrets           map[string]string
+	deleted           []string
+	deleteContextErrs []error
 }
 
 func (s *lifecycleSecretStore) PutDeliverySecret(_ context.Context, ref, token string, _ time.Duration) error {
@@ -74,8 +75,12 @@ func (s *lifecycleSecretStore) GetDeliverySecret(_ context.Context, ref string) 
 	return token, ok, nil
 }
 
-func (s *lifecycleSecretStore) DeleteDeliverySecret(_ context.Context, ref string) error {
+func (s *lifecycleSecretStore) DeleteDeliverySecret(ctx context.Context, ref string) error {
 	s.deleted = append(s.deleted, ref)
+	s.deleteContextErrs = append(s.deleteContextErrs, ctx.Err())
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if s.delErr != nil {
 		return s.delErr
 	}
@@ -96,7 +101,8 @@ func (d *failingDispatcher) Enqueue(context.Context, jobs.EmailDispatchPayload) 
 func TestStartEmailChallengeDoesNotEnqueueWhenDeliverySecretStorageFails(t *testing.T) {
 	secrets := &lifecycleSecretStore{putErr: errors.New("redis://user:password@private-host:6379 123456")}
 	dispatcher := &failingDispatcher{}
-	service := newLifecycleEmailCodeService(secrets, dispatcher)
+	store := &recordingChallengeStore{}
+	service := newLifecycleEmailCodeServiceWithStore(store, secrets, dispatcher)
 
 	_, err := service.StartEmailChallenge(context.Background(), auth.StartEmailChallengeInput{Email: "candidate@example.test"})
 	if err == nil {
@@ -105,10 +111,41 @@ func TestStartEmailChallengeDoesNotEnqueueWhenDeliverySecretStorageFails(t *test
 	if dispatcher.called {
 		t.Fatal("dispatch must not run after delivery secret storage failure")
 	}
+	if store.challenge.ID != "" {
+		t.Fatal("delivery secret storage failure must not leave a rate-limited challenge row")
+	}
 	for _, forbidden := range []string{"password", "private-host", "123456"} {
 		if contains(err.Error(), forbidden) {
 			t.Fatalf("storage error leaked %q: %v", forbidden, err)
 		}
+	}
+}
+
+func TestStartEmailChallengeDeletesDeliverySecretWhenChallengeCreationFails(t *testing.T) {
+	secrets := &lifecycleSecretStore{}
+	dispatcher := &failingDispatcher{}
+	ctx, cancel := context.WithCancel(context.Background())
+	store := &recordingChallengeStore{
+		createErr: errors.New("database unavailable"),
+		onCreate:  cancel,
+	}
+	service := newLifecycleEmailCodeServiceWithStore(store, secrets, dispatcher)
+
+	_, err := service.StartEmailChallenge(ctx, auth.StartEmailChallengeInput{Email: "candidate@example.test"})
+	if err == nil {
+		t.Fatal("expected challenge creation failure")
+	}
+	if dispatcher.called {
+		t.Fatal("dispatch must not run after challenge creation failure")
+	}
+	if len(secrets.deleted) != 1 || secrets.deleted[0] != "auth_challenge:challenge-lifecycle" {
+		t.Fatalf("deleted refs = %#v", secrets.deleted)
+	}
+	if len(secrets.deleteContextErrs) != 1 || secrets.deleteContextErrs[0] != nil {
+		t.Fatalf("cleanup context errors = %#v, want active compensation context", secrets.deleteContextErrs)
+	}
+	if _, ok := secrets.secrets["auth_challenge:challenge-lifecycle"]; ok {
+		t.Fatal("challenge creation failure left a delivery secret behind")
 	}
 }
 
@@ -130,8 +167,12 @@ func TestStartEmailChallengeDeletesDeliverySecretWhenEnqueueFails(t *testing.T) 
 }
 
 func newLifecycleEmailCodeService(secrets auth.DeliverySecretStore, dispatcher auth.MailDispatcher) *auth.EmailCodeService {
+	return newLifecycleEmailCodeServiceWithStore(&recordingChallengeStore{}, secrets, dispatcher)
+}
+
+func newLifecycleEmailCodeServiceWithStore(store auth.Store, secrets auth.DeliverySecretStore, dispatcher auth.MailDispatcher) *auth.EmailCodeService {
 	return auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
-		Store:               &recordingChallengeStore{},
+		Store:               store,
 		Dispatcher:          dispatcher,
 		DeliverySecrets:     secrets,
 		TokenGenerator:      fixedTokenGenerator("123456"),
@@ -164,15 +205,15 @@ func TestEmailCodeDeliveryWorksAcrossIndependentRedisBackedInstances(t *testing.
 		SMTPAddr:        "smtp.example.test:587",
 		FromAddress:     "noreply@example.test",
 		DeliverySecrets: consumerSecrets,
-		LookupChallengeEmail: func(string) (string, error) {
+		LookupChallengeEmail: func(context.Context, string) (string, error) {
 			return "candidate@example.test", nil
 		},
-		Send: func(envelope auth.SMTPEnvelope) error {
+		Send: func(_ context.Context, envelope auth.SMTPEnvelope) error {
 			message = string(envelope.Message)
 			return nil
 		},
 	})
-	if err := writer.Write(dispatcher.payload); err != nil {
+	if err := writer.Write(context.Background(), dispatcher.payload); err != nil {
 		t.Fatalf("consumer Write: %v", err)
 	}
 	if !strings.Contains(message, "123456") {

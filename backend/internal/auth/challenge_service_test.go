@@ -85,6 +85,8 @@ type recordingChallengeStore struct {
 	challenge    auth.ChallengeRecord
 	existingUser *auth.UserContext
 	findCalls    int
+	createErr    error
+	onCreate     func()
 }
 
 func (s *recordingChallengeStore) CountRecentChallenges(context.Context, string, string, time.Time) (int, error) {
@@ -92,6 +94,12 @@ func (s *recordingChallengeStore) CountRecentChallenges(context.Context, string,
 }
 
 func (s *recordingChallengeStore) CreateChallenge(_ context.Context, rec auth.ChallengeRecord) error {
+	if s.onCreate != nil {
+		s.onCreate()
+	}
+	if s.createErr != nil {
+		return s.createErr
+	}
 	s.challenge = rec
 	return nil
 }

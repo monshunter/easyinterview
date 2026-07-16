@@ -51,7 +51,18 @@ _stop_host_runtimes:
 	@for pid_file in "$(HOST_BACKEND_PID)" "$(HOST_FRONTEND_PID)"; do \
 		if [ ! -s "$$pid_file" ]; then continue; fi; \
 		pid="$$(cat "$$pid_file")"; \
-		if [ -z "$$pid" ] || ! kill -0 "$$pid" >/dev/null 2>&1; then \
+		if [ -z "$$pid" ] || [[ "$$pid" == *[!0-9]* ]] || ! kill -0 "$$pid" >/dev/null 2>&1; then \
+			rm -f "$$pid_file"; \
+			continue; \
+		fi; \
+		case "$$pid_file" in \
+			"$(HOST_BACKEND_PID)") expected_command="go run ./backend/cmd/api" ;; \
+			"$(HOST_FRONTEND_PID)") expected_command="pnpm --filter @easyinterview/frontend dev" ;; \
+			*) expected_command="" ;; \
+		esac; \
+		command="$$(ps -p "$$pid" -o command= 2>/dev/null || true)"; \
+		if [ -z "$$expected_command" ] || [[ "$$command" != *"$$expected_command"* ]]; then \
+			echo "[dev-stack] removing stale pidfile without stopping unowned pid $$pid: $${pid_file#$(REPO_ROOT)/}" >&2; \
 			rm -f "$$pid_file"; \
 			continue; \
 		fi; \

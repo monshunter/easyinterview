@@ -8,7 +8,7 @@ metadata:
   branch: backend-auth-production-smtp
   specVersion:
     from: 2.3
-    to: 2.5
+    to: 2.6
 spec:
   defaultTarget: backend
   discovery:

@@ -80,7 +80,7 @@ func NewEmailDispatchHandler(writer DeliveryWriter) *EmailDispatchHandler {
 }
 
 // Handle satisfies runner.Handler.
-func (h *EmailDispatchHandler) Handle(_ context.Context, job runner.ClaimedJob) runner.JobOutcome {
+func (h *EmailDispatchHandler) Handle(ctx context.Context, job runner.ClaimedJob) runner.JobOutcome {
 	raw := map[string]string{}
 	if len(job.Payload) > 0 {
 		if err := json.Unmarshal(job.Payload, &raw); err != nil {
@@ -95,7 +95,7 @@ func (h *EmailDispatchHandler) Handle(_ context.Context, job runner.ClaimedJob) 
 	if h.writer == nil {
 		return runner.JobOutcome{Retryable: true, ErrorCode: "EMAIL_DISPATCH_FAILED", ErrorMessage: "delivery writer unavailable"}
 	}
-	if err := h.writer.Write(payload); err != nil {
+	if err := h.writer.Write(ctx, payload); err != nil {
 		message := "email delivery failed"
 		if safe, ok := err.(interface{ SafeMessage() string }); ok {
 			message = safe.SafeMessage()

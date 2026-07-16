@@ -23,7 +23,7 @@ type failingDeliveryWriter struct {
 	err error
 }
 
-func (w *failingDeliveryWriter) Write(jobs.EmailDispatchPayload) error { return w.err }
+func (w *failingDeliveryWriter) Write(context.Context, jobs.EmailDispatchPayload) error { return w.err }
 
 type safeDeliveryStageError struct {
 	message string
@@ -34,9 +34,11 @@ func (e safeDeliveryStageError) SafeMessage() string { return e.message }
 
 type recordingDeliveryWriter struct {
 	delivered []jobs.EmailDispatchPayload
+	ctx       context.Context
 }
 
-func (w *recordingDeliveryWriter) Write(p jobs.EmailDispatchPayload) error {
+func (w *recordingDeliveryWriter) Write(ctx context.Context, p jobs.EmailDispatchPayload) error {
+	w.ctx = ctx
 	w.delivered = append(w.delivered, p)
 	return nil
 }
@@ -68,6 +70,22 @@ func TestEmailDispatchHandler_DeliversValidPayload(t *testing.T) {
 	}
 	if len(writer.delivered) != 1 || writer.delivered[0]["authChallengeId"] != "challenge-1" {
 		t.Fatalf("delivery = %+v", writer.delivered)
+	}
+}
+
+func TestEmailDispatchHandler_PassesRunnerContextToDeliveryWriter(t *testing.T) {
+	type contextKey string
+	const key contextKey = "runner"
+	ctx := context.WithValue(context.Background(), key, "email-dispatch")
+	writer := &recordingDeliveryWriter{}
+	h := auth.NewEmailDispatchHandler(writer)
+
+	out := h.Handle(ctx, runner.ClaimedJob{Payload: validEmailDispatchPayloadJSON(t, "challenge-1")})
+	if !out.Succeeded {
+		t.Fatalf("outcome = %+v, want succeeded", out)
+	}
+	if writer.ctx == nil || writer.ctx.Value(key) != "email-dispatch" {
+		t.Fatal("delivery writer did not receive the runner context")
 	}
 }
 

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from urllib.parse import quote
 
@@ -210,6 +212,77 @@ def test_full_container_email_provider_environment_contract() -> None:
     assert "_stop_host_runtimes:" in stack_makefile
     assert ".test-output/local-dev/backend.pid" in stack_makefile
     assert ".test-output/local-dev/frontend.pid" in stack_makefile
+
+
+def test_stop_host_runtimes_does_not_kill_reused_unowned_pid(tmp_path: Path) -> None:
+    process = subprocess.Popen(["sleep", "30"], start_new_session=True)
+    backend_pid = tmp_path / "backend.pid"
+    frontend_pid = tmp_path / "frontend.pid"
+    backend_pid.write_text(str(process.pid), encoding="utf-8")
+    try:
+        result = subprocess.run(
+            [
+                "make",
+                "-s",
+                "-C",
+                str(ROOT / "deploy" / "dev-stack"),
+                "_stop_host_runtimes",
+                f"HOST_BACKEND_PID={backend_pid}",
+                f"HOST_FRONTEND_PID={frontend_pid}",
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert process.poll() is None, "stale pidfile killed an unrelated process"
+        assert not backend_pid.exists()
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, 15)
+            process.wait(timeout=5)
+
+
+def test_stop_host_runtimes_stops_owned_backend_pid(tmp_path: Path) -> None:
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            "import time; time.sleep(30)",
+            "go run ./backend/cmd/api -config-dir config",
+        ],
+        start_new_session=True,
+    )
+    waiter = threading.Thread(target=process.wait, daemon=True)
+    waiter.start()
+    backend_pid = tmp_path / "backend.pid"
+    frontend_pid = tmp_path / "frontend.pid"
+    backend_pid.write_text(str(process.pid), encoding="utf-8")
+    try:
+        result = subprocess.run(
+            [
+                "make",
+                "-s",
+                "-C",
+                str(ROOT / "deploy" / "dev-stack"),
+                "_stop_host_runtimes",
+                f"HOST_BACKEND_PID={backend_pid}",
+                f"HOST_FRONTEND_PID={frontend_pid}",
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stderr
+        waiter.join(timeout=1)
+        assert process.returncode is not None, "owned backend process was not stopped"
+        assert not backend_pid.exists()
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, 15)
+            process.wait(timeout=5)
 
 
 def test_full_container_reuses_existing_redis_for_delivery_secrets() -> None:

@@ -28,13 +28,13 @@ func TestSMTPDeliveryWriterSendsLoginCodeThroughSMTP(t *testing.T) {
 		FromAddress:     "noreply@easyinterview.local",
 		VerifyBaseURL:   "http://127.0.0.1:5173/auth/verify",
 		DeliverySecrets: secrets,
-		LookupChallengeEmail: func(challengeID string) (string, error) {
+		LookupChallengeEmail: func(_ context.Context, challengeID string) (string, error) {
 			if challengeID != "challenge-1" {
 				t.Fatalf("lookup challenge id = %q", challengeID)
 			}
 			return "candidate@example.test", nil
 		},
-		Send: func(envelope auth.SMTPEnvelope) error {
+		Send: func(_ context.Context, envelope auth.SMTPEnvelope) error {
 			captured.addr = envelope.Addr
 			captured.from = envelope.From
 			captured.to = append([]string(nil), envelope.To...)
@@ -44,7 +44,7 @@ func TestSMTPDeliveryWriterSendsLoginCodeThroughSMTP(t *testing.T) {
 	})
 
 	payload := emailPayload(t, "challenge-1", "auth_challenge:challenge-1")
-	if err := writer.Write(payload); err != nil {
+	if err := writer.Write(context.Background(), payload); err != nil {
 		t.Fatalf("Write: %v", err)
 	}
 	if _, ok, err := secrets.GetDeliverySecret(context.Background(), "auth_challenge:challenge-1"); err != nil || ok {
@@ -92,13 +92,13 @@ func TestSMTPDeliveryWriterRetainsSecretWhenSendFails(t *testing.T) {
 		SMTPAddr:        "smtp.example.test:587",
 		FromAddress:     "noreply@example.test",
 		DeliverySecrets: secrets,
-		LookupChallengeEmail: func(string) (string, error) {
+		LookupChallengeEmail: func(context.Context, string) (string, error) {
 			return "candidate@example.test", nil
 		},
-		Send: func(auth.SMTPEnvelope) error { return errors.New("provider unavailable") },
+		Send: func(context.Context, auth.SMTPEnvelope) error { return errors.New("provider unavailable") },
 	})
 
-	if err := writer.Write(emailPayload(t, "challenge-1", "auth_challenge:challenge-1")); err == nil {
+	if err := writer.Write(context.Background(), emailPayload(t, "challenge-1", "auth_challenge:challenge-1")); err == nil {
 		t.Fatal("expected send failure")
 	}
 	if code, ok, err := secrets.GetDeliverySecret(context.Background(), "auth_challenge:challenge-1"); err != nil || !ok || code != "123456" {
@@ -115,13 +115,13 @@ func TestSMTPDeliveryWriterIgnoresDeleteFailureAfterSuccessfulSend(t *testing.T)
 		SMTPAddr:        "smtp.example.test:587",
 		FromAddress:     "noreply@example.test",
 		DeliverySecrets: secrets,
-		LookupChallengeEmail: func(string) (string, error) {
+		LookupChallengeEmail: func(context.Context, string) (string, error) {
 			return "candidate@example.test", nil
 		},
-		Send: func(auth.SMTPEnvelope) error { return nil },
+		Send: func(context.Context, auth.SMTPEnvelope) error { return nil },
 	})
 
-	if err := writer.Write(emailPayload(t, "challenge-1", "auth_challenge:challenge-1")); err != nil {
+	if err := writer.Write(context.Background(), emailPayload(t, "challenge-1", "auth_challenge:challenge-1")); err != nil {
 		t.Fatalf("successful SMTP send must not retry when cleanup fails: %v", err)
 	}
 	if len(secrets.deleted) != 1 {
@@ -136,16 +136,16 @@ func TestSMTPDeliveryWriterRequiresStoredDeliverySecret(t *testing.T) {
 		FromAddress:     "noreply@easyinterview.local",
 		VerifyBaseURL:   "http://127.0.0.1:5173/auth/verify",
 		DeliverySecrets: auth.NewDevMailSink(auth.DevMailSinkOptions{}),
-		LookupChallengeEmail: func(string) (string, error) {
+		LookupChallengeEmail: func(context.Context, string) (string, error) {
 			return "candidate@example.test", nil
 		},
-		Send: func(auth.SMTPEnvelope) error {
+		Send: func(context.Context, auth.SMTPEnvelope) error {
 			called = true
 			return nil
 		},
 	})
 
-	err := writer.Write(emailPayload(t, "challenge-1", "missing-secret-ref"))
+	err := writer.Write(context.Background(), emailPayload(t, "challenge-1", "missing-secret-ref"))
 	if err == nil {
 		t.Fatal("expected missing delivery secret to fail")
 	}
@@ -164,16 +164,16 @@ func TestSMTPDeliveryWriterDoesNotExposeLookupErrorDetails(t *testing.T) {
 		FromAddress:     "noreply@easyinterview.local",
 		VerifyBaseURL:   "http://127.0.0.1:5173/auth/verify",
 		DeliverySecrets: secrets,
-		LookupChallengeEmail: func(string) (string, error) {
+		LookupChallengeEmail: func(context.Context, string) (string, error) {
 			return "", errors.New("candidate@example.test 123456")
 		},
-		Send: func(auth.SMTPEnvelope) error {
+		Send: func(context.Context, auth.SMTPEnvelope) error {
 			t.Fatal("SMTP send must not run when recipient lookup fails")
 			return nil
 		},
 	})
 
-	err := writer.Write(emailPayload(t, "challenge-1", "auth_challenge:challenge-1"))
+	err := writer.Write(context.Background(), emailPayload(t, "challenge-1", "auth_challenge:challenge-1"))
 	if err == nil {
 		t.Fatal("expected lookup failure")
 	}
@@ -205,16 +205,16 @@ func TestSMTPDeliveryWriterPassesTLSAndAuthenticationWithoutLeakingSecrets(t *te
 				Password:        "smtp-secret",
 				TLSMode:         tt.mode,
 				DeliverySecrets: secrets,
-				LookupChallengeEmail: func(string) (string, error) {
+				LookupChallengeEmail: func(context.Context, string) (string, error) {
 					return "candidate@example.test", nil
 				},
-				Send: func(envelope auth.SMTPEnvelope) error {
+				Send: func(_ context.Context, envelope auth.SMTPEnvelope) error {
 					captured = envelope
 					return errors.New("provider rejected credentials smtp-secret candidate@example.test 123456")
 				},
 			})
 
-			err := writer.Write(emailPayload(t, "challenge-1", "auth_challenge:challenge-1"))
+			err := writer.Write(context.Background(), emailPayload(t, "challenge-1", "auth_challenge:challenge-1"))
 			if err == nil {
 				t.Fatal("expected delivery failure")
 			}
@@ -240,7 +240,7 @@ func TestSQLChallengeEmailLookupReturnsAuthChallengeEmail(t *testing.T) {
 		WithArgs("challenge-1").
 		WillReturnRows(sqlmock.NewRows([]string{"email"}).AddRow("candidate@example.test"))
 
-	email, err := auth.SQLChallengeEmailLookup(db)("challenge-1")
+	email, err := auth.SQLChallengeEmailLookup(db)(context.Background(), "challenge-1")
 	if err != nil {
 		t.Fatalf("lookup: %v", err)
 	}

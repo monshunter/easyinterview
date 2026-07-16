@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.23
+> **版本**: 1.24
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -139,3 +139,5 @@
   <!-- verified: 2026-07-16 evidence="dev-stack README v1.9 documents encrypted shared delivery secret, 5m TTL, host/full-container REDIS_URL and runner-stop non-dependency" -->
 - [x] 14.3 LIVE/REGRESSION: real Redis cross-client integration、full-container Mailpit/SMTP live、doctor 6/6、Compose config、scenario contract、docs/index/diff gates 全绿。
   <!-- verified: 2026-07-16 evidence="real Redis cross-client integration PASS; Mailpit Chrome login/profile PASS; SMTP job succeeded once; doctor 6/6; Compose/scenario contract and root make test/build/lint-config/docs/context/index/diff gates PASS" -->
+- [x] 14.4 PID-OWNERSHIP-REMEDIATION: RED/GREEN pytest 使用真实无关子进程与陈旧 pidfile，证明 `_stop_host_runtimes` 在命令不匹配时不发送 TERM/KILL、只清理 pidfile；匹配逻辑仅接受当前 repo-managed backend/frontend 命令，scenario contract 与 shell/Make gates 通过。
+  <!-- verified: 2026-07-16 method=tdd commands="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; make test" evidence="RED killed unrelated sleep process; GREEN 13 scenario-env contract tests PASS for both stale-unowned preservation and owned-backend termination; root Python 566 tests/4481 subtests PASS" -->

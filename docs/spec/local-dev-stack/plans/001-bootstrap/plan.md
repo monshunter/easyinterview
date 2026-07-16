@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.23
+> **版本**: 1.24
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -419,6 +419,8 @@ Phase 13 交付时采用的单实例 MVP 边界由 Phase 14 取代。`dev-contai
 
 先以 `scripts/lint/scenario_env_contract_test.py` 写 RED contract，拒绝 local-dev-stack 文档继续声明单 backend/无 Redis client，并断言 full-container backend 仍只接收既有 `REDIS_URL=redis://redis-dev:6379/0`、Compose 只有一个 `redis-dev` service。GREEN 只更新当前文档/合同与必要 wiring，不增加 service、network、volume、env key 或新 scenario。最终以现有 doctor Redis set/get/del、backend-auth real Redis cross-client integration、full-container Mailpit/SMTP live gate 收口。
 
+L2 remediation 追加 PID ownership gate：先用真实子进程 + 陈旧 pidfile RED test 证明旧实现会终止不属于 easyinterview 的进程；GREEN 在发送 TERM/KILL 前读取当前命令并匹配 backend `go run ./backend/cmd/api` 或 frontend `pnpm --filter @easyinterview/frontend dev`。PID 已复用、命令不匹配或无法读取时只清理 pidfile 并输出安全提示，不杀进程；不新增 daemon、lock service 或场景 E2E。
+
 ## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-19 全部成立，证据贴入工作日志或当前 `.test-output/`。
@@ -439,11 +441,13 @@ Phase 13 交付时采用的单实例 MVP 边界由 Phase 14 取代。`dev-contai
 | `.env` 仍使用 localhost 依赖地址导致 backend 容器启动失败 | Compose 为 backend/migrations 显式注入容器网络地址；Mailpit 由 `dev-container-up` 自动切换到 `mailpit-dev:1025`，标准 SMTP 原样透传；host-run `.env` 值保持不变，避免两种模式互相污染 |
 | host-run 与 full-container backend 同时消费 `email_dispatch` | `dev-container-up` 仍停止仓库 PID 文件管理的 host-run backend/frontend，避免本地并发 runner 干扰调试；即使存在多个 backend，delivery secret 也由同一 Redis store 跨实例读取 |
 | Redis 不可用导致 challenge 无法投递 | 复用现有 doctor set/get/del probe 与 backend startup ping fail closed；不通过另建 Redis service 绕过同一依赖故障 |
+| 陈旧 pidfile 中的 PID 已被无关进程复用 | TERM/KILL 前校验当前命令属于对应 repo-managed role；不匹配或无法证明归属时只清理 pidfile并保留进程 |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-16 | 1.24 | L2 remediation：停止 host-run runtime 前校验 PID 当前命令，拒绝终止 PID 已复用的无关进程。 | branch code review |
 | 2026-07-16 | 1.23 | Redis sharing revision：backend-auth 复用现有 `redis-dev` / `REDIS_URL` 保存加密 delivery secret，取消邮件投递的单 backend 正确性前提。 | backend-auth/001 Phase 12 |
 | 2026-07-16 | 1.21 | Full-container revision：同一 Compose 增加 migrations/backend/frontend 可选 profile，新增 `dev-container-*` lifecycle，锁定 10800/10801 与 Chrome 主流程部署验收。 | user goal |
 | 2026-07-16 | 1.22 | Full-container 和 host-run 支持通过同一邮件变量切换 Mailpit / 标准 SMTP，不再硬编码 Mailpit endpoint。 | backend-auth production SMTP |

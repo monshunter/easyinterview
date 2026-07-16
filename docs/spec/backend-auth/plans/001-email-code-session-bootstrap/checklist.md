@@ -1,6 +1,6 @@
 # Email-Code Session Bootstrap Checklist
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -103,3 +103,9 @@
 - [x] 12.5 BDD-Gate: 验证 `BDD.AUTH.EMAIL.003` 通过；domain behavior test 证明 producer/consumer 跨 backend 实例仍投递同一 6 位验证码，Redis/DB/job/error 不泄露 raw code/ref。证据：`TestEmailCodeDeliveryWorksAcrossIndependentRedisBackedInstances` 与 auth package regression PASS；实例 A 生成的 `123456` 由实例 B 的独立 store 解密投递并删除，Redis key/value 与 async payload 无 raw code/ref。
 - [x] 12.6 LIVE/REGRESSION: 两个真实 Redis client 完成跨 client Put/Get/Delete + TTL integration；重建 full-container 后 Mailpit challenge->receive->verify/session/me PASS，外部 SMTP 脱敏 smoke PASS；根 `make test`、`make build`、`make lint-config`、docs/context/index/diff/Compose/doctor 全绿。
   <!-- verified: 2026-07-16 evidence="real Redis cross-client integration PASS; Mailpit Chrome full-container login/profile PASS with consoleIssues=0; external SMTP email_dispatch succeeded attempts=1; Redis namespace key count=0 after both deliveries; doctor 6/6; root make test, build, lint-config, docs, context, index, diff and Compose gates PASS" -->
+- [x] 12.7 SMTP-LIFECYCLE-REMEDIATION: RED/GREEN tests 证明 runner context 贯穿 writer/Redis/DB/SMTP，建连后停滞会被取消且完整 SMTP 会话有界；DATA 最终成功后 QUIT 失败不返回 retryable error、不重复发信。
+  <!-- verified: 2026-07-16 method=tdd evidence="RED compile gate rejected context-free SMTP API; GREEN TestEmailDispatchHandler_PassesRunnerContextToDeliveryWriter, TestSMTPTransportHonorsCancellationAfterConnect and TestSMTPTransportTreatsQuitFailureAfterAcceptedDataAsSuccess PASS" -->
+- [x] 12.8 CHALLENGE-COMPENSATION: RED/GREEN tests 证明 Redis Put 失败不创建 `auth_challenges`、不污染 rate-limit；Redis Put 成功但 challenge 创建失败 best-effort 删除 secret，错误仍脱敏。
+  <!-- verified: 2026-07-16 method=tdd evidence="TestStartEmailChallengeDoesNotEnqueueWhenDeliverySecretStorageFails and TestStartEmailChallengeDeletesDeliverySecretWhenChallengeCreationFails PASS; compensation remains active after request cancellation" -->
+- [x] 12.9 BDD-Gate: 重新验证 `BDD.AUTH.EMAIL.003` domain behavior，覆盖跨实例投递、SMTP cancel/accepted-once 与 Redis Put 失败无 challenge；聚焦测试和根 `make test` 通过后恢复 completed。
+  <!-- verified: 2026-07-16 commands="go test ./internal/auth -count=1; REDIS_URL=redis://127.0.0.1:6379/0 go test -tags=integration ./internal/auth -run TestRedisDeliverySecretStoreCrossClientIntegration -count=1; make test; make build" evidence="focused Auth PASS; real Redis cross-client PASS; root Python 566 tests/4481 subtests, Go all packages and frontend 1004 tests PASS; build PASS" -->

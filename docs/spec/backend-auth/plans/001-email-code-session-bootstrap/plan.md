@@ -1,6 +1,6 @@
 # Email-Code Session Bootstrap
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -230,6 +230,10 @@ Phase 11 的单实例 MVP 边界由 Phase 12 取代：验证码不进入 job pay
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json` 既有场景 | frontend auth email flow（generated client） | C1 handler -> `async_jobs(email_dispatch)` -> arbitrary backend runner -> SMTP writer | `auth_challenges`、`async_jobs`；Redis encrypted delivery secret（5m TTL）；raw code 不进入 DB/job | none | domain `BDD.AUTH.EMAIL.003` + real Redis cross-client integration；Mailpit 继续复用 `E2E.P0.101` handoff |
 
+#### 12.5 L2 delivery lifecycle remediation
+
+以 RED tests 复现三条失败路径：SMTP 服务器建连后停滞时 runner context 无法取消；DATA 已返回最终成功但 QUIT 断连时 job 被误判为 retryable；Redis Put 失败时已创建的 challenge 污染一分钟 rate-limit。GREEN 只做最小生命周期修复：将 handler context 贯穿 DeliveryWriter/Redis/DB/SMTP，给完整 SMTP 会话设置有界 deadline，DATA 接受后的 QUIT 仅 best-effort；并在 Redis Put 成功后才创建 challenge，challenge 创建失败 best-effort 清理 secret。`BDD.AUTH.EMAIL.003` 继续作为 domain behavior owner，不新增 E2E。
+
 ## 5 验收标准
 
 - 仓库根 `make test` 覆盖 `startAuthEmailChallenge`、`email_dispatch` delivery、`verifyAuthEmailChallenge`、session middleware、`getMe`、`deleteMe`、`logout` 与 runtime-config resolver；focused Go tests 只用于开发反馈。
@@ -253,6 +257,8 @@ Phase 11 的单实例 MVP 边界由 Phase 12 取代：验证码不进入 job pay
 | 过早依赖独立 worker 阻塞本地验证 | 邮件派发由 backend internal runner 的 in-process kernel 承接；C1 不需要独立后台执行进程，dev sink / Mailpit writer 仍能被本地场景验证 |
 | Redis 不可用、secret 过期或 pepper 轮换导致 pending job 无法取码 | startup ping 与 producer Put fail closed；consumer 返回脱敏 retryable failure；TTL 与 job retry budget有界，operator 恢复 Redis 后用户可重新发起 challenge |
 | SMTP 已接受邮件但 Redis delete 失败导致 secret 暂留 | delivery 仍判定成功，避免重复发信；encrypted value 由 5 分钟 TTL 自动清理，delete error 不输出 key/ref/code |
+| SMTP 建连后停滞或 DATA 接受后 QUIT 断连 | runner context 与 SMTP deadline 终止停滞 I/O；DATA 最终成功响应即视为已投递，QUIT 只作 best-effort 清理 |
+| Redis Put 失败留下不可投递 challenge 并污染 rate-limit | 先 Put delivery secret，再创建 challenge；Put 失败不写 challenge，challenge 创建失败 best-effort 删除 secret |
 | C1 绕过 B3 email payload 红线 | Phase 2.3 强制使用 generated `BuildEmailDispatchPayload`，并用 negative tests 拒绝 redacted fields |
 | C1 抢占 privacy deletion 执行 | Phase 3.5 只做 auth/session handoff，backend internal runner / B4 删除执行不进入本 plan |
 | C1 新增未登记 auth metric | Phase 4.3 先跑 F1 registry preflight；未登记则先修订 F1，不在 C1 私造 metric |
