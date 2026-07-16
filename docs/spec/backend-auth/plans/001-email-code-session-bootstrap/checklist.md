@@ -1,6 +1,6 @@
 # Email-Code Session Bootstrap Checklist
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -93,3 +93,13 @@
   <!-- verified: 2026-07-16 method=domain-behavior bddChecklist=complete -->
 - [x] 11.5 LIVE/REGRESSION: 根 `make test`、`make build`、`make lint-config`、docs/context/diff gates 通过；真实 Mailpit 登录收码闭环 PASS；用户 `.env` 标准 SMTP 完成 TLS/auth/实发，收件人和证据脱敏。MVP 明确只运行一个 active backend 实例。
   <!-- verified: 2026-07-16 evidence="make test/build/lint-config/docs/context/compose/scenario-env gates pass; provider-only full-container Mailpit start->receive-code->verify->session->me passes with host-run app stopped; fresh external SMTP implicit TLS/auth/MAIL FROM/RCPT/DATA and application job succeeded in one attempt; user confirmed EMAIL_FROM_ADDRESS inbox received EasyInterview sign-in code; redacted artifacts record no recipient, code, or credential" -->
+
+## Phase 12: Redis-backed cross-instance delivery secret
+
+- [x] 12.1 RED-STORE: `redis_delivery_secret_store_test.go` 先失败，覆盖 SHA-256 namespaced key、AES-GCM value 不含 code/ref、TTL=5m、两个独立 store 共享读取、miss/expired/decrypt/backend error 脱敏；不新增 config key。证据：首次 focused test 因 `NewRedisDeliverySecretStoreWithClient` / `RedisDeliverySecretStore` 未定义而按预期失败。
+- [x] 12.2 GREEN-STORE: 落地 context-aware `DeliverySecretStore.Put/Get/Delete` 与 Redis 实现；test-only `DevMailSink` 适配同一接口；focused auth tests 全绿。证据：`go test ./internal/auth -run TestRedisDeliverySecretStore -count=1`、`go test ./internal/auth -count=1` PASS。
+- [x] 12.3 SERVICE-LIFECYCLE: RED/GREEN tests 证明 Put 成功后才 enqueue，Put 失败不 enqueue，payload/enqueue 失败 best-effort delete；SMTP 成功删除、SMTP 失败保留供 retry，delete 失败不触发重复发信且只由 TTL 兜底。证据：RED 分别观察到 enqueue 失败未删除、SMTP 成功未删除及 delete 未调用；GREEN 后 lifecycle focused tests 与 `go test ./internal/auth -count=1` PASS。
+- [x] 12.4 RUNTIME-WIRING: `cmd/api` RED/GREEN tests 证明 A4 `redis.url` 被解析、启动 ping fail closed、同一 Redis store 注入 producer/writer并在 shutdown close；Mailpit/SMTP provider selection 不回退进程内 sink。证据：RED 因新 runtime builder / 三参数 `buildAuthService` 未定义而失败；GREEN 后 focused builder tests 与 `go test ./cmd/api -count=1` PASS，启动错误固定脱敏且 ping 失败立即 close。
+- [x] 12.5 BDD-Gate: 验证 `BDD.AUTH.EMAIL.003` 通过；domain behavior test 证明 producer/consumer 跨 backend 实例仍投递同一 6 位验证码，Redis/DB/job/error 不泄露 raw code/ref。证据：`TestEmailCodeDeliveryWorksAcrossIndependentRedisBackedInstances` 与 auth package regression PASS；实例 A 生成的 `123456` 由实例 B 的独立 store 解密投递并删除，Redis key/value 与 async payload 无 raw code/ref。
+- [x] 12.6 LIVE/REGRESSION: 两个真实 Redis client 完成跨 client Put/Get/Delete + TTL integration；重建 full-container 后 Mailpit challenge->receive->verify/session/me PASS，外部 SMTP 脱敏 smoke PASS；根 `make test`、`make build`、`make lint-config`、docs/context/index/diff/Compose/doctor 全绿。
+  <!-- verified: 2026-07-16 evidence="real Redis cross-client integration PASS; Mailpit Chrome full-container login/profile PASS with consoleIssues=0; external SMTP email_dispatch succeeded attempts=1; Redis namespace key count=0 after both deliveries; doctor 6/6; root make test, build, lint-config, docs, context, index, diff and Compose gates PASS" -->

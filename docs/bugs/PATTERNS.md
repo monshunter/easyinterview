@@ -49,8 +49,8 @@
 
 ## 模式 4：Completed checklist 掩盖未执行的 runner gate
 
-- **相关 Bug**：BUG-0064, BUG-0066, BUG-0068, BUG-0075, BUG-0082, BUG-0087, BUG-0090, BUG-0093, BUG-0100
-- **典型症状**：plan/checklist 标记 `completed`，但 test checklist / BDD checklist 仍有未勾选项；scenario `verify.sh` 只检查 spec 文件存在、历史说明或宽泛 `PASS` 字样；pixel parity / scenario wrapper 被写成 deferred 或外部运行，仍被计入完成证据。
+- **相关 Bug**：BUG-0064, BUG-0066, BUG-0068, BUG-0075, BUG-0082, BUG-0087, BUG-0090, BUG-0093, BUG-0100, BUG-0179
+- **典型症状**：plan/checklist 标记 `completed`，但 test checklist / BDD checklist 仍有未勾选项；scenario `verify.sh` 只检查 spec 文件存在、历史说明或宽泛 `PASS` 字样；pixel parity / scenario wrapper 被写成 deferred 或外部运行，仍被计入完成证据；completed-plan 压缩删除仍被下游消费的 owner marker，或 verifier 仅凭失败说明中出现 marker 名称就误判通过。
 - **检查清单**：
   1. 对 completed plan 先 `rg "\\[ \\]|deferred|pending|no tests|Playwright.*待|pixel parity 待"`，把空勾选、延期口径和 no-op 风险当作 blocking drift。
   2. 直接读取每个 scenario 的 `trigger.sh` / `verify.sh`，确认 `trigger.sh` 真正调用 runner；仅 `grep` 测试名不能作为通过证据，`verify.sh` 必须对命名测试要求 runner 的精确 pass marker（Go 为 `--- PASS: TestName`），并显式拒绝 `--- FAIL:`、package `FAIL`、skip 与 no-tests。
@@ -62,6 +62,7 @@
   8. 对 `Ready` / `Verified` 场景先做结构 preflight，确认 `README.md`、`scripts/setup.sh`、`scripts/trigger.sh`、`scripts/verify.sh`、`scripts/cleanup.sh`、`data/seed-input.md`、`data/expected-outcome.md` 全部存在；缺任何一个文件都不能把 runner pass 当成完整 BDD 证据。
   9. 用户可见 route/context handoff 场景必须检查浏览器 URL query、目标 route DOM state 与 exact context key marker；component-level navigation spy 只能作为补充，不能替代 browser gate。
   10. 对强制 preflight / review gate，不要复用会在依赖缺失或配置加载失败时 `t.Skip` 的 live-scenario helper；必需 gate 的 loader / setup helper 应在契约失败时 `t.Fatal` / 非零退出，只有真正可选的 live integration 才允许 skip。
+  11. 对 checklist owner marker，使用显式 `marker=<name>` 机器字段并增加负向测试：verified 失败说明、普通 evidence 和 unchecked item 即使提到 marker 名称也不得满足 gate；压缩 completed plan 前反查 marker 消费者并保留仍在用的 handoff。
 
 ## 模式 5：Domain service 已实现但 runtime caller 未接入
 

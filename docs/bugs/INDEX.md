@@ -196,6 +196,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0179](./BUG-0179.md) | owner checklist compression deleted activation markers and preflight accepted incidental mentions | medium | resolved | 2026-07-16 | `feat(auth): use Redis for email delivery secrets (BUG-0179)` |
 | [BUG-0177](./BUG-0177.md) | OPENAPI-001 refreeze left its root regression test bound to the new baseline | medium | resolved | 2026-07-15 | `feat(report): align context grid and acceptance (BUG-0177)` |
 | [BUG-0175](./BUG-0175.md) | E2E evidence redaction missed URL-encoded account email | medium | resolved | 2026-07-15 | `feat(settings): simplify account settings and harden evidence privacy (BUG-0175)` |
 | [BUG-0174](./BUG-0174.md) | evidence privacy gate rejected benign PNG metadata | medium | resolved | 2026-07-15 | `feat(report): integrate readonly conversation record (BUG-0173, BUG-0174)` |

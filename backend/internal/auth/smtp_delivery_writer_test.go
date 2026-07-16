@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -12,7 +13,9 @@ import (
 
 func TestSMTPDeliveryWriterSendsLoginCodeThroughSMTP(t *testing.T) {
 	secrets := auth.NewDevMailSink(auth.DevMailSinkOptions{})
-	secrets.PutDeliverySecret("auth_challenge:challenge-1", "123456")
+	if err := secrets.PutDeliverySecret(context.Background(), "auth_challenge:challenge-1", "123456", auth.ChallengeTTL); err != nil {
+		t.Fatalf("PutDeliverySecret: %v", err)
+	}
 	var captured struct {
 		addr string
 		from string
@@ -43,6 +46,9 @@ func TestSMTPDeliveryWriterSendsLoginCodeThroughSMTP(t *testing.T) {
 	payload := emailPayload(t, "challenge-1", "auth_challenge:challenge-1")
 	if err := writer.Write(payload); err != nil {
 		t.Fatalf("Write: %v", err)
+	}
+	if _, ok, err := secrets.GetDeliverySecret(context.Background(), "auth_challenge:challenge-1"); err != nil || ok {
+		t.Fatalf("success must delete delivery secret: ok=%v err=%v", ok, err)
 	}
 
 	if captured.addr != "127.0.0.1:1025" {
@@ -77,6 +83,52 @@ func TestSMTPDeliveryWriterSendsLoginCodeThroughSMTP(t *testing.T) {
 	}
 }
 
+func TestSMTPDeliveryWriterRetainsSecretWhenSendFails(t *testing.T) {
+	secrets := auth.NewDevMailSink(auth.DevMailSinkOptions{})
+	if err := secrets.PutDeliverySecret(context.Background(), "auth_challenge:challenge-1", "123456", auth.ChallengeTTL); err != nil {
+		t.Fatalf("PutDeliverySecret: %v", err)
+	}
+	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
+		SMTPAddr:        "smtp.example.test:587",
+		FromAddress:     "noreply@example.test",
+		DeliverySecrets: secrets,
+		LookupChallengeEmail: func(string) (string, error) {
+			return "candidate@example.test", nil
+		},
+		Send: func(auth.SMTPEnvelope) error { return errors.New("provider unavailable") },
+	})
+
+	if err := writer.Write(emailPayload(t, "challenge-1", "auth_challenge:challenge-1")); err == nil {
+		t.Fatal("expected send failure")
+	}
+	if code, ok, err := secrets.GetDeliverySecret(context.Background(), "auth_challenge:challenge-1"); err != nil || !ok || code != "123456" {
+		t.Fatalf("send failure must retain delivery secret: code=%q ok=%v err=%v", code, ok, err)
+	}
+}
+
+func TestSMTPDeliveryWriterIgnoresDeleteFailureAfterSuccessfulSend(t *testing.T) {
+	secrets := &lifecycleSecretStore{
+		secrets: map[string]string{"auth_challenge:challenge-1": "123456"},
+		delErr:  errors.New("redis://user:password@private-host:6379 123456"),
+	}
+	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
+		SMTPAddr:        "smtp.example.test:587",
+		FromAddress:     "noreply@example.test",
+		DeliverySecrets: secrets,
+		LookupChallengeEmail: func(string) (string, error) {
+			return "candidate@example.test", nil
+		},
+		Send: func(auth.SMTPEnvelope) error { return nil },
+	})
+
+	if err := writer.Write(emailPayload(t, "challenge-1", "auth_challenge:challenge-1")); err != nil {
+		t.Fatalf("successful SMTP send must not retry when cleanup fails: %v", err)
+	}
+	if len(secrets.deleted) != 1 {
+		t.Fatalf("delete attempts = %d, want 1", len(secrets.deleted))
+	}
+}
+
 func TestSMTPDeliveryWriterRequiresStoredDeliverySecret(t *testing.T) {
 	called := false
 	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
@@ -104,7 +156,9 @@ func TestSMTPDeliveryWriterRequiresStoredDeliverySecret(t *testing.T) {
 
 func TestSMTPDeliveryWriterDoesNotExposeLookupErrorDetails(t *testing.T) {
 	secrets := auth.NewDevMailSink(auth.DevMailSinkOptions{})
-	secrets.PutDeliverySecret("auth_challenge:challenge-1", "123456")
+	if err := secrets.PutDeliverySecret(context.Background(), "auth_challenge:challenge-1", "123456", auth.ChallengeTTL); err != nil {
+		t.Fatalf("PutDeliverySecret: %v", err)
+	}
 	writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
 		SMTPAddr:        "127.0.0.1:1025",
 		FromAddress:     "noreply@easyinterview.local",
@@ -140,7 +194,9 @@ func TestSMTPDeliveryWriterPassesTLSAndAuthenticationWithoutLeakingSecrets(t *te
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			secrets := auth.NewDevMailSink(auth.DevMailSinkOptions{})
-			secrets.PutDeliverySecret("auth_challenge:challenge-1", "123456")
+			if err := secrets.PutDeliverySecret(context.Background(), "auth_challenge:challenge-1", "123456", auth.ChallengeTTL); err != nil {
+				t.Fatalf("PutDeliverySecret: %v", err)
+			}
 			var captured auth.SMTPEnvelope
 			writer := auth.NewSMTPDeliveryWriter(auth.SMTPDeliveryWriterOptions{
 				SMTPAddr:        "smtp.example.test:587",

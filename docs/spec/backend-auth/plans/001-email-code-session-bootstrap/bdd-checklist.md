@@ -1,6 +1,6 @@
 # Backend Auth BDD Checklist
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -23,3 +23,12 @@
 - [x] Owner behavior tests 覆盖 Mailpit plain/no-auth、SMTP STARTTLS/implicit TLS + AUTH、provider fail-fast、transport failure 与隐私红线。
 - [x] 根 `make test` 执行对应 Go tests；该结果是代码层行为证据，不是外部邮箱 E2E PASS。
   <!-- verified: 2026-07-16 method=domain-behavior evidence="auth/config/cmd-api behavior tests plus root make test pass; external SMTP receipt remains a separate live gate" -->
+
+## `BDD.AUTH.EMAIL.003` Cross-instance Redis delivery secret
+
+- [x] Owner domain behavior tests 覆盖实例 A Put/实例 B Get/Delete、加密 value、5 分钟 TTL、SMTP success/failure lifecycle 与脱敏错误。
+  <!-- verified: 2026-07-16 method=domain-behavior evidence="TestEmailCodeDeliveryWorksAcrossIndependentRedisBackedInstances plus Redis store and delivery lifecycle focused tests pass" -->
+- [x] 使用两个独立真实 Redis client 执行 cross-client integration；该结果属于代码 integration evidence，不是 E2E。
+  <!-- verified: 2026-07-16 method=integration evidence="REDIS_URL=redis://127.0.0.1:6379/0 go test -tags=integration ./internal/auth -run TestRedisDeliverySecretStoreCrossClientIntegration -count=1 PASS; covers encrypted raw value, near-5m TTL, cross-client Get/Delete and actual expiry" -->
+- [x] 根 `make test` 回归对应 domain behavior tests，并记录 full-container Mailpit/SMTP live evidence。
+  <!-- verified: 2026-07-16 evidence="root make test includes auth/cmd-api domain behavior and integration contract tests; full-container Mailpit Chrome challenge->receive->verify->profile PASS with consoleIssues=0; Redis namespace empty after success; external SMTP job succeeded attempts=1" -->

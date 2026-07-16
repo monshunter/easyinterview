@@ -121,16 +121,45 @@ func TestV020ActivationOwnerMarkersReady(t *testing.T) {
 			t.Fatalf("read owner checklist %s: %v", path, err)
 		}
 		for _, marker := range markers {
-			verified := false
-			for _, line := range strings.Split(string(body), "\n") {
-				if strings.Contains(line, "<!-- verified:") && strings.Contains(line, marker) {
-					verified = true
-					break
-				}
-			}
-			if !verified {
+			if !hasVerifiedOwnerMarker(string(body), marker) {
 				t.Fatalf("owner checklist %s has no verified marker %s", path, marker)
 			}
 		}
+	}
+}
+
+func hasVerifiedOwnerMarker(body, marker string) bool {
+	want := "marker=" + marker
+	for _, line := range strings.Split(body, "\n") {
+		if !strings.Contains(line, "<!-- verified:") {
+			continue
+		}
+		for _, field := range strings.Fields(line) {
+			if strings.Trim(field, `"'`) == want {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func TestHasVerifiedOwnerMarkerRequiresExplicitAttribute(t *testing.T) {
+	const marker = "REPORT_RUBRIC_V020_PASS"
+	tests := []struct {
+		name string
+		body string
+		want bool
+	}{
+		{name: "explicit marker", body: "<!-- verified: 2026-07-16 marker=REPORT_RUBRIC_V020_PASS result=PASS -->", want: true},
+		{name: "failure mention", body: "<!-- verified: 2026-07-16 result=FAIL at REPORT_RUBRIC_V020_PASS -->", want: false},
+		{name: "evidence mention", body: "<!-- verified: 2026-07-16 evidence=REPORT_RUBRIC_V020_PASS re-emitted -->", want: false},
+		{name: "unchecked text", body: "- [ ] emit REPORT_RUBRIC_V020_PASS", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := hasVerifiedOwnerMarker(tt.body, marker); got != tt.want {
+				t.Fatalf("hasVerifiedOwnerMarker() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

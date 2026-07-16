@@ -1,6 +1,6 @@
 # Local Dev Stack
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
 > **更新日期**: 2026-07-16
 
@@ -32,6 +32,8 @@
 | `mailpit-dev` | `axllent/mailpit:v1.30.0` | `${MAILPIT_WEB_HOST_PORT:-8025}` Web UI + `${MAILPIT_SMTP_HOST_PORT:-1025}` SMTP | 无账号（dev only） | — |
 
 所有服务通过 bridge network `easyinterview-dev` 互访，短名解析（`postgres-dev` / `redis-dev` / `minio-dev` / `mailpit-dev`）。MinIO init 幂等创建默认 bucket `easyinterview-dev`；Mailpit 提供本地 6 位邮箱验证码收信，不需要真实外部邮箱服务或真实邮箱账号。
+
+backend 复用唯一的 `redis-dev` 保存共享加密 delivery secret：producer 写入后再创建 `email_dispatch` job，任意 backend consumer 都可读取同一 6 位验证码；发送成功即删除，失败保留至 5 分钟 TTL 供重试。该能力不新增 Redis service、network、volume 或 env key。
 
 ### 2.2 项目组件
 
@@ -83,6 +85,7 @@ host-run backend 必须从同一个 `.env` 读取：
 - `API_HOST_PORT=8080`
 - `SESSION_COOKIE_SECRET`
 - `AUTH_CHALLENGE_TOKEN_PEPPER`
+- `REDIS_URL=redis://127.0.0.1:${REDIS_HOST_PORT:-6379}/0`（host-run）；full-container 固定使用 `redis://redis-dev:6379/0`
 
 frontend real mode 也必须从同一个 `.env` 读取：
 
@@ -149,7 +152,7 @@ test/scenarios/env-redeploy.sh all
 
 Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启动后，`startAuthEmailChallenge` 会通过 `email_dispatch` handler 向 Mailpit SMTP 投递 code-only 邮件；邮件正文只包含 6 位验证码和过期提示，不包含 `/auth/verify?token=...` 链接或 backend verify API URL。人工 UAT 使用 synthetic `.example.test` 邮箱即可完成注册/登录，不需要真实邮箱账号：在前端验证页输入邮件中的 6 位 code 后，由前端调用 `GET /api/v1/auth/email/verify` 兑换 session。backend dev CORS allowlist 仍从 `EMAIL_VERIFY_BASE_URL` 解析 frontend origin，避免前端端口和 CORS 端口分裂。若使用 `vite preview --port 4174` 作为唯一前端入口，本地 `.env` 的 `EMAIL_VERIFY_BASE_URL` 应同步改为 `http://127.0.0.1:4174/auth/verify`。
 
-切换到标准邮件服务时，在同一个 `deploy/dev-stack/.env` 中设置 `EMAIL_PROVIDER=smtp`，并填写 `EMAIL_SMTP_HOST`、`EMAIL_SMTP_PORT`、`EMAIL_SMTP_USERNAME`、`EMAIL_SMTP_PASSWORD`、`EMAIL_FROM_ADDRESS` 与 `EMAIL_SMTP_TLS_MODE=starttls|tls`。`EMAIL_FROM_ADDRESS` 必须是服务商已验证或授权的发件地址；不要默认任意 `noreply` 地址都可用。随后重建 backend：full-container 执行 `make dev-container-up`，host-run 执行 `make scenario-env-redeploy TARGET=backend`。Compose 会原样透传标准 SMTP endpoint；当 `EMAIL_PROVIDER=mailpit` 时，`dev-container-up` 自动把容器内 endpoint 切换为 `mailpit-dev:1025`，host-run `.env` 仍保留 `127.0.0.1:1025`，用户无需来回改 host。`dev-container-up` 同时停止仓库 PID 文件管理的 host-run backend/frontend，避免两个 backend 竞争同一异步队列；它不会停止无关进程或删除数据卷。日志、doctor 输出和验收证据都不得记录密码、完整收件邮箱或验证码。
+切换到标准邮件服务时，在同一个 `deploy/dev-stack/.env` 中设置 `EMAIL_PROVIDER=smtp`，并填写 `EMAIL_SMTP_HOST`、`EMAIL_SMTP_PORT`、`EMAIL_SMTP_USERNAME`、`EMAIL_SMTP_PASSWORD`、`EMAIL_FROM_ADDRESS` 与 `EMAIL_SMTP_TLS_MODE=starttls|tls`。`EMAIL_FROM_ADDRESS` 必须是服务商已验证或授权的发件地址；不要默认任意 `noreply` 地址都可用。随后重建 backend：full-container 执行 `make dev-container-up`，host-run 执行 `make scenario-env-redeploy TARGET=backend`。Compose 会原样透传标准 SMTP endpoint；当 `EMAIL_PROVIDER=mailpit` 时，`dev-container-up` 自动把容器内 endpoint 切换为 `mailpit-dev:1025`，host-run `.env` 仍保留 `127.0.0.1:1025`，用户无需来回改 host。`dev-container-up` 同时停止仓库 PID 文件管理的 host-run backend/frontend，避免本地开发时多个 runner 重复消费；但共享 Redis 已保证跨 backend 获取验证码，投递正确性不依赖停止 host-run backend。该命令不会停止无关进程或删除数据卷。日志、doctor 输出和验收证据都不得记录密码、完整收件邮箱或验证码。
 
 ## 5 与场景测试的关系
 

@@ -121,7 +121,16 @@ func main() {
 	}
 	defer db.Close()
 
-	authService, mailWriter, err := buildAuthService(loader, db)
+	deliverySecrets, err := buildAuthDeliverySecretRuntime(loader, func(redisURL, pepper string) (authDeliverySecretRuntime, error) {
+		return auth.NewRedisDeliverySecretStore(redisURL, pepper)
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "api: auth delivery secret init: %v\n", err)
+		os.Exit(1)
+	}
+	defer deliverySecrets.Close()
+
+	authService, mailWriter, err := buildAuthService(loader, db, deliverySecrets)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: auth init: %v\n", err)
 		os.Exit(1)
@@ -267,7 +276,35 @@ func buildRunnerKernel(opts runnerKernelOptions) (*runner.Runtime, error) {
 	return kernel, nil
 }
 
-func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.EmailCodeService, auth.DeliveryWriter, error) {
+type authDeliverySecretRuntime interface {
+	auth.DeliverySecretStore
+	Ping(context.Context) error
+	Close() error
+}
+
+type authDeliverySecretRuntimeFactory func(redisURL, keyMaterial string) (authDeliverySecretRuntime, error)
+
+func buildAuthDeliverySecretRuntime(loader *config.Loader, factory authDeliverySecretRuntimeFactory) (authDeliverySecretRuntime, error) {
+	if loader == nil || factory == nil {
+		return nil, fmt.Errorf("auth delivery secret runtime unavailable")
+	}
+	runtime, err := factory(
+		strings.TrimSpace(loader.GetString("redis.url")),
+		strings.TrimSpace(loader.GetSecret("auth.challengeTokenPepper").Reveal()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("auth delivery secret runtime init failed")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := runtime.Ping(ctx); err != nil {
+		_ = runtime.Close()
+		return nil, fmt.Errorf("auth delivery secret runtime ping failed")
+	}
+	return runtime, nil
+}
+
+func buildAuthService(loader *config.Loader, db *sql.DB, deliverySecrets auth.DeliverySecretStore) (*auth.EmailCodeService, auth.DeliveryWriter, error) {
 	challengePepper := strings.TrimSpace(loader.GetSecret("auth.challengeTokenPepper").Reveal())
 	sessionCookieSecret := strings.TrimSpace(loader.GetSecret("auth.sessionCookieSecret").Reveal())
 	var missing []string
@@ -280,11 +317,13 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.EmailCodeService
 	if len(missing) > 0 {
 		return nil, nil, fmt.Errorf("missing required auth secret(s): %s", strings.Join(missing, ", "))
 	}
+	if deliverySecrets == nil {
+		return nil, nil, fmt.Errorf("auth delivery secret store is required")
+	}
 	verifyBaseURL := strings.TrimSpace(loader.GetString("email.verifyBaseURL"))
 	if verifyBaseURL == "" {
 		verifyBaseURL = "/api/v1/auth/email/verify"
 	}
-	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: verifyBaseURL})
 	var writer auth.DeliveryWriter
 	provider := strings.ToLower(strings.TrimSpace(loader.GetString("email.provider")))
 	switch provider {
@@ -308,7 +347,7 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.EmailCodeService
 			Password:             loader.GetSecret("email.smtpPassword").Reveal(),
 			TLSMode:              auth.SMTPTLSMode(strings.ToLower(strings.TrimSpace(loader.GetString("email.smtpTLSMode")))),
 			VerifyBaseURL:        verifyBaseURL,
-			DeliverySecrets:      sink,
+			DeliverySecrets:      deliverySecrets,
 			LookupChallengeEmail: auth.SQLChallengeEmailLookup(db),
 		})
 	default:
@@ -320,7 +359,7 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.EmailCodeService
 	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               auth.NewSQLStore(db),
 		Dispatcher:          enqueuer,
-		DeliverySecrets:     sink,
+		DeliverySecrets:     deliverySecrets,
 		ChallengePepper:     challengePepper,
 		SessionCookieSecret: sessionCookieSecret,
 	})

@@ -1,6 +1,6 @@
 # Email-Code Session Bootstrap
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -21,7 +21,7 @@ ADR-Q1 已锁定自建 email-code challenge + first-party session cookie。B2 Op
 
 - **Plan 类型**: `feature-behavior` + `backend` + `contract`。
 - **TDD 策略**: 通过 `/implement backend-auth/001-email-code-session-bootstrap backend` -> `/tdd` 执行；focused Go test / handler contract test / store test 只用于开发反馈，阶段完成由仓库根 `make test` 承接前后端全量单测。
-- **BDD 策略**: `BDD.AUTH.EMAIL.001` 由代码层 owner tests 验证 email-code、session 与 profile-completion，`BDD.AUTH.EMAIL.002` 验证 Mailpit/SMTP provider、TLS/auth、失败与隐私行为；两者由仓库根 `make test` 统一回归。`E2E.P0.101` 仅作为 real frontend/backend/Mailpit 链路的独立 handoff，只有显式真实运行后才产生 PASS；外部 SMTP 使用显式脱敏 live smoke，不创建配置型 E2E。OpenAPI contract、config lint、privacy grep 与 docs checks 作为独立 gate，不包装为 E2E。
+- **BDD 策略**: `BDD.AUTH.EMAIL.001` 由代码层 owner tests 验证 email-code、session 与 profile-completion，`BDD.AUTH.EMAIL.002` 验证 Mailpit/SMTP provider、TLS/auth、失败与隐私行为，`BDD.AUTH.EMAIL.003` 验证 producer/consumer 位于不同 backend 实例时仍能通过共享 Redis 投递同一 6 位验证码；三者由仓库根 `make test` 统一回归，真实 Redis 跨 client 由独立 integration gate 承接。`E2E.P0.101` 仅作为 real frontend/backend/Mailpit 链路的独立 handoff，只有显式真实运行后才产生 PASS；外部 SMTP 使用显式脱敏 live smoke，不创建配置型 E2E。OpenAPI contract、config lint、privacy grep 与 docs checks 作为独立 gate，不包装为 E2E。
 
 ### 3.1 Operation Matrix
 
@@ -208,7 +208,27 @@ Coordinate B4 001 Phase 13 before removing DB columns；new account creation sti
 
 执行 focused Go tests、`make lint-config`、根 `make test`、`make build`、旧 `EMAIL_PROVIDER_API_KEY` current-scope zero-reference，并分别对 Mailpit 与用户 `.env` 的标准 SMTP 做真实投递验收。
 
-MVP 部署边界锁定为单个 active backend 实例：验证码只在发起进程的 transient delivery secret store 中短暂存在。当前阶段不新增 Redis client、共享 secret store 或加密 job payload；进入多副本生产部署前，必须原地重开本 plan 设计共享一次性 secret 与跨实例消费语义。`dev-container-up` 负责停止仓库 PID 文件管理的 host-run backend，避免本地两套 runner 竞争同一任务。
+Phase 11 的单实例 MVP 边界由 Phase 12 取代：验证码不进入 job payload，而是复用现有 `REDIS_URL` 写入加密、namespaced、5 分钟 TTL 的共享 delivery secret。`dev-container-up` 仍可停止仓库 PID 文件管理的 host-run backend，以保持本地运行拓扑可预测，但正确性不再依赖单实例。
+
+### Phase 12: Redis-backed cross-instance delivery secret
+
+#### 12.1 Redis store contract
+
+先写 RED tests 锁定 namespaced SHA-256 key、AES-GCM encrypted value、`ChallengeTTL`、miss/expired/decrypt/Redis error 脱敏与两个独立 store/client 读取同一 secret。加密 key 只由 `AUTH_CHALLENGE_TOKEN_PEPPER` 通过 HKDF-SHA256 固定 context label 域隔离派生，不新增配置 key；pepper 轮换按 clean break 使 pending secret 失效。
+
+#### 12.2 Service and writer lifecycle
+
+把 `DeliverySecretStore` 改为 context-aware、error-returning `Put/Get/Delete` 合同。`StartEmailChallenge` 在 enqueue 前写入 Redis，写入失败不 enqueue；payload/enqueue 失败 best-effort 删除。SMTP writer 发送成功后删除，发送失败保留到 TTL 供 runner retry；missing/decrypt/backend errors 只返回安全阶段信息。
+
+#### 12.3 Runtime wiring and real Redis gate
+
+`cmd/api` 用 A4 `redis.url` 构造并 ping 一个 Redis client，将同一 store 注入 service 与 writer，并在 shutdown 关闭 client；test runtime 继续显式注入 `DevMailSink`。真实 Redis integration 使用两个独立 client 证明实例 A Put、实例 B Get/Delete；full-container 重建后再跑 Mailpit challenge->receive->verify 与外部 SMTP 脱敏 smoke。
+
+#### 12.4 Operation matrix and verification
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json` 既有场景 | frontend auth email flow（generated client） | C1 handler -> `async_jobs(email_dispatch)` -> arbitrary backend runner -> SMTP writer | `auth_challenges`、`async_jobs`；Redis encrypted delivery secret（5m TTL）；raw code 不进入 DB/job | none | domain `BDD.AUTH.EMAIL.003` + real Redis cross-client integration；Mailpit 继续复用 `E2E.P0.101` handoff |
 
 ## 5 验收标准
 
@@ -221,7 +241,7 @@ MVP 部署边界锁定为单个 active backend 实例：验证码只在发起进
 - `backend/internal/auth` has no duplicate unauthenticated account-envelope test body at the scoped threshold.
 - `/me` and profile-completion success use exact OPENAPI-007 four-field `UserContext` with full authenticated `email` and no `emailMasked`; auth store no longer reads obsolete display/practice-language columns while runtime-config analytics behavior remains intact.
 - `mailpit` 与 `smtp` 均可通过 `EMAIL_PROVIDER` 选择；生产 SMTP 支持 STARTTLS / 隐式 TLS 和认证，staging/prod 对不安全或缺失配置 fail-fast，且凭据与 raw code 不泄露。
-- MVP 单 backend 实例下，用户配置的外部 SMTP 已完成应用发码、provider 接收与真实收件箱可见性确认；多副本投递不属于本轮验收。
+- 共享 Redis store 下，producer 与 consumer 位于不同 backend 实例时仍可投递同一 6 位验证码；Redis key/value、DB/job/log/audit 不暴露 raw code 或原始 secret ref。
 
 ## 6 风险与应对
 
@@ -231,7 +251,8 @@ MVP 部署边界锁定为单个 active backend 实例：验证码只在发起进
 | token 或 session secret 进入日志 | Phase 4.2 privacy test 和 grep gate 强制覆盖 |
 | P0 误引入 OAuth / SSO | spec Out of Scope 和 checklist negative search 拦截 |
 | 过早依赖独立 worker 阻塞本地验证 | 邮件派发由 backend internal runner 的 in-process kernel 承接；C1 不需要独立后台执行进程，dev sink / Mailpit writer 仍能被本地场景验证 |
-| 多个 backend 实例竞争任务时无法读取另一进程内存中的 delivery secret | MVP 明确只运行一个 active backend 实例；本地 full-container 入口停止仓库管理的 host-run backend。扩容到多副本前必须原地设计共享一次性 secret store 与跨实例重放语义 |
+| Redis 不可用、secret 过期或 pepper 轮换导致 pending job 无法取码 | startup ping 与 producer Put fail closed；consumer 返回脱敏 retryable failure；TTL 与 job retry budget有界，operator 恢复 Redis 后用户可重新发起 challenge |
+| SMTP 已接受邮件但 Redis delete 失败导致 secret 暂留 | delivery 仍判定成功，避免重复发信；encrypted value 由 5 分钟 TTL 自动清理，delete error 不输出 key/ref/code |
 | C1 绕过 B3 email payload 红线 | Phase 2.3 强制使用 generated `BuildEmailDispatchPayload`，并用 negative tests 拒绝 redacted fields |
 | C1 抢占 privacy deletion 执行 | Phase 3.5 只做 auth/session handoff，backend internal runner / B4 删除执行不进入本 plan |
 | C1 新增未登记 auth metric | Phase 4.3 先跑 F1 registry preflight；未登记则先修订 F1，不在 C1 私造 metric |

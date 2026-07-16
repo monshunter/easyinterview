@@ -11,8 +11,9 @@ import (
 )
 
 type DeliverySecretStore interface {
-	PutDeliverySecret(ref string, token string)
-	GetDeliverySecret(ref string) (string, bool)
+	PutDeliverySecret(context.Context, string, string, time.Duration) error
+	GetDeliverySecret(context.Context, string) (string, bool, error)
+	DeleteDeliverySecret(context.Context, string) error
 }
 
 type MailDispatcher interface {
@@ -51,23 +52,34 @@ func NewDevMailSink(opts DevMailSinkOptions) *DevMailSink {
 	}
 }
 
-func (s *DevMailSink) PutDeliverySecret(ref string, token string) {
+func (s *DevMailSink) PutDeliverySecret(_ context.Context, ref string, token string, _ time.Duration) error {
 	if s == nil {
-		return
+		return fmt.Errorf("dev mail sink is nil")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.secrets[ref] = token
+	return nil
 }
 
-func (s *DevMailSink) GetDeliverySecret(ref string) (string, bool) {
+func (s *DevMailSink) GetDeliverySecret(_ context.Context, ref string) (string, bool, error) {
 	if s == nil {
-		return "", false
+		return "", false, fmt.Errorf("dev mail sink is nil")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	token, ok := s.secrets[ref]
-	return token, ok
+	return token, ok, nil
+}
+
+func (s *DevMailSink) DeleteDeliverySecret(_ context.Context, ref string) error {
+	if s == nil {
+		return fmt.Errorf("dev mail sink is nil")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.secrets, ref)
+	return nil
 }
 
 func (s *DevMailSink) Write(payload jobs.EmailDispatchPayload) error {

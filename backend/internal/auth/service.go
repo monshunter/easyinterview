@@ -160,7 +160,10 @@ func (s *EmailCodeService) StartEmailChallenge(ctx context.Context, in StartEmai
 	}
 
 	deliverySecretRef := "auth_challenge:" + challengeID
-	s.deliverySecrets.PutDeliverySecret(deliverySecretRef, token)
+	if err := s.deliverySecrets.PutDeliverySecret(ctx, deliverySecretRef, token, ChallengeTTL); err != nil {
+		s.recordAuthFailure(ctx, "start_challenge", "delivery_secret_error", "", challengeID)
+		return StartEmailChallengeResult{}, fmt.Errorf("delivery secret storage failed")
+	}
 	payload, err := jobs.BuildEmailDispatchPayload(map[string]string{
 		"authChallengeId":   challengeID,
 		"templateKey":       "auth_login_code",
@@ -169,10 +172,12 @@ func (s *EmailCodeService) StartEmailChallenge(ctx context.Context, in StartEmai
 		"dedupeKey":         hashWithPepper(s.challengePepper, "email:"+email),
 	})
 	if err != nil {
+		_ = s.deliverySecrets.DeleteDeliverySecret(ctx, deliverySecretRef)
 		s.recordAuthFailure(ctx, "start_challenge", "dispatch_payload_error", "", challengeID)
 		return StartEmailChallengeResult{}, err
 	}
 	if err := s.dispatcher.Enqueue(ctx, payload); err != nil {
+		_ = s.deliverySecrets.DeleteDeliverySecret(ctx, deliverySecretRef)
 		s.recordAuthFailure(ctx, "start_challenge", "dispatch_error", "", challengeID)
 		return StartEmailChallengeResult{}, err
 	}

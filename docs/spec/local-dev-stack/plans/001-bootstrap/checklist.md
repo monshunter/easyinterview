@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.22
+> **版本**: 1.23
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -130,3 +130,12 @@
   <!-- verified: 2026-07-16 method=focused-green evidence="scenario env contract 10/10, compose config, env dictionary, terminology and secret scan pass" -->
 - [x] 13.3 LIVE: full-container 先以 Mailpit 完成真实发码/收码，再以用户 `.env` 标准 SMTP 完成 TLS/auth/实发；检查 backend/doctor/compose evidence 不包含 secret、完整收件人或 raw code。MVP 只运行一个 active backend 实例。
   <!-- verified: 2026-07-16 evidence="dev-container-up stopped repo-managed host-run PID files and reported 6/6 healthy; EMAIL_PROVIDER=mailpit alone resolved mailpit-dev:1025 and delivered in one attempt; fresh external SMTP service accepted authenticated implicit-TLS delivery and application job succeeded once; user confirmed EMAIL_FROM_ADDRESS inbox received EasyInterview sign-in code; redacted artifacts contain no recipient, code, or credential" -->
+
+## Phase 14: reuse existing Redis for delivery secrets
+
+- [x] 14.1 RED/GREEN-CONTRACT: scenario env contract 先拒绝当前单 backend/无 Redis client 口径，再证明 Compose 仅有既有 `redis-dev`，full-container backend 使用 `redis://redis-dev:6379/0`，不新增 service/network/volume/env key。
+  <!-- verified: 2026-07-16 method=focused-red-green evidence="focused pytest first failed because runbook lacked shared Redis delivery-secret contract, then passed after README alignment; Compose asserts exactly one redis-dev and canonical backend REDIS_URL" -->
+- [x] 14.2 DOC/WIRING: dev-stack README、spec/plan/checklist 与 backend-auth Phase 12 一致；`dev-container-up` 可继续停止 host-run app，但邮件投递正确性不再依赖该动作。
+  <!-- verified: 2026-07-16 evidence="dev-stack README v1.9 documents encrypted shared delivery secret, 5m TTL, host/full-container REDIS_URL and runner-stop non-dependency" -->
+- [x] 14.3 LIVE/REGRESSION: real Redis cross-client integration、full-container Mailpit/SMTP live、doctor 6/6、Compose config、scenario contract、docs/index/diff gates 全绿。
+  <!-- verified: 2026-07-16 evidence="real Redis cross-client integration PASS; Mailpit Chrome login/profile PASS; SMTP job succeeded once; doctor 6/6; Compose/scenario contract and root make test/build/lint-config/docs/context/index/diff gates PASS" -->

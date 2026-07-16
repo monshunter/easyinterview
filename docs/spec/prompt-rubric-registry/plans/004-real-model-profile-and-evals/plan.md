@@ -1,8 +1,8 @@
 # F3 Real Model Profile and Evals
 
-> **版本**: 1.24
+> **版本**: 1.25
 > **状态**: completed
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-16
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -50,15 +50,21 @@ generation 每轮运行产品同源完整 validator；仅 action-label violation
 
 运行 offline/lint/profile/privacy gates、根 `make test`、context/docs/index 与 `git diff --check`。下游 UI 的真实浏览器验收由 UI owner 独立承担，不成为 F3 配置或 eval gate。
 
+### Phase 6: 激活证据恢复
+
+原地修复 completed-plan 压缩造成的 marker 漂移。先用 `TestV020ActivationOwnerMarkersReady` 复现 RED，并将 preflight 收紧为只接受 verified comment 中的显式 `marker=<name>` 属性，避免失败说明或历史文字仅提到 marker 就被误判为 PASS。再重新执行当前 28-case offline eval、prompt/rubric/profile/hardcode lint、evalkit/registry/judge focused tests与隐私边界检查。只有这些当前 gate 全部通过后，checklist 才能重新写入 `REPORT_RUBRIC_V020_PASS` 和 `REPORT_CONTEXT_AWARE_EVAL_PASS` verified marker；不得复制历史 marker 充当本次证据。最后运行聚焦 preflight、context/docs/index/diff gate 与根 `make test`，确认下游激活合同恢复。
+
 ## 5 验收标准
 
 - offline eval 零网络、可重复并从 registry single source 解析。
 - offline/recorded eval 对 unsupported、invalid 或不完整 blind review fail closed。
 - 不在日志、manifest、DB 或文档证据中泄漏 prompt/transcript/raw model output。
 - 不存在本 plan 专属 BDD 文件、E2E ID 或场景完成标记。
+- 两个 v0.2 owner marker 与本次实际命令、28-case 结果绑定，并通过下游 marker preflight；后续 completed-plan 压缩不得删除仍有消费者的 verified marker。
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-16 | 1.25 | 原地恢复被 completed-plan 压缩删除的 v0.2 rubric/context-aware eval marker，并要求 marker 绑定当前 owner gate 重跑证据。 |
 | 2026-07-13 | 1.24 | 压缩为当前 eval owner；删除旧场景编号和逐次 run 流水账，明确内部 eval 与真实 E2E 分层。 |

@@ -127,7 +127,10 @@ func (w *SMTPDeliveryWriter) Write(payload jobs.EmailDispatchPayload) error {
 	if w.deliverySecrets == nil {
 		return fmt.Errorf("delivery secret store unavailable")
 	}
-	token, ok := w.deliverySecrets.GetDeliverySecret(secretRef)
+	token, ok, err := w.deliverySecrets.GetDeliverySecret(context.Background(), secretRef)
+	if err != nil {
+		return fmt.Errorf("delivery secret lookup failed")
+	}
 	if !ok || token == "" {
 		return fmt.Errorf("delivery secret unavailable")
 	}
@@ -163,6 +166,9 @@ func (w *SMTPDeliveryWriter) Write(payload jobs.EmailDispatchPayload) error {
 		}
 		return smtpFailure("delivery")
 	}
+	// Delivery succeeded. Cleanup is best-effort: a delete failure must not
+	// retry SMTP and send the same code twice; the store TTL is the fallback.
+	_ = w.deliverySecrets.DeleteDeliverySecret(context.Background(), secretRef)
 	return nil
 }
 

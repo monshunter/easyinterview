@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.22
+> **版本**: 1.23
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -413,7 +413,11 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 
 本阶段不新增 E2E ID：Mailpit 用户登录仍复用 `E2E.P0.101`，外部 SMTP 是同一业务行为的部署变体；配置矩阵由 A4 单测，用户可感知投递由 backend-auth `BDD.AUTH.EMAIL.002` 与显式 live smoke 承接。
 
-MVP 只运行一个 active backend 实例，不新增 Redis client 或共享 delivery secret 依赖。`dev-container-up` 停止仓库 PID 文件管理的 host-run app 后再启动容器应用；多副本生产扩容时由 backend-auth owner 另行补齐共享一次性 secret 与跨实例消费合同。
+Phase 13 交付时采用的单实例 MVP 边界由 Phase 14 取代。`dev-container-up` 仍停止仓库 PID 文件管理的 host-run app，以保持本地拓扑可预测；邮件投递正确性改为依赖 backend-auth 复用现有 `redis-dev` 的共享加密 delivery secret，而不是进程内内存。
+
+### Phase 14: reuse existing Redis for delivery secrets
+
+先以 `scripts/lint/scenario_env_contract_test.py` 写 RED contract，拒绝 local-dev-stack 文档继续声明单 backend/无 Redis client，并断言 full-container backend 仍只接收既有 `REDIS_URL=redis://redis-dev:6379/0`、Compose 只有一个 `redis-dev` service。GREEN 只更新当前文档/合同与必要 wiring，不增加 service、network、volume、env key 或新 scenario。最终以现有 doctor Redis set/get/del、backend-auth real Redis cross-client integration、full-container Mailpit/SMTP live gate 收口。
 
 ## 5 验收标准
 
@@ -433,13 +437,14 @@ MVP 只运行一个 active backend 实例，不新增 Redis client 或共享 del
 | 未来组件没有 Dockerfile 或稳定 dev command，导致无法纳入 `make dev-up` | 默认不纳入 compose：对应组件先提供宿主机 dev command；只有确实需要 optional app service 时，组件 plan 才补齐 Dockerfile、健康检查与资源预算后声明受 `make dev-up` 覆盖 |
 | 全容器 frontend 把宿主机 API 地址固化进 bundle，端口 override 后请求失效 | production bundle 使用相对 `/api/v1`，由 frontend 容器代理到 Compose `backend-dev`；10801 只作为宿主机直连/诊断入口 |
 | `.env` 仍使用 localhost 依赖地址导致 backend 容器启动失败 | Compose 为 backend/migrations 显式注入容器网络地址；Mailpit 由 `dev-container-up` 自动切换到 `mailpit-dev:1025`，标准 SMTP 原样透传；host-run `.env` 值保持不变，避免两种模式互相污染 |
-| host-run 与 full-container backend 同时消费 `email_dispatch`，另一进程拿不到内存 delivery secret | `dev-container-up` 只停止仓库 PID 文件管理的 host-run backend/frontend，再启动容器应用；不杀无关进程、不清卷；provider-only Mailpit live gate 验证任务一次成功 |
-| 生产多副本 backend 无法共享进程内 delivery secret | MVP 固定单 active backend 实例，保持最少依赖；扩容前回到 backend-auth owner 设计共享一次性 secret store，不在本地栈中提前引入 Redis client |
+| host-run 与 full-container backend 同时消费 `email_dispatch` | `dev-container-up` 仍停止仓库 PID 文件管理的 host-run backend/frontend，避免本地并发 runner 干扰调试；即使存在多个 backend，delivery secret 也由同一 Redis store 跨实例读取 |
+| Redis 不可用导致 challenge 无法投递 | 复用现有 doctor set/get/del probe 与 backend startup ping fail closed；不通过另建 Redis service 绕过同一依赖故障 |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-16 | 1.23 | Redis sharing revision：backend-auth 复用现有 `redis-dev` / `REDIS_URL` 保存加密 delivery secret，取消邮件投递的单 backend 正确性前提。 | backend-auth/001 Phase 12 |
 | 2026-07-16 | 1.21 | Full-container revision：同一 Compose 增加 migrations/backend/frontend 可选 profile，新增 `dev-container-*` lifecycle，锁定 10800/10801 与 Chrome 主流程部署验收。 | user goal |
 | 2026-07-16 | 1.22 | Full-container 和 host-run 支持通过同一邮件变量切换 Mailpit / 标准 SMTP，不再硬编码 Mailpit endpoint。 | backend-auth production SMTP |
 | 2026-07-10 | 1.20 | 删除场景 README 中两个不存在的 shared script 入口，并增加真实文件 inventory gate。 | tech-debt pruning |

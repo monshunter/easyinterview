@@ -1,7 +1,7 @@
 # Local Dev Stack Spec
 
-> **版本**: 1.27
-> **状态**: completed
+> **版本**: 1.28
+> **状态**: active
 > **更新日期**: 2026-07-16
 
 ## 1 背景与目标
@@ -153,7 +153,8 @@
 | C-16 | Bridge listener 不阻断 backend 重启 | `.env` 仍使用 `APP_LISTEN_ADDR=:8080`，且本机存在不属于 easyinterview 的非 loopback bridge listener 占用 8080 | 执行 `test/scenarios/env-redeploy.sh backend` 或 `make scenario-env-redeploy TARGET=backend` | 脚本不杀掉无关 listener；host-run backend 用 `127.0.0.1:${API_HOST_PORT:-8080}` 成功启动并写入 PID/log；`http://127.0.0.1:${API_HOST_PORT:-8080}/api/v1/runtime-config` 可访问，首次登录用户访问简历列表不再因 stale / down backend 返回 500 | 001 developer debug handoff revision |
 | C-17 | 一键清数据重编译重部署 | 开发者需要从干净本地数据状态重新加载当前代码，避免每次手工输入多段命令 | `make scenario-env-reset-redeploy`；若只想预览则执行 `make scenario-env-reset-redeploy ARGS=--dry-run` | 实际执行时依次清空 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`、重建依赖并跑 migrations、重编译并重启 backend/frontend、执行 shared env verify；dry-run 输出 `env-cleanup --with-volumes`、`env-setup --with-migrations`、`env-redeploy all`、`env-verify` 四段命令且不改变环境 | 001 Phase 10 one-click reset/redeploy revision |
 | C-18 | 全容器本地部署验收 | `deploy/dev-stack/.env` 已补齐本地 auth secrets 与真实 AI provider 配置，Docker/Compose 满足版本要求 | 执行 `make dev-container-up`，再访问 `http://127.0.0.1:10800/` 与 `http://127.0.0.1:10801/api/v1/runtime-config`，并通过 Chrome 执行当前产品主流程 | 仓库 PID 文件管理的 host-run app 已停止；依赖、migrations、backend、frontend 均在同一 `easyinterview-dev` Compose 项目中就绪；doctor 报全部启用服务 OK；frontend 同源 API 请求落到真实 backend；Chrome 主流程不使用 mock/interception；默认 host-run `dev-up` 语义保持不变 | 001 Phase 12 full-container revision |
-| C-19 | Mailpit / external SMTP deployment | `.env` 选择 `mailpit` 或 `smtp` 并补齐对应 A4 字段；MVP 只运行一个 active backend 实例 | 重建 backend 后发起真实 email-code challenge | full-container Mailpit 仅切 provider 即自动使用 `mailpit-dev:1025` 并收到 code-only 邮件；SMTP 模式通过配置的 TLS/auth 外部服务实发且 Compose 不覆盖外部 endpoint；两种模式日志和证据均不泄露密码、完整邮箱或 raw code | 001 Phase 13 provider switch revision |
+| C-19 | Mailpit / external SMTP deployment | `.env` 选择 `mailpit` 或 `smtp` 并补齐对应 A4 字段；backend 使用现有 `REDIS_URL` 共享 delivery secret | 重建 backend 后发起真实 email-code challenge | full-container Mailpit 仅切 provider 即自动使用 `mailpit-dev:1025` 并收到 code-only 邮件；SMTP 模式通过配置的 TLS/auth 外部服务实发且 Compose 不覆盖外部 endpoint；多个 backend 可从同一 `redis-dev` 读取加密 6 位验证码；日志和证据均不泄露密码、完整邮箱或 raw code | 001 Phase 13 provider switch + Phase 14 Redis sharing revision |
+| C-20 | Existing Redis reuse | 默认或 full-container dev stack 已运行唯一 `redis-dev`，backend 接收 `redis://redis-dev:6379/0` | 启动一个或多个 backend app 实例 | 所有实例共享同一 delivery secret store；不新增 Redis service/network/volume/env key；doctor 仍以现有 Redis set/get/del probe 判定健康 | 001 Phase 14 Redis sharing revision |
 
 ## 7 关联计划
 

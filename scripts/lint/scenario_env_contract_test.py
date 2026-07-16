@@ -212,6 +212,31 @@ def test_full_container_email_provider_environment_contract() -> None:
     assert ".test-output/local-dev/frontend.pid" in stack_makefile
 
 
+def test_full_container_reuses_existing_redis_for_delivery_secrets() -> None:
+    compose = yaml.safe_load(
+        (ROOT / "deploy" / "dev-stack" / "docker-compose.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    services = compose["services"]
+    redis_services = [
+        name
+        for name, service in services.items()
+        if str(service.get("image", "")).startswith("redis:")
+    ]
+    assert redis_services == ["redis-dev"]
+    assert compose["x-backend-environment"]["REDIS_URL"] == "redis://redis-dev:6379/0"
+    assert services["backend-dev"]["depends_on"]["redis-dev"]["condition"] == (
+        "service_healthy"
+    )
+
+    runbook = (ROOT / "deploy" / "dev-stack" / "README.md").read_text(
+        encoding="utf-8"
+    )
+    assert "共享加密 delivery secret" in runbook
+    assert "投递正确性不依赖停止 host-run backend" in runbook
+
+
 def test_optional_full_container_lifecycle_contract() -> None:
     root_makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     stack_makefile = (ROOT / "deploy" / "dev-stack" / "Makefile").read_text(

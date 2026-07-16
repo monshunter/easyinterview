@@ -1380,7 +1380,7 @@ auth:
 		t.Fatalf("Load: %v", err)
 	}
 
-	service, dispatcher, err := buildAuthService(loader, nil)
+	service, dispatcher, err := buildAuthService(loader, nil, auth.NewDevMailSink(auth.DevMailSinkOptions{}))
 
 	if err == nil {
 		t.Fatal("expected empty auth secrets to fail")
@@ -1419,7 +1419,7 @@ email:
 	}
 	defer db.Close()
 
-	service, writer, err := buildAuthService(loader, db)
+	service, writer, err := buildAuthService(loader, db, auth.NewDevMailSink(auth.DevMailSinkOptions{}))
 	if err != nil {
 		t.Fatalf("buildAuthService: %v", err)
 	}
@@ -1459,7 +1459,7 @@ email:
 	}
 	defer db.Close()
 
-	_, writer, err := buildAuthService(loader, db)
+	_, writer, err := buildAuthService(loader, db, auth.NewDevMailSink(auth.DevMailSinkOptions{}))
 	if err != nil {
 		t.Fatalf("buildAuthService: %v", err)
 	}
@@ -1485,12 +1485,89 @@ email:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	service, writer, err := buildAuthService(loader, nil)
+	service, writer, err := buildAuthService(loader, nil, auth.NewDevMailSink(auth.DevMailSinkOptions{}))
 	if err == nil || !strings.Contains(err.Error(), "EMAIL_PROVIDER") {
 		t.Fatalf("buildAuthService error = %v", err)
 	}
 	if service != nil || writer != nil {
 		t.Fatal("unknown provider must not construct auth service")
+	}
+}
+
+type fakeAuthDeliverySecretRuntime struct {
+	pingErr error
+	closed  bool
+}
+
+func (s *fakeAuthDeliverySecretRuntime) PutDeliverySecret(context.Context, string, string, time.Duration) error {
+	return nil
+}
+
+func (s *fakeAuthDeliverySecretRuntime) GetDeliverySecret(context.Context, string) (string, bool, error) {
+	return "", false, nil
+}
+
+func (s *fakeAuthDeliverySecretRuntime) DeleteDeliverySecret(context.Context, string) error {
+	return nil
+}
+func (s *fakeAuthDeliverySecretRuntime) Ping(context.Context) error { return s.pingErr }
+func (s *fakeAuthDeliverySecretRuntime) Close() error {
+	s.closed = true
+	return nil
+}
+
+func TestBuildAuthDeliverySecretRuntimeUsesCanonicalRedisAndPepper(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+redis:
+  url: "redis://redis-dev:6379/0"
+auth:
+  challengeTokenPepper: "pepper"
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	fake := &fakeAuthDeliverySecretRuntime{}
+	var gotURL, gotPepper string
+	runtime, err := buildAuthDeliverySecretRuntime(loader, func(redisURL, pepper string) (authDeliverySecretRuntime, error) {
+		gotURL, gotPepper = redisURL, pepper
+		return fake, nil
+	})
+	if err != nil {
+		t.Fatalf("buildAuthDeliverySecretRuntime: %v", err)
+	}
+	if runtime != fake || gotURL != "redis://redis-dev:6379/0" || gotPepper != "pepper" {
+		t.Fatalf("runtime/url/pepper = %T/%q/%q", runtime, gotURL, gotPepper)
+	}
+}
+
+func TestBuildAuthDeliverySecretRuntimeFailsClosedAndClosesOnPingError(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+redis:
+  url: "redis://user:password@private-host:6379/0"
+auth:
+  challengeTokenPepper: "pepper"
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	fake := &fakeAuthDeliverySecretRuntime{pingErr: errors.New("redis://user:password@private-host:6379/0")}
+	runtime, err := buildAuthDeliverySecretRuntime(loader, func(string, string) (authDeliverySecretRuntime, error) {
+		return fake, nil
+	})
+	if err == nil || runtime != nil {
+		t.Fatalf("runtime/error = %#v/%v, want fail closed", runtime, err)
+	}
+	if !fake.closed {
+		t.Fatal("failed Redis runtime was not closed")
+	}
+	for _, forbidden := range []string{"password", "private-host"} {
+		if strings.Contains(err.Error(), forbidden) {
+			t.Fatalf("startup error leaked %q: %v", forbidden, err)
+		}
 	}
 }
 

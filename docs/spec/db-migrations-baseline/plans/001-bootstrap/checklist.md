@@ -78,7 +78,7 @@
 - [x] 9.2 Reconcile reversible `000018_grounded_report_context` in place: remove attempt-column up/down DDL, preserve empty-invalid legacy context and focus rename rollback, and add no compatibility mirror.
   <!-- verified: 2026-07-13 method=postgres-integration evidence="disposable empty PostgreSQL v18 up/down/up PASS with no llm_attempt_count" -->
 - [x] 9.3 Run clean/populated PostgreSQL up/down/up, current-invalid-context, rename/down restoration and privacy/non-content leakage probes against the no-retry-column shape.
-  <!-- verified: 2026-07-13 method=postgres-integration evidence="disposable and dev PostgreSQL completion/storage/privacy probes PASS; REPORT_STORAGE_V18_PASS re-emitted" -->
+  <!-- verified: 2026-07-13 marker=REPORT_STORAGE_V18_PASS method=postgres-integration evidence="disposable and dev PostgreSQL completion/storage/privacy probes PASS; owner marker re-emitted" -->
 - [x] 9.4 Run `make migrate-check`, migration lint, backend migration tests, C-13 schema/privacy probes and `git diff --check`; only then re-emit owner-only `REPORT_STORAGE_V18_PASS` and return plan to completed.
   <!-- verified: 2026-07-13 method=full-migration-gate evidence="disposable PostgreSQL make migrate-check PASS; migration tests/lint and git diff --check PASS" -->
 
