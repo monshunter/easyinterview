@@ -11,8 +11,8 @@
 
 ## Phase 2: 生成式索引与精确路由
 
-- [ ] 2.1 实现可重建、commit-aware 索引；验证：index unit/contract tests
-- [ ] 2.2 实现 commit 失效、精确路由和 low-confidence 结果；验证：routing fixture tests
+- [x] 2.1 实现可重建、commit-aware 索引；验证：`python3 -m pytest scripts/harness_index_test.py -q`（6 passed）+ CLI smoke（44 个 canonical documents）
+- [x] 2.2 实现 commit 失效、精确路由和 low-confidence 结果；验证：`python3 -m pytest scripts/harness_index_test.py -q`（9 passed）+ high/low CLI smoke
 
 ## Phase 3: 文档结构全量迁移
 
