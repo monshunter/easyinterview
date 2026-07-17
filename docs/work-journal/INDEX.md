@@ -13,6 +13,7 @@
 | [2026-07-18](2026-07-18.md) | `fix(frontend): add interview launch transition (BUG-0188)` | #fix #ui #i18n #test #docs #bdd |
 | [2026-07-18](2026-07-18.md) | `fix(frontend): stabilize resume parse polling (BUG-0187)` | #fix #ui #test #docs |
 | [2026-07-18](2026-07-18.md) | `fix(report): exclude unanswered terminal prompt (BUG-0186)` | #fix #api #test #docs #bdd |
+| [2026-07-17](2026-07-17.md) | `feat(harness): freeze simplification migration contract` | #feat #test #docs |
 | [2026-07-17](2026-07-17.md) | `fix(ai): close review findings (BUG-0185)` | #fix #ai #test #docs |
 | [2026-07-17](2026-07-17.md) | `fix(frontend): remove stale plan card metadata (BUG-0184)` | #fix #ui #test #docs |
 | [2026-07-17](2026-07-17.md) | `fix(report): harden regeneration and local diagnostics (BUG-0182, BUG-0183)` | #fix #api #ui #test #docs #bdd |
