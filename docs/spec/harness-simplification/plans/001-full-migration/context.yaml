@@ -5,8 +5,8 @@ metadata:
   name: 001-full-migration
   sequence: 1
   specVersion:
-    from: null
-    to: 1.0
+    from: 1.0
+    to: 1.8
 spec:
   defaultTarget: tooling
   discovery:
@@ -14,10 +14,14 @@ spec:
       - harness-simplification
       - lightweight-context
     keywords:
-      - context.yaml
-      - generated index
-      - progressive context
-      - skill consolidation
+      - agent workflow
+      - independent skills
+      - progressive convergence
+      - risk evidence economy
+      - capability sourcing
+      - project arch
+      - init arch
+      - docs test scenario env
   targets:
     tooling:
       plan: ./plan.md
@@ -25,6 +29,7 @@ spec:
       spec: ../../spec.md
       discovery:
         packages:
+          - AGENTS.md
           - .agent-skills
-          - docs/spec
+          - docs
           - scripts
