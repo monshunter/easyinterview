@@ -83,7 +83,7 @@ func (s *Service) RegenerateReport(ctx context.Context, in RegenerateReportReque
 	if err := validateRegenerateReportStoreResult(result, reportID, jobID); err != nil {
 		return RegenerateReportResult{}, err
 	}
-	return RegenerateReportResult{ReportID: result.ReportID, Job: result.Job}, nil
+	return RegenerateReportResult(result), nil
 }
 
 func validateRegenerateReportStoreResult(result RegenerateReportStoreResult, reportID, jobID string) error {

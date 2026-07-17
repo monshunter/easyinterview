@@ -8,7 +8,7 @@ metadata:
   branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
   specVersion:
     from: 2.30
-    to: 2.32
+    to: 2.33
 spec:
   defaultTarget: backend
   discovery:
@@ -43,6 +43,8 @@ spec:
       - no stderr raw output
       - process visible raw capture failure warning
       - diagnostic only capture failure
+      - resume tailor output terminality
+      - task run status consistency
   targets:
     backend:
       plan: ./plan.md

@@ -137,3 +137,14 @@
   3. 对业务失败态对象（如 parse failed / async failed / no child rows），详情接口仍应有 focused 或 integration regression，断言返回可展示状态而不是把 store error 包装成业务操作失败。
   4. 完成退役列修复时，把 plan/checklist gate 写成当前 schema 对齐和 zero active reference 搜索，避免后续只运行 mock-focused tests 又把旧列带回。
   5. 若真实 DB-backed gate 被 owner plan 或 Bug 记录列为强制防线，缺少 `DATABASE_URL`、DB 不可达或 focused test 未执行时必须 fail fast；不得用 `t.Skip` 让 `go test` 整体 PASS，verify 证据也要显式拒绝 `--- SKIP` 和 `no tests to run`。
+
+## 模式 12：持久化终态早于业务输出终态
+
+- **相关 Bug**：BUG-0185
+- **典型症状**：AI observability / task-run decorator 已把调用记录为 `success/ok`，但业务 handler 随后因 decoder、normalizer 或领域约束返回 `AI_OUTPUT_INVALID`；async job 失败且没有业务副作用，DB task run 却显示成功。
+- **检查清单**：
+  1. 明确唯一持久化 writer 的 terminal boundary；删除重复 writer 后，不能假设 provider 成功或通用 schema 通过就等于业务输出已被接受。
+  2. 对比 output schema 与下游 decoder 的完整接受集合，尤其检查空数组、空对象、空白字符串、被过滤后为空和别名字段等“结构合法但业务不可用”输入。
+  3. 优先把可声明的业务约束前移到共享 output schema，使 decorator 在落 success 前 fail closed；不要让 handler 通过第二个 task-run writer 修正状态。
+  4. 回归测试必须同时断言 `ai_task_runs.status/validation_status`、业务 `JobOutcome` 和 ready/outbox/persistence 副作用，避免只测 error code。
+  5. 若领域约束无法由现有 schema 表达，先设计一个仍由 observability owner 控制的 finalize seam；不得在业务层临时追加非原子的状态覆盖。

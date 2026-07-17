@@ -144,6 +144,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0185](./BUG-0185.md) | resume tailor task run succeeded before business output was accepted | medium | resolved | 2026-07-17 | `fix(ai): close review findings (BUG-0185)` |
 | [BUG-0183](./BUG-0183.md) | host-run SMTP port drift left the local Mailpit mailbox empty | medium | resolved | 2026-07-16 | `fix(report): harden regeneration and local diagnostics (BUG-0182, BUG-0183)` |
 | [BUG-0180](./BUG-0180.md) | production email review exposed delivery lifecycle and PID ownership gaps | high | resolved | 2026-07-16 | `fix(platform): harden smtp lifecycle and pid ownership (BUG-0180)` |
 | [BUG-0178](./BUG-0178.md) | host-run backend claimed full-container email jobs without the delivery secret | medium | resolved | 2026-07-16 | `feat(auth): add production smtp delivery (BUG-0178)` |

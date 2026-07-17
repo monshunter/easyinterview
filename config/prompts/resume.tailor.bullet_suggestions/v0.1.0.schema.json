@@ -8,6 +8,7 @@
     "suggestions": {
       "type": "array",
       "description": "Canonical bullet suggestions persisted for review.",
+      "minItems": 1,
       "items": {
         "type": "object",
         "description": "One bullet suggestion.",
@@ -19,11 +20,15 @@
         "properties": {
           "originalBullet": {
             "type": "string",
-            "description": "Original source bullet for traceability."
+            "description": "Original source bullet for traceability.",
+            "minLength": 1,
+            "pattern": ".*\\S.*"
           },
           "suggestedBullet": {
             "type": "string",
-            "description": "Truthful rewritten bullet tailored to the target JD."
+            "description": "Truthful rewritten bullet tailored to the target JD.",
+            "minLength": 1,
+            "pattern": ".*\\S.*"
           },
           "reason": {
             "type": "string",

@@ -1,8 +1,8 @@
 # AIClient and Profile Bootstrap Checklist
 
-> **版本**: 2.9
+> **版本**: 3.0
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-17
 
 **关联计划**: [plan](./plan.md)
 
@@ -133,3 +133,10 @@
 - [x] 16.2 GREEN: one shared recorder captures provider-neutral Complete request/response for every wrapper including resume-tailor；startup/open/close and safe runtime-write failure behavior are verified，manual duplicate task-run writes are absent.<!-- verified: 2026-07-16 method=raw-recorder-green evidence="observability, resume/jobs and cmd/api packages PASS; request Sync precedes provider, UUIDv7 callId equals task-run id, one process-shared recorder reaches all Complete wrappers, resume-tailor duplicate writer is removed, and two recorder write failures preserve the business result while process-visible slog emits only WARN ai.raw.capture.write_failed with no underlying path/error/raw content" -->
 - [x] 16.3 PRIVACY/CONFIG: delete old stderr debug key/markers；dev/test defaults, prod fail-fast and secret/header/audio/reasoning/log/DB/evidence absence gates pass.<!-- verified: 2026-07-16 method=raw-privacy-config-green evidence="observability privacy/path tests, platform/config package, lint-config and 21 scenario contract tests PASS; dev/test defaults resolve to dedicated NDJSON, staging/prod reject enablement, and active runtime/README/preflight surfaces contain no stderr raw-output implementation" -->
 - [x] 16.4 BDD-N/A/REGRESSION: focused observability/config/cmd tests, P0.099 evidence isolation, lint-config, root `make test`, build and context/docs gates pass.<!-- verified: 2026-07-16 method=full-regression evidence="focused observability/cmd tests PASS; make test Python 584/4583 subtests, Go all packages, frontend 126/1026 PASS; make build, seven context validators, docs/index and diff gates PASS; Chrome evidence remained outside raw capture" -->
+
+## Phase 17: L2 review remediation
+
+- [x] 17.1 RED/GREEN resume-tailor terminality：空 suggestions 或只含空白的 original/suggested bullet 必须在 decorator output-schema validation 阶段返回 `AI_OUTPUT_INVALID`；唯一 `ai_task_runs` 行为 failed，async job 不落 ready/outbox，且 handler 不恢复重复 writer（验证：focused resume jobs test、`make lint-prompts`、duplicate-writer negative search）
+  <!-- verified: 2026-07-17 method=resume-tailor-output-schema-terminality evidence="RED: empty suggestions and blank bullets returned AI_OUTPUT_INVALID after the decorator had persisted success/ok. GREEN: minItems plus non-whitespace patterns make both cases fail inside decorator validation; focused/all resume jobs tests and prompt lint PASS, and TailorHandler has no task-run writer." -->
+- [x] 17.2 RED/GREEN static analysis：修复 `backend/internal/review/regenerate_report.go` 的 S1016，保持 store result validation 与返回语义不变（验证：`cd backend && go vet ./... && staticcheck ./...`）
+  <!-- verified: 2026-07-17 method=staticcheck-s1016 evidence="RED: full staticcheck reported only regenerate_report.go:86 S1016. GREEN: the field-identical store result is converted directly after the existing validator; focused review tests, full go vet and full staticcheck PASS with zero output." -->

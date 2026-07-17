@@ -229,6 +229,20 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 			wantRunStatus: aiclient.AITaskRunStatusFailed,
 		},
 		{
+			name:          "empty suggestions fail before task run success",
+			ai:            &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{"suggestions":[]}`}},
+			wantCode:      sharederrors.CodeAiOutputInvalid,
+			wantRunStatus: aiclient.AITaskRunStatusFailed,
+		},
+		{
+			name: "blank suggestion bullets fail before task run success",
+			ai: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
+			  "suggestions": [{"originalBullet":" ","suggestedBullet":"\t","reason":"No usable rewrite."}]
+			}`}},
+			wantCode:      sharederrors.CodeAiOutputInvalid,
+			wantRunStatus: aiclient.AITaskRunStatusFailed,
+		},
+		{
 			name: "suggestion aliases are rejected",
 			ai: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
 			  "suggestions": [{"original_bullet":"Built services.","rewrite":"Built low-latency services.","why_better":"Adds latency outcome."}]
@@ -462,12 +476,13 @@ func (tailorRegistry) Resolve(_ context.Context, featureKey string, language str
 			  "properties":{
 			    "suggestions":{
 			      "type":"array",
+			      "minItems":1,
 			      "items":{
 			        "type":"object",
 			        "required":["originalBullet","suggestedBullet","reason"],
 			        "properties":{
-			          "originalBullet":{"type":"string"},
-			          "suggestedBullet":{"type":"string"},
+			          "originalBullet":{"type":"string","minLength":1,"pattern":".*\\S.*"},
+			          "suggestedBullet":{"type":"string","minLength":1,"pattern":".*\\S.*"},
 			          "reason":{"type":"string"}
 			        }
 			      }

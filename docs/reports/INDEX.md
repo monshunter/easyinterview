@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-17](./2026-07-17-ai-task-run-terminality-review-remediation-assessment.md) | AI Task Run Terminality Review Remediation 交付复盘 | #assessment #ai #BUG-0185 |
 | [2026-07-17](./2026-07-17-interview-plan-card-metadata-assessment.md) | Interview Plan Card Metadata 交付复盘 | #assessment #ui #BUG-0184 |
 | [2026-07-16](./2026-07-16-report-retry-and-local-diagnostics-assessment.md) | Report Retry and Local Diagnostics 交付复盘 | #assessment #BUG-0182 #BUG-0183 |
 | [2026-07-16](./2026-07-16-localized-smtp-mime-remediation-assessment.md) | Localized SMTP MIME Remediation 交付复盘 | #assessment #auth #ai |

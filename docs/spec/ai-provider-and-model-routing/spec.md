@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.32
+> **版本**: 2.33
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-17
 
 ## 1 背景与目标
 
@@ -82,6 +82,7 @@
 | D-16 | Report generation profile contract | `report.generate.default` 保持 `capability=chat`、1M context default、至少 16K output budget 与 `thinking=disabled`；`response_format` 仍只由调用 payload 的 object `output_schema` 驱动。profile loader 对缺失字段使用 typed code default，显式非法值 fail-closed。 | 配置合法性由 loader owner 契约与 active-budget floor lint 承接；bytes 与 tokens 不直接相加，不设离线容量公式或真实 provider 配置 gate。四个 provider adapter 的 response body 统一由 A4 `ai.maxResponseBodyBytes` 注入。 |
 | D-17 | Context-aware judge final-content contract | `judge.default` 使用 judge capability、至少 16K output budget、non-thinking JSON wire 与 fail-closed 空 final-content 处理。 | adapter contract test 验证 wire 和 reasoning-only/empty final failure，只保留脱敏 finish/token/presence 元数据，不以 exact profile coordinate 或真实 provider smoke 作为完成 gate。 |
 | D-18 | Local Complete raw capture correlation | 每次 `Complete` 在 provider 调用前获得 UUIDv7 `callId`；若业务未提供 TaskRun ID，则 client 补齐该 ID，并让 `callId == ai_task_runs.id`。NDJSON request/response 使用同一 ID，跨进程重启仍不碰撞 | 从 failed report resourceId 查询 task run 后可确定性定位 raw pair，无需按时间或正文猜测；raw 行本身不写 user/resource identity |
+| D-19 | Domain output terminality | 业务 decoder 会拒绝的结构化输出必须由传入 `AIClient.Complete` 的 output schema 同步拒绝；observability decorator 仍是 `ai_task_runs` 的唯一 writer，业务 handler 不得在 decorator 记 success 后再以额外 task-run 写入修正状态 | `ai_task_runs.status`、validation metadata 与 async job outcome 对同一次 AI 调用保持一致，同时不恢复重复 writer |
 
 ### 3.2 待确认事项
 
@@ -192,6 +193,7 @@
 | C-20 | Judge final-content reliability | context-aware judge 需要 strict JSON | 运行 adapter request/response contract tests | 请求关闭 thinking 并要求 JSON object；reasoning-only/length/empty final fail-closed 且不泄漏 CoT | 003 + F3/004 |
 | C-21 | Official SDK transport boundary | OpenAI-compatible chat/judge/STT provider 使用自定义 base URL 与注入 HTTP client | 运行 adapter contract、SDK import boundary 与隐私测试 | Complete/Stream/Transcribe/tools/JSON/DeepSeek thinking/header/meta/error/timeout/response-cap 合同保持；同 provider retry 最多 2 次，跨 provider fallback 仍归 AIClient；`openai-go/v3` 不越过 provider adapter/internal helper | 001 Phase 15 |
 | C-22 | Local raw Complete I/O capture | dev/test 开启 capture，或 staging/prod 尝试强制开启 | 并发调用 Complete、schema invalid/provider failure、进程重启 append，并从 failed report 查询 `ai_task_runs` | `ai.complete.raw.v1` request/response 可按 UUIDv7 `callId == ai_task_runs.id` 确定性配对；崩溃中途至少保留 request；相对路径锚点一致、realpath/symlink/non-regular gate、0700/0600 收紧、append/并发无交错；recorder 不新增 header/credential/audio/reasoning/resource-identity 字段，普通日志/DB/evidence 仍无正文；runtime write failure 通过进程结构化 logger 发出稳定、无 path/error/raw content 的 WARN，并且不改变 AI 业务结果；privacy gate 解析字段结构而不误扫被授权保留的用户内容；生产强制开启 fail-fast | 001 Phase 16 + A4/A2 |
+| C-23 | Resume tailor terminal status consistency | bullet-suggestions provider 返回空数组，或原始/建议 bullet 只含空白字符 | observability decorator 执行 output schema validation | 调用以 `AI_OUTPUT_INVALID` 失败；唯一 `ai_task_runs` 行为 failed，async job 不落 ready/outbox，且不存在业务 handler 重复 task-run 写入 | 001 Phase 17 |
 | C-18 | Barge-in committed context | AI TTS 正在播放且用户插话 | 前端发出 barge-in / played chunk 事件 | 后端只把已完整播放 chunk 的 assistant 文本写入 committed context；未播放 draft 不进入下一轮 prompt；event log 可追溯 interrupted 状态 | practice-voice-mvp |
 
 ## 7 关联计划

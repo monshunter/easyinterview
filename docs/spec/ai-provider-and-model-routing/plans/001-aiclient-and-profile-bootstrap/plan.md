@@ -1,8 +1,8 @@
 # AIClient and Profile Bootstrap
 
-> **版本**: 2.9
+> **版本**: 3.0
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-17
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -192,6 +192,18 @@ Consume A4 `ai.debugCaptureRawIO` / `ai.debugRawIOPath`. Dev/test default enable
 
 BDD is not applicable because this is an internal developer diagnostic. Run focused observability/config/runtime tests, privacy negative searches, lint-config, P0.099 evidence-isolation static tests, root `make test` and build/context/docs gates.
 
+### Phase 17: L2 review remediation
+
+#### 17.1 Resume-tailor terminal status consistency
+
+先在 `backend/internal/resume/jobs/tailor_test.go` 增加 RED，证明 schema-valid 但业务不可接受的空 suggestion 数组会让 decorator 提前写 success、而 async job 返回 `AI_OUTPUT_INVALID`。随后收紧 `resume.tailor.bullet_suggestions` output schema，使 suggestions 至少一项，且 `originalBullet` / `suggestedBullet` 至少包含一个非空白字符；保持 observability decorator 为唯一 `ai_task_runs` writer，不恢复 handler 手写 task run。Focused gate 为 `cd backend && go test ./internal/resume/jobs -run 'TestTailorHandlerModeRoutingAndFailurePaths' -count=1`，并由 `make lint-prompts` 验证 tracked schema。
+
+#### 17.2 Static analysis regression
+
+以全量 `cd backend && staticcheck ./...` 的 S1016 为 RED，把 `RegenerateReportStoreResult` 到字段完全同构的 `RegenerateReportResult` 改为直接类型转换，不改变校验或返回语义。GREEN 必须恢复 `go vet ./...` 与 `staticcheck ./...` 零输出。
+
+BDD 不适用：本阶段修复内部 task-run 终态一致性与静态分析回归，不新增用户流程。替代 gate 为 focused resume jobs test、prompt lint、全量 backend tests、`go vet`、`staticcheck`、根 `make test` / `make build`、context/docs/index/diff checks。
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -217,11 +229,13 @@ BDD is not applicable because this is an internal developer diagnostic. Run focu
 | A-19 | SDK streaming and Audio Transcriptions preserve `AIStreamEvent`, cancellation/partial meta, multipart and response-cap contracts | openai-compatible stream/STT contract tests |
 | A-20 | Hand-written generic OpenAI wire/transport is removed without changing public A3/config/business contracts | negative symbol/import search, full AIClient/backend/root gates |
 | A-21 | Local Complete request/response can be diagnosed from a secure independent NDJSON file without leaking secrets/content into ordinary observability or production | recorder concurrency/permissions/privacy tests + A4/A2/P0.099 handoff gates |
+| A-22 | Resume-tailor output rejected by the business decoder cannot leave the sole task-run row successful | resume jobs decorator integration test, prompt schema lint and duplicate-writer negative search |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-17 | 3.0 | Reopen Phase 17 to align resume-tailor output-schema terminality with the business decoder and restore full staticcheck zero output. |
 | 2026-07-16 | 2.9 | Make raw-capture runtime write failures process-visible through a content-free structured warning while preserving the AI result. |
 | 2026-07-16 | 2.8 | Reopen Phase 16 to replace stderr response-only debug with secure process-shared Complete request/response NDJSON capture. |
 | 2026-07-16 | 2.6 | Replace self-maintained OpenAI-compatible transport with adapter-private `openai-go/v3 v3.43.0` while preserving AIClient, profile, fallback, metadata, privacy and response-cap contracts. |
