@@ -13,6 +13,7 @@
 | [2026-07-18](2026-07-18.md) | `fix(frontend): add interview launch transition (BUG-0188)` | #fix #ui #i18n #test #docs #bdd |
 | [2026-07-18](2026-07-18.md) | `fix(frontend): stabilize resume parse polling (BUG-0187)` | #fix #ui #test #docs |
 | [2026-07-18](2026-07-18.md) | `fix(report): exclude unanswered terminal prompt (BUG-0186)` | #fix #api #test #docs #bdd |
+| [2026-07-18](2026-07-18.md) | `test(harness): define project arch v1 contract` | #test #docs |
 | [2026-07-18](2026-07-18.md) | `docs(harness): freeze migration baseline and gates` | #docs |
 | [2026-07-18](2026-07-18.md) | `docs(harness): establish v1 migration loop plan` | #docs |
 | [2026-07-18](2026-07-18.md) | `docs(harness): remove obsolete migration plan package` | #docs |
