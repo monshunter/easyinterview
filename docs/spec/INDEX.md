@@ -24,7 +24,7 @@
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.33 | active | 2026-07-17 | [plans](./ai-provider-and-model-routing/plans/) |
 | [secrets-and-config](./secrets-and-config/spec.md) | 2.21 | active | 2026-07-16 | [plans](./secrets-and-config/plans/) |
 | [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.10 | active | 2026-07-10 | [plans](./ci-pipeline-baseline/plans/) |
-| [harness-simplification](./harness-simplification/spec.md) | 1.8 | active | 2026-07-18 | [plans](./harness-simplification/plans/) |
+| [harness-simplification](./harness-simplification/spec.md) | 2.1 | active | 2026-07-18 | [plans](./harness-simplification/plans/) |
 
 ## 3 Contract
 

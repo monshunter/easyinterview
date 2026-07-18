@@ -13,6 +13,7 @@
 | [2026-07-18](2026-07-18.md) | `fix(frontend): add interview launch transition (BUG-0188)` | #fix #ui #i18n #test #docs #bdd |
 | [2026-07-18](2026-07-18.md) | `fix(frontend): stabilize resume parse polling (BUG-0187)` | #fix #ui #test #docs |
 | [2026-07-18](2026-07-18.md) | `fix(report): exclude unanswered terminal prompt (BUG-0186)` | #fix #api #test #docs #bdd |
+| [2026-07-18](2026-07-18.md) | `docs(harness): simplify docs arch and loop delivery` | #docs |
 | [2026-07-18](2026-07-18.md) | `docs(harness): define project arch and skill boundaries` | #docs |
 | [2026-07-17](2026-07-17.md) | `feat(harness): add generated owner index and routing` | #feat #test #docs |
 | [2026-07-17](2026-07-17.md) | `feat(harness): freeze simplification migration contract` | #feat #test #docs |
