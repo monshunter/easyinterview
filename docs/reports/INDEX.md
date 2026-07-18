@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-18](./2026-07-18-practice-launch-transition-assessment.md) | Practice Launch Transition 交付复盘 | #assessment #ui #BUG-0188 |
 | [2026-07-18](./2026-07-18-resume-parse-polling-stability-assessment.md) | Resume Parse Polling Stability 交付复盘 | #assessment #ui #BUG-0187 |
 | [2026-07-18](./2026-07-18-report-unanswered-terminal-prompt-assessment.md) | Report Unanswered Terminal Prompt 交付复盘 | #assessment #review #BUG-0186 |
 | [2026-07-17](./2026-07-17-ai-task-run-terminality-review-remediation-assessment.md) | AI Task Run Terminality Review Remediation 交付复盘 | #assessment #ai #BUG-0185 |

@@ -12,6 +12,7 @@ import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n, type MessageKey } from "../../i18n/messages";
 import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
+import { PracticeLaunchTransition } from "../../interview-context/PracticeLaunchTransition";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import {
   isTargetJobPracticeStartable,
@@ -257,7 +258,9 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   );
 
   return (
-    <section
+    <>
+      {startingRecentJobId ? <PracticeLaunchTransition /> : null}
+      <section
       data-testid={`route-${route.name}`}
       data-route-name={route.name}
       data-route-params={JSON.stringify(route.params)}
@@ -670,6 +673,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           ) : null}
         </div>
       )}
-    </section>
+      </section>
+    </>
   );
 };

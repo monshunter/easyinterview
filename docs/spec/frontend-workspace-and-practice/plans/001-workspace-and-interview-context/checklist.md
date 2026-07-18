@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.45
+> **版本**: 1.46
 > **状态**: completed
-> **更新日期**: 2026-07-17
+> **更新日期**: 2026-07-18
 
 **关联计划**: [plan](./plan.md)
 
@@ -211,3 +211,14 @@
   <!-- verified: 2026-07-17 method=domain-behavior bddChecklist=complete -->
 - [x] 29.3 POST-PASS：focused card/Home/Workspace tests、仓库根 `make test`、frontend typecheck、owner context、`sync-doc-index --check`、`make docs-check`、`git diff --check` 通过；共享卡片源中 lifecycle status 展示和 `Location not set` 残留为零。
   <!-- verified: 2026-07-17 method=full-regression evidence="backend 584 tests/4583 subtests; frontend 126 files/1027 tests; typecheck/context/index/docs/diff/residual gates PASS" -->
+
+## Phase 30: Shared practice-launch transition
+
+- [x] 30.1 RED：Home recent、Workspace list、Workspace detail/Parse owner 与 Report replay/next-round tests 使用 deferred `startPracticeSession`，证明 pending 期间必须立即出现同一全屏 transition，并锁定重复点击、auth redirect、成功 route 与失败恢复。
+  <!-- verified: 2026-07-18 method=vitest-red evidence="4 files / 43 tests: 5 expected failures (missing transition across four callers plus missing Report safe-error recovery), 38 existing tests passed" -->
+- [x] 30.2 GREEN：单一 `PracticeLaunchTransition` 提供本地化 title/body、`role=status`、`aria-live=polite`、`aria-busy=true`、viewport interaction blocking 与 `prefers-reduced-motion`；不展示百分比、伪阶段/opening message，不写 URL/storage。
+  <!-- verified: 2026-07-18 method=vitest-typecheck evidence="shared component + Home/Workspace/detail/Report callers 5 files / 45 tests PASS; frontend tsc --noEmit PASS" -->
+- [x] 30.3 BDD-Gate: `BDD.PRACTICE.LAUNCH.004` 由 [BDD checklist](./bdd-checklist.md) 关联四类正式入口 pending/success/failure domain behavior；不声明真实 E2E PASS。
+  <!-- verified: 2026-07-18 method=domain-behavior bddChecklist=complete -->
+- [x] 30.4 POST-PASS：focused caller/component/a11y tests、frontend typecheck/build、仓库根 `make test`、owner context、`sync-doc-index --check`、`make docs-check`、`git diff --check` 与 desktop/mobile 真实浏览器 pending-state 检查通过；随后恢复 completed lifecycle。
+  <!-- verified: 2026-07-18 method=full-regression-chrome evidence="focused 5 files/45 tests; root Python 584 tests/4583 subtests, Go all packages, frontend 127 files/1035 tests; lint/build/docs/index/context/diff PASS; Chrome real LLM pending 1440x900 and 390x844, fixed overlay/background blocking/no horizontal overflow, success entered practice" -->

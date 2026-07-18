@@ -15,6 +15,7 @@ import {
   resolveTargetJobPracticeProgress,
 } from "../../interview-context/roundAssumptions";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
+import { PracticeLaunchTransition } from "../../interview-context/PracticeLaunchTransition";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { targetJobPracticeRouteParams } from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
@@ -705,7 +706,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     !boundResumeId || confirming || !progress.currentRound;
 
   return (
-    <section
+    <>
+      {confirming ? <PracticeLaunchTransition /> : null}
+      <section
       data-testid={routeTestId}
       data-route-name={route.name}
       data-route-params={JSON.stringify(route.params)}
@@ -1377,6 +1380,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         </div>
       </div>
 
-    </section>
+      </section>
+    </>
   );
 };

@@ -1,8 +1,8 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.42
+> **版本**: 1.43
 > **状态**: active
-> **更新日期**: 2026-07-17
+> **更新日期**: 2026-07-18
 
 ## 1 文档目的
 
@@ -100,7 +100,7 @@
   /workspace -> Interview Plan List
   点击卡片主体 -> /workspace?targetJobId=...
   Home POST import -> /parse?targetJobId=... -> ready replace /workspace?targetJobId=...
-  点击立即面试 -> start practice session
+  点击立即面试 -> 全屏面试准备过渡态 -> start practice session
 ```
 
 一级 `面试` 入口不得默认展示“没有 JD 上下文”的死胡同；query-free `/workspace` 展示面试规划列表，列表候选来自当前 `listTargetJobs(analysisStatus=ready)` 契约。列表必须以卡片承载每个规划：卡片主体与 Home 最近模拟面试卡片同源，包含公司、岗位、可选真实地点和 mini round rail；不得展示 TargetJob lifecycle `status` 文案或徽标，`locationText` 缺失或为空时不得渲染占位行。workspace 只在卡片底部追加 `立即面试` 主按钮，并把删除图标固定在卡片右上角。桌面端响应式多列，移动端单列；桌面端卡片列必须使用固定最大列宽，1 张、2 张或 3 张规划卡片的规格保持一致，不得因为 `auto-fit + 1fr` 拉伸成整行宽卡；不得退化为没有容器感的文本列。卡片信息必须保持简洁，不得展示 `sourceType`、目标语言、`手动输入` 等导入元信息；解析失败、非 ready 或空标题 JD 不得显示为面试规划卡片。卡片主体点击进入 `/workspace?targetJobId=...` 统一只读详情；底部 `立即面试` 按钮使用主题 accent 样式并直接启动 practice；右上角删除按钮使用简历列表同款 trash 图标样式，调用 generated `archiveTargetJob` 软归档 TargetJob，成功后从当前列表移除，失败时保留卡片并展示错误。首次导入主路径为 `Home 粘贴 JD -> 选择已有简历 -> POST import -> Parse queued/processing -> ready replace Workspace 详情 -> practice`；回访既有 ready 规划直接进入 Workspace 详情，不经过 Parse 动画。
@@ -143,6 +143,8 @@ workspace 只读详情 / report 复练入口
 ```
 
 `立即面试` 必须携带已保存的 `planId + targetJobId + jdId + resumeId + roundId`，并通过 generated REST client 创建/启动 session。`workspace` 不读取 `autoStartPractice`，也不作为启动副作用路由。面试形式可在面试页选择或切换。规划列表页不展示模式卡片，也不让用户选择专项练习。
+
+Home 最近面试、Workspace 列表、Workspace 详情以及 Report 复练/下一轮都必须复用同一面试准备过渡态。用户触发启动后立即以覆盖当前页面的阻断层展示诚实的 indeterminate 动画和“正在结合岗位、简历与本轮重点准备开场”的本地化说明；不得等待 `startPracticeSession` 返回后才反馈，也不得伪造百分比、阶段完成或 opening message。过渡态使用 `role=status`、`aria-live=polite` 与 `aria-busy=true`，阻断重复点击并支持 `prefers-reduced-motion`。成功后直接进入 `practice`；失败时关闭过渡态并在原入口附近保留可恢复错误，不新增 route、浏览器持久化或取消后继续运行的隐式行为。未登录时仍先进入认证流程，不提前显示启动过渡态。
 
 在 Workspace 详情中，“立即面试”与“面试报告”组成标题下方的首行动作行，均从左侧开始排列；前者为 primary，后者为 secondary。desktop 保持同一行，mobile 优先保持同序横排，空间不足时允许整组换行但不得调换顺序、右对齐或把任一动作移回页尾。启动错误紧邻该动作行呈现。
 
@@ -266,6 +268,7 @@ Resume
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-18 | 1.43 | 所有正式面试启动入口统一增加可访问、诚实且 reduced-motion 兼容的全屏面试准备过渡态；成功进入 Practice，失败回到原入口错误。 |
 | 2026-07-17 | 1.42 | 面试规划卡片移除重复且不可操作的 lifecycle status；地点缺失时不再显示 `Location not set` 占位。 |
 | 2026-07-16 | 1.41 | 普通失败报告提供同 report 重新生成与查看记录；超限失败只保留只读面试记录恢复入口。 |
 | 2026-07-15 | 1.40 | 将 selectable 简历锁定为 Workspace 及其报告后动作的强制上下文；历史缺绑规划视为异常并全链路 fail closed，不提供无简历降级。 |

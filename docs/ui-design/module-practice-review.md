@@ -1,14 +1,16 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.33
+> **版本**: 1.34
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-18
 
 ## 1 目标
 
 模拟面试采用连续文本聊天。系统不展示或维护题号、题目总数、当前题、追问/下一题分类、题目地图或专用提示；AI 根据 JD、简历、轮次和对话历史自然推进。用户主动结束后生成会话级报告。
 
 ## 2 Practice 页面结构
+
+进入 `PracticeScreen` 前，Home 最近面试、Workspace 列表、Workspace 详情、Report 复练与下一轮入口统一展示全屏面试准备过渡态。该状态只表达 `createPracticePlan/getPracticePlan/startPracticeSession` 尚未完成，不展示虚假 opening message、百分比或可验证不了的阶段进度；成功后由服务端 session/opening message 进入正式会话，失败时关闭过渡态并回到原入口错误。过渡态必须阻断背景交互、提供 `role=status` / `aria-live=polite` / `aria-busy=true`，并在 `prefers-reduced-motion` 下停用非必要循环动画。
 
 ```text
 PracticeScreen(sessionId)
@@ -126,6 +128,7 @@ Ready 报告只展示：
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-18 | 1.34 | 在所有正式会话启动入口与 Practice 之间增加统一、诚实、可访问的面试准备过渡态。 |
 | 2026-07-16 | 1.33 | 补齐已结束会话的 failed report 恢复：同 report 手动重新生成与任意状态只读面试记录。 |
 | 2026-07-15 | 1.32 | 合并 report-owned 只读会话记录，复用正式 Practice 安全 Markdown message renderer，不恢复会话列表、sessionId route 或已删 Demo runtime。 |
 | 2026-07-15 | 1.31 | 对齐报告 `3/2/2/2/1` 信息层级：准备度与服务端 summary 下移为底部全宽面试总评，顶部只保留两个数量指标。 |

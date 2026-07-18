@@ -1,8 +1,8 @@
 # Workspace and Interview Context BDD Checklist
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: completed
-> **更新日期**: 2026-07-17
+> **更新日期**: 2026-07-18
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -34,3 +34,11 @@
 ## 真实环境证据边界
 
 本 checklist 只完成 owner 关联与静态资产审计；本轮未执行 `E2E.P0.098`，当前真实环境结果以场景 INDEX 的 `Ready` 为准，后续只由显式 `/scenario-run` 产生。
+
+## `BDD.PRACTICE.LAUNCH.004` 会话启动等待反馈
+
+- [x] 确认验证入口为四类正式 caller 的 domain behavior tests 和共享 transition contract，不声明真实 E2E。
+- [x] deferred `startPracticeSession` 期间立即显示同一全屏 status/busy transition，背景动作被阻断且重复启动不产生第二次 side effect。
+- [x] 成功只导航到现有 `practice` route；失败卸载 transition 并保留各 caller 原有错误；未登录 auth redirect 不提前显示。
+- [x] title/body zh/en 完整，DOM 无百分比、伪阶段或 opening message；CSS reduced-motion gate 停用非必要循环动画。
+- [x] 记录 focused domain behavior 证据；根 `make test` 与独立 desktop/mobile Chrome pending-state 证据由主 checklist 30.4 收口。（验证：2026-07-18，5 files / 45 tests PASS；frontend typecheck PASS；根 frontend 127 files / 1035 tests PASS；真实 LLM pending 桌面/移动端与成功导航 PASS）

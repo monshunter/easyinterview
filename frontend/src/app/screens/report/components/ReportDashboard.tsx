@@ -9,6 +9,7 @@ import { resolveReportBackRoute } from "../reportBackRoute";
 import { isValidFeedbackReport, isValidReadyReport } from "../reportContract";
 import { useReplayCtaHandlers } from "../useReplayCtaHandlers";
 import { ReportContextStrip } from "./ReportContextStrip";
+import { PracticeLaunchTransition } from "../../../interview-context/PracticeLaunchTransition";
 import { ReportFailureState } from "./ReportFailureState";
 import { ReportHeader } from "./ReportHeader";
 
@@ -72,7 +73,9 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
       : undefined;
 
   return (
-    <main data-testid="report-dashboard" className="ei-fadein" style={{ maxWidth: 1120, width: "100%", boxSizing: "border-box", margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}>
+    <>
+      {replay.starting ? <PracticeLaunchTransition /> : null}
+      <main data-testid="report-dashboard" className="ei-fadein" style={{ maxWidth: 1120, width: "100%", boxSizing: "border-box", margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}>
       <button type="button" data-testid="report-back-button" onClick={goBack} style={{ border: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", cursor: "pointer", marginBottom: 20 }}>← {t("report.back")}</button>
       <ReportHeader
         breadcrumb={lang === "en" ? "CONVERSATION REPORT" : "会话报告"}
@@ -86,6 +89,11 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
         nextVariant={firstAction?.type === "next_round" ? "accent" : "secondary"}
         nextDisabledReason={nextDisabledReason}
       />
+      {replay.startError ? (
+        <p data-testid="report-practice-start-error" role="alert" style={{ margin: "12px 0 0", color: "var(--ei-color-danger)", fontSize: 13 }}>
+          {t("report.header.cta.startError")}
+        </p>
+      ) : null}
       <ReportContextStrip report={data} conversationReportId={reportId} />
       <section className="ei-report-summary-grid" data-testid="report-summary-cards">
         <Metric label={t("report.summary.dimensions")} value={String(dimensions.length)} />
@@ -115,7 +123,8 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
           <p style={{ margin: "12px 0 0", color: "var(--ei-color-fg-secondary)", fontSize: 13.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>{data.summary}</p>
         </section>
       </section>
-    </main>
+      </main>
+    </>
   );
 };
 

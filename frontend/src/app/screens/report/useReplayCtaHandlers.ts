@@ -20,6 +20,7 @@ export interface ReplayCtaHandlers {
   goNextRound: () => void;
   canNextRound: boolean;
   starting: boolean;
+  startError: boolean;
 }
 
 /**
@@ -41,6 +42,7 @@ export function useReplayCtaHandlers(
   const authenticated = runtime?.auth.status === "authenticated";
   const startingRef = useRef(false);
   const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState(false);
 
   const replayParams = useMemo(
     () => buildReplayPayload({ report }),
@@ -55,9 +57,12 @@ export function useReplayCtaHandlers(
       if (!runtime || startingRef.current) return;
       startingRef.current = true;
       setStarting(true);
+      setStartError(false);
       try {
         const started = await startPracticeFromParams(runtime.client, params, lang);
         navigate({ name: "practice", params: started.params });
+      } catch {
+        setStartError(true);
       } finally {
         startingRef.current = false;
         setStarting(false);
@@ -98,5 +103,6 @@ export function useReplayCtaHandlers(
     goNextRound,
     canNextRound: nextRoundParams !== null,
     starting,
+    startError,
   };
 }

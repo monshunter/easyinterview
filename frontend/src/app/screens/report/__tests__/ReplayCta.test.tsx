@@ -203,9 +203,29 @@ describe("report-derived practice CTAs", () => {
     await waitFor(() => expect(client.createPracticePlan).toHaveBeenCalledTimes(1));
     expect(replay).toBeDisabled();
     expect(screen.getByTestId("report-next-cta")).toBeDisabled();
+    expect(screen.getByTestId("practice-launch-transition")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByTestId("practice-launch-transition")).toHaveTextContent("Preparing your interview");
 
     await act(async () => resolvePlan(planFor("retry_current_round")));
     await waitFor(() => expect(client.startPracticeSession).toHaveBeenCalledTimes(1));
+  });
+
+  it("closes the shared launch transition and shows a safe error when report replay fails", async () => {
+    const client = makeClient({ authenticated: true });
+    client.startPracticeSession = vi.fn(async () => {
+      throw new Error("HTTP 503 provider secret");
+    }) as never;
+    render(<Harness client={client} initialRoute={{ name: "report", params: { reportId: REPORT_ID } }} />);
+
+    await screen.findByTestId("report-dashboard");
+    await act(async () => screen.getByTestId("report-replay-cta").click());
+
+    expect(await screen.findByTestId("report-practice-start-error")).toHaveTextContent(
+      "We couldn't start a new interview round. Try again in a moment.",
+    );
+    expect(screen.queryByText("HTTP 503 provider secret")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("practice-launch-transition")).not.toBeInTheDocument();
+    expect(screen.getByTestId("report-replay-cta")).toBeEnabled();
   });
 
   it("unauthenticated entry stays behind auth and does not read or mutate report state", async () => {
@@ -214,6 +234,7 @@ describe("report-derived practice CTAs", () => {
 
     expect(await screen.findByTestId("auth-login-email-form")).toBeInTheDocument();
     expect(screen.getByTestId("auth-side-pending-action")).toBeInTheDocument();
+    expect(screen.queryByTestId("practice-launch-transition")).not.toBeInTheDocument();
     expect(client.getFeedbackReport).not.toHaveBeenCalled();
     expect(client.createPracticePlan).not.toHaveBeenCalled();
   });

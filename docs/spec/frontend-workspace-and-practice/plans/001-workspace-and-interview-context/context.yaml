@@ -5,10 +5,10 @@ metadata:
   name: 001-workspace-and-interview-context
   sequence: 1
   baseBranch: main
-  branch: design/resume-interview-report-layout
+  branch: practice-launch-transition
   specVersion:
-    from: 1.46
-    to: 1.47
+    from: 1.47
+    to: 1.48
 spec:
   defaultTarget: frontend
   discovery:
@@ -73,6 +73,10 @@ spec:
       - no empty location placeholder
       - 一级面试入口
       - E2E.P0.098
+      - practice launch transition
+      - session opening wait
+      - startPracticeSession loading overlay
+      - prefers-reduced-motion
   targets:
     frontend:
       plan: ./plan.md

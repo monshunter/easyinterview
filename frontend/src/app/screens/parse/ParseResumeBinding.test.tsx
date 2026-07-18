@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import {
   createFixtureBackedFetch,
@@ -203,6 +203,36 @@ describe("ParseResumeBinding", () => {
     expect(JSON.stringify(params)).not.toContain("resume-unbound");
   });
 
+  it("shows the shared launch transition while workspace detail waits for its opening message", async () => {
+    const client = createClient();
+    let resolveStart!: (value: Awaited<ReturnType<EasyInterviewClient["startPracticeSession"]>>) => void;
+    const startSpy = vi.spyOn(client, "startPracticeSession").mockImplementation(
+      () => new Promise((resolve) => {
+        resolveStart = resolve;
+      }),
+    );
+    const { navigate } = await renderReadyParse(client);
+    const start = await screen.findByTestId("parse-action-start-interview");
+
+    fireEvent.click(start);
+    await waitFor(() => expect(startSpy).toHaveBeenCalledTimes(1));
+
+    expect(screen.getByTestId("practice-launch-transition")).toHaveAttribute("aria-live", "polite");
+    expect(screen.getByTestId("practice-launch-transition")).toHaveTextContent("Preparing your interview");
+    expect(start).toBeDisabled();
+    expect(navigate).not.toHaveBeenCalledWith(expect.objectContaining({ name: "practice" }));
+
+    await act(async () => {
+      resolveStart(
+        startPracticeSessionFixture.scenarios.default.response.body as Awaited<
+          ReturnType<EasyInterviewClient["startPracticeSession"]>
+        >,
+      );
+    });
+    await waitFor(() => expect(screen.queryByTestId("practice-launch-transition")).toBeNull());
+    expect(navigate).toHaveBeenCalledWith(expect.objectContaining({ name: "practice" }));
+  });
+
   it("does not request resume list or expose its failure from readonly detail", async () => {
     const client = createClient();
     const listSpy = vi.spyOn(client, "listResumes").mockRejectedValue(
@@ -244,6 +274,7 @@ describe("ParseResumeBinding", () => {
       "We couldn't start the mock interview. Try again in a moment.",
     );
     expect(screen.queryByText("HTTP 503 PRACTICE_STORE_UNAVAILABLE")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("practice-launch-transition")).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
     expect(navigate).not.toHaveBeenCalledWith(expect.objectContaining({ name: "practice" }));
   });

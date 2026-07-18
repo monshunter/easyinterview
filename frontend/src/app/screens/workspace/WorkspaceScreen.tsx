@@ -3,6 +3,7 @@ import { useEffect, useState, type FC } from "react";
 import type { TargetJob } from "../../../api/generated/types";
 import { generateIdempotencyKey } from "../../../lib/conventions/idempotency";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
+import { PracticeLaunchTransition } from "../../interview-context/PracticeLaunchTransition";
 import { useI18n, type MessageKey } from "../../i18n/messages";
 import {
   isTargetJobPracticeStartable,
@@ -97,7 +98,9 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
   };
 
   return (
-    <div
+    <>
+      {startingJobId ? <PracticeLaunchTransition /> : null}
+      <div
       data-testid="workspace-plan-list"
       className="ei-fadein"
       style={{
@@ -282,7 +285,8 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
           {t(startError)}
         </div>
       ) : null}
-    </div>
+      </div>
+    </>
   );
 };
 

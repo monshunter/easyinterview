@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { createFixtureBackedFetch, createFixtureRegistry } from "../../../api/mockTransport";
@@ -305,6 +305,47 @@ describe("HomeRecentMocks", () => {
     );
   });
 
+  it("shows the shared launch transition while a recent mock waits for its opening message", async () => {
+    const user = userEvent.setup();
+    const client = createClient("default");
+    vi.spyOn(client, "getPracticePlan").mockResolvedValue(
+      getPracticePlanFixture.scenarios.default.response.body as Awaited<
+        ReturnType<EasyInterviewClient["getPracticePlan"]>
+      >,
+    );
+    let resolveStart!: (value: Awaited<ReturnType<EasyInterviewClient["startPracticeSession"]>>) => void;
+    const startSpy = vi.spyOn(client, "startPracticeSession").mockImplementation(
+      () => new Promise((resolve) => {
+        resolveStart = resolve;
+      }),
+    );
+    const { navigate } = renderHome(client);
+    const start = await screen.findByTestId(
+      "home-recent-mock-start-01918fa0-0000-7000-8000-000000002000",
+    );
+
+    await user.click(start);
+    await waitFor(() => expect(startSpy).toHaveBeenCalledTimes(1));
+
+    const transition = screen.getByTestId("practice-launch-transition");
+    expect(transition).toHaveAttribute("role", "status");
+    expect(transition).toHaveAttribute("aria-busy", "true");
+    expect(transition).toHaveTextContent("Preparing your interview");
+    expect(transition).not.toHaveTextContent(/%|opening message/i);
+    expect(start).toBeDisabled();
+    expect(navigate).not.toHaveBeenCalledWith(expect.objectContaining({ name: "practice" }));
+
+    await act(async () => {
+      resolveStart(
+        startPracticeSessionFixture.scenarios.default.response.body as Awaited<
+          ReturnType<EasyInterviewClient["startPracticeSession"]>
+        >,
+      );
+    });
+    await waitFor(() => expect(screen.queryByTestId("practice-launch-transition")).toBeNull());
+    expect(navigate).toHaveBeenCalledWith(expect.objectContaining({ name: "practice" }));
+  });
+
   it("does not expose a backend error when recent quick-start fails", async () => {
     const user = userEvent.setup();
     const client = createClient("default");
@@ -322,6 +363,7 @@ describe("HomeRecentMocks", () => {
       "We couldn't start the mock interview. Try again in a moment.",
     );
     expect(screen.queryByText("HTTP 503 PRACTICE_STORE_UNAVAILABLE")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("practice-launch-transition")).not.toBeInTheDocument();
     expect(start).toBeEnabled();
     expect(navigate).not.toHaveBeenCalledWith(expect.objectContaining({ name: "practice" }));
   });

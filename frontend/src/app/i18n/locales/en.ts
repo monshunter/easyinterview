@@ -251,6 +251,11 @@ export const en: LocaleMessages = {
     "This resume may have been deleted, or the link has expired. Return to Resume Workshop and choose another resume.",
   "resumeWorkshop.detail.notFoundCta": "Back to list",
   // ── Practice screen (plan 002) ──
+  "practice.launch.eyebrow": "Getting ready",
+  "practice.launch.title": "Preparing your interview",
+  "practice.launch.body":
+    "The interviewer is reviewing the role, your resume, and the focus for this round before opening the conversation.",
+  "practice.launch.hint": "This can take a moment. Keep this page open.",
   "practice.toolbar.companySkeleton": "Target company",
   "practice.toolbar.titleSkeleton": "Target role",
   "practice.toolbar.pause": "Pause",
@@ -340,6 +345,7 @@ export const en: LocaleMessages = {
   "report.header.cta.replay": "Practice again",
   "report.header.cta.nextRound": "Next round",
   "report.header.cta.starting": "Starting a new practice session…",
+  "report.header.cta.startError": "We couldn't start a new interview round. Try again in a moment.",
   "report.header.cta.noNextRound": "This role doesn't have another interview round.",
   "report.context.job": "Target role",
   "report.context.round": "Round",

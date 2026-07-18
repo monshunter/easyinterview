@@ -240,6 +240,11 @@ export const zh = {
     "这份简历可能已被删除，或链接已经失效。请返回简历工坊重新选择。",
   "resumeWorkshop.detail.notFoundCta": "返回列表",
   // ── Practice screen (plan 002) ──
+  "practice.launch.eyebrow": "面试准备中",
+  "practice.launch.title": "正在准备你的面试",
+  "practice.launch.body":
+    "面试官正在结合目标岗位、你的简历和本轮重点准备开场。",
+  "practice.launch.hint": "这可能需要一点时间，请保持页面开启。",
   "practice.toolbar.companySkeleton": "目标公司",
   "practice.toolbar.titleSkeleton": "目标岗位",
   "practice.toolbar.pause": "暂停",
@@ -329,6 +334,7 @@ export const zh = {
   "report.header.cta.replay": "复练当前轮",
   "report.header.cta.nextRound": "进入下一轮",
   "report.header.cta.starting": "正在开始新一轮练习…",
+  "report.header.cta.startError": "暂时无法开始新一轮面试，请稍后再试。",
   "report.header.cta.noNextRound": "这个岗位没有下一轮面试。",
   "report.context.job": "目标岗位",
   "report.context.round": "轮次",

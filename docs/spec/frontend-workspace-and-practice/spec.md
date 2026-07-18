@@ -1,8 +1,8 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.47
+> **版本**: 1.48
 > **状态**: completed
-> **更新日期**: 2026-07-17
+> **更新日期**: 2026-07-18
 
 ## 1 背景与目标
 
@@ -18,6 +18,7 @@
 - 卡片主体直接进入 workspace detail，右上角归档，底部只有 `立即面试`；已解析规划不得再经过 Parse 动画。
 - Workspace 只允许 `targetJobId` 详情 locator；不接受 `planId`、`resumeId`、auto-start 或业务事实，不拥有 Resume Picker、Plan Switcher 或 route-side start side effect。
 - 快速启动通过 generated `createPracticePlan` / `startPracticeSession` 创建或复用 plan，然后进入 `practice`。
+- Home 最近面试、Workspace 列表、Workspace 详情与 Report 复练/下一轮的启动请求必须共享同一个全屏面试准备过渡态。过渡态从用户触发有效启动后立即出现，覆盖并阻断原页面交互，直到成功导航 `practice` 或失败回到原入口错误；不得只禁用按钮、保留看似静止的页面，也不得伪造百分比、阶段完成或 opening message。
 - 卡片 round rail、`立即面试` 和 parse 当前轮只消费 backend `TargetJob.practiceProgress`；TargetJob lifecycle `status` 不参与轮次推断，也不在面试规划卡片展示。卡片只在 `locationText` 非空时展示真实地点，不渲染空地点占位。
 - Workspace 详情的轮次假设卡片必须复用列表 rail 的同一严格投影：完成前缀显示 `done / 已进行`，首个未完成轮显示 `current / 即将进行`，其余显示 `pending / 未进行`；三态分别使用 success-soft、accent-soft、neutral-soft 背景与对应边框，并暴露 `data-round-state`。投影缺失或无效时保持中性、隐藏状态文案并禁用启动，不得伪造 pending/current/done。
 - Workspace 详情删除独立 Interview Launch / 绑定简历大卡片与页尾启动区。标题 cluster 在“面试规划详情”旁显示“绑定简历”查看链接，点击只使用 `getTargetJob` 返回的 `resumeId` 进入 `resume_versions?resumeId=...`，不调用 `getResume` 预读、不提供 rebind；缺失绑定时显示非链接状态并禁用启动。
@@ -117,6 +118,7 @@
 ## 6 Conversation 状态
 
 - Loading：conversation skeleton，不展示假 opening message。
+- Pre-session launch：`createPracticePlan/getPracticePlan/startPracticeSession` 尚未完成时显示本地化 indeterminate 面试准备过渡态；使用 `role=status`、`aria-live=polite`、`aria-busy=true`，支持 `prefers-reduced-motion`，不写 URL/storage，不改变 API/idempotency。未登录认证跳转不提前展示；失败关闭覆盖层并保留原入口可恢复错误。
 - Running：ordered messages + enabled composer。
 - Running / zero-answer：composer enabled，Finish native disabled；可见 zh/en reason 与按钮通过 `aria-describedby` 关联。
 - Sending：提交后立即清空 composer 并显示 optimistic user row；composer disabled，Transcript 显示面试官思考动画，retry icon 不渲染；POST 最多等待 95 秒，timeout abort 后进入同 ID reconciliation。
@@ -160,6 +162,7 @@
 | C-17 | Workspace 详情轮次三态 | ready TargetJob 有 2~5 条 canonical rounds 与合法/完成/无效 `practiceProgress` | 打开或刷新 `/workspace?targetJobId` | 合法进行中显示完成前缀 `done/已进行`、唯一 `current/即将进行`、其余 `pending/未进行`，三态背景/边框不同且与列表 rail 一致；全完成全部 done；无效投影中性且启动 disabled | 001 |
 | C-18 | Practice byte boundaries | owner config provides message/session UTF-8 limits | submit / reload | 注入小型 boundary 验证 overflow zero send and draft recovery；backend remains authoritative；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文本或配置 E2E | 002 Phase 12 |
 | C-19 | 面试规划卡片元信息 | ready TargetJob 的 lifecycle status 为任意值，地点可能有值或缺失 | 查看 Home 最近面试或 Workspace 规划卡片 | 卡片不展示 lifecycle status 文案/徽标；有地点时展示真实值，缺失或空白时不渲染地点占位行；轮次 rail 仍表达真实训练进度 | 001 |
+| C-20 | 会话启动等待反馈 | 用户从 Home、Workspace 列表/详情或 Report 复练/下一轮发起有效面试，session opening LLM 请求持续未返回或失败 | 点击启动并等待 | 立即展示统一全屏、可访问、阻断交互且 reduced-motion 兼容的诚实过渡态；不伪造进度/opening；成功进入 `practice`，失败关闭过渡态并在原入口显示错误；API、route、idempotency 与持久化合同不变 | 001 |
 
 ## 9 关联计划
 
@@ -179,6 +182,7 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.48 | 2026-07-18 | Add a shared accessible pre-session launch transition across Home, Workspace detail/list, and Report replay/next-round entry points while preserving the existing start-session contract. |
 | 1.47 | 2026-07-17 | Remove lifecycle status and empty-location placeholders from shared Home/Workspace interview-plan cards while retaining real location values and persisted round progress. |
 | 1.45 | 2026-07-14 | Add RuntimeConfig-backed 32KiB message and 256KiB persisted-session UTF-8 byte limits, replacing the 8,000-rune frontend/backend drift. |
 | 1.44 | 2026-07-14 | Add persisted done/current/pending round-state cards to Workspace detail with rail-consistent visuals and invalid-projection fail-closed behavior. |

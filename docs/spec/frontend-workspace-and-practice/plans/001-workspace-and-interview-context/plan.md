@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.45
+> **版本**: 1.46
 > **状态**: completed
-> **更新日期**: 2026-07-17
+> **更新日期**: 2026-07-18
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -21,6 +21,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 历史 v1.19 曾把 `workspace` 收敛为纯列表并让卡片导航 Parse；该结论已由本计划 Phase 26 明确 supersede，不再作为当前实现合同。
 本次 v1.20 原地修订修复面试列表卡片规格回归：desktop plan-list grid 必须使用固定最大列宽，1/2/3 张卡片的规格保持稳定，不得因单卡数量被拉伸为整行宽卡。
 本次 v1.21 原地修订融合 Home 最近模拟面试与 workspace 面试列表卡片：workspace 卡片必须复用 Home recent card 的主体结构、公司、岗位、可选真实地点和 mini round rail。本次 v1.22 原地修订把列表卡片的 `进入规划` 可见 footer CTA 改为点击卡片主体承接，并增加 `立即面试` 主按钮和使用简历列表 trash 图标样式的删除能力；Home recent 复用同一卡片动作模型但不展示删除按钮。本次 v1.45 原地修订移除同一 `TargetJob.status` 的重复展示和空地点 `Location not set` 占位，真实地点仍按原层级展示。
+本次 v1.46 原地重开 Phase 30，修复共享 `startPracticeFromParams` 在等待 session opening LLM 时仅禁用入口按钮、页面看似卡死的实现漂移：四类正式入口必须共享同一全屏面试准备过渡态，并在成功/失败、可访问性与 reduced-motion 路径中一致收敛。
 本次 v1.38 原地修订收口结构化轮次目录与时长一致性：`TargetJob.summary.interviewRounds[]` 是轮次顺序和规划时长的唯一来源；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照，Practice Top Bar 从 plan 读取预算；报告下一轮只取有序列表的紧邻后一项，末轮、空/未知轮次、加载失败和重复点击 fail closed，不再使用固定 `25:00`、固定轮次表或默认回退。当前轮的持久化事实由 v1.39 `practiceProgress` 接管。
 本次 v1.39 按方案 A 把轮次进度事实收回后端：Home/Workspace/Parse/Report 只消费 `TargetJob.practiceProgress`，不再用 TargetJob lifecycle `status`、自由文本、时长或浏览器状态猜测当前轮；计划只按 exact round pair 复用，全部完成后启动 fail closed。
 
@@ -50,7 +51,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 | `createPracticePlan` / `getPracticePlan` | current plan fixtures | quick-start/start helpers | backend-practice plan owner | practice plans | none | 当前无真实 E2E owner；root `make test` |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` | Resume detail owner only；Workspace detail 不消费 | `backend-resume/001` | `resumes` | none | external owner gates |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home selector + Resume Workshop；Workspace/Parse detail 不消费 | `backend-resume/001` | `resumes` summary projection | none | Home/Resume owner gates |
-| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | Workspace list quick start、Workspace detail 与 report handoff start practice and navigate `practice` | `backend-practice/001` | `practice_sessions` + opening `practice_messages` row | backend-only `practice.session.chat` | 当前无真实 E2E owner；root `make test` |
+| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | Home recent、Workspace list/detail、Report replay/next-round 通过 shared start 启动；等待期间共享 UI-only transition，成功后导航 `practice` | `backend-practice/001` | `practice_sessions` + opening `practice_messages` row | backend-only `practice.session.chat` | 当前无真实 E2E owner；Phase 30 domain behavior + root `make test` |
 | `getFeedbackReport` | N/A | 本 plan 不消费；report owner handles replay/next-round CTA | external owner | external | none | external owner gates |
 
 ### 2.2 UI / Route Boundary
@@ -64,8 +65,8 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior + contract + frontend-ui + BDD`。
-- **TDD 策略**: 适用。Vitest 覆盖 route hydration、InterviewContext reducer、ordered round resolver、plan time-budget create/reuse、Practice plan budget display、report next-round/last-round/unknown-round/double-click handoff、generated client body/header、auth pendingAction、privacy and out-of-scope negative gates。
-- **BDD 策略**: `BDD.WORKSPACE.CONTEXT.001` 由代码层 owner tests 验证 list/detail、后端 progress 投影、exact-plan reuse 与 fail-closed 行为；`BDD.WORKSPACE.CARD.003` 由共享卡片 domain behavior test 验证无 lifecycle status 与无空地点占位。两者由仓库根 `make test` 统一回归；`E2E.P0.098` 仅作为 completion/progress refresh 的独立真实环境 handoff，只有显式运行后才产生 PASS，且不承接 quick-start/session start/next-round。
+- **TDD 策略**: 适用。Vitest 覆盖 route hydration、InterviewContext reducer、ordered round resolver、plan time-budget create/reuse、Practice plan budget display、report next-round/last-round/unknown-round/double-click handoff、四类启动入口的 pending/success/failure transition、generated client body/header、auth pendingAction、privacy and out-of-scope negative gates。
+- **BDD 策略**: `BDD.WORKSPACE.CONTEXT.001` 由代码层 owner tests 验证 list/detail、后端 progress 投影、exact-plan reuse 与 fail-closed 行为；`BDD.WORKSPACE.CARD.003` 验证卡片元信息；`BDD.PRACTICE.LAUNCH.004` 由四类 caller domain behavior tests 验证启动等待反馈。三者由仓库根 `make test` 统一回归；`E2E.P0.098` 仅作为 completion/progress refresh 的独立真实环境 handoff，只有显式运行后才产生 PASS，且不承接 quick-start/session start/next-round。
 - **替代验证 gate**:
   - `pnpm --filter @easyinterview/frontend test src/app/screens/workspace src/app/screens/parse/ParseResumeBinding.test.tsx src/app/screens/report/__tests__/ReplayCta.test.tsx src/app/App.test.tsx`
   - `pnpm --filter @easyinterview/frontend test`
@@ -290,11 +291,27 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 | A-20 | Real login plus completion survives Home/Workspace/TargetJob refresh and detail read | `E2E.P0.098`; explicitly excludes Parse, chat, plan creation and session start |
 | A-21 | Workspace detail starts with title-adjacent bound-resume link and a left-aligned Start/Reports action row; no standalone binding/launch block or footer Start remains | `ParseScreen.test.tsx`, `ParseResumeBinding.test.tsx`, `App.test.tsx`, responsive/a11y owner gates; root `make test` |
 | A-22 | Shared Home/Workspace interview-plan cards omit TargetJob lifecycle status and empty-location placeholders while preserving real locations and the persisted-progress rail | `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`; root `make test` |
+| A-23 | Home recent、Workspace list/detail 与 Report replay/next-round 在 session opening LLM 等待期间共享诚实、可访问、阻断交互且 reduced-motion 兼容的全屏 transition；失败回到原入口错误 | shared transition contract + `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`, `ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx`; root `make test` |
+
+### Phase 30: Shared practice-launch transition
+
+#### 30.1 RED：锁定四类正式入口的 pending 行为
+
+在 Home recent、Workspace list、Workspace detail/Parse owner 与 Report replay/next-round caller tests 中延迟 `startPracticeSession`，先断言当前实现不能立即提供统一全屏 `role=status` / `aria-busy` 反馈；同时锁定重复点击、auth redirect 与 API/route/idempotency 不变。
+
+#### 30.2 GREEN：实现共享诚实过渡态
+
+在 `frontend/src/app/interview-context` 增加单一共享 `PracticeLaunchTransition`，由现有 caller 的 in-flight state 驱动。过渡层覆盖 viewport、阻断背景交互，使用本地化标题/说明和 indeterminate 装饰，不展示百分比、伪阶段或 opening message；CSS 在 `prefers-reduced-motion` 下停用非必要循环动画。成功导航 `practice`；失败卸载过渡层并保留 caller-owned error。
+
+#### 30.3 REFACTOR / POST-PASS
+
+保持 `startPracticeFromParams`、generated client、fixtures、OpenAPI、backend、persistence、route params 与 idempotency 不变；执行 focused caller/component/a11y tests、frontend typecheck/build、仓库根 `make test`、owner context/docs/index/diff gates，并完成必要的真实浏览器 desktop/mobile pending-state检查后恢复 completed lifecycle。
 
 ## 6 变更记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-18 | 1.46 | Reopen Phase 30 to add one shared accessible launch transition across every formal practice-session entry while the opening LLM request is pending. |
 | 2026-07-17 | 1.45 | Reopen Phase 29 to remove duplicated lifecycle status and empty-location placeholders from the shared interview-plan card. |
 | 2026-07-15 | 1.44 | Reopen Phase 28 to replace the standalone resume-binding launch block with a title-adjacent resume link and a leading Start/Reports action row. |
 | 2026-07-14 | 1.43 | Separate code-owned Workspace behavior BDD from the Ready-only P0.098 real progress-refresh handoff. |
