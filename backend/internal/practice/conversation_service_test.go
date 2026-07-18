@@ -22,6 +22,7 @@ type conversationTestStore struct {
 	planErr             error
 	reservation         SessionReservation
 	startInput          CommitSessionStartInput
+	startErr            error
 	startRecoveryInput  CommitSessionStartRecoveryInput
 	startRecoveryResult SessionRecord
 	messageReserveInput ReservePracticeMessageInput
@@ -37,7 +38,9 @@ type conversationTestStore struct {
 	getSessionResult    SessionRecord
 	getSessionResults   []SessionRecord
 	getSessionErr       error
+	getSessionCalls     int
 	failedStart         FailSessionStartInput
+	failedStartErr      error
 }
 
 func (s *conversationTestStore) CreatePlan(_ context.Context, in CreatePlanStoreInput) (PlanRecord, error) {
@@ -57,6 +60,9 @@ func (s *conversationTestStore) ReserveSessionStart(_ context.Context, _ StartSe
 }
 func (s *conversationTestStore) CommitSessionStart(_ context.Context, in CommitSessionStartInput) (SessionRecord, error) {
 	s.startInput = in
+	if s.startErr != nil {
+		return SessionRecord{}, s.startErr
+	}
 	return SessionRecord{ID: in.SessionID, PlanID: in.PlanID, TargetJobID: in.TargetJobID, Status: sharedtypes.SessionStatusRunning,
 		Language: in.Language, Messages: []MessageRecord{{ID: in.MessageID, Role: "assistant", Content: in.MessageText, SeqNo: 1, CreatedAt: in.StartedAt}}}, nil
 }
@@ -66,7 +72,7 @@ func (s *conversationTestStore) CommitSessionStartRecovery(_ context.Context, in
 }
 func (s *conversationTestStore) FailSessionStart(_ context.Context, in FailSessionStartInput) error {
 	s.failedStart = in
-	return nil
+	return s.failedStartErr
 }
 func (s *conversationTestStore) ReservePracticeMessage(_ context.Context, in ReservePracticeMessageInput) (PracticeMessageReservation, error) {
 	s.messageReserveInput = in
@@ -87,6 +93,7 @@ func (s *conversationTestStore) FailPracticeMessage(ctx context.Context, in Fail
 	return s.messageFailureErr
 }
 func (s *conversationTestStore) GetSession(_ context.Context, _, _ string, now time.Time) (SessionRecord, error) {
+	s.getSessionCalls++
 	s.getSessionNow = now
 	if len(s.getSessionResults) > 0 {
 		result := s.getSessionResults[0]
@@ -537,6 +544,79 @@ func TestStartPracticeSessionDoesNotFinalizeQueuedRecoveryAfterContextCancellati
 	}
 }
 
+func TestStartPracticeSessionExpiresQueuedRecoveryAfterBoundedWait(t *testing.T) {
+	now := time.Date(2026, 7, 19, 8, 0, 0, 0, time.UTC)
+	queued := SessionRecord{
+		ID: "session-existing", PlanID: "plan-1", TargetJobID: "target-1",
+		Status: sharedtypes.SessionStatusQueued, Language: "zh-CN", UpdatedAt: now,
+	}
+	store := &conversationTestStore{
+		reservation:      SessionReservation{IdempotencyRecordID: "idem-recovery", UserID: "user-1", RecoverSession: &queued},
+		getSessionResult: queued,
+	}
+	waits := []time.Duration{}
+	ai := &conversationTestAI{}
+	service := NewService(ServiceOptions{
+		Store: store, Registry: conversationTestRegistry{}, AI: ai,
+		Now:                         func() time.Time { return now },
+		SessionStartRecoveryTimeout: 750 * time.Millisecond,
+		WaitForSessionStartRecovery: func(_ context.Context, delay time.Duration) error {
+			waits = append(waits, delay)
+			return nil
+		},
+	})
+
+	_, err := service.StartPracticeSession(context.Background(), StartSessionRequest{
+		UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "new-hash", RequestFingerprint: "fp",
+	})
+	var serviceErr *ServiceError
+	if !errors.As(err, &serviceErr) || serviceErr.Code != sharederrors.CodeAiProviderTimeout {
+		t.Fatalf("queued recovery error=%v want %s", err, sharederrors.CodeAiProviderTimeout)
+	}
+	if !reflect.DeepEqual(waits, []time.Duration{100 * time.Millisecond, 200 * time.Millisecond, 400 * time.Millisecond, 50 * time.Millisecond}) {
+		t.Fatalf("recovery waits=%v", waits)
+	}
+	if store.getSessionCalls != 5 {
+		t.Fatalf("get session calls=%d want 5", store.getSessionCalls)
+	}
+	if store.failedStart.SessionID != queued.ID || store.failedStart.IdempotencyRecordID != "idem-recovery" ||
+		store.failedStart.ErrorCode != sharederrors.CodeAiProviderTimeout || !store.failedStart.Retryable {
+		t.Fatalf("queued recovery failure=%+v", store.failedStart)
+	}
+	if store.startRecoveryInput.SessionID != "" || store.startInput.SessionID != "" || len(ai.payloads) != 0 {
+		t.Fatalf("timed-out recovery produced side effects: recovery=%+v start=%+v ai=%d", store.startRecoveryInput, store.startInput, len(ai.payloads))
+	}
+}
+
+func TestStartPracticeSessionFinalizesWhenQueuedTimeoutLosesToRunningTransition(t *testing.T) {
+	now := time.Date(2026, 7, 19, 8, 0, 0, 0, time.UTC)
+	queued := SessionRecord{
+		ID: "session-existing", PlanID: "plan-1", TargetJobID: "target-1",
+		Status: sharedtypes.SessionStatusQueued, Language: "zh-CN", UpdatedAt: now,
+	}
+	running := queued
+	running.Status = sharedtypes.SessionStatusRunning
+	running.Messages = []MessageRecord{{ID: "opening-existing", Role: "assistant", Content: "原开场消息", SeqNo: 1}}
+	store := &conversationTestStore{
+		reservation:         SessionReservation{IdempotencyRecordID: "idem-recovery", UserID: "user-1", RecoverSession: &queued},
+		getSessionResults:   []SessionRecord{queued, queued, running},
+		startRecoveryResult: running,
+		failedStartErr:      ErrSessionConflict,
+	}
+	service := NewService(ServiceOptions{
+		Store: store, Now: func() time.Time { return now },
+		SessionStartRecoveryTimeout: 100 * time.Millisecond,
+		WaitForSessionStartRecovery: func(context.Context, time.Duration) error { return nil },
+	})
+
+	result, err := service.StartPracticeSession(context.Background(), StartSessionRequest{
+		UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "new-hash", RequestFingerprint: "fp",
+	})
+	if err != nil || result.ID != running.ID || store.startRecoveryInput.SessionID != running.ID {
+		t.Fatalf("timeout race result=%+v err=%v recovery=%+v", result, err, store.startRecoveryInput)
+	}
+}
+
 func TestStartPracticeSessionAIErrorFailsReservationWithoutOpeningMessage(t *testing.T) {
 	store := &conversationTestStore{reservation: SessionReservation{IdempotencyRecordID: "idem-1", SessionID: "session-1", UserID: "user-1", PlanID: "plan-1", TargetJobID: "target-1", Goal: sharedtypes.PracticeGoalBaseline, InterviewerPersona: sharedtypes.InterviewerRoleHiringManager, Language: "zh-CN", ResumeContext: "真实简历上下文"}}
 	ai := &conversationTestAI{errs: []error{errors.New("provider timeout"), errors.New("provider timeout")}, responses: []string{`{}`, `{}`}}
@@ -544,6 +624,26 @@ func TestStartPracticeSessionAIErrorFailsReservationWithoutOpeningMessage(t *tes
 	_, err := service.StartPracticeSession(context.Background(), StartSessionRequest{UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "hash", RequestFingerprint: "fp"})
 	if err == nil || store.failedStart.SessionID != "session-1" || store.startInput.MessageText != "" {
 		t.Fatalf("err=%v failed=%+v committed=%+v", err, store.failedStart, store.startInput)
+	}
+}
+
+func TestStartPracticeSessionMapsLateCommitFenceToTypedConflict(t *testing.T) {
+	store := &conversationTestStore{
+		reservation: SessionReservation{
+			IdempotencyRecordID: "idem-original", SessionID: "session-1", UserID: "user-1", PlanID: "plan-1",
+			TargetJobID: "target-1", Goal: sharedtypes.PracticeGoalBaseline, Language: "zh-CN", ResumeContext: "真实简历上下文",
+		},
+		startErr: ErrSessionConflict,
+	}
+	ai := &conversationTestAI{responses: []string{`{"messageText":"你好，我们开始面试。"}`}}
+	service := NewService(ServiceOptions{Store: store, Registry: conversationTestRegistry{}, AI: ai, NewID: func() string { return "id-1" }})
+
+	_, err := service.StartPracticeSession(context.Background(), StartSessionRequest{
+		UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "hash", RequestFingerprint: "fp",
+	})
+	var serviceErr *ServiceError
+	if !errors.As(err, &serviceErr) || serviceErr.Code != sharederrors.CodePracticeSessionConflict {
+		t.Fatalf("late commit fence error=%v want %s", err, sharederrors.CodePracticeSessionConflict)
 	}
 }
 

@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-19](./2026-07-19-active-session-recovery-hardening-assessment.md) | Active Session Recovery Hardening 交付复盘 | #assessment #practice #BUG-0190 |
 | [2026-07-18](./2026-07-18-practice-active-session-recovery-assessment.md) | Practice Active Session Recovery 交付复盘 | #assessment #practice #BUG-0189 |
 | [2026-07-18](./2026-07-18-practice-launch-transition-assessment.md) | Practice Launch Transition 交付复盘 | #assessment #ui #BUG-0188 |
 | [2026-07-18](./2026-07-18-resume-parse-polling-stability-assessment.md) | Resume Parse Polling Stability 交付复盘 | #assessment #ui #BUG-0187 |

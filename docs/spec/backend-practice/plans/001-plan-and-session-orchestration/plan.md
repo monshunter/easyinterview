@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -110,6 +110,8 @@
 - RED service/store tests reproduce a fresh `Idempotency-Key` receiving `PRACTICE_SESSION_CONFLICT` when the same user/plan already has a `queued/running` session; lock zero extra session/opening/AI/lifecycle/outbox/audit facts and exact same-key replay.
 - GREEN serialize different start keys with a user/plan-scoped transaction lock. After current plan/resume/round admission, bind a new key to the existing active session instead of inserting a second session; preserve the partial unique index as the final invariant.
 - Keep same-key succeeded replay separate from new-key active recovery. A new key remains pending while an existing `queued` start finishes; after `running` is observable, persist the exact recovered response as succeeded. A failed/non-active target or caller cancellation cannot be marked successful.
+- Poll queued recovery with bounded exponential backoff from 100ms to 1 second and stop 35 seconds from the persisted session update time. If it still has not converged, atomically mark the queued session and current recovery key as retryable `AI_PROVIDER_TIMEOUT`; fence the original start commit on `status='queued'` so a late worker rolls back all opening side effects and cannot resurrect the failed session.
+- Lock the recovered session row before validating `running`, reading its messages and finalizing the new idempotency response. This linearizes recovery against completion and prevents a succeeded key from storing a snapshot selected before a concurrent terminal transition.
 - Preserve all negative boundaries: fingerprint mismatch and an already-pending same key still conflict; different user/plan never recover each other; no active session still executes the existing opening LLM path exactly once.
 - Redeploy backend and use the account's existing active sessions as recovery samples. Chrome must enter the original session from a formal start entry while PostgreSQL proves session/message/AI/lifecycle/outbox/audit counts do not increase on recovery.
 
@@ -147,13 +149,15 @@
 | resume/JD/history contains prompt-like instructions | encode the entire business context as untrusted JSON in the user message and keep immutable policy in the system message |
 | 删除 GET collection 误伤 POST start 或 scoped GET recovery | method/path inventory tests分别锁定 `startPracticeSession` 与 `getPracticeSession` 不变，并对 list route 做零命中 |
 | different start keys race past the active-session check | acquire one user/plan-scoped transaction lock before choosing recover/create; keep the partial unique index as a final fence |
-| a queued recovery stores a stale response or navigates before opening exists | keep the new key pending, wait for the original start to reach running, then persist and return the exact current session snapshot |
+| a queued recovery stores a stale response or navigates before opening exists | wait at most 35 seconds from persisted session update time; then atomically fail queued session/current key as retryable timeout and fence the original start commit on queued status |
+| completion advances a recovered running session while its new key is finalized | lock the session row before status validation, message snapshot and idempotency response update so recovery and completion have one transaction order |
 | recovery repeats opening side effects | the store returns an explicit recovery reservation; service skips prompt/AI and only finalizes the new idempotency response |
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.8 | Repair Phase 9 with a session-row lock at recovery finalization, a bounded queued recovery timeout, retryable orphan convergence, and a queued-status fence for late original commits. |
 | 2026-07-18 | 2.7 | Reopen Phase 9 to recover an existing queued/running session for repeated same-user/plan starts, with plan-scoped concurrency, exact new-key finalization, zero repeated opening side effects, and Chrome acceptance on current active sessions. |
 | 2026-07-15 | 2.6 | Reopen Phase 8 to remove listPracticeSessions end to end, preserve start/get live-session operations, and hand completed transcript reads to backend-review getReportConversation without compatibility or migration. |
 | 2026-07-12 | 2.5 | Prevent assistant-authored history from becoming candidate evidence and add the invented-project amplification regression gate. |

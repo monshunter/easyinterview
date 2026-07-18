@@ -489,13 +489,14 @@ values ($1,$2,'user',$3,'practice.session.start','practice_session',$4,'success'
 	}
 	var session domain.SessionRecord
 	err = tx.QueryRowContext(ctx, `
-update practice_sessions set status = $1, started_at = $2, updated_at = $2 where id = $3
+update practice_sessions set status = $1, started_at = $2, updated_at = $2
+where id = $3 and user_id = $4 and status = $5
 returning id, plan_id, target_job_id, status, language, created_at, updated_at`,
-		string(sharedtypes.SessionStatusRunning), in.StartedAt, in.SessionID,
+		string(sharedtypes.SessionStatusRunning), in.StartedAt, in.SessionID, in.UserID, string(sharedtypes.SessionStatusQueued),
 	).Scan(&session.ID, &session.PlanID, &session.TargetJobID, &session.Status,
 		&session.Language, &session.CreatedAt, &session.UpdatedAt)
 	if stderrs.Is(err, sql.ErrNoRows) {
-		return domain.SessionRecord{}, domain.ErrPlanNotFound
+		return domain.SessionRecord{}, domain.ErrSessionConflict
 	}
 	if err != nil {
 		return domain.SessionRecord{}, fmt.Errorf("update practice session running: %w", err)
@@ -507,8 +508,10 @@ returning id, plan_id, target_job_id, status, language, created_at, updated_at`,
 	}
 	result, err := tx.ExecContext(ctx, `
 update idempotency_records set status = $1, resource_type = 'practice_session', resource_id = $2,
-response_body = $3, error_code = null, updated_at = $4 where id = $5`,
-		string(idempotency.StatusSucceeded), in.SessionID, responseBody, in.StartedAt, in.IdempotencyRecordID,
+response_body = $3, error_code = null, updated_at = $4
+where id = $5 and user_id = $6 and domain = 'practice' and operation = 'startPracticeSession' and status = $7`,
+		string(idempotency.StatusSucceeded), in.SessionID, responseBody, in.StartedAt,
+		in.IdempotencyRecordID, in.UserID, string(idempotency.StatusPending),
 	)
 	if err != nil {
 		return domain.SessionRecord{}, fmt.Errorf("mark start session idempotency succeeded: %w", err)
@@ -531,6 +534,9 @@ func (r *SQLRepository) CommitSessionStartRecovery(ctx context.Context, in domai
 		return domain.SessionRecord{}, fmt.Errorf("begin commit practice session start recovery: %w", err)
 	}
 	defer tx.Rollback()
+	if err := lockPracticeSessionForUser(ctx, tx, in.UserID, in.SessionID); err != nil {
+		return domain.SessionRecord{}, err
+	}
 	session, err := selectSessionForUser(ctx, tx, in.UserID, in.SessionID)
 	if err != nil {
 		return domain.SessionRecord{}, err
@@ -570,20 +576,28 @@ func (r *SQLRepository) FailSessionStart(ctx context.Context, in domain.FailSess
 		return fmt.Errorf("begin fail practice session start: %w", err)
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `update practice_sessions set status=$1, failure_code=$2, updated_at=$3 where id=$4 and user_id=$5`,
-		string(sharedtypes.SessionStatusFailed), in.ErrorCode, in.FailedAt, in.SessionID, in.UserID); err != nil {
+	result, err := tx.ExecContext(ctx, `update practice_sessions set status=$1, failure_code=$2, updated_at=$3 where id=$4 and user_id=$5 and status=$6`,
+		string(sharedtypes.SessionStatusFailed), in.ErrorCode, in.FailedAt, in.SessionID, in.UserID, string(sharedtypes.SessionStatusQueued))
+	if err != nil {
 		return fmt.Errorf("mark practice session failed: %w", err)
+	}
+	if rows, _ := result.RowsAffected(); rows != 1 {
+		return domain.ErrSessionConflict
 	}
 	status := idempotency.StatusFailedTerminal
 	if in.Retryable {
 		status = idempotency.StatusFailedRetry
 	}
-	if _, err := tx.ExecContext(ctx, `
+	result, err = tx.ExecContext(ctx, `
 update idempotency_records set status=$1, error_code=$2, resource_type='practice_session',
 resource_id=$3, response_body=null, updated_at=$4
-where id=$5 and user_id=$6 and domain='practice' and operation='startPracticeSession'`,
-		string(status), in.ErrorCode, in.SessionID, in.FailedAt, in.IdempotencyRecordID, in.UserID); err != nil {
+where id=$5 and user_id=$6 and domain='practice' and operation='startPracticeSession' and status=$7`,
+		string(status), in.ErrorCode, in.SessionID, in.FailedAt, in.IdempotencyRecordID, in.UserID, string(idempotency.StatusPending))
+	if err != nil {
 		return fmt.Errorf("mark start session idempotency failed: %w", err)
+	}
+	if rows, _ := result.RowsAffected(); rows != 1 {
+		return domain.ErrSessionConflict
 	}
 	return tx.Commit()
 }

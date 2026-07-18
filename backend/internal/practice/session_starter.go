@@ -21,6 +21,12 @@ import (
 const practiceChatFeatureKey = "practice.session.chat"
 
 const (
+	defaultSessionStartRecoveryTimeout  = 35 * time.Second
+	sessionStartRecoveryPollInterval    = 100 * time.Millisecond
+	sessionStartRecoveryMaxPollInterval = time.Second
+)
+
+const (
 	practiceSystemPolicyStart = "<system_policy>"
 	practiceSystemPolicyEnd   = "</system_policy>"
 )
@@ -185,7 +191,7 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 		return SessionRecord{}, s.failReservedSessionStart(ctx, userID, reservation, err)
 	}
 	startedAt := s.now().UTC()
-	return s.store.CommitSessionStart(ctx, CommitSessionStartInput{
+	session, err := s.store.CommitSessionStart(ctx, CommitSessionStartInput{
 		IdempotencyRecordID: reservation.IdempotencyRecordID,
 		SessionID:           reservation.SessionID,
 		UserID:              reservation.UserID,
@@ -201,10 +207,22 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 		MessageText:         message,
 		StartedAt:           startedAt,
 	})
+	if stderrs.Is(err, ErrSessionConflict) {
+		return SessionRecord{}, sessionConflictError()
+	}
+	return session, err
 }
 
 func (s *Service) recoverReservedSessionStart(ctx context.Context, userID string, reservation SessionReservation) (SessionRecord, error) {
 	session := *reservation.RecoverSession
+	remaining := s.sessionStartRecoveryTimeout
+	if !session.UpdatedAt.IsZero() {
+		age := s.now().UTC().Sub(session.UpdatedAt)
+		if age > 0 {
+			remaining -= age
+		}
+	}
+	pollInterval := sessionStartRecoveryPollInterval
 	for session.Status == sharedtypes.SessionStatusQueued {
 		current, err := s.store.GetSession(ctx, userID, session.ID, s.now().UTC())
 		if err != nil {
@@ -214,13 +232,31 @@ func (s *Service) recoverReservedSessionStart(ctx context.Context, userID string
 		if session.Status != sharedtypes.SessionStatusQueued {
 			break
 		}
-		timer := time.NewTimer(100 * time.Millisecond)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return SessionRecord{}, ctx.Err()
-		case <-timer.C:
+		if remaining <= 0 {
+			timeoutErr := serviceErrorFromAI(sharederrors.Wrap(
+				sharederrors.CodeAiProviderTimeout,
+				"queued practice session start did not converge before the recovery deadline",
+				true,
+			))
+			failureReservation := reservation
+			failureReservation.SessionID = session.ID
+			failErr := s.failReservedSessionStart(ctx, userID, failureReservation, timeoutErr)
+			if !stderrs.Is(failErr, ErrSessionConflict) {
+				return SessionRecord{}, failErr
+			}
+			current, err = s.store.GetSession(ctx, userID, session.ID, s.now().UTC())
+			if err != nil {
+				return SessionRecord{}, err
+			}
+			session = current
+			break
 		}
+		delay := min(pollInterval, remaining)
+		if err := s.waitForSessionStartRecovery(ctx, delay); err != nil {
+			return SessionRecord{}, err
+		}
+		remaining -= delay
+		pollInterval = min(pollInterval*2, sessionStartRecoveryMaxPollInterval)
 	}
 	if session.Status != sharedtypes.SessionStatusRunning {
 		return SessionRecord{}, sessionConflictError()

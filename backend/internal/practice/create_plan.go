@@ -57,25 +57,29 @@ type PromptResolver interface {
 }
 
 type ServiceOptions struct {
-	Store               Store
-	Registry            PromptResolver
-	AI                  aiclient.AIClient
-	AITaskRuns          aiclient.AITaskRunWriter
-	Now                 func() time.Time
-	NewID               func() string
-	MaxMessageBytes     int64
-	MaxSessionTextBytes int64
+	Store                       Store
+	Registry                    PromptResolver
+	AI                          aiclient.AIClient
+	AITaskRuns                  aiclient.AITaskRunWriter
+	Now                         func() time.Time
+	NewID                       func() string
+	MaxMessageBytes             int64
+	MaxSessionTextBytes         int64
+	SessionStartRecoveryTimeout time.Duration
+	WaitForSessionStartRecovery func(context.Context, time.Duration) error
 }
 
 type Service struct {
-	store               Store
-	registry            PromptResolver
-	ai                  aiclient.AIClient
-	aiTaskRuns          aiclient.AITaskRunWriter
-	now                 func() time.Time
-	newID               func() string
-	maxMessageBytes     int64
-	maxSessionTextBytes int64
+	store                       Store
+	registry                    PromptResolver
+	ai                          aiclient.AIClient
+	aiTaskRuns                  aiclient.AITaskRunWriter
+	now                         func() time.Time
+	newID                       func() string
+	maxMessageBytes             int64
+	maxSessionTextBytes         int64
+	sessionStartRecoveryTimeout time.Duration
+	waitForSessionStartRecovery func(context.Context, time.Duration) error
 }
 
 func NewService(opts ServiceOptions) *Service {
@@ -94,7 +98,30 @@ func NewService(opts ServiceOptions) *Service {
 	if opts.MaxSessionTextBytes <= 0 {
 		opts.MaxSessionTextBytes = defaults.PracticeMaxSessionTextBytes
 	}
-	return &Service{store: opts.Store, registry: opts.Registry, ai: opts.AI, aiTaskRuns: opts.AITaskRuns, now: now, newID: newID, maxMessageBytes: opts.MaxMessageBytes, maxSessionTextBytes: opts.MaxSessionTextBytes}
+	if opts.SessionStartRecoveryTimeout <= 0 {
+		opts.SessionStartRecoveryTimeout = defaultSessionStartRecoveryTimeout
+	}
+	waitForSessionStartRecovery := opts.WaitForSessionStartRecovery
+	if waitForSessionStartRecovery == nil {
+		waitForSessionStartRecovery = waitForContext
+	}
+	return &Service{
+		store: opts.Store, registry: opts.Registry, ai: opts.AI, aiTaskRuns: opts.AITaskRuns,
+		now: now, newID: newID, maxMessageBytes: opts.MaxMessageBytes, maxSessionTextBytes: opts.MaxSessionTextBytes,
+		sessionStartRecoveryTimeout: opts.SessionStartRecoveryTimeout,
+		waitForSessionStartRecovery: waitForSessionStartRecovery,
+	}
+}
+
+func waitForContext(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 type CreatePlanRequest struct {

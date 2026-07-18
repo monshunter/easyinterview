@@ -1,8 +1,8 @@
 # 001 Plan and Session Orchestration Test Plan
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 ## Phase 1: Contract tests
 
@@ -55,5 +55,7 @@
 
 - Service RED/GREEN proves a recovery reservation skips prompt resolution, AI, opening commit and failure finalization; queued recovery reads until running or context/non-active termination.
 - SQL unit/integration coverage proves different keys for one user/plan serialize to one active session, new recovery keys become succeeded only with the final recovered response, and exact same-key replay returns that response.
+- Deterministic timeout coverage injects a short recovery budget/waiter, asserts 100ms-to-1s bounded exponential polling, keeps caller cancellation non-mutating, and proves an original starter that never advances is atomically failed as retryable without unbounded polling.
+- SQL transaction tests require recovery finalization to lock the session row before selecting messages and require original start/failure updates to affect exactly one queued session; a late start commit must roll back all opening facts after timeout convergence.
 - Negative coverage preserves fingerprint mismatch/pending-key conflict, fresh-start generation, different user/plan isolation and the partial unique index.
 - Runtime acceptance uses an existing affected account/session and records before/after counts for sessions, messages, AI task runs, lifecycle events, outbox and audit facts around one Chrome start action.

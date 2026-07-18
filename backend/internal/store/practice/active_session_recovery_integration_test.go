@@ -49,6 +49,16 @@ func TestSQLRepositoryIntegration_StartRecoversSamePlanActiveSession(t *testing.
 		concurrentRecB  = "019f7600-0000-7000-8000-00000000000e"
 		concurrentSessA = "019f7600-0000-7000-8000-00000000000f"
 		concurrentSessB = "019f7600-0000-7000-8000-000000000010"
+		raceRecoveryRec = "019f7600-0000-7000-8000-000000000013"
+		raceUnusedSess  = "019f7600-0000-7000-8000-000000000014"
+		timeoutPlan     = "019f7600-0000-7000-8000-000000000015"
+		timeoutSession  = "019f7600-0000-7000-8000-000000000016"
+		originalRecord  = "019f7600-0000-7000-8000-000000000017"
+		timeoutRecord   = "019f7600-0000-7000-8000-000000000018"
+		lateMessage     = "019f7600-0000-7000-8000-000000000019"
+		lateEvent       = "019f7600-0000-7000-8000-00000000001a"
+		lateOutbox      = "019f7600-0000-7000-8000-00000000001b"
+		lateAudit       = "019f7600-0000-7000-8000-00000000001c"
 	)
 	cleanup := func() {
 		_, _ = db.ExecContext(context.Background(), `delete from audit_events where user_id in ($1,$2) or actor_id in ($1,$2)`, userID, otherUserID)
@@ -71,7 +81,7 @@ insert into resumes (
 insert into target_jobs (
   id,user_id,resume_id,status,analysis_status,title,target_language,raw_jd_text,summary,fit_summary,created_at,updated_at
 ) values ($1,$2,$3,'draft','ready','Platform Engineer','zh-CN','完整 JD',$4::jsonb,'{}'::jsonb,$5,$5)`, targetID, userID, resumeID, summary, now)
-	for _, planID := range []string{runningPlanID, concurrentPlan} {
+	for _, planID := range []string{runningPlanID, concurrentPlan, timeoutPlan} {
 		mustExecActiveRecovery(t, ctx, db, `
 insert into practice_plans (
   id,user_id,target_job_id,goal,interviewer_persona,difficulty,language,time_budget_minutes,
@@ -157,6 +167,58 @@ values ($1,$2,1,'assistant','原开场消息',$3)`, openingID, runningSession, n
 		t.Fatalf("cross-user recovery error=%v want ErrPlanNotFound", err)
 	}
 
+	raceReservation, err := repo.ReserveSessionStart(ctx, domain.StartSessionReservationInput{
+		IdempotencyRecordID: raceRecoveryRec,
+		SessionID:           raceUnusedSess,
+		UserID:              userID,
+		PlanID:              runningPlanID,
+		IdempotencyKeyHash:  "completion-race-key",
+		RequestFingerprint:  "completion-race-fingerprint",
+		ExpiresAt:           now.Add(time.Hour),
+		Now:                 now.Add(3 * time.Second),
+	})
+	if err != nil || raceReservation.RecoverSession == nil || raceReservation.RecoverSession.ID != runningSession {
+		t.Fatalf("reserve completion-race recovery=%+v err=%v", raceReservation, err)
+	}
+	blocker, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatalf("begin completion blocker: %v", err)
+	}
+	var lockedID string
+	if err := blocker.QueryRowContext(ctx, `select id from practice_sessions where id=$1 and user_id=$2 for update`, runningSession, userID).Scan(&lockedID); err != nil {
+		_ = blocker.Rollback()
+		t.Fatalf("lock running session before completion race: %v", err)
+	}
+	recoveryResult := make(chan error, 1)
+	go func() {
+		_, recoveryErr := repo.CommitSessionStartRecovery(ctx, domain.CommitSessionStartRecoveryInput{
+			IdempotencyRecordID: raceRecoveryRec,
+			SessionID:           runningSession,
+			UserID:              userID,
+			RecoveredAt:         now.Add(4 * time.Second),
+		})
+		recoveryResult <- recoveryErr
+	}()
+	select {
+	case recoveryErr := <-recoveryResult:
+		_ = blocker.Rollback()
+		t.Fatalf("recovery bypassed the held session row lock: %v", recoveryErr)
+	case <-time.After(150 * time.Millisecond):
+	}
+	if _, err := blocker.ExecContext(ctx, `update practice_sessions set status='completed', updated_at=$1 where id=$2`, now.Add(4*time.Second), runningSession); err != nil {
+		_ = blocker.Rollback()
+		t.Fatalf("advance locked session to completed: %v", err)
+	}
+	if err := blocker.Commit(); err != nil {
+		t.Fatalf("commit completion blocker: %v", err)
+	}
+	if recoveryErr := <-recoveryResult; !errors.Is(recoveryErr, domain.ErrSessionConflict) {
+		t.Fatalf("recovery ordered after completion error=%v want ErrSessionConflict", recoveryErr)
+	}
+	if err := db.QueryRowContext(ctx, `select status from idempotency_records where id=$1`, raceRecoveryRec).Scan(&pendingStatus); err != nil || pendingStatus != "pending" {
+		t.Fatalf("completion-race recovery key status=%q err=%v want pending", pendingStatus, err)
+	}
+
 	concurrentInputs := []domain.StartSessionReservationInput{
 		{
 			IdempotencyRecordID: concurrentRecA, SessionID: concurrentSessA, UserID: userID, PlanID: concurrentPlan,
@@ -215,6 +277,64 @@ values ($1,$2,1,'assistant','原开场消息',$3)`, openingID, runningSession, n
 	}
 	if _, err := repo.ReserveSessionStart(ctx, concurrentInputs[0]); !errors.Is(err, domain.ErrSessionConflict) {
 		t.Fatalf("same pending key error=%v want ErrSessionConflict", err)
+	}
+
+	mustExecActiveRecovery(t, ctx, db, `
+insert into practice_sessions (id,user_id,plan_id,target_job_id,status,language,created_at,updated_at)
+values ($1,$2,$3,$4,'queued','zh-CN',$5,$5)`, timeoutSession, userID, timeoutPlan, targetID, now)
+	mustExecActiveRecovery(t, ctx, db, `
+insert into idempotency_records (
+  id,user_id,domain,operation,idempotency_key_hash,request_fingerprint,status,expires_at,created_at,updated_at
+) values
+($1,$3,'practice','startPracticeSession','orphan-original-key','orphan-fingerprint','pending',$5,$4,$4),
+($2,$3,'practice','startPracticeSession','orphan-recovery-key','orphan-fingerprint','pending',$5,$4,$4)`,
+		originalRecord, timeoutRecord, userID, now, now.Add(time.Hour))
+	if err := repo.FailSessionStart(ctx, domain.FailSessionStartInput{
+		IdempotencyRecordID: timeoutRecord,
+		SessionID:           timeoutSession,
+		UserID:              userID,
+		ErrorCode:           "AI_PROVIDER_TIMEOUT",
+		Retryable:           true,
+		FailedAt:            now.Add(35 * time.Second),
+	}); err != nil {
+		t.Fatalf("expire orphaned queued start: %v", err)
+	}
+	_, err = repo.CommitSessionStart(ctx, domain.CommitSessionStartInput{
+		IdempotencyRecordID: originalRecord,
+		SessionID:           timeoutSession,
+		UserID:              userID,
+		PlanID:              timeoutPlan,
+		TargetJobID:         targetID,
+		Goal:                sharedtypes.PracticeGoalBaseline,
+		InterviewerPersona:  sharedtypes.InterviewerRoleHiringManager,
+		Language:            "zh-CN",
+		MessageID:           lateMessage,
+		SessionEventID:      lateEvent,
+		OutboxEventID:       lateOutbox,
+		AuditEventID:        lateAudit,
+		MessageText:         "迟到开场消息",
+		StartedAt:           now.Add(36 * time.Second),
+	})
+	if !errors.Is(err, domain.ErrSessionConflict) {
+		t.Fatalf("late original start error=%v want ErrSessionConflict", err)
+	}
+	var timeoutSessionStatus, timeoutRecordStatus, originalRecordStatus string
+	if err := db.QueryRowContext(ctx, `
+select ps.status, timeout_idem.status, original_idem.status
+from practice_sessions ps
+join idempotency_records timeout_idem on timeout_idem.id=$2
+join idempotency_records original_idem on original_idem.id=$3
+where ps.id=$1`, timeoutSession, timeoutRecord, originalRecord).Scan(
+		&timeoutSessionStatus, &timeoutRecordStatus, &originalRecordStatus,
+	); err != nil {
+		t.Fatalf("read orphan convergence state: %v", err)
+	}
+	if timeoutSessionStatus != "failed" || timeoutRecordStatus != "failed_retryable" || originalRecordStatus != "pending" {
+		t.Fatalf("orphan convergence session=%s timeoutKey=%s originalKey=%s", timeoutSessionStatus, timeoutRecordStatus, originalRecordStatus)
+	}
+	lateCounts := readActiveRecoveryCounts(t, ctx, db, timeoutPlan, timeoutSession)
+	if lateCounts.Messages != 0 || lateCounts.Events != 0 || lateCounts.Outbox != 0 || lateCounts.Audit != 0 {
+		t.Fatalf("late starter committed opening facts: %+v", lateCounts)
 	}
 	t.Log("active-session-start-recovery=PASS")
 }

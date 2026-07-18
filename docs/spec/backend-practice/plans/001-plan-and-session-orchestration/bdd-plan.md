@@ -1,8 +1,8 @@
 # Practice Plan and Session Orchestration BDD Plan
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -10,7 +10,7 @@
 
 | Behavior ID | Given | When | Then | 验证入口 |
 |-------------|-------|------|------|----------|
-| `BDD.PRACTICE.PLAN.001` | 用户具有 TargetJob 与 resume 上下文；同一 plan 可能已有 queued/running session；创建或启动也可能遇到 provider / persistence 失败 | 创建、复用或重试 practice plan / session | 只复用身份完全匹配的资源；重复 start 恢复同一活动会话且零重复 opening 副作用；成功保持幂等与隔离，失败不产生重复事实或泄露原始材料 | `backend/internal/practice/conversation_service_test.go` + `backend/internal/store/practice/create_plan_integration_test.go` + active-recovery integration test，由根 `make test` 承接；Chrome 只作真实 UI 补充证据 |
+| `BDD.PRACTICE.PLAN.001` | 用户具有 TargetJob 与 resume 上下文；同一 plan 可能已有 queued/running session；原启动 worker 也可能在 reservation 后失联或迟到 | 创建、复用或重试 practice plan / session | 只复用身份完全匹配的资源；running 重复 start 恢复同一活动会话且零重复 opening 副作用；queued 不无限等待，超时后可安全重试且迟到 worker 不复活会话；成功保持幂等、终态并发顺序与隔离 | `backend/internal/practice/conversation_service_test.go` + `backend/internal/store/practice/create_plan_integration_test.go` + active-recovery integration test，由根 `make test` 承接；Chrome 只作真实 UI 补充证据 |
 
 当前没有覆盖 plan 创建、session start 或 opening message 的真实 API/UI E2E owner。数据库 integration 与单元测试属于代码层 gate，阶段回归统一由根 `make test` 承接。
 

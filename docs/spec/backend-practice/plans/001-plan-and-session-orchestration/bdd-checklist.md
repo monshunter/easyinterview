@@ -1,8 +1,8 @@
 # Practice Plan and Session Orchestration BDD Checklist
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -27,3 +27,5 @@
   <!-- verified: 2026-07-18 method=go-test-tags-integration marker="active-session-start-recovery=PASS" -->
 - [x] Chrome skill 从正式入口恢复现有受影响 session；该结果是运行时 UI 补充证据，不声明新的 E2E 场景 ID。
   <!-- verified: 2026-07-18 method=chrome formalEntry=workspace result="same running session opened without PRACTICE_SESSION_CONFLICT" -->
+- [x] Owner behavior/store tests 证明 orphaned queued start 在有限时间内 retryable 收敛，下一次 start 可恢复；迟到原 worker 与并发 completion 不产生错误 succeeded 快照或重复 opening facts。
+  <!-- verified: 2026-07-19 method=owner-behavior+postgres-integration result=PASS evidence="bounded retryable timeout, session-row lock ordering and late-worker rollback" -->

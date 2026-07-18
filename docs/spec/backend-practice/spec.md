@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.36
+> **版本**: 1.37
 > **状态**: active
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 ## 1 背景与目标
 
@@ -92,7 +92,7 @@
 
 `startPracticeSession` 的活动会话恢复先于新 session 创建：同一 `user_id + plan_id` 已有 `queued/running` session 时，新 `Idempotency-Key` 必须绑定并返回该 session，不得把唯一索引冲突映射为 `PRACTICE_SESSION_CONFLICT`，也不得再次调用 opening LLM、追加 opening message/lifecycle event/outbox/audit 或取消旧 session。不同 user/plan 不得互相恢复；同一 key 的 fingerprint mismatch、pending/terminal 状态仍保持原 typed conflict。
 
-不同 key 的 start 请求通过 user/plan-scoped transaction lock 串行决定“恢复或创建”，数据库 active-session 唯一索引继续作为最终防线。若恢复目标仍为 `queued`，service 等待原启动请求把它推进为 `running`；只有读到最终可进入的会话后，才把新 key 的精确响应标记为 succeeded。等待期间原请求失败、目标进入非活动状态或 caller context 取消时不得伪造成功，也不得产生第二个 session。浏览器关闭不改变服务端生命周期；之后从任一正式入口再次开始同一 plan 时，后端恢复该活动会话。
+不同 key 的 start 请求通过 user/plan-scoped transaction lock 串行决定“恢复或创建”，数据库 active-session 唯一索引继续作为最终防线。若恢复目标仍为 `queued`，service 以 100ms 起步、1 秒封顶的有界退避读取状态，并以该 session 的持久化更新时间为起点、最多等待 35 秒让原启动请求把它推进为 `running`；只有读到最终可进入的会话后，才把新 key 的精确响应标记为 succeeded。超过边界仍为 `queued` 时，必须以 `AI_PROVIDER_TIMEOUT` 原子收敛该 session 与当前恢复 key 为 retryable failure，使下一次 start 可以重新创建；原启动提交必须以 `status='queued'` fencing，迟到 worker 不得复活已失败会话或留下 opening message/lifecycle event/outbox/audit 事实。恢复成功最终化必须锁定 session row，再校验 `running` 并写入精确响应，因此与 completion 线性化：锁前已终态则冲突，锁后才完成则返回在提交点真实的 running 快照。等待期间原请求失败、目标进入非活动状态或 caller context 取消时不得伪造成功，也不得产生第二个 session。浏览器关闭不改变服务端生命周期；之后从任一正式入口再次开始同一 plan 时，后端恢复该活动会话。
 
 `sendPracticeMessage` 使用三段式边界：
 
@@ -186,7 +186,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 | C-16 | 消息与会话文本边界 | owner config 提供单条与累计 UTF-8 byte limit | `sendPracticeMessage` | 注入小型边界验证 overflow 返回 `VALIDATION_FAILED`、零持久化与零 AI；默认/override/invalid 只由 typed config owner 覆盖，不分配默认大小字符串或建立配置 E2E | 002 Phase 12 |
 | C-15 | pending lease 与 generation fence | G1 worker 在写 reply 前失联或迟到，90 秒 lease 已过期，随后发生 GET 或两个同 ID 并发 retry | 读取会话并 reserve G2，再释放 G1 Commit/Fail | GET 或同 ID reserve 惰性收敛过期 pending；只一个调用取得 G2；G1 Commit/Fail 均 typed conflict 且零写入；G2 最终只写一个 assistant reply | 002 |
 | C-17 | 无会话列表公共入口 | 当前 UI 只需要 live session 恢复与 report-owned 复盘 | 检查 OpenAPI/generated/router/handler/fixture/mock/frontend | `listPracticeSessions` current positive surface 为零；`getPracticeSession` 保留 live recovery，完成记录只由 `getReportConversation(reportId)` 读取；无 compatibility route 或新关系表 | 001 + openapi 001/002/003 + backend-review 001 |
-| C-18 | 重入开始恢复活动会话 | 同一用户同一 plan 已有 `queued/running` session，可能由关闭浏览器前的启动请求留下 | 从任一正式入口再次调用 `startPracticeSession` | 返回既有活动 session；新 key 精确幂等；零新 session、零重复 opening/AI/lifecycle/outbox/audit；不同 user/plan 与 fingerprint mismatch 仍隔离或冲突 | 001 Phase 9 |
+| C-18 | 重入开始恢复活动会话 | 同一用户同一 plan 已有 `queued/running` session，可能由关闭浏览器前的启动请求留下 | 从任一正式入口再次调用 `startPracticeSession` | running 返回既有 session 且新 key 精确幂等；queued 最多等待 35 秒，超时原子失败并允许后续重试；恢复最终化锁 session row，原启动迟到提交受 queued fence 拒绝；零重复 opening/AI/lifecycle/outbox/audit；不同 user/plan 与 fingerprint mismatch 仍隔离或冲突 | 001 Phase 9 |
 
 ## 5 关联计划
 
@@ -199,6 +199,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.37 | 修复 Phase 9 并发缺口：恢复最终化锁定 session row；queued 恢复采用 35 秒边界、retryable timeout 收敛与原启动 queued fencing，防止无限轮询、迟到复活和终态竞态快照。 |
 | 2026-07-18 | 1.36 | 用户批准方案 A：同 user/plan 重入 start 时恢复既有 queued/running session，不取消旧会话、不重复 opening LLM，并以 plan-scoped lock 与新 key 最终快照保持并发和幂等精确。 |
 | 2026-07-15 | 1.35 | 删除无产品入口的 listPracticeSessions 公共列表；保留 getPracticeSession 进行中恢复，并把完成 transcript 读取交给 report-owned getReportConversation，不保留兼容层。 |
 | 2026-07-14 | 1.34 | 新增单条与会话累计文本 typed config，并将默认值测试收敛到 typed config owner。 |

@@ -1,8 +1,8 @@
 # 001 Plan and Session Orchestration Test Checklist
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -56,3 +56,11 @@
   <!-- verified: 2026-07-18 method=chrome+postgres existingSession=019f751a-b64b-7e01-b607-3c99372beff7 counts="sessions=1 messages=1 events=1 outbox=1 audit=1 aiTasks=0" -->
 - [x] Root regression and contract/docs/diff gates pass.
   <!-- verified: 2026-07-18 method=root-gates evidence="make test/build/lint/codegen-check/docs-check/openapi-diff/validate-fixtures and git diff --check PASS" -->
+- [x] Recovery finalization locks the session row before selecting the exact running snapshot and rejects a terminal snapshot ordered first.
+  <!-- verified: 2026-07-19 method=sqlmock+postgres-lock-race result=PASS -->
+- [x] Queued recovery reaches an injected finite deadline, persists retryable `AI_PROVIDER_TIMEOUT`, and performs no prompt/AI/opening finalization; caller cancellation remains non-mutating.
+  <!-- verified: 2026-07-19 method=deterministic-service-tests result=PASS waits="100ms,200ms,400ms,50ms" -->
+- [x] Original start/failure persistence is fenced on queued status so timeout convergence wins against late workers without committed opening facts.
+  <!-- verified: 2026-07-19 method=sqlmock+postgres-transaction result=PASS -->
+- [x] Focused, PostgreSQL integration, root regression and contract/docs/diff gates pass for the remediation.
+  <!-- verified: 2026-07-19 method=full-closeout result=PASS evidence="make test 584/4583 + Go all + frontend 127/1035; build/lint/codegen/OpenAPI/fixtures/docs/context/index/diff PASS" -->

@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 2.8
+> **版本**: 2.9
 > **状态**: active
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -80,11 +80,20 @@
   <!-- verified: 2026-07-18 method=chrome+postgres existingSession=019f751a-b64b-7e01-b607-3c99372beff7 evidence="formal workspace start reached the same running session; sessions/messages/events/outbox/audit/aiTasks remained 1/1/1/1/1/0; succeeded idempotency records increased from 1 to 2" -->
 - [x] 9.6 COMPLETION-GATE: focused tests, integration tests, root `make test`, build/OpenAPI/codegen/fixture/docs/context/index/diff gates pass before closeout.
   <!-- verified: 2026-07-18 method=root-gates evidence="focused Go + PostgreSQL integration PASS; make test PASS (Python 584/4583, Go all packages, frontend 127 files/1035 tests); make build/lint/codegen-check/docs-check/openapi-diff/validate-fixtures/git-diff-check PASS" -->
+- [x] 9.7 RED: prove recovery finalization must lock the session row before reading/finalizing, and a queued reservation whose original starter never advances cannot poll indefinitely.
+  <!-- verified: 2026-07-19 method=go-test-red evidence="ServiceOptions lacked a recovery deadline/waiter; SQL mocks rejected missing FOR UPDATE and missing queued/user fences in CommitSessionStart/FailSessionStart" -->
+- [x] 9.8 GREEN: add session-row locking, bounded 100ms-to-1s polling with a 35-second queued recovery boundary, retryable orphan failure, and `status='queued'` fences on original commit/failure so late workers roll back all opening facts.
+  <!-- verified: 2026-07-19 method=focused-go+postgres-integration tests="TestStartPracticeSessionExpiresQueuedRecoveryAfterBoundedWait,TestSQLRepositoryCommitSessionStartRecoveryLocksSessionBeforeFinalizing,TestSQLRepositoryIntegration_StartRecoversSamePlanActiveSession" evidence="bounded backoff and retryable timeout PASS; completion ordered first returns conflict; late original commit rolls back all opening facts" -->
+- [x] 9.9 PRESERVATION/BDD-GATE: running/queued recovery, same-key replay/mismatch, caller cancellation, completion ordering, fresh start and zero duplicate opening/AI/lifecycle/outbox/audit behavior pass.
+  <!-- verified: 2026-07-19 method=owner-unit+all-practice-postgres-integration evidence="api/domain/store packages PASS; all practice integration PASS; bounded orphan recovery, same-key, cancellation, completion order, fresh start and zero duplicate facts preserved" -->
+- [x] 9.10 COMPLETION-GATE: focused unit/store tests, PostgreSQL integration, root `make test`, build/OpenAPI/codegen/fixture/docs/context/index/diff gates pass before remediation closeout.
+  <!-- verified: 2026-07-19 method=full-closeout evidence="focused + all practice PostgreSQL integration PASS; make test PASS (Python 584/4583, Go all, frontend 127/1035); build/lint/codegen-check/openapi-diff/validate-fixtures/docs-check/context/index/git-diff-check PASS; OpenAPI diff 0/0/0" note="Makefile has no git-diff-check target, so git diff --check ran directly" -->
 
 ## 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.9 | 原地追加 Phase 9 P1 修复：恢复最终化行锁、queued 有界等待与 retryable orphan 收敛、原启动提交 fencing。 |
 | 2026-07-18 | 2.8 | 新增 Phase 9：同 user/plan 活动会话恢复、plan-scoped 并发、精确新 key 最终化与 Chrome 真实验收。 |
 | 2026-07-15 | 2.7 | 新增 Phase 8：删除 listPracticeSessions 全部正向 surface，保留 start/get live operations，并交接 report-owned conversation read。 |
 | 2026-07-12 | 2.5 | 补齐 assistant history 不得成为候选人事实的 RED/GREEN prompt 与负向 eval gate。 |
