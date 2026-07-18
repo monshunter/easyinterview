@@ -570,11 +570,19 @@
   0%,
   100% {
     opacity: 0.72;
-    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--ei-color-accent-soft);
   }
   50% {
     opacity: 1;
-    transform: scale(1.06);
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ei-resume-detail-parse-icon {
+    animation: none;
+    opacity: 1;
+    box-shadow: none;
   }
 }
 

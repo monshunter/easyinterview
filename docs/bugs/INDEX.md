@@ -60,6 +60,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0187](./BUG-0187.md) | resume parse polling flashed the generic loading state | medium | resolved | 2026-07-18 | `fix(frontend): stabilize resume parse polling (BUG-0187)` |
 | [BUG-0140](./BUG-0140.md) | resume detail injected display name into Markdown body and split source preview surfaces | medium | resolved | 2026-07-08 | `fix(resume): close source preview and picker regressions (BUG-0139, BUG-0140, BUG-0141)` |
 | [BUG-0139](./BUG-0139.md) | resume detail rendered Markdown as plain text and PDF AI failure kept non-Markdown snapshot | medium | resolved | 2026-07-07 | `fix(resume): close source preview and picker regressions (BUG-0139, BUG-0140, BUG-0141)` |
 | [BUG-0138](./BUG-0138.md) | resume detail kept generated-name placeholder and repeated polling risk | high | resolved | 2026-07-07 | `fix(resume-workshop): generate names and stop detail polling (BUG-0138)` |

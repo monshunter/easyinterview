@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.17
+> **版本**: 2.18
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-18
 
 ## 1 背景与目标
 
@@ -65,6 +65,7 @@
 | D-14 | StrictMode request identity | 相同 method + normalized URL/query + auth scope 且不带 `AbortSignal` 的并发初始 GET 共享一个 in-flight Promise；settled 后立即驱逐，reject 也必须驱逐；带 `AbortSignal` 的 loader/polling 不进入通用共享，业务轮询只在上一次请求 settle 后继续 | 保留 StrictMode 与合法重试/轮询语义，同时消除同一用户动作导致的重复实际 transport；不引入 TTL cache 或跨时间结果缓存 |
 | D-15 | CreateFlow content limits | 只消费 RuntimeConfig `resumeUploadBytes` / `resumePasteTextBytes`，缺 endpoint 字段时由 generated/runtime provider 使用 A4 同值 code default 10MiB/384KiB；按 `TextEncoder` UTF-8 bytes 判断；limit 接受、limit+1 不发 presign/register | 删除 2MiB 本地真理源并与 backend typed config 对齐；UI DOM/样式不变，只更新验证数据与错误文案 |
 | D-16 | List card layout | `ResumeListView` 使用语义化 list/card DOM，不再渲染 table/header/row；desktop 使用 `auto-fill` + 固定最大卡片列宽并 `justify-content:start`，mobile 使用同序单列；卡片不得因 1 张数据拉伸为整行宽块 | 复用面试规划卡片的响应式原则，在 PC 与移动端保持稳定规格和可扫描层级 |
+| D-17 | Parse waiting state stability | 首次详情请求才显示通用 loading；已有 queued/processing 数据后的后台轮询必须保留当前解析等待 DOM，禁止清空 `data` 或重新进入 loading。等待态的 56px 图标容器、SVG 与文案几何位置在动画周期内保持固定；禁止循环 `scale` / `translate`，只允许透明度或不参与布局的柔和光晕变化，并保留 reduced-motion 兼容 | 消除轮询期间“正在加载简历…”与“正在解析简历”整页交替闪现，以及边框/SVG 亚像素抖动，同时保留明确的首次加载和后台进行中反馈 |
 
 ## 4 设计约束
 
@@ -115,7 +116,7 @@
 |----|------|-------|------|------|-----------|
 | C-1 | Route shell | Authenticated user opens `resume_versions` | Route renders | Resume Workshop shell appears and TopBar highlights resume nav | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-2 | List view | `listResumes` returns `ResumeSummary[]` | List loads | Responsive card grid, header create entrypoint, per-card open and top-right delete actions render; desktop card width stays stable and left-aligned, mobile is single-column, table/header/row semantics are absent; each card exposes only the locked summary fields, forbidden detail fields are absent, and duplicate bottom upload/paste CTA is absent | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
-| C-3 | Detail read-only | User opens a resume | Detail renders | Full `Resume` is fetched only through `getResume`; pending parse with no readable body shows a waiting state and polls sequentially; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; PDF and Markdown share the same reading backdrop and page-surface rhythm; failed with no readable body shows a failure state; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
+| C-3 | Detail read-only | User opens a resume | Detail renders | Full `Resume` is fetched only through `getResume`; pending parse with no readable body shows a waiting state and polls sequentially without clearing prior data or flashing the generic loading state between requests; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; PDF and Markdown share the same reading backdrop and page-surface rhythm; failed with no readable body shows a failure state; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-4 | Create upload/paste | User selects valid file or enters text；owner config provides byte limits | Submit | 注入小型 boundary 验证 overflow inline rejection with zero presign/register；valid input navigates to waiting/detail；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文件或配置 E2E | [002 Phase 13](./plans/002-create-flow/plan.md) |
 | C-5 | Create paste | User enters text | Submit | Register completes and app navigates to the waiting/detail route; request title remains a neutral source title, and visible list/detail name comes from backend generated `displayName` after parse or extracted-text fallback, never from the raw first line or source filename/title fallback | [002](./plans/002-create-flow/plan.md) |
 | C-6 | Create recovery | Register or upload fails | User retries from input | Input is preserved locally and no raw content leaks | [002](./plans/002-create-flow/plan.md) |

@@ -32,6 +32,7 @@ export function useResume(resumeId: string | null): UseResumeResult {
   const [error, setError] = useState<Error | null>(null);
   const [reloadSeq, setReloadSeq] = useState(0);
   const requestSeqRef = useRef(0);
+  const dataRef = useRef<Resume | null>(null);
 
   const retry = useCallback(() => {
     setReloadSeq((value) => value + 1);
@@ -41,6 +42,7 @@ export function useResume(resumeId: string | null): UseResumeResult {
     if (!client || !isAuthenticated || !resumeId) {
       setLoading(false);
       setData(null);
+      dataRef.current = null;
       setError(null);
       return;
     }
@@ -48,14 +50,21 @@ export function useResume(resumeId: string | null): UseResumeResult {
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
     const requestSeq = requestSeqRef.current + 1;
     requestSeqRef.current = requestSeq;
-    setLoading(true);
-    setData(null);
+    const isBackgroundPoll =
+      dataRef.current?.id === resumeId &&
+      shouldPollForParseCompletion(dataRef.current);
+    setLoading(!isBackgroundPoll);
+    if (!isBackgroundPoll) {
+      setData(null);
+      dataRef.current = null;
+    }
     setError(null);
 
     client
       .getResume(resumeId, { headers: { "Accept-Language": lang } })
       .then((resume) => {
         if (!active || requestSeqRef.current !== requestSeq) return;
+        dataRef.current = resume;
         setData(resume);
         if (shouldPollForParseCompletion(resume)) {
           pollTimer = setTimeout(() => {

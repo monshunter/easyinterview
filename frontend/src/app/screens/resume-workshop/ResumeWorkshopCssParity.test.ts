@@ -75,6 +75,24 @@ describe("Resume Workshop source-level CSS parity", () => {
     );
   });
 
+  it("keeps the parse waiting animation free of geometry-changing transforms", () => {
+    const source = css();
+    const iconRule = source.match(
+      /\.ei-resume-detail-parse-icon\s*\{[^}]*\}/s,
+    )?.[0];
+    const keyframes = source.match(
+      /@keyframes\s+ei-resume-parse-pulse\s*\{[\s\S]*?\n\}/,
+    )?.[0];
+
+    expect(iconRule).toMatch(/width:\s*56px/);
+    expect(iconRule).toMatch(/height:\s*56px/);
+    expect(keyframes).toMatch(/box-shadow:/);
+    expect(keyframes).not.toMatch(/transform:\s*(?:scale|translate)/);
+    expect(source).toMatch(
+      /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.ei-resume-detail-parse-icon\s*\{[^}]*animation:\s*none/,
+    );
+  });
+
   it("does not keep out-of-scope tree/version/branch styling after D-20", () => {
     const source = css();
     for (const selector of [

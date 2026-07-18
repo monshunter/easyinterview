@@ -104,6 +104,12 @@
 - [x] 20.3 A11Y/PARITY：打开与删除具有独立可访问名称、键盘焦点和触控区域；超长名称/摘要/来源完整换行；desktop/mobile geometry、no-overflow 与正式 screenshot acceptance 通过，不新增 nested-card-button 冲突。（验证：Chrome 1440 卡宽 360px/左对齐、390 单列 354px、两端无横溢；打开精确进入只读详情）
 - [x] 20.4 REGRESSION：focused Vitest 只作开发反馈；执行根 `make test`、frontend typecheck/build、owner context、`sync-doc-index --check`、`make docs-check`、`git diff --check`，同步证据后恢复 completed。（验证：根后端 551 tests/4493 subtests、前端 125 files/993 tests PASS；lint/build/context/docs/index/diff PASS）
 
+## Phase 21: Parse waiting motion stability
+
+- [x] 21.1 RED：`ResumeDetailView.test.tsx` 以首轮 processing + 第二轮 pending Promise 复现“正在解析简历”被通用 loading 替换；`ResumeWorkshopCssParity.test.ts` 同时锁定 keyframes 不包含 `transform: scale(...)` / `translate(...)`。（验证：组件旧实现精确失败于第二轮 pending 时 `resume-detail-parse-waiting` 消失且 DOM 显示 `Loading resume…`；CSS 旧实现失败于缺少 box-shadow 并仍含 scale）
+- [x] 21.2 GREEN：`useResume` 区分首次读取与已有 pending data 的后台轮询，后者保留等待态直到终态原子替换；同时移除图标循环缩放，保留 opacity/box-shadow 动画，并补 `prefers-reduced-motion: reduce`。（验证：focused CSS/component 17 tests PASS，frontend typecheck PASS）
+- [x] 21.3 REGRESSION：真实 Chrome 连续 40 次/50ms 采样覆盖多个 250ms poll，解析等待态 40/40、通用 loading 闪现 0 次；10 帧 geometry 采样中图标/标题/说明各只有 1 个唯一边界，computed transform 恒为 `none`；恢复合成 Resume 为 ready 后平滑进入详情。根 `make test` 通过 Python 584 tests/4583 subtests、Go 全包、frontend 126 files/1029 tests；owner context、docs/index/diff gates 单独执行。
+
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.RESUME.READ.001` 由 [BDD checklist](./bdd-checklist.md) 关联 list/readonly-detail owner behavior tests；不创建或声明真实 E2E PASS。

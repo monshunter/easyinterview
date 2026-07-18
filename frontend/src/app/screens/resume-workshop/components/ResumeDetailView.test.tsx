@@ -195,6 +195,50 @@ describe("ResumeDetailView read-only contract", () => {
     expect(screen.queryByTestId("resume-preview-confirm")).not.toBeInTheDocument();
   });
 
+  it("keeps the parse waiting state visible while a background poll is pending", async () => {
+    const client = buildClient("default");
+    const processing: Resume = {
+      ...(getResumeFixture.scenarios.default.response.body as Resume),
+      id: RESUME_ID,
+      parseStatus: "processing",
+      originalText: null,
+      parsedTextSnapshot: null,
+      parsedSummary: null,
+      structuredProfile: {},
+    };
+    let resolvePoll!: (resume: Resume) => void;
+    const pendingPoll = new Promise<Resume>((resolve) => {
+      resolvePoll = resolve;
+    });
+    const getResumeSpy = vi
+      .spyOn(client, "getResume")
+      .mockResolvedValueOnce(processing)
+      .mockReturnValueOnce(pendingPoll);
+
+    renderDetailWithClient(client, {
+      name: "resume_versions",
+      params: { resumeId: RESUME_ID },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-detail-parse-waiting")).toBeInTheDocument();
+    });
+    await waitFor(
+      () => {
+        expect(getResumeSpy).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 1000 },
+    );
+
+    expect(screen.getByTestId("resume-detail-parse-waiting")).toBeInTheDocument();
+    expect(screen.queryByText("正在加载简历…")).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolvePoll({ ...processing, parseStatus: "ready" });
+      await pendingPoll;
+    });
+  });
+
   it("renders a failed parse state when no readable snapshot exists", async () => {
     const client = buildClient("default");
     const failedEmpty: Resume = {

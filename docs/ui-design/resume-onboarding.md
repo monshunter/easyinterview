@@ -1,8 +1,8 @@
 # 首次无简历用户引导流程
 
-> **版本**: 1.17
+> **版本**: 1.18
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-18
 
 ## 1 文档目的
 
@@ -64,12 +64,12 @@ Submit Source
   -> registerResume
   -> resume_versions?resumeId=<id>
   -> Resume Parse Waiting
-     ├─ parse_status=queued/processing: 等待动画
+     ├─ parse_status=queued/processing: 等待动画（图标与内容几何位置固定，仅用透明度/光晕表达进行中状态）
      ├─ parse_status=ready: Source-adaptive Resume Detail
      └─ parse_status=failed: 失败态
 ```
 
-注册成功即创建简历资产。后台解析继续更新结构化字段、LLM-derived `displayName` 和 Markdown 正文快照；前端展示等待态，但不展示结构化草稿确认页或确认保存页；解析前不得把原文第一行或文件名当作列表 / 详情名称。最终详情渲染由来源格式自动决定：PDF 用纵向页面栈，粘贴 / Markdown / TXT 用 Markdown 渲染；两类 renderer 共用同一阅读背景板，Markdown 正文页只渲染 body 本身。
+注册成功即创建简历资产。后台解析继续更新结构化字段、LLM-derived `displayName` 和 Markdown 正文快照；前端展示等待态，但不展示结构化草稿确认页或确认保存页。等待动画必须保持图标容器、SVG、标题、说明和返回动作的几何位置稳定，不得通过循环 `scale` / `translate` 造成亚像素抖动；可使用透明度或不参与布局的柔和光晕表达进行中状态。解析前不得把原文第一行或文件名当作列表 / 详情名称。最终详情渲染由来源格式自动决定：PDF 用纵向页面栈，粘贴 / Markdown / TXT 用 Markdown 渲染；两类 renderer 共用同一阅读背景板，Markdown 正文页只渲染 body 本身。
 
 ## 5 引导页面框架
 
@@ -149,6 +149,7 @@ Resume Create Flow
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 1.18 | 2026-07-18 | 锁定解析等待态的稳定性：后台轮询不得闪回通用 loading，图标与文案几何位置保持固定。 |
 | 1.17 | 2026-07-15 | 将 selectable 简历锁定为 JD 提交、模拟面试和报告链路的永久强制前置；删除无简历训练与降级报告承诺，历史缺绑统一 fail closed。 |
 | 1.16 | 2026-07-14 | 将上传文件默认上限从历史 2MiB 修订为 RuntimeConfig 投影的 10MiB。 |
 | 1.15 | 2026-07-10 | 将 onboarding route 负向边界统一为范围外口径；行为不变。 |
