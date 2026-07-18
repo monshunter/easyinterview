@@ -48,6 +48,7 @@ type Store interface {
 	CompleteSession(ctx context.Context, in CompleteSessionStoreInput) (CompleteSessionResult, error)
 	ReserveSessionStart(ctx context.Context, in StartSessionReservationInput) (SessionReservation, error)
 	CommitSessionStart(ctx context.Context, in CommitSessionStartInput) (SessionRecord, error)
+	CommitSessionStartRecovery(ctx context.Context, in CommitSessionStartRecoveryInput) (SessionRecord, error)
 	FailSessionStart(ctx context.Context, in FailSessionStartInput) error
 }
 

@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: 1.34
-    to: 1.35
+    to: 1.36
 spec:
   baseBranch: main
   branch: design/report-conversation-record
@@ -40,6 +40,9 @@ spec:
       - no public session history list
       - preserve startPracticeSession
       - preserve getPracticeSession live recovery
+      - recover active startPracticeSession
+      - same plan queued running session
+      - no duplicate opening generation
       - report owned getReportConversation handoff
       - no session list compatibility
       - no relation table migration

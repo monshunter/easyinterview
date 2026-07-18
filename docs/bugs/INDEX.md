@@ -23,6 +23,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0189](./BUG-0189.md) | repeated practice start conflicted with the existing active session | high | resolved | 2026-07-18 | `fix(practice): recover active sessions on repeated start (BUG-0189)` |
 | [BUG-0162](./BUG-0162.md) | practice interviewer lost the real resume after parse output truncation | high | resolved | 2026-07-12 | `fix(interview): ground resumes and persist round progress (BUG-0162, BUG-0163)` |
 | [BUG-0160](./BUG-0160.md) | conversation simplification review exposed lifecycle, retry, score, and scenario drift | high | resolved | 2026-07-12 | `fix(practice): close conversation review regressions (BUG-0160)` |
 | [BUG-0159](./BUG-0159.md) | real conversation funnel retained PostgreSQL and observability drift | high | resolved | 2026-07-12 | `fix(practice): harden real conversation funnel (BUG-0159)` |

@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.35
+> **版本**: 1.36
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-18
 
 ## 1 背景与目标
 
@@ -26,7 +26,7 @@
 |-------------|-----------|-----------------|-------------|---------------------|-------------------|
 | `createPracticePlan` | `POST /practice/plans`，要求 `Idempotency-Key`；请求不包含 question/mode/hint/focus，可携带 `roundId` 与 report-derived `sourceReportId` | `backend/internal/api/practice.CreatePracticePlan` + `backend/internal/practice.CreatePracticePlan` | `practice_plans.round_id/round_sequence/focus_dimension_codes`, `idempotency_records`, `audit_events` | none；服务端从 TargetJob/source report 推导 sequence/focus | 当前无真实 E2E owner；root `make test` |
 | `getPracticePlan` | `GET /practice/plans/{planId}`，用户隔离读取 | `backend/internal/api/practice.GetPracticePlan` | `practice_plans` | none | 当前无真实 E2E owner；root `make test` |
-| `startPracticeSession` | `POST /practice/sessions`，要求 `Idempotency-Key`；同步返回 session 与 opening assistant message | `backend/internal/api/practice.StartPracticeSession` + `backend/internal/practice.StartPracticeSession` | `practice_sessions`, `practice_messages`, lifecycle event, outbox, `idempotency_records`, `ai_task_runs` | `practice.session.chat` + `AIClient.Complete` | 当前无真实 E2E owner；root `make test` |
+| `startPracticeSession` | `POST /practice/sessions`，要求 `Idempotency-Key`；无活动会话时同步创建 session 与 opening assistant message，同 user/plan 已有 `queued/running` 时恢复该活动会话 | `backend/internal/api/practice.StartPracticeSession` + `backend/internal/practice.StartPracticeSession` | `practice_sessions`, `practice_messages`, lifecycle event, outbox, `idempotency_records`, `ai_task_runs`；恢复路径只完成新幂等记录 | 新建路径使用 `practice.session.chat` + `AIClient.Complete`；恢复路径零 AI | 当前无真实 E2E owner；root `make test` + Chrome 真实 UI 验收 |
 | `getPracticeSession` | `GET /practice/sessions/{sessionId}`，返回 session 与有序 messages；user message 含原 `clientMessageId/replyStatus`；读取前惰性收敛已过期 pending lease | `backend/internal/api/practice.GetPracticeSession` + `backend/internal/practice.GetPracticeSession` | `practice_sessions`, `practice_messages.client_message_id/reply_status/reply_generation/reply_lease_expires_at` | none | 当前无真实 E2E owner；root `make test` |
 | `sendPracticeMessage` | `POST /practice/sessions/{sessionId}/messages`；body `clientMessageId` 幂等，成功返回唯一 user/assistant pair；失败持久化 user reply status；同 ID reserve 可接管已过期 lease | `backend/internal/api/practice.SendPracticeMessage` + `backend/internal/practice.SendPracticeMessage` + SQL reserve/fail/commit | `practice_messages.client_message_id/reply_status/reply_generation/reply_lease_expires_at`, `ai_task_runs` | `practice.session.chat`; recent ordered messages + plan/session context | 当前无真实 E2E owner；root `make test` |
 | `completePracticeSession` | `POST /practice/sessions/{sessionId}/complete`，要求 `Idempotency-Key`；零回答或 pending assistant reply 拒绝，成功返回 `202 ReportWithJob` | `backend-practice/002` 的 practice handler/service/store（唯一 completion owner） | `practice_sessions`, terminal `practice_messages`, `feedback_reports.generation_context`, async job/outbox/idempotency | transaction 内无 AI；随后 `report_generate` | `E2E.P0.098` 仅真实登录、completion API 与进度刷新；其余由 root `make test` |
@@ -89,6 +89,10 @@
 - 二次 invalid output 返回 typed `AI_OUTPUT_INVALID`，不生成 canned message。
 
 ### 2.4 消息幂等与恢复
+
+`startPracticeSession` 的活动会话恢复先于新 session 创建：同一 `user_id + plan_id` 已有 `queued/running` session 时，新 `Idempotency-Key` 必须绑定并返回该 session，不得把唯一索引冲突映射为 `PRACTICE_SESSION_CONFLICT`，也不得再次调用 opening LLM、追加 opening message/lifecycle event/outbox/audit 或取消旧 session。不同 user/plan 不得互相恢复；同一 key 的 fingerprint mismatch、pending/terminal 状态仍保持原 typed conflict。
+
+不同 key 的 start 请求通过 user/plan-scoped transaction lock 串行决定“恢复或创建”，数据库 active-session 唯一索引继续作为最终防线。若恢复目标仍为 `queued`，service 等待原启动请求把它推进为 `running`；只有读到最终可进入的会话后，才把新 key 的精确响应标记为 succeeded。等待期间原请求失败、目标进入非活动状态或 caller context 取消时不得伪造成功，也不得产生第二个 session。浏览器关闭不改变服务端生命周期；之后从任一正式入口再次开始同一 plan 时，后端恢复该活动会话。
 
 `sendPracticeMessage` 使用三段式边界：
 
@@ -182,6 +186,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 | C-16 | 消息与会话文本边界 | owner config 提供单条与累计 UTF-8 byte limit | `sendPracticeMessage` | 注入小型边界验证 overflow 返回 `VALIDATION_FAILED`、零持久化与零 AI；默认/override/invalid 只由 typed config owner 覆盖，不分配默认大小字符串或建立配置 E2E | 002 Phase 12 |
 | C-15 | pending lease 与 generation fence | G1 worker 在写 reply 前失联或迟到，90 秒 lease 已过期，随后发生 GET 或两个同 ID 并发 retry | 读取会话并 reserve G2，再释放 G1 Commit/Fail | GET 或同 ID reserve 惰性收敛过期 pending；只一个调用取得 G2；G1 Commit/Fail 均 typed conflict 且零写入；G2 最终只写一个 assistant reply | 002 |
 | C-17 | 无会话列表公共入口 | 当前 UI 只需要 live session 恢复与 report-owned 复盘 | 检查 OpenAPI/generated/router/handler/fixture/mock/frontend | `listPracticeSessions` current positive surface 为零；`getPracticeSession` 保留 live recovery，完成记录只由 `getReportConversation(reportId)` 读取；无 compatibility route 或新关系表 | 001 + openapi 001/002/003 + backend-review 001 |
+| C-18 | 重入开始恢复活动会话 | 同一用户同一 plan 已有 `queued/running` session，可能由关闭浏览器前的启动请求留下 | 从任一正式入口再次调用 `startPracticeSession` | 返回既有活动 session；新 key 精确幂等；零新 session、零重复 opening/AI/lifecycle/outbox/audit；不同 user/plan 与 fingerprint mismatch 仍隔离或冲突 | 001 Phase 9 |
 
 ## 5 关联计划
 
@@ -194,6 +199,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-18 | 1.36 | 用户批准方案 A：同 user/plan 重入 start 时恢复既有 queued/running session，不取消旧会话、不重复 opening LLM，并以 plan-scoped lock 与新 key 最终快照保持并发和幂等精确。 |
 | 2026-07-15 | 1.35 | 删除无产品入口的 listPracticeSessions 公共列表；保留 getPracticeSession 进行中恢复，并把完成 transcript 读取交给 report-owned getReportConversation，不保留兼容层。 |
 | 2026-07-14 | 1.34 | 新增单条与会话累计文本 typed config，并将默认值测试收敛到 typed config owner。 |
 | 2026-07-14 | 1.33 | Confirm T-B/P-A recovery contract: 90-second server lease, internal reply-generation fence, GET/same-ID-reserve lazy convergence, 95-second client timeout reconciliation and terminal return-to-current-plan handoff. |

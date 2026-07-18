@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-18
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -19,6 +19,7 @@
 - `startPracticeSession` 通过 `practice.session.chat` 生成 opening assistant message。
 - `getPracticeSession` 返回 ordered messages。
 - 删除没有产品入口的 `listPracticeSessions` 公共列表；保留 scoped live-session recovery，并把完成 transcript 交给 report-owned read-side。
+- 同一 user/plan 重入 start 时恢复既有 `queued/running` session，避免关闭浏览器后活动会话把所有入口卡在冲突错误。
 - 保持 user isolation、idempotency、AI failure recovery、privacy 和 codegen drift gates。
 
 ## 2 Operation Matrix
@@ -27,7 +28,7 @@
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `createPracticePlan` | current plan fixtures | start helpers | practice plan owner | plan + idempotency/audit | none | 当前无真实 E2E owner；root `make test` |
 | `getPracticePlan` | current plan fixtures | start/read helpers | practice plan read owner | plan read | none | 当前无真实 E2E owner；root `make test` |
-| `startPracticeSession` | current session fixtures | start helpers | practice session owner | session + opening message | `practice.session.chat` | 当前无真实 E2E owner；root `make test` |
+| `startPracticeSession` | current session fixtures | Home recent、Workspace list/detail、Report replay/next start helpers | practice session owner | 新建：session + opening message；恢复：既有 active session + 新 key 最终响应 | 新建使用 `practice.session.chat`；恢复零 AI | 当前无真实 E2E owner；root `make test` + Chrome 真实 UI 验收 |
 | `getPracticeSession` | current session fixtures | Practice loader | practice read owner | session + messages | none | 当前无真实 E2E owner；root `make test` |
 
 `listPracticeSessions` 不属于当前 Operation Matrix。OpenAPI/fixture/generated/router/handler/current docs 中删除该 operation；历史决策与精确 negative declarations 可保留引用，但不得存在兼容入口。新增 `getReportConversation` 由 backend-review/001 所有，本 plan 不复制其 handler/store。
@@ -46,6 +47,7 @@
 | D-24 conversation | cross-layer contract | 1 | codegen/fixture/migration/prompt gates | questionBudget/PracticeTurn/QuestionAssessment |
 | session read | boundary | 4 | ordered/empty/cross-user tests | local fixture transcript |
 | C-17 | regression/contract pruning | 8 | OpenAPI inventory/codegen/router/handler/fixture/mock/source negatives | listPracticeSessions compatibility route or completion transcript via live session API |
+| C-18 | main/failure/concurrency regression | 9 | service/store unit + real PostgreSQL integration + Chrome 真实 UI | duplicate session/opening/AI/event/outbox/audit; cross-user/plan recovery; IK mismatch |
 
 ## 5 实施步骤
 
@@ -103,6 +105,14 @@
 - Consumer negative proves Workspace、Report、ReportsScreen、Practice and frontend API imports have no list dependency. Completed transcript is read only by backend-review `getReportConversation(reportId)` over the existing report-session relation; this plan adds no table/migration.
 - BDD-N/A：当前没有用户可见 session-list flow；删除不可达公共 contract 由 OpenAPI inventory/diff/oracle、fixture/codegen/mock parity、focused handler/source negatives 与根 `make test` 证明。
 
+### Phase 9: Recover an existing active session on repeated start
+
+- RED service/store tests reproduce a fresh `Idempotency-Key` receiving `PRACTICE_SESSION_CONFLICT` when the same user/plan already has a `queued/running` session; lock zero extra session/opening/AI/lifecycle/outbox/audit facts and exact same-key replay.
+- GREEN serialize different start keys with a user/plan-scoped transaction lock. After current plan/resume/round admission, bind a new key to the existing active session instead of inserting a second session; preserve the partial unique index as the final invariant.
+- Keep same-key succeeded replay separate from new-key active recovery. A new key remains pending while an existing `queued` start finishes; after `running` is observable, persist the exact recovered response as succeeded. A failed/non-active target or caller cancellation cannot be marked successful.
+- Preserve all negative boundaries: fingerprint mismatch and an already-pending same key still conflict; different user/plan never recover each other; no active session still executes the existing opening LLM path exactly once.
+- Redeploy backend and use the account's existing active sessions as recovery samples. Chrome must enter the original session from a formal start entry while PostgreSQL proves session/message/AI/lifecycle/outbox/audit counts do not increase on recovery.
+
 ## 6 验收标准
 
 - Contract truth sources contain message/conversation shapes and zero current question/hint/mode shapes.
@@ -115,6 +125,7 @@
 - Prompt policy remains in the system role; JSON-encoded JD/resume/history/persona content cannot promote embedded instructions into policy, and persona cannot supply resume facts or round identity.
 - Start/send fail closed after TargetJob resume rebinding, and repeated `finish_reason=length` output persists no assistant reply.
 - Current product/API surface contains no `listPracticeSessions`; live recovery and report-owned review remain independently reachable through their scoped locators.
+- Re-entering start for a plan with an existing queued/running session returns that same session without a second opening generation or conflict; new keys remain exact and isolated.
 
 ## 7 风险与应对
 
@@ -135,11 +146,15 @@
 | summary sequence/type/provenance drifts across AI and OpenAPI layers | reject missing provenance, non-int32/non-increasing sequence and non-lowercase/unknown type instead of normalizing silently |
 | resume/JD/history contains prompt-like instructions | encode the entire business context as untrusted JSON in the user message and keep immutable policy in the system message |
 | 删除 GET collection 误伤 POST start 或 scoped GET recovery | method/path inventory tests分别锁定 `startPracticeSession` 与 `getPracticeSession` 不变，并对 list route 做零命中 |
+| different start keys race past the active-session check | acquire one user/plan-scoped transaction lock before choosing recover/create; keep the partial unique index as a final fence |
+| a queued recovery stores a stale response or navigates before opening exists | keep the new key pending, wait for the original start to reach running, then persist and return the exact current session snapshot |
+| recovery repeats opening side effects | the store returns an explicit recovery reservation; service skips prompt/AI and only finalizes the new idempotency response |
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-18 | 2.7 | Reopen Phase 9 to recover an existing queued/running session for repeated same-user/plan starts, with plan-scoped concurrency, exact new-key finalization, zero repeated opening side effects, and Chrome acceptance on current active sessions. |
 | 2026-07-15 | 2.6 | Reopen Phase 8 to remove listPracticeSessions end to end, preserve start/get live-session operations, and hand completed transcript reads to backend-review getReportConversation without compatibility or migration. |
 | 2026-07-12 | 2.5 | Prevent assistant-authored history from becoming candidate evidence and add the invented-project amplification regression gate. |
 | 2026-07-12 | 2.4 | Require TargetJob-bound resume provenance across plan/source/completion facts, admit strict non-contiguous int32 round directories, and separate system policy from JSON-encoded untrusted interview context. |

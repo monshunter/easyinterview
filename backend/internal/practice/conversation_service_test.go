@@ -22,6 +22,8 @@ type conversationTestStore struct {
 	planErr             error
 	reservation         SessionReservation
 	startInput          CommitSessionStartInput
+	startRecoveryInput  CommitSessionStartRecoveryInput
+	startRecoveryResult SessionRecord
 	messageReserveInput ReservePracticeMessageInput
 	messageReservation  PracticeMessageReservation
 	messageReserveErr   error
@@ -33,6 +35,7 @@ type conversationTestStore struct {
 	failureHasDeadline  bool
 	getSessionNow       time.Time
 	getSessionResult    SessionRecord
+	getSessionResults   []SessionRecord
 	getSessionErr       error
 	failedStart         FailSessionStartInput
 }
@@ -56,6 +59,10 @@ func (s *conversationTestStore) CommitSessionStart(_ context.Context, in CommitS
 	s.startInput = in
 	return SessionRecord{ID: in.SessionID, PlanID: in.PlanID, TargetJobID: in.TargetJobID, Status: sharedtypes.SessionStatusRunning,
 		Language: in.Language, Messages: []MessageRecord{{ID: in.MessageID, Role: "assistant", Content: in.MessageText, SeqNo: 1, CreatedAt: in.StartedAt}}}, nil
+}
+func (s *conversationTestStore) CommitSessionStartRecovery(_ context.Context, in CommitSessionStartRecoveryInput) (SessionRecord, error) {
+	s.startRecoveryInput = in
+	return s.startRecoveryResult, nil
 }
 func (s *conversationTestStore) FailSessionStart(_ context.Context, in FailSessionStartInput) error {
 	s.failedStart = in
@@ -81,6 +88,11 @@ func (s *conversationTestStore) FailPracticeMessage(ctx context.Context, in Fail
 }
 func (s *conversationTestStore) GetSession(_ context.Context, _, _ string, now time.Time) (SessionRecord, error) {
 	s.getSessionNow = now
+	if len(s.getSessionResults) > 0 {
+		result := s.getSessionResults[0]
+		s.getSessionResults = s.getSessionResults[1:]
+		return result, nil
+	}
 	return s.getSessionResult, s.getSessionErr
 }
 
@@ -437,6 +449,91 @@ func TestStartPracticeSessionCreatesOpeningAssistantMessage(t *testing.T) {
 	}
 	if !strings.Contains(ai.payloads[0].Messages[1].Content, `"interviewerPersona":"hiring_manager"`) {
 		t.Fatalf("opening prompt lost independent interviewer persona: %s", ai.payloads[0].Messages[1].Content)
+	}
+}
+
+func TestStartPracticeSessionRecoversRunningSessionWithoutOpeningSideEffects(t *testing.T) {
+	recovered := SessionRecord{
+		ID: "session-existing", PlanID: "plan-1", TargetJobID: "target-1",
+		Status: sharedtypes.SessionStatusRunning, Language: "zh-CN",
+		Messages: []MessageRecord{{ID: "opening-existing", Role: "assistant", Content: "原开场消息", SeqNo: 1}},
+	}
+	store := &conversationTestStore{
+		reservation: SessionReservation{
+			IdempotencyRecordID: "idem-recovery", UserID: "user-1",
+			RecoverSession: &recovered,
+		},
+		startRecoveryResult: recovered,
+	}
+	ai := &conversationTestAI{}
+	service := NewService(ServiceOptions{
+		Store: store, Registry: conversationTestRegistry{}, AI: ai,
+		Now:   func() time.Time { return time.Unix(10, 0).UTC() },
+		NewID: func() string { return "must-not-be-used" },
+	})
+
+	result, err := service.StartPracticeSession(context.Background(), StartSessionRequest{
+		UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "new-hash", RequestFingerprint: "fp",
+	})
+	if err != nil {
+		t.Fatalf("StartPracticeSession recovery: %v", err)
+	}
+	if result.ID != recovered.ID || result.Messages[0].ID != "opening-existing" {
+		t.Fatalf("recovered session = %+v", result)
+	}
+	if store.startRecoveryInput.IdempotencyRecordID != "idem-recovery" ||
+		store.startRecoveryInput.SessionID != recovered.ID ||
+		store.startRecoveryInput.UserID != "user-1" {
+		t.Fatalf("recovery finalization = %+v", store.startRecoveryInput)
+	}
+	if len(ai.payloads) != 0 || store.startInput.MessageText != "" || store.failedStart.SessionID != "" {
+		t.Fatalf("recovery repeated opening side effects: ai=%d commit=%+v fail=%+v", len(ai.payloads), store.startInput, store.failedStart)
+	}
+}
+
+func TestStartPracticeSessionWaitsForQueuedRecoveryBeforeFinalizing(t *testing.T) {
+	queued := SessionRecord{ID: "session-existing", PlanID: "plan-1", TargetJobID: "target-1", Status: sharedtypes.SessionStatusQueued, Language: "zh-CN", Messages: []MessageRecord{}}
+	running := queued
+	running.Status = sharedtypes.SessionStatusRunning
+	running.Messages = []MessageRecord{{ID: "opening-existing", Role: "assistant", Content: "原开场消息", SeqNo: 1}}
+	store := &conversationTestStore{
+		reservation:         SessionReservation{IdempotencyRecordID: "idem-recovery", UserID: "user-1", RecoverSession: &queued},
+		getSessionResults:   []SessionRecord{running},
+		startRecoveryResult: running,
+	}
+	ai := &conversationTestAI{}
+	service := NewService(ServiceOptions{Store: store, Registry: conversationTestRegistry{}, AI: ai, Now: func() time.Time { return time.Unix(10, 0).UTC() }})
+
+	result, err := service.StartPracticeSession(context.Background(), StartSessionRequest{
+		UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "new-hash", RequestFingerprint: "fp",
+	})
+	if err != nil || result.Status != sharedtypes.SessionStatusRunning || store.startRecoveryInput.SessionID != queued.ID {
+		t.Fatalf("queued recovery result=%+v err=%v finalization=%+v", result, err, store.startRecoveryInput)
+	}
+	if len(ai.payloads) != 0 || len(store.getSessionResults) != 0 {
+		t.Fatalf("queued recovery aiCalls=%d unreadSnapshots=%d", len(ai.payloads), len(store.getSessionResults))
+	}
+}
+
+func TestStartPracticeSessionDoesNotFinalizeQueuedRecoveryAfterContextCancellation(t *testing.T) {
+	queued := SessionRecord{ID: "session-existing", PlanID: "plan-1", TargetJobID: "target-1", Status: sharedtypes.SessionStatusQueued, Language: "zh-CN", Messages: []MessageRecord{}}
+	store := &conversationTestStore{
+		reservation:      SessionReservation{IdempotencyRecordID: "idem-recovery", UserID: "user-1", RecoverSession: &queued},
+		getSessionResult: queued,
+	}
+	ai := &conversationTestAI{}
+	service := NewService(ServiceOptions{Store: store, Registry: conversationTestRegistry{}, AI: ai})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := service.StartPracticeSession(ctx, StartSessionRequest{
+		UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "new-hash", RequestFingerprint: "fp",
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("queued cancelled recovery error=%v want context.Canceled", err)
+	}
+	if store.startRecoveryInput.SessionID != "" || len(ai.payloads) != 0 || store.startInput.MessageText != "" {
+		t.Fatalf("cancelled recovery finalized or generated opening: recovery=%+v ai=%d commit=%+v", store.startRecoveryInput, len(ai.payloads), store.startInput)
 	}
 }
 

@@ -65,6 +65,7 @@ type SessionReservation struct {
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	ReplaySession       *SessionRecord
+	RecoverSession      *SessionRecord
 }
 
 type SemanticFocusDimension struct {
@@ -88,6 +89,13 @@ type CommitSessionStartInput struct {
 	AuditEventID        string
 	MessageText         string
 	StartedAt           time.Time
+}
+
+type CommitSessionStartRecoveryInput struct {
+	IdempotencyRecordID string
+	SessionID           string
+	UserID              string
+	RecoveredAt         time.Time
 }
 
 type FailSessionStartInput struct {
@@ -168,6 +176,9 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 	if reservation.ReplaySession != nil {
 		return *reservation.ReplaySession, nil
 	}
+	if reservation.RecoverSession != nil {
+		return s.recoverReservedSessionStart(ctx, userID, reservation)
+	}
 
 	message, err := s.generateChatMessage(ctx, reservation, nil)
 	if err != nil {
@@ -190,6 +201,40 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 		MessageText:         message,
 		StartedAt:           startedAt,
 	})
+}
+
+func (s *Service) recoverReservedSessionStart(ctx context.Context, userID string, reservation SessionReservation) (SessionRecord, error) {
+	session := *reservation.RecoverSession
+	for session.Status == sharedtypes.SessionStatusQueued {
+		current, err := s.store.GetSession(ctx, userID, session.ID, s.now().UTC())
+		if err != nil {
+			return SessionRecord{}, err
+		}
+		session = current
+		if session.Status != sharedtypes.SessionStatusQueued {
+			break
+		}
+		timer := time.NewTimer(100 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return SessionRecord{}, ctx.Err()
+		case <-timer.C:
+		}
+	}
+	if session.Status != sharedtypes.SessionStatusRunning {
+		return SessionRecord{}, sessionConflictError()
+	}
+	recovered, err := s.store.CommitSessionStartRecovery(ctx, CommitSessionStartRecoveryInput{
+		IdempotencyRecordID: reservation.IdempotencyRecordID,
+		SessionID:           session.ID,
+		UserID:              userID,
+		RecoveredAt:         s.now().UTC(),
+	})
+	if stderrs.Is(err, ErrSessionConflict) {
+		return SessionRecord{}, sessionConflictError()
+	}
+	return recovered, err
 }
 
 func (s *Service) generateChatMessage(ctx context.Context, reservation SessionReservation, history []MessageRecord) (string, error) {

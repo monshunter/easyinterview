@@ -1,8 +1,8 @@
 # Practice Plan and Session Orchestration BDD Checklist
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-18
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -18,3 +18,12 @@
   <!-- verified: 2026-07-15 method=plan+scenario-negative result=PASS -->
 - [x] 回归 `BDD.PRACTICE.PLAN.001`，证明保留的 `startPracticeSession` / `getPracticeSession` 行为未因公共列表删除而退化。
   <!-- verified: 2026-07-15 method=focused-owner-behavior-tests result=PASS -->
+
+## Phase 9 活动会话恢复
+
+- [x] Owner behavior test 证明同 user/plan 重复 start 返回同一 running session，零 prompt/AI/opening commit。
+  <!-- verified: 2026-07-18 method=go-test tests="TestStartPracticeSessionRecoversRunningSessionWithoutOpeningSideEffects,TestStartPracticeSessionWaitsForQueuedRecoveryBeforeFinalizing" -->
+- [x] Real PostgreSQL integration 证明 queued/running recovery、different-key 并发、精确 replay 与 user/plan isolation。
+  <!-- verified: 2026-07-18 method=go-test-tags-integration marker="active-session-start-recovery=PASS" -->
+- [x] Chrome skill 从正式入口恢复现有受影响 session；该结果是运行时 UI 补充证据，不声明新的 E2E 场景 ID。
+  <!-- verified: 2026-07-18 method=chrome formalEntry=workspace result="same running session opened without PRACTICE_SESSION_CONFLICT" -->

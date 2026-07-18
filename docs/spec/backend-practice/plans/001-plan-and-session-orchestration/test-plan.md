@@ -1,8 +1,8 @@
 # 001 Plan and Session Orchestration Test Plan
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-18
 
 ## Phase 1: Contract tests
 
@@ -50,3 +50,10 @@
 - Backend routing/handler/source tests prove `GET /practice/sessions` has no current route or compatibility behavior and `POST /practice/sessions` plus scoped `GET /practice/sessions/{sessionId}` remain unchanged.
 - Fixture/mock/generated/frontend import negatives reject the retired operation; accepted history and explicit negative assertions are classified rather than blanket-excluded.
 - No-migration audit proves existing practice/report tables and unique relation are sufficient. Phase 8 is BDD-N/A and closes through focused tests plus root `make test`.
+
+## Phase 9: Active-session start recovery
+
+- Service RED/GREEN proves a recovery reservation skips prompt resolution, AI, opening commit and failure finalization; queued recovery reads until running or context/non-active termination.
+- SQL unit/integration coverage proves different keys for one user/plan serialize to one active session, new recovery keys become succeeded only with the final recovered response, and exact same-key replay returns that response.
+- Negative coverage preserves fingerprint mismatch/pending-key conflict, fresh-start generation, different user/plan isolation and the partial unique index.
+- Runtime acceptance uses an existing affected account/session and records before/after counts for sessions, messages, AI task runs, lifecycle events, outbox and audit facts around one Chrome start action.

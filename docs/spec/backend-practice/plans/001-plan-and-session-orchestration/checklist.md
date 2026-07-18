@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-18
 
 **关联计划**: [plan](./plan.md)
 
@@ -66,10 +66,26 @@
 - [x] 8.6 COMPLETION-GATE: root `make test`, build, OpenAPI/fixture/codegen/mock, docs/context/index/diff and scoped zero-reference gates pass before restoring completed status.
   <!-- verified: 2026-07-15 method=full-post-refreeze-regression evidence="root Python 551/4493, Go all, frontend 125/993; build PASS; OpenAPI diff/lint/37 fixtures/codegen/mock/consumers/docs/context/diff/zero-reference PASS" -->
 
+## Phase 9: Recover an existing active session on repeated start
+
+- [x] 9.1 RED: service/store tests reproduce same-user/plan active-session conflict and assert zero AI/new session/opening/lifecycle/outbox/audit side effects.
+  <!-- verified: 2026-07-18 method=go-test-red evidence="service contract initially failed on missing recovery boundary; real PostgreSQL returned practice session conflict for an existing running session" -->
+- [x] 9.2 GREEN: different start keys serialize by user/plan; new key binds an admitted queued/running session, waits queued to reach running, and persists the exact recovered response.
+  <!-- verified: 2026-07-18 method=go-test+postgres-integration tests="TestStartPracticeSessionRecoversRunningSessionWithoutOpeningSideEffects,TestStartPracticeSessionWaitsForQueuedRecoveryBeforeFinalizing,TestSQLRepositoryIntegration_StartRecoversSamePlanActiveSession" marker="active-session-start-recovery=PASS" -->
+- [x] 9.3 PRESERVATION-GATE: same-key replay/mismatch/pending semantics, fresh start opening generation, cross-user/plan isolation and active-session unique index all pass.
+  <!-- verified: 2026-07-18 method=focused-unit+all-practice-integration evidence="domain/store/api packages PASS; all store integration PASS; active unique index unchanged; OpenAPI zero breaking/additive findings" -->
+- [x] 9.4 BDD-Gate: `BDD.PRACTICE.PLAN.001` owner behavior/integration tests prove repeated start recovers the same activity without duplicate facts.
+  <!-- verified: 2026-07-18 method=owner-behavior+postgres-integration marker="active-session-start-recovery=PASS" -->
+- [x] 9.5 RUNTIME-GATE: redeploy backend; Chrome skill starts an existing affected plan from a formal UI entry and reaches the original session while PostgreSQL before/after counts remain unchanged.
+  <!-- verified: 2026-07-18 method=chrome+postgres existingSession=019f751a-b64b-7e01-b607-3c99372beff7 evidence="formal workspace start reached the same running session; sessions/messages/events/outbox/audit/aiTasks remained 1/1/1/1/1/0; succeeded idempotency records increased from 1 to 2" -->
+- [x] 9.6 COMPLETION-GATE: focused tests, integration tests, root `make test`, build/OpenAPI/codegen/fixture/docs/context/index/diff gates pass before closeout.
+  <!-- verified: 2026-07-18 method=root-gates evidence="focused Go + PostgreSQL integration PASS; make test PASS (Python 584/4583, Go all packages, frontend 127 files/1035 tests); make build/lint/codegen-check/docs-check/openapi-diff/validate-fixtures/git-diff-check PASS" -->
+
 ## 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-18 | 2.8 | 新增 Phase 9：同 user/plan 活动会话恢复、plan-scoped 并发、精确新 key 最终化与 Chrome 真实验收。 |
 | 2026-07-15 | 2.7 | 新增 Phase 8：删除 listPracticeSessions 全部正向 surface，保留 start/get live operations，并交接 report-owned conversation read。 |
 | 2026-07-12 | 2.5 | 补齐 assistant history 不得成为候选人事实的 RED/GREEN prompt 与负向 eval gate。 |
 | 2026-07-12 | 2.4 | 补齐 TargetJob 绑定 resume/provenance/type/int32 目录约束，并增加 system policy 与 JSON 不可信上下文分层 gate。 |

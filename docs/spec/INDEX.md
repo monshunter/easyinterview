@@ -51,7 +51,7 @@
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.48 | completed | 2026-07-18 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 2.7 | active | 2026-07-16 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 2.13 | active | 2026-07-14 | [plans](./backend-targetjob/plans/) |
-| [backend-practice](./backend-practice/spec.md) | 1.35 | active | 2026-07-15 | [plans](./backend-practice/plans/) |
+| [backend-practice](./backend-practice/spec.md) | 1.36 | active | 2026-07-18 | [plans](./backend-practice/plans/) |
 | [backend-review](./backend-review/spec.md) | 1.34 | active | 2026-07-18 | [plans](./backend-review/plans/) |
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.15 | completed | 2026-07-12 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.7 | active | 2026-07-14 | [plans](./backend-upload/plans/) |

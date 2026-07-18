@@ -116,17 +116,18 @@ func TestSQLRepositoryReserveSessionStartPrefersCompleteResumeSourceSnapshot(t *
 	mock.ExpectExec(`insert into idempotency_records`).
 		WithArgs(in.IdempotencyRecordID, in.UserID, in.IdempotencyKeyHash, in.RequestFingerprint, "pending", in.ExpiresAt, in.Now).
 		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`select pg_advisory_xact_lock`).WithArgs(sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`(?s)with selected_plan as \(.*p\.focus_dimension_codes.*fr\.dimension_assessments.*fr\.issues.*p\.round_id.*r\.parsed_text_snapshot.*r\.original_text.*r\.structured_profile.*join target_jobs tj.*tj\.resume_id = p\.resume_id.*join feedback_reports fr.*btrim\(entry\.value->>'type'\) round_type.*2147483647.*jsonb_array_elements.*insert into practice_sessions`).
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "interviewer_persona", "language", "role_title",
 			"seniority", "top_skills", "resume_context", "focus_dimension_codes", "dimension_assessments", "issues",
-			"round_id", "round_sequence", "round_type", "round_name", "round_focus", "created_at", "updated_at",
+			"round_id", "round_sequence", "round_type", "round_name", "round_focus", "created_at", "updated_at", "recover_active",
 		}).AddRow(in.SessionID, in.PlanID, "target-1", string(sharedtypes.PracticeGoalRetryCurrentRound), string(sharedtypes.InterviewerRoleHiringManager),
 			"zh-CN", "后端工程师", "senior", "Go", "# Complete resume\n"+tailMarker, `{system_design}`,
 			`[{"code":"system_design","label":"系统设计","status":"needs_work","confidence":"high"}]`,
 			`[{"dimensionCode":"system_design","evidence":"缺少容量估算","confidence":"high","sourceMessageSeqNos":[2]}]`,
-			"round-1-technical", 1, "technical", "技术面", "系统设计", now, now))
+			"round-1-technical", 1, "technical", "技术面", "系统设计", now, now, false))
 	mock.ExpectCommit()
 
 	reservation, err := NewSQLRepository(db).ReserveSessionStart(context.Background(), in)

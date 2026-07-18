@@ -315,11 +315,15 @@ insert into idempotency_records (
 	); err != nil {
 		return domain.SessionReservation{}, fmt.Errorf("insert start session idempotency reservation: %w", err)
 	}
+	if _, err := tx.ExecContext(ctx, `select pg_advisory_xact_lock(hashtext($1))`, startSessionPlanAdvisoryLockKey(in)); err != nil {
+		return domain.SessionReservation{}, fmt.Errorf("lock start session plan reservation: %w", err)
+	}
 
 	var reservation domain.SessionReservation
 	var topSkills string
 	var focusDimensionCodes pq.StringArray
 	var semanticDimensions, semanticIssues []byte
+	var recoverActive bool
 	err = tx.QueryRowContext(ctx, `
 with selected_plan as (
   select p.id, p.target_job_id, p.goal, p.interviewer_persona, p.language,
@@ -371,20 +375,34 @@ with selected_plan as (
 	    and nullif(round_context.round_focus, '') is not null
 	    and (p.goal='retry_current_round' or cardinality(p.focus_dimension_codes)=0)
 	    and (cardinality(p.focus_dimension_codes)=0 or fr.id is not null)
+), active_session as (
+  select s.id, s.plan_id, s.target_job_id, s.language, s.created_at, s.updated_at
+  from practice_sessions s
+  join selected_plan on selected_plan.id = s.plan_id
+  where s.user_id = $2 and s.status in ('queued', 'running')
+  limit 1
+  for update of s
 ), inserted as (
   insert into practice_sessions (id, user_id, plan_id, target_job_id, status, language, created_at, updated_at)
   select $1, $2, id, target_job_id, 'queued', language, $4, $4 from selected_plan
+  where not exists (select 1 from active_session)
   returning id, plan_id, target_job_id, language, created_at, updated_at
+), selected_session as (
+  select id, plan_id, target_job_id, language, created_at, updated_at, true recover_active
+  from active_session
+  union all
+  select id, plan_id, target_job_id, language, created_at, updated_at, false recover_active
+  from inserted
 )
-select inserted.id, inserted.plan_id, inserted.target_job_id, selected_plan.goal,
-       selected_plan.interviewer_persona, inserted.language, selected_plan.role_title,
-       selected_plan.seniority, selected_plan.top_skills,
-	       selected_plan.resume_context,
-	       selected_plan.focus_dimension_codes, selected_plan.semantic_dimensions, selected_plan.semantic_issues,
-       selected_plan.round_id, selected_plan.round_sequence, selected_plan.round_type,
-       selected_plan.round_name, selected_plan.round_focus,
-       inserted.created_at, inserted.updated_at
-from inserted join selected_plan on selected_plan.id = inserted.plan_id`,
+select selected_session.id, selected_session.plan_id, selected_session.target_job_id, selected_plan.goal,
+	       selected_plan.interviewer_persona, selected_session.language, selected_plan.role_title,
+	       selected_plan.seniority, selected_plan.top_skills,
+		       selected_plan.resume_context,
+		       selected_plan.focus_dimension_codes, selected_plan.semantic_dimensions, selected_plan.semantic_issues,
+	       selected_plan.round_id, selected_plan.round_sequence, selected_plan.round_type,
+	       selected_plan.round_name, selected_plan.round_focus,
+	       selected_session.created_at, selected_session.updated_at, selected_session.recover_active
+from selected_session join selected_plan on selected_plan.id = selected_session.plan_id`,
 		in.SessionID, in.UserID, in.PlanID, in.Now,
 	).Scan(
 		&reservation.SessionID, &reservation.PlanID, &reservation.TargetJobID, &reservation.Goal,
@@ -393,7 +411,7 @@ from inserted join selected_plan on selected_plan.id = inserted.plan_id`,
 		&semanticDimensions, &semanticIssues,
 		&reservation.RoundID, &reservation.RoundSequence, &reservation.RoundType,
 		&reservation.RoundName, &reservation.RoundFocus,
-		&reservation.CreatedAt, &reservation.UpdatedAt,
+		&reservation.CreatedAt, &reservation.UpdatedAt, &recoverActive,
 	)
 	if stderrs.Is(err, sql.ErrNoRows) {
 		return domain.SessionReservation{}, domain.ErrPlanNotFound
@@ -411,6 +429,13 @@ from inserted join selected_plan on selected_plan.id = inserted.plan_id`,
 	}
 	reservation.IdempotencyRecordID = recordID
 	reservation.UserID = in.UserID
+	if recoverActive {
+		session, err := selectSessionForUser(ctx, tx, in.UserID, reservation.SessionID)
+		if err != nil {
+			return domain.SessionReservation{}, err
+		}
+		reservation.RecoverSession = &session
+	}
 	if err := tx.Commit(); err != nil {
 		return domain.SessionReservation{}, fmt.Errorf("commit reserve practice session: %w", err)
 	}
@@ -493,6 +518,45 @@ response_body = $3, error_code = null, updated_at = $4 where id = $5`,
 	}
 	if err := tx.Commit(); err != nil {
 		return domain.SessionRecord{}, fmt.Errorf("commit practice session start: %w", err)
+	}
+	return session, nil
+}
+
+func (r *SQLRepository) CommitSessionStartRecovery(ctx context.Context, in domain.CommitSessionStartRecoveryInput) (domain.SessionRecord, error) {
+	if r == nil || r.db == nil {
+		return domain.SessionRecord{}, fmt.Errorf("practice SQL repository is not configured")
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("begin commit practice session start recovery: %w", err)
+	}
+	defer tx.Rollback()
+	session, err := selectSessionForUser(ctx, tx, in.UserID, in.SessionID)
+	if err != nil {
+		return domain.SessionRecord{}, err
+	}
+	if session.Status != sharedtypes.SessionStatusRunning {
+		return domain.SessionRecord{}, domain.ErrSessionConflict
+	}
+	responseBody, err := marshalSessionResponseBody(session)
+	if err != nil {
+		return domain.SessionRecord{}, err
+	}
+	result, err := tx.ExecContext(ctx, `
+update idempotency_records set status = $1, resource_type = 'practice_session', resource_id = $2,
+response_body = $3, error_code = null, updated_at = $4
+where id = $5 and user_id = $6 and domain = 'practice' and operation = 'startPracticeSession' and status = $7`,
+		string(idempotency.StatusSucceeded), session.ID, responseBody, in.RecoveredAt,
+		in.IdempotencyRecordID, in.UserID, string(idempotency.StatusPending),
+	)
+	if err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("mark recovered start session idempotency succeeded: %w", err)
+	}
+	if rows, _ := result.RowsAffected(); rows != 1 {
+		return domain.SessionRecord{}, domain.ErrSessionConflict
+	}
+	if err := tx.Commit(); err != nil {
+		return domain.SessionRecord{}, fmt.Errorf("commit practice session start recovery: %w", err)
 	}
 	return session, nil
 }
@@ -646,6 +710,10 @@ where id=$5 and user_id=$6 and domain='practice' and operation='startPracticeSes
 
 func startSessionAdvisoryLockKey(in domain.StartSessionReservationInput) string {
 	return strings.Join([]string{in.UserID, "practice", "startPracticeSession", in.IdempotencyKeyHash}, "\x1f")
+}
+
+func startSessionPlanAdvisoryLockKey(in domain.StartSessionReservationInput) string {
+	return strings.Join([]string{in.UserID, "practice", "startPracticeSession", "plan", in.PlanID}, "\x1f")
 }
 
 func isUniqueViolation(err error) bool {
