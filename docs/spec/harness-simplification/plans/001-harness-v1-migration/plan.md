@@ -1,16 +1,16 @@
 # Harness v1 渐进迁移 Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
 > **更新日期**: 2026-07-18
 
-**关联 Spec**: [Harness 工程框架收敛](../../spec.md) 2.1
+**关联 Spec**: [Harness 工程框架收敛](../../spec.md) 2.2
 **工作模式**: `loop`
-**当前授权**: 本文件设计与计划落地已获确认；代码、Skill、治理文档和删除迁移仍需用户明确进入实施阶段，R3/破坏性动作按 Phase 单独确认。
+**当前授权**: 用户已明确按新 Harness 体系实施代码、Skill 与治理迁移；R3 删除、公开入口切换和其他破坏性动作仍按 Phase 单独确认。
 
 ## 1 交付目标与边界
 
-本计划是 Harness Spec 2.1 的唯一当前工作 owner。目标是按 Spec 第 10.1 节的 Arch-first 顺序，把当前 EasyInterview Harness 渐进迁移到 Project Arch v1，并以 A1-A33 的当前可执行证据证明新路径在正确性、恢复能力和风险控制上不退化。
+本计划是 Harness Spec 2.2 的唯一当前工作 owner。目标是按 Spec 第 10.1 节的 Arch-first 顺序，把当前 EasyInterview Harness 渐进迁移到 Project Arch v1，并以 A1-A33 的当前可执行证据证明新路径在正确性、恢复能力和风险控制上不退化。
 
 计划只描述当前交付 delta、Phase/Iteration、行内进度、验证、checkpoint、恢复与退出。完成后，有效合同回写 Spec，当前证据留在代码/测试，交付事实进入 Git/work journal，本计划目录从工作树退出。
 
@@ -53,6 +53,51 @@
 | `INDEX.md` | 37 个；机制保留，但尚未由 Project Arch docs transaction 统一重建 |
 | Harness 当前执行 plan | 本文件是唯一当前 plan |
 
+### 1.4 Phase 0 当前证据与已知红灯
+
+基线 commit 为 `61e0e8b2419b7c91708a06b704ba7c6145f57f73`。本轮只把 Harness owner gate 作为完成证据；产品 backend/frontend gate 仅在后续 Change 实际触碰产品代码或真实用户链路时条件运行。
+
+| 入口 | 当前结果 | 结论 |
+|------|----------|------|
+| `make docs-check` | PASS；Header/INDEX/Markdown link 零漂移 | 旧 docs gate 可作为迁移前只读基线 |
+| `.agent-skills` focused contract | `152 passed` | 当前 20 个 Skill 的分散合同基线可重复 |
+| 旧路由/实施/env/commit 代表 replay | `96 passed` | 可作为 hard cut 前的行为意图基线，但没有统一组合 runner |
+| 旧 `context.yaml` validator | `49/49` PASS | 只证明旧入口当前可读；新路径不读取其内容，也不保留兼容 |
+| `scripts/harness_index_test.py` | `8 passed, 1 failed` | 旧标题、排除 active plan 和持久化 cache 合同已过期；归 Phase 2 语义替换，不做文案假绿 |
+| production-script reference gate | `6 passed, 1 failed` | `scripts/harness_index.py` 无当前生产入口且与 Spec 2.2 冲突；归 Phase 2 吸收后删除 |
+
+旧 `make test` 在用户澄清范围前曾被只读执行，并在 Python 聚合段命中上述两个 Harness 红项后停止；它及单独补跑的产品测试不作为本计划完成依据，后续不重复运行无关产品回归。
+
+### 1.5 代表任务、fixture 与度量合同
+
+| 风险 | 固定代表任务 | 必须观察的结果 |
+|------|--------------|----------------|
+| R0 | 在合成仓库中分别用精确 subject/identifier 与通用歧义词查询 owner | 精确查询给出唯一证据链；歧义查询低置信并解释候选，不写缓存或文件 |
+| R1 | 修复一个合成 subject 的 Markdown 引用并由 docs transaction 原子重建 INDEX | 正文与投影同事务、二次执行 zero-diff、失败可回滚 |
+| R2 | 在宿主机进程 fixture 中以 finite plan 增加一个可观察的 lifecycle 状态并完成 TDD/review | Spec→plan→实现→owner test→checkpoint 单链闭环，无独立 checklist/context |
+| R3 | 在 legacy 容器 fixture 上执行带 custom 文件、secret 占位和注入冲突的 upgrade/删除预演 | 未确认时 fail closed；确认后保留项目血肉、脱敏、可 rollback/resume，不产生虚假 ready |
+
+两个 Harness 自有环境 fixture 固定为：
+
+1. **host-process**：使用标准库 HTTP 进程、动态端口和本地状态文件，覆盖 setup/status/verify/redeploy/cleanup 与异常进程恢复，不含 EasyInterview 组件名、端口或依赖；
+2. **containerized**：使用独立最小容器服务、不同健康模型和持久卷，覆盖 build、readiness、污染、部分失败与 cleanup，不引用 `local-dev-stack`、产品 secret 或产品镜像。
+
+fresh 输入是只有最小语言/build 事实、没有 Project Arch 文件的临时 Git 仓库；upgrade 输入是包含 legacy docs/env 接口、人类维护扩展、未知文件和脱敏 secret 占位的临时仓库。组合链固定覆盖 `spec-design→delivery-execute→delivery-review`、`environment-build→environment-operate`、`scenario-author→scenario-run→scenario-diagnose`、`delivery-execute→delivery-commit`。
+
+每次 replay 只在 run-local 临时目录记录 monotonic 首次有效证据时间、首次证据前去重读取字节、工具调用数、流程文件触碰数、owner 命中、误路由、误阻塞和恢复结果；结果不得成为跨任务 manifest/cache。相同 commit、同一机器冷热条件各运行 3 次并比较中位数：owner/授权/失败检测与所有注入恢复必须 `100%` 正确，误路由、误阻塞、虚假 PASS、secret 泄露和项目血肉覆盖必须为 `0`；四项效率指标任一不得回退超过 `10%`，且至少两项改善不低于 `20%`，否则不退出旧入口。
+
+### 1.6 Phase 1-7 Change 控制
+
+| Phase | Rollback checkpoint | 止损条件 | 需要单独 R3 确认 | 旧入口退出条件 |
+|-------|---------------------|----------|------------------|----------------|
+| 1 | Phase 0 commit + 每个 Arch-owned 原子写入前 fixture snapshot | 覆盖 custom/secret/业务内容、同版本有 diff、失败不可恢复 | 对当前仓库执行 upgrade 写入或改变 `/init-docs` 公开入口前 | `init-arch` fresh/check/upgrade/repair owner tests 通过；只保留有期限 alias |
+| 2 | 每个资产族迁移前 Git checkpoint + docs transaction rollback | 找不到唯一语义 owner、INDEX 无法重建、查询需要持久化 cache | 批量删除 `context.yaml`、history、独立 plan 附件或 `docs/ui-design/` 前 | docs transaction/lookup 接管全部 caller，目标旧 reader/writer zero-reference |
+| 3 | 每个 fixture lifecycle 前后快照与 cleanup 证据 | fixture 反向固化产品栈、污染未清理、虚假 ready | 操作非 fixture 环境、删除真实环境状态或凭证边界变化前 | 两个异构 fixture 闭环通过，build/operate owner 清晰且可恢复 |
+| 4 | 目标 Skill/AGENTS/workflow hard cut 前 Git checkpoint | 名称、caller、workflow 或 compat marker 不能同 Change 原子切换 | 切换公开 Skill 名称、AGENTS 入口和删除旧执行入口前 | 14 个 Skill 独立合同与唯一 workflow 通过，旧名除限时 alias 外 zero-reference |
+| 5 | delivery-commit 等价 fixture + 删除前 Git checkpoint | manual/auto/commit/journal/INDEX/ASCII 任一可观察行为漂移 | name-only rename 和删除明确退出的 Skill 实体/当前 caller 前 | 冻结合同归一化等价，删除项无同义 wrapper 或活跃引用 |
+| 6 | 每组 replay 前 fresh fixture + upgraded fixture snapshot | 质量/恢复回退、连续两轮无 progress、指标改善依赖降低证据 | 仅 fixture 内故障注入已在本计划授权；触碰真实环境或不可逆状态前另行确认 | R0-R3 与四条组合链满足 §1.5 阈值，无新增误路由/误阻塞 |
+| 7 | 最终审计前 Git checkpoint 与完整 rollback 清单 | 任一 A1-A33 缺当前 owner 证据、目标路径仍依赖旧合同 | 删除 `/init-docs` alias、旧 contract、迁移 wrapper 和当前 plan 前 | A1-A33、focused Harness gates、replay、docs check、负向搜索全部通过并完成原子收口 |
+
 ## 2 Loop 工作合同
 
 ### 2.1 Progress Predicate
@@ -86,7 +131,7 @@
 2. 从最早未完成 Phase 选择价值最高、风险边界最清晰的差距；
 3. 明确该 Change 的不变量、基线、主证据 owner、成功阈值、止损、rollback 和旧入口退出条件；
 4. 对代码/脚本/Skill 逻辑执行 Red-Green-Refactor，普通风险复用已有证据，重要/关键风险只补最接近行为 owner 的不同故障模式；
-5. 执行 focused gate 和受影响的根级 gate；环境/组合行为使用独立 fixture 或真实 lifecycle evidence，不包装为产品 E2E；
+5. 执行 focused owner gate 和受影响的 Harness 聚合 gate；只有实际触碰产品代码或真实用户链路时才补对应产品 gate，环境/组合行为使用独立 fixture 或真实 lifecycle evidence，不包装为产品 E2E；
 6. 将新的当前合同回写 Spec/README，原子刷新 INDEX；
 7. 更新本 plan 的行内 checkbox 和第 7 节 checkpoint，只保留恢复所需当前状态；
 8. 在可恢复边界使用交付提交能力建立 Git/work-journal checkpoint；
@@ -96,7 +141,7 @@
 
 - 单个 Iteration 不跨越两个独立 owner 切换；若必须跨越，先拆分 Change 或重新确认计划。
 - 同一失败条件连续两个 Iteration 没有改善 progress predicate 时暂停，记录证据和 resume condition，不继续堆叠 wrapper、测试或文档。
-- 当前 Spec 失效、替代 owner 不完整、root gate 出现新增红灯、rollback 不可用、secret/项目血肉可能受损或需要新的架构决策时立即停止。
+- 当前 Spec 失效、替代 owner 不完整、命中的 Harness owner gate 出现新增红灯、rollback 不可用、secret/项目血肉可能受损或需要新的架构决策时立即停止。
 - 外部凭证、不可获取基础设施或 R3 授权缺失时返回精确 handoff，不以 `NOT_CONFIGURED` 或空脚本伪装 ready。
 
 ### 2.5 Bootstrap 执行入口
@@ -111,9 +156,9 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `architecture + tooling + migration + internal-contract`。
-- **TDD 策略**: 所有 Project Arch tooling、Skill 逻辑、迁移脚本、fixture helper 和检查器先在最接近 owner 的 Python contract/integration test 建立 Red；普通静态文本调整可复用 `make test`、`make docs-check`、lint 与负向搜索，不机械新增专用测试。
+- **TDD 策略**: 所有 Project Arch tooling、Skill 逻辑、迁移脚本、fixture helper 和检查器先在最接近 owner 的 Python contract/integration test 建立 Red；普通静态文本调整可复用 `make docs-check`、lint、负向搜索与 `git diff --check`，不机械新增专用测试。
 - **BDD 策略**: `BDD-N/A`。本 Spec 不新增用户可感知产品 API、UI 或业务流程，不创建 BDD Phase、BDD 文档或产品 E2E。
-- **替代验证 gate**: owner contract test、fresh/upgrade fixture integration、同版本幂等/冲突/rollback test、Skill contract、INDEX/current-truth drift check、环境 lifecycle fixture、组合 replay、`make test`、`make docs-check`、`git diff --check` 和目标旧口径负向搜索。
+- **替代验证 gate**: owner contract test、fresh/upgrade fixture integration、同版本幂等/冲突/rollback test、Skill contract、INDEX/current-truth drift check、环境 lifecycle fixture、组合 replay、Harness 聚合 gate、`make docs-check`、`git diff --check` 和目标旧口径负向搜索；产品 gate 只在实际命中产品代码或真实链路时条件运行。
 - **真实 E2E 边界**: Harness fixture/replay 属于内部 contract/integration evidence；只有既有产品场景被用于确认 EasyInterview upgrade 未破坏真实用户链路时，才由其现有 `E2E.*` owner 执行，不在本计划中分配新 E2E ID。
 
 ### 3.1 主证据 Owner
@@ -125,7 +170,7 @@
 | Skill 五层合同、名称和独立性 | `.agent-skills/` contract tests | 组合路由在 Phase 6 replay 证明涌现风险 |
 | 环境 build/operate | 两个 Harness 自有异构 fixture lifecycle tests | EasyInterview `local-dev-stack` 只补 upgrade/regression evidence |
 | `/delivery-commit` 冻结合同 | 现有 work-journal contract 的前后等价测试 | 只归一化允许变化的名称、目录和路径字段 |
-| 全仓不退化 | 根 `make test` 与 `make docs-check` | 命中产品真实链路时复用已有 scenario owner，不创建包装场景 |
+| Harness 不退化 | focused owner tests、目标 `make harness-test`、`make docs-check` 与负向搜索 | 命中产品代码或真实链路时才补对应产品 gate/scenario owner，不创建包装场景 |
 
 ### 3.2 能力寻源策略
 
@@ -140,12 +185,12 @@
 
 **目标**：在修改执行入口前，建立可重复的当前基线、代表性任务集和逐 Change 回退合同。
 
-- [x] 0.1 确认 Spec 2.1 是唯一 owner，用户确认采用单一 `plan.md` 的方案 A。
+- [x] 0.1 确认 Spec 2.2 是唯一 owner，用户确认采用单一 `plan.md` 的方案 A。
 - [x] 0.2 盘点 20 个 Skill 与旧 Docs Arch 资产数量，记录 `docs/agent-workflow.md`、`scripts/harness_arch.py` 当前缺失状态。
-- [ ] 0.3 运行并记录当前 `make test`、`make docs-check`、Harness/Skill contract tests 与旧路径代表性 replay；历史 PASS 只作为线索。
-- [ ] 0.4 冻结 R0/R1/R2/R3 代表任务、两个异构环境 fixture 边界、fresh/upgrade 输入和组合链路集合。
-- [ ] 0.5 记录首次有效证据时间、预读量、工具调用、流程文件触碰、误路由、误阻塞、恢复结果的基线采集方式和成功阈值。
-- [ ] 0.6 为 Phase 1-7 分别声明 rollback checkpoint、止损条件、R3 确认点和旧入口退出条件。
+- [x] 0.3 运行并记录当前 `make docs-check`、Harness/Skill contract tests、旧路径代表性 replay 与已知 Harness 红项；历史 PASS 和无关产品 gate 只作为线索。
+- [x] 0.4 冻结 R0/R1/R2/R3 代表任务、两个异构环境 fixture 边界、fresh/upgrade 输入和组合链路集合。
+- [x] 0.5 记录首次有效证据时间、预读量、工具调用、流程文件触碰、误路由、误阻塞、恢复结果的基线采集方式和成功阈值。
+- [x] 0.6 为 Phase 1-7 分别声明 rollback checkpoint、止损条件、R3 确认点和旧入口退出条件。
 - [x] 0.7 冻结单 plan bootstrap 执行入口：不复活 `context.yaml`/checklist，不为旧 `/implement` 增加兼容支持，目标 `/delivery-execute` 可用后立即退出。
 
 **Phase Exit**：基线可重复、代表任务与 fixture 不绑定 EasyInterview 业务实例、当前红灯被显式列出，且首个 Arch Change 具备 rollback。
@@ -155,7 +200,7 @@
 **目标**：先建立其他目标能力能够消费的 Project Arch 最小内核。
 
 - [ ] 1.1 Red：为 fresh `init`、只读 `check`、legacy `upgrade`、最小 `repair`、同版本 zero-diff、custom/conflicting 分类、部分失败 resume 和项目血肉保留建立 fixture assertions。
-- [ ] 1.2 Green：实现 versioned Blueprint、bundled templates、adapter schema、`<!-- project-arch: v1 -->` 安装标记与 `scripts/harness_arch.py` 的 init/check/upgrade/repair。
+- [ ] 1.2 Green：实现 versioned Blueprint、bundled templates、adapter schema、`<!-- project-arch: v1 -->` 安装标记、`scripts/harness_arch.py` 的 init/check/upgrade/repair 与根 `make harness-test` 聚合入口。
 - [ ] 1.3 实现仓库事实 discovery 和 `ready/spec_required/decision_required/conflict` handoff；不得要求 caller 提供 framework/schema/templates 或手工编写项目 adapter。
 - [ ] 1.4 安装四层 Docs Arch 与 test/scenario/env 最小接口；按需扩展不得预建空目录。
 - [ ] 1.5 在 fresh fixture 与当前 EasyInterview checkout 验证幂等、冲突、rollback、secret/业务内容保留和精确 resume condition。
@@ -167,7 +212,7 @@
 
 **目标**：让文档写入、导航和 owner 解析由 Project Arch tooling 承接，并移除平行当前状态资产。
 
-- [ ] 2.1 Red：覆盖 Header/路径/Markdown 链接生成 INDEX、原子写入/rollback、current-truth lookup、多候选解释和无持久化查询缓存。
+- [ ] 2.1 Red：以当前两个已知 Harness 红项为迁移输入，覆盖 Header/路径/Markdown 链接生成 INDEX、唯一 active plan 导航、原子写入/rollback、current-truth lookup、多候选解释和无持久化查询缓存；不通过改旧标题制造假绿。
 - [ ] 2.2 Green：实现 docs transaction、INDEX check/repair/rebuild 和 current-truth lookup；`INDEX.md` 不拥有正文语义或独立状态。
 - [ ] 2.3 按“当前事实 / 当前工作 / 独立知识 / 可删除投影”逐 subject 重分类，单个 Iteration 只迁移一个资产族或 owner 边界。
 - [ ] 2.4 按路径盘点并删除全部 `context.yaml` 及 reader/writer/importer/converter/caller；不读取其内容，不建立替代 manifest/cache。
@@ -237,7 +282,7 @@
 - [ ] 7.1 逐项审计 A1-A33，每项链接到唯一 owner 的当前证据；历史 PASS 和本 plan checkbox 不单独构成验收。
 - [ ] 7.2 执行目标 Skill/旧名称、`context.yaml`、独立 checklist/BDD/test plan、history、templates、ui-design、通用阻塞机制、Skill-to-Skill 调用和 `/init-docs` alias 的全量负向搜索。
 - [ ] 7.3 删除已满足退出条件的 `/init-docs` alias、旧 contract tests、迁移 wrapper、空扩展和无独立价值资产；验证 rollback checkpoint 在删除前可用。
-- [ ] 7.4 运行全部 focused owner gates、fixture/replay、`make test`、`make docs-check`、`git diff --check` 和必要的现有真实场景回归。
+- [ ] 7.4 运行全部 focused Harness owner gates、`make harness-test`、fixture/replay、`make docs-check`、`git diff --check` 和目标旧口径负向搜索；只有实际触碰产品代码或真实链路时才条件运行对应产品 gate/现有真实场景。
 - [ ] 7.5 将仍有效合同回写 Spec/README，把验证留在代码/测试，把交付事实交给 Git/work journal；只在具有独立知识价值时创建 Bug/report/Decision/retrospective。
 - [ ] 7.6 原子刷新 INDEX，删除本 plan 目录；不得把 Header 改成 `completed` 后永久保留交付包。
 
@@ -265,7 +310,7 @@
 
 | 风险 | 早期信号 | 止损与回退 | Resume Condition |
 |------|----------|------------|------------------|
-| bootstrap 期间新旧文档合同冲突 | 新 tooling 未 ready，旧 checker 拒绝单 plan/新 INDEX | 保留当前可执行 gate，仅对本 subject 使用 Spec 2.1 明确例外；不创建兼容 manifest | Project Arch docs transaction 可验证并接管全仓调用方 |
+| bootstrap 期间新旧文档合同冲突 | 新 tooling 未 ready，旧 checker 拒绝单 plan/新 INDEX | 保留当前可执行 gate，仅对本 subject 使用 Spec 2.2 明确例外；不创建兼容 manifest | Project Arch docs transaction 可验证并接管全仓调用方 |
 | 批量删除丢失唯一语义 | 删除前找不到当前 Spec/README/代码 owner | 停止该资产族，恢复最近 Git checkpoint，先完成语义分类和 owner 承接 | owner 路径、负向搜索、focused gate 和 rollback 均明确 |
 | hard cut 导致路由不可用 | trigger/caller/AGENTS/workflow 不一致 | 回退单个 Skill Change，不保留半切换名称 | 同一 Change 内名称、实体、调用方和 contract tests 可原子切换 |
 | `init-arch` 覆盖项目血肉 | fixture custom 文件或 EasyInterview 业务内容变化 | fail closed 并回滚 Arch-owned 写入 | inventory ownership 与冲突策略可区分 Arch-owned/custom |
@@ -276,13 +321,13 @@
 
 ## 7 当前 Checkpoint
 
-- **最近完成**: 用户确认方案 A；建立唯一 loop plan；完成当前 Skill/Docs Arch 只读基线盘点。
-- **当前 Phase**: Phase 0。
-- **当前未完成**: 运行根级/Skill contract baseline，冻结代表性 R0-R3 replay、异构 fixture 和逐 Phase rollback/退出条件。
-- **当前阻塞**: 无技术阻塞；尚未获得进入代码、Skill、治理迁移和 R3 删除阶段的实施授权。
-- **验证摘要**: plan 创建前工作树干净；当前事实来自 `rg --files`、路径存在性与当前 owner 文档读取，尚未把历史 PASS 当作当前实现证据。
-- **下一动作**: 用户明确要求开始实施后，从 0.3 运行当前根级与 Harness contract baseline，只记录事实，不先修改目标入口。
-- **恢复入口**: 读取 Spec 2.1、本节 checkpoint、`git status/diff/log`、当前 `make test`/`make docs-check` 和 Env status；不读取历史 `context.yaml`。
+- **最近完成**: 完成 Phase 0：冻结 Harness/Skill/docs 当前基线、R0-R3 代表任务、两个异构 fixture、度量阈值和 Phase 1-7 Change 控制；用户已授权按新 Harness 体系实施，并明确不机械运行无关产品 `make test`。
+- **当前 Phase**: Phase 1。
+- **当前未完成**: 为 `init-arch` fresh/check/upgrade/repair、同版本 zero-diff、custom/conflicting、部分失败 resume 和项目血肉保留建立 owner Red。
+- **当前阻塞**: 无；当前两个 Harness 红项属于 Phase 2 owner lookup 迁移输入，不通过旧标题或临时入口制造假绿。
+- **验证摘要**: `make docs-check` PASS；`.agent-skills` 152 PASS；旧路径代表 replay 96 PASS；49 个旧 context validator PASS；当前已知 Harness 红项为旧 index 标题/cache 合同与 orphan `scripts/harness_index.py`。
+- **下一动作**: 建立 Phase 1.1 的 Project Arch fresh/upgrade fixture owner tests，只写 Red，不改旧执行入口或产品代码。
+- **恢复入口**: 读取 Spec 2.2、本节 checkpoint、`git status/diff/log`、focused Harness/Skill tests、`make docs-check` 和 fixture Env status；不读取历史 `context.yaml`，不机械运行无关产品 gate。
 
 ## 8 完成与退出条件
 
@@ -290,7 +335,7 @@
 
 1. A1-A33 每项都有当前、唯一 owner 的可执行或可审计证据；
 2. fresh 与 upgraded 安装态、R0-R3、单能力/组合链、两类环境和 loop resume 全部通过；
-3. 当前根级 gates 通过，目标旧口径负向搜索只剩 Spec 映射与允许的历史事实；
+3. 当前 Harness owner/聚合 gates 与 docs gate 通过，目标旧口径负向搜索只剩 Spec 映射与允许的历史事实；产品 gate 只在实际命中产品代码或真实链路时适用；
 4. rollback、cleanup、secret redaction、项目血肉保留和恢复条件均已实际验证；
 5. 仍有效合同已进入 Spec/README，测试和检查进入代码 owner，提交事实可由 Git/work journal 追溯；
 6. `/init-docs` alias、旧 Skill 名称、旧 contract/wrapper 和无独立价值资产按退出条件删除；
