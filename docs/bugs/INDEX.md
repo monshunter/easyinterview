@@ -44,6 +44,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0186](./BUG-0186.md) | unanswered terminal prompt leaked into report assessment | high | resolved | 2026-07-18 | `fix(report): exclude unanswered terminal prompt (BUG-0186)` |
 | [BUG-0182](./BUG-0182.md) | report retries repeatedly selected a terminal assistant message as evidence | high | resolved | 2026-07-16 | `fix(report): harden regeneration and local diagnostics (BUG-0182, BUG-0183)` |
 | [BUG-0173](./BUG-0173.md) | malformed report conversation ID reached the UUID database query | medium | resolved | 2026-07-15 | `feat(report): integrate readonly conversation record (BUG-0173, BUG-0174)` |
 | [BUG-0171](./BUG-0171.md) | report generation rejected valid context at a stale hardcoded byte limit | high | resolved | 2026-07-14 | `fix(runtime): centralize content size limits (BUG-0171)` |

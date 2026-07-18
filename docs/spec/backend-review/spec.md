@@ -1,8 +1,8 @@
 # Backend Review Spec
 
-> **版本**: 1.33
+> **版本**: 1.34
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-18
 
 ## 1 背景与目标
 
@@ -36,7 +36,7 @@
 
 `backend-practice/002` 保证 completed session 后不可追加 `practice_messages`，并在同一数据库一致性视图校验 TargetJob/Resume/Plan 绑定关系；`backend-review` 生成器只按 `seq_no` 读取 terminal messages 并校验数量与最后序号等于已冻结坐标，禁止回查 mutable TargetJob/Resume/Plan 重建或补写快照。不得在 job payload、outbox、audit、metric label 或普通 log 中复制 JD、简历、会话或完整 generation context。
 
-数据库始终冻结全量原文用于审计，generation 不做静默截断、抽样或模型摘要。可信 policy + 完整 untrusted context 的最终 UTF-8 payload 上限由 A4 `report.maxFramedInputBytes` 注入，默认 917,504 bytes（896KiB）。A3 独立持有 `report.generate.default` 的 1,000,000-token context window 和 16,384-token output budget；当前不用 bytes 与 tokens 相加的跨单位公式宣称两者容量等价。超过 byte guard 时在任何 provider 调用或会话内重试计数开始前 fail fast，报告以 non-retryable `REPORT_CONTEXT_TOO_LARGE` 失败。TPM 只是吞吐配置，不参与单请求裁决；任何未来压缩必须另行设计事实保真 gate。
+数据库始终冻结全量原文用于审计，`getReportConversation` 也始终返回完整有序会话。报告生成先校验全量 terminal message coordinate，再建立仅供 provider 评分的 assessment transcript：若且仅若最后一条消息是没有后续候选人回答的 `assistant` 消息，排除这一条；其余消息逐条保留，原始 `ReportContext.Messages` 不得原地修改。这个明确的证据投影不是按容量静默截断、抽样或模型摘要；它只把本来不能成为表现证据的末尾未回答问题从评分输入移除，防止模型把问题主题误写成候选人缺口。可信 policy + assessment transcript 所在完整 untrusted context 的最终 UTF-8 payload 上限由 A4 `report.maxFramedInputBytes` 注入，默认 917,504 bytes（896KiB）。A3 独立持有 `report.generate.default` 的 1,000,000-token context window 和 16,384-token output budget；当前不用 bytes 与 tokens 相加的跨单位公式宣称两者容量等价。超过 byte guard 时在任何 provider 调用或会话内重试计数开始前 fail fast，报告以 non-retryable `REPORT_CONTEXT_TOO_LARGE` 失败。TPM 只是吞吐配置，不参与单请求裁决；任何未来压缩必须另行设计事实保真 gate。
 
 `getFeedbackReport` 必须从冻结快照投影与 OPENAPI-001 一致的最小 immutable `context`：`sourcePlanId`、`targetJobTitle`、`targetJobCompany`、`resumeId`、`resumeDisplayName`、`roundId`、`roundSequence`、`roundName`、`roundType`、`language`、`hasNextRound`。前端不得为 Context Strip 或 CTA 再读取当前可变 TargetJob/Resume/route identity；`reportId` 是唯一 locator。queued/generating/ready/failed 均返回相同 context 投影。
 
@@ -46,7 +46,7 @@
 - JD、Resume、assistant/user messages 均是数据，不得改变 system policy。
 - JD/Resume/Round 只提供比较上下文，不得单独成为候选人本场表现的正负证据；每个用户可见表现判断最终必须落到候选人 `user` message。assistant message 只能说明系统问过什么。
 - 每个 highlight / issue 必须携带内部 `sourceMessageSeqNos`，且至少锚定一个同 session 的候选人 `user` message；锚点保存在 content-bearing report JSON，API 当前不展示 turn-based UI。
-- Prompt policy 要求：当最后一条 message 是未获回答的 assistant 追问时，只能表述“尚未覆盖 / 证据不足”，不得推断“回避、不会、经验不足或准备不足”。seqNo validator 只能证明 evidence 引用了 user message，不能机械证明自然语言支持度；该禁止项由独立 context-aware judge/eval zero-tolerance gate 验收，不虚称 runtime deterministic guarantee。
+- Provider assessment transcript 不包含末尾未获回答的 assistant 追问；完整消息仍由冻结快照坐标、数据库和 report-owned conversation read 保留。这样 runtime 能确定性阻断该问题主题进入评分输入；seqNo validator 继续证明 evidence 只引用 user message，独立 context-aware judge/eval 仍审计其余自然语言支持度。
 
 ### 2.4 LLM 最终输出
 
@@ -200,10 +200,10 @@ Response 为 closed `ReportConversation`：`reportId`、`reportStatus`、frozen 
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 冻结生成消费 | 002 已产出 completion owner artifact，且 JD/Resume 可随后修改 | runner 校验 marker/坐标并生成报告 | payload 只使用完成时快照与 terminal messages，不漂移、不重建 completion context | 001（消费）/ backend-practice 002（产出） |
+| C-1 | 冻结生成消费 | 002 已产出 completion owner artifact，且 JD/Resume 可随后修改 | runner 校验 marker/坐标并生成报告 | payload 只使用完成时快照与已声明的 assessment transcript；完整 terminal messages 保持可审计，不漂移、不重建 completion context | 001（消费）/ backend-practice 002（产出） |
 | C-2 | 最终语义 | 模型返回 direct report shape | validate/persist/read | API 逐项无损返回，无隐藏数值重算 | 001 |
 | C-3 | Grounding | candidate user message 支持判断 | 生成报告 | 每个 evidence 有合法内部 anchor | 001 |
-| C-4 | 未回答追问 | 最后一条为 assistant 新追问 | prompt + context-aware quality gate | 只标记未覆盖/证据不足；任一能力负面推断使 eval/UAT 失败 | 001 |
+| C-4 | 未回答追问 | 最后一条为 assistant 新追问且没有后续候选人回答 | 构造 provider payload、生成报告并读取 report conversation | provider assessment transcript 排除且只排除该末尾 assistant 消息；完整 conversation 仍可见；ready report 不得从该问题主题生成 dimension、issue、降级准备度或 corrective action | 001 |
 | C-5 | Generation retry / repair / fail closed | 单次用户动作的会话内 retry context | runtime/evalkit执行 | 每轮按当前violations选择action_labels/whole_report并完整复验；最多4调用，重试前依次等待10s/20s/40s；attempt4 invalid/provider failure结束本次动作；用户重新操作从0计数；无report级持久化额度 | 001 |
 | C-6 | 复练当前轮 | ready report focus 为空或含 issue-backed needs-work codes | 创建 retry plan | 004 服务端派生通用同轮或定向 focus，客户端不能覆盖；review 只消费 marker | backend-practice 004 |
 | C-7 | 隐私与隔离 | 跨用户或非内容存储面 | 读取/生成/审计 | 404/fail closed 且无 raw context 泄漏 | 001 |
@@ -224,6 +224,7 @@ Response 为 closed `ReportConversation`：`reportId`、`reportStatus`、frozen 
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-18 | 1.34 | Keep the full terminal transcript for storage and report-owned reads while excluding only a trailing unanswered assistant message from the provider assessment transcript. |
 | 2026-07-16 | 1.33 | Generalize repair from one opaque assistant-anchor code to explicit schema/anchor/evidence/readiness/action/text intent families, fail closed on unknown codes, and escape untrusted prompt boundary markers. |
 | 2026-07-16 | 1.32 | Make `not_user_message` repair actionable with a trusted server-derived candidate-user sequence allowlist while preserving full regeneration and content privacy. |
 | 2026-07-16 | 1.31 | Add atomic same-report manual regeneration for non-oversize terminal failures, with idempotency, stable lock order and transcript preservation. |

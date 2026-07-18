@@ -1,8 +1,8 @@
 # Grounded Conversation Report BDD Checklist
 
-> **版本**: 2.27
+> **版本**: 2.28
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-18
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -12,6 +12,10 @@
 - [x] Focused behavior tests 覆盖所有可达 validation code 的明确 intent family、多 family 合并、可信 user-seq allowlist、unknown-code provider-before-call failure 与 literal marker escaping。
 - [x] Phase 14 后重新执行根 `make test`；该结果是代码层行为证据，不是 `E2E.P0.099` PASS。
   <!-- verified: 2026-07-16 evidence="Python 584/4583 subtests, Go all packages, frontend 126/1026 PASS; no new P0.099 PASS claimed" -->
+- [x] Phase 15 owner tests prove the assessment transcript removes exactly one trailing assistant message without mutating the full stored conversation.
+  <!-- verified: 2026-07-18 test=TestReportCompletePayloadExcludesOnlyTrailingUnansweredAssistant result="focused and full internal/review PASS; terminal user, paired assistant, ordering and source immutability covered" -->
+- [x] Phase 15 real Chrome desktop/mobile evidence proves the ready report does not assess the terminal unanswered topic while the report conversation still displays that final assistant message.
+  <!-- verified: 2026-07-18 method=real-chrome-db evidence="new ready report; terminal-topic assertions false; full terminal assistant preserved; desktop/390x844 overflow-free screenshots; zero console error/warn" -->
 
 ## E2E.P0.099 静态资产审计
 

@@ -1,8 +1,8 @@
 # 001 — Grounded Conversation Report Generation Checklist
 
-> **版本**: 2.31
+> **版本**: 2.32
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-18
 
 **关联计划**: [plan](./plan.md)
 
@@ -78,6 +78,17 @@
 - [x] 14.2 GREEN/PRIVACY: derive sorted candidate-user seqNo allowlist only from validated server/eval coordinates；map every reachable validation code into explicit structural/anchor/evidence/readiness/action/text intent, combine all present families, validate restricted path grammar + code/path compatibility + positive unique strictly ascending seqNos + non-empty anchor allowlist, fail closed on unsafe/unknown coordinates, escape untrusted marker characters, preserve the same JSON semantics and the same escaped untrusted user message across initial/repair attempts, and reject previous-output/raw/untrusted-role promotion.<!-- verified: 2026-07-16 method=backend-report-repair-green evidence="runtime and evalkit derive trusted sorted user seqNos; terminal unanswered assistant regression exposes only [2,4,6]; concrete family-rule, unsafe-coordinate and literal-marker tests pass in internal/review and cmd/evalkit" -->
 - [x] 14.3 REGRESSION: focused backend review/evalkit tests, root `make test`, build and context/docs gates pass.<!-- verified: 2026-07-16 method=full-regression evidence="focused review/evalkit repair tests PASS; make test Python 584/4583 subtests, Go all packages, frontend 126/1026 PASS; make build, context validators, docs/index and git diff --check PASS" -->
 - [x] 14.4 REAL: redeploy backend and regenerate report `019f6a70-0b24-7c7b-a1d3-1456503a2421`; same-ID report reaches ready and DEBUG evidence proves valid user anchors without exposing content.<!-- verified: 2026-07-16 method=real-provider-same-report evidence="same report reached ready; fresh job succeeded; three stop/schema-valid calls used only user anchors [4,6]; missing_evidence repair requests carried exact-dimension support/removal intent and the third response passed full validation" -->
+
+## Phase 15: Terminal unanswered assistant assessment projection
+
+- [x] 15.1 RED: `reportCompletePayload` focused test proves the current provider payload still contains a trailing unanswered assistant message; paired/non-terminal assistant turns, terminal user answers, canonical ordering and source-slice immutability are asserted.
+  <!-- verified: 2026-07-18 method=tdd-red command="cd backend && go test ./internal/review -run TestReportCompletePayloadExcludesOnlyTrailingUnansweredAssistant -count=1" result="failed because terminal assistant seqNo 3 remained in both canonical provider payload cases; terminal-user and paired-turn boundary passed" -->
+- [x] 15.2 GREEN: derive a fresh provider assessment slice that removes exactly one trailing assistant message and nothing else; repair user-seq allowlists use the same projection, while persistence and `getReportConversation` remain unchanged.
+  <!-- verified: 2026-07-18 method=tdd-green commands="focused terminal-assistant test; full internal/review package" result="pass; paired turns, terminal user, canonical ordering and source immutability preserved" -->
+- [x] 15.3 REGRESSION: focused review tests, full review package, root `make test`, context/docs/index and diff gates pass.
+  <!-- verified: 2026-07-18 method=full-regression evidence="focused and internal/review PASS; make test Python 584/4583 subtests, Go all packages, frontend 126 files/1027 tests PASS; context/docs/index/diff PASS" -->
+- [x] 15.4 BDD-Gate: `BDD.REPORT.GENERATE.001` proves a new real Chrome report contains no assessment/action derived from the unanswered terminal topic while report conversation retains that final assistant message; desktop + 390×844 screenshots and console evidence are recorded.
+  <!-- verified: 2026-07-18 method=real-chrome-db evidence="report 019f74c2-096e-7407-bccd-11c01fb59c40 ready; DB transcript count=3 terminal role=assistant; report topic checks false; desktop/mobile report+conversation screenshots; 390x844 overflowX=false; Chrome console zero error/warn; .test-output/e2e/chrome-full-regression-postfix-20260718/consolidated-coverage.md" -->
 
 ## Closeout
 

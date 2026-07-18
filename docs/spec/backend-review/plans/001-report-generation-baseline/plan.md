@@ -1,8 +1,8 @@
 # 001 — Grounded Conversation Report Generation
 
-> **版本**: 2.32
+> **版本**: 2.33
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-18
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -59,7 +59,7 @@
 |--------|----------|-------|--------------|----------|
 | spec C-1 | cross-owner frozen consumer | 6 | consume backend-practice/002 owner artifact + review load tests | review rebuilds mutable JD/Resume context |
 | spec C-2 | primary / contract | 7 | prompt/schema/service/persistence/OpenAPI tests | numeric score / backend average / fallback action |
-| spec C-3/C-4 | grounding / boundary | 7-8 | deterministic user-anchor tests + context-aware pending-question eval/UAT | assistant-only anchor / ability over-inference |
+| spec C-3/C-4 | grounding / boundary | 7-8, 15 | deterministic user-anchor tests + terminal-assistant assessment projection tests + context-aware eval/UAT + real Chrome report/conversation evidence | assistant-only anchor / terminal unanswered topic entering provider assessment / ability over-inference |
 | spec C-5 | failure/recovery + action-scoped retry | 7-8 | per-user-action `1+3` matrix + exact `10s/20s/40s` wait recorder | persisted retry count / cross-action carry-over / partial ready |
 | spec C-6 | replay handoff | 8 | consume backend-practice/004 code-level owner markers | review duplicates create-plan/focus authority |
 | spec C-7 | privacy/security | 6-8 | redaction/isolation/PII negative gates | context in job/outbox/audit/log/state artifacts |
@@ -201,9 +201,17 @@ Inject A4 `report.maxFramedInputBytes` into the report service/context builder. 
 - **REGRESSION**: focused runtime/evalkit serializer tests, root `make test`, build and docs gates pass；tests assert the concrete actionable rule for every family plus unsafe coordinate rejection, not merely a non-empty family label.
 - **REAL**: redeploy the current backend and retry the same failed report. The report must reach ready under the same ID；raw DEBUG pairs may prove stop/schema results, safe anchor coordinates and meaningful repair intent, but raw transcript/report content remains outside tracked evidence.
 
+### Phase 15: Terminal unanswered assistant assessment projection
+
+- **RED**: extend `reportCompletePayload` behavior coverage with a completed transcript whose final message is an unanswered assistant question. The provider payload must initially expose the defect by still containing that terminal question. Boundary cases require an ending user answer to remain present, a non-terminal assistant question to remain paired with its following answer, input ordering to stay canonical, and the caller-owned `ReportContext.Messages` slice to remain unchanged.
+- **GREEN**: after validating the full frozen terminal coordinate, derive a fresh assessment-message slice for provider serialization. If and only if the final ordered message role is `assistant`, remove that single item from the provider input; preserve every other message and derive repair anchor allowlists from the same assessment slice. Do not mutate persistence, `getReportConversation`, OpenAPI, prompt/schema, retry budgets or report IDs.
+- **REGRESSION**: run the focused backend review test, the full review package and root `make test`; validate context/docs/index/diff. This projection is an evidence-boundary fix, not size-based truncation, summarization or a new configuration layer.
+- **REAL/BDD**: redeploy the backend, create a new real completed practice session ending in an unanswered assistant question, and use Chrome against the real frontend/backend/provider. The ready report must contain no dimension, issue, readiness downgrade or corrective action derived from that terminal question, while “查看面试记录” still displays the full final assistant message. Record desktop and 390×844 screenshots plus zero-error console evidence.
+
 ## 6 验收标准
 
 - Ready report 来自冻结完整上下文，模型最终语义经严格 validator 后无损持久化/API 返回。
+- Provider 评分输入只排除末尾未回答的 assistant 消息；完整 terminal transcript 仍由持久化与 `getReportConversation` 保留，且 caller-owned message slice 不被修改。
 - 任一 evidence 有同 session candidate-user anchor；未回答追问不产生能力负面推断。
 - 每个当前可达 semantic/schema validation code 都映射为明确纠错 family；同轮多类错误不得被 first-match / `break` 丢弃，未知 code 在 provider 调用前 fail closed。
 - `not_user_message` repair 使用服务端已验证 role 派生的 user seqNo allowlist 给出可执行纠错信息；只传数字，不传正文，不从 assistant anchor 猜测替代 user anchor。
@@ -238,6 +246,7 @@ Inject A4 `report.maxFramedInputBytes` into the report service/context builder. 
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-18 | 2.33 | Add Phase 15 deterministic assessment projection so a trailing unanswered assistant question stays in the stored conversation but cannot enter provider scoring input. |
 | 2026-07-16 | 2.32 | Expand Phase 14 to meaningful multi-family repair, exhaustive reachable-code coverage, unknown-code fail-closed behavior, marker escaping and same-report real recovery evidence. |
 | 2026-07-16 | 2.31 | Reopen Phase 14 after real retry forensics proved repeated assistant anchors; require trusted user-sequence repair guidance and same-report real verification. |
 | 2026-07-16 | 2.30 | Reopen Phase 13 for same-report failed regeneration with atomic job creation and idempotent API recovery. |

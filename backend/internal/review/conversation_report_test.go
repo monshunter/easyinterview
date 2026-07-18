@@ -100,6 +100,63 @@ func TestReportPromptSeparatesTrustedPolicyFromUntrustedFrozenData(t *testing.T)
 	}
 }
 
+func TestReportCompletePayloadExcludesOnlyTrailingUnansweredAssistant(t *testing.T) {
+	resolution := validReportResolution()
+
+	t.Run("trailing unanswered assistant is excluded from provider assessment", func(t *testing.T) {
+		reportCtx := validGenerationReportContext("en")
+		before := append([]MessageSnapshot(nil), reportCtx.Messages...)
+
+		payload, err := reportCompletePayload(resolution, reportCtx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		providerInput := payload.Messages[1].Content
+		if strings.Contains(providerInput, "What was the rollback plan?") || strings.Contains(providerInput, `"seqNo":3`) {
+			t.Fatalf("terminal unanswered assistant reached provider assessment: %s", providerInput)
+		}
+		if !reflect.DeepEqual(reportCtx.Messages, before) {
+			t.Fatalf("source transcript mutated: got=%+v want=%+v", reportCtx.Messages, before)
+		}
+	})
+
+	t.Run("paired assistant question and terminal user answer remain", func(t *testing.T) {
+		reportCtx := validGenerationReportContext("en")
+		reportCtx.Messages = append(reportCtx.Messages, MessageSnapshot{Role: "user", Content: "I would roll back on error-rate and consistency regressions.", SeqNo: 4})
+		reportCtx.FrozenContext.Conversation.MessageCount = 4
+		reportCtx.FrozenContext.Conversation.LastMessageSeqNo = 4
+		payload, err := reportCompletePayload(resolution, reportCtx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		providerInput := payload.Messages[1].Content
+		for _, want := range []string{"What was the rollback plan?", "I would roll back on error-rate and consistency regressions.", `"seqNo":3`, `"seqNo":4`} {
+			if !strings.Contains(providerInput, want) {
+				t.Fatalf("paired transcript lost %q: %s", want, providerInput)
+			}
+		}
+	})
+
+	t.Run("unordered source is copied and serialized canonically", func(t *testing.T) {
+		reportCtx := validGenerationReportContext("en")
+		reportCtx.Messages = []MessageSnapshot{reportCtx.Messages[2], reportCtx.Messages[0], reportCtx.Messages[1]}
+		before := append([]MessageSnapshot(nil), reportCtx.Messages...)
+		payload, err := reportCompletePayload(resolution, reportCtx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		providerInput := payload.Messages[1].Content
+		first := strings.Index(providerInput, `"seqNo":1`)
+		second := strings.Index(providerInput, `"seqNo":2`)
+		if first < 0 || second < 0 || first >= second || strings.Contains(providerInput, `"seqNo":3`) {
+			t.Fatalf("assessment transcript is not canonical or retained trailing assistant: %s", providerInput)
+		}
+		if !reflect.DeepEqual(reportCtx.Messages, before) {
+			t.Fatalf("sorting mutated source transcript: got=%+v want=%+v", reportCtx.Messages, before)
+		}
+	})
+}
+
 func TestValidateReportCallMetaRejectsMissingOrMismatchedProvenance(t *testing.T) {
 	resolution := validReportResolution()
 	tests := []struct {

@@ -337,13 +337,12 @@ func reportCompletePayload(resolution registry.PromptResolution, reportCtx Repor
 	if err != nil {
 		return aiclient.CompletePayload{}, err
 	}
-	ordered := append([]MessageSnapshot(nil), reportCtx.Messages...)
-	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].SeqNo < ordered[j].SeqNo })
+	assessmentMessages := reportAssessmentMessages(reportCtx.Messages)
 	frozenRaw, err := json.Marshal(reportCtx.FrozenContext)
 	if err != nil {
 		return aiclient.CompletePayload{}, fmt.Errorf("marshal frozen report context: %w", err)
 	}
-	messagesRaw, err := json.Marshal(ordered)
+	messagesRaw, err := json.Marshal(assessmentMessages)
 	if err != nil {
 		return aiclient.CompletePayload{}, fmt.Errorf("marshal report messages: %w", err)
 	}
@@ -353,7 +352,7 @@ func reportCompletePayload(resolution registry.PromptResolution, reportCtx Repor
 		frozenRaw,
 		messagesRaw,
 		repairIssues,
-		candidateUserMessageSeqNos(ordered),
+		candidateUserMessageSeqNos(assessmentMessages),
 	)
 	if err != nil {
 		return aiclient.CompletePayload{}, err
@@ -375,6 +374,15 @@ func reportCompletePayload(resolution registry.PromptResolution, reportCtx Repor
 		},
 	}
 	return payload, nil
+}
+
+func reportAssessmentMessages(messages []MessageSnapshot) []MessageSnapshot {
+	ordered := append([]MessageSnapshot(nil), messages...)
+	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].SeqNo < ordered[j].SeqNo })
+	if len(ordered) > 0 && ordered[len(ordered)-1].Role == "assistant" {
+		ordered = ordered[:len(ordered)-1]
+	}
+	return ordered
 }
 
 // BuildReportPromptMessages is the single report.generate trust-boundary

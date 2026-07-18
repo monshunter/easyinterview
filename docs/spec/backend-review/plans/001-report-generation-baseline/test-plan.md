@@ -1,8 +1,8 @@
 # Grounded Conversation Report Test Plan
 
-> **版本**: 2.28
+> **版本**: 2.29
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-18
 
 ## 1 Owner test boundary
 
@@ -56,3 +56,9 @@
 - Handler/service tests cover auth/IK, identity validation, exact same-ID `ReportWithJob`, report-specific idempotency pending/replay headers and safe typed errors.
 - SQL tests cover job-before-report lock order, full ready-field reset, stable session dedupe, fresh action IDs, audit-only side effects and rollback on every write failure.
 - Real PostgreSQL tests cover concurrent different keys, the failure-persist/job-finalize window, one active report job and frozen-context reuse to ready. Oversize/non-failed/cross-user cases prove zero writes/provider calls.
+
+## 9 Terminal unanswered assistant projection
+
+- `reportCompletePayload` focused tests start RED by proving the terminal unanswered assistant message reaches the provider payload, then GREEN by requiring exactly that final item to be absent.
+- Boundary assertions retain non-terminal assistant questions with their following user answers, retain a terminal user message, sort the copied assessment slice canonically and prove the source `ReportContext.Messages` slice is unchanged.
+- Full conversation persistence/read behavior is covered by the existing report conversation owner tests; Chrome acceptance binds a ready report without terminal-topic assessment to a full transcript that still contains the final assistant message.

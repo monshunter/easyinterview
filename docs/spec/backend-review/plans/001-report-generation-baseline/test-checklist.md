@@ -1,8 +1,8 @@
 # Grounded Conversation Report Test Checklist
 
-> **版本**: 2.28
+> **版本**: 2.29
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-18
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -62,3 +62,14 @@
 - [x] PostgreSQL concurrency/finalize-window tests prove one active job and no deadlock/duplicate generation.
 - [x] Focused owner tests and root `make test` pass with evidence recorded after GREEN.
   <!-- verified: 2026-07-16 evidence="focused service/store/handler plus real PostgreSQL integration PASS; root regression PASS" -->
+
+## Terminal unanswered assistant projection
+
+- [x] Focused RED/GREEN tests prove exactly one trailing assistant message is excluded from provider assessment while paired turns, terminal user answers, ordering and source-slice immutability remain intact.
+  <!-- verified: 2026-07-18 method=tdd-red-green test=TestReportCompletePayloadExcludesOnlyTrailingUnansweredAssistant result=pass-after-reproducer-failed -->
+- [x] Existing report conversation tests prove the full stored transcript remains unchanged and readable.
+  <!-- verified: 2026-07-18 method=package-regression command="cd backend && go test ./internal/review -count=1" result=pass -->
+- [x] Root `make test` and owner context/docs/index/diff gates pass after the projection change.
+  <!-- verified: 2026-07-18 evidence="make test Python 584/4583, Go all, frontend 126/1027; context validator, docs-check, sync index and diff-check PASS" -->
+- [x] Real Chrome desktop/mobile evidence binds a ready report with no terminal-topic assessment to a conversation page that still shows the final assistant message.
+  <!-- verified: 2026-07-18 method=real-chrome-db evidence="same report/session bound across ready report, complete conversation and PostgreSQL; desktop/mobile screenshots and no-error console recorded under .test-output/e2e/chrome-full-regression-postfix-20260718" -->
