@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.37
+> **版本**: 1.38
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -176,10 +176,17 @@ GREEN 只在 `SettingsScreen` 增加明确的 theme editor 分组，并调整 `s
 
 `BDD.SHELL.TRANSITION.VISUAL.003` 由 shared component、TopBar、route/chrome、responsive/a11y tests 与 current-run Chrome desktop/mobile 验收承接；不建立并行 Demo、不生成像素基线，也不把装饰性 indeterminate 轨道描述为后端百分比。Phase 15.3 的 auth probe 中间态仍是独立缺口，不能因本 Phase 完成而关闭主 plan。
 
+### Phase 21: Settings Header security illustration remediation
+
+先以 Settings visual/component RED 拒绝现有山形折线、人物轮廓和独立圆形对勾的稀疏 Header SVG，并固定目标分层：一个带顶部栏、头像与资料行的半透明账号窗口，窗口内右下柱状图，左下前景锁卡、右下前景盾牌对勾，以及两侧星芒。GREEN 只重画 `SettingsHeaderArt` 与其 page-scoped CSS；所有填充、描边、光晕与阴影从当前主题 accent/token 派生，整组继续 `aria-hidden`，在窄屏沿用既有隐藏规则，不引入图片请求、业务事实或新交互。
+
+`BDD.SHELL.SETTINGS.ART.004` 由 Settings DOM layer contract、视觉 CSS/响应式断言与 current-run Chrome desktop 验收承接；Chrome 必须确认目标图形层级、Header/card 左边界与横向无溢出，且浏览器 error/warning 为零。完成 focused、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 后收口本 Phase；Phase 15.3 仍保持独立未完成，主 plan 继续为 `active`。
+
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.38 | Reopen Phase 21 to redraw the Settings Header as the approved layered profile, chart, lock, shield and sparkle security illustration without changing account behavior. |
 | 2026-07-19 | 1.37 | Reopen Phase 20 for a shared screenshot-aligned asynchronous transition scene, persistent TopBar chrome and context-route navigation mapping. |
 | 2026-07-19 | 1.36 | Reopen Phase 19 to keep first-level Settings theme choices visible, stack the conditional custom editor below them, and add full-spectrum hue plus hue-aware chroma tracks without changing persistence behavior. |
 | 2026-07-19 | 1.35 | Reopen Phase 18 for screenshot-aligned login, verify, logout and settings compositions while preserving the existing generated-client and state-machine contracts. |

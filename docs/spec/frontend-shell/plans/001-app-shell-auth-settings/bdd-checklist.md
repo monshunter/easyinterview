@@ -1,8 +1,8 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.26
+> **版本**: 1.27
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -63,3 +63,9 @@
 - [x] Shared component tests 覆盖 brand/resume/report/job 四种 code-native SVG、状态语义、可选步骤/动作、无伪百分比与装饰隔离。（最终 focused 9 files / 89 tests PASS。）
 - [x] TopBar/route tests 覆盖 Practice、Parse、Reports、Generating、报告详情/记录统一显示全局 chrome 并高亮“面试”。
 - [x] Responsive/reduced-motion tests 与 current-run desktop Chrome 验证视觉层级、可操作返回、无横向溢出和非必要动画降级；mobile 由同一组件的 720px contract 覆盖，不新增 E2E ID。（1920px 四态真实截图，browser error/warning=0。）
+
+## `BDD.SHELL.SETTINGS.ART.004` Settings Header 安全插画
+
+- [x] Settings DOM/visual tests 固定账号窗口、头像资料、柱状图、锁、盾牌对勾和星芒的独立层级，并拒绝旧山形人物稀疏线稿。（2026-07-20 RED 后 focused GREEN。）
+- [x] CSS/responsive/a11y tests 证明插画从当前主题 token 派生、保持 `aria-hidden`、desktop 不横溢且窄屏沿用隐藏规则。（ScreensVisual 14/14。）
+- [x] Chrome extension automation skill 在 current-run Settings desktop 页面确认目标图形结构、Header/card 对齐和 browser error/warning 为零；不新增 E2E ID。（1264×964，SVG 360×200，7 layers，documentWidth=viewportWidth，Ocean/Plum/Custom 预览与刷新恢复通过。）

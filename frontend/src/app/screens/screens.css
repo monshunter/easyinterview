@@ -4099,9 +4099,9 @@
 }
 
 .ei-settings-screen > .ei-settings-header {
-  min-height: 140px;
+  min-height: 166px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 48px;
   align-items: center;
 }
@@ -4125,13 +4125,108 @@
 }
 
 .ei-settings-header-art {
+  display: block;
   width: 100%;
+  max-height: 200px;
+  overflow: visible;
   color: var(--ei-color-accent);
-  opacity: 0.22;
-  stroke: currentColor;
-  stroke-width: 1.6;
+  pointer-events: none;
+}
+
+.ei-settings-header-art__halo {
+  fill: color-mix(in srgb, var(--ei-color-accent) 7%, transparent);
+}
+
+.ei-settings-header-art__window-frame {
+  fill: color-mix(in srgb, var(--ei-color-accent-soft) 56%, var(--ei-color-bg-card));
+  stroke: color-mix(in srgb, var(--ei-color-accent) 28%, transparent);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 12px 18px color-mix(in srgb, var(--ei-color-accent) 12%, transparent));
+}
+
+.ei-settings-header-art__window-topbar {
+  fill: color-mix(in srgb, var(--ei-color-accent) 13%, transparent);
+}
+
+.ei-settings-header-art__window-dot,
+.ei-settings-header-art__window-pill,
+.ei-settings-header-art__detail-line,
+.ei-settings-header-art__chart rect {
+  fill: color-mix(in srgb, var(--ei-color-accent) 24%, transparent);
+}
+
+.ei-settings-header-art__window-pill,
+.ei-settings-header-art__detail-line--strong {
+  fill: color-mix(in srgb, var(--ei-color-accent) 38%, transparent);
+}
+
+.ei-settings-header-art__avatar-disc {
+  fill: color-mix(in srgb, var(--ei-color-accent) 16%, var(--ei-color-bg-card));
+}
+
+.ei-settings-header-art__avatar-line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ei-color-accent) 46%, transparent);
+  stroke-width: 2.2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.ei-settings-header-art__chart rect:nth-child(2) {
+  fill: color-mix(in srgb, var(--ei-color-accent) 34%, transparent);
+}
+
+.ei-settings-header-art__chart rect:nth-child(3) {
+  fill: color-mix(in srgb, var(--ei-color-accent) 46%, transparent);
+}
+
+.ei-settings-header-art__chart rect:nth-child(4) {
+  fill: color-mix(in srgb, var(--ei-color-accent) 62%, transparent);
+}
+
+.ei-settings-header-art__lock-tile {
+  fill: color-mix(in srgb, var(--ei-color-accent) 68%, var(--ei-color-bg-card));
+  stroke: color-mix(in srgb, var(--ei-color-accent) 72%, transparent);
+  stroke-width: 1;
+  filter: drop-shadow(0 10px 16px color-mix(in srgb, var(--ei-color-accent) 25%, transparent));
+}
+
+.ei-settings-header-art__lock-mark {
+  fill: none;
+  stroke: color-mix(in srgb, #fff 88%, var(--ei-color-accent-soft));
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ei-settings-header-art__lock-keyhole {
+  fill: color-mix(in srgb, #fff 90%, var(--ei-color-accent-soft));
+  stroke: color-mix(in srgb, #fff 90%, var(--ei-color-accent-soft));
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.ei-settings-header-art__shield-body {
+  fill: color-mix(in srgb, var(--ei-color-accent) 58%, var(--ei-color-accent-soft));
+  stroke: color-mix(in srgb, var(--ei-color-accent) 74%, transparent);
+  stroke-width: 1.2;
+  filter: drop-shadow(0 8px 14px color-mix(in srgb, var(--ei-color-accent) 20%, transparent));
+}
+
+.ei-settings-header-art__shield-check {
+  fill: none;
+  stroke: color-mix(in srgb, #fff 92%, var(--ei-color-accent-soft));
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ei-settings-header-art__sparkle {
+  fill: color-mix(in srgb, var(--ei-color-accent) 44%, transparent);
+}
+
+.ei-settings-header-art__sparkle--right {
+  opacity: 0.7;
 }
 
 .ei-settings-card {

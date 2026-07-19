@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-20](2026-07-20.md) | `fix(settings): redraw header security illustration (BUG-0192)` | #fix #ui #test #docs #bdd #chrome |
 | [2026-07-20](2026-07-20.md) | `fix(frontend): align async transition states (BUG-0192)` | #fix #ui #i18n #test #docs #bdd #chrome |
 | [2026-07-19](2026-07-19.md) | `fix(settings): preserve custom theme hierarchy (BUG-0193)` | #fix #ui #test #docs #bdd #chrome |
 | [2026-07-19](2026-07-19.md) | `fix(frontend): align planning and account pages (BUG-0192)` | #fix #ui #i18n #test #docs #bdd #chrome |

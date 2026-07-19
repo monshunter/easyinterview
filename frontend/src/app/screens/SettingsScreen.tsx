@@ -45,13 +45,67 @@ const SettingsSectionIcon: FC<{ variant: "appearance" | "account" | "privacy" }>
 );
 
 const SettingsHeaderArt: FC = () => (
-  <svg className="ei-settings-header-art" aria-hidden="true" viewBox="0 0 340 150" fill="none">
-    <path d="M10 129 104 34l68 68 52-52 106 79M64 129l62-61 61 61" />
-    <rect x="112" y="42" width="122" height="82" rx="14" />
-    <circle cx="173" cy="73" r="16" />
-    <path d="M143 110c6-16 16-24 30-24s24 8 30 24" />
-    <circle cx="250" cy="42" r="25" />
-    <path d="m239 43 8 8 15-21" />
+  <svg
+    className="ei-settings-header-art"
+    data-settings-art="security-profile"
+    data-testid="settings-header-art"
+    aria-hidden="true"
+    viewBox="0 0 360 200"
+    fill="none"
+  >
+    <ellipse className="ei-settings-header-art__halo" cx="190" cy="112" rx="146" ry="82" />
+
+    <g
+      className="ei-settings-header-art__sparkle ei-settings-header-art__sparkle--left"
+      data-settings-art-layer="sparkle"
+    >
+      <path d="M48 42c0 10-5 15-15 15 10 0 15 5 15 15 0-10 5-15 15-15-10 0-15-5-15-15Z" />
+    </g>
+    <g
+      className="ei-settings-header-art__sparkle ei-settings-header-art__sparkle--right"
+      data-settings-art-layer="sparkle"
+    >
+      <path d="M318 47c0 8-4 12-12 12 8 0 12 4 12 12 0-8 4-12 12-12-8 0-12-4-12-12Z" />
+    </g>
+
+    <g data-settings-art-layer="window">
+      <rect className="ei-settings-header-art__window-frame" x="104" y="20" width="176" height="154" rx="16" />
+      <path className="ei-settings-header-art__window-topbar" d="M104 36c0-8.8 7.2-16 16-16h144c8.8 0 16 7.2 16 16v18H104V36Z" />
+      <circle className="ei-settings-header-art__window-dot" cx="121" cy="37" r="3" />
+      <circle className="ei-settings-header-art__window-dot" cx="131" cy="37" r="3" />
+      <rect className="ei-settings-header-art__window-pill" x="147" y="33" width="43" height="8" rx="4" />
+    </g>
+
+    <g className="ei-settings-header-art__profile" data-settings-art-layer="profile">
+      <circle className="ei-settings-header-art__avatar-disc" cx="144" cy="87" r="22" />
+      <circle className="ei-settings-header-art__avatar-line" cx="144" cy="81" r="7" />
+      <path className="ei-settings-header-art__avatar-line" d="M132 99c2.4-7 6.4-10.5 12-10.5S153.6 92 156 99" />
+      <rect className="ei-settings-header-art__detail-line ei-settings-header-art__detail-line--strong" x="177" y="70" width="52" height="8" rx="4" />
+      <rect className="ei-settings-header-art__detail-line" x="177" y="88" width="67" height="7" rx="3.5" />
+      <rect className="ei-settings-header-art__detail-line" x="177" y="104" width="43" height="7" rx="3.5" />
+      <rect className="ei-settings-header-art__detail-line" x="124" y="126" width="68" height="7" rx="3.5" />
+      <rect className="ei-settings-header-art__detail-line" x="124" y="142" width="50" height="7" rx="3.5" />
+    </g>
+
+    <g className="ei-settings-header-art__chart" data-settings-art-layer="chart">
+      <rect x="203" y="139" width="10" height="22" rx="3" />
+      <rect x="220" y="126" width="10" height="35" rx="3" />
+      <rect x="237" y="112" width="10" height="49" rx="3" />
+      <rect x="254" y="91" width="10" height="70" rx="3" />
+    </g>
+
+    <g className="ei-settings-header-art__lock" data-settings-art-layer="lock">
+      <rect className="ei-settings-header-art__lock-tile" x="62" y="104" width="74" height="66" rx="17" />
+      <path className="ei-settings-header-art__lock-mark" d="M85 130v-7c0-8 5-13 14-13s14 5 14 13v7" />
+      <rect className="ei-settings-header-art__lock-mark" x="82" y="128" width="34" height="25" rx="7" />
+      <circle className="ei-settings-header-art__lock-keyhole" cx="99" cy="139" r="3.5" />
+      <path className="ei-settings-header-art__lock-keyhole" d="M99 142.5v4" />
+    </g>
+
+    <g className="ei-settings-header-art__shield" data-settings-art-layer="shield">
+      <path className="ei-settings-header-art__shield-body" d="M286 104c11 7 21 8 30 10v21c0 17-10 29-30 38-20-9-30-21-30-38v-21c9-2 19-3 30-10Z" />
+      <path className="ei-settings-header-art__shield-check" d="m273 137 9 9 18-22" />
+    </g>
   </svg>
 );
 

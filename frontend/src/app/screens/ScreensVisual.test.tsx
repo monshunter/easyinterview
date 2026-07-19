@@ -56,7 +56,20 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
     );
     const root = container.querySelector("[data-testid='route-settings']")!;
     expect(root.querySelector(".ei-settings-header-copy")).toBeTruthy();
-    expect(root.querySelector(".ei-settings-header-art")).toBeTruthy();
+    const headerArt = root.querySelector("[data-testid='settings-header-art']");
+    expect(headerArt).toHaveClass("ei-settings-header-art");
+    expect(headerArt).toHaveAttribute("aria-hidden", "true");
+    expect(headerArt).toHaveAttribute("data-settings-art", "security-profile");
+    for (const layer of ["window", "profile", "chart", "lock", "shield"]) {
+      expect(
+        headerArt?.querySelector(`[data-settings-art-layer='${layer}']`),
+        `settings Header art is missing the ${layer} layer`,
+      ).toBeTruthy();
+    }
+    expect(
+      headerArt?.querySelectorAll("[data-settings-art-layer='sparkle']"),
+    ).toHaveLength(2);
+    expect(headerArt?.querySelector("[data-settings-art-layer='mountains']")).toBeFalsy();
     for (const sectionId of [
       "settings-appearance",
       "settings-account",
@@ -190,6 +203,27 @@ describe("screens.css visual rhythm (Phase 5.1 + 5.2)", () => {
     expect(css).toMatch(/\.ei-settings-screen\s*>\s*\.ei-settings-header\s*\{[^}]*display:\s*grid/);
     expect(css).toMatch(/\.ei-settings-card\s*\{[^}]*display:\s*grid/);
     expect(css).toMatch(/\.ei-settings-card\s*\{[^}]*grid-template-columns:\s*64px\s+minmax\(0,\s*1fr\)/);
+  });
+
+  it("paints the Settings security illustration as layered theme-aware surfaces", () => {
+    expect(css).toMatch(
+      /\.ei-settings-header-art__window-frame\s*\{[^}]*fill:\s*color-mix\([^}]*var\(--ei-color-accent-soft\)/,
+    );
+    expect(css).toMatch(
+      /\.ei-settings-header-art__lock-tile\s*\{[^}]*fill:\s*color-mix\([^}]*var\(--ei-color-accent\)/,
+    );
+    expect(css).toMatch(
+      /\.ei-settings-header-art__shield-body\s*\{[^}]*fill:\s*color-mix\([^}]*var\(--ei-color-accent\)/,
+    );
+    expect(css).toMatch(
+      /\.ei-settings-header-art__(?:window-frame|lock-tile)\s*\{[^}]*filter:\s*drop-shadow/,
+    );
+    expect(css).not.toMatch(
+      /\.ei-settings-header-art\s*\{[^}]*opacity:\s*0\.22/,
+    );
+    expect(css).toMatch(
+      /@media \(max-width: 720px\)[\s\S]*?\.ei-settings-header-art\s*\{[^}]*display:\s*none/,
+    );
   });
 
   it("stacks the custom theme editor below persistent choices with informative color tracks", () => {

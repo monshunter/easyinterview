@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.37
+> **版本**: 1.38
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
@@ -151,3 +151,10 @@
 - [x] 20.2 GREEN: 新增单一 shell-owned `AsyncTransitionScene` 与 page-scoped CSS/code-native SVG；补齐 context route -> “面试”映射，不改变各业务 owner 的 API、轮询、错误恢复与动作合同。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="12 files / 124 tests PASS; frontend typecheck PASS" -->
 - [x] 20.3 BDD-Gate: `BDD.SHELL.TRANSITION.VISUAL.003` 由 component/responsive/a11y tests 与 current-run desktop Chrome 承接，不新增 E2E ID 或像素基线。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Real local Practice/Resume/Generating/Parse transitions retained the shared TopBar and correct primary-nav context at 1920px; component/CSS contracts cover the 720px mobile boundary and reduced motion. Browser error/warning=0." -->
 - [x] 20.4 REGRESSION: focused、typecheck/build、根 `make test`、owner contexts、Header/INDEX/docs/diff gate 通过；Phase 15.3 仍保持独立未完成。<!-- verified: 2026-07-19 method=full-regression evidence="Final transition-focused 9 files / 89 tests PASS; frontend production build and local redeploy PASS; root make test passes 615 tests / 4615 subtests; environment dependencies 4/4 OK. Phase 15.3 remains independently open." -->
+
+## Phase 21: Settings Header security illustration remediation
+
+- [x] 21.1 RED: Settings visual/component tests 拒绝山形折线、人物轮廓和独立圆形对勾，要求 Header SVG 暴露账号窗口、头像资料、柱状图、锁、盾牌对勾与星芒的分层锚点，并继续 `aria-hidden`。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="ScreensVisual ran 13 tests: the new semantic layer assertion failed because the existing sparse SVG had no settings-header-art anchor, while the other 12 visual and negative assertions passed." -->
+- [x] 21.2 GREEN: 仅重画 `SettingsHeaderArt` 与 page-scoped CSS，以当前主题 accent/token 形成半透明层次、柔和阴影和目标几何；保持 Header/card 构图、移动端隐藏、账号状态机和请求预算不变。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="ScreensVisual and SettingsScreen pass 26/26; TypeScript typecheck passes. The new code-native SVG exposes window/profile/chart/lock/shield/two-sparkle layers and theme-token CSS without changing account handlers or request paths." -->
+- [x] 21.3 BDD-Gate: `BDD.SHELL.SETTINGS.ART.004` 由 component/responsive/a11y tests 与 current-run Chrome desktop 验收承接；确认图形层级、对齐、无横向溢出和零 browser error/warning，不新增 E2E ID。<!-- verified: 2026-07-20 method=chrome-extension-manual bddChecklist=complete evidence="Real Settings at 1264x964 rendered a 360x200 decorative SVG with seven target layers, aligned the 1264px Header and appearance card, kept documentWidth=viewportWidth, adapted across Ocean/Plum/Custom previews, restored the confirmed Custom theme after reload, and surfaced no page/browser errors or warnings." -->
+- [x] 21.4 REGRESSION: focused、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 通过并更新既有 BUG/复盘/日志；Phase 15.3 仍保持独立未完成。<!-- verified: 2026-07-20 method=full-regression evidence="Focused Settings 26/26, typecheck and production build pass; frontend redeploy and environment 4/4 pass; root make test passes Python 615/4615 subtests, Go all packages, frontend 134 files/1082 tests. Owner context, Header/INDEX, docs links, diff, BUG-0192, retrospective and work journal are current; Phase 15.3 remains independently open." -->

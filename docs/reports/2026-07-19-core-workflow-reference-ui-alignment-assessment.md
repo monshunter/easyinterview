@@ -26,6 +26,7 @@
 - Chrome 证据：Resume 使用正式 real-mode frontend 完成 1916×821 / 390×844 containment；Practice 的 Transcript 在 desktop/mobile 实际滚动前后，input 坐标与 helper/input 8px gap 不变。报告页使用当前真实 backend ready report 完成 desktop 1920×964 与 exact mobile 390×844 full-page 验收：desktop 主体 1432px、四列 Context、两列 709px 内容卡、四个 46px Detail icon 和首屏完整 Overall 均闭合，两档 document overflow 均为 0。
 - Chrome 追加证据：规划详情、Settings、登录、验证码、退出在 `1916×821` 与 `390×844` 均按目标层级渲染且无横向溢出；真实中英文切换、退出回 Home 与 protected Settings pendingAction 回跳通过。auth probe 中间 loading/error 瞬态未被捕获，因此相关旧 Phase 15.3 继续如实保持未完成。
 - Chrome 等待态证据：在真实 frontend/backend 上触发多次 Practice 启动、Resume/JD 解析和 Report 生成；1920px viewport 下 Resume scene `x=0/width=1920`，Report card `x=415/width=1090`，JD 读取到 1–4 marker/state，所有流程都真实 handoff 到 ready 页面，browser error/warning=0。最终 focused 9 files / 89 tests、production build/redeploy、环境 4/4 与根 `make test` 615 / 4615 通过。
+- 2026-07-20 Settings 插画补充闭环：把旧山形人物稀疏线稿重画为资料窗口、头像信息、柱状图、锁、盾牌对勾与星芒组成的 7 层 code-native SVG；focused Settings visual/behavior 26/26、typecheck、production build、frontend redeploy、环境 4/4 和根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 134 files / 1082 tests）通过。Chrome 在真实 `1264×964` Settings 页面测得插画 `360×200`、Header/Appearance 同边界、`documentWidth=viewportWidth`，Ocean/Plum/Custom 主题预览和刷新恢复均正常。
 - 文档证据：Home/Parse owner 恢复 `completed`；Shell 视觉 Phase 完成但因独立 Phase 15.3 继续保持 `active`；两个 context、Header/INDEX、docs links 与 `git diff --check` 通过。
 
 ## 2 会话中的主要阻点/痛点
@@ -70,6 +71,11 @@
 - **证据**：共享组件与 124 个 focused assertions 首轮全绿，但真实 Chrome 对照参考图仍发现 Resume 被详情容器限制在 1512px、Report 白卡只有 920px、JD current step 是整行 bordered card 且 marker 无编号。
 - **影响**：如果在组件测试后直接收口，会再次留下“共享了代码但没有对齐参考稿”的假完成；本轮追加 RED 固定全宽 Resume、1090px Report card 和 JD marker 1–4，再重新部署验收。
 
+### 2.9 插画存在性断言再次掩盖内容结构漂移
+
+- **证据**：Settings Phase 18 已有 `.ei-settings-header-art` 存在性测试且整体 Chrome 构图通过，但 SVG 实际只包含山形折线、人物和圆形对勾；用户再次指出与目标资料窗口、图表、锁和盾牌构图差异巨大。新增 layer contract 后，旧实现按预期 RED。
+- **影响**：只验证插画容器、宽高或颜色会让任意图形满足合同，无法防止“页面有插画但画错内容”的假绿；本轮需要再次原地收紧 UI design、spec、plan 与 BDD。
+
 ## 3 根因归类
 
 - 固定 Composer / 滚动 Transcript 最初没有成为可执行 DOM/CSS/BBox 不变量，只描述了视觉形态。
@@ -89,6 +95,8 @@
 - Chrome 对最终稳定页面的验收无法证明短暂 auth probe gate；需要可控请求冻结或专门的 inter-request DOM gate。
   - **类别**：test/browser verification
 - 共享组件抽取只保证实现一致，不能自动保证参考稿几何；缺少首轮真实 pending-state bbox 反馈时，父容器约束和内部步骤结构仍会逃逸。
+  - **类别**：spec/plan
+- Settings Header 视觉合同只有“有账号/安全插画”的抽象描述和容器存在性测试，没有目标对象集合、前后景和透明层级的可执行定义。
   - **类别**：spec/plan
 
 ## 4 对流程资产的改进建议
@@ -117,6 +125,9 @@
 - 共享异步组件的视觉 gate 必须同时覆盖“组件自身尺寸”与“嵌入各 caller 后的实际 viewport bbox”；至少用一轮真实 pending-state Chrome 检查全宽/居中尺寸、TopBar 与当前步骤，避免父容器把共享构图再次收窄。
   - **落点**：Shell transition plan + 各业务 owner BDD gate
   - **优先级**：high
+- 装饰性 SVG 也必须把参考稿中的对象集合、前景/背景关系、主题色透明层与 `aria-hidden` 写成 layer/CSS contract；“插画节点存在”只能作为最弱 smoke，不能作为视觉完成 gate。本轮已在 Shell Phase 21 与 Settings UI design 原地固化。
+  - **落点**：相关 UI design / spec / plan / visual test
+  - **优先级**：high
 
 ## 5 建议优先级与后续动作
 
@@ -125,4 +136,5 @@
 - 第二优先级：单独修复 secrets scanner 的现有治理文本误报，使根 `make lint` 恢复可直接作为聚合门禁使用。
 - 第二优先级：为 Shell Phase 15.3 增加可控的 auth probe 请求冻结方式，捕获中文 loading/error 中间 DOM 后再恢复 owner `completed`。
 - 下一轮同样应保留本次新固化的 transition caller-bbox gate；新增异步页面时必须先接入 shared scene，再在真实 pending 状态验收嵌入后的 viewport geometry。
+- 新增或重画装饰插画时，先列出必须出现与明确禁止的图层，再写 component/CSS RED，最后用当前主题下的真实 Chrome 截图和 bbox 验收；不得再次以单个 SVG selector 存在作为完成依据。
 - 可延后：为 fixture visual acceptance 增加更多长内容 fixture；当前通过压缩 desktop/mobile viewport 已真实产生 Transcript overflow 并验证了固定 Composer，不构成本次交付 blocker。

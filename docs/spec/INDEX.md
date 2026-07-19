@@ -47,7 +47,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.21 | active | 2026-07-15 | [plans](./mock-contract-suite/plans/) |
-| [frontend-shell](./frontend-shell/spec.md) | 1.40 | active | 2026-07-19 | [plans](./frontend-shell/plans/) |
+| [frontend-shell](./frontend-shell/spec.md) | 1.41 | active | 2026-07-20 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.31 | completed | 2026-07-19 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.54 | completed | 2026-07-19 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 2.8 | active | 2026-07-19 | [plans](./backend-auth/plans/) |
