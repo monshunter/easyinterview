@@ -185,10 +185,10 @@ def test_generic_manifest_vocabulary_does_not_create_false_candidate(tmp_path):
     assert result["recommended"] is None
 
 
-def test_discovers_active_plan_without_context_manifest(tmp_path):
+def test_ignores_active_plan_without_required_context_manifest(tmp_path):
     module = _load_module()
     plan_root = tmp_path / "docs" / "spec"
-    plan_dir = _write_plan(
+    _write_plan(
         plan_root,
         "harness-simplification",
         "active",
@@ -201,10 +201,8 @@ def test_discovers_active_plan_without_context_manifest(tmp_path):
         query="optimize harness workflow",
     )
 
-    assert result["recommended"]["displayPlan"] == "harness-simplification/001-backend"
-    assert result["recommended"]["contextPath"] is None
-    assert result["recommended"]["files"]["plan"] == str(plan_dir / "plan.md")
-    assert result["recommended"]["files"]["checklist"] is None
+    assert result["confidence"] == "none"
+    assert result["recommended"] is None
 
 
 def test_obsolete_lifecycle_status_is_unknown():

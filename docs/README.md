@@ -36,7 +36,7 @@ Spec-centric plan 补充约定：
 
 - 新 plan 默认采用串行 phase 格式，并位于 `docs/spec/<subspec>/plans/<NNN-plan>/`
 - 每个 subspec 的计划索引位于 `docs/spec/<subspec>/plans/INDEX.md`
-- `context.yaml` 在 Harness Phase 2 删除前只作为 plan 的过渡期机器入口和一等文档链接清单，不是 owner、检索、版本或分支真理源
+- `context.yaml` 是当前 plan 的最小机器入口和一等文档链接投影；它不是 owner、检索、版本、分支或执行状态真理源，single-plan/loop 可让 `plan` 与 `checklist` 同指 `plan.md`
 - spec / plan / checklist / context 模板示例统一放在 `docs/spec/TEMPLATES.md`
 
 ### 2.2 Markdown 层级规范

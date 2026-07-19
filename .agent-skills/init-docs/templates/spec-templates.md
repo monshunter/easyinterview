@@ -11,7 +11,7 @@ docs/spec/${subspec}/
     └── ${NNN-plan}/
         ├── context.yaml        # required
         ├── plan.md             # required
-        ├── checklist.md        # required
+        ├── checklist.md        # required unless plan.md owns inline progress
         ├── test-plan.md        # conditional
         ├── test-checklist.md   # conditional
         ├── bdd-plan.md         # conditional
@@ -215,6 +215,8 @@ spec:
 
 `context.yaml` 只承载目标与文档链接。`metadata` 只允许 `name`；禁止顶层/target `discovery`、target `references`、分支/版本提示、`commands` 或其他自定义字段。
 当 plan 生成 `test-plan.md` / `test-checklist.md` 时同步写入 `testPlan` / `testChecklist`。只有实际生成 `bdd-plan.md` / `bdd-checklist.md` 时，才在对应 target 增加 `bddPlan: ./bdd-plan.md` 与 `bddChecklist: ./bdd-checklist.md`；纯内部 `BDD-N/A` 计划不得生成文件或保留字段。
+
+single-plan/loop 模式不创建重复 `checklist.md`，由 `plan.md` 行内 checkbox 持有进度，并让 target 的 `plan` 与 `checklist` 同指 `./plan.md`。consumer 保留两个角色，但读取正文时按解析后的绝对路径去重。
 
 ## 8 BDD 模板
 

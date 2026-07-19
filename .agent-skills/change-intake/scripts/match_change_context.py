@@ -206,7 +206,7 @@ def make_abs(plan_dir: str, rel_path: str | None) -> str | None:
 
 
 def find_plan_dirs(plan_root: str) -> list[str]:
-    """Find spec-centric plan directories whether or not a manifest exists."""
+    """Find spec-centric plan directories that expose the required manifest."""
     abs_plan_root = os.path.abspath(plan_root)
     roots = []
     if os.path.basename(abs_plan_root) == "plan":
@@ -221,11 +221,11 @@ def find_plan_dirs(plan_root: str) -> list[str]:
     for root in roots:
         if not os.path.isdir(root):
             continue
-        if os.path.isfile(os.path.join(root, "plan.md")):
+        if os.path.isfile(os.path.join(root, "context.yaml")):
             plan_dirs.append(root)
             continue
         for dirpath, _, files in os.walk(root):
-            if "plan.md" not in files:
+            if "context.yaml" not in files:
                 continue
             parts = os.path.normpath(dirpath).split(os.sep)
             if "plans" in parts:
@@ -234,23 +234,20 @@ def find_plan_dirs(plan_root: str) -> list[str]:
 
 
 def iter_context_targets(plan_root: str):
-    """Yield one record per plan target using path truth and optional link manifests."""
+    """Yield one record per target from required minimal link manifests."""
     for plan_dir in find_plan_dirs(plan_root):
         context_path = os.path.join(plan_dir, "context.yaml")
-        has_context = os.path.isfile(context_path)
         entry = os.path.basename(plan_dir)
-        data = None
-        if has_context:
+        try:
             with open(context_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
+        except (OSError, yaml.YAMLError):
+            continue
         spec = data.get("spec") if isinstance(data, dict) else None
         metadata = data.get("metadata") if isinstance(data, dict) else None
         targets = spec.get("targets") if isinstance(spec, dict) else None
         if not isinstance(targets, dict) or not targets:
-            target = {"plan": "./plan.md", "spec": "../../spec.md"}
-            if os.path.isfile(os.path.join(plan_dir, "checklist.md")):
-                target["checklist"] = "./checklist.md"
-            targets = {"default": target}
+            continue
 
         context_name = metadata.get("name", entry) if isinstance(metadata, dict) else entry
         subject = os.path.basename(os.path.dirname(os.path.dirname(plan_dir)))
@@ -266,7 +263,7 @@ def iter_context_targets(plan_root: str):
             yield {
                 "contextName": context_name,
                 "displayName": display_name,
-                "contextPath": context_path if has_context else None,
+                "contextPath": context_path,
                 "planDir": plan_dir,
                 "target": target_name,
                 "status": status,

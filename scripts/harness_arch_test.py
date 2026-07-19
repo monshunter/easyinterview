@@ -24,6 +24,8 @@ import subprocess
 import sys
 from typing import Any
 
+import yaml
+
 
 SCRIPT = Path(__file__).with_name("harness_arch.py")
 ARCH_MARKER_V0 = "<!-- project-arch: v0 -->"
@@ -47,7 +49,6 @@ OPTIONAL_DOC_DIRECTORIES = (
 )
 
 FORBIDDEN_GENERATED_FILES = {
-    "context.yaml",
     "checklist.md",
     "bdd-plan.md",
     "bdd-checklist.md",
@@ -246,6 +247,17 @@ def _assert_minimal_project_arch(root: Path) -> None:
     assert subject_specs[0].stat().st_size > 0
     plans_indexes = list((root / "docs/spec").glob("*/plans/INDEX.md"))
     assert len(plans_indexes) == 1, plans_indexes
+    contexts = list((root / "docs/spec").glob("*/plans/*/context.yaml"))
+    assert len(contexts) == 1, contexts
+    context = yaml.safe_load(contexts[0].read_text(encoding="utf-8"))
+    assert context["apiVersion"] == "plancontext.agent.dev/v1alpha1"
+    assert context["kind"] == "PlanContext"
+    assert set(context["metadata"]) == {"name"}
+    assert set(context["spec"]) == {"defaultTarget", "targets"}
+    target = context["spec"]["targets"][context["spec"]["defaultTarget"]]
+    assert target["plan"] == "./plan.md"
+    assert target["checklist"] == "./plan.md"
+    assert target["spec"] == "../../spec.md"
 
     scenarios = root / "test/scenarios"
     for name in ENV_ENTRYPOINTS:
@@ -259,6 +271,11 @@ def _assert_minimal_project_arch(root: Path) -> None:
 
     generated_names = {path.name for path in root.rglob("*") if path.is_file()}
     assert generated_names.isdisjoint(FORBIDDEN_GENERATED_FILES), generated_names & FORBIDDEN_GENERATED_FILES
+
+
+def test_root_makefile_exposes_harness_test_gate() -> None:
+    makefile = SCRIPT.parents[1] / "Makefile"
+    assert "harness-test:" in makefile.read_text(encoding="utf-8")
 
 
 def test_fresh_init_installs_minimal_four_layer_arch_and_runtime_interfaces(

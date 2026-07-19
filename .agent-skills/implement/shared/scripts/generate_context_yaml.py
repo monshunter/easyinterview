@@ -53,7 +53,7 @@ def normalize_target_config(config: dict) -> dict:
 
 
 def reconcile_existing_targets(config: dict, context_path: str) -> dict:
-    """Retain target identity and first-class links while dropping all extensions."""
+    """Retain target identity while reconciling links from current files."""
     if not os.path.isfile(context_path):
         return config
     with open(context_path, "r", encoding="utf-8") as f:
@@ -67,6 +67,7 @@ def reconcile_existing_targets(config: dict, context_path: str) -> dict:
     if not isinstance(existing_targets, dict) or not existing_targets:
         return config
 
+    scanned_targets = config.get("targets", {})
     targets = {}
     for target_name, target in existing_targets.items():
         if not isinstance(target_name, str) or not isinstance(target, dict):
@@ -77,6 +78,27 @@ def reconcile_existing_targets(config: dict, context_path: str) -> dict:
             if isinstance(target.get(field_name), str) and target[field_name]
         }
         if "plan" in sanitized and "checklist" in sanitized:
+            matching_scan = next(
+                (
+                    scanned
+                    for scanned in scanned_targets.values()
+                    if scanned.get("plan") == sanitized["plan"]
+                    and scanned.get("checklist") == sanitized["checklist"]
+                ),
+                None,
+            )
+            if matching_scan:
+                for field_name in (
+                    "testPlan",
+                    "testChecklist",
+                    "bddPlan",
+                    "bddChecklist",
+                ):
+                    sanitized.pop(field_name, None)
+                    if matching_scan.get(field_name):
+                        sanitized[field_name] = matching_scan[field_name]
+                if "spec" not in sanitized and matching_scan.get("spec"):
+                    sanitized["spec"] = matching_scan["spec"]
             targets[target_name] = sanitized
     if not targets:
         return config
@@ -120,6 +142,19 @@ def find_spec_reference(plan_dir_path: str, spec_dir: str, dir_name: str) -> str
     return None
 
 
+def has_inline_progress(plan_dir_path: str) -> bool:
+    """Return whether plan.md explicitly owns checkbox progress."""
+    plan_path = os.path.join(plan_dir_path, "plan.md")
+    try:
+        with open(plan_path, "r", encoding="utf-8") as f:
+            return any(
+                line.lstrip().startswith(("- [ ]", "- [x]", "- [X]"))
+                for line in f
+            )
+    except OSError:
+        return False
+
+
 def scan_directory_targets(
     plan_dir_path: str, dir_name: str, spec_dir: str, docs_root: str
 ) -> dict | None:
@@ -131,11 +166,13 @@ def scan_directory_targets(
     targets: dict[str, dict] = {}
     spec_ref = find_spec_reference(plan_dir_path, spec_dir, dir_name)
 
-    if "plan.md" in files and "checklist.md" in files:
+    if "plan.md" in files and (
+        "checklist.md" in files or has_inline_progress(plan_dir_path)
+    ):
         target_name = infer_target_name(dir_name)
         target = {
             "plan": "./plan.md",
-            "checklist": "./checklist.md",
+            "checklist": "./checklist.md" if "checklist.md" in files else "./plan.md",
         }
         if spec_ref:
             target["spec"] = spec_ref

@@ -80,20 +80,19 @@ def plan_status_and_date(plan_path: str | None) -> tuple[str, str]:
     return status, date
 
 
-def count_checklist_progress(plan_dir: str) -> tuple[int, int] | None:
+def count_checklist_progress(checklist_path: str | None) -> tuple[int, int] | None:
+    if not checklist_path or not os.path.isfile(checklist_path):
+        return None
     checked = 0
     total = 0
-    for fname in os.listdir(plan_dir):
-        if fname not in {"checklist.md"} and not fname.endswith("-checklist.md"):
-            continue
-        with open(os.path.join(plan_dir, fname), "r", encoding="utf-8") as f:
-            for line in f:
-                stripped = line.strip()
-                if stripped.startswith("- [x]") or stripped.startswith("- [X]"):
-                    checked += 1
-                    total += 1
-                elif stripped.startswith("- [ ]"):
-                    total += 1
+    with open(checklist_path, "r", encoding="utf-8") as f:
+        for line in f:
+            stripped = line.strip()
+            if stripped.startswith("- [x]") or stripped.startswith("- [X]"):
+                checked += 1
+                total += 1
+            elif stripped.startswith("- [ ]"):
+                total += 1
     return (checked, total) if total else None
 
 
@@ -117,10 +116,13 @@ def candidate_from_context(context_path: str) -> dict | None:
         target = targets[target_names[0]]
 
     plan_path = None
+    checklist_path = None
     if isinstance(target, dict) and isinstance(target.get("plan"), str):
         plan_path = os.path.normpath(os.path.join(plan_dir, target["plan"]))
+    if isinstance(target, dict) and isinstance(target.get("checklist"), str):
+        checklist_path = os.path.normpath(os.path.join(plan_dir, target["checklist"]))
     status, date = plan_status_and_date(plan_path)
-    progress = count_checklist_progress(plan_dir)
+    progress = count_checklist_progress(checklist_path)
 
     name = metadata.get("name") or os.path.basename(plan_dir)
     subject = os.path.basename(os.path.dirname(os.path.dirname(plan_dir)))

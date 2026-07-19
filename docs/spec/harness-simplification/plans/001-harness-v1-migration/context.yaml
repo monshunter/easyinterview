@@ -1,0 +1,11 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  name: 001-harness-v1-migration
+spec:
+  defaultTarget: harness
+  targets:
+    harness:
+      plan: ./plan.md
+      checklist: ./plan.md
+      spec: ../../spec.md

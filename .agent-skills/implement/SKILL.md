@@ -119,6 +119,7 @@ Map the validator output using
 - Treat `role == "bdd-plan"` and `role == "bdd-checklist"` as user-behavior references for `/tdd` gate verification. Their IDs may be domain Behavior IDs backed by code-level behavior tests or real E2E IDs backed by running-product HTTP/UI flows.
 - Treat all other validated markdown files as `/tdd --references`.
 - Keep file order stable and deduplicate by absolute path.
+- If `plan` and `checklist` resolve to the same single-plan file, use that path as `/tdd --file`, preserve both roles in the summary, and read the body only once.
 
 ### Step 3.1: Lock Declarative Boundaries Before Coding
 

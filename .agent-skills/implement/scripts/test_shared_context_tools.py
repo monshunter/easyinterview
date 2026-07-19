@@ -12,6 +12,7 @@ import yaml
 SHARED_DIR = Path(__file__).resolve().parent.parent / "shared" / "scripts"
 VALIDATE_PATH = SHARED_DIR / "validate_context.py"
 GENERATE_PATH = SHARED_DIR / "generate_context_yaml.py"
+LIST_PATH = SHARED_DIR / "list_context_candidates.py"
 
 
 def _load_module(path: Path, name: str):
@@ -98,6 +99,28 @@ def test_validate_context_accepts_minimal_manifest(tmp_path):
     assert "targetDiscovery" not in result
     assert "baseBranch" not in result
     assert "branch" not in result
+
+
+def test_validate_context_accepts_single_plan_as_both_roles(tmp_path):
+    validator = _load_module(VALIDATE_PATH, "validate_single_plan_context")
+    docs_root, plan_dir, context_path = _write_context_fixture(tmp_path)
+    (plan_dir / "checklist.md").unlink()
+    _mutate_context(
+        context_path,
+        lambda payload: payload["spec"]["targets"]["backend"].__setitem__(
+            "checklist", "./plan.md"
+        ),
+    )
+
+    result = validator.validate_context(
+        context_path=str(context_path),
+        docs_root=str(docs_root),
+        target="backend",
+    )
+
+    role_paths = {item["role"]: item["path"] for item in result["files"]}
+    assert role_paths["plan"] == str(plan_dir / "plan.md")
+    assert role_paths["checklist"] == str(plan_dir / "plan.md")
 
 
 @pytest.mark.parametrize(
@@ -251,6 +274,8 @@ def test_generate_context_yaml_preserves_target_identity_and_allowed_links(tmp_p
             }
         ),
     )
+    for filename in ("test-plan.md", "test-checklist.md", "bdd-plan.md", "bdd-checklist.md"):
+        (plan_dir / filename).write_text(f"# {filename}\n", encoding="utf-8")
     scanned = generator.scan_directory_targets(
         plan_dir_path=str(plan_dir),
         dir_name=plan_dir.name,
@@ -268,4 +293,70 @@ def test_generate_context_yaml_preserves_target_identity_and_allowed_links(tmp_p
         "plan",
         "checklist",
         "spec",
+        "testPlan",
+        "testChecklist",
+        "bddPlan",
+        "bddChecklist",
     }
+
+
+def test_generate_context_yaml_supports_single_plan_inline_progress(tmp_path):
+    generator = _load_module(GENERATE_PATH, "generate_single_plan_context")
+    docs_root, plan_dir, _ = _write_context_fixture(tmp_path)
+    (plan_dir / "checklist.md").unlink()
+    (plan_dir / "plan.md").write_text(
+        "# Plan\n\n- [ ] current work\n",
+        encoding="utf-8",
+    )
+
+    config = generator.scan_directory_targets(
+        plan_dir_path=str(plan_dir),
+        dir_name=plan_dir.name,
+        spec_dir=str(docs_root / "spec"),
+        docs_root=str(docs_root),
+    )
+
+    assert config is not None
+    target = config["targets"]["backend"]
+    assert target["plan"] == "./plan.md"
+    assert target["checklist"] == "./plan.md"
+
+
+def test_generate_context_yaml_rejects_missing_progress_owner(tmp_path):
+    generator = _load_module(GENERATE_PATH, "generate_missing_progress_owner")
+    docs_root, plan_dir, _ = _write_context_fixture(tmp_path)
+    (plan_dir / "checklist.md").unlink()
+
+    config = generator.scan_directory_targets(
+        plan_dir_path=str(plan_dir),
+        dir_name=plan_dir.name,
+        spec_dir=str(docs_root / "spec"),
+        docs_root=str(docs_root),
+    )
+
+    assert config is None
+
+
+def test_list_context_candidates_counts_single_plan_inline_progress(tmp_path):
+    candidates = _load_module(LIST_PATH, "list_single_plan_context")
+    docs_root, plan_dir, context_path = _write_context_fixture(tmp_path)
+    (plan_dir / "checklist.md").unlink()
+    (plan_dir / "plan.md").write_text(
+        "# Plan\n\n"
+        "> **状态**: active\n"
+        "> **更新日期**: 2026-07-19\n\n"
+        "- [x] complete\n"
+        "- [ ] pending\n",
+        encoding="utf-8",
+    )
+    _mutate_context(
+        context_path,
+        lambda payload: payload["spec"]["targets"]["backend"].__setitem__(
+            "checklist", "./plan.md"
+        ),
+    )
+
+    candidate = candidates.candidate_from_context(str(context_path))
+
+    assert candidate is not None
+    assert candidate["progress"] == (1, 2)

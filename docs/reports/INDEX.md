@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-19](./2026-07-19-harness-context-contract-review-remediation-assessment.md) | Harness Context Contract Review Remediation 交付复盘 | #assessment #harness #review-remediation |
 | [2026-07-19](./2026-07-19-plan-context-minimal-contract-assessment.md) | Plan Context Minimal Contract 交付复盘 | #assessment #harness #docs |
 | [2026-07-19](./2026-07-19-active-session-recovery-hardening-assessment.md) | Active Session Recovery Hardening 交付复盘 | #assessment #practice #BUG-0190 |
 | [2026-07-18](./2026-07-18-practice-active-session-recovery-assessment.md) | Practice Active Session Recovery 交付复盘 | #assessment #practice #BUG-0189 |

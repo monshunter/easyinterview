@@ -124,8 +124,8 @@ Rules:
 
 After selecting a candidate:
 
-1. Inspect the candidate's `contextPath` and owner files.
-2. If `contextPath` is not null, read the candidate `context.yaml` and validate it with:
+1. Every candidate must have a minimal `context.yaml`; inspect its `contextPath` and owner files. Missing `context.yaml` is a document-contract gap, not a supported owner bypass: route it to the current plan/docs owner for repair before implementation or review handoff.
+2. Read the candidate `context.yaml` and validate it with:
 
 ```bash
 python3 .agent-skills/implement/shared/scripts/validate_context.py \
@@ -134,9 +134,8 @@ python3 .agent-skills/implement/shared/scripts/validate_context.py \
   --target <target>
 ```
 
-   Then read the validated plan / checklist / spec and optional first-class test/BDD documents.
-3. If `contextPath` is null, read the matcher-provided `plan` and `spec` paths directly, plus only those optional files that actually exist. Confirm the owner from the current Spec/plan/INDEX and live repository evidence; do not invent a checklist, target, or temporary context manifest.
-4. Inspect the selected plan Header `状态`.
+   Then read the validated plan / checklist / spec and optional first-class test/BDD documents. If `plan` and `checklist` resolve to the same single-plan file, preserve both roles but read the body once.
+3. Inspect the selected plan Header `状态`.
 
 Routing rule:
 

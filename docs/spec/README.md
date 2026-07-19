@@ -15,7 +15,7 @@ docs/spec/
         └── ${NNN-plan}/
             ├── context.yaml        # required
             ├── plan.md             # required
-            ├── checklist.md        # required
+            ├── checklist.md        # required unless plan.md owns inline progress
             ├── test-plan.md        # conditional
             ├── test-checklist.md   # conditional
             ├── bdd-plan.md         # conditional
@@ -28,9 +28,9 @@ docs/spec/
 
 1. **Spec owns plan**：计划必须挂在对应 `docs/spec/${subspec}/plans/` 下。
 2. **边界清晰**：一个 plan 只覆盖一个可独立实施/验证的目标。
-3. **成对创建**：每个 `plan.md` 必须有对应 `checklist.md`。
+3. **执行进度 owner**：默认每个 `plan.md` 对应独立 `checklist.md`；single-plan/loop 模式由 `plan.md` 行内 checkbox 承接进度，不再创建重复 checklist。
 4. **Context 必填**：每个 plan 目录必须有 `context.yaml`，作为 `/implement`、`/plan-review`、`/plan-code-review` 的入口。
-   过渡期 schema 必须精确最小化：`metadata` 只含 `name`，`spec` 只含 `defaultTarget` / `targets`，target 只含 `plan` / `checklist` / `spec` 与可选的一等 test/BDD 文档链接；禁止 discovery、references、分支/版本提示和自定义字段。
+   schema 必须精确最小化：`metadata` 只含 `name`，`spec` 只含 `defaultTarget` / `targets`，target 只含 `plan` / `checklist` / `spec` 与可选的一等 test/BDD 文档链接；禁止 discovery、references、分支/版本提示和自定义字段。single-plan/loop 模式允许 `plan` 与 `checklist` 同指 `./plan.md`。
 5. **局部计划索引**：每个 `plans/` 目录只保留 `INDEX.md`；规则与模板统一使用 `docs/spec/README.md` 和 `docs/spec/TEMPLATES.md`。
 6. **索引投影**：`docs/spec/INDEX.md` 和 `docs/spec/${subspec}/plans/INDEX.md` 只反映 Header，不作为状态真理源。
 7. **原地修订**：同主题后续修订优先原地更新原 spec 和原 plan，不创建同主题 sibling bugfix/follow-up。
@@ -96,7 +96,7 @@ docs/spec/
 
 - [ ] 文件位于 `docs/spec/${subspec}/...`
 - [ ] Header 字段完整且顺序正确
-- [ ] `plan.md` 与 `checklist.md` 成对存在
+- [ ] 已有唯一执行进度 owner：普通 plan 使用独立 `checklist.md`，single-plan/loop 使用 `plan.md` 行内 checkbox
 - [ ] `context.yaml` target 路径全部有效
 - [ ] 代码逻辑计划已写明 TDD 策略；用户行为功能计划已具备 BDD 文件、Behavior ID / 真实 E2E ID 与 `BDD-Gate:`
 - [ ] Behavior ID 已选择 domain behavior test 或真实 API/UI E2E，且只有后者创建 E2E 资产

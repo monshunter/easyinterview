@@ -71,6 +71,7 @@ spec:
 Role mapping rules:
 
 - There must be exactly one `checklist`.
+- A single-plan/loop target may set both `plan` and `checklist` to `./plan.md`; the file's inline checkboxes are then the execution progress owner. Consumers preserve both roles while deduplicating body reads by resolved absolute path.
 - `test-checklist`, when present, is passed to `/tdd --test-checklist`.
 - `bdd-plan`, when present, is passed as a reference to `/tdd` for BDD-Gate verification. It distinguishes domain Behavior IDs backed by code-level behavior tests from real E2E IDs backed by running-product HTTP/UI flows.
 - `bdd-checklist`, when present, is passed as a reference to `/tdd`; its behavior definition and evidence-entry prerequisites must be complete before execution, and `/tdd` records the execution/evidence result before the related main checklist `BDD-Gate` is marked complete.

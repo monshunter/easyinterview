@@ -74,7 +74,13 @@ def test_build_index_uses_only_canonical_documents() -> None:
     owner = documents["docs/spec/harness-simplification/spec.md"]
     assert owner["kind"] == "spec"
     assert owner["subject"] == "harness-simplification"
-    assert owner["title"] == "轻量级 Harness 上下文与技能体系"
+    source = REPO_ROOT / owner["path"]
+    source_title = next(
+        line.removeprefix("# ").strip()
+        for line in source.read_text(encoding="utf-8").splitlines()
+        if line.startswith("# ")
+    )
+    assert owner["title"] == source_title
     assert all("/plans/" not in path for path in documents)
     assert all(not path.endswith("context.yaml") for path in documents)
 

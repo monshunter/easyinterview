@@ -83,11 +83,11 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 - **前后端单测由根 Makefile 统一承接**：开发中可以运行 focused test 快速反馈，但阶段完成与 CI 回归必须从仓库根目录执行 `make test`，由该入口整体运行 backend `go test ./...` 与 frontend 全量 test；不得把单文件、单 package PASS 或 E2E shell 包装当作前后端单测已回归。
 - **代码 gate 与 E2E 分层执行**：单元、integration、lint、build 可由 plan/checklist 独立列为前置或回归 gate，但不能成为 E2E 场景内部步骤或场景通过证据。E2E 不得再次编排 `make test`，二者分别报告结果。
 
-#### 2.1.1.3 context.yaml 过渡期最小合同（强制）
+#### 2.1.1.3 context.yaml 最小合同（强制）
 
-- 在 Harness Phase 2 最终删除全部 `context.yaml` 与调用方之前，现有清单只允许承载 target 与一等文档链接；`metadata` 只允许 `name`。
+- 每个当前 plan 必须保留一份最小 `context.yaml`，只允许承载 target 与一等文档链接；`metadata` 只允许 `name`。single-plan/loop 模式允许 `plan` 与 `checklist` 同指 `./plan.md`。
 - 禁止 `spec.discovery`、target `discovery`、target `references`，也禁止在 metadata/spec/target 中增加分支、版本、命令或其他自定义字段。
-- subject、plan 顺序、Spec 版本、owner 路由和分支信息必须从路径、当前 Spec Header、`AGENTS.md`、Git 与当前仓库事实推导；generator 不得保留退出字段，validator 对未知字段 fail closed。
+- subject、plan 顺序、Spec 版本、owner 路由和分支信息必须从路径、当前 Spec Header、`AGENTS.md`、Git 与当前仓库事实推导；generator 不得保留退出字段，新增一等文档后必须补齐链接，validator 对未知字段 fail closed。暂不规划删除 `context.yaml` 或其统一 consumer。
 
 ### 2.1.2 深度重校对门禁（强制）
 

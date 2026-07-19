@@ -186,12 +186,12 @@ If Header is invalid, **abort INDEX update** and fix the Header first.
 
 ## Checklist Principle
 
-Checklists are the single source of truth for task completion:
+The selected execution progress document is the single source of truth for task completion. Ordinary plans use `checklist.md`; single-plan/loop plans use inline checkboxes in `plan.md` and set both manifest roles to that file:
 
-1. **Atomic updates**: Update checklist when modifying plan content
-2. **Completion criteria**: All items checked = task complete
-3. **No false marking**: Never mark task `#completed` if checklist incomplete
-4. **Skip with reason**: If skipping an item, annotate why in checklist
+1. **Atomic updates**: Update the selected progress document when modifying plan content
+2. **Completion criteria**: All items in that progress document checked = task complete
+3. **No false marking**: Never mark task `#completed` while its progress items remain incomplete
+4. **Skip with reason**: If skipping an item, annotate why at that item
 
 ## Prohibited Actions
 

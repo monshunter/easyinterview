@@ -82,10 +82,11 @@ def test_agents_declares_tdd_bdd_quality_gate_rules():
     assert "不适用原因 + 替代验证 gate" in text
 
 
-def test_agents_declares_transitional_minimal_plan_context_contract():
+def test_agents_declares_minimal_plan_context_contract():
     text = _agents_text()
 
-    assert "context.yaml 过渡期最小合同" in text
+    assert "context.yaml 最小合同" in text
+    assert "暂不规划删除 `context.yaml`" in text
     assert "`metadata` 只允许 `name`" in text
     assert "禁止 `spec.discovery`、target `discovery`、target `references`" in text
 
