@@ -104,6 +104,7 @@ export const AuthVerifyScreen: FC<AuthVerifyScreenProps> = ({
             data-testid="auth-verify-code"
             className="ei-auth-field-input"
             type="text"
+            placeholder={t("auth.codePlaceholder")}
             inputMode="numeric"
             autoComplete="one-time-code"
             pattern="[0-9]*"

@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.34
+> **版本**: 1.35
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -130,3 +130,10 @@
 - [x] 17.2 REVIEW-GREEN: 以 component/request generation guard 丢弃不再属于当前 mounted user 的保存响应；集中校验账号主题投影；dev mock 在任何 state mutation 前拒绝出现但非法的 `displayPreferences`。（证据：frontend focused 4 files / 45 tests PASS。）
 - [x] 17.3 CONTRACT-DRIFT-GATE: product-scope D-21/route、OpenAPI current schema inventory/handoff、frontend README、UI architecture 与 engineering roadmap 同步方案 B；focused doc contract test 与 scoped negative search 阻止当前章节回流 `CompleteProfileRequest` / `completeMyProfile` / TopBar theme menu / “设置与隐私”。（证据：focused owner-doc 2 tests PASS。）
 - [x] 17.4 BDD/REGRESSION: `BDD.SHELL.SETTINGS.THEME.001` 的 failure/retry/leave/invalid/race domain tests、frontend focused、根 `make test`、build、docs/codegen/diff/context gates与重新部署后的真实 `E2E.P0.101` 通过；Phase 15.3 仍未完成时 plan/checklist/BDD 保持 `active`。（证据：frontend focused 45 PASS；root Python 615 / Go all / frontend 1042 PASS；build、OpenAPI 38/38、fixture、codegen、diff、migration、docs/index/context/diff PASS；`e2e-p0-101-20260719082610-75505` PASS + cleanup PASS。）
+
+## Phase 18: screenshot-aligned Auth and Settings composition
+
+- [x] 18.1 RED: `AuthVisual`、Auth screen 与 Settings visual/component tests 锁定宽幅双栏、原则/主操作卡、页面装饰、退出堆叠操作、设置 Header 和三张横向功能卡；旧 `1160px`/`980px` 构图先失败。<!-- verified: 2026-07-19 method=focused-vitest-red evidence="AuthVisual/ScreensVisual/ParsePlanVisual ran 35 tests: 11 expected failures, including six Auth composition failures and two Settings composition failures while 24 existing behavior/negative assertions stayed green." -->
+- [x] 18.2 GREEN: 仅重组正式 DOM、page-scoped CSS、typed locale 与仓库内 SVG/CSS 装饰；保留认证、pendingAction、主题保存、退出和删除账号状态机、请求次数与错误恢复。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="Auth visual/screens and Settings visual/component suites pass 54/54; frontend typecheck passes. The implementation adds only shared DOM/CSS/typed copy/SVG decoration and keeps existing handler/client paths." -->
+- [x] 18.3 BDD-Gate: `BDD.SHELL.PAGES.VISUAL.002` 由 desktop/mobile component/responsive/a11y tests 与 current-run Chrome 真实页面验收承接；不得伪造验证码计时/成功或新增 E2E ID。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Chrome at 1916x821 and 390x844 verified login, verify, logout and authenticated Settings compositions with zero horizontal overflow; real locale switching restored Chinese after English, real logout returned Home, and a protected Settings route redirected to the pending auth login." -->
+- [x] 18.4 REGRESSION: focused/locale reachability、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gates 通过后收口当前视觉 Phase；Phase 15.3 仍保持独立未完成，plan/checklist/BDD 不恢复 `completed`。<!-- verified: 2026-07-19 method=full-regression evidence="Auth/Settings focused suites pass 54/54; shared visual/detail suites pass 95/95; frontend typecheck/build pass; root make test passes Python 615 with 4615 subtests, Go all packages, and frontend 133 files / 1066 tests. Owner context, doc/index and diff gates pass; Phase 15.3 remains open because the transient auth probe gate was not observed in current-run Chrome." -->

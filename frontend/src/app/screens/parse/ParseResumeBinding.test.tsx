@@ -247,7 +247,7 @@ describe("ParseResumeBinding", () => {
     expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
   });
 
-  it("renders Start then Reports in one leading left-aligned action row", async () => {
+  it("renders Start then Reports in the shared plan-detail header action row", async () => {
     const client = createClient();
     await renderReadyParse(client);
 
@@ -257,7 +257,8 @@ describe("ParseResumeBinding", () => {
       "Start mock interview",
       "Interview reports",
     ]);
-    expect(actions).toHaveStyle({ justifyContent: "flex-start" });
+    expect(actions).toHaveClass("ei-plan-detail-actions");
+    expect(actions.closest(".ei-plan-detail-header")).toBeInTheDocument();
     expect(screen.queryByTestId("parse-launch")).not.toBeInTheDocument();
   });
 

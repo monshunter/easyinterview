@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.34
+> **版本**: 1.35
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -142,6 +142,14 @@ Review remediation 继续由本 Phase owning：默认 fixture-backed client 在 
 
 同时同步 product-scope D-21、OpenAPI current schema inventory / handoff、frontend README 与 UI architecture 的当前合同，旧 `completeMyProfile` / TopBar theme menu / “设置与隐私”只能留在明确历史证据中。Focused failure/retry/leave/race/parity tests、根 `make test`、build/docs/codegen/diff gates 与重新部署后的 `E2E.P0.101` 共同作为本轮验收；Phase 15 的既有 locale Chrome 项仍独立保持未完成，主 plan 不因本 Phase 通过而虚假关闭。
 
+### Phase 18: Screenshot-aligned Auth and Settings composition
+
+先以 `AuthVisual`、Auth screen 与 Settings visual/component tests 固化参考稿可执行结构：desktop 宽幅双栏认证 shell、左侧标题/原则卡、右侧主操作卡、登录/验证码装饰插画、退出页堆叠确认，以及设置页 Header 插画和三张横向功能卡。旧 `1160px` 窄 auth shell、Settings `980px` 纵向块和退出双按钮行必须形成 RED。
+
+GREEN 只调整正式 React DOM、page-scoped CSS、typed locale 与仓库内 SVG/CSS 装饰；保留 email-code、pendingAction、verify、logout、runtime user、主题 `updateMe`、导出不可用与 `deleteMe` 的现有状态机和请求预算。desktop 参考 viewport 与 mobile 单列均须无横向溢出，装饰不进入阅读顺序，也不得伪造验证码倒计时、重发成功或任何账号能力。
+
+`BDD.SHELL.PAGES.VISUAL.002` 由 component/responsive/a11y tests 与 current-run Chrome desktop/mobile 真实页面验收承接，不建立第二套 Demo 或像素基线。完成 focused、locale reachability、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 后收口本 Phase；Phase 15.3 的 auth probe 中间 loading/error gate 仍是独立 Chrome 证据缺口，在真实运行时未捕获到该瞬态前不得冒充完成，主 plan 因此继续保持 `active`。
+
 
 ## 7 风险与应对
 
@@ -158,6 +166,7 @@ Review remediation 继续由本 Phase owning：默认 fixture-backed client 在 
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.35 | Reopen Phase 18 for screenshot-aligned login, verify, logout and settings compositions while preserving the existing generated-client and state-machine contracts. |
 | 2026-07-19 | 1.34 | Reopen Phase 17 to remediate stale account-theme responses, fail-closed runtime projection, dev-mock atomic parity and active owner contract drift found by L2 review. |
 | 2026-07-19 | 1.33 | Reopen Phase 16 for generic updateMe, account-persisted theme with zero route refetch, Settings naming/gear, and Practice global chrome. |
 | 2026-07-16 | 1.32 | Reopen Phase 15 to localize the shared auth loading/error route gate without changing auth behavior. |

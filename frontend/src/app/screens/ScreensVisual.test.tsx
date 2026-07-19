@@ -50,6 +50,25 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
     }
   });
 
+  it("renders the screenshot-aligned header and three horizontal function cards", () => {
+    const { container } = render(
+      withProvider(<SettingsScreen route={{ name: "settings", params: {} }} />),
+    );
+    const root = container.querySelector("[data-testid='route-settings']")!;
+    expect(root.querySelector(".ei-settings-header-copy")).toBeTruthy();
+    expect(root.querySelector(".ei-settings-header-art")).toBeTruthy();
+    for (const sectionId of [
+      "settings-appearance",
+      "settings-account",
+      "settings-privacy",
+    ]) {
+      const section = root.querySelector(`[data-testid='${sectionId}']`)!;
+      expect(section.className).toMatch(/\bei-settings-card\b/);
+      expect(section.querySelector(".ei-settings-card-icon")).toBeTruthy();
+      expect(section.querySelector(".ei-settings-card-body")).toBeTruthy();
+    }
+  });
+
   it("rejects out-of-scope Growth / Experiences / Mistakes / Drill / 独立 voice copy and testid", () => {
     const { container } = render(
       withProvider(<SettingsScreen route={{ name: "settings", params: {} }} />),
@@ -164,5 +183,12 @@ describe("screens.css visual rhythm (Phase 5.1 + 5.2)", () => {
     expect(css).toMatch(
       /@media \(max-width: 600px\)[\s\S]*\.ei-settings-value-row dd\s*\{[^}]*text-align:\s*left/,
     );
+  });
+
+  it("defines the 1372px Settings page and horizontal card composition", () => {
+    expect(css).toMatch(/\.ei-settings-screen\s*\{[^}]*max-width:\s*1372px/);
+    expect(css).toMatch(/\.ei-settings-screen\s*>\s*\.ei-settings-header\s*\{[^}]*display:\s*grid/);
+    expect(css).toMatch(/\.ei-settings-card\s*\{[^}]*display:\s*grid/);
+    expect(css).toMatch(/\.ei-settings-card\s*\{[^}]*grid-template-columns:\s*64px\s+minmax\(0,\s*1fr\)/);
   });
 });

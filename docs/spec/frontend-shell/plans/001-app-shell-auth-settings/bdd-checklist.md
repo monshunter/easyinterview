@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.23
+> **版本**: 1.24
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -48,3 +48,9 @@
 - [x] 失败、重试、离开未保存页面、迟到响应和 invalid server projection 均 fail closed，不污染最近一次确认主题或新的认证状态。（2026-07-19 新增 race/projection/atomicity tests 后 focused PASS。）
 - [x] Backend/migration/OpenAPI tests 证明 profile-only/theme-only/combined 原子更新、约束和 `getMe` round-trip。
 - [x] `E2E.P0.101` 原地覆盖真实主题保存、logout/relogin 恢复；current run `e2e-p0-101-20260719082610-75505` PASS（themeSavePatch=1、settingsMountedGetMe=0、settingsRouteSwitchGetMe=0、themeRelogin=plum、cleanup PASS）。
+
+## `BDD.SHELL.PAGES.VISUAL.002` Auth 与 Settings 目标构图
+
+- [x] Auth/Settings visual/component tests 覆盖 desktop 宽幅布局、mobile 单列、无溢出、装饰语义和退出堆叠操作，并先证明旧构图失败。
+- [x] Auth/Settings behavior、locale、请求预算、主题/退出/删除状态机在视觉重排后保持通过；验证码页不出现无 producer 的倒计时或成功状态。
+- [x] Chrome extension automation skill 在 current-run 真实页面验收登录、验证码、退出、设置 desktop/mobile，并验证真实中英文切换与 pendingAction 回跳；不新增 E2E ID。`BDD.SHELL.AUTH.LOCALE.001` 的 auth probe 中间 loading/error gate 仍独立保持未完成。

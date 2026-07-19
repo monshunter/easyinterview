@@ -61,6 +61,7 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
             data-testid="auth-login-email"
             className="ei-auth-field-input"
             type="email"
+            placeholder={t("auth.emailPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required

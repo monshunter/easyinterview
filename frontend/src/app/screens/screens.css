@@ -3838,15 +3838,398 @@
 
 }
 
+/* Workspace screenshot-aligned plan detail. */
+.ei-plan-detail-screen {
+  width: 100%;
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 6px 0 84px;
+  box-sizing: border-box;
+}
+
+.ei-plan-detail-header {
+  min-width: 0;
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  align-items: end;
+}
+
+.ei-plan-detail-heading {
+  min-width: 0;
+}
+
+.ei-plan-detail-step {
+  margin-bottom: 8px;
+  color: var(--ei-color-accent);
+}
+
+.ei-plan-detail-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.ei-plan-detail-title {
+  margin: 0;
+  color: var(--ei-color-fg-primary);
+  font-size: clamp(32px, 2.4vw, 36px);
+  line-height: 1.16;
+  letter-spacing: -0.035em;
+}
+
+.ei-plan-detail-resume-link {
+  min-height: 36px;
+  padding: 4px 0;
+  color: var(--ei-color-accent);
+  background: transparent;
+  border: 0;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.ei-plan-detail-resume-missing {
+  color: var(--ei-color-warn);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.ei-plan-detail-subtitle {
+  max-width: 720px;
+  margin-top: 4px;
+  color: var(--ei-color-fg-tertiary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ei-plan-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ei-plan-detail-primary-action,
+.ei-plan-detail-secondary-action {
+  min-height: 46px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  font-family: var(--ei-font-sans);
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: transform 80ms ease, opacity 150ms ease;
+}
+
+.ei-plan-detail-primary-action {
+  color: #fff;
+  background: var(--ei-color-accent);
+  border: 1px solid var(--ei-color-accent);
+}
+
+.ei-plan-detail-primary-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ei-plan-detail-secondary-action {
+  color: var(--ei-color-fg-primary);
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+}
+
+.ei-plan-detail-error {
+  margin: -10px 0 20px;
+  padding: 10px 14px;
+  color: var(--ei-color-danger);
+  background: var(--ei-color-danger-soft);
+  border: 1px solid var(--ei-color-danger);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.ei-plan-detail-card,
+.ei-plan-detail-requirement-card {
+  border-radius: 14px;
+  box-shadow: 0 9px 26px color-mix(in srgb, var(--ei-color-fg-primary) 4%, transparent);
+}
+
+.ei-plan-detail-card-heading {
+  min-height: 44px;
+  padding: 10px 18px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--ei-color-rule-strong);
+}
+
+.ei-plan-detail-card-heading .ei-label {
+  flex: 1;
+}
+
+.ei-plan-detail-section-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: grid;
+  place-items: center;
+  color: var(--ei-color-accent);
+  background: var(--ei-color-accent-soft);
+  border-radius: 50%;
+}
+
+.ei-plan-detail-section-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.ei-plan-detail-section-icon--must {
+  color: var(--ei-color-ok);
+  background: var(--ei-color-ok-soft);
+}
+
+.ei-plan-detail-section-icon--nice {
+  color: var(--ei-color-warn);
+  background: var(--ei-color-warn-soft);
+}
+
+.ei-plan-detail-basics {
+  min-height: 136px;
+}
+
+.ei-plan-detail-basics-grid > div {
+  min-width: 0;
+}
+
+.ei-plan-detail-requirements {
+  min-width: 0;
+}
+
+.ei-plan-detail-requirement-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ei-plan-detail-hidden {
+  padding: 10px 18px;
+  background: color-mix(in srgb, var(--ei-color-accent-soft) 44%, var(--ei-color-bg-card));
+}
+
+.ei-plan-detail-hidden-heading > div:first-child {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: center;
+}
+
+.ei-plan-detail-hidden-heading > div:first-child .ei-plan-detail-section-icon {
+  grid-row: 1 / span 2;
+}
+
+.ei-plan-detail-hidden-items {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ei-plan-detail-rounds {
+  min-width: 0;
+  padding: 10px 14px;
+}
+
+.ei-plan-detail-round-heading > .ei-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ei-plan-detail-round-grid {
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .ei-plan-detail-screen {
+    padding: 26px 16px 68px;
+  }
+
+  .ei-plan-detail-header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .ei-plan-detail-actions {
+    justify-content: flex-start;
+  }
+
+  .ei-plan-detail-actions > button,
+  .ei-plan-detail-actions > span,
+  .ei-plan-detail-actions > span > button {
+    width: 100%;
+  }
+
+  .ei-plan-detail-title {
+    font-size: 34px;
+  }
+
+  .ei-plan-detail-round-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ei-plan-detail-hidden-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .ei-settings-screen {
-  max-width: 980px;
+  max-width: 1372px;
+  gap: 14px;
+  padding: 30px 0 64px;
+}
+
+.ei-settings-screen > .ei-settings-header {
+  min-height: 140px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 48px;
+  align-items: center;
+}
+
+.ei-settings-header-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ei-settings-eyebrow {
+  color: var(--ei-color-accent);
+  font-weight: 700;
+}
+
+.ei-settings-header-copy h1 {
+  font-size: clamp(38px, 3vw, 52px);
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+
+.ei-settings-header-art {
+  width: 100%;
+  color: var(--ei-color-accent);
+  opacity: 0.22;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ei-settings-card {
+  min-width: 0;
+  min-height: 160px;
+  padding: 20px 22px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  border-radius: 14px;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--ei-color-fg-primary) 5%, transparent);
+}
+
+.ei-settings-card-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ei-color-accent);
+  background: var(--ei-color-accent-soft);
+}
+
+.ei-settings-card-icon svg {
+  width: 27px;
+  height: 27px;
+}
+
+.ei-settings-card-icon--privacy {
+  color: var(--ei-color-ok);
+  background: var(--ei-color-ok-soft);
+}
+
+.ei-settings-card-body {
+  min-width: 0;
+}
+
+[data-testid="settings-appearance"] .ei-settings-card-body {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) auto;
+  column-gap: 26px;
+  align-items: center;
+}
+
+[data-testid="settings-appearance"] {
+  min-height: 184px;
+}
+
+[data-testid="settings-appearance"] .ei-settings-section-heading,
+[data-testid="settings-appearance"] .ei-settings-appearance-copy {
+  grid-column: 1;
+}
+
+[data-testid="settings-appearance"] .ei-settings-theme-options,
+[data-testid="settings-appearance"] .ei-settings-custom-accent,
+[data-testid="settings-appearance"] .ei-settings-theme-error {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+[data-testid="settings-appearance"] .ei-settings-actions {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
+[data-testid="settings-account"] .ei-settings-card-body {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) auto;
+  gap: 26px;
+  align-items: center;
+}
+
+[data-testid="settings-account"] .ei-settings-values {
+  min-width: 0;
+}
+
+[data-testid="settings-privacy"] .ei-settings-card-body {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  column-gap: 26px;
+  align-items: center;
+}
+
+[data-testid="settings-privacy"] .ei-settings-section-heading {
+  grid-row: 1 / span 2;
+  align-self: start;
+}
+
+[data-testid="settings-privacy"] .ei-settings-privacy-row {
+  padding-block: 8px;
 }
 
 .ei-settings-section-heading {
   display: flex;
   flex-direction: column;
   gap: var(--ei-space-1);
-  padding-bottom: var(--ei-space-2);
+  padding-bottom: 8px;
 }
 
 .ei-settings-section-heading .ei-text-label {
@@ -3865,7 +4248,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--ei-space-6);
-  padding: 16px 0;
+  padding: 14px 0;
   border-top: 1px solid var(--ei-color-rule-soft);
 }
 
@@ -3890,7 +4273,7 @@
 .ei-settings-actions {
   display: flex;
   justify-content: flex-end;
-  padding-top: var(--ei-space-2);
+  padding-top: 0;
 }
 
 .ei-settings-appearance-copy {
@@ -3902,17 +4285,17 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 0;
 }
 
 .ei-settings-theme-option {
-  min-height: 42px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 16px;
   display: inline-flex;
   align-items: center;
   gap: 9px;
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 3px;
+  border-radius: 8px;
   background: var(--ei-color-bg-card);
   color: var(--ei-color-fg-primary);
   cursor: pointer;
@@ -3962,10 +4345,10 @@
 }
 
 .ei-settings-primary-action {
-  min-height: 40px;
-  padding: 0 16px;
+  min-height: 44px;
+  padding: 0 20px;
   border: 1px solid var(--ei-color-accent);
-  border-radius: 3px;
+  border-radius: 8px;
   background: var(--ei-color-accent);
   color: var(--ei-color-bg-card);
   font-weight: 600;
@@ -4106,6 +4489,58 @@
 
   .ei-settings-accent-row {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .ei-settings-screen {
+    padding-inline: 24px;
+  }
+
+  .ei-settings-screen > .ei-settings-header {
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 720px) {
+  .ei-settings-screen {
+    padding: 30px 16px 64px;
+  }
+
+  .ei-settings-screen > .ei-settings-header {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ei-settings-header-art {
+    display: none;
+  }
+
+  .ei-settings-header-copy h1 {
+    font-size: 36px;
+  }
+
+  .ei-settings-card {
+    min-height: 0;
+    padding: 22px 18px;
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  [data-testid="settings-appearance"] .ei-settings-card-body,
+  [data-testid="settings-account"] .ei-settings-card-body,
+  [data-testid="settings-privacy"] .ei-settings-card-body {
+    display: block;
+  }
+
+  [data-testid="settings-appearance"] .ei-settings-theme-options {
+    margin-top: 14px;
+  }
+
+  .ei-settings-card-icon {
+    width: 44px;
+    height: 44px;
   }
 }
 

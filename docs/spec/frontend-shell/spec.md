@@ -1,7 +1,7 @@
 # Frontend Shell Spec
 
-> **版本**: 1.37
-> **状态**: completed
+> **版本**: 1.38
+> **状态**: active
 > **更新日期**: 2026-07-19
 
 ## 1 背景与目标
@@ -110,6 +110,7 @@
 | C-15 | Settings 真实数据与隐私动作 | authenticated runtime 已取得 `/me` | 打开设置、查看导出状态、退出或删除账号 | 只显示真实 `displayName/email`，其中 email 完整显示但不进入 PASS/FAIL 日志或证据；不重复 `getMe`；导出显示暂不可用；删除流程具备确认/pending/failure/202 success；默认 fixture client 在删除后也返回 unauthenticated，且旧 tab/block/字段零引用 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
 | C-16 | Auth route gate 本地化 | 中文或英文显示偏好已生效，受保护 route 的 auth probe 为 loading/error | App 挂载统一 route gate 或用户切换语言 | eyebrow/title/body 全部跟随当前 locale，业务 screen/API 仍不提前挂载，中文模式无英文 fallback | 001-app-shell-auth-settings |
 | C-17 | Practice 全局 chrome | authenticated 用户进入 Practice | route render 与 desktop/mobile 响应式布局 | 全局 TopBar 保持可见，其下是独立 Practice Session Header；页面切换不触发 `/me` | 001-app-shell-auth-settings + frontend-workspace-and-practice/001 |
+| C-18 | Auth / Settings 参考构图 | 用户打开登录、验证码、退出或设置 | 正式前端在 desktop/mobile 渲染当前业务状态 | Auth 三页共享宽幅双栏、原则卡与右侧主操作卡；Settings 使用 Header 插画和三张横向功能卡；操作、请求、错误与可访问性语义不变且无伪倒计时/伪成功 | 001-app-shell-auth-settings |
 
 ## 7 关联计划
 
@@ -122,6 +123,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.38 | 2026-07-19 | Reopen the shell owner to align login, verify, logout and settings with the supplied wide editorial compositions without changing auth or account behavior. |
 | 1.37 | 2026-07-19 | Reopen the visual owner for the supplied Home reference: 76px desktop chrome, pill dark toggle and a single circular E initial-mark settings entry without reintroducing account menus. |
 | 1.36 | 2026-07-19 | 采用账号主题方案 B：设置更名、主题移入 Appearance 并由 updateMe 持久化；锁定 bootstrap 单次读取、route 零重复读取、保存一次写入及 Practice 全局 chrome。 |
 | 1.35 | 2026-07-16 | 修复统一 auth route gate 绕过 locale catalog 的实现漂移，锁定 loading/error 双语与中文零英文残留。 |

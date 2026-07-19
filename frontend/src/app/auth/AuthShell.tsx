@@ -2,6 +2,7 @@ import type { FC, ReactNode } from "react";
 
 import { useI18n } from "../i18n/messages";
 import type { MessageKey } from "../i18n/locales/zh";
+import { AuthIllustration } from "./AuthIllustration";
 
 export interface AuthShellProps {
   /** Maps to `route-{name}` testid contract for auth screens. */
@@ -27,10 +28,9 @@ export interface AuthShellProps {
 }
 
 /**
- * Two-column auth shell transcribed from `formal frontend implementation`.
+ * Wide editorial auth shell shared by login, verification, profile and logout.
  * The shell never owns form state or pendingAction wiring; it only handles
- * the visual rhythm (max-width 1160 / padding 54 48 96 / grid 0.88fr 1.12fr /
- * gap 44) and the optional side panel. Per-screen testid stays on the outer
+ * the visual rhythm and the optional side panel. Per-screen testid stays on the outer
  * `<section>` so D1 route-state tests keep working.
  */
 export const AuthShell: FC<AuthShellProps> = ({
@@ -46,7 +46,7 @@ export const AuthShell: FC<AuthShellProps> = ({
     <section
       data-testid={`route-${routeName}`}
       data-route-name={routeName}
-      className="ei-auth-shell"
+      className={`ei-auth-shell ei-auth-shell--${routeName}`}
     >
       <div className="ei-auth-side">
         <span className="ei-auth-eyebrow ei-text-label">{t(eyebrowKey)}</span>
@@ -57,24 +57,32 @@ export const AuthShell: FC<AuthShellProps> = ({
             className="ei-auth-side-panel ei-auth-side-panel-pending"
             data-testid="auth-side-pending-action"
           >
-            <span className="ei-auth-eyebrow ei-text-label">
-              {t("auth.pendingAction.eyebrow")}
+            <span className="ei-auth-principle-icon" aria-hidden="true">↗</span>
+            <span className="ei-auth-side-panel-copy">
+              <span className="ei-auth-eyebrow ei-text-label">
+                {t("auth.pendingAction.eyebrow")}
+              </span>
+              <p className="ei-text-body">{t("auth.pendingAction.body")}</p>
             </span>
-            <p className="ei-text-body">{t("auth.pendingAction.body")}</p>
           </div>
         ) : (
           <div
             className="ei-auth-side-panel"
             data-testid="auth-side-principle"
           >
-            <span className="ei-auth-eyebrow ei-text-label">
-              {t("auth.principle.eyebrow")}
+            <span className="ei-auth-principle-icon" aria-hidden="true">✓</span>
+            <span className="ei-auth-side-panel-copy">
+              <span className="ei-auth-eyebrow ei-text-label">
+                {t("auth.principle.eyebrow")}
+              </span>
+              <p className="ei-text-body">{t("auth.principle.body")}</p>
             </span>
-            <p className="ei-text-body">{t("auth.principle.body")}</p>
           </div>
         )}
+        {routeName === "auth_login" ? <AuthIllustration variant="login" /> : null}
+        {routeName === "auth_verify" ? <AuthIllustration variant="verify" /> : null}
       </div>
-      <div className="ei-auth-card">{children}</div>
+      <div className="ei-auth-card"><div className="ei-auth-card-inner">{children}</div></div>
     </section>
   );
 };

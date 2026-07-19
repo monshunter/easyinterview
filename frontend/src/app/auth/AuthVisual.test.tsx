@@ -100,13 +100,13 @@ describe("auth screen card visual contract (Phase 4.1)", () => {
     expect(heading!.className).toMatch(/\bei-text-display\b/);
   });
 
-  it("auth.css defines the AuthShell rhythm (max-width 1160, padding, gap, grid 0.88fr 1.12fr)", () => {
+  it("auth.css defines the screenshot-aligned wide AuthShell rhythm", () => {
     const css = readFileSync(AUTH_CSS, "utf8");
-    expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*max-width:\s*1160px/);
-    expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*padding:\s*54px\s+48px\s+96px/);
+    expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*max-width:\s*1450px/);
+    expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*padding:\s*122px\s+56px\s+64px/);
     expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*display:\s*grid/);
-    expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*grid-template-columns:\s*0\.88fr\s+1\.12fr/);
-    expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*gap:\s*44px/);
+    expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*grid-template-columns:\s*0\.92fr\s+1\.08fr/);
+    expect(css).toMatch(/\.ei-auth-shell\s*\{[^}]*gap:\s*72px/);
     expect(css).toMatch(
       /\.ei-auth-card\s*\{[^}]*background:\s*var\(--ei-color-bg-card\)/,
     );
@@ -114,6 +114,17 @@ describe("auth screen card visual contract (Phase 4.1)", () => {
       /\.ei-auth-card\s*\{[^}]*border:\s*1px solid var\(--ei-color-rule-strong\)/,
     );
     expect(css).toMatch(/\.ei-auth-side-panel\s*\{[^}]*background:\s*var\(--ei-color-bg-soft\)/);
+  });
+
+  it.each(SCREENS)("$name exposes page-scoped composition anchors", ({ render: renderScreen, routeName }) => {
+    const { container } = render(withProvider(renderScreen()));
+    const root = container.querySelector(`[data-testid="route-${routeName}"]`)!;
+    expect(root.className).toContain(`ei-auth-shell--${routeName}`);
+    expect(root.querySelector(".ei-auth-principle-icon")).toBeTruthy();
+    expect(root.querySelector(".ei-auth-card-inner")).toBeTruthy();
+    if (routeName === "auth_login" || routeName === "auth_verify") {
+      expect(root.querySelector(".ei-auth-illustration")).toBeTruthy();
+    }
   });
 
   it("global.css imports the auth.css module", () => {
@@ -207,5 +218,6 @@ describe("auth screen D1 regression after visual parity (Phase 4.1)", () => {
     expect(container.querySelector("[data-testid='auth-logout-data-hint']")).toBeTruthy();
     expect(container.querySelector("[data-testid='auth-logout-confirm']")).toBeTruthy();
     expect(container.querySelector("[data-testid='auth-logout-cancel']")).toBeTruthy();
+    expect(container.querySelector(".ei-auth-row--stacked")).toBeTruthy();
   });
 });

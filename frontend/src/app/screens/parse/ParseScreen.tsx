@@ -82,6 +82,18 @@ function useParseCompactLayout(): boolean {
   return compact;
 }
 
+const PlanSectionIcon: FC<{ variant: "basics" | "must" | "nice" | "hidden" | "rounds" }> = ({ variant }) => (
+  <span className={`ei-plan-detail-section-icon ei-plan-detail-section-icon--${variant}`} aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {variant === "basics" ? <><path d="M5 7h14v12H5z" /><path d="M9 7V4h6v3M8 11h8M8 15h5" /></> : null}
+      {variant === "must" ? <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16 9" /></> : null}
+      {variant === "nice" ? <><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" /></> : null}
+      {variant === "hidden" ? <><path d="M3 12s3.4-6 9-6 9 6 9 6-3.4 6-9 6-9-6-9-6Z" /><circle cx="12" cy="12" r="2.5" /></> : null}
+      {variant === "rounds" ? <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></> : null}
+    </svg>
+  </span>
+);
+
 export const ParseScreen: FC<ParseScreenProps> = ({
   route,
   _mockStage,
@@ -548,12 +560,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           data-testid={routeTestId}
           data-route-name={route.name}
           data-route-params={JSON.stringify(route.params)}
-          className="ei-fadein"
-          style={{
-            maxWidth: 1200,
-            margin: "0 auto",
-            padding: compactLayout ? "24px 16px 72px" : "32px 48px 96px",
-          }}
+          className="ei-fadein ei-plan-detail-screen"
         >
           <div
             data-testid="workspace-detail-loading"
@@ -712,49 +719,21 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       data-testid={routeTestId}
       data-route-name={route.name}
       data-route-params={JSON.stringify(route.params)}
-      className="ei-fadein"
-      style={{
-        maxWidth: 1200,
-        margin: "0 auto",
-        padding: compactLayout ? "24px 16px 72px" : "32px 48px 96px",
-      }}
+      className="ei-fadein ei-plan-detail-screen"
     >
       {/* Header */}
       <div
         data-testid="unified-plan-detail"
-        style={{
-          minWidth: 0,
-          marginBottom: 24,
-        }}
+        className="ei-plan-detail-header"
       >
-        <div style={{ minWidth: 0 }}>
-          <div
-            className="ei-label"
-            style={{
-              color: "var(--ei-color-fg-tertiary)",
-              marginBottom: 8,
-            }}
-          >
+        <div className="ei-plan-detail-heading">
+          <div className="ei-label ei-plan-detail-step">
             {t("parse.stepLabel")}
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: 14,
-              flexWrap: "wrap",
-            }}
-          >
+          <div className="ei-plan-detail-title-row">
             <h1
               data-testid="unified-plan-detail-title"
-              className="ei-serif"
-              style={{
-                fontSize: 32,
-                margin: 0,
-                color: "var(--ei-color-fg-primary)",
-                letterSpacing: "-0.02em",
-                lineHeight: 1.2,
-              }}
+              className="ei-serif ei-plan-detail-title"
             >
               {t("parse.previewTitle")}
             </h1>
@@ -764,80 +743,35 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                   type="button"
                   data-testid="parse-resume-link"
                   onClick={handleOpenBoundResume}
-                  style={{
-                    minHeight: 36,
-                    padding: "4px 0",
-                    color: "var(--ei-color-accent)",
-                    background: "transparent",
-                    border: 0,
-                    fontFamily: "var(--ei-font-sans)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    textDecoration: "underline",
-                    textUnderlineOffset: 3,
-                    cursor: "pointer",
-                  }}
+                  className="ei-plan-detail-resume-link"
                 >
                   {t("parse.resumeBinding")}
                 </button>
               ) : (
                 <span
                   data-testid="parse-resume-missing"
-                  style={{
-                    color: "var(--ei-color-warn)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}
+                  className="ei-plan-detail-resume-missing"
                 >
                   {t("parse.resumeEmptyTitle")}
                 </span>
               )
             ) : null}
           </div>
-          <div
-            style={{
-              fontSize: 14,
-              color: "var(--ei-color-fg-tertiary)",
-              marginTop: 8,
-              maxWidth: 620,
-              lineHeight: 1.5,
-            }}
-          >
+          <div className="ei-plan-detail-subtitle">
             {t("parse.previewSub")}
           </div>
         </div>
-      </div>
 
-      {route.name === "workspace" && targetJobId && targetJob?.id === targetJobId ? (
-        <>
+        {route.name === "workspace" && targetJobId && targetJob?.id === targetJobId ? (
           <div
             data-testid="parse-leading-actions"
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
-              marginBottom: confirmError ? 12 : 24,
-            }}
+            className="ei-plan-detail-actions"
           >
             <button
               data-testid="parse-action-start-interview"
               onClick={handleStartInterview}
               disabled={launchDisabled}
-              style={{
-                minHeight: 44,
-                padding: "8px 18px",
-                fontSize: 13.5,
-                fontFamily: "var(--ei-font-sans)",
-                background: "var(--ei-color-accent)",
-                border: "1px solid var(--ei-color-accent)",
-                borderRadius: "var(--ei-radius-sm)",
-                color: "#fff",
-                cursor: launchDisabled ? "not-allowed" : "pointer",
-                opacity: launchDisabled ? 0.5 : 1,
-                fontWeight: 500,
-              }}
+              className="ei-plan-detail-primary-action"
             >
               {t("parse.startInterview")}
             </button>
@@ -854,25 +788,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 onMouseLeave={(event) => {
                   event.currentTarget.style.transform = "";
                 }}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  minHeight: 44,
-                  padding: "0 16px",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  background: "var(--ei-color-bg-canvas)",
-                  color: "var(--ei-color-fg-primary)",
-                  border: "1px solid var(--ei-color-rule-strong)",
-                  borderRadius: 2,
-                  cursor: "pointer",
-                  opacity: 1,
-                  fontFamily: "var(--ei-font-sans)",
-                  letterSpacing: "-0.005em",
-                  transition: "transform .08s ease, opacity .15s",
-                }}
+                className="ei-plan-detail-secondary-action"
               >
                 <svg
                   aria-hidden="true"
@@ -892,36 +808,22 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               </button>
             </span>
           </div>
-          {confirmError ? (
-            <div
-              data-testid="parse-confirm-error"
-              style={{
-                padding: "8px 14px",
-                background: "var(--ei-color-danger-soft)",
-                border: "1px solid var(--ei-color-danger)",
-                borderRadius: "var(--ei-radius-sm)",
-                fontSize: 13,
-                color: "var(--ei-color-danger)",
-                marginBottom: 24,
-              }}
-            >
-              {t(confirmError)}
-            </div>
-          ) : null}
-        </>
+        ) : null}
+      </div>
+
+      {confirmError ? (
+        <div data-testid="parse-confirm-error" className="ei-plan-detail-error">
+          {t(confirmError)}
+        </div>
       ) : null}
 
       {/* Basic fields */}
       <div
-        className="ei-screen-card"
-        style={{ marginBottom: 20, padding: 0 }}
+        className="ei-screen-card ei-plan-detail-card ei-plan-detail-basics"
+        style={{ marginBottom: 12, padding: 0 }}
       >
-        <div
-          style={{
-            padding: "16px 24px",
-            borderBottom: "1px solid var(--ei-color-rule-strong)",
-          }}
-        >
+        <div className="ei-plan-detail-card-heading">
+          <PlanSectionIcon variant="basics" />
           <div
             className="ei-label"
             style={{ color: "var(--ei-color-fg-tertiary)" }}
@@ -930,10 +832,11 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           </div>
         </div>
         <div
+          className="ei-plan-detail-basics-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: compactLayout ? "1fr" : "repeat(2, 1fr)",
-            padding: "6px 24px",
+            gridTemplateColumns: compactLayout ? "1fr" : "repeat(3, 1fr)",
+            padding: "2px 24px",
           }}
         >
           {[
@@ -969,7 +872,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               style={{
                 display: "flex",
                 gap: 14,
-                padding: "12px 0",
+                padding: "7px 0",
                 borderBottom:
                   i < arr.length - 1
                     ? "1px dotted var(--ei-color-rule-strong)"
@@ -1006,15 +909,17 @@ export const ParseScreen: FC<ParseScreenProps> = ({
 
       {/* Requirements */}
       <div
+        className="ei-plan-detail-requirements"
         style={{
           display: "grid",
           gridTemplateColumns: compactLayout ? "1fr" : "1fr 1fr",
           gap: 20,
-          marginBottom: 20,
+          marginBottom: 12,
         }}
       >
         {/* Must Have */}
         <div
+          className="ei-plan-detail-requirement-card"
           style={{
             background: "var(--ei-color-bg-card)",
             border: "1px solid var(--ei-color-rule-strong)",
@@ -1025,6 +930,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           }}
         >
           <div
+            className="ei-plan-detail-card-heading"
             style={{
               padding: "14px 20px",
               borderBottom: "1px solid var(--ei-color-rule-strong)",
@@ -1033,6 +939,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               alignItems: "center",
             }}
           >
+            <PlanSectionIcon variant="must" />
             <div
               className="ei-label"
               style={{ color: "var(--ei-color-fg-tertiary)" }}
@@ -1055,7 +962,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 key={item.id}
                 data-testid={`parse-requirement-must_have-${i}`}
                 style={{
-                  padding: "12px 20px",
+                  padding: "4px 20px",
                   borderBottom:
                     i < mustHave.length - 1
                       ? "1px dotted var(--ei-color-rule-strong)"
@@ -1085,8 +992,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         </div>
 
         {/* Nice to Have */}
-        <div className="ei-screen-card" style={{ padding: 0, display: "block", gap: 0 }}>
+        <div className="ei-screen-card ei-plan-detail-requirement-card" style={{ padding: 0, display: "block", gap: 0 }}>
           <div
+            className="ei-plan-detail-card-heading"
             style={{
               padding: "14px 20px",
               borderBottom: "1px solid var(--ei-color-rule-strong)",
@@ -1095,6 +1003,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               alignItems: "center",
             }}
           >
+            <PlanSectionIcon variant="nice" />
             <div
               className="ei-label"
               style={{ color: "var(--ei-color-fg-tertiary)" }}
@@ -1117,7 +1026,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 key={item.id}
                 data-testid={`parse-requirement-nice_to_have-${i}`}
                 style={{
-                  padding: "12px 20px",
+                  padding: "4px 20px",
                   borderBottom:
                     i < niceToHave.length - 1
                       ? "1px dotted var(--ei-color-rule-strong)"
@@ -1149,10 +1058,11 @@ export const ParseScreen: FC<ParseScreenProps> = ({
 
       {/* Hidden signals */}
       <div
-        className="ei-screen-card"
-        style={{ marginBottom: 20, borderColor: "var(--ei-color-accent)" }}
+        className="ei-screen-card ei-plan-detail-card ei-plan-detail-hidden"
+        style={{ marginBottom: 12, borderColor: "var(--ei-color-accent)" }}
       >
         <div
+          className="ei-plan-detail-hidden-heading"
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -1161,6 +1071,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           }}
         >
           <div>
+            <PlanSectionIcon variant="hidden" />
             <div
               className="ei-label"
               style={{
@@ -1201,7 +1112,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             {t("parse.hiddenConfidence")}
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="ei-plan-detail-hidden-items">
           {hiddenSignals.map((h, i) => (
             <div
               key={i}
@@ -1210,7 +1121,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 display: "flex",
                 gap: 10,
                 alignItems: "flex-start",
-                padding: "8px 12px",
+                padding: "4px 10px",
                 background: "var(--ei-color-bg-soft)",
                 borderRadius: "var(--ei-radius-sm)",
               }}
@@ -1240,8 +1151,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       </div>
 
       {/* Round assumptions */}
-      <div className="ei-screen-card" style={{ marginBottom: 28 }}>
+      <div className="ei-screen-card ei-plan-detail-card ei-plan-detail-rounds" style={{ marginBottom: 28 }}>
         <div
+          className="ei-plan-detail-round-heading"
           style={{
             display: "flex",
             justifyContent: "space-between",
@@ -1253,6 +1165,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             className="ei-label"
             style={{ color: "var(--ei-color-fg-tertiary)" }}
           >
+            <PlanSectionIcon variant="rounds" />
             {t("parse.roundsTitle")}
           </div>
           <div
@@ -1267,6 +1180,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         </div>
         <div
           data-testid="parse-rounds"
+          className="ei-plan-detail-round-grid"
           style={{
             display: "grid",
             gridTemplateColumns: compactLayout
@@ -1315,7 +1229,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 data-testid={`parse-round-${i}`}
                 data-round-state={roundState ?? undefined}
                 style={{
-                  padding: "12px 14px",
+                  padding: "8px 12px",
                   background: roundBackground,
                   border: `1px solid ${roundBorder}`,
                   borderRadius: "var(--ei-radius-sm)",

@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.34
+> **版本**: 2.35
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -169,3 +169,10 @@
 
 - [x] BDD-Gate: `BDD.HOME.JD.001` 由 [BDD checklist](./bdd-checklist.md) 关联 import/parse/handoff owner behavior tests；P0.098 不承接该流程。
 - [x] BDD-Gate: `BDD.HOME.JD.002` 由 [BDD checklist](./bdd-checklist.md) 关联共享 Workspace ready-detail 的绑定简历查看与首行动作行行为；当前无该 UI 的真实 E2E owner。
+
+## Phase 26: Screenshot-aligned Workspace plan detail
+
+- [x] 26.1 RED: 新增 `ParsePlanVisual.test.ts` 并扩展 detail tests，锁定 `1250px` Header 右侧动作与基本信息、要求、隐性关注点、动态轮次四层卡面；旧 inline/左对齐动作构图先失败。<!-- verified: 2026-07-19 method=focused-vitest-red evidence="ParsePlanVisual failed 3/3 on the old inline 1200px detail shell, absent header grid, absent four-layer class anchors and absent mobile CSS while the shared focused run kept 24 prior assertions green." -->
+- [x] 26.2 GREEN: 以 `.ei-plan-detail-*` page-scoped CSS 与仓库内 SVG/CSS icon 实施；保留 saved resume、Start/Reports、dynamic rounds、progress、route、request count 与 fail-closed 行为。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="Parse visual, detail and saved-resume suites pass 18/18 in the shared 72-test run; frontend typecheck passes. Start/Reports remain ordered in the header and all existing route/client/fail-closed tests stay green." -->
+- [x] 26.3 BDD-Gate: `BDD.HOME.PLAN.VISUAL.004` 由合法/缺绑/无效 progress、desktop/mobile responsive/a11y tests 和 current-run Chrome manual acceptance 承接，不新增 E2E ID。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Chrome at 1916x821 verified the 1250px centered detail column, header actions and four card layers; 390x844 verified stacked actions, single-column cards and scrollWidth=viewportWidth with no horizontal overflow." -->
+- [x] 26.4 REGRESSION: Parse/Workspace focused、frontend typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff/pruning gates 全部通过后恢复 completed。<!-- verified: 2026-07-19 method=full-regression evidence="Parse visual/detail/binding suites pass 18/18; shared visual/detail suites pass 95/95; frontend typecheck/build pass; root make test passes Python 615 with 4615 subtests, Go all packages, and frontend 133 files / 1066 tests. Owner context, doc/index, pruning and diff gates pass." -->

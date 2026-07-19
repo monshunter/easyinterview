@@ -1,6 +1,6 @@
 # Home JD Import and Parse BDD Checklist
 
-> **版本**: 2.29
+> **版本**: 2.30
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -25,3 +25,10 @@
 - [x] zh/en、light/dark、ocean/plum/customAccent、keyboard/focus、disabled/enabled 与 1~3 条动态 round rail 均由正式 component/style 断言覆盖。
 - [x] Chrome `1916x821` 对照参考图并在 `390x844` 验证单列/no-overflow；截图与 console 结果仅作为人工视觉证据。
 - [x] 根 `make test` 执行对应 Vitest；不新增或冒充真实 E2E。
+
+## `BDD.HOME.PLAN.VISUAL.004` Workspace 详情目标构图
+
+- [x] Visual/source tests 先锁定 `1250px` Header 右侧动作和基本信息、要求、隐性关注点、动态轮次四层卡面，并证明旧构图失败。
+- [x] Parse/Workspace behavior tests 覆盖 saved/missing Resume、Start/Reports、合法/无效 progress、2~5 动态轮次、keyboard/touch 与请求/route 不变。
+- [x] Chrome `1916x821` 对照参考稿并在 `390x844` 验证单列/no-overflow；截图与 console 结果只作 manual visual evidence，不新增真实 E2E。
+- [x] 根 `make test`、typecheck/build、owner/docs/diff gates 通过后恢复 owner lifecycle。

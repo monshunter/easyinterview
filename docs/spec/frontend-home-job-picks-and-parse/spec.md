@@ -1,6 +1,6 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.29
+> **版本**: 2.30
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -146,6 +146,7 @@ Home 粘贴 JD
 | C-13 | 规划详情轮次三态 | ready TargetJob 有合法 2~5 轮与 `practiceProgress` 完成前缀/current | 打开或刷新 `/workspace?targetJobId=...` | 每张 round assumption 卡显示且仅显示 done/current/pending 之一，对应“已进行 / 即将进行 / 未进行”及三种不同背景/边框；状态与列表 mini rail 一致，全完成与无效投影 fail closed | 001 |
 | C-14 | JD size boundary | owner config 提供 UTF-8 JD byte limit | 点击「立即面试」 | 注入小型 boundary 验证 overflow inline validation 且零 import；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文本或配置 E2E | 001 Phase 22 |
 | C-15 | 强制简历前置零残留 | 用户没有 selectable 简历或尚未显式选择 | 输入合法 JD 并尝试提交，随后扫描 active 产品/UI/owner 文档 | CTA disabled 且 `importTargetJob` 调用为零；创建并形成可读证据后仍须回 Home 显式选择；不存在无简历/JD-only 导入、训练、报告降级或历史缺绑 fallback 承诺 | 001 Phase 24 |
+| C-16 | 规划详情参考构图 | ready Workspace detail 有真实 TargetJob、简历和动态轮次 | 在 desktop/mobile 查看并操作 Header 与四层信息卡 | 约 1250px 内容列中 Header 左侧为步骤/标题/简历/说明，右侧为 Start/Reports；基本信息、要求、隐性关注点与动态轮次形成四层响应式卡面，无横向溢出且不改变请求、route、progress 或 fail-closed 行为 | 001 Phase 26 |
 
 ## 8 关联计划
 
@@ -163,6 +164,7 @@ Home 粘贴 JD
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 2.30 | 2026-07-19 | Reopen Phase 26 to align the Workspace plan-detail header and four-layer card composition with the supplied reference while preserving TargetJob behavior. |
 | 2.29 | 2026-07-19 | Reopen Phase 25 to align the formal Home hierarchy, intake card and recent records with the supplied desktop reference while preserving runtime limits and all business contracts. |
 | 2.28 | 2026-07-15 | Lock a selectable Resume as a permanent prerequisite for import, practice and reports; preserve readable-evidence selection, remove resume-less fallback commitments, and fail closed on invalid historical bindings. |
 | 2.27 | 2026-07-15 | Move the bound-resume viewer beside the plan title, remove the standalone launch/binding block, and place Start plus Reports in one leading action row. |

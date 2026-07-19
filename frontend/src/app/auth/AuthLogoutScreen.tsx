@@ -35,7 +35,7 @@ export const AuthLogoutScreen: FC<AuthLogoutScreenProps> = ({
       >
         {t("auth.logoutHint")}
       </p>
-      <div className="ei-auth-row">
+      <div className="ei-auth-row ei-auth-row--stacked">
         <button
           type="button"
           data-testid="auth-logout-confirm"

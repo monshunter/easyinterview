@@ -27,6 +27,33 @@ const CUSTOM_ACCENT_SEEDS: Record<Theme, CustomAccent> = {
   plum: { h: 340, c: 0.15 },
 };
 
+const SettingsSectionIcon: FC<{ variant: "appearance" | "account" | "privacy" }> = ({
+  variant,
+}) => (
+  <span className={`ei-settings-card-icon ei-settings-card-icon--${variant}`} aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {variant === "appearance" ? (
+        <><path d="M12 3a9 9 0 1 0 0 18c1.7 0 2.3-1 1.4-2.2-.8-1.2.1-2.8 1.6-2.8h2.2A3.8 3.8 0 0 0 21 12.2 9.2 9.2 0 0 0 12 3Z" /><circle cx="7.5" cy="10" r="1" /><circle cx="10" cy="6.8" r="1" /><circle cx="14.3" cy="7.2" r="1" /></>
+      ) : variant === "account" ? (
+        <><circle cx="12" cy="8" r="3.5" /><path d="M5 20c.7-4 3.1-6 7-6s6.3 2 7 6" /></>
+      ) : (
+        <><path d="M12 3 5 6v5c0 4.7 2.7 8 7 10 4.3-2 7-5.3 7-10V6l-7-3Z" /><path d="m9 12 2 2 4-4" /></>
+      )}
+    </svg>
+  </span>
+);
+
+const SettingsHeaderArt: FC = () => (
+  <svg className="ei-settings-header-art" aria-hidden="true" viewBox="0 0 340 150" fill="none">
+    <path d="M10 129 104 34l68 68 52-52 106 79M64 129l62-61 61 61" />
+    <rect x="112" y="42" width="122" height="82" rx="14" />
+    <circle cx="173" cy="73" r="16" />
+    <path d="M143 110c6-16 16-24 30-24s24 8 30 24" />
+    <circle cx="250" cy="42" r="25" />
+    <path d="m239 43 8 8 15-21" />
+  </svg>
+);
+
 export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
   const { t } = useI18n();
   const { navigate, replaceRoute } = useNavigation();
@@ -175,12 +202,18 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
       data-route-params={JSON.stringify(route.params)}
       className="ei-screen-shell ei-settings-screen"
     >
-      <header>
-        <h1 className="ei-text-display">{t("settings.title")}</h1>
-        <p className="ei-text-body">{t("settings.subtitle")}</p>
+      <header className="ei-settings-header">
+        <div className="ei-settings-header-copy">
+          <span className="ei-settings-eyebrow ei-text-label">{t("settings.eyebrow")}</span>
+          <h1 className="ei-text-display">{t("settings.title")}</h1>
+          <p className="ei-text-body">{t("settings.subtitle")}</p>
+        </div>
+        <SettingsHeaderArt />
       </header>
 
-      <section data-testid="settings-appearance" className="ei-screen-card">
+      <section data-testid="settings-appearance" className="ei-screen-card ei-settings-card">
+        <SettingsSectionIcon variant="appearance" />
+        <div className="ei-settings-card-body">
         <div className="ei-settings-section-heading">
           <span className="ei-text-label">{t("settings.section.appearance")}</span>
           <h2 className="ei-text-title">{t("settings.appearance")}</h2>
@@ -240,9 +273,12 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
             {themePending ? t("settings.themeSaving") : t("settings.themeSave")}
           </button>
         </div>
+        </div>
       </section>
 
-      <section data-testid="settings-account" className="ei-screen-card">
+      <section data-testid="settings-account" className="ei-screen-card ei-settings-card">
+        <SettingsSectionIcon variant="account" />
+        <div className="ei-settings-card-body">
         <div className="ei-settings-section-heading">
           <span className="ei-text-label">{t("settings.section.account")}</span>
           <h2 className="ei-text-title">{t("settings.account")}</h2>
@@ -266,9 +302,12 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
             {t("user.logout")}
           </button>
         </div>
+        </div>
       </section>
 
-      <section data-testid="settings-privacy" className="ei-screen-card">
+      <section data-testid="settings-privacy" className="ei-screen-card ei-settings-card">
+        <SettingsSectionIcon variant="privacy" />
+        <div className="ei-settings-card-body">
         <div className="ei-settings-section-heading">
           <span className="ei-text-label">{t("settings.section.privacy")}</span>
           <h2 className="ei-text-title">{t("settings.privacy")}</h2>
@@ -299,6 +338,7 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
           >
             {t("settings.deleteAction")}
           </button>
+        </div>
         </div>
       </section>
 

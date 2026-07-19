@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.33
+> **版本**: 2.34
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -372,6 +372,24 @@ Focused tests 覆盖 0/empty/loading/error、输入计数、disabled/enabled CTA
 
 运行 focused Vitest、根 `make test`、frontend typecheck/build、两个 owner context、Header/INDEX/docs/diff/pruning gates；`BDD.HOME.JD.003` 由 domain behavior tests + Chrome manual visual acceptance 承接，不冒充真实 E2E。
 
+### Phase 26: Screenshot-aligned Workspace plan detail
+
+#### 26.1 Design contract and RED assertions
+
+原地更新 Workspace 详情 UI/owner 合同，把参考稿拆为 `1250px` 居中内容列、Header 左侧步骤/标题/绑定简历/说明、右侧 Start/Reports，以及基本信息、要求、隐性关注点和轮次四层卡面。新增 `ParsePlanVisual.test.ts` 并扩展现有 detail tests，使旧 `1200px` inline 布局、标题下左对齐动作和分散区块先形成 RED；不修改 operation matrix。
+
+#### 26.2 Formal detail GREEN
+
+把 ready detail 收敛为 `.ei-plan-detail-*` page-scoped CSS，复用仓库内 SVG/CSS section icon。保留 `getTargetJob`、saved resume link、Start/Reports、dynamic rounds、practice progress、route、errors 与 fail-closed behavior；不得新增静态轮次、第二套 ready 页面、footer actions 或独立绑定块。
+
+#### 26.3 Responsive and Chrome acceptance
+
+Focused tests 覆盖合法/缺绑/无效 progress、2~5 动态轮次、desktop Header 动作对齐、mobile 单列、键盘/触控与无横向溢出。Chrome 在 `1916x821` 对照参考构图并在 `390x844` 验证顺序与 containment；截图只作辅助视觉证据，不建立像素基线或新 E2E。
+
+#### 26.4 Regression and owner closeout
+
+运行 Parse/Workspace focused Vitest、frontend typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff/pruning gates；完成 `BDD.HOME.PLAN.VISUAL.004` 后恢复 completed。
+
 
 
 ## 6 验收标准
@@ -399,6 +417,7 @@ Focused tests 覆盖 0/empty/loading/error、输入计数、disabled/enabled CTA
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.34 | Reopen Phase 26 for the screenshot-aligned Workspace plan-detail header and four-layer card composition without changing the operation matrix. |
 | 2026-07-19 | 2.33 | Reopen Phase 25 for screenshot-aligned Home hierarchy, page-scoped styling, horizontal recent records and Chrome acceptance without changing the operation matrix. |
 | 2026-07-15 | 2.32 | Add Phase 24 to reconcile the permanent selectable-Resume prerequisite across product, UI and owner documents without adding a resume-less compatibility path. |
 | 2026-07-15 | 2.31 | Reopen Phase 23 to replace the standalone launch/binding block with a title-adjacent saved-resume link and a leading Start/Reports row. |

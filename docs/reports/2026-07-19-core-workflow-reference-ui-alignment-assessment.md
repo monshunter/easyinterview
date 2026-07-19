@@ -11,16 +11,20 @@
 - [Resume Listing and Readonly Detail](../spec/frontend-resume-workshop/plans/001-listing-routing-and-detail-readonly/plan.md)
 - [Practice Text Event Loop](../spec/frontend-workspace-and-practice/plans/002-practice-text-event-loop/plan.md)
 - [Report Screen and Generating Handoff](../spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/plan.md)
+- [Home + JD Import + Parse](../spec/frontend-home-job-picks-and-parse/plans/001-home-jd-import-and-parse/plan.md)
+- [App Shell, Auth Gate, and Settings Entrypoints](../spec/frontend-shell/plans/001-app-shell-auth-settings/plan.md)
 
 ## 1 复盘范围与成功证据
 
 - 本次交付按三张参考图重构上传简历、面试进行和面试报告三页的导航下方起点、desktop 内容面、响应式网格、卡片层级、按钮、SVG icon、字体与间距，同时保持既有 API、路由、消息、简历注册和报告事实语义。
 - 用户追加要求已闭环：AI/用户角色改为方形标识；说明胶囊带 sparkle icon；Transcript 成为唯一滚动区；Composer 整体固定在会话卡底部；说明胶囊固定贴在输入框上方 8px。
 - 三张追加参考图也已闭环：简历预览采用 `1512/1310/1150px` Header/背景板/纸张构图；报告列表采用 `1372px` 插画 Header、事实摘要卡和编号时间线；面试记录采用同宽三列 Context Strip，并让 AI/“我”共用消息卡片与头像轮廓。
+- 最后五张参考图也已闭环：面试规划详情采用 `1250px` Header 右侧动作与四层卡面；Settings 采用 `1372px` 插画 Header 和三张横向功能卡；登录、验证码、退出共享 `1450px` 双栏 Auth Shell、原则卡和主操作卡，验证码页不伪造倒计时或成功状态。
 - TDD 证据：Resume create 4 files / 21 tests；Practice 最终 4 files / 56 tests；报告页追加 2 files / 23 tests 的目标构图 RED/GREEN，并由根级 frontend 131 files / 1055 tests 完整覆盖。报告页 RED 明确拒绝缺失 Detail icon 与 1432px 目标构图，随后转 GREEN。
-- 根回归：Python 615 tests / 4615 subtests、Go 全包、frontend 132 files / 1057 tests 全部通过；三页 owner 32 files / 242 tests、frontend typecheck 与 production build 通过。
+- 根回归：Python 615 tests / 4615 subtests、Go 全包、frontend 133 files / 1066 tests 全部通过；三页 owner 32 files / 242 tests、规划/Auth/Settings shared visual/detail 95 tests、frontend typecheck 与 production build 通过。
 - Chrome 证据：Resume 使用正式 real-mode frontend 完成 1916×821 / 390×844 containment；Practice 的 Transcript 在 desktop/mobile 实际滚动前后，input 坐标与 helper/input 8px gap 不变。报告页使用当前真实 backend ready report 完成 desktop 1920×964 与 exact mobile 390×844 full-page 验收：desktop 主体 1432px、四列 Context、两列 709px 内容卡、四个 46px Detail icon 和首屏完整 Overall 均闭合，两档 document overflow 均为 0。
-- 文档证据：三组原 owner spec/plan/checklist/BDD/test 原地修订并恢复 `completed`；context、Header/INDEX、docs links 与 `git diff --check` 通过。
+- Chrome 追加证据：规划详情、Settings、登录、验证码、退出在 `1916×821` 与 `390×844` 均按目标层级渲染且无横向溢出；真实中英文切换、退出回 Home 与 protected Settings pendingAction 回跳通过。auth probe 中间 loading/error 瞬态未被捕获，因此相关旧 Phase 15.3 继续如实保持未完成。
+- 文档证据：Home/Parse owner 恢复 `completed`；Shell 视觉 Phase 完成但因独立 Phase 15.3 继续保持 `active`；两个 context、Header/INDEX、docs links 与 `git diff --check` 通过。
 
 ## 2 会话中的主要阻点/痛点
 
@@ -49,6 +53,16 @@
 - **证据**：初次追加改造让 AI 消息直接显示在主体背景中，只给“我”增加独立 surface，并让“我”的头像轮廓与 AI 不同；用户明确要求两种消息与头像轮廓保持一致。
 - **影响**：共同组件没有形成共同视觉合同，导致一次可避免的细节返工；若只看页面整体截图，仍可能漏掉角色间的 computed-style 差异。
 
+### 2.6 历史行为绿灯掩盖 page composition 漂移
+
+- **证据**：规划详情、Settings 与 Auth 的现有业务测试持续通过，但页面仍分别停留在 `1200px` inline detail、`980px` 纵向 Settings 和 `1160px` 窄 Auth Shell；只有新增 source/visual RED 才拒绝这些旧结构。
+- **影响**：若只复跑已有行为回归，会把“动作仍能点击”误当作“页面已按批准稿改造”；不同页面族需要同时拥有业务 gate 和 page-scoped composition gate。
+
+### 2.7 瞬态 auth gate 不能用最终登录页替代验收
+
+- **证据**：Chrome 已验证登录、验证码、退出、Settings、真实语言切换和 pendingAction 回跳，但 5ms 尝试未捕获 auth probe loading/error 中间状态。
+- **影响**：若为了恢复 owner `completed` 而用最终登录页代替瞬态 gate，会形成虚假证据；本轮选择完成视觉 Phase，同时保留 Phase 15.3 与 BDD 条目未勾选。
+
 ## 3 根因归类
 
 - 固定 Composer / 滚动 Transcript 最初没有成为可执行 DOM/CSS/BBox 不变量，只描述了视觉形态。
@@ -63,6 +77,10 @@
   - **类别**：spec/plan
 - 面试记录 visual gate 只验证用户消息 surface，没有对 assistant/user 的边框、圆角、padding、阴影和头像几何做成对称断言。
   - **类别**：spec/plan
+- 规划/Auth/Settings 只有历史行为 gate，缺少拒绝旧 max-width、Header/action 关系和卡片层级的 source/component contract。
+  - **类别**：spec/plan
+- Chrome 对最终稳定页面的验收无法证明短暂 auth probe gate；需要可控请求冻结或专门的 inter-request DOM gate。
+  - **类别**：test/browser verification
 
 ## 4 对流程资产的改进建议
 
@@ -81,10 +99,17 @@
 - 聊天记录的角色 visual contract 必须同时断言“共享基类 surface”和“仅身份 token 不同”：两类卡片的 border/radius/padding/shadow 相同，两类头像的 width/height/radius 相同。本轮已在 report owner Phase 18 原地固化。
   - **落点**：ReportConversation owner spec / plan / source contract test
   - **优先级**：high
+- 页面参考图对齐的 RED 必须覆盖内容列宽度、Header/action ownership、卡片层级、图标轨和 mobile containment；已有业务测试继续负责请求与状态机，两者不可互相替代。本轮已在 Home/Parse Phase 26 与 Shell Phase 18 原地固化。
+  - **落点**：对应 UI spec / plan / visual tests
+  - **优先级**：high
+- auth probe 等短暂 UI 状态应通过可控请求冻结测试 inter-request DOM，再由 Chrome 只验证可稳定到达的真实页面；如果真实 Chrome 无法稳定捕获，必须保留未完成而不是用最终态代替。
+  - **落点**：Shell Phase 15.3 / auth route gate verification
+  - **优先级**：medium
 
 ## 5 建议优先级与后续动作
 
 - 下一轮最高价值动作：把“参考图标框 → 组件所有权/几何关系 → source/component RED → real Chrome bbox”的闭环补入 UI plan 模板或前端验证规范，避免再次出现宽度和圆角已变、页面结构仍未改造的假绿。
 - 同一优先级的后续项：把“滚动内容 + 固定操作区”的结构不变量补入聊天类 UI owner，覆盖短/长内容与滚动前后 bbox。
 - 第二优先级：单独修复 secrets scanner 的现有治理文本误报，使根 `make lint` 恢复可直接作为聚合门禁使用。
+- 第二优先级：为 Shell Phase 15.3 增加可控的 auth probe 请求冻结方式，捕获中文 loading/error 中间 DOM 后再恢复 owner `completed`。
 - 可延后：为 fixture visual acceptance 增加更多长内容 fixture；当前通过压缩 desktop/mobile viewport 已真实产生 Transcript overflow 并验证了固定 Composer，不构成本次交付 blocker。
