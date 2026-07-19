@@ -1,7 +1,7 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.33
-> **状态**: completed
+> **版本**: 1.34
+> **状态**: active
 > **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
@@ -123,3 +123,10 @@
 - [x] 16.6 REGRESSION: OpenAPI validate/fixture/codegen drift、migration/backend focused、frontend focused/typecheck/build、根 `make test`、owner contexts、sync/docs/diff/residual gates 全部通过。
 - [x] 16.7 REAL-UI: 按 scenario-env/scenario-run 合同重建真实环境，运行 `E2E.P0.101`；使用 Chrome skill 验证 Settings 与 Practice desktop/mobile DOM、请求计数、无横向溢出并保存精选截图。
 - [x] 16.8 POST-PASS: 同步 bug/retrospective/index/work-journal 与真实证据，恢复受影响 owner lifecycle 并在 feature branch 原子提交。
+
+## Phase 17: account theme L2 review remediation
+
+- [x] 17.1 REVIEW-RED: focused tests 先失败并分别锁定 Settings 卸载/退出后的迟到 `updateMe` 不得回写旧 auth/theme、invalid server projection 回退 `ocean + null`、保存失败保留草稿并可重试、离开未保存页面恢复确认值，以及 dev mock combined-invalid 请求零部分写入。（证据：2026-07-19 frontend focused `4 failed, 41 passed`；doc focused `2 failed`。失败/重试既有行为已通过并保留为回归门禁。）
+- [x] 17.2 REVIEW-GREEN: 以 component/request generation guard 丢弃不再属于当前 mounted user 的保存响应；集中校验账号主题投影；dev mock 在任何 state mutation 前拒绝出现但非法的 `displayPreferences`。（证据：frontend focused 4 files / 45 tests PASS。）
+- [x] 17.3 CONTRACT-DRIFT-GATE: product-scope D-21/route、OpenAPI current schema inventory/handoff、frontend README、UI architecture 与 engineering roadmap 同步方案 B；focused doc contract test 与 scoped negative search 阻止当前章节回流 `CompleteProfileRequest` / `completeMyProfile` / TopBar theme menu / “设置与隐私”。（证据：focused owner-doc 2 tests PASS。）
+- [x] 17.4 BDD/REGRESSION: `BDD.SHELL.SETTINGS.THEME.001` 的 failure/retry/leave/invalid/race domain tests、frontend focused、根 `make test`、build、docs/codegen/diff/context gates与重新部署后的真实 `E2E.P0.101` 通过；Phase 15.3 仍未完成时 plan/checklist/BDD 保持 `active`。（证据：frontend focused 45 PASS；root Python 615 / Go all / frontend 1042 PASS；build、OpenAPI 38/38、fixture、codegen、diff、migration、docs/index/context/diff PASS；`e2e-p0-101-20260719082610-75505` PASS + cleanup PASS。）

@@ -1,8 +1,8 @@
 # Core Loop Module Pruning Checklist
 
-> **版本**: 1.277
+> **版本**: 1.278
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -37,3 +37,8 @@
 - [x] 5.1 运行当前范围的 lint、OpenAPI/fixture/codegen/migration drift 与范围外 token 负向搜索。
 - [x] 5.2 运行根 `make test`。
 - [x] 5.3 运行 context、Header/INDEX、`make docs-check` 与 `git diff --check`。
+
+## Phase 6: 账号主题方案 B review remediation
+
+- [x] 6.1 Product-scope D-21、settings route、当前 plan 与 UI design/roadmap/frontend README 明确统一为“设置”页 Appearance 持久化账号主题，TopBar 只保留暗色/语言/设置齿轮。（证据：focused current-doc semantic test PASS。）
+- [x] 6.2 Current-doc semantic gate、root regression、docs/index/context/diff 与 scoped old-positive wording search 通过后恢复本 owner `completed`。（证据：doc owner 43 tests / 28 subtests、root tests、docs/index/context/diff、residual gate 与 `E2E.P0.101` run `e2e-p0-101-20260719082610-75505` PASS。）

@@ -65,6 +65,31 @@ describe("App shell", () => {
     expect(getMeSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("restores the confirmed account theme when leaving Settings without saving", async () => {
+    const client = buildWorkspaceClient();
+    const getMeSpy = vi.spyOn(client, "getMe");
+    const updateMeSpy = vi.spyOn(client, "updateMe");
+    const user = userEvent.setup();
+
+    render(
+      <App
+        client={client}
+        requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }}
+        initialRoute={{ name: "settings", params: {} }}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("settings-appearance")).toBeInTheDocument());
+    await waitFor(() => expect(document.documentElement).toHaveAttribute("data-theme", "plum"));
+    await user.click(screen.getByTestId("settings-theme-ocean"));
+    expect(document.documentElement).toHaveAttribute("data-theme", "ocean");
+
+    await user.click(screen.getByTestId("topbar-nav-home"));
+    await waitFor(() => expect(document.documentElement).toHaveAttribute("data-theme", "plum"));
+    expect(updateMeSpy).not.toHaveBeenCalled();
+    expect(getMeSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("defaults to the home route with App chrome rendered", () => {
     render(<App />);
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();

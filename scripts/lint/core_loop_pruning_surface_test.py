@@ -160,6 +160,25 @@ def test_frontend_openapi_codegen_omits_raw_spec_snapshot() -> None:
     assert [token for token in forbidden if token in renderer] == []
 
 
+def test_current_account_theme_owner_docs_match_scheme_b() -> None:
+    product_scope = (REPO_ROOT / "docs/spec/product-scope/spec.md").read_text(encoding="utf-8")
+    d21 = next(line for line in product_scope.splitlines() if line.startswith("| D-21 |"))
+    settings_route = next(line for line in product_scope.splitlines() if line.startswith("| `settings` |"))
+    ui_architecture = (REPO_ROOT / "docs/ui-design/ui-architecture.md").read_text(encoding="utf-8")
+    frontend_readme = (REPO_ROOT / "frontend/README.md").read_text(encoding="utf-8")
+    roadmap = (REPO_ROOT / "docs/spec/engineering-roadmap/spec.md").read_text(encoding="utf-8")
+    shell_row = next(line for line in roadmap.splitlines() if line.startswith("| App shell + auth + settings |"))
+
+    assert "设置页 Appearance" in d21
+    assert "TopBar 只保留暗色模式、语言下拉和设置齿轮" in d21
+    assert "全部由 TopBar 承载" not in d21
+    assert "| `settings` | 设置 |" in settings_route
+    assert "Theme menu 的 1440" not in ui_architecture
+    assert "topbar-theme-button" not in frontend_readme
+    assert "`practice` / `generating` 隐藏 chrome" not in frontend_readme
+    assert "设置与隐私" not in shell_row
+
+
 def test_lint_rule_sources_assemble_strict_lifecycle_terms_without_direct_literals() -> None:
     for script in (SCRIPT, RUNTIME_TOPOLOGY_SCRIPT):
         text = script.read_text(encoding="utf-8")

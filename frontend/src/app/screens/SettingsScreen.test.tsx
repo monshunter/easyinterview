@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { ApiClientError, EasyInterviewClient } from "../../api/generated/client";
-import type { PrivacyRequestWithJob } from "../../api/generated/types";
+import type { PrivacyRequestWithJob, UserContext } from "../../api/generated/types";
 import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
 import { NavigationProvider } from "../navigation/NavigationProvider";
 import {
@@ -26,6 +26,26 @@ function acceptedDeletion(): PrivacyRequestWithJob {
       createdAt: "2026-07-15T00:00:00Z",
       updatedAt: "2026-07-15T00:00:00Z",
     },
+  };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
+}
+
+function themedUser(theme: "ocean" | "plum" = "plum"): UserContext {
+  return {
+    id: "user-1",
+    displayName: "Alice Candidate",
+    email: "alice@example.com",
+    profileCompletionRequired: false,
+    displayPreferences: { theme, customAccent: null },
   };
 }
 
@@ -54,7 +74,7 @@ function renderSettings() {
     },
     refreshAuth,
   };
-  render(
+  const view = render(
     <DisplayPreferencesProvider initial={{ lang: "en" }}>
       <AppRuntimeContext.Provider value={runtime}>
         <NavigationProvider value={{ navigate, replaceRoute }}>
@@ -63,7 +83,7 @@ function renderSettings() {
       </AppRuntimeContext.Provider>
     </DisplayPreferencesProvider>,
   );
-  return { deleteMe, getMe, navigate, refreshAuth, replaceRoute, updateMe };
+  return { ...view, deleteMe, getMe, navigate, refreshAuth, replaceRoute, updateMe };
 }
 
 describe("Settings account and privacy contract", () => {
@@ -89,6 +109,44 @@ describe("Settings account and privacy contract", () => {
     expect(updateMe).toHaveBeenCalledWith({ displayPreferences: { theme: "plum", customAccent: null } });
     expect(refreshAuth).toHaveBeenCalledTimes(1);
     expect(getMe).not.toHaveBeenCalled();
+  });
+
+  it("keeps a rejected theme draft retryable and commits only the successful response", async () => {
+    const { refreshAuth, updateMe } = renderSettings();
+    updateMe
+      .mockRejectedValueOnce(new Error("temporary failure"))
+      .mockResolvedValueOnce(themedUser());
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId("settings-theme-plum"));
+    await user.click(screen.getByTestId("settings-theme-save"));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute("data-theme", "plum");
+    expect(refreshAuth).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId("settings-theme-save"));
+    await waitFor(() => expect(refreshAuth).toHaveBeenCalledTimes(1));
+    expect(updateMe).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not commit a late theme response after Settings unmounts", async () => {
+    const pending = deferred<UserContext>();
+    const { refreshAuth, unmount, updateMe } = renderSettings();
+    updateMe.mockReturnValue(pending.promise);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId("settings-theme-plum"));
+    await user.click(screen.getByTestId("settings-theme-save"));
+    await waitFor(() => expect(updateMe).toHaveBeenCalledTimes(1));
+    unmount();
+
+    await act(async () => {
+      pending.resolve(themedUser());
+      await pending.promise;
+    });
+
+    expect(refreshAuth).not.toHaveBeenCalled();
   });
 
   it("uses the runtime user without a second getMe and routes sign-out", async () => {

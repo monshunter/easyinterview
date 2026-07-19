@@ -1,7 +1,7 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.33
-> **状态**: completed
+> **版本**: 1.34
+> **状态**: active
 > **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -136,6 +136,12 @@ Review remediation 继续由本 Phase owning：默认 fixture-backed client 在 
 
 `practice` 从 no-chrome allowlist 移除；全局 App TopBar 与 Practice Session Header 同时渲染并在 desktop/mobile 无溢出。Focused request-count/component/responsive/a11y tests、OpenAPI fixture/codegen drift、migration/backend contract、根 `make test`、`E2E.P0.101` 真实保存/重登、Chrome desktop/mobile 截图共同收口。
 
+### Phase 17: Account theme L2 review remediation
+
+本 Phase 原地修复 account-theme code review 发现的证据与竞态缺口：Settings 的迟到保存响应不得在页面卸载、退出或账号身份变化后回写旧 auth/theme；runtime 对未知、越界或非 closed 的服务端主题投影统一 fail closed 为 `ocean + null`；dev mock 对出现但非法的 `displayPreferences` 必须在任何 profile/theme state mutation 前整体拒绝，不得产生真实 backend 不会接受的部分成功。
+
+同时同步 product-scope D-21、OpenAPI current schema inventory / handoff、frontend README 与 UI architecture 的当前合同，旧 `completeMyProfile` / TopBar theme menu / “设置与隐私”只能留在明确历史证据中。Focused failure/retry/leave/race/parity tests、根 `make test`、build/docs/codegen/diff gates 与重新部署后的 `E2E.P0.101` 共同作为本轮验收；Phase 15 的既有 locale Chrome 项仍独立保持未完成，主 plan 不因本 Phase 通过而虚假关闭。
+
 
 ## 7 风险与应对
 
@@ -152,6 +158,7 @@ Review remediation 继续由本 Phase owning：默认 fixture-backed client 在 
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.34 | Reopen Phase 17 to remediate stale account-theme responses, fail-closed runtime projection, dev-mock atomic parity and active owner contract drift found by L2 review. |
 | 2026-07-19 | 1.33 | Reopen Phase 16 for generic updateMe, account-persisted theme with zero route refetch, Settings naming/gear, and Practice global chrome. |
 | 2026-07-16 | 1.32 | Reopen Phase 15 to localize the shared auth loading/error route gate without changing auth behavior. |
 | 2026-07-15 | 1.31 | Complete Phase 14 review remediation for fixture delete auth state and failure-path evidence redaction. |

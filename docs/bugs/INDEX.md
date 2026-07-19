@@ -100,6 +100,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0191](./BUG-0191.md) | account theme review exposed stale auth response and projection parity gaps | high | resolved | 2026-07-19 | `fix(settings): harden account theme review regressions (BUG-0191)` |
 | [BUG-0188](./BUG-0188.md) | practice launch waited for the opening LLM without transition feedback | medium | resolved | 2026-07-18 | `fix(frontend): add interview launch transition (BUG-0188)` |
 | [BUG-0184](./BUG-0184.md) | interview plan cards duplicated an inactive lifecycle status and empty-location placeholder | low | resolved | 2026-07-17 | `fix(frontend): remove stale plan card metadata (BUG-0184)` |
 | [BUG-0176](./BUG-0176.md) | settings review exposed fixture auth and failure-evidence gaps | medium | resolved | 2026-07-15 | `fix(settings): close review regressions (BUG-0176)` |

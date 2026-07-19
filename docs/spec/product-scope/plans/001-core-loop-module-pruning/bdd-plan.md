@@ -1,8 +1,8 @@
 # Core Loop Module Pruning BDD Plan
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-19
 
 ## 1 证据边界
 
@@ -15,6 +15,7 @@ completion/progress，P0.099 只验 report/generating；二者都不承担整站
 | Behavior ID | Given | When | Then | 验证入口 |
 |-------------|-------|------|------|----------|
 | BDD.CORE.001 | 当前 Home、Workspace、Resume、Practice、Reports 导航 | 用户浏览各核心页面与可用操作 | 不出现 Growth、Mistakes、Drill、独立 Voice、Debrief 或 Profile 业务入口 | frontend behavior tests + scope lint + root `make test` |
+| BDD.CORE.SETTINGS.001 | authenticated 用户看到全局 TopBar 与设置齿轮 | 用户进入“设置”并在 Appearance 预览/保存主题 | TopBar 只保留暗色/语言/设置入口；账号主题由 Settings 单次保存并在重登后恢复 | frontend settings/domain tests + `E2E.P0.101` 静态 handoff |
 
 ## 3 E2E 关系
 

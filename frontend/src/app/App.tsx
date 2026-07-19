@@ -14,6 +14,7 @@ import { encodePendingAction } from "./auth/pendingAction";
 import { buildResumeRoute } from "./auth/resumeRoute";
 import {
   DisplayPreferencesProvider,
+  normalizeAccountDisplayPreferences,
   useDisplayPreferences,
   type Lang,
 } from "./display/DisplayPreferencesProvider";
@@ -459,20 +460,14 @@ const AccountThemeRuntimeSync: FC = () => {
   const runtime = useAppRuntimeOptional();
   const prefs = useDisplayPreferences();
   const user = runtime?.auth.status === "authenticated" ? runtime.auth.user : null;
-  const theme = user?.displayPreferences?.theme;
-  const customH = user?.displayPreferences?.customAccent?.h;
-  const customC = user?.displayPreferences?.customAccent?.c;
+  const displayPreferences = user?.displayPreferences;
 
   useEffect(() => {
-    if (!user || (theme !== "ocean" && theme !== "plum")) return;
-    prefs.commitAccountPreferences({
-      theme,
-      customAccent:
-        typeof customH === "number" && typeof customC === "number"
-          ? { h: customH, c: customC }
-          : null,
-    });
-  }, [user?.id, theme, customH, customC, prefs.commitAccountPreferences]);
+    if (!user) return;
+    prefs.commitAccountPreferences(
+      normalizeAccountDisplayPreferences(displayPreferences),
+    );
+  }, [user?.id, displayPreferences, prefs.commitAccountPreferences]);
 
   return null;
 };

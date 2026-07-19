@@ -1,8 +1,8 @@
 # Core Loop Module Pruning Plan
 
-> **版本**: 1.276
+> **版本**: 1.278
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -20,7 +20,7 @@
 
 ## 2 当前合同
 
-- 一级导航只保留首页、模拟面试、简历；用户菜单只保留设置与隐私、退出登录。
+- 一级导航只保留首页、模拟面试、简历；TopBar 只保留暗色模式、语言下拉与设置齿轮，退出登录位于设置页。
 - `debrief`、`profile` 及其 API、schema、表、event、job、prompt、rubric 与正向 route 不存在。
 - JD 解析命令进度与 ready Workspace 只读详情分离；ready 详情不回流到 Parse。
 - 主题只保留 Ocean / Plum 与 custom hue / saturation；其余旧控件不属于当前合同。
@@ -66,5 +66,7 @@ Parse 只展示 queued/processing 命令进度；ready 后进入 target-scoped W
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.278 | Complete current settings/theme wording remediation with focused semantic gates, root regression and real E2E.P0.101 current-run evidence. |
+| 2026-07-19 | 1.277 | Reopen current settings/theme wording to align product-scope D-21 with the accepted account-theme scheme B and its active frontend/OpenAPI owners. |
 | 2026-07-14 | 1.276 | Remove invalid full-funnel E2E mappings; keep module-pruning BDD as a minimal behavior contract verified by code-level gates. |
 | 2026-07-14 | 1.275 | 按当前 E2E 证据边界压缩 owner plan：删除旧 wrapper/PASS 流水账，只保留当前合同、真实 API/UI BDD 与根 `make test` 回归入口。 |

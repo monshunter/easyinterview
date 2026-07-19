@@ -6,6 +6,7 @@ import { useState, type FC } from "react";
 
 import {
   DisplayPreferencesProvider,
+  normalizeAccountDisplayPreferences,
   useDisplayPreferences,
 } from "./DisplayPreferencesProvider";
 
@@ -82,6 +83,29 @@ describe("DisplayPreferencesProvider", () => {
     expect(screen.getByTestId("theme")).toHaveTextContent("ocean");
     expect(screen.getByTestId("dark")).toHaveTextContent("false");
     expect(screen.getByTestId("lang")).toHaveTextContent("zh");
+  });
+
+  it("fails closed for malformed account theme projections", () => {
+    expect(normalizeAccountDisplayPreferences({ theme: "plum", customAccent: { h: 120, c: 0.18 } })).toEqual({
+      theme: "plum",
+      customAccent: { h: 120, c: 0.18 },
+    });
+
+    for (const projection of [
+      null,
+      { theme: "forest", customAccent: null },
+      { theme: "plum", customAccent: { h: -1, c: 0.18 } },
+      { theme: "plum", customAccent: { h: 360, c: 0.18 } },
+      { theme: "plum", customAccent: { h: 120, c: -0.001 } },
+      { theme: "plum", customAccent: { h: 120, c: 0.281 } },
+      { theme: "plum", customAccent: { h: 120, c: 0.18, extra: true } },
+      { theme: "plum", customAccent: null, extra: true },
+    ]) {
+      expect(normalizeAccountDisplayPreferences(projection)).toEqual({
+        theme: "ocean",
+        customAccent: null,
+      });
+    }
   });
 
   it("falls back to English for unsupported browser locales", () => {

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-19](2026-07-19.md) | `fix(settings): harden account theme review regressions (BUG-0191)` | #fix #ui #test #docs #bdd #e2e |
 | [2026-07-19](2026-07-19.md) | `feat(settings): persist account theme in runtime` | #feat #ui #api #test #docs #bdd #e2e |
 | [2026-07-19](2026-07-19.md) | `fix(harness): close minimal context contract gaps` | #fix #test #docs |
 | [2026-07-19](2026-07-19.md) | `refactor(harness): minimize plan context contract` | #refactor #test #docs |

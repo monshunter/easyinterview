@@ -162,4 +162,23 @@ describe("frontend dev fixture-backed mock client", () => {
 		await expect(client.getMe()).rejects.toThrow(/HTTP 401/);
 	});
 
+	it("rejects a combined update when displayPreferences is present but invalid", async () => {
+		const client = createDevMockClient();
+
+		await client.verifyAuthEmailChallenge({
+			query: { token: "654321" },
+		});
+		await expect(client.updateMe({
+			displayName: "Alice Example",
+			acceptedTerms: true,
+			displayPreferences: { theme: "forest", customAccent: null },
+		} as never)).rejects.toThrow(/HTTP 400/);
+
+		await expect(client.getMe()).resolves.toMatchObject({
+			displayName: "",
+			profileCompletionRequired: true,
+			displayPreferences: { theme: "ocean", customAccent: null },
+		});
+	});
+
 });

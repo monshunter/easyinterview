@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type FC,
@@ -9,7 +10,12 @@ import {
 import { ApiClientError } from "../../api/generated/client";
 import { generateIdempotencyKey } from "../../lib/conventions/idempotency";
 import { useI18n } from "../i18n/messages";
-import { useDisplayPreferences, type CustomAccent, type Theme } from "../display/DisplayPreferencesProvider";
+import {
+  normalizeAccountDisplayPreferences,
+  useDisplayPreferences,
+  type CustomAccent,
+  type Theme,
+} from "../display/DisplayPreferencesProvider";
 import { useNavigation } from "../navigation/NavigationProvider";
 import { useAppRuntimeOptional } from "../runtime/AppRuntimeProvider";
 import type { Route } from "../routes";
@@ -35,8 +41,19 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
   const deleteTriggerRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const deleteKeyRef = useRef<string | null>(null);
+  const mountedRef = useRef(false);
+  const saveGenerationRef = useRef(0);
+  const currentUserIDRef = useRef<string | null>(user?.id ?? null);
+  currentUserIDRef.current = user?.id ?? null;
 
-  useEffect(() => () => prefs.restoreConfirmedAccountPreferences(), [prefs.restoreConfirmedAccountPreferences]);
+  useLayoutEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      saveGenerationRef.current += 1;
+      prefs.restoreConfirmedAccountPreferences();
+    };
+  }, [prefs.restoreConfirmedAccountPreferences]);
 
   const themeDirty =
     prefs.theme !== prefs.confirmedTheme ||
@@ -44,6 +61,8 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
 
   const saveTheme = async () => {
     if (!runtime || !user || themePending || !themeDirty) return;
+    const requestGeneration = ++saveGenerationRef.current;
+    const requestUserID = user.id;
     setThemePending(true);
     setThemeError(false);
     try {
@@ -53,12 +72,33 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
           customAccent: prefs.customAccent,
         },
       });
+      if (
+        !mountedRef.current ||
+        saveGenerationRef.current !== requestGeneration ||
+        currentUserIDRef.current !== requestUserID
+      ) {
+        return;
+      }
       runtime.refreshAuth(updated);
-      prefs.commitAccountPreferences(updated.displayPreferences);
+      prefs.commitAccountPreferences(
+        normalizeAccountDisplayPreferences(updated.displayPreferences),
+      );
     } catch {
-      setThemeError(true);
+      if (
+        mountedRef.current &&
+        saveGenerationRef.current === requestGeneration &&
+        currentUserIDRef.current === requestUserID
+      ) {
+        setThemeError(true);
+      }
     } finally {
-      setThemePending(false);
+      if (
+        mountedRef.current &&
+        saveGenerationRef.current === requestGeneration &&
+        currentUserIDRef.current === requestUserID
+      ) {
+        setThemePending(false);
+      }
     }
   };
 

@@ -1,8 +1,8 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.37
+> **版本**: 3.38
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-19
 
 ## 1 背景与目标
 
@@ -132,7 +132,7 @@
 
 | Workstream | 建议 subject | 当前状态 | 当前产品 / UI 范围 | 主要依赖 |
 |------------|--------------|----------|-------------------|----------|
-| App shell + auth + settings | `frontend-shell`、`backend-auth` | `frontend-shell` active；`backend-auth` active（001 auth bootstrap completed） | TopBar、用户菜单、单入口邮箱登录、验证、首次资料补全、退出、pendingAction、设置与隐私 | A4、B1、B2、B4、ADR-Q1 |
+| App shell + auth + settings | `frontend-shell`、`backend-auth` | `frontend-shell` active；`backend-auth` active（001 auth bootstrap completed） | TopBar 暗色/语言/设置齿轮、单入口邮箱登录、验证、首次资料补全、pendingAction、设置页 Appearance 账号主题、账号/隐私与退出 | A4、B1、B2、B4、ADR-Q1 |
 | Home / Parse | `frontend-home-job-picks-and-parse`、`backend-targetjob` | `frontend-home-job-picks-and-parse` completed（当前实体计划只保留 001 Home + Parse）；`backend-targetjob` active（001 import / parse completed）；岗位推荐 / JD Match 不属于当前 workstream | 首页 JD 导入、解析确认、目标岗位 / JD / 轮次假设；JD 获取唯一入口是首页导入 | B2、B3、B4、A3、F3、D1 |
 | Mock Interview + Practice | `frontend-workspace-and-practice`、`backend-practice`、`practice-voice-mvp` | `frontend-workspace-and-practice` active；`backend-practice` active；`practice-voice-mvp` active（001 phone MVP completed） | 当前面试规划、简历绑定、公司轻情报卡片、完整文本 / 电话模式 session、带提示 / 严格模拟 | B2、B3、B4、A3、C4 |
 | Report Dashboard | `frontend-report-dashboard`、`backend-review` | `frontend-report-dashboard` active；`backend-review` active | 报告生成、上下文条、准备度、维度、题目回顾、复练当前轮 / 进入下一轮 | B2、B3、B4、A3、C5、F3 |

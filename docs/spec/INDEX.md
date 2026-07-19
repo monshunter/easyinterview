@@ -10,8 +10,8 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [product-scope](./product-scope/spec.md) | 2.27 | active | 2026-07-15 | [plans](./product-scope/plans/) |
-| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.37 | active | 2026-07-10 | [plans](./engineering-roadmap/plans/) |
+| [product-scope](./product-scope/spec.md) | 2.28 | active | 2026-07-19 | [plans](./product-scope/plans/) |
+| [engineering-roadmap](./engineering-roadmap/spec.md) | 3.38 | active | 2026-07-19 | [plans](./engineering-roadmap/plans/) |
 
 ## 2 Foundation
 
@@ -31,7 +31,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.33 | active | 2026-07-16 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.66 | active | 2026-07-19 | [plans](./openapi-v1-contract/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.67 | active | 2026-07-19 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.15 | active | 2026-07-13 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.39 | active | 2026-07-19 | [plans](./db-migrations-baseline/plans/) |
 

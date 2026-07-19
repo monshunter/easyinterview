@@ -193,6 +193,7 @@ function respondToStatefulAuthRequest(
 		const body = parseJsonObject(request.bodyText);
 		const displayName = typeof body?.displayName === "string" ? body.displayName.trim() : "";
 		const acceptedTerms = body?.acceptedTerms;
+		const hasDisplayPreferences = body != null && Object.prototype.hasOwnProperty.call(body, "displayPreferences");
 		const displayPreferences = isAccountDisplayPreferences(body?.displayPreferences)
 			? body.displayPreferences
 			: null;
@@ -208,7 +209,11 @@ function respondToStatefulAuthRequest(
 			});
 		}
 		const hasProfileFields = body?.displayName !== undefined || body?.acceptedTerms !== undefined;
-		if ((!hasProfileFields && !displayPreferences) || (hasProfileFields && (!displayName || acceptedTerms !== true))) {
+		if (
+			(!hasProfileFields && !displayPreferences) ||
+			(hasProfileFields && (!displayName || acceptedTerms !== true)) ||
+			(hasDisplayPreferences && !displayPreferences)
+		) {
 			return jsonResponse(400, {
 				error: {
 					code: "VALIDATION_FAILED",
@@ -245,11 +250,11 @@ function buildMockUserContext(state: {
 }
 
 function isAccountDisplayPreferences(value: unknown): value is UserContext["displayPreferences"] {
-	if (!isObject(value) || (value.theme !== "ocean" && value.theme !== "plum")) return false;
+	if (!hasExactKeys(value, ["theme", "customAccent"]) || (value.theme !== "ocean" && value.theme !== "plum")) return false;
 	if (value.customAccent === null) return true;
-	return isObject(value.customAccent) &&
-		typeof value.customAccent.h === "number" && value.customAccent.h >= 0 && value.customAccent.h < 360 &&
-		typeof value.customAccent.c === "number" && value.customAccent.c >= 0 && value.customAccent.c <= 0.28;
+	return hasExactKeys(value.customAccent, ["h", "c"]) &&
+		typeof value.customAccent.h === "number" && Number.isFinite(value.customAccent.h) && value.customAccent.h >= 0 && value.customAccent.h < 360 &&
+		typeof value.customAccent.c === "number" && Number.isFinite(value.customAccent.c) && value.customAccent.c >= 0 && value.customAccent.c <= 0.28;
 }
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -271,6 +276,12 @@ function parseJsonObject(bodyText: string | undefined): Record<string, unknown> 
 
 function isObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
+}
+
+function hasExactKeys<K extends string>(value: unknown, expected: readonly K[]): value is Record<K, unknown> {
+	if (!isObject(value) || Array.isArray(value)) return false;
+	const keys = Object.keys(value);
+	return keys.length === expected.length && expected.every((key) => keys.includes(key));
 }
 
 function stripApiBase(path: string): string {

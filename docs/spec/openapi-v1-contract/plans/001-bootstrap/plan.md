@@ -1,6 +1,6 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.33
+> **版本**: 1.34
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -359,3 +359,7 @@ Add the operation and additive `REPORT_INVALID_STATE_TRANSITION` enum value to t
 | `updateMe` | `Auth/updateMe.json` | AuthProfileSetup + Settings one-save path | generic auth handler/service | one transaction over users + user_settings | none | auth/settings BDD + `E2E.P0.101` |
 
 002 Phase 15 owns fixture/Prism/dev-mock parity；003 Phase 14 owns audit/re-freeze；backend-auth Phase 14 and B4 Phase 14 own atomic persistence；frontend-shell 001/002 own no-refetch runtime and UI behavior。
+
+## 22 OPENAPI-008 active spec review remediation
+
+以 focused owner-doc contract test 先证明 §4.2 schema inventory 和当前 backend/frontend handoff 仍把 `CompleteProfileRequest` / `completeMyProfile` / 四字段 `UserContext` 当作正向合同。修订后，当前章节只声明 `UpdateMeRequest` / `updateMe` / required `displayPreferences`；旧名称仅允许存在于明确标注的 accepted history、baseline audit、negative test 与 operation rename 证据中。

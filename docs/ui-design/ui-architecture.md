@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.34
+> **版本**: 2.35
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -217,7 +217,7 @@ ROUTE_ALIASES
 7. Practice transient optimistic row 不得成为跨刷新事实源；`getPracticeSession` 必须恢复 user `clientMessageId/replyStatus`，pending/retryable/terminal/complete UI 由该服务端投影收敛。
 8. `ReportsScreen(targetJobId)` 是受保护、chrome-visible 的上下文页面，入口仅在 Workspace 规划详情内容区右上角；TopBar 仍严格为三入口。Parse 不渲染 ready 详情、不嵌入列表或保留 `section=reports`，Reports Back 返回 Workspace detail，Report/Generating trusted Back 返回 ReportsScreen。
 9. `CustomAccentPicker` 只允许 hue/saturation DOM 与更新回调。component/source negative gate 必须证明 preview/value/reset 区、“恢复主题默认色 / Reset to theme accent”双语文案及仅为旧 UI 服务的 `onClear` / `active` props 零引用；选择 Ocean / Plum 恢复预定义主题。
-10. Theme menu 的 1440 desktop 与 390 mobile tests 必须覆盖 DOM、computed style、viewport containment 与必要 screenshot smoke；删除旧区域后不得留下空白占位或横向溢出。
+10. Settings Appearance 的 1440 desktop 与 390 mobile tests 必须覆盖 Ocean / Plum / custom accent 草稿预览、保存、DOM、computed style、viewport containment 与必要 screenshot smoke；TopBar 删除旧主题区域后不得留下空白占位或横向溢出。
 11. Route/component gate 必须证明 query-free Workspace 列表、targetJobId Workspace 详情和 Parse command-progress 三态互斥；ready 卡片详情执行一次同 key `getTargetJob`，不得 import、poll、播放 Parse animation 或在 route side 启动 session。
 12. Practice message renderer 必须同时覆盖 user/assistant GFM、raw HTML/remote image/unsafe URI 负向、安全 link、exact raw same-ID retry，以及 390px pre/code/table 局部滚动且 document 无横向溢出。
 13. TopBar 已登录态只渲染设置齿轮；component/responsive/a11y gate 必须证明头像、姓名、caret、backdrop、dropdown 与 TopBar logout 零引用，且 desktop/mobile 点击区域和 focus ring 可用。
@@ -228,6 +228,7 @@ ROUTE_ALIASES
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.35 | 修正设置账号主题验收 owner：desktop/mobile 主题交互由 Settings Appearance 承接，TopBar 不再承接 Theme menu。 |
 | 2026-07-19 | 2.34 | 将主题色移入“设置 > 外观”并按账号保存；TopBar 保留暗色/语言/设置齿轮；Practice 恢复全局 App TopBar，并区分会话控制栏。 |
 | 2026-07-15 | 2.33 | 采用设置简化方案 A：TopBar 已登录账号区收敛为设置齿轮；设置页改为无 tab 的真实账号/隐私单页；字体收敛为固定默认栈。 |
 | 2026-07-14 | 2.32 | 将 Workspace 拆为无参列表与 targetJobId 只读详情，Parse 收窄为新导入命令进度；Reports/terminal 返回详情，并加入 Practice 安全 Markdown/GFM 投影边界。 |

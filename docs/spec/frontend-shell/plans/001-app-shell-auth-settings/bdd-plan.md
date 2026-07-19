@@ -1,7 +1,7 @@
 # Frontend Shell Auth and Settings BDD Plan
 
-> **版本**: 1.22
-> **状态**: completed
+> **版本**: 1.23
+> **状态**: active
 > **更新日期**: 2026-07-19
 
 **关联 Plan**: [plan](./plan.md)
@@ -21,7 +21,7 @@
 | `BDD.SHELL.SETTINGS.002` | 用户未登录并直开 `settings` | route guard 判定 unauthenticated，用户完成登录/资料补全 | Settings 不提前挂载或调用账号 API；登录后通过 safe pendingAction 回到同一路由 | App auth dispatch/pendingAction domain tests，由根 `make test` 承接 |
 | `BDD.SHELL.SETTINGS.DELETE.001` | authenticated 用户以鼠标或键盘在 Settings 打开删除确认 | 取消/Escape、确认、重复点击、请求失败/401 后处理或收到 `202` | dialog focus 正确且取消零副作用；pending 只发一次并不可关闭；recoverable 失败保留 UI/同 key，401 交给 auth probe；成功复用 `refreshAuth()` 重探测 `/me`、提交 unauthenticated 并回 Home；默认 fixture client 复现相同 signed-out transition | Settings component tests + default `createDevMockClient` flow + backend `deleteMe` contract tests，由根 `make test` 承接 |
 | `BDD.SHELL.AUTH.LOCALE.001` | 当前显示偏好为中文或英文，受保护 route 的 auth probe 为 loading/error | App 渲染统一 auth route gate 或用户切换语言 | eyebrow/title/body 全部跟随当前 locale；中文无英文硬编码，且业务 screen/API 仍不提前挂载 | App shell language-switch + AppAuthDispatch focused tests，由根 `make test` 承接 |
-| `BDD.SHELL.SETTINGS.THEME.001` | authenticated runtime 已从首次 `getMe` 取得服务端确认主题 | 用户打开 Settings、切换预定义色或拖动 custom、保存、切换 route、刷新/重登；服务端也可能拒绝保存 | 页面挂载/route 切换零额外 `getMe`；拖动零请求；Save 恰好一次 `updateMe` 且成功零 follow-up GET并立即同步全局；失败保留草稿、离开恢复确认值；刷新/其他平台首次 `getMe` 恢复账号主题 | Settings/DisplayPreferences/AppRuntime request-count tests + backend update/get contract；根 `make test`，真实主路径原地关联 `E2E.P0.101` |
+| `BDD.SHELL.SETTINGS.THEME.001` | authenticated runtime 已从首次 `getMe` 取得服务端确认主题 | 用户打开 Settings、切换预定义色或拖动 custom、保存、切换 route、刷新/重登；服务端也可能拒绝保存、返回非法投影或在页面离开后迟到返回 | 页面挂载/route 切换零额外 `getMe`；拖动零请求；Save 恰好一次 `updateMe` 且成功零 follow-up GET并立即同步全局；失败保留草稿并可重试，离开恢复确认值；迟到响应不覆盖新 auth/theme；非法投影 fail closed 为 ocean；刷新/其他平台首次 `getMe` 恢复账号主题 | Settings/DisplayPreferences/AppRuntime request-count/race tests + dev-mock/backend update contract；根 `make test`，真实主路径原地关联 `E2E.P0.101` |
 
 `E2E.P0.101` 只原地增加真实设置齿轮、账号字段、主题保存与 logout/relogin 恢复主路径；请求次数、失败/离开恢复、pendingAction、导出 501 和账号删除仍由 domain/contract tests 承接，不另建并行场景。
 

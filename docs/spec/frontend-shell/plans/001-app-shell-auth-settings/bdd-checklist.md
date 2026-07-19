@@ -1,7 +1,7 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.22
-> **状态**: completed
+> **版本**: 1.23
+> **状态**: active
 > **更新日期**: 2026-07-19
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -43,8 +43,8 @@
 
 ## `BDD.SHELL.SETTINGS.THEME.001` 账号级主题与请求预算
 
-- [x] Runtime/Settings tests 证明 bootstrap/auth recovery 的 `getMe` 提供确认主题，Settings/普通 route/Practice 切换均零额外 `/me`。
-- [x] Appearance tests 证明预定义主题/custom hue/chroma 本地预览零网络，Save 恰好一次 `updateMe`，成功直接更新 runtime/display 且无 follow-up GET。
-- [x] 失败、重试、离开未保存页面和 invalid server projection 均 fail closed，不污染最近一次确认主题。
+- [x] Runtime/Settings tests 证明 bootstrap/auth recovery 的 `getMe` 提供确认主题，Settings/普通 route/Practice 切换均零额外 `/me`。（2026-07-19 frontend focused 45 tests PASS。）
+- [x] Appearance tests 证明预定义主题/custom hue/chroma 本地预览零网络，Save 恰好一次 `updateMe`，成功直接更新 runtime/display 且无 follow-up GET。（2026-07-19 frontend focused 45 tests PASS。）
+- [x] 失败、重试、离开未保存页面、迟到响应和 invalid server projection 均 fail closed，不污染最近一次确认主题或新的认证状态。（2026-07-19 新增 race/projection/atomicity tests 后 focused PASS。）
 - [x] Backend/migration/OpenAPI tests 证明 profile-only/theme-only/combined 原子更新、约束和 `getMe` round-trip。
-- [x] `E2E.P0.101` 原地覆盖真实主题保存、logout/relogin 恢复；current-run 证据完成前不得勾选 PASS。
+- [x] `E2E.P0.101` 原地覆盖真实主题保存、logout/relogin 恢复；current run `e2e-p0-101-20260719082610-75505` PASS（themeSavePatch=1、settingsMountedGetMe=0、settingsRouteSwitchGetMe=0、themeRelogin=plum、cleanup PASS）。

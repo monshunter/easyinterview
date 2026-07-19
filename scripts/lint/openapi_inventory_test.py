@@ -1044,6 +1044,21 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertNotIn("PracticeSessionEventRequest", baseline_schemas)
         self.assertIn("D-19 | Practice conversation pre-launch rebase", owner_spec)
 
+    def test_current_auth_owner_spec_matches_update_me(self) -> None:
+        owner_spec = Path("docs/spec/openapi-v1-contract/spec.md").read_text(encoding="utf-8")
+        schema_inventory = owner_spec.split("### 4.2 schema inventory 约束", 1)[1].split("### 4.3", 1)[0]
+        auth_row = next(line for line in schema_inventory.splitlines() if line.startswith("| Auth / runtime |"))
+        association = next(
+            line
+            for line in owner_spec.split("## 7 关联计划", 1)[1].splitlines()
+            if line.startswith("- `backend-auth/001-email-code-session-bootstrap`")
+        )
+
+        for current_token in ("UpdateMeRequest", "updateMe", "displayPreferences"):
+            self.assertIn(current_token, auth_row + association)
+        for stale_token in ("CompleteProfileRequest", "completeMyProfile"):
+            self.assertNotIn(stale_token, auth_row + association)
+
     def test_practice_voice_request_has_no_turn_or_mode_contract(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         request = data["components"]["schemas"]["CreatePracticeVoiceTurnRequest"]

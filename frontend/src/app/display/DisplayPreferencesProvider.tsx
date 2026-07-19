@@ -28,10 +28,10 @@ export type { Lang } from "../i18n/localeCatalog";
 export type { Theme } from "../theme/tokens";
 
 /**
- * Global display preferences (Spec D-4 / docs/ui-design/auth-and-entry.md §4):
- * theme color / dark mode / UI language are held by the App shell (TopBar
- * surfaces the controls) and are intentionally independent of the auth state.
- * Signing in or out must NEVER reset these preferences.
+ * Global display preferences (product-scope D-21 / UI architecture): dark
+ * mode and UI language remain App-shell controls, while theme color is an
+ * account preference edited in Settings Appearance. The provider owns both
+ * the server-confirmed account value and the local preview draft.
  *
  * D2 (Phase 1.2) extends the provider with `customAccent` and roots the
  * theme / mode / custom-accent state on `<html>` via `data-theme` /
@@ -52,6 +52,47 @@ export interface CustomAccent {
   c: number;
 }
 
+export interface AccountDisplayPreferences {
+  theme: Theme;
+  customAccent: CustomAccent | null;
+}
+
+const DEFAULT_ACCOUNT_DISPLAY_PREFERENCES: AccountDisplayPreferences = {
+  theme: "ocean",
+  customAccent: null,
+};
+
+export function normalizeAccountDisplayPreferences(
+  value: unknown,
+): AccountDisplayPreferences {
+  if (!hasExactKeys(value, ["theme", "customAccent"])) {
+    return DEFAULT_ACCOUNT_DISPLAY_PREFERENCES;
+  }
+  if (value.theme !== "ocean" && value.theme !== "plum") {
+    return DEFAULT_ACCOUNT_DISPLAY_PREFERENCES;
+  }
+  if (value.customAccent === null) {
+    return { theme: value.theme, customAccent: null };
+  }
+  if (!hasExactKeys(value.customAccent, ["h", "c"])) {
+    return DEFAULT_ACCOUNT_DISPLAY_PREFERENCES;
+  }
+  const { h, c } = value.customAccent;
+  if (
+    typeof h !== "number" ||
+    !Number.isFinite(h) ||
+    h < 0 ||
+    h >= 360 ||
+    typeof c !== "number" ||
+    !Number.isFinite(c) ||
+    c < 0 ||
+    c > 0.28
+  ) {
+    return DEFAULT_ACCOUNT_DISPLAY_PREFERENCES;
+  }
+  return { theme: value.theme, customAccent: { h, c } };
+}
+
 export interface DisplayPreferences {
   theme: Theme;
   dark: boolean;
@@ -68,7 +109,7 @@ export interface DisplayPreferences {
 }
 
 const DEFAULTS = {
-  // product-scope D-21 (v2.1): ocean is the default theme; invalid or
+  // product-scope D-21: ocean is the default theme; invalid or
   // missing theme values must also fall back to ocean.
   theme: "ocean" as Theme,
   dark: false,
@@ -217,4 +258,15 @@ function writeStoredLang(next: Lang): void {
   } catch {
     // Display preferences still work for browsers that block localStorage.
   }
+}
+
+function hasExactKeys<K extends string>(
+  value: unknown,
+  expected: readonly K[],
+): value is Record<K, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const keys = Object.keys(value);
+  return keys.length === expected.length && expected.every((key) => keys.includes(key));
 }

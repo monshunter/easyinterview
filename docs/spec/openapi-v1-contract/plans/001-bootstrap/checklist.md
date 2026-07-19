@@ -1,6 +1,6 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.33
+> **版本**: 1.34
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -175,3 +175,8 @@ git diff --check
 - [x] 21.4 HANDOFF: backend-auth Phase 14、B4 Phase 14、frontend-shell focused tests prove atomic persistence, one bootstrap GET and one-save PATCH without follow-up GET.
 - [x] 21.5 AUDIT/RE-FREEZE: preserve audit, re-freeze after consumer/migration gates, require zero diff and no old production operation/schema/fixture references.
 - [x] 21.6 REGRESSION: lint/fixtures/codegen/diff、root `make test`、docs/context/diff and downstream BDD/E2E gates pass.
+
+## Phase 22: OPENAPI-008 active spec review remediation
+
+- [x] 22.1 RED/GREEN: focused owner-doc test fails on stale §4.2/handoff wording, then current schema inventory and owner association use only `UpdateMeRequest` / `updateMe` / required `displayPreferences`。（证据：RED 1 failed；GREEN focused PASS。）
+- [x] 22.2 REGRESSION: OpenAPI inventory/fixture/codegen/diff、root tests、docs/index/context/diff 与 scoped old-positive reference classification pass before restoring `completed`。（证据：38 operations / 38 fixtures、codegen/diff 0 findings、root tests、docs/index/context/diff 与 scoped residual gate PASS。）
