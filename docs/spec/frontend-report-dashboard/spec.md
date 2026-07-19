@@ -1,7 +1,7 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.31
-> **状态**: active
+> **版本**: 1.32
+> **状态**: completed
 > **更新日期**: 2026-07-16
 
 ## 1 背景与目标
@@ -18,6 +18,7 @@
 - `reports` 的 loading / empty / error / ready 状态彼此完备；target/round identity 漂移、跨规划响应和 stale request 均 fail closed，不渲染其他规划 sentinel 或错链。
 - `generating`：轮询真实 report status，展示诚实的异步等待说明；不伪造百分比、实时观察或通知订阅。
 - `report`：Header、四项 Context Strip（目标岗位 / 轮次 / 可链接简历副本 / 面试记录）、两项 Summary Metrics、两行各两个常驻内容区（Dimensions / Strength Evidence / Risks / Next Actions），以及底部一个全宽 Overall Summary。
+- `report` desktop `1916×821` 参考视图使用约 `1336px` 居中内容面与浅蓝全视口背景；Back、标题、CTA、Context Strip、两列卡片和底部总评共享同一横向网格。卡片使用大圆角、柔和阴影、语义圆形 icon 与可读紧凑排版，Header 主次按钮分别使用蓝色实心与白色描边；不得继续用 `1120px` 窄内容列或方角/内联样式拼装视觉结构。
 - `report-conversation`：仅以 `reportId` 读取报告附属的 ordered user/assistant transcript，安全渲染 Markdown/GFM，并返回同一报告状态页；queued/generating/ready/failed 都可访问。ReportsScreen 只要存在代表已结束会话的 current report 或 latest attempt，就必须独立展示“查看面试记录”，不能被“查看生成进度”或重新生成动作替代。
 - failed latest attempt recovery：除 `REPORT_CONTEXT_TOO_LARGE` 外，ReportsScreen 以同一 `reportId` 调用 `regenerateFeedbackReport` 并进入 Generating；所有 failed report 都保留“查看面试记录”。
 - Overall Summary 使用“面试总评”标题，同时展示 localized readiness tier 与服务端 `summary`；二者不得继续出现在顶部指标区，`summary` 全页只展示一次。

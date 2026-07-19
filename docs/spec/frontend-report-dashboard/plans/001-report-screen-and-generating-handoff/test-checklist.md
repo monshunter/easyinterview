@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.11
+> **版本**: 3.12
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -71,3 +71,8 @@
 - [x] Focused frontend, typecheck/build and Chrome real-environment acceptance pass after GREEN.
 - [x] Root `make test` passes after GREEN.
   <!-- verified: 2026-07-16 evidence="Python 584/4583 subtests, Go all packages, frontend 126/1026 PASS" -->
+
+## Phase 16 reference-aligned report dashboard
+
+- [x] Source/component/responsive tests pass for the 1336px shared grid, Header CTA hierarchy, semantic icons, rounded surfaces, `4/2/2/2/1` and 390px containment.
+- [x] Focused owner tests, root regression and formal-frontend fixture Chrome 1916×821 / 390×844 visual checks pass without claiming a real ready-report or full `E2E.P0.099`.<!-- verified: 2026-07-19 evidence="report 30 focused tests; root frontend 1054 tests; typecheck/build; documentOverflow=0 at both viewports" -->

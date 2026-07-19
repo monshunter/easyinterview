@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-19](2026-07-19.md) | `fix(frontend): align core workflow pages with UI references (BUG-0192)` | #fix #ui #i18n #test #docs #bdd #chrome |
 | [2026-07-19](2026-07-19.md) | `feat(frontend): align interview and resume lists` | #feat #ui #i18n #test #docs #bdd |
 | [2026-07-19](2026-07-19.md) | `feat(frontend): align home with reference UI` | #feat #ui #i18n #test #docs #bdd |
 | [2026-07-19](2026-07-19.md) | `fix(settings): harden account theme review regressions (BUG-0191)` | #fix #ui #test #docs #bdd #e2e |

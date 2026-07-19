@@ -1218,12 +1218,137 @@
   pointer-events: none;
 }
 
+/* Ready report — screenshot-aligned evidence dashboard. */
+.ei-report-screen {
+  position: relative;
+  isolation: isolate;
+  width: calc(100% - 32px);
+  max-width: 1336px;
+  min-height: calc(100vh - 76px);
+  margin: 0 auto;
+  padding: 28px 0 96px;
+  box-sizing: border-box;
+}
+
+.ei-report-screen::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 auto 0 50%;
+  width: 100vw;
+  content: "";
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at 76% 5%, color-mix(in srgb, var(--ei-color-accent) 6%, transparent), transparent 30%),
+    var(--ei-color-bg-canvas);
+}
+
+.ei-report-back {
+  margin: 0 0 20px;
+  padding: 0;
+  color: var(--ei-color-fg-tertiary);
+  background: transparent;
+  border: 0;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ei-report-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 24px;
+}
+
+.ei-report-header-copy {
+  min-width: 0;
+  flex: 1 1 620px;
+}
+
+.ei-report-header-breadcrumb {
+  margin-bottom: 9px;
+  color: var(--ei-color-accent);
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+}
+
+.ei-report-header-title {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ei-color-fg-primary);
+  font-family: var(--ei-font-sans);
+  font-size: clamp(30px, 2vw, 36px);
+  font-weight: 650;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+}
+
+.ei-report-header-subtitle {
+  margin: 10px 0 0;
+  color: var(--ei-color-fg-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ei-report-header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ei-report-header-cta {
+  min-width: 122px;
+  height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ei-color-fg-primary);
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 7px;
+  font-family: var(--ei-font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ei-report-header-cta[data-variant="accent"] {
+  color: #fff;
+  background: var(--ei-color-accent);
+  border-color: var(--ei-color-accent);
+  box-shadow: 0 7px 16px color-mix(in srgb, var(--ei-color-accent) 19%, transparent);
+}
+
+.ei-report-header-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+.ei-report-header-disabled-reason {
+  flex-basis: 100%;
+  color: var(--ei-color-fg-tertiary);
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.ei-report-start-error {
+  margin: -10px 0 14px;
+  color: var(--ei-color-danger);
+  font-size: 13px;
+}
+
 .ei-report-context-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1px;
-  border: 1px solid var(--ei-color-rule-strong);
-  background: var(--ei-color-rule-strong);
+  gap: 12px;
 }
 
 .ei-report-context-grid[data-columns="3"] {
@@ -1233,14 +1358,14 @@
 .ei-report-summary-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 22px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .ei-report-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 14px;
 }
 
 .ei-report-panel {
@@ -1251,6 +1376,153 @@
 .ei-report-panel-card {
   flex: 1;
   box-sizing: border-box;
+  min-width: 0;
+  padding: 22px 24px;
+  background: color-mix(in srgb, var(--ei-color-bg-card) 97%, transparent);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 12px;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--ei-color-fg-primary) 5%, transparent);
+}
+
+.ei-report-context-item {
+  min-width: 0;
+  min-height: 84px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--ei-color-bg-card) 97%, transparent);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 10px;
+}
+
+.ei-report-context-icon,
+.ei-report-metric-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: var(--ei-color-accent);
+  background: color-mix(in srgb, var(--ei-color-accent) 8%, var(--ei-color-bg-card));
+  border-radius: 50%;
+}
+
+.ei-report-context-copy {
+  min-width: 0;
+}
+
+.ei-report-context-label,
+.ei-report-metric-label,
+.ei-report-panel-title {
+  margin-bottom: 5px;
+  color: var(--ei-color-fg-tertiary);
+  font-family: var(--ei-font-sans);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ei-report-context-value {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--ei-color-fg-secondary);
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-underline-offset: 3px;
+}
+
+.ei-report-context-action {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ei-report-metric {
+  min-width: 0;
+  min-height: 90px;
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--ei-color-bg-card) 97%, transparent);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 12px;
+  box-shadow: 0 7px 20px color-mix(in srgb, var(--ei-color-fg-primary) 5%, transparent);
+}
+
+.ei-report-metric-value {
+  color: var(--ei-color-fg-primary);
+  font-family: var(--ei-font-sans);
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ei-report-panel-title {
+  text-transform: none;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.ei-report-evidence {
+  color: var(--ei-color-fg-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.ei-report-evidence-label {
+  margin-bottom: 3px;
+  color: var(--ei-color-fg-primary);
+  font-weight: 600;
+}
+
+.ei-report-evidence-confidence {
+  margin-top: 4px;
+  color: var(--ei-color-fg-tertiary);
+  font-size: 11.5px;
+}
+
+.ei-report-overall {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 24px 26px;
+  color: var(--ei-color-fg-primary);
+  background: color-mix(in srgb, var(--ei-color-accent) 4%, var(--ei-color-bg-card));
+  border: 1px solid color-mix(in srgb, var(--ei-color-accent) 20%, var(--ei-color-rule-strong));
+  border-radius: 12px;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--ei-color-fg-primary) 5%, transparent);
+}
+
+.ei-report-overall-label {
+  margin: 0 0 10px;
+  color: var(--ei-color-accent);
+  font-family: var(--ei-font-sans);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.ei-report-overall-tier {
+  font-family: var(--ei-font-sans);
+  font-size: 24px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ei-report-overall-copy {
+  margin: 10px 0 0;
+  color: var(--ei-color-fg-secondary);
+  font-size: 13.5px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 
 .ei-resume-workshop-list {
@@ -1692,6 +1964,454 @@
   }
 }
 
+/* Active practice — screenshot-aligned wide interview workspace. */
+.ei-practice-screen {
+  height: calc(100dvh - 76px);
+  padding: 14px clamp(24px, 5.5vw, 105px) 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 84% 4%, color-mix(in srgb, var(--ei-color-accent) 7%, transparent), transparent 31%),
+    linear-gradient(180deg, color-mix(in srgb, var(--ei-color-accent) 3%, var(--ei-color-bg-canvas)), var(--ei-color-bg-canvas));
+}
+
+.ei-practice-frame {
+  width: 100%;
+  max-width: 1706px;
+  height: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ei-practice-session-header {
+  flex: 0 0 auto;
+  min-height: 90px;
+  padding: 15px 20px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  color: var(--ei-color-fg-primary);
+  background: color-mix(in srgb, var(--ei-color-bg-card) 97%, transparent);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 12px;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--ei-color-fg-primary) 5%, transparent);
+}
+
+.ei-practice-session-identity {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+
+.ei-practice-session-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 7px;
+  overflow: hidden;
+  color: var(--ei-color-ok);
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ei-practice-session-status > span {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--ei-color-ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ei-color-ok) 13%, transparent);
+}
+
+.ei-practice-session-title {
+  overflow: hidden;
+  font-family: var(--ei-font-sans);
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ei-practice-session-actions {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.ei-practice-session-chip {
+  min-height: 35px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  color: var(--ei-color-accent);
+  background: color-mix(in srgb, var(--ei-color-accent) 7%, var(--ei-color-bg-card));
+  border: 1px solid color-mix(in srgb, var(--ei-color-accent) 17%, var(--ei-color-rule-strong));
+  border-radius: 18px;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ei-practice-session-timer {
+  padding: 0 8px;
+  color: var(--ei-color-fg-primary);
+  font-family: var(--ei-font-mono);
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+}
+
+.ei-practice-session-clock-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ei-practice-session-clock-group .ei-practice-session-chip {
+  order: -1;
+}
+
+.ei-practice-session-clock-separator {
+  display: none;
+}
+
+.ei-practice-session-button,
+.ei-practice-session-phone,
+.ei-practice-finish-button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-sizing: border-box;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ei-practice-session-button {
+  padding: 0 15px;
+  color: var(--ei-color-fg-secondary);
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 7px;
+}
+
+.ei-practice-session-phone {
+  width: 38px;
+  padding: 0;
+  color: var(--ei-color-fg-muted);
+  background: var(--ei-color-bg-soft);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 50%;
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
+.ei-practice-session-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--ei-color-rule-strong);
+}
+
+.ei-practice-finish {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.ei-practice-finish-button {
+  min-width: 104px;
+  padding: 0 16px;
+  color: #fff;
+  background: var(--ei-color-accent);
+  border: 1px solid var(--ei-color-accent);
+  border-radius: 7px;
+  box-shadow: 0 5px 13px color-mix(in srgb, var(--ei-color-accent) 19%, transparent);
+}
+
+.ei-practice-finish-button:disabled {
+  color: var(--ei-color-fg-muted);
+  background: var(--ei-color-bg-soft);
+  border-color: var(--ei-color-rule-strong);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.ei-practice-finish-reason {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  width: max-content;
+  max-width: 220px;
+  color: var(--ei-color-fg-tertiary);
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: right;
+}
+
+.ei-practice-conversation {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ei-color-bg-card) 98%, transparent);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 12px;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--ei-color-fg-primary) 5%, transparent);
+}
+
+.ei-practice-transcript {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 25px 34px 18px;
+}
+
+.ei-practice-message-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.ei-practice-message-avatar {
+  width: 50px;
+  height: 50px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: var(--ei-color-accent);
+  background: color-mix(in srgb, var(--ei-color-accent) 9%, var(--ei-color-bg-card));
+  border-radius: 7px;
+  font-family: var(--ei-font-sans);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ei-practice-message-row[data-role="user"] .ei-practice-message-avatar {
+  color: var(--ei-color-fg-primary);
+  background: var(--ei-color-bg-soft);
+}
+
+.ei-practice-message-content {
+  min-width: 0;
+  flex: 1;
+  padding-top: 1px;
+}
+
+.ei-practice-message-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 7px;
+  color: var(--ei-color-fg-secondary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ei-practice-message-meta time {
+  color: var(--ei-color-fg-muted);
+  font-family: var(--ei-font-mono);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.ei-practice-message-body {
+  color: var(--ei-color-fg-secondary);
+  font-size: 15px;
+  line-height: 1.68;
+}
+
+.ei-practice-message-retry {
+  width: 32px;
+  height: 32px;
+  margin-top: 8px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ei-color-accent);
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 6px;
+}
+
+.ei-practice-thinking {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ei-color-fg-tertiary);
+  font-size: 14px;
+}
+
+.ei-practice-input-helper {
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  min-height: 42px;
+  margin: 0 auto 8px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  box-sizing: border-box;
+  color: var(--ei-color-fg-secondary);
+  background: color-mix(in srgb, var(--ei-color-accent) 7%, var(--ei-color-bg-card));
+  border: 1px solid color-mix(in srgb, var(--ei-color-accent) 8%, transparent);
+  border-radius: 7px;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  text-align: center;
+}
+
+.ei-practice-input-helper svg {
+  flex: 0 0 auto;
+  color: var(--ei-color-accent);
+}
+
+.ei-practice-input {
+  flex: 0 0 auto;
+  padding: 0 34px 24px;
+  background: var(--ei-color-bg-card);
+}
+
+.ei-practice-input-shell {
+  min-height: 126px;
+  padding: 14px 15px 13px;
+  box-sizing: border-box;
+  background: var(--ei-color-bg-card);
+  border: 1px solid color-mix(in srgb, var(--ei-color-accent) 28%, var(--ei-color-rule-strong));
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ei-color-accent) 4%, transparent);
+}
+
+.ei-practice-input-textarea {
+  width: 100%;
+  min-height: 64px;
+  padding: 0;
+  resize: none;
+  box-sizing: border-box;
+  color: var(--ei-color-fg-primary);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-family: var(--ei-font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ei-practice-input-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 5px;
+}
+
+.ei-practice-input-send {
+  min-width: 95px;
+  height: 35px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #fff;
+  background: var(--ei-color-accent);
+  border: 1px solid var(--ei-color-accent);
+  border-radius: 6px;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ei-practice-input-send:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+@media (max-width: 900px) {
+  .ei-practice-screen {
+    height: calc(100dvh - 112px);
+    padding: 12px 16px 16px;
+  }
+
+  .ei-practice-session-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 13px;
+    padding: 15px;
+  }
+
+  .ei-practice-session-identity {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .ei-practice-session-actions {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .ei-practice-session-divider,
+  .ei-practice-finish-reason {
+    display: none;
+  }
+
+  .ei-practice-transcript {
+    padding: 18px 16px 12px;
+  }
+
+  .ei-practice-message-avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .ei-practice-input {
+    padding: 0 16px 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .ei-practice-session-chip:nth-of-type(2),
+  .ei-practice-session-phone {
+    display: none;
+  }
+
+  .ei-practice-session-actions {
+    gap: 8px;
+  }
+
+  .ei-practice-session-timer {
+    margin-left: auto;
+    font-size: 15px;
+  }
+
+  .ei-practice-message-row {
+    gap: 10px;
+  }
+
+  .ei-practice-message-body {
+    font-size: 14px;
+  }
+}
+
 @media (max-width: 900px) {
   .ei-screen-shell[data-testid="resume-workshop-screen"] {
     padding: 32px 24px 80px;
@@ -1704,6 +2424,35 @@
 }
 
 @media (max-width: 700px) {
+  .ei-report-screen {
+    width: 100%;
+    min-height: calc(100vh - 112px);
+    padding: 24px 16px 64px;
+  }
+
+  .ei-report-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .ei-report-header-title {
+    font-size: 29px;
+  }
+
+  .ei-report-header-copy {
+    flex: 0 0 auto;
+  }
+
+  .ei-report-header-actions,
+  .ei-report-header-cta {
+    width: 100%;
+  }
+
+  .ei-report-context-item {
+    min-height: 76px;
+  }
+
   .ei-report-context-grid,
   .ei-report-summary-grid,
   .ei-report-detail-grid {
@@ -1836,9 +2585,38 @@
 
 .ei-resume-create-flow {
   width: 100%;
+  min-height: calc(100vh - 76px);
+  min-height: calc(100dvh - 76px);
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 24px;
+  box-sizing: border-box;
+}
+
+.ei-screen-shell[data-testid="resume-workshop-screen"][data-flow="create"] {
+  position: relative;
+  z-index: 0;
+  width: calc(100% - 48px);
+  max-width: 1470px;
+  min-height: calc(100vh - 76px);
+  margin: 0 auto;
+  padding: 34px 0 80px;
+  box-sizing: border-box;
+}
+
+.ei-screen-shell[data-testid="resume-workshop-screen"][data-flow="create"]::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 50% auto;
+  width: 100vw;
+  height: 100%;
+  min-height: calc(100vh - 76px);
+  content: "";
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at 87% 20%, color-mix(in srgb, var(--ei-color-accent) 9%, transparent), transparent 27%),
+    linear-gradient(180deg, color-mix(in srgb, var(--ei-color-accent) 2%, var(--ei-color-bg-canvas)), var(--ei-color-bg-canvas));
+  pointer-events: none;
 }
 
 .ei-resume-create-back {
@@ -1859,10 +2637,28 @@
 }
 
 .ei-resume-create-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 150px;
+}
+
+.ei-resume-create-header-copy {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: 860px;
+  max-width: 980px;
+}
+
+.ei-resume-create-header-art {
+  position: absolute;
+  right: 34px;
+  bottom: -10px;
+  width: 250px;
+  color: var(--ei-color-accent);
+  pointer-events: none;
 }
 
 .ei-resume-create-eyebrow {
@@ -1872,7 +2668,9 @@
 .ei-resume-create-header .ei-text-display {
   margin: 0;
   color: var(--ei-color-fg-primary);
-  font-size: 36px;
+  font-family: var(--ei-font-sans);
+  font-size: 38px;
+  font-weight: 650;
   line-height: 1.15;
   letter-spacing: -0.022em;
 }
@@ -1880,14 +2678,14 @@
 .ei-resume-create-subtitle {
   margin: 0;
   color: var(--ei-color-fg-secondary);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
   max-width: 720px;
 }
 
 .ei-resume-create-grid {
   display: grid;
-  grid-template-columns: minmax(0, 860px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 22px;
   align-items: start;
   justify-content: center;
@@ -1896,18 +2694,22 @@
 .ei-resume-create-card {
   background: var(--ei-color-bg-card);
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 3px;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--ei-color-fg-primary) 8%, transparent);
 }
 
 .ei-resume-create-tablist {
   display: flex;
+  min-height: 64px;
+  padding: 0 28px;
   border-bottom: 1px solid var(--ei-color-rule-strong);
   overflow-x: auto;
 }
 
 .ei-resume-create-tab {
-  padding: 15px 20px;
+  min-width: 164px;
+  padding: 0 16px;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -1917,7 +2719,8 @@
   gap: 8px;
   cursor: pointer;
   font-family: var(--ei-font-sans);
-  font-size: 13px;
+  font-size: 16px;
+  font-weight: 550;
   margin-bottom: -1px;
   white-space: nowrap;
 }
@@ -1934,26 +2737,26 @@
 }
 
 .ei-resume-create-tab-panel {
-  padding: 24px;
+  padding: 18px 28px 28px;
 }
 
 .ei-resume-create-upload-dropzone {
-  min-height: 260px;
+  min-height: 366px;
   border: 1px dashed var(--ei-color-rule-strong);
-  border-radius: 3px;
+  border-radius: 10px;
   background: var(--ei-color-bg-secondary);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 16px;
   text-align: center;
   padding: 28px;
 }
 
 .ei-resume-create-upload-icon {
-  width: 54px;
-  height: 54px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background: var(--ei-color-bg-card);
   border: 1px solid var(--ei-color-rule-strong);
@@ -1965,14 +2768,15 @@
 
 .ei-resume-create-upload-title {
   color: var(--ei-color-fg-primary);
-  font-family: var(--ei-font-serif);
-  font-size: 22px;
+  font-family: var(--ei-font-sans);
+  font-size: 24px;
+  font-weight: 650;
 }
 
 .ei-resume-create-upload-body {
   margin: 0;
   color: var(--ei-color-fg-tertiary);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.55;
   max-width: 460px;
 }
@@ -2033,9 +2837,9 @@
   justify-content: center;
   gap: 8px;
   padding: 0 16px;
-  height: 38px;
-  border-radius: 2px;
-  font-size: 14px;
+  height: 48px;
+  border-radius: 6px;
+  font-size: 16px;
   font-weight: 500;
   font-family: var(--ei-font-sans);
   cursor: pointer;
@@ -2043,6 +2847,33 @@
   background: var(--ei-color-accent);
   border: 1px solid var(--ei-color-accent);
   color: #ffffff;
+}
+
+.ei-resume-create-upload-capabilities {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.ei-resume-create-upload-capability {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  color: var(--ei-color-fg-secondary);
+  background: var(--ei-color-bg-card);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 6px;
+  font-family: var(--ei-font-sans);
+  font-size: 13px;
+}
+
+.ei-resume-create-upload-capability svg {
+  color: var(--ei-color-accent);
 }
 
 .ei-resume-create-cta-accent:disabled {
@@ -2061,8 +2892,46 @@
 }
 
 @media (max-width: 720px) {
+  .ei-screen-shell[data-testid="resume-workshop-screen"][data-flow="create"] {
+    width: 100%;
+    min-height: calc(100dvh - 112px);
+    padding: 28px 16px 64px;
+  }
+
+  .ei-resume-create-header {
+    min-height: 0;
+  }
+
+  .ei-resume-create-header-art {
+    display: none;
+  }
+
+  .ei-resume-create-header .ei-text-display {
+    font-size: 30px;
+  }
+
   .ei-resume-create-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ei-resume-create-tablist {
+    padding: 0 10px;
+  }
+
+  .ei-resume-create-tab {
+    min-width: 0;
+    flex: 1 1 0;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .ei-resume-create-tab-panel {
+    padding: 14px;
+  }
+
+  .ei-resume-create-upload-dropzone {
+    min-height: 340px;
+    padding: 24px 14px;
   }
 
 }

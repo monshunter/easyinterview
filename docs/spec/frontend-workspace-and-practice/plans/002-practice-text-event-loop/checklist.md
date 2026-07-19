@@ -1,6 +1,6 @@
 # 002 — Practice Continuous Text Conversation Checklist
 
-> **版本**: 2.9
+> **版本**: 3.1
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -88,3 +88,17 @@
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.PRACTICE.TEXT.001` 由 [BDD checklist](./bdd-checklist.md) 关联 send/retry/completion/recovery owner behavior tests；不创建或声明真实 E2E PASS。
+
+## Phase 13: Reference-aligned active interview surface
+
+- [x] 13.1 RED: Practice visual tests 固化全局 TopBar 下可用视口高度、约 1708px desktop 内容面、Session Header 分组、消息 surface、大 Composer 与 390px containment。<!-- verified: 2026-07-19 method=vitest-red evidence="PracticeVisual expected failures captured the old unconstrained layout before implementation" -->
+- [x] 13.2 GREEN: 重构 PracticeScreen / TopBar / Transcript / InputBar / FinishCta 视觉 DOM/CSS 与 SVG icon，保持 session/message/completion/disabled 语义不变。<!-- verified: 2026-07-19 method=focused-vitest evidence="practice focused suite 54 tests PASS after square role markers and icon prompt refinement" -->
+- [x] 13.3 BDD-Gate: `BDD.PRACTICE.TEXT.001` 在新视觉层级下继续覆盖发送、pending、retry、completion 与终态 fail-closed；正式 frontend 的 repository running fixture 完成 Chrome 1916×821 / 390×844 containment 验收，未声明真实 active-session E2E PASS。<!-- verified: 2026-07-19 method=chrome-formal-frontend-fixture evidence="desktop frame x=105 width=1706, avatar 50x50 radius=7, prompt 320x42 radius=7 with icon; mobile x=16 width=358; documentOverflow=0" -->
+- [x] 13.4 REGRESSION-GATE: focused frontend、根 `make test`、typecheck/build、context/docs/index/diff 通过后恢复 completed。<!-- verified: 2026-07-19 method=focused+root-regression evidence="practice Phase 13 focused 54 PASS; final root Python 615/4615 subtests, Go all packages, frontend 131 files/1054 tests PASS; typecheck/build PASS" -->
+
+## Phase 14: Fixed Composer and helper anchoring
+
+- [x] 14.1 RED: source/component tests 证明 helper 仍由 `Transcript` 渲染并会随滚动内容移动，同时要求它成为 `InputBar` / Composer 子元素。<!-- verified: 2026-07-19 method=vitest-red evidence="PracticeVisual 2 expected failures plus InputBar helper DOM 1 expected failure" -->
+- [x] 14.2 GREEN: 明确 `Transcript` 是唯一滚动区、Composer 以 `flex: 0 0 auto` 固定在会话卡底部，并把 helper capsule 与 sparkle icon 移入 `InputBar`；保持文案、样式、a11y、消息与发送语义不变。<!-- verified: 2026-07-19 method=focused-vitest evidence="PracticeVisual, InputBar, Transcript and PracticeScreen: 4 files / 56 tests PASS" -->
+- [x] 14.3 CHROME: desktop/mobile 的短聊天与可滚动长聊天中，Composer/input 坐标和 helper/input gap 在 Transcript scroll 前后保持不变且 document 无横向溢出；fixture 证据不声明真实 active-session E2E PASS。<!-- verified: 2026-07-19 method=chrome-formal-frontend-fixture evidence="standard desktop helper 320x42 and mobile 292x42, gap=8 and overflow=0; compact desktop scrollTop 4→151 and mobile 0→175.5 while helperY/shellY/gap remained identical" -->
+- [x] 14.4 REGRESSION-GATE: focused Practice、根 `make test`、typecheck/build、context/docs/index/diff 通过后恢复 completed。<!-- verified: 2026-07-19 method=focused+root+docs evidence="focused 4 files/56 tests; root Python 615/4615 subtests, Go all packages, frontend 131 files/1054 tests; typecheck/build/context/docs/index/diff PASS; all lint owners except pre-existing change-intake generic-api-key false positive PASS" -->

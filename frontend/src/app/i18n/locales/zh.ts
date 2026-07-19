@@ -207,6 +207,9 @@ export const zh = {
   "resumeWorkshop.create.upload.dropzoneBody":
     "支持 PDF、Markdown 和 TXT，文件最大 {maxSize}。PDF 会按页显示，Markdown 和纯文本会排版后显示。",
   "resumeWorkshop.create.upload.choose": "选择文件",
+  "resumeWorkshop.create.upload.formats": "支持 PDF / Markdown / TXT",
+  "resumeWorkshop.create.upload.maxSize": "文件最大 {maxSize}",
+  "resumeWorkshop.create.upload.privacy": "数据安全，仅你可见",
   "resumeWorkshop.create.upload.selectedPrefix": "已选择：",
   "resumeWorkshop.create.upload.uploading": "正在上传…",
   "resumeWorkshop.create.paste.placeholder": "把你的简历内容粘贴到这里…",

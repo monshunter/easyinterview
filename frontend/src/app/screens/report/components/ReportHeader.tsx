@@ -1,4 +1,4 @@
-import type { CSSProperties, FC } from "react";
+import type { FC } from "react";
 
 import { useI18n } from "../../../i18n/messages";
 
@@ -34,55 +34,28 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
 }) => {
   const { t } = useI18n();
   return (
-    <header
-      data-testid="report-header"
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 24,
-        alignItems: "flex-end",
-        flexWrap: "wrap",
-        marginBottom: 24,
-      }}
-    >
-      <div style={{ minWidth: 0, flex: "1 1 440px" }}>
+    <header data-testid="report-header" className="ei-report-header">
+      <div className="ei-report-header-copy">
         <div
-          className="ei-label"
+          className="ei-report-header-breadcrumb"
           data-testid="report-header-breadcrumb"
-          style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 8 }}
         >
           {breadcrumb}
         </div>
         <h1
-          className="ei-serif"
+          className="ei-report-header-title"
           data-testid="report-header-title"
-          style={{
-            fontSize: 38,
-            color: "var(--ei-color-fg-primary)",
-            margin: 0,
-            overflowWrap: "anywhere",
-          }}
         >
           {title}
         </h1>
         <p
           data-testid="report-header-subtitle"
-          style={{
-            color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
-            lineHeight: 1.7,
-            marginBottom: 0,
-          }}
+          className="ei-report-header-subtitle"
         >
           {subtitle}
         </p>
       </div>
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="ei-report-header-actions">
         <button
           type="button"
           data-testid="report-replay-cta"
@@ -91,7 +64,7 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           aria-disabled={disableReplay}
           aria-describedby={disableReplay && nextDisabledReason ? "report-next-disabled-reason" : undefined}
           data-variant={replayVariant}
-          style={buttonStyle(replayVariant, Boolean(disableReplay))}
+          className="ei-report-header-cta"
         >
           {t("report.header.cta.replay")}
         </button>
@@ -103,12 +76,12 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           aria-disabled={disableNextRound}
           aria-describedby={disableNextRound && nextDisabledReason ? "report-next-disabled-reason" : undefined}
           data-variant={nextVariant}
-          style={buttonStyle(nextVariant, Boolean(disableNextRound))}
+          className="ei-report-header-cta"
         >
           {t("report.header.cta.nextRound")}
         </button>
         {disableNextRound && nextDisabledReason ? (
-          <span id="report-next-disabled-reason" data-testid="report-next-disabled-reason" style={{ flexBasis: "100%", color: "var(--ei-color-fg-tertiary)", fontSize: 11, lineHeight: 1.35, textAlign: "right" }}>
+          <span id="report-next-disabled-reason" data-testid="report-next-disabled-reason" className="ei-report-header-disabled-reason">
             {nextDisabledReason}
           </span>
         ) : null}
@@ -116,29 +89,3 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
     </header>
   );
 };
-
-function buttonStyle(
-  variant: "accent" | "secondary",
-  disabled: boolean,
-): CSSProperties {
-  const accent = variant === "accent";
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    height: 38,
-    padding: "0 16px",
-    fontSize: 14,
-    fontWeight: 500,
-    background: accent ? "var(--ei-color-accent)" : "var(--ei-color-bg-canvas)",
-    color: accent ? "#fff" : "var(--ei-color-fg-primary)",
-    border: accent ? "1px solid var(--ei-color-accent)" : "1px solid var(--ei-color-rule-strong)",
-    borderRadius: 2,
-    cursor: disabled ? "not-allowed" : "pointer",
-    opacity: disabled ? 0.5 : 1,
-    fontFamily: "var(--ei-font-sans)",
-    letterSpacing: "-0.005em",
-    transition: "transform .08s ease, opacity .15s",
-  };
-}

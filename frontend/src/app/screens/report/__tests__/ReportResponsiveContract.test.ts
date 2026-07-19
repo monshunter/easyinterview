@@ -25,5 +25,22 @@ describe("Report ready responsive layout contract", () => {
     expect(source).toMatch(
       /@media\s*\(max-width:\s*700px\)[\s\S]*?\.ei-report-panel\s*\{[^}]*min-height:\s*auto/,
     );
+    expect(source).toMatch(
+      /@media\s*\(max-width:\s*700px\)[\s\S]*?\.ei-report-header-copy\s*\{[^}]*flex:\s*0 0 auto/,
+    );
+  });
+
+  it("aligns the ready dashboard to the supplied 1336px reference canvas", () => {
+    const source = readFileSync(CSS_PATH, "utf8");
+    const dashboard = readFileSync(resolve(__dirname, "../components/ReportDashboard.tsx"), "utf8");
+    const header = readFileSync(resolve(__dirname, "../components/ReportHeader.tsx"), "utf8");
+
+    expect(source).toMatch(/\.ei-report-screen\s*\{[^}]*max-width:\s*1336px/s);
+    expect(source).toMatch(/\.ei-report-header\s*\{[^}]*margin-bottom:\s*24px/s);
+    expect(source).toMatch(/\.ei-report-metric\s*\{[^}]*border-radius:\s*12px/s);
+    expect(source).toMatch(/\.ei-report-panel-card\s*\{[^}]*border-radius:\s*12px/s);
+    expect(source).toMatch(/\.ei-report-overall\s*\{[^}]*grid-column:\s*1 \/ -1/s);
+    expect(dashboard).toContain('className="ei-report-screen ei-fadein"');
+    expect(header).toContain('className="ei-report-header"');
   });
 });

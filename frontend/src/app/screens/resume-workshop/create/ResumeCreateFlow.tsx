@@ -126,13 +126,16 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
       </button>
 
       <header className="ei-resume-create-header">
-        <span className="ei-text-label ei-resume-create-eyebrow">
-          {t("resumeWorkshop.create.eyebrow")}
-        </span>
-        <h1 className="ei-text-display">{t("resumeWorkshop.create.title")}</h1>
-        <p className="ei-resume-create-subtitle">
-          {t("resumeWorkshop.create.subtitle")}
-        </p>
+        <div className="ei-resume-create-header-copy">
+          <span className="ei-text-label ei-resume-create-eyebrow">
+            {t("resumeWorkshop.create.eyebrow")}
+          </span>
+          <h1 className="ei-text-display">{t("resumeWorkshop.create.title")}</h1>
+          <p className="ei-resume-create-subtitle">
+            {t("resumeWorkshop.create.subtitle")}
+          </p>
+        </div>
+        <ResumeCreateHeaderArt />
       </header>
 
       <div className="ei-resume-create-grid">
@@ -213,3 +216,21 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
     </div>
   );
 };
+
+const ResumeCreateHeaderArt: FC = () => (
+  <svg
+    aria-hidden="true"
+    className="ei-resume-create-header-art"
+    viewBox="0 0 250 170"
+  >
+    <path d="M74 29h83l34 34v83H74z" fill="currentColor" opacity=".08" />
+    <path d="M157 29v36h35" fill="none" stroke="currentColor" strokeWidth="3" opacity=".13" />
+    <path d="M94 82h66M94 101h48" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="7" opacity=".09" />
+    <path d="M42 92h137a16 16 0 0 1 16 16v40H42z" fill="currentColor" opacity=".1" />
+    <rect x="28" y="92" width="59" height="39" rx="13" fill="currentColor" opacity=".34" />
+    <circle cx="48" cy="112" r="3" fill="white" />
+    <circle cx="59" cy="112" r="3" fill="white" />
+    <circle cx="70" cy="112" r="3" fill="white" />
+    <path d="M18 48l4 10 10 4-10 4-4 10-4-10-10-4 10-4zM217 62l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="currentColor" opacity=".15" />
+  </svg>
+);

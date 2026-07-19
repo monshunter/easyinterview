@@ -75,8 +75,8 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
   return (
     <>
       {replay.starting ? <PracticeLaunchTransition /> : null}
-      <main data-testid="report-dashboard" className="ei-fadein" style={{ maxWidth: 1120, width: "100%", boxSizing: "border-box", margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}>
-      <button type="button" data-testid="report-back-button" onClick={goBack} style={{ border: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", cursor: "pointer", marginBottom: 20 }}>← {t("report.back")}</button>
+      <main data-testid="report-dashboard" className="ei-report-screen ei-fadein">
+      <button type="button" data-testid="report-back-button" onClick={goBack} className="ei-report-back">← {t("report.back")}</button>
       <ReportHeader
         breadcrumb={lang === "en" ? "CONVERSATION REPORT" : "会话报告"}
         title={`${data.context.targetJobCompany} · ${data.context.targetJobTitle}`}
@@ -90,14 +90,14 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
         nextDisabledReason={nextDisabledReason}
       />
       {replay.startError ? (
-        <p data-testid="report-practice-start-error" role="alert" style={{ margin: "12px 0 0", color: "var(--ei-color-danger)", fontSize: 13 }}>
+        <p data-testid="report-practice-start-error" role="alert" className="ei-report-start-error">
           {t("report.header.cta.startError")}
         </p>
       ) : null}
       <ReportContextStrip report={data} conversationReportId={reportId} />
       <section className="ei-report-summary-grid" data-testid="report-summary-cards">
-        <Metric label={t("report.summary.dimensions")} value={String(dimensions.length)} />
-        <Metric label={t("report.summary.evidence")} value={String(evidenceCount)} />
+        <Metric label={t("report.summary.dimensions")} value={String(dimensions.length)} icon="dimensions" />
+        <Metric label={t("report.summary.evidence")} value={String(evidenceCount)} icon="evidence" />
       </section>
       <section className="ei-report-detail-grid" data-testid="report-detail-grid">
         <Panel title={t("report.detail.dimensions")} titleMarginBottom={14} testId="report-dimensions">
@@ -116,11 +116,12 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
         <section
           aria-labelledby="report-overall-summary-title"
           data-testid="report-overall-summary"
-          style={{ gridColumn: "1 / -1", minWidth: 0, border: "1px solid var(--ei-color-rule-strong)", borderRadius: 3, padding: 24, background: "var(--ei-color-bg-card)" }}
+          className="ei-report-overall"
+          style={{ gridColumn: "1 / -1" }}
         >
-          <h2 id="report-overall-summary-title" className="ei-label" style={{ margin: "0 0 14px", color: "var(--ei-color-accent)" }}>{t("report.summary.overall")}</h2>
-          <div className="ei-serif" style={{ fontSize: 24, overflowWrap: "anywhere" }}>{t(readinessTierLabel(data.preparednessLevel))}</div>
-          <p style={{ margin: "12px 0 0", color: "var(--ei-color-fg-secondary)", fontSize: 13.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>{data.summary}</p>
+          <h2 id="report-overall-summary-title" className="ei-report-overall-label">{t("report.summary.overall")}</h2>
+          <div className="ei-report-overall-tier">{t(readinessTierLabel(data.preparednessLevel))}</div>
+          <p className="ei-report-overall-copy">{data.summary}</p>
         </section>
       </section>
       </main>
@@ -128,7 +129,13 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
   );
 };
 
-const Metric: FC<{ label: string; value: string }> = ({ label, value }) => <div style={{ border: "1px solid var(--ei-color-rule-strong)", padding: 20, background: "var(--ei-color-bg-card)", minWidth: 0 }}><div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 10 }}>{label}</div><div className="ei-serif" style={{ fontSize: 24, overflowWrap: "anywhere" }}>{value}</div></div>;
-const Panel: FC<{ title: string; titleColor?: string; titleMarginBottom?: number; testId: string; children: ReactNode }> = ({ title, titleColor = "var(--ei-color-fg-tertiary)", titleMarginBottom = 12, testId, children }) => <div className="ei-report-panel" data-testid={testId}><div className="ei-report-panel-card" style={{ border: "1px solid var(--ei-color-rule-strong)", borderRadius: 3, padding: 20, background: "var(--ei-color-bg-card)", minWidth: 0, cursor: "default", transition: "border-color .15s, transform .15s" }}><div className="ei-label" style={{ color: titleColor, marginBottom: titleMarginBottom }}>{title}</div>{children}</div></div>;
-const EvidencePanel: FC<{ title: string; titleColor: string; testId: string; items: Array<{ dimensionCode: string; evidence: string; confidence: Confidence }>; labelsByCode: Map<string, string>; confidenceText: (value: Confidence) => string }> = ({ title, titleColor, testId, items, labelsByCode, confidenceText }) => <Panel title={title} titleColor={titleColor} testId={testId}>{items.map((item, index) => <div key={`${item.dimensionCode}-${index}`} style={{ color: "var(--ei-color-fg-secondary)", fontSize: 13, lineHeight: 1.65, marginTop: index ? 14 : 0, overflowWrap: "anywhere" }}><div style={{ color: "var(--ei-color-fg-primary)", fontWeight: 500, marginBottom: 3 }}>{labelsByCode.get(item.dimensionCode)}</div><div>{item.evidence}</div><div style={{ color: "var(--ei-color-fg-tertiary)", fontSize: 11.5, marginTop: 4 }}>{confidenceText(item.confidence)}</div></div>)}</Panel>;
+const Metric: FC<{ label: string; value: string; icon: "dimensions" | "evidence" }> = ({ label, value, icon }) => <div className="ei-report-metric"><span className="ei-report-metric-icon"><ReportGlyph kind={icon} /></span><div><div className="ei-report-metric-label">{label}</div><div className="ei-report-metric-value">{value}</div></div></div>;
+const Panel: FC<{ title: string; titleColor?: string; titleMarginBottom?: number; testId: string; children: ReactNode }> = ({ title, titleColor = "var(--ei-color-fg-tertiary)", titleMarginBottom = 12, testId, children }) => <div className="ei-report-panel" data-testid={testId}><div className="ei-report-panel-card"><div className="ei-report-panel-title" style={{ color: titleColor, marginBottom: titleMarginBottom }}>{title}</div>{children}</div></div>;
+const EvidencePanel: FC<{ title: string; titleColor: string; testId: string; items: Array<{ dimensionCode: string; evidence: string; confidence: Confidence }>; labelsByCode: Map<string, string>; confidenceText: (value: Confidence) => string }> = ({ title, titleColor, testId, items, labelsByCode, confidenceText }) => <Panel title={title} titleColor={titleColor} testId={testId}>{items.map((item, index) => <div className="ei-report-evidence" key={`${item.dimensionCode}-${index}`} style={{ marginTop: index ? 14 : 0 }}><div className="ei-report-evidence-label">{labelsByCode.get(item.dimensionCode)}</div><div>{item.evidence}</div><div className="ei-report-evidence-confidence">{confidenceText(item.confidence)}</div></div>)}</Panel>;
 const statusColor = (status: string) => status === "needs_work" ? "var(--ei-color-warn)" : "var(--ei-color-ok)";
+
+const ReportGlyph: FC<{ kind: "dimensions" | "evidence" }> = ({ kind }) => kind === "dimensions" ? (
+  <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h14v16H5z" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>
+) : (
+  <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8" /><path d="m8.5 12 2.2 2.2 4.8-5" /></svg>
+);

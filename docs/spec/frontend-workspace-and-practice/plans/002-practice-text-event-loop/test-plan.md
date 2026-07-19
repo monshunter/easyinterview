@@ -1,6 +1,6 @@
 # 002 Practice Continuous Conversation Test Plan
 
-> **版本**: 2.8
+> **版本**: 3.0
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -57,3 +57,13 @@
 - Required-field and zero-send/draft-preservation tests compose with backend focused rejection；defaults/overrides remain A4-owned.
 - Responsive parity covers headings, lists, blockquotes, inline/fenced code and GFM tables at 1440 and 390；pre/code/table may scroll locally but cannot create document horizontal overflow.
 - Terminal route tests require exactly `{name:"workspace", params:{targetJobId}}` / `/workspace?targetJobId=...` read-only detail and reject query-free workspace, `planId`, current-scope `parse(targetJobId)`, row retry, composer send and technical error text.
+
+## Phase 13: Reference-aligned active interview surface
+
+- `PracticeVisual.test.ts` / component tests first fail on the old `100vh` shell, inline compact controls/messages/composer and missing shared desktop grid; GREEN requires class-based Session Header, Transcript and Composer while preserving all existing behavior assertions.
+- Source/DOM tests require formal SVG controls, active/disabled semantics, 1916×821 shared bounds and 390×844 containment. Chrome confirms the real running page visually; the browser observation is separate from root code regression and from unrun business actions.
+
+## Phase 14: Fixed Composer and helper anchoring
+
+- Source/component tests require `Conversation` flex-column + overflow-hidden, `Transcript` flexible/scrollable, fixed-size `InputBar`, helper ownership under `InputBar`, no `helperText` / helper DOM in `Transcript`, and the localized copy plus icon.
+- Chrome compares Composer/helper/input bounding boxes with short and overflowing transcripts before/after transcript scroll at desktop and mobile; the input position and gap must remain invariant and document overflow must remain zero.

@@ -1,6 +1,6 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.51
+> **版本**: 1.53
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -26,6 +26,10 @@
 - 标题下方首行动作行从左依次展示「立即面试」与「面试报告」；desktop 同排，mobile 保持顺序并在必要时换行。报告入口仍只携带可信 `targetJobId`，启动仍使用后端绑定 resume/round/progress 事实；两者不得回到标题右侧或页尾。
 
 ### 2.2 Practice
+
+- Practice 在全局 76px App TopBar 下使用 `calc(100dvh - 76px)` 可用高度；desktop 外层以浅蓝背景承接约 `1708px` 会话内容面，Session Header 与 Conversation 卡共享左右边界，不得再以自身 `100vh` 造成页面纵向错位。
+- Session Header 按参考图分为状态/岗位、轮次与预算、计时、暂停/电话/结束动作五组；主结束动作保持蓝色高强调，其他控件使用白色描边按钮与统一图标，不使用字符 glyph 充当正式 icon。
+- Transcript 使用白色大圆角卡、48px 角色标记、独立消息 surface 与 16px 正文字号；Composer 固定在会话卡底部，使用大文本区和右下角蓝色发送按钮。说明胶囊是 Composer 的固定附属元素，位于输入框正上方且不属于 Transcript 的滚动内容；聊天记录增长、滚动或重渲染不得改变它与输入框的相对间距。加载、pending、retry、terminal 与 disabled 语义不变。
 
 - Route 只需要稳定 `sessionId` 与 target/plan/resume/round IDs；不使用 `mode/modality/practiceMode/hintUsed/hintCount`。
 - Top Bar：真实公司/岗位、面试官角色、计时、暂停、disabled phone icon、结束并生成报告。
@@ -141,7 +145,7 @@
 - Workspace list mobile：标题组、创建 CTA、规划卡和 footer actions 顺序堆叠；按钮与长公司/岗位/轮次名保持可见且 document 无横向溢出。
 - Desktop：Top Bar 下只有一个 conversation column；内容 max-width 居中，不留 260px sidebar 空白。
 - Mobile：单列，Top Bar controls wrap；Transcript 和 Composer 不横向溢出。
-- Transcript 独立滚动，Composer 保持在会话区底部。
+- Transcript 独立滚动，Composer 保持在会话区底部；说明胶囊与输入框共同位于 Composer 固定区，短/长聊天记录下都保持相同垂直间距。
 - disabled phone icon 不得在 narrow layout 变成可点击入口。
 
 ## 8 验收标准
@@ -164,6 +168,7 @@
 | C-14 | 95 秒 timeout 对账 | POST 在服务端已 reserve 后无响应，或 abort 后旧 response 迟到 | 等待 95 秒并执行同 ID `getPracticeSession` | fetch 被 abort；服务端 pending/failed/complete 被采用；读失败/未找到时原 row 与 ID 保留且新 ID/Finish 仍锁定；迟到旧 response 不覆盖较新事实 | 002 + backend-practice/002 Phase 11 |
 | C-15 | terminal 当前规划恢复 | server row 为 `terminal_failed` 且 session 有 authoritative `targetJobId` | 查看终态并点击恢复 CTA | 无 retry icon；唯一 CTA 精确进入 `/workspace?targetJobId` 当前规划详情 | 002 |
 | C-16 | Safe Markdown/GFM | persisted user/assistant text 含 GFM 与恶意 HTML/image/link/code | 渲染、retry、mobile 查看 | 两类角色都渲染 GFM；HTML/remote image/unsafe URI 不执行；safe link hardened；retry exact raw text/ID；code 不撑破 viewport | 002 |
+| C-17 | Composer 说明定位 | session 中存在短或长聊天记录 | 聊天增长并滚动 Transcript | 说明胶囊始终作为 Composer 子元素贴在输入框上方；不随 Transcript 内容移动，二者间距在 desktop/mobile 保持稳定 | 002 |
 | C-17 | Workspace 详情轮次三态 | ready TargetJob 有 2~5 条 canonical rounds 与合法/完成/无效 `practiceProgress` | 打开或刷新 `/workspace?targetJobId` | 合法进行中显示完成前缀 `done/已进行`、唯一 `current/即将进行`、其余 `pending/未进行`，三态背景/边框不同且与列表 rail 一致；全完成全部 done；无效投影中性且启动 disabled | 001 |
 | C-18 | Practice byte boundaries | owner config provides message/session UTF-8 limits | submit / reload | 注入小型 boundary 验证 overflow zero send and draft recovery；backend remains authoritative；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文本或配置 E2E | 002 Phase 12 |
 | C-19 | 面试规划卡片元信息 | ready TargetJob 的 lifecycle status 为任意值，地点可能有值或缺失 | 查看 Home 最近面试或 Workspace 规划卡片 | 卡片不展示 lifecycle status 文案/徽标；有地点时展示真实值，缺失或空白时不渲染地点占位行；轮次 rail 仍表达真实训练进度 | 001 |

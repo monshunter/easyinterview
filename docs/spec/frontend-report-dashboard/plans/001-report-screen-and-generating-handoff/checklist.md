@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 4.2
+> **版本**: 4.3
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -98,3 +98,10 @@
 
 - [x] Root `make test` is the independent complete backend/frontend unit regression gate; focused test PASS is development feedback, not full regression.
 - [x] P0.099、typecheck/build/lint/docs/index/diff are reported as separate gates; code gates are never wrapped as E2E.
+
+## Phase 16: Reference-aligned report dashboard
+
+- [x] 16.1 RED: report source/responsive tests 固化约 1336px desktop 内容面、共享 Header/Context/Detail/Overall 网格、CTA 主次、语义 icon、圆角卡片和 390px 单列。<!-- verified: 2026-07-19 method=vitest-red evidence="responsive contract failed on the old narrow report hierarchy before implementation" -->
+- [x] 16.2 GREEN: 重构 ReportDashboard / ReportHeader / ReportContextStrip 与 owner CSS，清除 ready 主路径内联视觉拼装，保持 report truth、`4/2/2/2/1`、CTA 与状态语义。<!-- verified: 2026-07-19 method=focused-vitest evidence="report focused suite 30 tests PASS, including mobile header flex-basis regression" -->
+- [x] 16.3 BDD-Gate: `BDD.REPORT.UI.001` 在新视觉层级下继续覆盖 ready/failure/route/CTA；正式 frontend 的 repository ready fixture 完成 Chrome 1916×821 / 390×844 验收，不声明真实 ready-report 或完整 `E2E.P0.099` PASS。<!-- verified: 2026-07-19 method=chrome-formal-frontend-fixture evidence="desktop x=290 width=1336 with 4/2/2/2/1 hierarchy; mobile header height=263.7 and context starts y=454.7 after flex-basis fix; documentOverflow=0" -->
+- [x] 16.4 REGRESSION-GATE: focused frontend、根 `make test`、typecheck/build、context/docs/index/diff 通过后恢复 completed。<!-- verified: 2026-07-19 method=focused+root-regression evidence="report focused 30 PASS; root Python 615/4615 subtests, Go all packages, frontend 131 files/1054 tests PASS; typecheck/build PASS" -->

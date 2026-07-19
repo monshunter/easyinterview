@@ -134,7 +134,7 @@ describe("frontend-resume-workshop/002 — create-flow CSS ownership", () => {
     expect(rules).toHaveLength(1);
     for (const declaration of [
       /display:\s*inline-flex/,
-      /height:\s*38px/,
+      /height:\s*48px/,
       /font-family:\s*var\(--ei-font-sans\)/,
       /background:\s*var\(--ei-color-accent\)/,
       /border:\s*1px solid var\(--ei-color-accent\)/,

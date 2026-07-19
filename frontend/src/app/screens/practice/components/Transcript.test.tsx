@@ -27,7 +27,6 @@ const renderTranscript = () =>
           status: "complete",
         },
       ]}
-      helperText="helper"
       aiLabel="AI 面试官"
       userLabel="你"
       thinking={false}
@@ -92,7 +91,6 @@ describe("Practice transcript Markdown projection", () => {
             status: "complete",
           },
         ]}
-        helperText="helper"
         aiLabel="AI 面试官"
         userLabel="你"
         thinking={false}

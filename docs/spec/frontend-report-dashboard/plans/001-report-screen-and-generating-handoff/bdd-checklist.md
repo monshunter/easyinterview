@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.13
+> **版本**: 3.14
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -69,3 +69,8 @@
 - [x] queued/generating/latest-ready-different-current expose a distinct record action；same-ID ready deduplicates and both-null exposes none.
 - [x] zh/en visible and accessible labels remain localized and no report/session ID enters DOM text or attributes.
 - [x] Chrome extension automation verifies the real queued/generating record path without claiming a complete P0.099 run.
+
+## Phase 16 `BDD.REPORT.UI.001` reference revision
+
+- [x] Owner tests 覆盖 1336px shared grid、Header CTA、Context/Metric/Detail/Overall rounded surfaces、semantic icons 与 390px 单列，并保留 API truth 和 `4/2/2/2/1`。
+- [x] 根 `make test` 与正式 frontend repository ready fixture 的 Chrome 1916×821 / 390×844 视图验收完成；不复用或声明真实 ready-report / 完整 `E2E.P0.099` PASS。<!-- verified: 2026-07-19 evidence="root frontend 131 files/1054 tests PASS; desktop/mobile hierarchy and zero-overflow visual acceptance complete" -->

@@ -169,6 +169,23 @@ export const UploadTab: FC<UploadTabProps> = ({
           <ResumeWorkshopIcon name="upload" size={14} />
           {t("resumeWorkshop.create.upload.choose")}
         </button>
+        <div
+          className="ei-resume-create-upload-capabilities"
+          data-testid="resume-create-upload-capabilities"
+        >
+          <span className="ei-resume-create-upload-capability">
+            <ResumeWorkshopIcon name="file" size={15} />
+            {t("resumeWorkshop.create.upload.formats")}
+          </span>
+          <span className="ei-resume-create-upload-capability">
+            <ResumeWorkshopIcon name="resume" size={15} />
+            {t("resumeWorkshop.create.upload.maxSize").replace("{maxSize}", maxResumeUploadLabel)}
+          </span>
+          <span className="ei-resume-create-upload-capability">
+            <ResumeWorkshopIcon name="check" size={15} />
+            {t("resumeWorkshop.create.upload.privacy")}
+          </span>
+        </div>
         {pickedFile ? (
           <div
             className="ei-resume-create-upload-selected"

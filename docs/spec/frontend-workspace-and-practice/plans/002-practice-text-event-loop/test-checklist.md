@@ -1,6 +1,6 @@
 # 002 Practice Continuous Conversation Test Checklist
 
-> **版本**: 2.8
+> **版本**: 3.0
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -44,3 +44,13 @@
 - [x] Exact raw text/clientMessageId send and same-ID retry tests pass without DOM/normalized-Markdown payload drift or next-draft mutation.
 - [x] Desktop/mobile GFM typography, local pre/code/table overflow and zero document-overflow parity tests pass.
 - [x] Terminal CTA exact Workspace-detail route passes；query-free workspace, planId and current-scope `parse(targetJobId)` recovery remain negative.
+
+## Phase 13
+
+- [x] Reference visual source/component tests pass for available viewport height, shared desktop grid, Session Header, message surfaces, Composer and SVG controls.
+- [x] Focused owner tests, root regression and formal-frontend fixture 1916×821 / 390×844 Chrome containment checks pass without changing message/completion truth.<!-- verified: 2026-07-19 evidence="practice Phase 13 focused 54 tests; final root frontend 1054 tests; typecheck/build; documentOverflow=0 at both viewports" -->
+
+## Phase 14
+
+- [x] Fixed Composer/helper source/component tests pass: `Transcript` is the only flexible scroll region; `InputBar` is fixed-size at the conversation bottom, has no ancestor relationship with Transcript, and owns the localized icon capsule above the input shell.
+- [x] Short/long transcript Chrome bbox checks prove a stable helper/input gap at desktop/mobile before and after transcript scroll.<!-- verified: 2026-07-19 evidence="gap=8; desktop scrollTop 4→151; mobile scrollTop 0→175.5; helper/input coordinates stable; documentOverflow=0" -->

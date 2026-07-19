@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow Checklist
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -82,6 +82,13 @@ The checked assertions below record the 2026-07-08 full-Resume list contract. Ac
 
 - [x] 13.1 RED/GREEN: UploadTab/PasteTab 消费 required RuntimeConfig fields 与共享 UTF-8 helper；小型 metadata/text limit 覆盖 zero request，UI DOM/style 不变。
 - [x] 13.2 FALLBACK-GATE: required 子字段无 per-field fallback；仅整体 runtime source 不可用时保留既有 bootstrap fallback。
+
+## Phase 14: Reference-aligned create canvas
+
+- [x] 14.1 RED: component/source tests 固化 full-viewport create canvas、约 1470px desktop 内容面、Header/tab/dropzone/CTA/capability-chip DOM 与 390px containment。<!-- verified: 2026-07-19 method=vitest-red evidence="ResumeCreateVisual 2 expected failures on old narrow canvas and missing art/capabilities" -->
+- [x] 14.2 GREEN: 重构 CreateFlow / UploadTab / PasteTab 与 owner CSS，保留 upload/paste 注册、runtime limit、错误恢复、隐私和 direct-detail 行为。<!-- verified: 2026-07-19 method=focused-vitest evidence="4 files / 21 tests PASS" -->
+- [x] 14.3 BDD-Gate: `BDD.RESUME.CREATE.001` 在新视觉层级下继续覆盖 upload/paste、错误恢复与隐私；Chrome 1916×821 / 390×844 视图验收无横向溢出。<!-- verified: 2026-07-19 method=chrome-formal-local evidence="10900 real-mode frontend create flow: desktop shell/card width 1470px; mobile x=16 width=358px; header art hides at mobile; both viewports documentOverflow=0" -->
+- [x] 14.4 REGRESSION-GATE: focused frontend、根 `make test`、typecheck/build、context/docs/index/diff 通过后恢复 completed。<!-- verified: 2026-07-19 method=focused+root-regression evidence="create focused 4 files/21 tests PASS; root Python 615/4615 subtests, Go all packages, frontend 131 files/1054 tests PASS; typecheck/build PASS" -->
 
 ## BDD Gate
 

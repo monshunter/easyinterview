@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.10
+> **版本**: 3.11
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -62,3 +62,8 @@
 - Table tests cover queued/generating/latest-ready-different-current with an independent latest conversation action bound to `latestAttempt.id`.
 - same-ID current/latest ready renders one conversation action；both-null renders none；existing failed/oversize/current locator tests remain unchanged.
 - zh/en a11y assertions and real Chrome prove progress/regenerate actions never replace the visible interview-record action.
+
+## 10 Reference-aligned report dashboard
+
+- `ReportResponsiveContract.test.ts` and ready-report component/source tests first reject the narrow `1120px` inline-styled implementation, then require a class-based approximately 1336px shared grid, rounded Context/Metric/Detail/Overall surfaces, semantic SVG icons and Header CTA hierarchy.
+- Existing `4/2/2/2/1`, frozen context, privacy, failure, replay/next/back and 390px single-column assertions remain the behavior fence. Real ready-report Chrome inspection is scoped visual evidence and does not claim a complete `E2E.P0.099` run.

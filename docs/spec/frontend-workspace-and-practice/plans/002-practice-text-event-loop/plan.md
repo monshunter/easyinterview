@@ -1,6 +1,6 @@
 # 002 — Practice Continuous Text Conversation
 
-> **版本**: 2.8
+> **版本**: 3.0
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -110,6 +110,14 @@
 - Practice consumes required `AppRuntimeProvider.contentLimits.practiceMessageBytes/practiceSessionTextBytes` and the shared UTF-8 byte helper。Focused tests inject small message/session values；overflow preserves the draft and makes zero send calls without constructing default-sized strings；existing DOM/styles, raw retry and pending state remain unchanged。
 - Required 子字段无 per-field fallback；只有整体 runtime source 不可用时可沿用既有 bootstrap fallback。
 
+### Phase 13: Reference-aligned active interview surface
+
+以提供的 active Practice 参考图为 desktop 视觉合同，保留真实 session/messages/completion 与所有 pending/retry/terminal 语义，重构 `PracticeScreen`、Session Header、Transcript、Composer 和 Finish/Send controls。先由现有 `PracticeScreen.test.tsx` / `Transcript.test.tsx` 与新增视觉合同证明 `calc(100dvh - 76px)`、共享内容边界、正式 SVG icon、消息 surface、composer 高度和 390px containment，再移除对应内联视觉样式。Chrome 使用正式 frontend repository fixture 验收视觉状态；未运行的真实 active-session 业务动作不得报告 PASS。
+
+### Phase 14: Fixed Composer and helper anchoring
+
+`Transcript` 是会话卡内唯一滚动区，Composer 整体以 `flex: 0 0 auto` 固定在会话卡底部；聊天记录从短到长、滚动到任意位置都不得改变输入框坐标。说明胶囊从 `Transcript` 滚动内容移交给 `InputBar` / Composer 固定区。RED source/component gate 必须拒绝 `Transcript` 的 `helperText` prop 和 helper DOM，并要求 `InputBar` 在输入 shell 正上方拥有 helper；Chrome 分别构造短聊天与可滚动长聊天，证明 Composer 坐标和 helper/input 垂直间距不随消息数量或 Transcript scrollTop 改变。该说明只解释作答方式，不恢复已删除的业务 hint 能力。
+
 ## 6 验收标准
 
 - No left rail, question count or QuestionCard at any viewport.
@@ -128,7 +136,9 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 3.0 | Add Phase 14 so the helper capsule belongs to the fixed Composer instead of the scrolling Transcript. |
 | 2026-07-14 | 2.7 | Add Phase 11 safe react-markdown/remark-gfm projection, security negatives, exact raw retry, mobile code-overflow gates, and supersede terminal recovery to Workspace detail. |
+| 2026-07-19 | 2.9 | Reopen Phase 13 for the supplied active-interview reference: available viewport height, shared content grid, structured session controls, message surfaces and large composer. |
 | 2026-07-12 | 2.4 | Reopen Phase 8 to enforce reportId-only completion navigation and remove six copied business identifiers from PracticeScreen handoff. |
 | 2026-07-12 | 2.2 | Clarify that this owner stops at stable reportId handoff; GeneratingScreen is exclusively owned by frontend-report-dashboard/001. |
 | 2026-07-12 | 2.1 | Reopen for source-aware retry wiring and send/complete UI race guards. |

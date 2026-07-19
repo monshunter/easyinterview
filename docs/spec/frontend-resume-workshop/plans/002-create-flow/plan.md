@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: completed
 > **更新日期**: 2026-07-14
 
@@ -96,6 +96,10 @@ The static `ResumeCreateFlow` uses `onBack` to return to the flat list and `onCr
 
 ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基础规则 + 独立颜色规则”的两段声明。将 layout、typography、interaction、accent colors 与 border 合并为一个规则，disabled state 保持独立；最终 computed values 与 upload/paste DOM 不变。BDD 不适用；替代 gate 为 source RED/GREEN、focused CreateFlow、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
 
+### Phase 14: Reference-aligned create canvas
+
+以提供的 `1916×821` 上传简历参考图为 desktop 视觉合同，在不改变 upload/paste 注册、runtime limit、隐私和 direct-detail handoff 的前提下，重构 CreateFlow 的全视口背景、1470px 内容面、Header、tab rail、大型 dropzone、主按钮与格式/大小/隐私标签。先由 `ResumeCreateFlow.test.tsx` / `UploadTab.test.tsx` / 新增 responsive source gate 固化 DOM、class、键盘、1916 与 390 containment，再实施正式组件/CSS；Chrome 仅作为真实视图验收，不把截图包装成 E2E。
+
 
 
 ## 5 验收标准
@@ -125,6 +129,7 @@ ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-07-14 | 1.18 | Mark the old full-Resume Home selection inference as historical; current selection consumes ResumeSummary parseStatus/hasReadableContent under active plan 001 Phase 19. |
+| 2026-07-19 | 1.20 | Reopen Phase 14 for the supplied upload-resume reference: full viewport canvas, wide content grid, large input card, capability chips and responsive Chrome acceptance. |
 | 2026-07-10 | 1.17 | Consolidate the accent CTA declarations into one equivalent rule. |
 | 2026-07-10 | 1.16 | Delete the zero-consumer CreateFlow ghost CTA CSS branches. |
 | 2026-07-10 | 1.15 | Remove the unread ResumeCreateFlow navigation prop and caller argument; preserve the created detail handoff documented by BUG-0154. |

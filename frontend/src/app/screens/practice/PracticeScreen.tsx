@@ -390,8 +390,9 @@ const PracticeSessionScreen: FC<PracticeScreenProps & { sessionId: string }> = (
         : undefined;
 
   return (
-    <div data-testid="practice-screen" className="ei-fadein" style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--ei-color-bg-canvas)", overflow: "hidden" }}>
-      <TopBar
+    <div data-testid="practice-screen" className="ei-practice-screen ei-fadein">
+      <div className="ei-practice-frame">
+        <TopBar
         company={targetDisplay.companyName ?? t("practice.toolbar.companySkeleton")}
         title={targetDisplay.title ?? t("practice.toolbar.titleSkeleton")}
         elapsed={formatElapsed(elapsed)}
@@ -403,26 +404,26 @@ const PracticeSessionScreen: FC<PracticeScreenProps & { sessionId: string }> = (
         interviewerLabel={interviewerLabel}
         phoneDisabledLabel={t("practice.toolbar.phoneDisabled")}
         finishCta={<FinishCta label={t("practice.finishCta")} disabled={finishDisabled} disabledReason={finishDisabledReason} onFinish={finish} />}
-      />
-      <main data-testid="practice-conversation" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", width: "100%" }}>
-        <Transcript
+        />
+        <main data-testid="practice-conversation" className="ei-practice-conversation">
+          <Transcript
           messages={transcript}
-          helperText={t("practice.transcript.helper")}
           aiLabel={t("practice.transcript.aiLabel")}
           userLabel={t("practice.transcript.userLabel")}
           thinking={isThinking}
           thinkingLabel={t("practice.transcript.thinking")}
           retryLabel={t("practice.message.retry")}
           onRetry={retryMessage}
-        />
-        <ErrorState
+          />
+          <ErrorState
           message={terminalRecovery ? null : error || (loaderFailureNeedsGlobalRecovery ? t("practice.errors.sessionLoadFailed") : null)}
           retryLabel={t("practice.errors.retry")}
           onRetry={terminalRecovery ? undefined : errorSource === "completion" ? finish : errorSource === "message" ? loader.refresh : loaderFailureNeedsGlobalRecovery ? loader.refresh : undefined}
-        />
-        <InputBar
+          />
+          <InputBar
           value={input}
           onChange={setInput}
+          helperText={t("practice.transcript.helper")}
           placeholder={terminalRecovery
             ? t("practice.input.terminalPlaceholder")
             : isThinking
@@ -440,8 +441,9 @@ const PracticeSessionScreen: FC<PracticeScreenProps & { sessionId: string }> = (
             />
           ) : undefined}
           onSend={send}
-        />
-      </main>
+          />
+        </main>
+      </div>
     </div>
   );
 };

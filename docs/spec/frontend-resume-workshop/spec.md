@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.20
+> **版本**: 2.21
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -16,6 +16,7 @@
 4. **真实 client 与 fixture fallback**：frontend 使用 generated client；列表只消费 closed `ResumeSummary`，详情才消费完整 `Resume`；real backend mode 与 fixture-backed dev path 都必须有测试护栏。
 5. **UI parity 可执行**：用户可见变更必须有 DOM anchor、computed style、bounding box、viewport screenshot smoke 或对应 owner gate。
 6. **幂等初始读取**：React StrictMode 下，相同已认证参数的并发 `listResumes` / `getResume` 初始读取只允许一次实际 transport；失败请求必须从 in-flight registry 驱逐，用户重试会发起新的 transport。
+7. **创建页参考图对齐**：desktop `1916×821` 下，CreateFlow 使用全视口浅蓝背景与约 `1470px` 居中内容面；返回入口、标题区和输入卡共享左边界。输入卡为大圆角白色 surface，顶部 tab rail、主体拖拽区、上传主按钮和格式/大小/隐私标签形成参考图同级层次；mobile 保持同一 DOM 顺序并无横向溢出。
 
 本 subject 不实现 backend handler、OpenAPI schema、migration、object storage、AI parsing 或真实 PDF 生成。
 

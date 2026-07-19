@@ -51,7 +51,7 @@ describe("Resume Workshop source-level CSS parity", () => {
     expect(source).not.toContain("repeat(auto-fill, minmax(300px, 360px))");
     expect(source).not.toContain("grid-template-columns: minmax(0, 918px)");
     expect(source).not.toContain(".ei-resume-workshop-lang-tag");
-    expect(source).toContain("grid-template-columns: minmax(0, 860px)");
+    expect(source).toContain("width: min(100%, 860px)");
     expect(source).toContain("min-height: 720px");
     expect(source).toContain("box-shadow: 0 18px 50px rgba(30, 22, 15, 0.10)");
     expect(source).toContain("background: #f6f3ee");

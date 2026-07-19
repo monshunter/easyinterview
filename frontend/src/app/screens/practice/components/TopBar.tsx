@@ -29,20 +29,31 @@ export const TopBar: FC<TopBarProps> = ({
   phoneDisabledLabel,
   finishCta,
 }) => (
-  <div data-testid="practice-topbar" style={{ padding: "14px 28px", borderBottom: "1px solid var(--ei-color-rule-strong)", display: "flex", alignItems: "center", flexWrap: "wrap", gap: 16, background: "var(--ei-color-bg-card)" }}>
-    <div style={{ minWidth: 0 }}>
-      <div data-testid="practice-topbar-company" style={{ fontSize: 12, color: "var(--ei-color-fg-tertiary)", fontFamily: "var(--ei-font-mono)", textTransform: "uppercase" }}>{company}</div>
-      <div data-testid="practice-topbar-title" style={{ fontSize: 14, color: "var(--ei-color-fg-primary)", fontWeight: 500 }}>{title}</div>
+  <div data-testid="practice-topbar" className="ei-practice-session-header">
+    <div className="ei-practice-session-identity">
+      <div className="ei-practice-session-status"><span aria-hidden="true" />{company}</div>
+      <div data-testid="practice-topbar-title" className="ei-practice-session-title">{title}</div>
     </div>
-    <div style={{ flex: "1 1 80px" }} />
-    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-      <span data-testid="practice-topbar-interviewer" className="ei-mono" style={{ display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: 3, fontSize: 11.5, background: "var(--ei-color-bg-soft)", color: "var(--ei-color-fg-tertiary)", border: "1px solid var(--ei-color-rule-strong)" }}>{interviewerLabel}</span>
-      <span data-testid="practice-topbar-timer" className="ei-mono" style={{ display: "inline-flex", alignItems: "center", padding: "3px 8px", borderRadius: 3, fontSize: 11.5, background: "var(--ei-color-bg-soft)", color: "var(--ei-color-fg-tertiary)" }}>{elapsed} / {budget}</span>
-      <button data-testid="practice-topbar-pause" type="button" onClick={onTogglePause} aria-pressed={paused} style={{ background: "transparent", border: "1px solid var(--ei-color-rule-strong)", padding: "6px 10px", borderRadius: 2, display: "flex", gap: 6, alignItems: "center", color: "var(--ei-color-fg-secondary)", fontSize: 12, cursor: "pointer" }}>{paused ? "▶" : "❚❚"} {paused ? resumeLabel : pauseLabel}</button>
-      <div style={{ height: 18, width: 1, background: "var(--ei-color-rule-strong)" }} />
-      <button data-testid="practice-topbar-phone-toggle" type="button" disabled aria-disabled="true" aria-label={phoneDisabledLabel} title={phoneDisabledLabel} style={{ width: 34, height: 34, padding: 0, borderRadius: 17, border: "1px solid var(--ei-color-rule-strong)", background: "var(--ei-color-bg-soft)", color: "var(--ei-color-fg-muted)", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "not-allowed", opacity: 0.58 }}><PhoneIcon size={15} /></button>
-      <div style={{ height: 18, width: 1, background: "var(--ei-color-rule-strong)" }} />
+    <div className="ei-practice-session-actions">
+      <span data-testid="practice-topbar-interviewer" className="ei-practice-session-chip"><RoleIcon />{interviewerLabel}</span>
+      <span data-testid="practice-topbar-timer" className="ei-practice-session-clock-group">
+        <span className="ei-practice-session-timer">{elapsed}</span>
+        <span className="ei-practice-session-clock-separator"> / </span>
+        <span className="ei-practice-session-chip"><ClockIcon />{budget}</span>
+      </span>
+      <button data-testid="practice-topbar-pause" type="button" onClick={onTogglePause} aria-pressed={paused} className="ei-practice-session-button"><span aria-hidden="true">{paused ? "▶" : "❚❚"}</span>{paused ? resumeLabel : pauseLabel}</button>
+      <span className="ei-practice-session-divider" aria-hidden="true" />
+      <button data-testid="practice-topbar-phone-toggle" type="button" disabled aria-disabled="true" aria-label={phoneDisabledLabel} title={phoneDisabledLabel} className="ei-practice-session-phone"><PhoneIcon size={18} /></button>
+      <span className="ei-practice-session-divider" aria-hidden="true" />
       {finishCta}
     </div>
   </div>
+);
+
+const RoleIcon: FC = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 4h8v4H8z" /><path d="M6 8h12v11H6z" /><path d="M9 12h6" /></svg>
+);
+
+const ClockIcon: FC = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
 );

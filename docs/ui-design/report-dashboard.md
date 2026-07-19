@@ -1,7 +1,7 @@
 # 报告仪表盘目标结构
 
-> **版本**: 1.42
-> **状态**: active
+> **版本**: 1.43
+> **状态**: completed
 > **更新日期**: 2026-07-16
 
 ## 1 目标
@@ -52,6 +52,8 @@ ReportConversation(reportId)
 ├─ frozen target / round / resume
 └─ ordered readonly Markdown transcript
 ```
+
+Desktop `1916×821` 参考视图在全局 TopBar 下使用浅蓝全视口背景和约 `1336px` 居中内容面。Back、Header、Context Strip、Summary、Detail 与 Overall Summary 共享同一左右边界；Header 的推荐动作使用蓝色实心按钮，次动作使用白色描边按钮。Context Strip、指标与内容卡统一使用 10-12px 圆角、柔和边框/阴影和语义圆形 icon；标题与正文使用 sans hierarchy，不再以窄 `1120px` 内容列、3px 方角或大量内联样式模拟结构。Mobile 保持同一阅读顺序并单列收敛。
 
 ReportsScreen 是规划范围的导航/索引页，不是第二种报告内容形态。ReportDashboard 的当前设计合同是 desktop 自上而下 `4/2/2/2/1`：同一个 Context Strip block 内包含目标岗位、轮次、简历、面试记录四个同级子项；其后是两项数量指标、两行各两个内容区，最后一个全宽“面试总评”大卡片；无 tab。Mobile 保持相同 DOM 与阅读顺序，每组收敛为单列。不得根据旧文档恢复顶部“准备度 + summary”指标、四卡或四 tab。
 
@@ -189,12 +191,14 @@ Summary Metrics 只承载两个可扫描数量，不展示 readiness 或 `summar
 | R-14 | ready report 有冻结 resumeId | 点击或复制简历子项 URL | canonical `/resume-versions?resumeId=...` 打开本次面试使用的简历副本；Report 不额外读取简历正文 |
 | R-15 | desktop 双列内容长度不同 | 打开报告 | 同一行两个 panel 上下边界对齐且等高，短内容侧仅在卡片内部留白 |
 | R-16 | latest attempt 为普通 failed / `REPORT_CONTEXT_TOO_LARGE` | 打开 ReportsScreen | 普通 failed 显示同 report 的重新生成与面试记录；超限只显示面试记录；旧 ready 与新 failed 并存时动作 locator 和 accessible name 均可区分 |
+| R-17 | ready report at 1916×821 / 390×844 | 打开报告并检查布局 | desktop 主体约 1336px 且与 Header/Context/Detail/Overall 共用网格；按钮、icon、圆角、字体层级与参考图一致，mobile 无横向溢出 |
 
 ## 11 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-07-16 | 1.42 | 补齐 latest-ready 列表树：同 ID 去重，不同 ID 保留独立面试记录入口且不扩展为历史报告列表。 |
+| 2026-07-19 | 1.43 | 按参考图锁定报告页 1336px 主体、浅蓝背景、共享网格、圆角卡片、语义 icon 与 Header CTA 层级。 |
 | 2026-07-16 | 1.41 | 固化已结束面试的记录入口不依赖报告状态：queued/generating 与生成进度并列展示“查看面试记录”，failed/ready 延续同一规则。 |
 | 2026-07-16 | 1.40 | Failed conversation Back 直接回可信 target-scoped ReportsScreen，并要求多标签状态冲突刷新当前 overview，避免停留在 stale failure。 |
 | 2026-07-16 | 1.39 | 失败报告增加同 `reportId` 的手动重新生成与只读面试记录恢复；`REPORT_CONTEXT_TOO_LARGE` 保持不可重复生成。 |

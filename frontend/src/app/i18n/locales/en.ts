@@ -215,6 +215,9 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.upload.dropzoneBody":
     "Upload a PDF, Markdown, or TXT file up to {maxSize}. PDFs display page by page; Markdown and text are formatted for reading.",
   "resumeWorkshop.create.upload.choose": "Choose file",
+  "resumeWorkshop.create.upload.formats": "PDF / Markdown / TXT",
+  "resumeWorkshop.create.upload.maxSize": "Up to {maxSize}",
+  "resumeWorkshop.create.upload.privacy": "Private and secure",
   "resumeWorkshop.create.upload.selectedPrefix": "Selected: ",
   "resumeWorkshop.create.upload.uploading": "Uploading…",
   "resumeWorkshop.create.paste.placeholder": "Paste your resume text here…",

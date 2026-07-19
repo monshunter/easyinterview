@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 4.2
+> **版本**: 4.3
 > **状态**: completed
 > **更新日期**: 2026-07-16
 
@@ -195,6 +195,10 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 - **GREEN**: render the latest-attempt conversation action from locator existence, not report status. Status continues to own only the additional progress/regenerate actions；no backend/OpenAPI/session-list change is allowed.
 - **BDD/CHROME**: `BDD.REPORT.CONVERSATION.001` and focused zh/en a11y tests pass；the real current-run Chrome acceptance proves “查看生成进度”旁同时存在“查看面试记录” and opens the same queued/generating report-owned transcript.
 
+### Phase 16: Reference-aligned report dashboard
+
+以提供的 ready Report 参考图为 desktop 视觉合同，保持 `reportId` truth、`4/2/2/2/1` 信息层级、CTA/replay/next 行为与完整错误态不变，重构 ReportDashboard/Header/ContextStrip/metrics/panels/overall 的正式 class-based UI。先由 `ReportResponsiveContract.test.ts`、`ConversationReport.test.tsx` 与新增 source/geometry gate 固化约 1336px 内容面、浅蓝背景、共享网格、圆角/阴影、语义 SVG icon、CTA 主次和 390px 单列，再实施组件/CSS。Chrome 使用真实 ready report 做视图验收，不复用或冒充完整 `E2E.P0.099` 六图 PASS。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -232,6 +236,7 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-07-16 | 4.2 | Close the failed-conversation owner-resolution Back race with an explicit resolving state and focused regression coverage. |
+| 2026-07-19 | 4.3 | Reopen Phase 16 for the supplied report reference: 1336px shared grid, soft canvas, semantic icons, rounded cards and CTA hierarchy without changing report truth. |
 | 2026-07-16 | 4.1 | Complete Phase 15 coverage mapping and record scoped Chrome evidence for status-independent report-owned conversation actions. |
 | 2026-07-16 | 4.0 | Reopen Phase 15 so every completed-session report pointer keeps its conversation action independently of queued/generating/ready/failed status. |
 | 2026-07-16 | 3.9 | Reopen Phase 14 for failed-report same-ID regenerate and transcript recovery actions. |

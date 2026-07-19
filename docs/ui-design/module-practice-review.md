@@ -1,7 +1,7 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.35
-> **状态**: active
+> **版本**: 1.37
+> **状态**: completed
 > **更新日期**: 2026-07-19
 
 ## 1 目标
@@ -30,7 +30,8 @@ PracticeScreen(sessionId)
    │  ├─ pending-only interviewer-thinking row
    │  └─ terminal-only generic recovery state + current-plan CTA
    ├─ loader/completion error state
-   └─ Composer
+   └─ Composer（固定区，不随 Transcript 滚动）
+      ├─ helper capsule（固定贴在输入框上方；非业务 hint）
       ├─ text input
       └─ send
 ```
@@ -76,7 +77,8 @@ PracticeScreen(sessionId)
 
 ## 5 Layout
 
-- Desktop：Conversation 占满全局 App TopBar 与 Practice Session Header 下方可用宽度；内容列使用可读 max-width 居中，transcript 自适应增长，composer 固定在会话区底部。
+- Desktop：Practice 总高度只占全局 App TopBar 下方的 `calc(100dvh - 76px)`；浅蓝背景内的 Session Header 与 Conversation 使用约 `1708px` 居中内容面并共享左右边界。Session Header 为白色大圆角卡，左侧状态/岗位与右侧轮次、预算、计时、暂停、disabled 电话、结束动作按参考图分组；Conversation 为白色大圆角卡，transcript 自适应增长，composer 固定在会话区底部。
+- Desktop 消息行使用 48px AI/用户标记、角色/时间行和独立浅边框消息 surface；正文使用 16px 左右可读字号与 1.7 行高。Composer 使用不小于 150px 的文本区，发送按钮位于右下角，不能退化为窄工具条。helper capsule 是 Composer 子元素并固定贴在输入框正上方；无论 Transcript 有一条还是多条消息、是否滚动，它与输入框的间距都保持一致，不得作为最后一条 transcript row 随内容移动。
 - Mobile：单列；两层顶栏都可按各自合同换行，结束 CTA 可达；transcript 与 composer 不横向溢出。Markdown pre/code/table 只能在消息容器内局部滚动或安全换行，document `scrollWidth` 不得超过 viewport。
 - 不保留空白 sidebar grid column。
 
@@ -126,12 +128,15 @@ Ready 报告只展示：
 | U-12 | persisted user/assistant text 含 GFM 与恶意 HTML/image/link/code/table | 渲染、retry 并在 390px 查看 | 两种角色安全渲染 GFM；HTML/remote image/unsafe URI 不执行；safe link hardened；retry exact raw text/ID；code/table 不撑破 document |
 | U-13 | 报告资源已创建且 Practice 已结束 | 从报告打开会话记录 | 只读页按 sequence 显示同一安全 Markdown transcript；无 live controls、无 sessionId、无会话列表，并返回同一报告状态页 |
 | U-14 | 报告生成失败且会话已结束 | 从 ReportsScreen 查看记录或重新生成 | 记录继续绑定同一 report；普通失败重新排队同一 report，超限失败只允许查看记录 |
+| U-15 | 1916×821 / 390×844 | 打开 active Practice | 全局导航、Session Header、Conversation 主体共享正确内容节奏；desktop 无额外 100vh 高度，mobile 控件可达且无横向溢出 |
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.37 | 明确说明胶囊归属 Composer 固定区，始终贴在输入框上方且不随聊天记录滚动。 |
 | 2026-07-19 | 1.35 | Practice 恢复全局 App TopBar，并把公司/角色/计时/会话动作明确命名为 Practice Session Header；route 切换不得重复读取账号偏好。 |
+| 2026-07-19 | 1.36 | 按参考图锁定 Practice 双层内容网格、可用视口高度、大圆角会话面、消息 surface 与大型 Composer。 |
 | 2026-07-18 | 1.34 | 在所有正式会话启动入口与 Practice 之间增加统一、诚实、可访问的面试准备过渡态。 |
 | 2026-07-16 | 1.33 | 补齐已结束会话的 failed report 恢复：同 report 手动重新生成与任意状态只读面试记录。 |
 | 2026-07-15 | 1.32 | 合并 report-owned 只读会话记录，复用正式 Practice 安全 Markdown message renderer，不恢复会话列表、sessionId route 或已删 Demo runtime。 |
