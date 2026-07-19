@@ -1,40 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: e2e-scenarios-p0
   name: 001-real-api-ui-journeys
-  sequence: 1
-  baseBranch: main
-  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
-  specVersion:
-    from: 2.17
-    to: 2.18
 spec:
   defaultTarget: scenario
-  discovery:
-    aliases:
-      - e2e-scenarios-p0
-      - e2e-scenarios-p0/001
-      - completion-report-real-e2e
-    keywords:
-      - completePracticeSession
-      - round progress reload
-      - E2E.P0.098
-      - E2E.P0.099
-      - E2E.P0.101
-      - real API and browser UI
-      - report generating UI
-      - report conversation real UI API DB
-      - exact six screenshots unchanged
-      - bounded non image conversation evidence
-      - no public session list request
-      - Mailpit email code profile setup
-      - P0.101 settings gear real account logout
-      - no deleteMe shared scenario
-      - current-run evidence
-      - AI_DEBUG_CAPTURE_RAW_IO
-      - AI_DEBUG_RAW_IO_PATH
-      - raw NDJSON outside evidence
   targets:
     scenario:
       plan: ./plan.md
@@ -42,25 +11,3 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../backend-review/plans/001-report-generation-baseline/bdd-plan.md
-        - ../../../frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-plan.md
-        - ../../../ai-provider-and-model-routing/plans/001-aiclient-and-profile-bootstrap/plan.md
-        - ../../../secrets-and-config/plans/001-bootstrap/plan.md
-        - ../../../local-dev-stack/plans/001-bootstrap/plan.md
-        - ../../../backend-auth/plans/001-email-code-session-bootstrap/bdd-plan.md
-        - ../../../frontend-shell/plans/001-app-shell-auth-settings/bdd-plan.md
-      discovery:
-        packages:
-          - test/scenarios/e2e/p0-098-practice-completion-progress-refresh
-          - test/scenarios/e2e/p0-099-report-generating-live-ui
-          - test/scenarios/e2e/p0-101-auth-email-code-profile-setup
-        apiNames:
-          - completePracticeSession
-          - getFeedbackReport
-          - getReportConversation
-          - startAuthEmailChallenge
-          - verifyAuthEmailChallenge
-          - completeMyProfile
-          - getMe
-          - logout

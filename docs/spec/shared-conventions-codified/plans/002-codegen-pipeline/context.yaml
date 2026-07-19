@@ -1,42 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: shared-conventions-codified
   name: 002-codegen-pipeline
-  sequence: 2
-  specVersion:
-    from: 1.5
-    to: 1.8
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - shared-conventions-codified
-      - 002-codegen-pipeline
-      - cross-language-parity
-      - prompt-key-bridge
-      - ai-vocabulary
-    keywords:
-      - codegen drift
-      - cross language parity
-      - prompt registry bridge
-      - feature key
-      - ai vocabulary
-      - ai meta field names
-      - go ts parity
-      - serialization parity
-      - deferred ci drift
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      discovery:
-        packages:
-          - shared/conventions.yaml
-          - backend/internal/shared
-          - backend/internal/shared/ai
-          - frontend/src/lib/conventions
-          - frontend/src/lib/ids
-        uiRoutes: []
-        apiNames: []

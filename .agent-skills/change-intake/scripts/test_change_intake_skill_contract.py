@@ -27,6 +27,19 @@ def test_skill_prioritizes_exact_owner_evidence_and_bounds_status_tiebreaks():
     assert "Active / draft status is only a bounded tie-breaker" in text
 
 
+def test_skill_treats_low_confidence_as_repo_search_trigger():
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    assert "`low` confidence: treat candidates as hypotheses and verify them with live repo search" in text
+    assert "Only ask the user after live evidence remains ambiguous" in text
+
+
+def test_skill_supports_current_owner_without_context_manifest():
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    assert "If `contextPath` is null" in text
+    assert "read the matcher-provided `plan` and `spec` paths directly" in text
+    assert "do not invent a checklist, target, or temporary context manifest" in text
+
+
 def test_skill_requires_branch_guard_before_mutation():
     text = SKILL_PATH.read_text(encoding="utf-8")
     assert "## Branch Guard Before Mutation" in text

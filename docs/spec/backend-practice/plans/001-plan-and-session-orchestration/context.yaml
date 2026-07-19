@@ -1,54 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: backend-practice
   name: 001-plan-and-session-orchestration
-  sequence: 1
-  specVersion:
-    from: 1.34
-    to: 1.37
 spec:
-  baseBranch: main
-  branch: fix/backend-practice-active-session-recovery-0718
   defaultTarget: backend
-  discovery:
-    aliases:
-      - practice conversation
-      - practice messages
-      - session opening message
-    keywords:
-      - PracticeMessage
-      - sendPracticeMessage
-      - practice.session.chat
-      - practice_messages
-      - no PracticeTurn
-      - complete resume source snapshot
-      - parsed text snapshot precedence
-      - resume grounding tail marker
-      - no invented resume projects
-      - empty resume context fail closed
-      - practice round identity
-      - first incomplete round
-      - round sequence
-      - backend business persistence
-      - target job bound resume
-      - summary provenance
-      - int32 non-contiguous sequence
-      - system policy untrusted JSON context
-      - assistant history is not candidate evidence
-      - remove listPracticeSessions
-      - no public session history list
-      - preserve startPracticeSession
-      - preserve getPracticeSession live recovery
-      - recover active startPracticeSession
-      - same plan queued running session
-      - bounded queued recovery timeout
-      - session recovery row lock
-      - late start commit fence
-      - no duplicate opening generation
-      - report owned getReportConversation handoff
-      - no session list compatibility
-      - no relation table migration
   targets:
     backend:
       plan: ./plan.md
@@ -58,19 +13,3 @@ spec:
       testChecklist: ./test-checklist.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      discovery:
-        packages:
-          - backend/internal/api/practice
-          - backend/internal/practice
-          - backend/internal/store/practice
-          - openapi
-          - migrations
-          - shared
-          - config/prompts
-          - config/rubrics
-        apiNames:
-          - createPracticePlan
-          - getPracticePlan
-          - startPracticeSession
-          - getPracticeSession
-          - sendPracticeMessage

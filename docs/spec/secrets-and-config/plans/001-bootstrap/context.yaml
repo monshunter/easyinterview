@@ -1,84 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: secrets-and-config
   name: 001-bootstrap
-  sequence: 1
-  specVersion:
-    from: 2.19
-    to: 2.21
-  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
 spec:
   defaultTarget: platform-config
-  discovery:
-    aliases:
-      - secrets-and-config
-      - 001-bootstrap
-      - config-loader
-      - feature-flag
-      - secret-source
-    keywords:
-      - three tier config
-      - koanf loader
-      - redacted string
-      - feature flag
-      - report retry plan flag
-      - readiness signals flag
-      - posthog self host
-      - runtime config
-      - APP_LISTEN_ADDR
-      - EMAIL_VERIFY_BASE_URL
-      - local app port defaults
-      - secret scan
-      - gitleaks
-      - env example
-      - EMAIL_PROVIDER mailpit smtp
-      - EMAIL_SMTP_USERNAME
-      - EMAIL_SMTP_PASSWORD
-      - EMAIL_SMTP_TLS_MODE
-      - session cookie secret
-      - upload maxBytes resume privacyExport
-      - current upload purpose limits
-      - TargetJob attachment config zero reference
-      - runtime content limits
-      - typed code defaults
-      - report framed input 896KiB
-      - practice message session bytes
-      - resume paste upload limits
-      - target job raw text limit
-      - AI provider response body
-      - AI_DEBUG_CAPTURE_RAW_IO
-      - AI_DEBUG_RAW_IO_PATH
-      - local AI raw NDJSON capture
-      - debug raw I/O privacy boundary
   targets:
     platform-config:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      references:
-        - ../../../ai-provider-and-model-routing/plans/001-aiclient-and-profile-bootstrap/plan.md
-        - ../../../local-dev-stack/plans/001-bootstrap/plan.md
-      discovery:
-        packages:
-          - backend/internal/platform/config
-          - backend/internal/platform/secrets
-          - backend/internal/platform/featureflag
-          - frontend/src/app/runtime
-          - frontend/src/api/generated
-          - backend/internal/ai
-          - backend/internal/practice
-          - backend/internal/report
-          - backend/internal/resume
-          - backend/internal/targetjob
-          - backend/internal/upload
-          - frontend/src/app/screens/home
-          - frontend/src/app/screens/practice
-          - frontend/src/app/screens/resume
-          - openapi
-          - config
-          - scripts/git-hooks
-          - Makefile
-        uiRoutes: []
-        apiNames:
-          - GET /api/v1/runtime-config

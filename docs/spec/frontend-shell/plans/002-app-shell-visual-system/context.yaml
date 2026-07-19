@@ -1,54 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: frontend-shell
   name: 002-app-shell-visual-system
-  sequence: 2
-  baseBranch: main
-  branch: settings-simplification
-  specVersion:
-    from: 1.31
-    to: 1.32
 spec:
   defaultTarget: frontend
-  discovery:
-    aliases:
-      - frontend-shell
-      - app-shell-visual-system
-      - ui-design-native-visual-system
-    keywords:
-      - design token
-      - theme wiring
-      - dark mode
-      - custom accent
-      - CustomAccentPicker
-      - hue saturation only
-      - no accent preview value
-      - no reset to theme accent
-      - no onClear active props
-      - Ocean Plum custom exit
-      - typography scale
-      - fontsource
-      - fixed font stack
-      - Noto Serif SC Inter JetBrains Mono only
-      - remove font presets
-      - remove Source Serif Pro Cormorant Garamond IBM Plex Sans Geist
-      - CSS variables
-      - data-theme attribute
-      - data-mode attribute
-      - ui-design native parity
-      - EI_THEMES
-      - EI_FONT_PRESETS
-      - TopBar visual contract
-      - Auth visual contract
-      - Settings visual contract
-      - single settings gear visual
-      - no account chip dropdown
-      - Account Privacy settings page
-      - unavailable destructive pending error states
-      - visual smoke
-      - no external design system
-      - no private fonts
   targets:
     frontend:
       plan: ./plan.md
@@ -56,33 +11,3 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../../ui-design/README.md
-        - ../../../../ui-design/INDEX.md
-        - ../../../../ui-design/ui-architecture.md
-        - ../../../../ui-design/module-map.md
-        - ../../../../ui-design/auth-and-entry.md
-        - ../001-app-shell-auth-settings/plan.md
-        - ../001-app-shell-auth-settings/checklist.md
-        - ../003-ui-design-responsive-browser-gate/plan.md
-      discovery:
-        packages:
-          - frontend/src/app/theme
-          - frontend/src/app/topbar
-          - frontend/src/app/auth
-          - frontend/src/app/screens
-          - frontend/src/app/display
-          - frontend/src/main.tsx
-          - frontend/src
-        uiRoutes:
-          - home
-          - workspace
-          - resume_versions
-          - settings
-          - auth_login
-          - auth_verify
-          - auth_profile_setup
-          - auth_logout
-          - parse
-          - report
-        apiNames: []

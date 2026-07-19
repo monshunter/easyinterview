@@ -1,108 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: openapi-v1-contract
   name: 002-fixtures-and-mock-source
-  sequence: 2
-  baseBranch: main
-  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
-  specVersion:
-    from: 1.64
-    to: 1.65
 spec:
   defaultTarget: contract
-  discovery:
-    aliases:
-      - openapi-v1-contract
-      - 002-fixtures-and-mock-source
-      - openapi-fixtures
-      - mock-source
-      - fixtures-validator
-      - practice round identity
-      - target job practice progress
-    keywords:
-      - fixtures
-      - deleteMe fixture
-      - 38 operations
-      - 38 fixtures
-      - default scenario
-      - validate-fixtures
-      - generation provenance
-      - privacy export 501
-      - privacy redaction
-      - prism mock
-      - msw same source
-      - mock parity
-      - operationId fixture
-      - schema valid
-      - fixture idempotent
-      - mock-first
-      - REPORT_CONTEXT_TOO_LARGE failed report
-      - create plan conditional matrix
-      - derived sourceReportId required non-null
-      - OPENAPI-002 target job paste only fixtures
-      - flattened rawText targetLanguage resumeId
-      - remove URL file manual form scenarios
-      - remove target_job_attachment purpose
-      - TargetJob source fields zero reference
-      - validation blank rawText 422
-      - Practice recovery fixtures
-      - retryable failure same ID reload
-      - target job report overview fixtures
-      - current report latest attempt canonical rounds
-      - no latestReportId
-      - OPENAPI-005 resume list summary fixture
-      - listResumes exact nine fields
-      - getResume full detail fixture
-      - no list provenance or detail fields
-      - resume summary detail consumer handoff
-      - report conversation fixture
-      - delete listPracticeSessions fixture
-      - getReportConversation Prism parity
-      - 38 fixture one for one contract
-      - regenerateFeedbackReport fixture
-      - failed report regeneration idempotency scenarios
-      - OPENAPI-007 settings UserContext fixtures
-      - getMe four fields
-      - completeMyProfile four fields
-      - complete authenticated email fixture
-      - remove emailMasked fixture
-      - remove uiLanguage preferredPracticeLanguage fixtures
   targets:
     contract:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      references:
-        - ../../decisions/OPENAPI-001-report-direct-semantics.md
-        - ../../decisions/OPENAPI-002-targetjob-paste-only.md
-        - ../../decisions/OPENAPI-004-targetjob-report-overview.md
-        - ../../decisions/OPENAPI-005-resume-list-summary.md
-        - ../../decisions/OPENAPI-007-settings-user-context-pruning.md
-        - ../001-bootstrap/plan.md
-        - ../003-breaking-change-gate/plan.md
-        - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
-      discovery:
-        packages:
-          - openapi/fixtures
-          - scripts/lint
-          - scripts/codegen
-          - frontend/src
-          - Makefile
-        uiRoutes: []
-        apiNames:
-          - importTargetJob
-          - createUploadPresign
-          - listTargetJobs
-          - getTargetJob
-          - getFeedbackReport
-          - regenerateFeedbackReport
-          - getReportConversation
-          - listTargetJobReports
-          - createPracticePlan
-          - getPracticeSession
-          - sendPracticeMessage
-          - listResumes
-          - getResume
-          - getMe
-          - completeMyProfile

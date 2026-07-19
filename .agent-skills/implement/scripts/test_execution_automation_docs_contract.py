@@ -82,16 +82,32 @@ def test_agents_declares_tdd_bdd_quality_gate_rules():
     assert "不适用原因 + 替代验证 gate" in text
 
 
-def test_plan_context_contract_mentions_branch_metadata_usage():
+def test_agents_declares_transitional_minimal_plan_context_contract():
+    text = _agents_text()
+
+    assert "context.yaml 过渡期最小合同" in text
+    assert "`metadata` 只允许 `name`" in text
+    assert "禁止 `spec.discovery`、target `discovery`、target `references`" in text
+
+
+def test_plan_context_contract_declares_minimal_metadata_and_git_owned_branch_resolution():
     text = _plan_context_contract_text()
 
-    assert "| `metadata.baseBranch` | string | No | Base branch used by `/implement` Step 4.5 for fast-forward refresh, feature branch creation, and explicit integration decisions |" in text
-    assert "| `metadata.branch` | string | No | Feature branch name stem used by `/implement` Step 4.5 before the date/collision suffix is appended |" in text
-    assert "1. `context.yaml` `metadata.baseBranch`" in text
-    assert "2. `AGENTS.md` project-level Git branch strategy" in text
-    assert "3. Git default branch auto-detection" in text
+    assert "`metadata` contains exactly one field: `name`" in text
+    assert "1. `AGENTS.md` project-level Git branch strategy" in text
+    assert "2. Git default branch auto-detection" in text
+    assert "metadata.baseBranch" not in text
+    assert "metadata.branch" not in text
     assert "Before creating a new feature branch, `/implement` must update the resolved base" in text
     assert "branch to the latest upstream state with fast-forward-only semantics." in text
+
+
+def test_plan_context_contract_forbids_discovery_references_and_extra_metadata():
+    text = _plan_context_contract_text()
+
+    assert "`spec.discovery` is forbidden" in text
+    assert "target-level `discovery` and `references` are forbidden" in text
+    assert "Unknown metadata, spec, and target fields fail validation" in text
 
 
 def test_plan_context_contract_limits_validator_scope_to_manifest_and_paths():

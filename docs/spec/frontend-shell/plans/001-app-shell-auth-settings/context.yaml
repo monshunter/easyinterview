@@ -1,79 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: frontend-shell
   name: 001-app-shell-auth-settings
-  sequence: 1
-  baseBranch: main
-  branch: settings-simplification
-  specVersion:
-    from: 1.34
-    to: 1.35
 spec:
   defaultTarget: frontend
-  discovery:
-    aliases:
-      - frontend-shell
-      - app-shell-auth-settings
-      - app shell auth settings
-      - settings simplification
-    keywords:
-      - TopBar
-      - three entry navigation
-      - route normalization
-      - Browser History routing
-      - pendingAction
-      - auth gate
-      - email code auth
-      - auth_verify
-      - auth_profile_setup
-      - profileCompletionRequired
-      - completeMyProfile
-      - settings privacy
-      - settings profile tab
-      - display controls
-      - language dropdown
-      - Accept-Language
-      - browser locale
-      - ocean default theme
-      - custom accent fallback
-      - runtime config bootstrap
-      - generated client bootstrap
-      - session cookie
-      - dev mock session state
-      - logout unauthenticated
-      - user avatar dropdown
-      - single settings gear
-      - no user avatar dropdown
-      - settings runtime user context
-      - displayName full email
-      - remove emailMasked
-      - no duplicate getMe
-      - settings logout route
-      - privacy export unavailable
-      - delete account confirmation pending recovery
-      - deleteMe idempotency key
-      - no settings tabs security font product info
-      - no mobile interface language timezone rows
-      - protected route guard
-      - localized auth route gate
-      - Recent mock interviews
-      - listTargetJobs auth gate
-      - auth verify recovery
-      - post-verify me refresh failure
-      - skipInitialAuthProbe
-      - StrictMode GET single-flight
-      - in-flight request registry
-      - settle eviction
-      - read auth epoch
-      - normalized okStatuses request identity
-      - mutation pre-dispatch and post-settle read epoch
-      - stable runtime dependencies
-      - screen loader stable dependencies
-      - client query header auth separation
-      - signal bypass
-      - non-GET bypass
-      - auth email verify bypass
   targets:
     frontend:
       plan: ./plan.md
@@ -81,43 +11,3 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../product-scope/spec.md
-        - ../../../backend-auth/spec.md
-        - ../../../mock-contract-suite/spec.md
-        - ../../../../ui-design/auth-and-entry.md
-        - ../../../../ui-design/ui-architecture.md
-      discovery:
-        packages:
-          - frontend/src
-          - frontend/src/api
-          - frontend/src/app/topbar
-          - frontend/src/app/screens/SettingsScreen.tsx
-          - test/scenarios/e2e/p0-101-auth-email-code-profile-setup
-          - frontend/src/app/runtime
-          - frontend/src/api/generated
-          - frontend/src/api/runtime
-        uiRoutes:
-          - home
-          - parse
-          - workspace
-          - practice
-          - generating
-          - report
-          - resume_versions
-          - settings
-          - auth_login
-          - auth_verify
-          - auth_profile_setup
-          - auth_logout
-        apiNames:
-          - getRuntimeConfig
-          - getMe
-          - startAuthEmailChallenge
-          - verifyAuthEmailChallenge
-          - completeMyProfile
-          - deleteMe
-          - requestPrivacyExport
-          - logout
-          - listTargetJobs
-          - importTargetJob

@@ -122,9 +122,9 @@ def candidate_from_context(context_path: str) -> dict | None:
     status, date = plan_status_and_date(plan_path)
     progress = count_checklist_progress(plan_dir)
 
-    subspec = metadata.get("subspec")
     name = metadata.get("name") or os.path.basename(plan_dir)
-    display = f"{subspec}/{name}" if subspec else name
+    subject = os.path.basename(os.path.dirname(os.path.dirname(plan_dir)))
+    display = f"{subject}/{name}"
 
     return {
         "display": display,

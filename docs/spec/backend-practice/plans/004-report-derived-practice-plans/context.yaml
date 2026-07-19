@@ -1,42 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: backend-practice
   name: 004-report-derived-practice-plans
-  sequence: 4
-  baseBranch: main
-  branch: fix/report-semantic-grounding-0712
-  specVersion:
-    from: 1.27
-    to: 1.31
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - backend-practice
-      - backend-practice/004
-      - 004-report-derived-practice-plans
-      - report-derived-practice
-    keywords:
-      - practice
-      - derived plan
-      - retry_current_round
-      - next_round
-      - report-derived practice
-      - sourceReportId
-      - source_report_id
-      - createPracticePlan
-      - getPracticePlan
-      - startPracticeSession
-      - retryFocusDimensionCodes
-      - generic same-round retry
-      - issue-backed focus
-      - semanticFocus
-      - semantic_focus_json
-      - practice.session.chat v0.2 active semantic focus
-      - PRACTICE_SEMANTIC_FOCUS_PROMPT_V020_PASS
-      - legacy focus identifier negative gate
-      - 004-report-derived-practice-plans
   targets:
     backend:
       plan: ./plan.md
@@ -46,22 +13,3 @@ spec:
       testChecklist: ./test-checklist.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../backend-review/spec.md
-        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
-        - ../../../prompt-rubric-registry/plans/002-output-schema-contract/plan.md
-      discovery:
-        packages:
-          - backend/internal/api/practice
-          - backend/internal/practice
-          - backend/internal/store/practice
-          - backend/cmd/api
-          - migrations
-          - openapi/fixtures/PracticePlans
-          - openapi/fixtures/PracticeSessions
-          - openapi
-          - scripts/lint
-        apiNames:
-          - createPracticePlan
-          - getPracticePlan
-          - startPracticeSession

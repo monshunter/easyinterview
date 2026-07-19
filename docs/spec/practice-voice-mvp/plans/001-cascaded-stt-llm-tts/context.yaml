@@ -1,38 +1,15 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: practice-voice-mvp
   name: 001-cascaded-stt-llm-tts
-  sequence: 1
-  specVersion:
-    from: 1.14
-    to: 1.15
 spec:
-  baseBranch: main
-  branch: practice-conversation-simplification
   defaultTarget: backend
-  discovery:
-    aliases: [practice voice disabled, phone unavailable]
-    keywords: [disabled phone icon, AI_UNSUPPORTED_CAPABILITY, no PhoneSurface, zero provider calls]
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      discovery:
-        packages:
-          - backend/internal/api/practice
-          - backend/internal/practice
-          - config/ai-profiles.yaml
-          - openapi/fixtures/PracticeSessions
-        apiNames: [createPracticeVoiceTurn]
     frontend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      discovery:
-        packages:
-          - frontend/src
-          - frontend/src/app/screens/practice
-          - frontend/src/app/navigation
-        uiRoutes: [practice]

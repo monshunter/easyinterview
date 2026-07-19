@@ -1,63 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: event-and-outbox-contract
   name: 001-bootstrap
-  sequence: 1
-  baseBranch: main
-  specVersion:
-    from: 2.14
-    to: 2.15
-  branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - event-and-outbox-contract
-      - 001-bootstrap
-      - events-yaml
-      - jobs-yaml
-      - outbox-contract
-    keywords:
-      - event envelope
-      - 12 events
-      - 7 canonical jobs
-      - 6 api-facing jobs
-      - dot case event name
-      - practice conversation lifecycle
-      - canonical jobtype
-      - asynq dotted task
-      - api facing jobtype subset
-      - email_dispatch redaction
-      - outbox dispatcher protocol
-      - traceid soft required
-      - codegen events
-      - lint events
-      - TargetJob paste only event contract
-      - target import payload without source discriminator
-      - five event domains
-      - regenerated event job baselines
-      - source records persistence retained
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      discovery:
-        packages:
-          - shared/events.yaml
-          - shared/jobs.yaml
-          - shared/events
-          - shared/events/schemas
-          - shared/events/baseline
-          - shared/jobs/baseline
-          - backend/cmd/codegen/events
-          - backend/internal/shared/events
-          - backend/internal/shared/jobs
-          - frontend/src/lib/events
-          - frontend/src/lib/jobs
-          - Makefile
-          - scripts/lint/lint_events.py
-          - scripts/lint/events_inventory.py
-        uiRoutes: []
-        apiNames: []

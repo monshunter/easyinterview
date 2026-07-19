@@ -206,13 +206,10 @@ python3 .agent-skills/implement/shared/scripts/detect_session_branch.py \
   --current-branch "$(git branch --show-current)"
 ```
 
-If `metadata.branch` exists, pass it as `--branch-stem`.
-
 3. If the current branch already matches the session feature branch, treat the run as retry/resume in place. If the current branch is already the session feature branch, treat the run as retry/resume and continue without creating a new branch.
 4. A dirty working tree on that branch is a valid resume state; continue into `/tdd` instead of blocking branch creation.
 5. If the working tree has uncommitted changes and the current branch does not match the session feature branch, stop before creating or switching branches.
 6. Resolve the base branch in this priority order:
-   - `context.yaml` `metadata.baseBranch`
    - `AGENTS.md` project-level Git branch strategy
    - Git default branch auto-detection
 7. Before creating a new session feature branch, update the resolved base branch to the latest upstream state with fast-forward-only semantics.
@@ -220,7 +217,7 @@ If `metadata.branch` exists, pass it as `--branch-stem`.
    - Fetch its upstream remote and fast-forward the local base branch (for example `git pull --ff-only` or an equivalent explicit `fetch` + fast-forward).
    - If the base branch has no upstream, cannot be fast-forwarded, or the update fails, stop before creating the feature branch and report the blocker.
    - Do not perform this base-branch update when the current branch already matches the session feature branch and the run is a retry/resume.
-8. Resolve the feature branch stem from `metadata.branch` when present; otherwise derive it from `{subspec}-{plan}`.
+8. Derive the feature branch stem from `{subspec}-{plan}`.
 9. Otherwise, create or switch branches from the updated base branch using the naming convention below.
 
 Branch naming convention:

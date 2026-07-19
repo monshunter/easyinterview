@@ -33,19 +33,11 @@ HISTORICAL_STATUS_MAP = {
     "已完成": "completed",
 }
 FIELD_WEIGHTS = {
-    "aliases": (8, 4),
-    "keywords": (6, 3),
-    "relatedBugs": (10, 5),
-    "relatedSpecs": (5, 2),
-    "packages": (4, 2),
-    "uiRoutes": (6, 3),
-    "apiNames": (6, 3),
     "contextName": (4, 2),
     "displayName": (4, 2),
     "targetName": (3, 1),
     "planFile": (2, 1),
     "specFile": (2, 1),
-    "references": (2, 1),
 }
 STOP_WORDS = frozenset(
     {
@@ -68,6 +60,22 @@ STOP_WORDS = frozenset(
         "with",
     }
 )
+ROUTING_GENERIC_TOKENS = frozenset(
+    {
+        "context",
+        "yaml",
+        "spec",
+        "discovery",
+        "metadata",
+        "target",
+        "targets",
+        "reference",
+        "references",
+        "name",
+        "plan",
+        "checklist",
+    }
+)
 SCENARIO_ID_PATTERN = re.compile(r"\b(?:e2e\.)?(p\d+\.\d+)\b", re.IGNORECASE)
 SCENARIO_OWNER_PATTERN = re.compile(
     r"^\s*>\s*Owner:\s*\[[^\]]+\]\(([^)]+)\)",
@@ -78,14 +86,6 @@ STATUS_MATCH_BONUS = {
     "active": 3,
     "draft": 1,
 }
-
-
-def string_list(owner: dict, field_name: str) -> list[str]:
-    """Read an optional list[str] field without exploding invalid scalars."""
-    value = owner.get(field_name)
-    if not isinstance(value, list):
-        return []
-    return [item for item in value if isinstance(item, str)]
 
 
 def token_variants(token: str) -> set[str]:
@@ -205,8 +205,8 @@ def make_abs(plan_dir: str, rel_path: str | None) -> str | None:
     return os.path.normpath(os.path.join(plan_dir, rel_path))
 
 
-def find_contexts(plan_root: str) -> list[str]:
-    """Find spec-centric plan contexts."""
+def find_plan_dirs(plan_root: str) -> list[str]:
+    """Find spec-centric plan directories whether or not a manifest exists."""
     abs_plan_root = os.path.abspath(plan_root)
     roots = []
     if os.path.basename(abs_plan_root) == "plan":
@@ -217,70 +217,56 @@ def find_contexts(plan_root: str) -> list[str]:
     else:
         roots.extend([os.path.join(abs_plan_root, "docs", "spec"), abs_plan_root])
 
-    contexts = []
+    plan_dirs = []
     for root in roots:
         if not os.path.isdir(root):
             continue
-        if os.path.isfile(os.path.join(root, "context.yaml")):
-            contexts.append(os.path.join(root, "context.yaml"))
+        if os.path.isfile(os.path.join(root, "plan.md")):
+            plan_dirs.append(root)
             continue
         for dirpath, _, files in os.walk(root):
-            if "context.yaml" not in files:
+            if "plan.md" not in files:
                 continue
             parts = os.path.normpath(dirpath).split(os.sep)
             if "plans" in parts:
-                contexts.append(os.path.join(dirpath, "context.yaml"))
-    return sorted(set(contexts))
+                plan_dirs.append(dirpath)
+    return sorted(set(plan_dirs))
 
 
 def iter_context_targets(plan_root: str):
-    """Yield one record per target across all plan context manifests."""
-    for context_path in find_contexts(plan_root):
-        plan_dir = os.path.dirname(context_path)
+    """Yield one record per plan target using path truth and optional link manifests."""
+    for plan_dir in find_plan_dirs(plan_root):
+        context_path = os.path.join(plan_dir, "context.yaml")
+        has_context = os.path.isfile(context_path)
         entry = os.path.basename(plan_dir)
+        data = None
+        if has_context:
+            with open(context_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+        spec = data.get("spec") if isinstance(data, dict) else None
+        metadata = data.get("metadata") if isinstance(data, dict) else None
+        targets = spec.get("targets") if isinstance(spec, dict) else None
+        if not isinstance(targets, dict) or not targets:
+            target = {"plan": "./plan.md", "spec": "../../spec.md"}
+            if os.path.isfile(os.path.join(plan_dir, "checklist.md")):
+                target["checklist"] = "./checklist.md"
+            targets = {"default": target}
 
-        with open(context_path, "r", encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-        if not isinstance(data, dict):
-            continue
-
-        spec = data.get("spec")
-        metadata = data.get("metadata")
-        if not isinstance(spec, dict) or not isinstance(metadata, dict):
-            continue
-
-        top_discovery = spec.get("discovery")
-        if not isinstance(top_discovery, dict):
-            top_discovery = {}
-        targets = spec.get("targets")
-        if not isinstance(targets, dict):
-            continue
-
-        context_name = metadata.get("name", entry)
-        subspec = metadata.get("subspec")
-        display_name = f"{subspec}/{context_name}" if isinstance(subspec, str) else context_name
+        context_name = metadata.get("name", entry) if isinstance(metadata, dict) else entry
+        subject = os.path.basename(os.path.dirname(os.path.dirname(plan_dir)))
+        display_name = f"{subject}/{context_name}"
         for target_name, target in sorted(targets.items()):
             if not isinstance(target, dict):
                 continue
 
-            target_discovery = target.get("discovery")
-            if not isinstance(target_discovery, dict):
-                target_discovery = {}
-
             plan_path = make_abs(plan_dir, target.get("plan"))
             spec_path = make_abs(plan_dir, target.get("spec"))
-            references = [
-                make_abs(plan_dir, ref)
-                for ref in target.get("references", [])
-                if isinstance(ref, str)
-            ]
-            references = [ref for ref in references if ref]
             status = read_plan_status(plan_path) if plan_path else "unknown"
 
             yield {
                 "contextName": context_name,
                 "displayName": display_name,
-                "contextPath": context_path,
+                "contextPath": context_path if has_context else None,
                 "planDir": plan_dir,
                 "target": target_name,
                 "status": status,
@@ -290,27 +276,17 @@ def iter_context_targets(plan_root: str):
                     "spec": spec_path,
                     "testPlan": make_abs(plan_dir, target.get("testPlan")),
                     "testChecklist": make_abs(plan_dir, target.get("testChecklist")),
-                    "references": references,
-                },
-                "discovery": {
-                    "aliases": string_list(top_discovery, "aliases"),
-                    "keywords": string_list(top_discovery, "keywords"),
-                    "relatedBugs": string_list(top_discovery, "relatedBugs"),
-                    "relatedSpecs": string_list(top_discovery, "relatedSpecs"),
-                    "packages": string_list(target_discovery, "packages"),
-                    "uiRoutes": string_list(target_discovery, "uiRoutes"),
-                    "apiNames": string_list(target_discovery, "apiNames"),
                 },
             }
 
 
-def score_discovery_values(
+def score_values(
     query_text: str,
     query_tokens: set[str],
     field_name: str,
     values: list[str],
 ) -> tuple[int, list[str]]:
-    """Score one discovery field against the query."""
+    """Score one path-derived candidate field against the query."""
     exact_weight, partial_weight = FIELD_WEIGHTS[field_name]
     reasons = []
     seen = set()
@@ -324,7 +300,7 @@ def score_discovery_values(
         normalized = value.strip().lower()
         value_tokens = tokenize(normalized)
         exact_hit = len(normalized) >= 2 and normalized in query_text
-        overlap = query_tokens & value_tokens
+        overlap = (query_tokens & value_tokens) - ROUTING_GENERIC_TOKENS
         if not overlap:
             continue
         new_overlap = overlap - overlap_tokens
@@ -349,29 +325,12 @@ def score_candidate(query_text: str, query_tokens: set[str], candidate: dict) ->
     score = 0
     reasons = []
 
-    discovery = candidate["discovery"]
-    for field_name in (
-        "aliases",
-        "keywords",
-        "relatedBugs",
-        "relatedSpecs",
-        "packages",
-        "uiRoutes",
-        "apiNames",
-    ):
-        field_score, field_reasons = score_discovery_values(
-            query_text, query_tokens, field_name, discovery.get(field_name, [])
-        )
-        score += field_score
-        reasons.extend(field_reasons)
-
     fallback_values = {
         "contextName": [candidate["contextName"]],
         "displayName": [candidate.get("displayName", candidate["contextName"])],
         "targetName": [candidate["target"]],
         "planFile": [],
         "specFile": [],
-        "references": [],
     }
 
     plan_path = candidate["files"].get("plan")
@@ -382,13 +341,8 @@ def score_candidate(query_text: str, query_tokens: set[str], candidate: dict) ->
     if spec_path:
         fallback_values["specFile"].append(os.path.splitext(os.path.basename(spec_path))[0])
 
-    fallback_values["references"].extend(
-        os.path.splitext(os.path.basename(path))[0]
-        for path in candidate["files"].get("references", [])
-    )
-
     for field_name, values in fallback_values.items():
-        field_score, field_reasons = score_discovery_values(
+        field_score, field_reasons = score_values(
             query_text, query_tokens, field_name, values
         )
         score += field_score

@@ -1,121 +1,13 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: backend-async-runner
   name: 001-internal-job-outbox-runner
-  sequence: 1
-  specVersion:
-    from: 1.15
-    to: 1.16
-  baseBranch: main
-  branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - backend-async-runner
-      - internal-job-outbox-runner
-      - runner kernel
-      - backend internal runner
-      - outbox dispatcher
-    keywords:
-      - backend/internal/runner
-      - runner.Runtime
-      - runner.Handler
-      - native runner handler
-      - runner.OutboxDispatcher
-      - runner.BackoffPolicy
-      - DefaultBackoffPolicy business 10s 20s 40s 80s cap80
-      - DefaultOutboxBackoffPolicy infra 30s 2m 10m 1h 6h
-      - report action local initial plus three retries
-      - report action local waits 10s 20s 40s
-      - report retry context destroyed on return
-      - new report action resets retry count
-      - async job attempts infrastructure only
-      - no report durable provider attempt reservation
-      - claimed attempts lease generation fencing
-      - running and claimed attempts finalize predicate
-      - stale worker zero report outbox audit job side effects
-      - resume_tailor result outbox lease fencing
-      - review store duplicate lease reaper clean break
-      - business report infra retry policy separation
-      - LeaseAsyncJob
-      - FinalizeAsyncJob
-      - ReclaimExpiredLeases
-      - FOR UPDATE SKIP LOCKED
-      - source_event_only
-      - email_dispatch
-      - email.dispatch
-      - target_import
-      - six executable runner handlers
-      - TargetJob paste only runner contraction
-      - source records persistence retained
-      - privacy_delete
-      - BUG-0106
-      - users.deleted_at
-      - account identity cleanup
-      - report_generate
-      - resume_parse
-      - resume_tailor
-      - async.queueWeights
-      - async.leaseTimeoutSeconds
-      - async.shutdownGraceSeconds
-      - async.reaperIntervalSeconds
-      - async.scanIntervalSeconds
-      - privacy_export
-      - requestPrivacyExport
-      - lint-runner-out-of-scope
-      - canonical runner handler contract
-      - publish_status
-      - next_attempt_at
-      - publish_attempts
-      - outbox_events_pending
-      - outbox_publish_duration_seconds
-      - outbox_publish_failures_total
-      - async_job_duration_seconds
-      - async_jobs_processed_total
-      - async_job_queue_depth
-      - async_job_lag_seconds
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
+      spec: ../../spec.md
       testPlan: ./test-plan.md
       testChecklist: ./test-checklist.md
-      spec: ../../spec.md
-      references:
-        - ../../../engineering-roadmap/spec.md
-        - ../../../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md
-        - ../../../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md
-        - ../../../backend-runtime-topology/spec.md
-        - ../../../event-and-outbox-contract/spec.md
-        - ../../../db-migrations-baseline/spec.md
-        - ../../../secrets-and-config/spec.md
-        - ../../../observability-stack/spec.md
-        - ../../../shared-conventions-codified/spec.md
-        - ../../../backend-auth/spec.md
-        - ../../../backend-targetjob/spec.md
-        - ../../../backend-practice/spec.md
-        - ../../../backend-review/spec.md
-        - ../../../backend-resume/spec.md
-      discovery:
-        packages:
-          - backend/internal/runner
-          - backend/internal/targetjob
-          - backend/internal/review
-          - backend/internal/resume/jobs
-          - backend/internal/resume/store
-          - backend/internal/privacy/runner
-          - backend/internal/auth
-          - backend/internal/jobs
-          - backend/internal/store/practice
-          - backend/internal/store/review
-          - backend/internal/shared/events
-          - backend/internal/shared/jobs
-          - backend/internal/platform/config
-          - backend/cmd/api
-          - scripts/lint
-          - config
-          - docs/spec/backend-async-runner
-        uiRoutes: []
-        apiNames: []

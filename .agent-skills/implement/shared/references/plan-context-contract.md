@@ -26,12 +26,8 @@ structure/content plus referenced markdown paths. It does not parse or lint the
 markdown files themselves; consumers read those documents directly and rely on
 the `doc-init` templates for baseline document shape.
 
-When a concrete target is selected, the normalized payload may also include:
-
-- `discovery`: top-level `spec.discovery` metadata
-- `targetDiscovery`: target-level `spec.targets.<target>.discovery` metadata
-- `baseBranch`: optional `metadata.baseBranch` string from `context.yaml`
-- `branch`: optional `metadata.branch` string from `context.yaml`
+When a concrete target is selected, the normalized payload contains only the
+selected target name, default target, manifest name, and validated `files[]`.
 
 Each `files[]` item contains:
 
@@ -49,9 +45,8 @@ Recognized roles (output-side) and their source YAML keys (input-side):
 | `testChecklist` | `test-checklist` | Test checklist mapped to impl phases | `/tdd --test-checklist` |
 | `bddPlan` | `bdd-plan` | User-behavior design keyed by domain Behavior IDs and, only when justified, real E2E IDs | `/tdd` BDD-Gate reference |
 | `bddChecklist` | `bdd-checklist` | Behavior evidence and execution checklist; E2E assets are conditional | `/tdd` BDD-Gate prerequisite/reference |
-| `references[]` | `reference` | Additional markdown references (array) | review + execution references |
-
-> YAML field keys are strictly camelCase; normalized output roles are strictly kebab-case. Do not mix the two conventions. `validate_context.py` silently ignores kebab-case YAML keys, which drops files from the normalized set.
+Unknown metadata, spec, and target fields fail validation; the validator never
+silently preserves or ignores manifest extensions.
 
 Spec-centric full example:
 
@@ -59,12 +54,7 @@ Spec-centric full example:
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: example
   name: 001-backend
-  sequence: 1
-  specVersion:
-    from: null
-    to: 1.0
 spec:
   defaultTarget: backend
   targets:
@@ -76,8 +66,6 @@ spec:
       testChecklist: ./test-checklist.md  # optional, feeds /tdd --test-checklist
       bddPlan: ./bdd-plan.md              # optional; user-observable behavior only
       bddChecklist: ./bdd-checklist.md    # optional; behavior evidence + progress
-      references:                         # optional, read-only refs
-        - ./release-notes.md
 ```
 
 Role mapping rules:
@@ -102,58 +90,27 @@ Document-level consumers enforce these rules:
 
 `/design`, `/create-doc`, `/plan-review`, and `/implement` enforce these document-level rules; `validate_context.py` remains limited to schema and path validation.
 
-## Discovery Metadata
+## Exact Minimal Schema
 
-`context.yaml` may also include discovery metadata for issue-intake routing:
+`metadata` contains exactly one field: `name`. Subject, sequence, Spec version,
+base branch, and feature-branch stem are derived from the plan path, current Spec
+Header, `AGENTS.md`, and Git rather than duplicated in the manifest.
 
-- `spec.discovery`
-- `spec.targets.<target>.discovery`
+`spec.discovery` is forbidden; target-level `discovery` and `references` are forbidden.
+The only allowed target keys are `plan`, `checklist`, `spec`,
+`testPlan`, `testChecklist`, `bddPlan`, and `bddChecklist`.
 
-Execution-focused consumers such as `/implement`, `/plan-review`, and
-`/plan-code-review` must treat these fields as read-only metadata and must not
-change their execution semantics based on them.
+Branch resolution priority is:
 
-The shared validator applies type checks when these fields are present; their
-absence is allowed.
-
-Allowed discovery fields:
-
-- top-level `spec.discovery`: `aliases`, `keywords`, `relatedSpecs`, `relatedBugs`
-- target-level `spec.targets.<target>.discovery`: `packages`, `uiRoutes`, `apiNames`
-
-`context.yaml` is a retrieval index, not an execution runbook. Do not store
-`commands`, Make targets, shell snippets, or manual operation steps in it. Those
-belong to repo README / INDEX / scenario documents.
-
-## Branch Metadata
-
-`context.yaml` may declare optional branch lifecycle hints under `metadata`:
-
-| Field | Type | Required | Meaning |
-|------|------|----------|---------|
-| `metadata.baseBranch` | string | No | Base branch used by `/implement` Step 4.5 for fast-forward refresh, feature branch creation, and explicit integration decisions |
-| `metadata.branch` | string | No | Feature branch name stem used by `/implement` Step 4.5 before the date/collision suffix is appended |
-
-Rules:
-
-- Both fields are optional and must be strings when present.
-- These fields are not markdown references and are not subject to `.md` suffix checks or `docs/` boundary checks.
-- `validate_context.py` must preserve these fields in normalized JSON output when present.
-- `generate_context_yaml.py` must preserve these fields during reconciliation.
-- `/implement` consumes them as execution metadata, not as document references.
-
-`metadata.baseBranch` priority is:
-
-1. `context.yaml` `metadata.baseBranch`
-2. `AGENTS.md` project-level Git branch strategy
-3. Git default branch auto-detection
+1. `AGENTS.md` project-level Git branch strategy
+2. Git default branch auto-detection
 
 Before creating a new feature branch, `/implement` must update the resolved base
 branch to the latest upstream state with fast-forward-only semantics. If the base
 branch cannot be updated cleanly, `/implement` must stop before branch creation.
 
-`metadata.branch` only overrides the human-authored branch stem. `/implement` still owns
-the generated suffixes such as `-{MMDD}` and collision suffixes like `-{MMDD}-2`.
+`/implement` derives the branch stem from `{subspec}-{plan}` and still owns the
+type/date/collision suffixes.
 
 ## Shared Error Templates
 

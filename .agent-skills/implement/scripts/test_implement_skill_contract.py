@@ -102,9 +102,10 @@ class TestImplementSkillContract:
 
     def test_branch_resolution_declares_base_branch_priority_and_retry_resume(self):
         text = _skill_text()
-        assert "`context.yaml` `metadata.baseBranch`" in text
         assert "`AGENTS.md` project-level Git branch strategy" in text
         assert "Git default branch auto-detection" in text
+        assert "`context.yaml` `metadata.baseBranch`" not in text
+        assert "`metadata.branch`" not in text
         assert "If the current branch is already the session feature branch, treat the run as retry/resume and continue without creating a new branch." in text
 
     def test_branch_resolution_refreshes_base_branch_before_new_branch(self):

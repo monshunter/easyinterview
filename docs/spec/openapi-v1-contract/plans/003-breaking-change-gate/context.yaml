@@ -1,110 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: openapi-v1-contract
   name: 003-breaking-change-gate
-  sequence: 3
-  baseBranch: main
-  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
-  specVersion:
-    from: 1.64
-    to: 1.65
 spec:
   defaultTarget: contract
-  discovery:
-    aliases:
-      - openapi-v1-contract
-      - 003-breaking-change-gate
-      - openapi-diff
-      - additive-only
-      - v1-freeze
-      - 38 operations
-      - 10 tags
-      - breaking-change-linter
-      - baseline-snapshot
-      - exact severity finding oracle
-      - REPORT_CONTEXT_TOO_LARGE additive enum
-      - conditional contract baseline source forbidden
-      - derived source required non-null
-      - OPENAPI-002 exact 17 findings
-      - TARGET_IMPORT_SOURCE_INVALID TARGET_IMPORT_SOURCE_UNAVAILABLE removed
-      - TargetJob paste only pre-release correction
-      - old baseline before re-freeze
-      - importTargetJob invariant
-      - createUploadPresign retained
-      - target job import zero reference
-      - Practice recovery separate finding audit
-      - D-35 Practice machine oracle non ADR
-      - role discriminated PracticeMessage
-      - OPENAPI-004 report overview exact oracle
-      - listTargetJobReports invariant
-      - no latest report pointer
-      - OPENAPI-005 resume summary exact oracle
-      - PaginatedResume item ref correction
-      - ResumeSummary closed required fields
-      - listResumes and getResume invariants
-      - no placeholder expected findings JSON
-      - OPENAPI-006 runtime content limits exact oracle
-      - RuntimeConfig contentLimits required correction
-      - OPENAPI-001 v1.7 report conversation exact oracle
-      - delete listPracticeSessions breaking finding
-      - add getReportConversation additive findings
-      - preserve 38 operations 10 tags
-      - regenerateFeedbackReport additive operation
-      - REPORT_INVALID_STATE_TRANSITION additive enum
-      - OPENAPI-007 settings UserContext exact oracle
-      - replace emailMasked with complete email
-      - remove uiLanguage preferredPracticeLanguage
-      - preserve getMe completeMyProfile deleteMe invariants
-    keywords:
-      - openapi-diff
-      - additive only
-      - breaking change
-      - baseline yaml
-      - v1.0.0 freeze
-      - privacy export whitelist
-      - 501 to 202
-      - ADR template
-      - baseline README
-      - diff wrapper script
-      - local quality gate
-      - B2 freeze handoff
   targets:
     contract:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      references:
-        - ../../decisions/OPENAPI-001-report-direct-semantics.md
-        - ../../decisions/OPENAPI-002-targetjob-paste-only.md
-        - ../../decisions/OPENAPI-004-targetjob-report-overview.md
-        - ../../decisions/OPENAPI-005-resume-list-summary.md
-        - ../../decisions/OPENAPI-006-runtime-content-limits.md
-        - ../../decisions/OPENAPI-007-settings-user-context-pruning.md
-        - ../001-bootstrap/plan.md
-        - ../002-fixtures-and-mock-source/plan.md
-        - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
-        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
-      discovery:
-        packages:
-          - openapi/baseline
-          - openapi
-          - scripts/lint
-          - docs/spec/openapi-v1-contract/decisions
-          - Makefile
-        uiRoutes: []
-        apiNames:
-          - importTargetJob
-          - createUploadPresign
-          - getFeedbackReport
-          - regenerateFeedbackReport
-          - getReportConversation
-          - listTargetJobReports
-          - createPracticePlan
-          - getPracticeSession
-          - sendPracticeMessage
-          - listResumes
-          - getResume
-          - getMe
-          - completeMyProfile
-          - deleteMe

@@ -1,19 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: frontend-workspace-and-practice
   name: 002-practice-text-event-loop
-  sequence: 2
-  baseBranch: main
-  branch: runtime-size-limits
-  specVersion:
-    from: 1.44
-    to: 1.45
 spec:
   defaultTarget: frontend
-  discovery:
-    aliases: [practice continuous chat, full width conversation]
-    keywords: [PracticeScreen, PracticeMessage, sendPracticeMessage, optimisticUserMessage, interviewerThinking, pendingComposerLock, 95 second timeout, abort reconcile, stale response guard, failedMessageRetryIcon, sameClientMessageIdRetry, clientMessageIdReplyStatus, getPracticeSessionRetryProjection, terminal plan recovery, workspace targetJobId, ApiClientError, reloadSameIdRetry, noBrowserRetryPersistence, draftPreservedDuringRetry, practiceMessageBytes32768, practiceSessionTextBytes262144, utf8ByteValidation, react-markdown, remark-gfm, skipHtml, no rehypeRaw, no remote image, safe link, exact raw retry payload, mobile code overflow, zeroAnswerFinish, finishDisabledReason, backendAuthoritativeCompletion, reportIdOnlyHandoff, noCopiedRouteIdentity, disabled phone, no SessionMap, no QuestionCard]
   targets:
     frontend:
       plan: ./plan.md
@@ -23,21 +13,3 @@ spec:
       testChecklist: ./test-checklist.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../backend-practice/plans/002-event-loop-and-completion/plan.md
-        - ../../../backend-practice/plans/002-event-loop-and-completion/bdd-plan.md
-        - ../../../frontend-report-dashboard/spec.md
-      discovery:
-        packages:
-          - frontend/src
-          - frontend/src/app/screens/practice
-          - frontend/src/app/components
-          - frontend/src/api/generated
-          - openapi/templates/ts/client.tmpl
-          - openapi/fixtures/PracticeSessions/getPracticeSession.json
-          - openapi/fixtures/PracticeSessions/sendPracticeMessage.json
-          - frontend/src/app/interview-context
-          - frontend/src/app/i18n/locales
-          - frontend/tests/responsive-browser
-        uiRoutes: [practice]
-        apiNames: [getPracticeSession, sendPracticeMessage, completePracticeSession, getTargetJob]

@@ -1,47 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: backend-upload
   name: 001-file-objects-and-presign-baseline
-  sequence: 1
-  specVersion:
-    from: 1.6
-    to: 1.7
-  branch: runtime-size-limits
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - backend-upload
-      - 001-file-objects-and-presign-baseline
-      - createUploadPresign
-      - presign
-      - file_objects
-      - ObjectStore
-      - DeleteFileObjectsForUser
-      - upload-status
-      - C2
-    keywords:
-      - presign url
-      - idempotency key 24h
-      - public upload purpose resume privacy_export
-      - reject target job attachment purpose
-      - A4 maxBytes handoff
-      - paste only dependency order
-      - upload_status state machine
-      - pending uploaded scan_failed deleted
-      - minio dev provider
-      - filesystem fallback provider
-      - objectStorage provider config
-      - upload presign ttl maxBytes config
-      - object store interface
-      - privacy delete file_objects
-      - cross user isolation
-      - audit tombstone fileObjectId
-      - max bytes per purpose
-      - typed upload code defaults
-      - resume 10485760 privacy export 5242880
-      - register file object internal api
   targets:
     backend:
       plan: ./plan.md
@@ -49,18 +11,3 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      discovery:
-        packages:
-          - backend/internal/upload
-          - backend/internal/upload/handler
-          - backend/internal/upload/store
-          - backend/internal/upload/objectstore
-          - backend/internal/privacy/runner
-          - backend/internal/api/generated
-          - openapi/fixtures/Uploads
-          - shared
-          - migrations
-          - config
-        uiRoutes: []
-        apiNames:
-          - createUploadPresign

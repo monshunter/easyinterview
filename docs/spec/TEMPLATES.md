@@ -203,31 +203,17 @@ docs/spec/${subspec}/
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: ${subspec}
   name: ${NNN-plan}
-  sequence: 1
-  specVersion:
-    from: null
-    to: 1.0
 spec:
   defaultTarget: frontend
-  discovery:
-    aliases:
-      - ${subspec}
-      - ${NNN-plan}
-    keywords: []
   targets:
     frontend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      discovery:
-        packages: []
-        uiRoutes: []
-        apiNames: []
 ```
 
-`context.yaml` 只承载稳定检索标识，不承载 `commands`、脚本名、Make target 或人工操作步骤。
+`context.yaml` 只承载目标与文档链接。`metadata` 只允许 `name`；禁止顶层/target `discovery`、target `references`、分支/版本提示、`commands` 或其他自定义字段。
 当 plan 生成 `test-plan.md` / `test-checklist.md` 时同步写入 `testPlan` / `testChecklist`。只有实际生成 `bdd-plan.md` / `bdd-checklist.md` 时，才在对应 target 增加 `bddPlan: ./bdd-plan.md` 与 `bddChecklist: ./bdd-checklist.md`；纯内部 `BDD-N/A` 计划不得生成文件或保留字段。
 
 ## 8 BDD 模板

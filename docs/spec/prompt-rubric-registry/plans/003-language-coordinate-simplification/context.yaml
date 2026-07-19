@@ -1,47 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: prompt-rubric-registry
   name: 003-language-coordinate-simplification
-  sequence: 3
-  specVersion:
-    from: 2.6
-    to: 2.20
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - language-coordinate-simplification
-      - prompt-rubric-language-coordinate
-      - prompt-rubric-registry-language
-      - 003-language-coordinate-simplification
-    keywords:
-      - canonical multi truth source
-      - current 9 feature keys
-      - exact language fallback
-      - language override policy
-      - rubric language-independent
-      - seed migration language rows
-      - ResolveActive language fallback
-      - prompt_lint canonical multi
-      - rubric_lint canonical multi
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      references:
-        - ../001-baseline/plan.md
-        - ../002-output-schema-contract/plan.md
-        - ../004-real-model-profile-and-evals/plan.md
-        - ../../../ai-provider-and-model-routing/spec.md
-        - ../../../shared-conventions-codified/spec.md
-      discovery:
-        packages:
-          - config/prompts
-          - config/rubrics
-          - migrations
-          - scripts/lint
-          - backend/internal/ai/registry
-        uiRoutes: []
-        apiNames: []

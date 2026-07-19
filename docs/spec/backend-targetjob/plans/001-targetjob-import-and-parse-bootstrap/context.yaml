@@ -1,61 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: backend-targetjob
   name: 001-targetjob-import-and-parse-bootstrap
-  sequence: 1
-  specVersion:
-    from: 2.12
-    to: 2.13
-  branch: runtime-size-limits
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - backend-targetjob
-      - practice progress projection
-      - session completed ledger
-      - current practice round
-      - no n plus one
-      - backend business persistence
-      - bound resume completion facts
-      - non-contiguous canonical successor
-      - int32 sequence lowercase round type
-      - targetjob-import-and-parse-bootstrap
-      - target job import parse
-      - jd parse backend
-      - paste only jd import
-      - raw text target import
-    keywords:
-      - importTargetJob
-      - listTargetJobs
-      - getTargetJob
-      - updateTargetJob
-      - archiveTargetJob
-      - target_import job
-      - target.import.requested
-      - target.parsed
-      - target.analysis.failed
-      - target.import.parse feature_key
-      - target.import.default profile
-      - target_jobs table
-      - target_jobs profile_id removed
-      - target_job_requirements table
-      - raw_jd_text sole source of truth
-      - ImportTargetJobRequest rawText targetLanguage resumeId
-      - TARGET_JOB_NOT_FOUND
-      - TARGET_INVALID_STATE_TRANSITION
-      - VALIDATION_FAILED blank rawText
-      - targetJob maxRawTextBytes 98304
-      - JD UTF8 byte boundary
-      - no target source variants
-      - no jd attachment upload
-      - target job latest report pointer removed
-      - no latest report id
-      - backend review report overview owner
-      - backend-internal goroutine runner kernel
-      - idempotency user-scoped dedupe
-      - privacy redline raw_jd_text
   targets:
     backend:
       plan: ./plan.md
@@ -63,40 +11,3 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../engineering-roadmap/spec.md
-        - ../../../product-scope/spec.md
-        - ../../../openapi-v1-contract/spec.md
-        - ../../../event-and-outbox-contract/spec.md
-        - ../../../db-migrations-baseline/spec.md
-        - ../../../ai-provider-and-model-routing/spec.md
-        - ../../../prompt-rubric-registry/spec.md
-        - ../../../secrets-and-config/spec.md
-        - ../../../observability-stack/spec.md
-        - ../../../shared-conventions-codified/spec.md
-        - ../../../backend-auth/spec.md
-        - ../../../backend-runtime-topology/spec.md
-        - ../../../../ui-design/jd-resume-management.md
-        - ../../../../ui-design/auth-and-entry.md
-        - ../../../../development.md
-      discovery:
-        packages:
-          - backend/cmd/api
-          - backend/internal/api
-          - test/scenarios/e2e/p0-098-practice-completion-progress-refresh
-          - backend/internal/targetjob
-          - backend/internal/platform/config
-          - backend/internal/platform/secrets
-          - backend/internal/shared/jobs
-          - backend/internal/ai
-          - migrations
-        uiRoutes:
-          - home
-          - parse
-          - workspace
-        apiNames:
-          - importTargetJob
-          - listTargetJobs
-          - getTargetJob
-          - updateTargetJob
-          - archiveTargetJob

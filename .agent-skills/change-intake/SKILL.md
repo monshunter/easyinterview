@@ -105,7 +105,7 @@ Interpret matcher output as:
 
 - `high` confidence: top candidate is clear; load it directly
 - `medium` confidence: top candidate is preferred, but compare the next result
-- `low` confidence: present 2-3 candidates to the user before mutating anything
+- `low` confidence: treat candidates as hypotheses and verify them with live repo search before selecting an owner
 - `none`: fall back to manual repo search and explain the gap
 
 Exact scenario README Owner evidence outranks generic API / route keyword overlap.
@@ -116,16 +116,16 @@ link, inspect both artifacts before mutation even when confidence is `high`.
 
 Rules:
 
-- Prefer the `recommended` candidate unless confidence is `low`
-- If confidence is `low`, show the top candidates with reasons and ask the user
+- Prefer the `recommended` candidate only for `high`/`medium` confidence and when it does not conflict with stronger owner evidence
+- If confidence is `low`, search current Markdown, code, routes, API identifiers, BUG/scenario Owner links and Git evidence before presenting a choice. Only ask the user after live evidence remains ambiguous
 - If the matcher finds nothing, search by BUG ID / API / route / command manually
 
 ### Step 3: Decide plan lifecycle handling
 
 After selecting a candidate:
 
-1. Read the candidate `context.yaml`
-2. Validate it with:
+1. Inspect the candidate's `contextPath` and owner files.
+2. If `contextPath` is not null, read the candidate `context.yaml` and validate it with:
 
 ```bash
 python3 .agent-skills/implement/shared/scripts/validate_context.py \
@@ -134,8 +134,9 @@ python3 .agent-skills/implement/shared/scripts/validate_context.py \
   --target <target>
 ```
 
-3. Read the validated plan / checklist / spec / references
-4. Inspect the selected plan Header `状态`
+   Then read the validated plan / checklist / spec and optional first-class test/BDD documents.
+3. If `contextPath` is null, read the matcher-provided `plan` and `spec` paths directly, plus only those optional files that actually exist. Confirm the owner from the current Spec/plan/INDEX and live repository evidence; do not invent a checklist, target, or temporary context manifest.
+4. Inspect the selected plan Header `状态`.
 
 Routing rule:
 
@@ -201,9 +202,9 @@ When `/change-intake` revises an existing subject:
 
 - update spec/plan/checklist before code changes
 - keep using the original spec-centric plan directory and `context.yaml`
-- refresh `context.yaml` discovery metadata when the issue vocabulary changes materially
+- keep `context.yaml` limited to the minimal link contract; do not add routing vocabulary or branch/version metadata
 - add or refresh a `## 修订记录` section when the change benefits from an explicit delta trail
-- preserve references to related bug records and reports inside the same subject docs when relevant
+- preserve links to related bug records and reports in the owning Markdown documents when relevant
 
 If the user currently wants proposal/backlog guidance only, stop before mutating
 the original docs and present the recommended in-place revision scope instead.

@@ -6,4 +6,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| 001-harness-v1-migration (`loop`) | [plan](./001-harness-v1-migration/plan.md) | 1.2 | active | 2026-07-18 |
+| 001-harness-v1-migration (`loop`) | [plan](./001-harness-v1-migration/plan.md) | 1.3 | active | 2026-07-19 |

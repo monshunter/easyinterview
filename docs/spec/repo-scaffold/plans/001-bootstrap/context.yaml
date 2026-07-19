@@ -1,53 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: repo-scaffold
   name: 001-bootstrap
-  sequence: 1
-  specVersion:
-    from: null
-    to: 1.9
 spec:
   defaultTarget: repo
-  discovery:
-    aliases:
-      - repo-scaffold
-      - 001-bootstrap
-      - monorepo-skeleton
-      - root-makefile
-    keywords:
-      - repo scaffold
-      - monorepo skeleton
-      - root makefile
-      - editorconfig
-      - tool-versions
-      - go workspace
-      - go module tidy
-      - git hooks
-      - bootstrap script
   targets:
     repo:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      discovery:
-        packages:
-          - backend
-          - frontend
-          - openapi
-          - migrations
-          - scripts
-          - test
-          - deploy
-          - shared
-          - config
-          - Makefile
-          - README.md
-          - .editorconfig
-          - .gitignore
-          - .tool-versions
-          - go.work
-          - backend/go.mod
-          - backend/go.sum
-        uiRoutes: []
-        apiNames: []

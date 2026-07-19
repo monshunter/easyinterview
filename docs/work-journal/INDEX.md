@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-19](2026-07-19.md) | `refactor(harness): minimize plan context contract` | #refactor #test #docs |
 | [2026-07-19](2026-07-19.md) | `fix(practice): harden active session recovery (BUG-0190)` | #fix #api #test #docs #bdd |
 | [2026-07-18](2026-07-18.md) | `fix(practice): recover active sessions on repeated start (BUG-0189)` | #fix #api #test #docs #bdd |
 | [2026-07-18](2026-07-18.md) | `fix(frontend): add interview launch transition (BUG-0188)` | #fix #ui #i18n #test #docs #bdd |

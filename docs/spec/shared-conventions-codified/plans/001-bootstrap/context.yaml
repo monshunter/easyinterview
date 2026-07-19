@@ -1,72 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: shared-conventions-codified
   name: 001-bootstrap
-  sequence: 1
-  baseBranch: main
-  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
-  specVersion:
-    from: 1.32
-    to: 1.33
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - shared-conventions-codified
-      - 001-bootstrap
-      - shared-conventions
-      - cross-language-types
-    keywords:
-      - shared conventions
-      - cross-language types
-      - error codes
-      - enum codegen
-      - api error ownership
-      - uuidv7
-      - idempotency key
-      - go module
-      - pnpm workspace
-      - typescript toolchain
-      - current enum catalog
-      - 22 error codes
-      - ai shared vocabulary
-      - practice goal current values
-      - removed practice mode and question review status
-      - local quality gate
-      - codegen check
-      - REPORT_CONTEXT_TOO_LARGE
-      - report oversized context error
-      - ApiErrorCode additive enum
-      - REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS
-      - targetjob paste only errors
-      - TARGET_IMPORT_FAILED retained
-      - VALIDATION_FAILED paste input
-      - no target import source errors
-      - REPORT_INVALID_STATE_TRANSITION
-      - failed report regeneration invalid state
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      discovery:
-        packages:
-          - shared/conventions.yaml
-          - go.work
-          - backend/go.mod
-          - backend/cmd/codegen/conventions
-          - backend/internal/shared/types
-          - backend/internal/shared/errors
-          - backend/internal/shared/idx
-          - frontend/package.json
-          - frontend/src/lib/conventions
-          - frontend/src/lib/ids
-          - pnpm-workspace.yaml
-          - scripts/lint/conventions_yaml.py
-          - scripts/lint/error_codes.py
-          - openapi/openapi.yaml
-          - scripts/lint/openapi_diff.py
-          - Makefile
-        uiRoutes: []
-        apiNames: []

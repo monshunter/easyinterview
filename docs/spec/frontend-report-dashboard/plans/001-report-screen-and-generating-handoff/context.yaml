@@ -1,19 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: frontend-report-dashboard
   name: 001-report-screen-and-generating-handoff
-  sequence: 1
-  baseBranch: main
-  branch: opt/ai-provider-and-model-routing-001-aiclient-and-profile-bootstrap-0716
-  specVersion:
-    from: 1.28
-    to: 1.31
 spec:
   defaultTarget: frontend
-  discovery:
-    aliases: [conversation report dashboard, session evidence report, honest grounded report]
-    keywords: [ReportsScreen, currentTargetReports, reportsTargetJobIdOnly, getTargetJobCanonicalDisplay, listTargetJobReports, getReportConversation, reportConversation, reportConversationReportIdOnly, reportConversationReadonlyMarkdown, reportConversationFourStatuses, reportConversationParentBack, failedConversationBackResolving, noPrematureWorkspaceBack, noListPracticeSessions, noSessionIdRoute, currentReportLatestAttemptOnly, differentLatestReadyStatus, noFullReportHistory, targetIsolation, staleResponseFence, reportsBackToWorkspaceDetail, workspaceTargetJobIdOnly, noParseReadDetour, noParseAnimationImportPolling, trustedTargetJobIdBackToReports, workspaceBackFallbackWithoutTrustedTarget, invalidReportsTargetReplaceWorkspace, noReportsBackLoop, reportIdOnlyRoute, noReportRouteTargetJobId, noReportGeneratingListTargetJobReportsConsumer, noGlobalTopBarReportEntry, noSectionReportsCompatibility, reportSummary, immutableReportContext, fourTwoTwoTwoOneLayout, fourPeerContextItems, frozenResumeCanonicalUrl, equalHeightDetailPairs, twoTopSummaryMetrics, bottomFullWidthInterviewSummary, overallSummaryAfterNextActions, summaryRenderedExactlyOnce, noTopReadinessSummary, mobileSameOrderSingleColumn, formalFrontendResponsiveGate, noParallelPrototypeRuntime, noVisibleSessionUuid, noVisibleReportUuid, contextStripTargetRoundResumeConversation, reportContextStripAcceptance, formalRealReadyScreenshots, exact1440x1200And390x844, fullPageTrue, fixedScreenshotManifest, screenshotPathSha256StateViewport, reportSessionSentinelAbsent, dimensionCode, dimensionLabel, emptyFocusReplay, issueBackedFocus, honestGenerating, failedReportRegenerateAction, failedReportConversationAction, regenerateFeedbackReport, sameIdRegeneration, contextTooLargeNoRegenerate, idempotencyKeyReuseAfterUnknownOutcome, statusIndependentConversationAction, latestAttemptConversationByLocator, progressAndConversationCoexist, sameIdReadyConversationDedup, emptyRoundNoConversation, maxAttempts49, pollInitial1.5Multiplier1.5Cap8, pollWindow6m04s, preserveAttemptAcrossInflightHiddenBlur, resumeNextAttemptNotOne, noDuplicateConcurrentPoll, singleRunCallsAtMost49, reportWorstCase5m10s, noAttemptRetryProgressSurface, pollTimeoutDoesNotFabricateFailed, routeTamper, languageSplit, actionPriority, action200MalformedFuse, backendFrontendFailClose24WhitespaceWords64UnicodeCodePoints, targetedRepairInternalMargin18Words52CodePoints, typedInvalidNoRawLabel, desktopAnd390CompleteWrapping, noClientTruncateRewrite, p0099CurrentRunCanonicalAudit, canonicalReportContentDigest, actionLengthAudit, contentAudit, screenshotSha256, providerEvalIndependentFromE2E, deterministicExact24Words64UnicodeCodePointsParity, mobile390ActionRegion, noClipEllipsisOverflow, serverOwnedFocus, no QuestionsTab]
   targets:
     frontend:
       plan: ./plan.md
@@ -23,27 +13,3 @@ spec:
       testChecklist: ./test-checklist.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../../ui-design/report-dashboard.md
-        - ../../../../ui-design/module-practice-review.md
-        - ../../../backend-review/spec.md
-        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
-        - ../../../backend-practice/spec.md
-        - ../../../backend-practice/plans/004-report-derived-practice-plans/plan.md
-        - ../../../backend-practice/plans/004-report-derived-practice-plans/bdd-plan.md
-        - ../../../frontend-home-job-picks-and-parse/spec.md
-        - ../../../e2e-scenarios-p0/plans/001-real-api-ui-journeys/plan.md
-        - ../../../../development.md
-      discovery:
-        packages:
-          - frontend/README.md
-          - frontend/src
-          - frontend/src/app/screens/reports
-          - frontend/src/app/screens/report
-          - frontend/src/app/screens/report-conversation
-          - frontend/src/app/screens/generating
-          - frontend/src/app/i18n/locales
-          - frontend/tests/e2e
-          - test/scenarios/e2e
-        uiRoutes: [reports, generating, report, report-conversation, parse, workspace]
-        apiNames: [getTargetJob, listTargetJobReports, getFeedbackReport, regenerateFeedbackReport, getReportConversation, createPracticePlan, startPracticeSession]

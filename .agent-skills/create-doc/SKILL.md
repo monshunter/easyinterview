@@ -107,31 +107,17 @@ Minimal shape:
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: ${subspec}
   name: ${NNN-plan}
-  sequence: 1
-  specVersion:
-    from: null
-    to: 1.0
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - ${subspec}
-      - ${NNN-plan}
-    keywords:
-      - ${issue-keyword}
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      discovery:
-        packages:
-          - ${primary-package-or-module}
 ```
 
-`context.yaml` 仅用于 plan 文档关联和问题检索索引。不要写入 `commands`、脚本名、Make target 或人工操作步骤；若需要稳定检索标识，可补充 `uiRoutes` / `apiNames`。
+`context.yaml` 仅用于 plan 文档关联。`metadata` 只允许 `name`；禁止顶层/target `discovery`、target `references`、分支/版本提示和其他自定义字段。
 
 If creating frontend or unit-test sub-plans, add corresponding targets.
 The plan-context manifest is the shared contract consumed by the implement-owned validator at
@@ -143,7 +129,7 @@ For revisions to an existing `completed` plan:
 - revise the original `spec.md` / `plan.md` / `checklist.md` together
 - increment affected document versions
 - set the plan/checklist `状态` back to `active` while execution is pending, then restore `completed` after verification
-- keep `context.yaml` in the same plan directory and refresh discovery metadata only when needed
+- keep `context.yaml` in the same plan directory and retain only the minimal link contract
 - use a `## 修订记录` block when an explicit delta trail is useful
 - only create a new plan subject when no existing subject matches or the user explicitly requests a separate workstream
 

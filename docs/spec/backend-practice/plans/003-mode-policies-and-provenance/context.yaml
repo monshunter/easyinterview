@@ -1,19 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: backend-practice
   name: 003-mode-policies-and-provenance
-  sequence: 3
-  specVersion:
-    from: 1.21
-    to: 1.22
 spec:
-  baseBranch: main
-  branch: practice-conversation-simplification
   defaultTarget: backend
-  discovery:
-    aliases: [remove practice hint, remove assistance mode]
-    keywords: [no PracticeMode, no hint_requested, no show_hint, ordinary help message]
   targets:
     backend:
       plan: ./plan.md
@@ -21,12 +11,3 @@ spec:
       spec: ../../spec.md
       testPlan: ./test-plan.md
       testChecklist: ./test-checklist.md
-      discovery:
-        packages:
-          - backend/internal/practice
-          - backend/internal/store/practice
-          - frontend/src/app/screens/practice
-          - frontend/src/app/interview-context
-          - shared
-          - config
-        apiNames: [sendPracticeMessage]

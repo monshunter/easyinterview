@@ -30,6 +30,7 @@ docs/spec/
 2. **边界清晰**：一个 plan 只覆盖一个可独立实施/验证的目标。
 3. **成对创建**：每个 `plan.md` 必须有对应 `checklist.md`。
 4. **Context 必填**：每个 plan 目录必须有 `context.yaml`，作为 `/implement`、`/plan-review`、`/plan-code-review` 的入口。
+   过渡期 schema 必须精确最小化：`metadata` 只含 `name`，`spec` 只含 `defaultTarget` / `targets`，target 只含 `plan` / `checklist` / `spec` 与可选的一等 test/BDD 文档链接；禁止 discovery、references、分支/版本提示和自定义字段。
 5. **局部计划索引**：每个 `plans/` 目录只保留 `INDEX.md`；规则与模板统一使用 `docs/spec/README.md` 和 `docs/spec/TEMPLATES.md`。
 6. **索引投影**：`docs/spec/INDEX.md` 和 `docs/spec/${subspec}/plans/INDEX.md` 只反映 Header，不作为状态真理源。
 7. **原地修订**：同主题后续修订优先原地更新原 spec 和原 plan，不创建同主题 sibling bugfix/follow-up。

@@ -1,79 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: db-migrations-baseline
   name: 001-bootstrap
-  sequence: 1
-  baseBranch: main
-  branch: settings-simplification
-  specVersion:
-    from: 1.37
-    to: 1.38
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - db-migrations-baseline
-      - 001-bootstrap
-      - migrations-baseline
-      - migrate-check
-    keywords:
-      - golang-migrate
-      - schema migrations
-      - schema backfills
-      - postgres
-      - outbox retry columns
-      - ai task runs
-      - privacy deletion matrix
-      - no mistake entries
-      - question issue count
-      - enum source lint
-      - practice plan round identity
-      - round sequence
-      - legacy round backfill
-      - 000018 grounded report context
-      - generation_context
-      - no report product retry column
-      - no llm attempt count column
-      - action scoped retry stays outside database
-      - focus_dimension_codes
-      - REPORT_STORAGE_V18_PASS
-      - targetjob paste only schema
-      - raw_jd_text retained
-      - no target job source columns
-      - no target_job_sources table
-      - no jd attachment purpose
-      - no jd source refresh job
-      - independent source_records retained
-      - resume privacy upload purposes retained
-      - 20 app 3 auth 2 metadata
-      - practice messages reply status
-      - refresh safe client message recovery
-      - reply generation fence
-      - 90 second pending lease
-      - reply lease expires at
-      - target jobs latest report id removed
-      - no report pointer column
-      - user settings display preference pruning
-      - 000020 drop user settings display preferences
-      - remove ui language preferred practice language region timezone
-      - retain analytics opt in
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      references:
-        - ../../../backend-review/spec.md
-        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
-        - ../../../backend-auth/spec.md
-        - ../../../openapi-v1-contract/decisions/OPENAPI-007-settings-user-context-pruning.md
-      discovery:
-        packages:
-          - migrations
-          - backend/cmd/migrate
-          - backend/internal/migrations
-          - scripts/lint
-          - Makefile
-        uiRoutes: []
-        apiNames: []

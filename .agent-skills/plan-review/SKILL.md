@@ -117,9 +117,8 @@ Read the validated files for the current target:
 - `plan`
 - `checklist`
 - `spec` when present
-- `test-plan`, `test-checklist`, `bdd-plan`, `bdd-checklist`, and `reference` files when present
-- `docs/spec/{subspec}/plans/{plan}/context.yaml` itself when the finding or fix involves target
-  wiring, branch metadata, or target discovery fields
+- `test-plan`, `test-checklist`, `bdd-plan`, and `bdd-checklist` files when present
+- `docs/spec/{subspec}/plans/{plan}/context.yaml` itself when the finding or fix involves target wiring or minimal-schema drift
 
 ### Step 5: Branch by mode
 
@@ -153,7 +152,7 @@ Baseline rule:
 - Do not pre-filter the review through deterministic markdown-format checks.
 - Reconstruct the expected coverage matrix from the current spec, plan, checklist,
   test-plan/test-checklist, bdd-plan/bdd-checklist, risks, non-goals, and
-  context discovery. Treat this matrix as review evidence even when older plans
+  current Markdown and repository facts. Treat this matrix as review evidence even when older plans
   did not explicitly include a `Coverage Matrix` heading.
 
 Coverage-matrix review:

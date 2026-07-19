@@ -1,70 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: ai-provider-and-model-routing
   name: 003-provider-registry-and-capability-profiles
-  sequence: 3
-  baseBranch: main
-  branch: runtime-size-limits
-  specVersion:
-    from: 1.8
-    to: 2.29
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - ai-provider-and-model-routing
-      - provider-registry
-      - capability-profiles
-      - ai-providers
-      - model-profiles
-    keywords:
-      - provider registry
-      - capability
-      - model profile
-      - provider ref
-      - central fallback
-      - AI_PROVIDER_REGISTRY_PATH
-      - AI_MODEL_PROFILE_PATH
-      - F3 profile coverage
-      - ai-profiles.yaml
-      - profile catalog consolidation
-      - fail-closed profile
-      - realtime_audio_disabled
-      - six active profiles max_tokens floor 16384
-      - typed profile defaults
-      - context_window_tokens 1000000
-      - typed profile code defaults
-      - profile loader fallback invalid contract
-      - ai max response body bytes 4194304
-      - report.generate.default thinking disabled
-      - openai compatible thinking wire
-      - judge.default thinking disabled json_object
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      references:
-        - ../../../product-scope/spec.md
-        - ../../../secrets-and-config/spec.md
-        - ../../../shared-conventions-codified/spec.md
-        - ../../../prompt-rubric-registry/spec.md
-        - ../../../engineering-roadmap/spec.md
-        - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
-        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
-        - ../../../../ui-design/INDEX.md
-        - ../../../../ui-design/module-map.md
-        - ../../../../ui-design/module-practice-review.md
-        - ../../../../ui-design/report-dashboard.md
-        - ../../../../ui-design/resume-module.md
-      discovery:
-        packages:
-          - backend/internal/ai/aiclient
-          - backend/internal/platform/config
-          - config/ai-profiles.yaml
-          - config/ai-providers.yaml
-          - shared
-          - backend/internal/review
-        uiRoutes: []
-        apiNames: []

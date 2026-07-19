@@ -1,54 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: frontend-shell
   name: 004-url-addressable-routing
-  sequence: 4
-  baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
-  specVersion:
-    from: 1.28
-    to: 1.29
 spec:
   defaultTarget: frontend
-  discovery:
-    aliases:
-      - frontend-shell
-      - url-addressable-routing
-      - browser history routing
-      - canonical frontend URL
-      - SPA deep link routing
-    keywords:
-      - Browser History
-      - pushState
-      - replaceState
-      - popstate
-      - deep link
-      - canonical path
-      - fragment ignored
-      - canonical fragment stripping
-      - pendingAction
-      - unsupported route params rejected
-      - safe route params
-      - reports targetJobId only
-      - protected reports deep link
-      - invalid reports target replace workspace
-      - no reports back loop
-      - no reports TopBar entry
-      - no section reports compatibility
-      - report generating reportId only
-      - workspace targetJobId detail
-      - workspace list query split
-      - parse targetJobId command progress
-      - ready replace workspace detail
-      - planId resumeId stripping
-      - reportId
-      - reportStatus
-      - pendingImportId
-      - resumeId
-      - sourceReportId
-      - URL privacy
-      - phone mode safe params
   targets:
     frontend:
       plan: ./plan.md
@@ -56,34 +11,3 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../../development.md
-        - ../../../../ui-design/auth-and-entry.md
-        - ../../../../ui-design/module-map.md
-        - ../001-app-shell-auth-settings/plan.md
-        - ../003-ui-design-responsive-browser-gate/plan.md
-      discovery:
-        packages:
-          - frontend/src/app/routes.ts
-          - frontend/src/app/normalizeRoute.ts
-          - frontend/src/app/App.tsx
-          - frontend/src/app/navigation/NavigationProvider.tsx
-          - frontend/src/main.tsx
-          - frontend/src/app/screens/parse
-          - frontend/src/app/screens/workspace
-          - frontend/src/app/routeStore.test.ts
-        uiRoutes:
-          - home
-          - workspace
-          - resume_versions
-          - parse
-          - practice
-          - reports
-          - generating
-          - report
-          - settings
-          - auth_login
-          - auth_verify
-          - auth_profile_setup
-          - auth_logout
-        apiNames: []

@@ -1,104 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: mock-contract-suite
   name: 001-fixture-backed-mock-runtime
-  sequence: 1
-  baseBranch: main
-  branch: design/report-conversation-record
-  specVersion:
-    from: 1.19
-    to: 1.20
 spec:
   defaultTarget: tooling
-  discovery:
-    aliases:
-      - mock-contract-suite
-      - fixture-backed-mock-runtime
-      - contract-backed mock runway
-    keywords:
-      - OpenAPI fixtures
-      - fixture-backed mock
-      - mock transport
-      - frontend dev preview
-      - Vite dev mock
-      - operationId registry
-      - prototype data boundary
-      - P0 mock runway
-      - 37 operation fixtures
-      - VITE_EI_API_BASE_URL
-      - OPENAPI-002 TargetJob paste only
-      - flattened rawText targetLanguage resumeId
-      - remove URL file manual_form source variants
-      - remove TargetJob sourceType sourceUrl
-      - remove target_job_attachment purpose
-      - preserve createUploadPresign resume privacy
-      - TargetJob mock zero reference
-      - Practice durable reply status mock parity
-      - retryable failure reload same ID retry
-      - code level mock parity
-      - BDD not applicable
-      - report conversation mock parity
-      - remove listPracticeSessions registry
-      - getReportConversation exact fixture status body
-      - deleted operation fail loudly
   targets:
     tooling:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      references:
-        - ../../../engineering-roadmap/spec.md
-        - ../../../product-scope/spec.md
-        - ../../../openapi-v1-contract/spec.md
-        - ../../../openapi-v1-contract/history.md
-        - ../../../openapi-v1-contract/decisions/OPENAPI-002-targetjob-paste-only.md
-        - ../../../openapi-v1-contract/decisions/OPENAPI-001-report-direct-semantics.md
-        - ../../../shared-conventions-codified/spec.md
-      discovery:
-        packages:
-          - openapi/fixtures
-          - frontend/src/api
-          - frontend/src/main.tsx
-          - backend/internal/api
-          - scripts/lint
-          - scripts/mock_contract
-        uiRoutes: []
-        apiNames:
-          - getMe
-          - completeMyProfile
-          - deleteMe
-          - startAuthEmailChallenge
-          - verifyAuthEmailChallenge
-          - logout
-          - createUploadPresign
-          - listResumes
-          - registerResume
-          - getResume
-          - getResumeSource
-          - updateResume
-          - duplicateResume
-          - archiveResume
-          - exportResume
-          - importTargetJob
-          - listTargetJobs
-          - getTargetJob
-          - updateTargetJob
-          - archiveTargetJob
-          - createPracticePlan
-          - getPracticePlan
-          - startPracticeSession
-          - getPracticeSession
-          - createPracticeVoiceTurn
-          - sendPracticeMessage
-          - completePracticeSession
-          - getFeedbackReport
-          - getReportConversation
-          - listTargetJobReports
-          - requestResumeTailor
-          - getResumeTailorRun
-          - getJob
-          - requestPrivacyExport
-          - requestPrivacyDelete
-          - getPrivacyRequest
-          - getRuntimeConfig

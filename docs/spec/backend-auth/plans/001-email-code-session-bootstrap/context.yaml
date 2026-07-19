@@ -1,52 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: backend-auth
   name: 001-email-code-session-bootstrap
-  sequence: 1
-  baseBranch: main
-  branch: backend-auth-production-smtp
-  specVersion:
-    from: 2.3
-    to: 2.7
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - backend-auth
-      - email-code-session-bootstrap
-      - auth session cookie
-    keywords:
-      - email-code challenge
-      - email code
-      - first-party session cookie
-      - pendingAction backend
-      - runtime config
-      - auth challenge
-      - logout
-      - deleteMe auth handoff
-      - email_dispatch
-      - email_dispatch runner
-      - dev mail sink delivery
-      - EMAIL_PROVIDER mailpit smtp
-      - EMAIL_SMTP_USERNAME
-      - EMAIL_SMTP_PASSWORD
-      - EMAIL_SMTP_TLS_MODE
-      - production smtp starttls implicit tls
-      - localized smtp mime rfc 2047 quoted printable
-      - redis delivery secret
-      - cross instance email dispatch
-      - encrypted six digit code
-      - delivery secret ttl
-      - protected session middleware
-      - unified email login
-      - profileCompletionRequired
-      - completeMyProfile
-      - first-login profile setup
-      - OPENAPI-007 minimal UserContext
-      - remove uiLanguage preferredPracticeLanguage
-      - keep analytics opt in runtime resolver
-      - settings real account fields
   targets:
     backend:
       plan: ./plan.md
@@ -54,39 +11,3 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../engineering-roadmap/spec.md
-        - ../../../engineering-roadmap/decisions/ADR-Q1-auth.md
-        - ../../../product-scope/spec.md
-        - ../../../frontend-shell/spec.md
-        - ../../../openapi-v1-contract/spec.md
-        - ../../../event-and-outbox-contract/spec.md
-        - ../../../db-migrations-baseline/spec.md
-        - ../../../secrets-and-config/spec.md
-        - ../../../shared-conventions-codified/spec.md
-        - ../../../observability-stack/spec.md
-        - ../../../openapi-v1-contract/decisions/OPENAPI-007-settings-user-context-pruning.md
-      discovery:
-        packages:
-          - backend/cmd/api
-          - backend/internal/api
-          - test/scenarios/e2e/p0-101-auth-email-code-profile-setup
-          - backend/internal/platform/config
-          - backend/internal/platform/secrets
-          - backend/internal/auth/redis_delivery_secret_store.go
-          - backend/internal/shared/jobs
-          - migrations
-        uiRoutes:
-          - auth_login
-          - auth_verify
-          - auth_profile_setup
-          - auth_logout
-          - settings
-        apiNames:
-          - startAuthEmailChallenge
-          - verifyAuthEmailChallenge
-          - getMe
-          - completeMyProfile
-          - deleteMe
-          - logout
-          - getRuntimeConfig

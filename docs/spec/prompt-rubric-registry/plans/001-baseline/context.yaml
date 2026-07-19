@@ -1,72 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: prompt-rubric-registry
   name: 001-baseline
-  sequence: 1
-  specVersion:
-    from: 2.41
-    to: 2.42
-  branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - prompt-rubric-registry
-      - prompt-rubric
-      - F3-baseline
-      - 001-baseline
-    keywords:
-      - prompt registry
-      - rubric registry
-      - ResolveActive
-      - template_hash
-      - feature_key
-      - feature_flag
-      - data_source_version
-      - ai_task_runs typed provenance
-      - model_profile_name
-      - lint-prompts
-      - lint-rubrics
-      - lint-prompts-hardcode
-      - lint-ai-profile-coverage
-      - prompt_versions
-      - rubric_versions
-      - GenerationProvenance
-      - RegistryAdapter
-      - config roots testing TB
-      - language fallback multi
-      - 6 baseline feature keys
-      - target import raw JD text
-      - jd_text
-      - target_language output instruction
-      - prompt hash seed resolved snapshot
-      - source metadata zero reference
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      references:
-        - ../../../ai-provider-and-model-routing/spec.md
-        - ../../../backend-targetjob/spec.md
-        - ../../../db-migrations-baseline/spec.md
-        - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
-        - ../../../shared-conventions-codified/spec.md
-      discovery:
-        packages:
-          - backend/internal/testsupport
-          - backend/internal/ai/registry
-          - backend/internal/ai/aiclient
-          - backend/internal/shared/ai
-          - backend/internal/targetjob
-          - backend/cmd/api
-          - shared/conventions.yaml
-          - config/prompts
-          - config/rubrics
-          - scripts/lint
-          - migrations
-        uiRoutes: []
-        apiNames:
-          - importTargetJob
-          - getTargetJob

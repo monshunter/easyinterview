@@ -1,49 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: backend-runtime-topology
   name: 001-worker-consolidation
-  sequence: 1
-  specVersion:
-    from: null
-    to: 1.8
-  baseBranch: main
-  branch: backend-worker-consolidation
 spec:
   defaultTarget: repo
-  discovery:
-    aliases:
-      - backend-runtime-topology
-      - worker-consolidation
-      - backend internal runner
-      - worker process removal
-    keywords:
-      - standalone process listen env
-      - standalone process listen config
-      - standalone process entrypoint
-      - backend_async
-      - backend internal runner
-      - app-produced metrics
-      - Prometheus not dev dependency
-      - OTel optional profile
-      - async-runtime shorthand
-      - out-of-scope producer value fixtures
-      - scripts runtime topology lint
   targets:
     repo:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      discovery:
-        packages:
-          - backend/cmd
-          - backend/internal/platform/config
-          - backend/internal/shared/events
-          - frontend/src/lib/events
-          - scripts/lint
-          - shared/events.yaml
-          - config
-          - deploy/dev-stack
-          - docs/spec
-        uiRoutes: []
-        apiNames: []

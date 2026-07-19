@@ -107,7 +107,6 @@ evidence of frontend/backend closure.
 1. Main scope: checklist phases with at least one `[x]` item.
 2. Gather concrete code scope from the strongest available sources, in this order:
    - `--base-rev` git diff filtered to files relevant to the current target
-   - target-level discovery in `context.yaml` (`packages`, `uiRoutes`, `apiNames`)
    - plan task declarations such as `**文件**:`
 3. Expand the scope from implementation files to artifact files that prove the
    behavior: generated output, fixtures, baselines, migrations/DDL, config,
@@ -119,8 +118,7 @@ evidence of frontend/backend closure.
 Code scope sources:
 
 - **Source A (git diff)**: if `--base-rev` is provided, `git diff --name-only {base}..HEAD`
-- **Source B (context discovery)**: target `packages` plus other target discovery hints from validated `context.yaml`
-- **Source C (plan declarations)**: `**文件**:` exact paths when present
+- **Source B (plan declarations)**: `**文件**:` exact paths when present
 
 ### Step 4: Execute L2 semantic review directly
 
@@ -130,7 +128,7 @@ For each in-scope phase:
 2. Read relevant spec sections.
 3. Read plan task descriptions.
 4. Read checklist items and completion status.
-5. Merge git diff and target discovery context when present.
+5. Merge git diff and plan-declared file scope when present.
 6. Build an artifact map that connects each completed checklist item to concrete
    source code, generated output, fixtures, baselines, DDL/config, scripts,
    README entries, and tests.
@@ -317,7 +315,7 @@ When the user accepts a fix proposal:
 2. If an item is incorrectly marked `[x]`, the preview must offer either:
    - reopen the item, or
    - append a remediation item
-3. When a finding is supported only by target-level discovery or git diff, ask the user to confirm the checklist section before routing to `/tdd --section`.
+3. When a finding is supported only by git diff, ask the user to confirm the checklist section before routing to `/tdd --section`.
 4. Invoke:
 
 ```text

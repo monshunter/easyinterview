@@ -1,60 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: frontend-shell
   name: 003-ui-design-responsive-browser-gate
-  sequence: 3
-  baseBranch: main
-  branch: ui-design-source-pruning
-  specVersion:
-    from: 1.30
-    to: 1.31
 spec:
   defaultTarget: frontend
-  discovery:
-    aliases:
-      - frontend-shell
-      - ui-design-responsive-browser-gate
-      - UI Demo pruning
-      - documentation-owned UI design
-    keywords:
-      - delete ui-design demo
-      - remove responsive browser verification
-      - docs ui design architecture
-      - UI design process
-      - prototype fixture sync removal
-      - source traceability removal
   targets:
     frontend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      references:
-        - ../../../../ui-design/README.md
-        - ../../../../ui-design/INDEX.md
-        - ../../../../ui-design/ui-architecture.md
-        - ../002-app-shell-visual-system/plan.md
-        - ../002-app-shell-visual-system/checklist.md
-        - ../002-app-shell-visual-system/bdd-plan.md
-        - ../002-app-shell-visual-system/bdd-checklist.md
-      discovery:
-        packages:
-          - AGENTS.md
-          - docs/ui-design
-          - docs/development.md
-          - frontend/README.md
-          - frontend/src/main.tsx
-          - frontend/scripts
-          - scripts/codegen
-          - scripts/lint
-          - Makefile
-        uiRoutes:
-          - home
-          - workspace
-          - resume_versions
-          - settings
-          - auth_login
-          - auth_verify
-          - auth_profile_setup
-          - auth_logout
-        apiNames: []

@@ -47,76 +47,16 @@ class ValidationError(Exception):
         self.lines = lines
 
 
-def validate_optional_string_field(
+def reject_unknown_fields(
     owner: dict,
-    field_name: str,
+    allowed: set[str],
     prefix: str,
     errors: list[str],
 ):
-    """Validate an optional field that must be a string."""
-    value = owner.get(field_name)
-    if value is None:
-        return
-    if not isinstance(value, str):
-        errors.append(f"{prefix}.{field_name} must be a string")
-
-
-def validate_string_list_field(
-    owner: dict,
-    field_name: str,
-    prefix: str,
-    errors: list[str],
-    *,
-    require_md_suffix: bool = False,
-):
-    """Validate an optional discovery field that must be a list of strings."""
-    value = owner.get(field_name)
-    if value is None:
-        return
-    if not isinstance(value, list):
-        errors.append(f"{prefix}.{field_name} must be a list of strings")
-        return
-
-    for index, item in enumerate(value):
-        if not isinstance(item, str):
-            errors.append(f"{prefix}.{field_name}[{index}] must be a string")
-            continue
-        if require_md_suffix and not item.endswith(".md"):
-            errors.append(f"{prefix}.{field_name}[{index}] must end with .md")
-
-
-def validate_discovery_block(
-    owner: dict,
-    field_name: str,
-    prefix: str,
-    errors: list[str],
-    known_fields: dict[str, dict],
-    unsupported_fields: dict[str, str] | None = None,
-):
-    """Validate a discovery metadata block when present.
-
-    Discovery is intentionally forward-compatible: unknown keys are preserved and
-    ignored by the shared validator, while known keys get basic type checks.
-    """
-    discovery = owner.get(field_name)
-    if discovery is None:
-        return
-    if not isinstance(discovery, dict):
-        errors.append(f"{prefix}.{field_name} must be a mapping")
-        return
-
-    for known_field, options in known_fields.items():
-        validate_string_list_field(
-            discovery,
-            known_field,
-            f"{prefix}.{field_name}",
-            errors,
-            require_md_suffix=options.get("require_md_suffix", False),
-        )
-
-    for unsupported_field, error_message in (unsupported_fields or {}).items():
-        if unsupported_field in discovery:
-            errors.append(f"{prefix}.{field_name}.{unsupported_field} {error_message}")
+    """Reject fields outside the exact minimal manifest contract."""
+    for field_name in sorted(set(owner) - allowed):
+        qualified = f"{prefix}.{field_name}" if prefix else field_name
+        errors.append(f"{qualified} is not allowed")
 
 
 def uniq_preserve_order(items: list[str]) -> list[str]:
@@ -147,17 +87,12 @@ def load_manifest(context_path: str) -> dict:
 def validate_schema(data: dict) -> list[str]:
     """Validate required fields and structure. Returns list of errors."""
     errors = []
-    top_level_discovery_fields = {
-        "aliases": {},
-        "keywords": {},
-        "relatedBugs": {},
-        "relatedSpecs": {"require_md_suffix": True},
-    }
-    target_discovery_fields = {
-        "packages": {},
-        "uiRoutes": {},
-        "apiNames": {},
-    }
+    reject_unknown_fields(
+        data,
+        {"apiVersion", "kind", "metadata", "spec"},
+        "",
+        errors,
+    )
 
     api_version = data.get("apiVersion")
     if api_version != REQUIRED_API_VERSION:
@@ -172,14 +107,16 @@ def validate_schema(data: dict) -> list[str]:
     metadata = data.get("metadata")
     if not isinstance(metadata, dict) or not metadata.get("name"):
         errors.append("metadata.name is required")
-    elif isinstance(metadata, dict):
-        validate_optional_string_field(metadata, "baseBranch", "metadata", errors)
-        validate_optional_string_field(metadata, "branch", "metadata", errors)
+    elif not isinstance(metadata["name"], str):
+        errors.append("metadata.name must be a string")
+    if isinstance(metadata, dict):
+        reject_unknown_fields(metadata, {"name"}, "metadata", errors)
 
     spec = data.get("spec")
     if not isinstance(spec, dict):
         errors.append("spec is required and must be a mapping")
         return errors
+    reject_unknown_fields(spec, {"defaultTarget", "targets"}, "spec", errors)
 
     default_target = spec.get("defaultTarget")
     if not default_target:
@@ -196,18 +133,24 @@ def validate_schema(data: dict) -> list[str]:
             f"Available targets: {', '.join(sorted(targets.keys()))}"
         )
 
-    validate_discovery_block(
-        spec,
-        "discovery",
-        "spec",
-        errors,
-        known_fields=top_level_discovery_fields,
-    )
-
     for name, target in targets.items():
         if not isinstance(target, dict):
             errors.append(f"spec.targets.{name} must be a mapping")
             continue
+        reject_unknown_fields(
+            target,
+            {
+                "plan",
+                "checklist",
+                "spec",
+                "testPlan",
+                "testChecklist",
+                "bddPlan",
+                "bddChecklist",
+            },
+            f"spec.targets.{name}",
+            errors,
+        )
         if not target.get("plan"):
             errors.append(f"spec.targets.{name}.plan is required")
         if not target.get("checklist"):
@@ -247,32 +190,6 @@ def validate_schema(data: dict) -> list[str]:
                 errors.append(f"spec.targets.{name}.bddChecklist must be a string")
             elif not bdd_checklist.endswith(".md"):
                 errors.append(f"spec.targets.{name}.bddChecklist must end with .md")
-
-        refs = target.get("references")
-        if refs is not None:
-            if not isinstance(refs, list):
-                errors.append(f"spec.targets.{name}.references must be a list")
-            else:
-                for i, ref in enumerate(refs):
-                    if not isinstance(ref, str):
-                        errors.append(
-                            f"spec.targets.{name}.references[{i}] must be a string path"
-                        )
-                    elif not ref.endswith(".md"):
-                        errors.append(
-                            f"spec.targets.{name}.references[{i}] must end with .md"
-                        )
-
-        validate_discovery_block(
-            target,
-            "discovery",
-            f"spec.targets.{name}",
-            errors,
-            known_fields=target_discovery_fields,
-            unsupported_fields={
-                "commands": "is unsupported and must not be used",
-            },
-        )
 
     return errors
 
@@ -410,20 +327,6 @@ def collect_target_files(
         elif not os.path.isfile(bdd_checklist_path):
             missing.append(f"  - {bdd_checklist_path}")
 
-    for ref_rel in target_data.get("references", []):
-        ref_path = resolve_path(plan_dir, ref_rel)
-        files.append({"role": "reference", "path": ref_path})
-        if not ref_path.endswith(".md"):
-            non_markdown.append(
-                f"  - {ref_rel} resolves to {ref_path} (expected *.md)"
-            )
-        elif not check_path_boundary(ref_path, docs_root):
-            boundary_errors.append(
-                f"  - {ref_rel} resolves to {ref_path} which is outside {docs_root}/"
-            )
-        elif not os.path.isfile(ref_path):
-            missing.append(f"  - {ref_path}")
-
     return files, missing, boundary_errors, non_markdown
 
 
@@ -558,14 +461,8 @@ def validate_context(
             "name": data["metadata"]["name"],
             "target": target,
             "defaultTarget": spec["defaultTarget"],
-            "discovery": spec.get("discovery", {}),
-            "targetDiscovery": targets[target].get("discovery", {}),
             "files": files,
         }
-        if "baseBranch" in data["metadata"]:
-            result["baseBranch"] = data["metadata"]["baseBranch"]
-        if "branch" in data["metadata"]:
-            result["branch"] = data["metadata"]["branch"]
         return result
 
     all_boundary = []
@@ -604,10 +501,6 @@ def validate_context(
         "defaultTarget": spec["defaultTarget"],
         "targets": sorted(targets.keys()),
     }
-    if "baseBranch" in data["metadata"]:
-        result["baseBranch"] = data["metadata"]["baseBranch"]
-    if "branch" in data["metadata"]:
-        result["branch"] = data["metadata"]["branch"]
     return result
 
 

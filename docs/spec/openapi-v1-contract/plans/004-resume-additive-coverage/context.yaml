@@ -1,92 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: openapi-v1-contract
   name: 004-resume-additive-coverage
-  sequence: 4
-  baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
-  specVersion:
-    from: 1.58
-    to: 1.59
 spec:
   defaultTarget: contract
-  discovery:
-    aliases:
-      - openapi-v1-contract
-      - 004-resume-additive-coverage
-      - flat-resume-contract
-      - current-resume-openapi
-      - listResumes
-      - resume-tailor
-      - resumeId
-      - updateResume
-      - duplicateResume
-      - archiveResume
-      - exportResume
-      - getResumeSource
-      - RESUME_EXPORT_NOT_AVAILABLE
-      - OPENAPI-005
-      - ResumeSummary
-      - resume list summary detail split
-    keywords:
-      - flat resume contract
-      - current resume operations
-      - openapi 37 operations
-      - openapi 10 tags
-      - Resume schema
-      - PaginatedResume
-      - RegisterResumeRequest
-      - UpdateResumeRequest
-      - DuplicateResumeRequest
-      - requestResumeTailor
-      - getResumeTailorRun
-      - resume picker current list
-      - resume provenance schema
-      - resume idempotency-key
-      - resume archive endpoint
-      - resume export typed 501
-      - current operation matrix
-      - closed nine field resume summary
-      - listResumes summary only
-      - getResume full detail
-      - summaryHeadline nullable
-      - hasReadableContent backend projection
-      - no list detail compatibility
-      - no N plus one getResume fallback
   targets:
     contract:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      references:
-        - ../../decisions/OPENAPI-005-resume-list-summary.md
-        - ../../../shared-conventions-codified/spec.md
-        - ../../../mock-contract-suite/spec.md
-        - ../../../engineering-roadmap/spec.md
-        - ../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md
-      discovery:
-        packages:
-          - openapi
-          - openapi/fixtures/Resumes
-          - openapi/fixtures/ResumeTailor
-          - openapi/baseline
-          - scripts/lint
-          - backend/internal/api/generated
-          - frontend/src/api/generated
-          - docs/spec/openapi-v1-contract
-          - docs/spec/shared-conventions-codified
-          - docs/spec/mock-contract-suite
-          - docs/spec/engineering-roadmap
-        uiRoutes: []
-        apiNames:
-          - listResumes
-          - registerResume
-          - getResume
-          - getResumeSource
-          - updateResume
-          - duplicateResume
-          - archiveResume
-          - exportResume
-          - requestResumeTailor
-          - getResumeTailorRun

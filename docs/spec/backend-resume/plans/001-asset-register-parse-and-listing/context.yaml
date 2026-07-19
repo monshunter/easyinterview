@@ -1,69 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: backend-resume
   name: 001-asset-register-parse-and-listing
-  sequence: 1
-  specVersion:
-    from: 2.8
-    to: 2.9
-  branch: runtime-size-limits
 spec:
   defaultTarget: backend
-  discovery:
-    aliases:
-      - backend-resume
-      - 001-asset-register-parse-and-listing
-      - registerResume
-      - getResume
-      - getResumeSource
-      - listResumes
-      - ResumeSummary
-      - PaginatedResume items ResumeSummary
-      - resume.parse
-      - resume.parse.completed
-      - sourceType
-      - C7
-      - D-20
-      - resumes
-      - resumeId
-      - structured_profile flatten
-      - llm derived displayName
-    keywords:
-      - resume register handler
-      - resume get handler
-      - resume source PDF preview handler
-      - resume list handler cursor pagination
-      - closed resume summary list projection
-      - list get responsibility separation
-      - summaryHeadline hasReadableContent
-      - list forbidden detail fields absent
-      - getResume full detail only
-      - resume parse async job
-      - resume parse completed event
-      - cmd/api resume route wiring
-      - in-process resume parse runner kernel
-      - RegisterFileObject object stat size mismatch
-      - sourceType upload paste
-      - aiclient resume parse feature key
-      - ai_task_runs typed columns
-      - parse derived display_name
-      - generic pasted uploaded resume title filtered
-      - cross user isolation 404
-      - parse_status state machine
-      - workspace 001 listResumes unblock
-      - idempotency key replay
-      - mock first byte parity
-      - PII boundary no raw text
-      - real resume output token budget
-      - long resume strict JSON truncation
-      - deterministic full resume snapshot
-      - one million context input integrity
-      - long input tail marker
-      - finish reason length fail closed
-      - resume upload bytes 10485760
-      - resume paste extracted bytes 393216
-      - typed resume limit defaults
   targets:
     backend:
       plan: ./plan.md
@@ -71,24 +11,3 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      discovery:
-        packages:
-          - backend/internal/resume
-          - backend/internal/resume/handler
-          - backend/internal/resume/store
-          - backend/internal/resume/jobs
-          - backend/cmd/api
-          - backend/internal/api/generated
-          - backend/internal/ai
-          - backend/internal/upload
-          - backend/internal/shared/events
-          - openapi/fixtures/Resumes
-          - shared
-          - migrations
-          - config
-        uiRoutes: []
-        apiNames:
-          - registerResume
-          - getResume
-          - getResumeSource
-          - listResumes

@@ -1,47 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: frontend-resume-workshop
   name: 002-create-flow
-  sequence: 2
-  specVersion:
-    from: 2.15
-    to: 2.16
-  branch: runtime-size-limits
 spec:
   defaultTarget: frontend
-  discovery:
-    aliases:
-      - frontend-resume-workshop
-      - 002-create-flow
-      - ResumeCreateFlow
-      - resume-create-direct-detail
-      - resume-create-flow
-      - resume-1-minute-create
-      - home-resume-create-cta
-    keywords:
-      - resume create flow upload paste
-      - createUploadPresign frontend hook
-      - browser PUT signed url
-      - registerResume hook upload paste
-      - direct detail navigation after registerResume
-      - static prototype Save and open
-      - create-to-detail waiting ready state
-      - parser animation absent
-      - preview confirm absent
-      - generic pasted resume title absent
-      - home create CTA
-      - historical full Resume selection superseded by ResumeSummary
-      - resume create auth pending action
-      - resume create privacy red line
-      - resume create i18n en zh
-      - resume create a11y tablist focus
-      - resume create ui parity desktop mobile
-      - mock-first fixture parity
-      - real backend generated client gate
-      - resumeUploadBytes 10485760
-      - resumePasteTextBytes 393216
-      - utf8 byte validation
   targets:
     frontend:
       plan: ./plan.md
@@ -49,20 +11,3 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      discovery:
-        packages:
-          - frontend/src/app/screens/resume-workshop
-          - frontend/src/app/screens/resume-workshop/create
-          - frontend/src/app/screens/home
-          - frontend/src/app/i18n
-          - frontend/src/api/generated
-          - frontend/tests/responsive-browser
-          - frontend/src
-          - docs/ui-design
-        uiRoutes:
-          - resume_versions
-          - home
-        apiNames:
-          - createUploadPresign
-          - registerResume
-          - listResumes

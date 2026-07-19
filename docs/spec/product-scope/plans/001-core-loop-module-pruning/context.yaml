@@ -1,38 +1,9 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: product-scope
   name: 001-core-loop-module-pruning
-  sequence: 1
-  branch: design/report-conversation-record
-  baseBranch: main
-  specVersion:
-    from: 2.22
-    to: 2.23
 spec:
   defaultTarget: cross-layer
-  discovery:
-    aliases:
-      - product-scope
-      - core-loop-module-pruning
-      - module-pruning
-    keywords:
-      - product scope
-      - core loop
-      - scope boundary
-      - out-of-scope negative
-      - zero-reference gate
-      - current contract
-      - technical debt pruning
-      - parse command progress
-      - workspace targetJobId readonly detail
-      - ready replace workspace
-      - reports back workspace
-      - practice terminal recovery
-      - report owned conversation record
-      - no public practice session list
-      - ocean plum custom accent
-      - hue saturation only
   targets:
     cross-layer:
       plan: ./plan.md
@@ -40,77 +11,3 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      discovery:
-        packages:
-          - docs/spec/product-scope
-          - docs/spec/engineering-roadmap
-          - docs/ui-design
-          - frontend/src
-          - scripts/lint/ui_demo_pruning.py
-          - frontend/src
-          - frontend/tests
-          - openapi
-          - shared
-          - backend
-          - migrations
-          - config
-          - test/scenarios/e2e
-          - .tool-versions
-          - go.work
-          - backend/go.mod
-          - Makefile
-          - requirements-dev.txt
-          - scripts
-          - .agent-skills
-        uiRoutes:
-          - home
-          - workspace
-          - resume_versions
-          - parse
-          - practice
-          - generating
-          - report
-          - report-conversation
-          - settings
-          - auth_login
-          - auth_verify
-          - auth_profile_setup
-          - auth_logout
-        apiNames:
-          - getMe
-          - completeMyProfile
-          - deleteMe
-          - startAuthEmailChallenge
-          - verifyAuthEmailChallenge
-          - logout
-          - createUploadPresign
-          - listResumes
-          - registerResume
-          - getResume
-          - getResumeSource
-          - updateResume
-          - duplicateResume
-          - archiveResume
-          - exportResume
-          - importTargetJob
-          - listTargetJobs
-          - getTargetJob
-          - updateTargetJob
-          - archiveTargetJob
-          - createPracticePlan
-          - getPracticePlan
-          - startPracticeSession
-          - getPracticeSession
-          - createPracticeVoiceTurn
-          - appendSessionEvent
-          - completePracticeSession
-          - getFeedbackReport
-          - getReportConversation
-          - listTargetJobReports
-          - requestResumeTailor
-          - getResumeTailorRun
-          - getJob
-          - requestPrivacyExport
-          - requestPrivacyDelete
-          - getPrivacyRequest
-          - getRuntimeConfig

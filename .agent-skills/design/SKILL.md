@@ -42,7 +42,7 @@ piece of discussion content to the Brief fields below.
 | `non_goals` | Explicitly excluded scope | spec Non-goals |
 | `interfaces` | API / data structure definitions | spec 5 |
 | `source_spec` | Existing spec path to reuse when no new spec is generated | context.yaml `spec` + summary |
-| `components` | Involved components mapped to main code areas | plan phases + context discovery |
+| `components` | Involved components mapped to main code areas | plan phases + implementation scope |
 | `coverage_matrix` | Primary flows, alternate flows, failure paths, edge conditions, regressions, and out-of-scope boundaries | plan/checklist/test-plan/bdd coverage |
 | `test_surface` | Unit / contract / integration / scenario / lint / drift / smoke verification needed for each coverage row | test-plan + checklist + BDD-Gate |
 | `risks` | Risks and mitigations | plan Risks |
@@ -238,10 +238,8 @@ owns the repository's document creation mechanics.
 - Generator reference: `.agent-skills/implement/shared/scripts/generate_context_yaml.py`
 - `spec` must point to either `../../spec.md` or `source_spec`; if neither exists, stop and ask for clarification before writing the plan set
 - Include `bddPlan` and `bddChecklist` fields only when BDD artifacts are generated
-- Fill `spec.discovery` with aliases and keywords from the Brief
-- Fill `spec.targets.<target>.discovery.packages` from the component list
-- Add `uiRoutes` / `apiNames` only when they are stable retrieval identifiers
-- Do not write `commands` into `context.yaml`; runtime commands belong to repo README / scenario docs
+- `metadata` must contain only `name`; derive subject and plan order from the path
+- Do not add top-level or target-level `discovery`, target `references`, branch hints, Spec versions, commands, or custom fields
 
 ### Step 5: Update INDEX Files
 

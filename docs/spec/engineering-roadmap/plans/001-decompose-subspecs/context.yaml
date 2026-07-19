@@ -1,53 +1,11 @@
 apiVersion: plancontext.agent.dev/v1alpha1
 kind: PlanContext
 metadata:
-  subspec: engineering-roadmap
   name: 001-decompose-subspecs
-  sequence: 1
-  specVersion:
-    from: null
-    to: 3.37
 spec:
   defaultTarget: docs
-  discovery:
-    aliases:
-      - engineering-roadmap
-      - 001-decompose-subspecs
-      - subspec-decomposition
-      - roadmap
-    keywords:
-      - subspec decomposition
-      - 工程拆分
-      - current execution map
-      - roadmap current map
-      - no-pending INDEX model
-      - on-demand child spec
-      - mock-first 集成
-      - dependency dag
-      - local dev stack
-      - minimal dependencies
-      - AI provider
-      - unit-test stub
-      - local quality gate
-      - deferred CI
-      - model routing
-      - self-hosted PostHog
-      - product-scope alignment
-      - ui-design alignment
-      - owner matrix
-      - out-of-scope-name zero-reference
-      - technical draft zero-reference
-      - out-of-scope route boundary
-      - current owner spec
-      - pruning gate
   targets:
     docs:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
-      discovery:
-        packages:
-          - docs/spec/engineering-roadmap
-          - docs/spec
-        uiRoutes: []
-        apiNames: []
