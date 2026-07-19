@@ -109,25 +109,45 @@ describe("TopBar primary nav", () => {
   });
 });
 
-describe("TopBar user menu", () => {
-  it("renders one accessible settings gear for signed-in users without an account menu", async () => {
+describe("TopBar account entry", () => {
+  it("renders the signed-in user's first character in the single accessible settings entry", async () => {
     const onNavigate = vi.fn();
     renderInProvider(
       <TopBar
         activeRoute="home"
         onNavigate={onNavigate}
         signedIn={true}
+        userDisplayName="  谭小马  "
       />,
     );
 
     const settings = screen.getByRole("button", { name: /^设置$|^settings$/i });
     expect(settings).toHaveAttribute("data-testid", "topbar-settings");
+    expect(settings).toHaveTextContent(/^谭$/);
+    expect(settings).not.toHaveTextContent("谭小马");
     expect(screen.queryByTestId("topbar-user-chip")).not.toBeInTheDocument();
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
     expect(screen.queryByTestId("topbar-user-logout")).not.toBeInTheDocument();
 
     await userEvent.setup().click(settings);
     expect(onNavigate).toHaveBeenCalledWith({ name: "settings", params: {} });
+  });
+
+  it.each([
+    ["alice Example", "A"],
+    ["  élise", "É"],
+    ["", "?"],
+    ["   ", "?"],
+  ])("derives an initial from %j as %s", (userDisplayName, expected) => {
+    renderInProvider(
+      <TopBar
+        activeRoute="home"
+        onNavigate={() => {}}
+        signedIn={true}
+        userDisplayName={userDisplayName}
+      />,
+    );
+    expect(screen.getByTestId("topbar-settings").textContent).toBe(expected);
   });
 
   it("renders the single login entry when signed-out", () => {
@@ -160,6 +180,8 @@ describe("TopBar display controls", () => {
     expect(darkToggle).toHaveAttribute("aria-pressed", "false");
     expect(langToggle).toHaveAttribute("aria-expanded", "false");
     expect(langToggle).toHaveTextContent("中文");
+    expect(langToggle).not.toHaveTextContent("▾");
+    expect(screen.getByTestId("topbar-lang-chevron").tagName).toBe("svg");
 
     await user.click(darkToggle);
     expect(darkToggle).toHaveAttribute("aria-pressed", "true");

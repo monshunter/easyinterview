@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.27
+> **版本**: 1.28
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -69,3 +69,9 @@
 - [x] Settings DOM/visual tests 固定账号窗口、头像资料、柱状图、锁、盾牌对勾和星芒的独立层级，并拒绝旧山形人物稀疏线稿。（2026-07-20 RED 后 focused GREEN。）
 - [x] CSS/responsive/a11y tests 证明插画从当前主题 token 派生、保持 `aria-hidden`、desktop 不横溢且窄屏沿用隐藏规则。（ScreensVisual 14/14。）
 - [x] Chrome extension automation skill 在 current-run Settings desktop 页面确认目标图形结构、Header/card 对齐和 browser error/warning 为零；不新增 E2E ID。（1264×964，SVG 360×200，7 layers，documentWidth=viewportWidth，Ocean/Plum/Custom 预览与刷新恢复通过。）
+
+## `BDD.SHELL.TOPBAR.IDENTITY.005` 语言辨识与账号首字符
+
+- [x] TopBar/App component tests 证明中文、拉丁、前导空白与空名称 initial 派生正确，settings 仍直达且不增加账号请求或菜单。（2026-07-20 focused TopBar/App/i18n 43/43 PASS。）
+- [x] TopBar visual/responsive/a11y tests 证明语言按钮使用清晰 SVG chevron、独立可见底板、展开旋转、键盘/accessible name 和 mobile containment。（TopBarVisual 18/18 + typecheck PASS。）
+- [x] Chrome extension automation skill 在 current-run 真实 desktop 页面验证中文用户名首字符、语言菜单开合、设置直达、无横向溢出和 browser error/warning 为零；不新增 E2E ID。（2026-07-20 Chrome：displayName `星期无` 对应设置标记 `星`；chevron 为 20×20 底板内 14×14 SVG，展开旋转 180°；设置按钮 42×42，`documentWidth=viewportWidth=1920`，跳转 `/settings`，0 warning/error。）

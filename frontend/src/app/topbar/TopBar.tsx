@@ -44,21 +44,24 @@ export interface TopBarProps {
   /**
    * Whether the current user is authenticated. Defaults to `false`. The
    * unauthenticated branch surfaces the single login entry; the authenticated
-   * branch surfaces the avatar chip + dropdown from
-   * formal frontend implementation
+   * branch surfaces the single Settings entry without an account dropdown.
    */
   signedIn?: boolean;
+  /** Authenticated runtime display name used only for the circular initial. */
+  userDisplayName?: string;
 }
 
 export const TopBar: FC<TopBarProps> = ({
   activeRoute,
   onNavigate,
   signedIn = false,
+  userDisplayName,
 }) => {
   const prefs = useDisplayPreferences();
   const t = (key: Parameters<typeof translate>[1]) => translate(prefs.lang, key);
   const [langMenuOpen, setLangMenuOpen] = useState<boolean>(false);
   const activePrimaryRoute = resolvePrimaryNavRoute(activeRoute);
+  const userInitial = deriveUserInitial(userDisplayName, prefs.lang);
   const currentLocale =
     SUPPORTED_LOCALES.find((locale) => locale.code === prefs.lang) ??
     SUPPORTED_LOCALES.find((locale) => locale.code === "en") ??
@@ -160,8 +163,16 @@ export const TopBar: FC<TopBarProps> = ({
           >
             <Icon name="globe" size={12} />
             <span className="ei-topbar-lang-current">{currentLocale.label}</span>
-            <span className="ei-topbar-caret" aria-hidden="true">
-              ▾
+            <span
+              data-testid="topbar-lang-caret"
+              className="ei-topbar-caret"
+              aria-hidden="true"
+            >
+              <Icon
+                name="chevronDown"
+                size={14}
+                data-testid="topbar-lang-chevron"
+              />
             </span>
           </button>
           {langMenuOpen && (
@@ -229,7 +240,7 @@ export const TopBar: FC<TopBarProps> = ({
             onClick={() => onNavigate({ name: "settings", params: {} })}
           >
             <span className="ei-topbar-settings-mark" aria-hidden="true">
-              E
+              {userInitial}
             </span>
           </button>
         ) : (
@@ -258,7 +269,8 @@ type IconName =
   | "check"
   | "moon"
   | "sun"
-  | "globe";
+  | "globe"
+  | "chevronDown";
 
 interface IconProps {
   name: IconName;
@@ -305,6 +317,7 @@ const Icon: FC<IconProps> = ({ name, size = 13, "data-testid": testId }) => {
         <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
       </>
     ),
+    chevronDown: <path d="M6.5 9.5 12 15l5.5-5.5" />,
   };
   return (
     <svg
@@ -324,3 +337,10 @@ const Icon: FC<IconProps> = ({ name, size = 13, "data-testid": testId }) => {
     </svg>
   );
 };
+
+function deriveUserInitial(displayName: string | undefined, lang: string): string {
+  const normalized = displayName?.trim() ?? "";
+  const firstCharacter = Array.from(normalized)[0];
+  if (!firstCharacter) return "?";
+  return firstCharacter.toLocaleUpperCase(lang === "zh" ? "zh-CN" : "en-US");
+}

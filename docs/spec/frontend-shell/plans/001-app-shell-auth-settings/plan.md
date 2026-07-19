@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.38
+> **版本**: 1.39
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -24,7 +24,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 - UI 设计文档：`docs/ui-design/`、`frontend/src`。
 - 一级 TopBar 入口：`home`、`workspace`、`resume_versions`。
 - 上下文 route：`parse`、`practice`、`generating`、`report`。
-- 账号入口 route：已登录 TopBar 设置齿轮直达 `settings`；`auth_logout` 从设置页进入。
+- 账号入口 route：已登录 TopBar 用户名首字符设置按钮直达 `settings`；`auth_logout` 从设置页进入。
 - 认证 route：`auth_login`、`auth_verify`、`auth_profile_setup`、`auth_logout`。
 - Unsupported route / malformed URL 必须经同一 normalization 层折回当前 route catalog 或 `home`，不得 materialize 独立页面。
 
@@ -36,6 +36,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 - Settings 统一命名为“设置 / Settings”且无 tab：Appearance 本地预览并保存账号级主题；Account 复用 runtime user 展示只读 `displayName/email`；Privacy 保留退出、导出不可用和账号删除。
 - `getMe` 只在应用 bootstrap/auth recovery 读取完整 `UserContext`；Settings 挂载、普通 route 切换和 Practice 进入/离开均不得再次读取。主题保存只发送一次 `updateMe`，成功响应直接更新 runtime/display context，不追加 GET。
 - 统一 auth route gate 的 loading/error eyebrow、title、body 必须消费 typed locale keys；中文模式不得回退或混入英文硬编码。
+- TopBar 语言下拉使用清晰 SVG chevron 表达开合状态；设置入口字符从现有 authenticated runtime `displayName` 派生，名称为空显示 `?`，不新增 `getMe` 或账号菜单。
 
 ### 2.3 StrictMode-safe GET orchestration
 
@@ -48,7 +49,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 
 - **Plan 类型**: `feature-behavior` + `frontend` + `contract`。
 - **TDD 策略**: 本计划按 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 完成。focused Vitest / component / route-state test 只用于开发反馈；阶段完成由仓库根 `make test` 承接前后端全量单测。
-- **BDD 策略**: 既有 auth/settings behaviors 保持；新增 `BDD.SHELL.SETTINGS.THEME.001` 覆盖主题预览、单次保存、失败恢复、runtime 直更和 route 零重复 `/me`。`E2E.P0.101` 原地扩展真实主题保存、logout/relogin 恢复；账号删除仍不加入共享 E2E。
+- **BDD 策略**: 既有 auth/settings behaviors 保持；`BDD.SHELL.SETTINGS.THEME.001` 覆盖主题预览与请求预算，新增 `BDD.SHELL.TOPBAR.IDENTITY.005` 覆盖语言 chevron 与用户名首字符设置入口。`E2E.P0.101` 保持真实主题保存、logout/relogin 恢复；账号删除与本次纯 shell 显示修订不新增 E2E。
 
 ## 4 Operation Matrix
 
@@ -64,11 +65,11 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 | `requestPrivacyExport` | `openapi/fixtures/Privacy/requestPrivacyExport.json#default` | Settings disabled/unavailable presentation；P0 不发伪请求 | Privacy P0 typed 501 handler | 无 | 无 | contract/component gate；不新增 E2E |
 | `listTargetJobs` / `importTargetJob` | current fixtures | Home authenticated read/import guard | targetjob handlers | targetjob owner | import may enqueue AI parse | 当前无 auth-shell E2E owner；root `make test` |
 | safe-read orchestration | existing generated operations | runtime and screen loaders | owner handlers | owner stores | unchanged | 当前无真实 E2E owner；root `make test` |
-| UI shell/settings/display | N/A | routes、明确齿轮、Settings Appearance、display/runtime provider、Practice chrome | 无 | theme only via `updateMe`; language/dark remain client display state | 无 | `E2E.P0.101` 设置/主题/logout/relogin；其余 component/responsive/Chrome gates |
+| UI shell/settings/display | N/A | routes、语言 SVG chevron、runtime username initial 设置入口、Settings Appearance、display/runtime provider、Practice chrome | 无 | theme only via `updateMe`; language/dark remain client display state | 无 | `E2E.P0.101` 设置/主题/logout/relogin；其余 component/responsive/Chrome gates |
 
 ## 5 验收标准
 
-- 默认打开 App 渲染 Home、三入口 TopBar、单一登录入口和显示控制；已登录时登录入口替换为单一设置齿轮。
+- 默认打开 App 渲染 Home、三入口 TopBar、单一登录入口和显示控制；语言菜单有清晰开合 chevron；已登录时登录入口替换为从 runtime 用户名派生首字符的单一设置按钮。
 - Browser History URL、hash adapter 输入和 in-memory route 均进入同一 normalization / route store 合同。
 - 语言与暗色保持现有客户端显示合同；authenticated 主题由 bootstrap/auth recovery 的 `getMe` 恢复。普通 route 切换不得触发 `/me`；主题 slider 零请求，保存一次 `updateMe`，成功无 follow-up GET。
 - 未登录用户触发受保护动作时进入 `auth_login(pendingAction)`；email-code 验证成功后先执行资料补全 gate，再恢复 safe route params。
@@ -182,10 +183,17 @@ GREEN 只在 `SettingsScreen` 增加明确的 theme editor 分组，并调整 `s
 
 `BDD.SHELL.SETTINGS.ART.004` 由 Settings DOM layer contract、视觉 CSS/响应式断言与 current-run Chrome desktop 验收承接；Chrome 必须确认目标图形层级、Header/card 左边界与横向无溢出，且浏览器 error/warning 为零。完成 focused、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 后收口本 Phase；Phase 15.3 仍保持独立未完成，主 plan 继续为 `active`。
 
+### Phase 22: TopBar language affordance and account initial
+
+先以 TopBar component/visual RED 拒绝 `9px` 文本 `▾` 与固定 `E`，并锁定语言按钮使用 code-native SVG chevron、独立可见底板和展开旋转状态。设置入口只从 `AppShell` 已持有的 authenticated `displayName` 取 trim 后首个 Unicode 字符，拉丁字母大写；空名称显示 `?`，不读取新字段、不发新请求，也不恢复账号 dropdown。
+
+`BDD.SHELL.TOPBAR.IDENTITY.005` 由 TopBar/App component、CSS responsive/a11y tests 与 current-run Chrome desktop 验收承接；验证中文用户名、语言菜单开合、设置直达、无横向溢出和零 browser error/warning，不新增 E2E ID。完成 focused、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 后收口本 Phase；Phase 15.3 仍保持独立未完成，主 plan 继续为 `active`。
+
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.39 | Reopen Phase 22 to strengthen the language-menu chevron and derive the Settings entry mark from the authenticated display name without changing navigation or request budgets. |
 | 2026-07-20 | 1.38 | Reopen Phase 21 to redraw the Settings Header as the approved layered profile, chart, lock, shield and sparkle security illustration without changing account behavior. |
 | 2026-07-19 | 1.37 | Reopen Phase 20 for a shared screenshot-aligned asynchronous transition scene, persistent TopBar chrome and context-route navigation mapping. |
 | 2026-07-19 | 1.36 | Reopen Phase 19 to keep first-level Settings theme choices visible, stack the conditional custom editor below them, and add full-spectrum hue plus hue-aware chroma tracks without changing persistence behavior. |

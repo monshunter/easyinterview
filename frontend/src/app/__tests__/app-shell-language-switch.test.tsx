@@ -184,6 +184,7 @@ describe("app shell language switch", () => {
     expect(screen.getByTestId("topbar-settings")).toHaveAccessibleName(
       "Settings",
     );
+    expect(screen.getByTestId("topbar-settings")).toHaveTextContent(/^A$/);
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("topbar-settings"));
     expect(screen.getByTestId("route-settings")).toHaveTextContent(

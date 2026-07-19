@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Plan
 
-> **版本**: 1.27
+> **版本**: 1.28
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -25,6 +25,7 @@
 | `BDD.SHELL.PAGES.VISUAL.002` | 用户处于登录、验证码、退出或已登录设置页面 | 在 desktop/mobile 查看、键盘操作或触发既有动作 | Auth 三页共享宽幅双栏和主操作卡，Settings 展示 Header 与三张横向功能卡；页面无横向溢出，装饰不污染语义，业务状态机和请求预算不变且没有伪计时/伪成功 | Auth/Settings component + visual + accessibility tests、Phase 15 locale tests 与 current-run Chrome manual acceptance；根 `make test` 承接代码层回归 |
 | `BDD.SHELL.TRANSITION.VISUAL.003` | authenticated 用户进入 Practice、Parse、Reports、Generating 或报告上下文 route，业务请求仍 pending | 查看等待反馈、切换显示偏好或使用返回动作 | 共享 TopBar 始终可见且“面试”高亮；等待态复用蓝白画布和对应 SVG variant，只有真实文案/步骤/indeterminate 语义，reduced-motion 与 mobile containment 有效 | Shared transition/TopBar/route component tests + current-run Chrome desktop/mobile manual acceptance；根 `make test` 承接代码层回归 |
 | `BDD.SHELL.SETTINGS.ART.004` | authenticated 用户打开 Settings，当前主题可能是 Ocean、Plum 或 Custom | 查看 desktop Header，并在窄屏继续浏览设置卡片 | Header 右侧以当前主题色渲染半透明资料窗口、头像资料行、柱状图、前景锁、盾牌对勾与星芒；装饰不进入阅读顺序，窄屏隐藏且页面不横溢，账号交互和请求预算不变 | Settings visual/component/responsive tests + current-run Chrome desktop manual acceptance；根 `make test` 承接代码层回归 |
+| `BDD.SHELL.TOPBAR.IDENTITY.005` | authenticated runtime 已有中文或拉丁 `displayName`，语言菜单关闭 | 用户查看或展开语言按钮，并点击圆形设置入口 | 语言按钮以清晰 SVG chevron 表达开合；设置入口显示 trim 后用户名首个 Unicode 字符，拉丁字母大写、空名称显示 `?`；直达 Settings 且不新增 `/me`、账号菜单或完整姓名暴露 | TopBar/App component + visual/responsive/a11y tests + current-run Chrome desktop manual acceptance；根 `make test` 承接代码层回归 |
 
 `E2E.P0.101` 只原地增加真实设置齿轮、账号字段、主题保存与 logout/relogin 恢复主路径；请求次数、失败/离开恢复、pendingAction、导出 501 和账号删除仍由 domain/contract tests 承接，不另建并行场景。
 

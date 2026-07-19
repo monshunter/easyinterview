@@ -106,7 +106,7 @@ requestAuth({
 
 [`src/app/display/DisplayPreferencesProvider.tsx`](./src/app/display/DisplayPreferencesProvider.tsx) 在 `theme` / `dark` / `customAccent` 任一切换时立即把 `<html>` 的 `data-theme` / `data-mode` / `data-custom-accent` 翻转，并把 customAccent overlay 写入根元素 inline style。**所有主题相关样式必须走 `:root[data-theme][data-mode]` selector + var() token，不在组件内 hardcode hex / rgb。**
 
-- TopBar 只承接暗色 toggle、语言 dropdown 与圆形 `E` initial-mark 设置按钮；initial mark 不读取用户头像数据，账号主题控件由 [`src/app/screens/SettingsScreen.tsx`](./src/app/screens/SettingsScreen.tsx) 的 Appearance 区承接。
+- TopBar 只承接暗色 toggle、带清晰 SVG chevron 的语言 dropdown 与圆形用户名首字符设置按钮；initial mark 从现有 authenticated runtime `displayName` 派生但不加载用户头像或新增 `/me`，账号主题控件由 [`src/app/screens/SettingsScreen.tsx`](./src/app/screens/SettingsScreen.tsx) 的 Appearance 区承接。
 - 账号主题 testid：`settings-theme-{ocean,plum,custom}` / `settings-custom-accent-{hue,chroma}` / `settings-theme-save`。Custom accent picker 只保留 hue / saturation，不保留 preview / value / reset anchor 或隐藏清除入口。
 
 #### 字体加载

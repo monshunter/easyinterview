@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.38
+> **版本**: 1.39
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -158,3 +158,10 @@
 - [x] 21.2 GREEN: 仅重画 `SettingsHeaderArt` 与 page-scoped CSS，以当前主题 accent/token 形成半透明层次、柔和阴影和目标几何；保持 Header/card 构图、移动端隐藏、账号状态机和请求预算不变。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="ScreensVisual and SettingsScreen pass 26/26; TypeScript typecheck passes. The new code-native SVG exposes window/profile/chart/lock/shield/two-sparkle layers and theme-token CSS without changing account handlers or request paths." -->
 - [x] 21.3 BDD-Gate: `BDD.SHELL.SETTINGS.ART.004` 由 component/responsive/a11y tests 与 current-run Chrome desktop 验收承接；确认图形层级、对齐、无横向溢出和零 browser error/warning，不新增 E2E ID。<!-- verified: 2026-07-20 method=chrome-extension-manual bddChecklist=complete evidence="Real Settings at 1264x964 rendered a 360x200 decorative SVG with seven target layers, aligned the 1264px Header and appearance card, kept documentWidth=viewportWidth, adapted across Ocean/Plum/Custom previews, restored the confirmed Custom theme after reload, and surfaced no page/browser errors or warnings." -->
 - [x] 21.4 REGRESSION: focused、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 通过并更新既有 BUG/复盘/日志；Phase 15.3 仍保持独立未完成。<!-- verified: 2026-07-20 method=full-regression evidence="Focused Settings 26/26, typecheck and production build pass; frontend redeploy and environment 4/4 pass; root make test passes Python 615/4615 subtests, Go all packages, frontend 134 files/1082 tests. Owner context, Header/INDEX, docs links, diff, BUG-0192, retrospective and work journal are current; Phase 15.3 remains independently open." -->
+
+## Phase 22: TopBar language affordance and account initial
+
+- [x] 22.1 RED: TopBar component/visual tests 拒绝 `9px` 文本 `▾` 与固定 `E`，要求 code-native SVG chevron 的可见底板/展开状态，以及从 authenticated `displayName` 派生 trim 后首个 Unicode 字符、拉丁字母大写和空名称 `?` fallback。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="Four focused files ran 43 tests: 11 expected failures exposed the fixed E, missing runtime name wiring, text caret and weak CSS while 32 adjacent assertions passed." -->
+- [x] 22.2 GREEN: `AppShell` 只把现有 runtime `displayName` 传给 `TopBar`；TopBar 渲染用户名首字符设置入口和可旋转 SVG chevron，保留本地化 accessible name、40px 点击区、settings 直达、语言切换、mobile containment 与零新增请求/菜单。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="TopBar, visual, i18n and App language suites pass 43/43; typecheck passes. Chinese, Latin, whitespace and empty-name cases are covered, and App runtime wiring renders A for Alice Example." -->
+- [x] 22.3 BDD-Gate: `BDD.SHELL.TOPBAR.IDENTITY.005` 由 TopBar/App component、responsive/a11y tests 与 current-run Chrome desktop 验收承接；验证语言菜单开合、中文用户名首字符、设置直达、无横向溢出和零 browser error/warning，不新增 E2E ID。<!-- verified: 2026-07-20 method=chrome-extension-automation evidence="Authenticated displayName 星期无 renders settings initial 星; language caret is a 14x14 SVG in a visible 20x20 panel and rotates 180 degrees when expanded; the 42x42 settings button navigates to /settings; documentWidth equals the 1920px viewport and browser warning/error logs are empty." -->
+- [x] 22.4 REGRESSION: focused、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 通过并完成 bug/复盘/日志收尾；Phase 15.3 仍保持独立未完成。<!-- verified: 2026-07-20 method=root-and-document-gates evidence="Focused 43/43, typecheck, production build, frontend redeploy, environment 4/4, root make test (Python 615 with 4615 subtests, all Go packages, frontend 134 files with 1087 tests), owner context, zero-drift Header/INDEX, docs links and git diff checks pass. BUG-0192 and the existing assessment are updated; the phase journal is committed with this checklist." -->

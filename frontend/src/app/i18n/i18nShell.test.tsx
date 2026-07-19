@@ -14,7 +14,12 @@ describe("D1 shell i18n", () => {
     render(
       <DisplayPreferencesProvider initial={{ lang: "en" }}>
         <TopBar activeRoute="home" onNavigate={() => {}} signedIn={false} />
-        <TopBar activeRoute="home" onNavigate={() => {}} signedIn={true} />
+        <TopBar
+          activeRoute="home"
+          onNavigate={() => {}}
+          signedIn={true}
+          userDisplayName="Alice Example"
+        />
         <AuthLoginScreen
           route={{ name: "auth_login", params: {} }}
           onNavigate={() => {}}
@@ -46,6 +51,7 @@ describe("D1 shell i18n", () => {
     expect(screen.getByTestId("topbar-settings")).toHaveAccessibleName(
       "Settings",
     );
+    expect(screen.getByTestId("topbar-settings")).toHaveTextContent(/^A$/);
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
 
     expect(screen.getByTestId("route-auth_login")).toHaveTextContent(

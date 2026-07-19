@@ -21,6 +21,7 @@ const TOPBAR_TSX = resolve(HERE, "TopBar.tsx");
 
 interface RenderOpts {
   signedIn?: boolean;
+  userDisplayName?: string;
   initial?: {
     theme?: Theme;
     dark?: boolean;
@@ -36,6 +37,7 @@ function renderTopBar(opts: RenderOpts = {}): RenderResult {
         activeRoute="home"
         onNavigate={() => {}}
         signedIn={opts.signedIn ?? false}
+        userDisplayName={opts.userDisplayName}
       />
     </DisplayPreferencesProvider>,
   );
@@ -122,12 +124,13 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
     ).toHaveLength(1);
   });
 
-  it("uses one accessible circular E settings entry and removes account-menu styling", () => {
-    renderTopBar({ signedIn: true });
+  it("uses one accessible circular username-initial settings entry and removes account-menu styling", () => {
+    renderTopBar({ signedIn: true, userDisplayName: "谭小马" });
     const settings = screen.getByTestId("topbar-settings");
     expect(settings).toHaveAccessibleName(/^设置$|^settings$/i);
     expect(settings.className).toMatch(/\bei-topbar-settings\b/);
-    expect(settings).toHaveTextContent(/^E$/);
+    expect(settings).toHaveTextContent(/^谭$/);
+    expect(settings).not.toHaveTextContent("谭小马");
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
 
     const css = readFileSync(TOPBAR_CSS, "utf8");
@@ -212,7 +215,14 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
       "aria-expanded",
       "false",
     );
+    const caret = screen.getByTestId("topbar-lang-caret");
+    expect(caret).toContainElement(screen.getByTestId("topbar-lang-chevron"));
+    expect(screen.getByTestId("topbar-lang-toggle")).not.toHaveTextContent("▾");
     await user.click(screen.getByTestId("topbar-lang-toggle"));
+    expect(screen.getByTestId("topbar-lang-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     expect(screen.getByTestId("topbar-lang-menu")).toBeInTheDocument();
     expect(screen.getByTestId("topbar-lang-option-en")).toHaveAttribute(
       "aria-pressed",
@@ -229,6 +239,22 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
       /\bei-topbar-auth-login\b/,
     );
     expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
+  });
+
+  it("gives the language chevron a visible stateful affordance", () => {
+    const css = readFileSync(TOPBAR_CSS, "utf8");
+    expect(css).toMatch(/\.ei-topbar-caret\s*\{[^}]*width:\s*20px/);
+    expect(css).toMatch(/\.ei-topbar-caret\s*\{[^}]*height:\s*20px/);
+    expect(css).toMatch(
+      /\.ei-topbar-caret\s*\{[^}]*background:\s*var\(--ei-color-bg-soft\)/,
+    );
+    expect(css).toMatch(
+      /\.ei-topbar-caret\s*\{[^}]*color:\s*var\(--ei-color-fg-secondary\)/,
+    );
+    expect(css).toMatch(
+      /\.ei-topbar-lang\[aria-expanded="true"\][\s\S]*\.ei-topbar-caret[\s\S]*transform:\s*rotate\(180deg\)/,
+    );
+    expect(css).not.toMatch(/\.ei-topbar-caret\s*\{[^}]*font-size:\s*9px/);
   });
 
   it("does not render a custom accent picker in TopBar", () => {

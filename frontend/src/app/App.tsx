@@ -224,6 +224,10 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
   );
   const runtime = useAppRuntimeOptional();
   const signedIn = runtime?.auth.status === "authenticated";
+  const userDisplayName =
+    runtime?.auth.status === "authenticated"
+      ? runtime.auth.user.displayName
+      : undefined;
   const routeForRender = useMemo<Route>(() => {
     if (
       runtime?.auth.status === "unauthenticated" &&
@@ -289,6 +293,7 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
             activeRoute={routeForRender.name}
             onNavigate={navigate}
             signedIn={signedIn}
+            userDisplayName={userDisplayName}
           />
         )}
         <main>
