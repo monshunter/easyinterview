@@ -170,7 +170,7 @@ describe("AuthProfileSetupScreen", () => {
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
-  it("does not restore the pending route until completeMyProfile confirms the profile flag is cleared", async () => {
+  it("does not restore the pending route until updateMe confirms the profile flag is cleared", async () => {
     const onCompleteProfile = vi.fn().mockResolvedValue({
       profileCompletionRequired: true,
     });

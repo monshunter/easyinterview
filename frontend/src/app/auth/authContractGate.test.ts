@@ -17,7 +17,7 @@ const AUTH_DIR = resolve(__dirname);
 const ALLOWED_AUTH_OPERATIONS = new Set<string>([
   "startAuthEmailChallenge",
   "verifyAuthEmailChallenge",
-  "completeMyProfile",
+  "updateMe",
   "getMe",
   "deleteMe",
   "logout",
@@ -157,7 +157,7 @@ describe("auth contract gate (Phase 3.3)", () => {
     const expected = new Set([
       "startAuthEmailChallenge",
       "verifyAuthEmailChallenge",
-      "completeMyProfile",
+      "updateMe",
       "getMe",
       "logout",
     ]);

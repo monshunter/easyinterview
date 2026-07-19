@@ -1,8 +1,8 @@
 # URL-Addressable Routing
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -104,7 +104,7 @@ Blocked payload categories:
 
 - Every current route serializes to and parses from its canonical URL with sorted safe query params.
 - Direct open, reload, App navigation, replace, back and forward preserve route state without double-push behavior.
-- `practice` and `generating` stay chrome-hidden when opened by canonical URL.
+- `practice` stays chrome-visible when opened by canonical URL；only `generating` remains chrome-hidden.
 - `reports` is protected and chrome-visible, accepts only `targetJobId`, survives direct/reload/history/auth restore, and never appears in TopBar.
 - `/workspace` without target is the list and `/workspace?targetJobId` is read-only detail; only `targetJobId` survives normalization. `/parse?targetJobId` is command/progress only and ready state replace-navigates to workspace detail.
 - Parse strips legacy `section=reports`; report/generating preserve only reportId and cannot use query state as trusted report context.
@@ -125,6 +125,7 @@ Blocked payload categories:
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.15 | Reopen Phase 13 to make canonical Practice chrome-visible while keeping Generating hidden. |
 | 2026-07-15 | 1.14 | UI Demo pruning reconcile：删除当前 hash-adapter/browser-harness 合同，统一为 canonical path/query 与 fragment rejection。 |
 | 2026-07-14 | 1.12 | Supersede workspace-zero-query with `/workspace?targetJobId` read-only detail and make `/parse?targetJobId` command-only with ready replace. |
 | 2026-07-14 | 1.11 | Use replace-only workspace recovery for invalid Reports deep links and prevent stale bootstrap canonicalization from recreating the bad URL. |

@@ -182,12 +182,12 @@ describe("app shell language switch", () => {
     await user.click(screen.getByTestId("topbar-lang-toggle"));
     await user.click(screen.getByTestId("topbar-lang-option-en"));
     expect(screen.getByTestId("topbar-settings")).toHaveAccessibleName(
-      "Settings & privacy",
+      "Settings",
     );
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("topbar-settings"));
     expect(screen.getByTestId("route-settings")).toHaveTextContent(
-      "Settings & privacy",
+      "Settings",
     );
 
     expect(screen.queryByTestId("route-welcome")).not.toBeInTheDocument();

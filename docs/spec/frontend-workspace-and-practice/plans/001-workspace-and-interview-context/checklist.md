@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.46
+> **版本**: 1.47
 > **状态**: completed
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -222,3 +222,10 @@
   <!-- verified: 2026-07-18 method=domain-behavior bddChecklist=complete -->
 - [x] 30.4 POST-PASS：focused caller/component/a11y tests、frontend typecheck/build、仓库根 `make test`、owner context、`sync-doc-index --check`、`make docs-check`、`git diff --check` 与 desktop/mobile 真实浏览器 pending-state 检查通过；随后恢复 completed lifecycle。
   <!-- verified: 2026-07-18 method=full-regression-chrome evidence="focused 5 files/45 tests; root Python 584 tests/4583 subtests, Go all packages, frontend 127 files/1035 tests; lint/build/docs/index/context/diff PASS; Chrome real LLM pending 1440x900 and 390x844, fixed overlay/background blocking/no horizontal overflow, success entered practice" -->
+
+## Phase 31: Practice global App chrome
+
+- [x] 31.1 RED: router/App/Practice tests 先证明 `practice` 被 no-chrome allowlist 隐藏，并锁定期望的 global TopBar + Practice Session Header 双层结构。
+- [x] 31.2 GREEN: 仅从 no-chrome allowlist 移除 `practice`；保留 `generating`，不复制 TopBar 或改动会话业务状态机。
+- [x] 31.3 PERFORMANCE/A11Y: 进入、离开和在 Practice 内交互的 `/me` 请求增量为 0；desktop/mobile 导航、设置齿轮、会话 CTA、焦点与 document no-overflow 通过。
+- [x] 31.4 BDD-Gate: 完成 `BDD.PRACTICE.GLOBAL_CHROME.005`；focused/root gates 与 current-run Chrome desktop/mobile 截图完成后恢复 completed。

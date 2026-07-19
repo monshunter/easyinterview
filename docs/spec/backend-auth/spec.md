@@ -1,8 +1,8 @@
 # Backend Auth Spec
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 ## 1 背景与目标
 
@@ -17,7 +17,7 @@
 - `POST /api/v1/auth/email/start` 邮箱挑战创建。
 - `GET /api/v1/auth/email/verify` 邮箱挑战验证并签发 first-party session cookie。
 - `GET /api/v1/me` 当前用户读取。
-- `PATCH /api/v1/me` 首次登录资料补全：保存 displayName、条款确认时间和 profile completion 状态。
+- `PATCH /api/v1/me updateMe`：以同一账号更新入口承接首次登录资料补全与 display preferences；组合请求必须单事务保存。
 - `POST /api/v1/auth/logout` 清除 session。
 - first-party session middleware / current-user resolver：保护除 B2 public endpoints 外的 P0 API；`logout` 使用 optional-session / always-clear-cookie 路径以保持幂等；`DELETE /api/v1/me` 提供认证态、同步软删 `users.deleted_at` / `users.status='deleted'`、撤销该用户所有 session 和 idempotent privacy_delete handoff。
 - 为既有 `GET /api/v1/runtime-config` 注入 C1 session-aware resolver，供 A4 handler 合并用户级公开偏好。
@@ -94,9 +94,10 @@
 | C-8 | Local Mailpit sign-in | `EMAIL_PROVIDER=mailpit`，Mailpit 由 local-dev-stack 提供，用户请求 synthetic `.example.test` 邮箱挑战 | `EmailDispatchHandler` 处理 queued job | SMTP writer 从 DB lookup 收件人、从 transient secret store 取 6 位验证码并投递 code-only 邮件到 Mailpit；用户在前端 `/auth/verify` 手动输入验证码后签发 `ei_session`；邮件正文、URL、日志和场景证据不保存 raw code；不使用真实外部邮箱服务、真实邮箱账号或 `backend/cmd` 场景 helper | local-dev-stack/001 Mailpit revision + frontend-shell/001 Phase 8 |
 | C-7 | Auth observability | challenge / verify / logout / failure 发生 | 记录 metrics / audit | 指标名已在 F1 baseline 或 F1 承接 gate 中登记，label 符合 F1，audit 只含 ID / hash / 状态，不含 secret / PII 明文 | 001-email-code-session-bootstrap |
 | C-9 | Unified email login and profile completion | 用户从单一邮箱验证码入口提交新邮箱或既有邮箱 | verify 后请求 `/me`；未补全用户调用 `PATCH /me` 提交 displayName + acceptedTerms | 发码前不泄露账号存在性；新邮箱创建资料未补全账号并返回 `profileCompletionRequired=true`；关闭浏览器、换浏览器重新登录、退出后重新登录、刷新或直开业务 URL 后仍必须先补全资料；补全成功后同邮箱后续登录返回 `profileCompletionRequired=false`；normalized email 唯一，displayName 不唯一 | 001-email-code-session-bootstrap |
-| C-10 | Minimal `/me` projection | authenticated 或 profile-incomplete 用户请求 `/me` / 完成 profile | handler mapping + generated contract | success body 精确包含 id、完整账号 email、display name、profile completion flag；无 `emailMasked`、旧语言字段或其他额外 PII；runtime config analytics 仍读取保留列 | 001-email-code-session-bootstrap Phase 10 + OPENAPI-007 + B4 001 Phase 13 |
+| C-10 | Current-user projection | authenticated 或 profile-incomplete 用户请求 `/me` / `updateMe` | handler mapping + generated contract | success body 精确包含 id、完整账号 email、display name、profile completion flag、display preferences；无 `emailMasked`、旧语言字段或其他额外 PII | 001 Phase 10/14 + OPENAPI-007/008 + B4 001 Phase 13/14 |
 | C-11 | Mailpit / production SMTP delivery | 环境选择 `mailpit` 或 `smtp` 且配置满足 A4；生产 SMTP 凭据通过 secret source 注入 | 用户调用既有 `startAuthEmailChallenge`，internal runner 消费 `email_dispatch` | 两种 provider 都投递相同 code-only 邮件；Mailpit 使用本地无认证 SMTP，生产 SMTP 在 TLS 1.2+ 上认证；中文 locale 的主题和两种正文 part 可由标准 MIME reader 无损解码；runner 取消或 deadline 能终止停滞会话；DATA 已被接受后的 QUIT 失败不重复发信；失败返回脱敏 delivery error，raw code、邮箱和凭据不进入持久化 payload / log / audit | 001-email-code-session-bootstrap Phase 11/12/13 |
 | C-12 | Cross-instance Redis delivery | 两个 backend 实例共享同一 `REDIS_URL` 和 challenge pepper | 实例 A 创建 challenge/secret/job，实例 B lease `email_dispatch` 并发送 | 实例 B 解密并投递同一 6 位验证码；Redis key 有 5 分钟 TTL，value/key 不泄露 raw code/ref；secret Put 失败不创建 challenge 或消耗限流额度；成功后删除，Redis unavailable/miss/decrypt failure 均 fail closed 且错误脱敏 | 001-email-code-session-bootstrap Phase 12 |
+| C-13 | Atomic account theme update | authenticated 用户读取主题或提交 profile/theme 组合更新 | bootstrap `getMe`；`PATCH /me updateMe` | `getMe` 从 users + user_settings 一次投影；合法主题/custom accent 持久化；组合更新同事务全成或全败；非法/空/半组请求不写入；响应可直接替换前端 auth context，无 follow-up GET | 001 Phase 14 + OPENAPI-008 + B4 001 Phase 14 |
 
 ## 7 关联计划
 

@@ -1,8 +1,8 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.21
-> **状态**: active
-> **更新日期**: 2026-07-16
+> **版本**: 1.22
+> **状态**: completed
+> **更新日期**: 2026-07-19
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -40,3 +40,11 @@
 - [ ] 中文 loading/error gate 的 eyebrow/title/body 无英文硬编码；英文切换使用同一 typed keys。
 - [ ] Protected business screen/API 仍不在 auth probe 完成前挂载；focused 与根回归通过。
 - [ ] Chrome extension automation skill 在 current-run 真实本地页面验证中文 gate 与英文切换；该证据不标记新的 E2E ID。
+
+## `BDD.SHELL.SETTINGS.THEME.001` 账号级主题与请求预算
+
+- [x] Runtime/Settings tests 证明 bootstrap/auth recovery 的 `getMe` 提供确认主题，Settings/普通 route/Practice 切换均零额外 `/me`。
+- [x] Appearance tests 证明预定义主题/custom hue/chroma 本地预览零网络，Save 恰好一次 `updateMe`，成功直接更新 runtime/display 且无 follow-up GET。
+- [x] 失败、重试、离开未保存页面和 invalid server projection 均 fail closed，不污染最近一次确认主题。
+- [x] Backend/migration/OpenAPI tests 证明 profile-only/theme-only/combined 原子更新、约束和 `getMe` round-trip。
+- [x] `E2E.P0.101` 原地覆盖真实主题保存、logout/relogin 恢复；current-run 证据完成前不得勾选 PASS。

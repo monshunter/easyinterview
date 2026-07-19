@@ -68,6 +68,34 @@ type UserContext struct {
 	Email                     string
 	DisplayName               string
 	ProfileCompletionRequired bool
+	DisplayPreferences        AccountDisplayPreferences
+}
+
+type AccountTheme string
+
+const (
+	AccountThemeOcean AccountTheme = "ocean"
+	AccountThemePlum  AccountTheme = "plum"
+)
+
+type CustomAccent struct {
+	H float64
+	C float64
+}
+
+type AccountDisplayPreferences struct {
+	Theme        AccountTheme
+	CustomAccent *CustomAccent
+}
+
+type UpdateUserContextInput struct {
+	DisplayName        *string
+	AcceptedTerms      *bool
+	DisplayPreferences *AccountDisplayPreferences
+}
+
+type userContextUpdater interface {
+	UpdateUserContext(context.Context, string, UpdateUserContextInput, time.Time) (UserContext, error)
 }
 
 type analyticsOptInStore interface {
@@ -297,6 +325,72 @@ where id = $1 and deleted_at is null`,
 	return s.GetUserContext(ctx, userID)
 }
 
+func (s *SQLStore) UpdateUserContext(ctx context.Context, userID string, in UpdateUserContextInput, now time.Time) (UserContext, error) {
+	if s == nil || s.db == nil {
+		return UserContext{}, fmt.Errorf("auth store db is nil")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return UserContext{}, fmt.Errorf("begin update user context: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if in.DisplayName != nil && in.AcceptedTerms != nil {
+		result, execErr := tx.ExecContext(ctx, `
+update users
+set display_name = $2,
+    terms_accepted_at = coalesce(terms_accepted_at, $3),
+    profile_completed_at = coalesce(profile_completed_at, $3),
+    updated_at = $3
+where id = $1 and deleted_at is null`, userID, nullString(*in.DisplayName), now)
+		if execErr != nil {
+			return UserContext{}, fmt.Errorf("update user profile: %w", execErr)
+		}
+		rows, rowsErr := result.RowsAffected()
+		if rowsErr != nil {
+			return UserContext{}, fmt.Errorf("update user profile rows affected: %w", rowsErr)
+		}
+		if rows == 0 {
+			return UserContext{}, ErrUserNotFound
+		}
+	}
+
+	if in.DisplayPreferences != nil {
+		var hue any
+		var chroma any
+		if in.DisplayPreferences.CustomAccent != nil {
+			hue = in.DisplayPreferences.CustomAccent.H
+			chroma = in.DisplayPreferences.CustomAccent.C
+		}
+		result, execErr := tx.ExecContext(ctx, `
+update user_settings
+set theme = $2,
+    custom_accent_hue = $3,
+    custom_accent_chroma = $4,
+    updated_at = $5
+where user_id = $1`, userID, string(in.DisplayPreferences.Theme), hue, chroma, now)
+		if execErr != nil {
+			return UserContext{}, fmt.Errorf("update account theme: %w", execErr)
+		}
+		rows, rowsErr := result.RowsAffected()
+		if rowsErr != nil {
+			return UserContext{}, fmt.Errorf("update account theme rows affected: %w", rowsErr)
+		}
+		if rows == 0 {
+			return UserContext{}, ErrUserNotFound
+		}
+	}
+
+	out, err := queryUserContext(ctx, tx, "u.id = $1", userID)
+	if err != nil {
+		return UserContext{}, fmt.Errorf("select updated user context: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return UserContext{}, fmt.Errorf("commit update user context: %w", err)
+	}
+	return out, nil
+}
+
 func (s *SQLStore) CreateSession(ctx context.Context, rec SessionRecord) error {
 	if s == nil || s.db == nil {
 		return fmt.Errorf("auth store db is nil")
@@ -382,18 +476,33 @@ func (s *SQLStore) GetUserContext(ctx context.Context, userID string) (UserConte
 }
 
 func (s *SQLStore) getUserContext(ctx context.Context, predicate string, arg any) (UserContext, error) {
+	return queryUserContext(ctx, s.db, predicate, arg)
+}
+
+type queryRower interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func queryUserContext(ctx context.Context, querier queryRower, predicate string, arg any) (UserContext, error) {
 	var out UserContext
 	var displayName sql.NullString
 	var profileCompletedAt sql.NullTime
 	var termsAcceptedAt sql.NullTime
-	err := s.db.QueryRowContext(ctx, `
+	var theme string
+	var customHue sql.NullFloat64
+	var customChroma sql.NullFloat64
+	err := querier.QueryRowContext(ctx, `
 select
   u.id,
   u.email,
   u.display_name,
   u.profile_completed_at,
-  u.terms_accepted_at
+  u.terms_accepted_at,
+  coalesce(us.theme, 'ocean'),
+  us.custom_accent_hue,
+  us.custom_accent_chroma
 from users u
+left join user_settings us on us.user_id = u.id
 where `+predicate+` and u.deleted_at is null`,
 		arg,
 	).Scan(
@@ -402,12 +511,19 @@ where `+predicate+` and u.deleted_at is null`,
 		&displayName,
 		&profileCompletedAt,
 		&termsAcceptedAt,
+		&theme,
+		&customHue,
+		&customChroma,
 	)
 	if err != nil {
 		return UserContext{}, err
 	}
 	out.DisplayName = displayName.String
 	out.ProfileCompletionRequired = strings.TrimSpace(displayName.String) == "" || !profileCompletedAt.Valid || !termsAcceptedAt.Valid
+	out.DisplayPreferences = AccountDisplayPreferences{Theme: AccountTheme(theme)}
+	if customHue.Valid && customChroma.Valid {
+		out.DisplayPreferences.CustomAccent = &CustomAccent{H: customHue.Float64, C: customChroma.Float64}
+	}
 	return out, nil
 }
 

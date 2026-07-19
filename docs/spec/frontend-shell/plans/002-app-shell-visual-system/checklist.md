@@ -1,8 +1,8 @@
 # App Shell Visual System Checklist
 
-> **版本**: 3.3
+> **版本**: 3.4
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -116,3 +116,10 @@
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.SHELL.VISUAL.001` 由 [BDD checklist](./bdd-checklist.md) 关联 shell/display-preference/设置视觉 owner behavior tests；视觉 gate 不包装为 E2E。
+
+## Phase 21: Settings Appearance and explicit gear
+
+- [x] 21.1 RED: visual/source tests 拒绝 TopBar theme menu/custom row 和非明确 gear glyph，并要求 Settings Appearance card、Save/pending/error 与 Account/Privacy 层级。
+- [x] 21.2 GREEN: 复用既有 theme metadata/token/CustomAccentPicker 到 Settings；TopBar 只保留 dark/language/auth/settings，不保留隐藏 theme DOM/CSS/locale residue。
+- [x] 21.3 A11Y/RESPONSIVE: 明确 gear accessible name/40px/focus，Appearance 在 1440/390 可用；Practice global TopBar + Session Header 无横向溢出。
+- [x] 21.4 BDD/REGRESSION: 更新 `BDD.SHELL.VISUAL.001`，运行 focused/root/typecheck/build/context/docs/diff/Chrome gates 后恢复 completed。

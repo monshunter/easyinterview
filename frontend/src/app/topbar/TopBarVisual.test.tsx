@@ -90,11 +90,10 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
     expect(css).toMatch(/\.ei-shell-topbar\s*\{[^}]*align-items:\s*center/);
   });
 
-  it("mobile theme menu opens inward from the theme button", () => {
+  it("mobile TopBar has no theme menu surface", () => {
     const css = readFileSync(TOPBAR_CSS, "utf8");
-    expect(css).toMatch(
-      /@media \(max-width: 720px\)[\s\S]*\.ei-topbar-theme-menu\s*\{[\s\S]*left:\s*0;[\s\S]*right:\s*auto;/,
-    );
+    expect(readFileSync(TOPBAR_TSX, "utf8")).not.toContain("topbar-theme-menu");
+    expect(css).not.toContain(".ei-topbar-theme-swatch--custom-active");
   });
 
   it("does not keep a custom-active swatch modifier without a DOM consumer", () => {
@@ -129,7 +128,7 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
   it("uses one accessible 40px settings gear and removes account-menu styling", () => {
     renderTopBar({ signedIn: true });
     const settings = screen.getByTestId("topbar-settings");
-    expect(settings).toHaveAccessibleName(/设置与隐私|settings & privacy/i);
+    expect(settings).toHaveAccessibleName(/^设置$|^settings$/i);
     expect(settings.className).toMatch(/\bei-topbar-settings\b/);
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
 
@@ -193,17 +192,8 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
     expect(screen.queryByTestId("topbar-brand-subtitle")).not.toBeInTheDocument();
     expect(screen.getAllByTestId(/^topbar-nav-icon-/)).toHaveLength(3);
 
-    const themeButton = screen.getByTestId("topbar-theme-button");
-    expect(themeButton).toHaveClass("ei-topbar-control");
-    expect(themeButton).toHaveAttribute("title", "Theme");
-    await user.click(themeButton);
-    expect(screen.getByTestId("topbar-theme-menu")).toBeInTheDocument();
-    expect(screen.getAllByTestId(/^topbar-theme-option-/)).toHaveLength(2);
-    expect(screen.queryByText("Warm")).not.toBeInTheDocument();
-    expect(screen.queryByText("Forest")).not.toBeInTheDocument();
-    expect(screen.getByTestId("topbar-theme-custom-option")).toHaveTextContent(
-      "Custom",
-    );
+    expect(screen.queryByTestId("topbar-theme-button")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-theme-menu")).not.toBeInTheDocument();
 
     expect(screen.getByTestId("topbar-dark-toggle").className).toMatch(
       /\bei-topbar-dark\b/,
@@ -238,74 +228,26 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
     expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
   });
 
-  it("custom accent picker is nested in the theme menu", async () => {
+  it("does not render a custom accent picker in TopBar", () => {
     renderTopBar();
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("topbar-theme-button"));
-    const customOption = screen.getByTestId("topbar-theme-custom-option");
-    expect(customOption.className).toMatch(/\bei-topbar-theme-option\b/);
-    await user.click(customOption);
-
-    expect(document.documentElement).toHaveAttribute(
-      "data-custom-accent",
-      "active",
-    );
-    expect(screen.getByTestId("topbar-custom-accent-hue")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("topbar-custom-accent-chroma"),
-    ).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-custom-accent-picker")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-theme-custom-option")).not.toBeInTheDocument();
   });
 
-  it("custom accent picker exposes only hue and saturation without preview or reset residue", async () => {
+  it("TopBar source contains no theme mutation surface", () => {
     renderTopBar();
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("topbar-theme-button"));
-    await user.click(screen.getByTestId("topbar-theme-custom-option"));
-
-    const picker = screen.getByTestId("topbar-custom-accent-picker");
-    expect(screen.getByTestId("topbar-custom-accent-hue")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("topbar-custom-accent-chroma"),
-    ).toBeInTheDocument();
-    expect(
-      picker.querySelector(".ei-topbar-custom-accent-preview"),
-    ).not.toBeInTheDocument();
-    expect(
-      picker.querySelector(".ei-topbar-custom-accent-value"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("topbar-custom-accent-clear"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText(/恢复主题默认色|Reset to theme accent/)).toBeNull();
-
     const source = readFileSync(TOPBAR_TSX, "utf8");
-    expect(source.match(/prefs\.setCustomAccent\(null\)/g) ?? []).toHaveLength(1);
-    const pickerSource = source.slice(
-      source.indexOf("interface CustomAccentPickerProps"),
-      source.indexOf("\ntype IconName"),
-    );
-    expect(pickerSource).not.toMatch(/\b(?:active|onClear|previewAccent)\b/);
-
-    const css = readFileSync(TOPBAR_CSS, "utf8");
-    expect(css).not.toContain(".ei-topbar-custom-accent-preview");
-    expect(css).not.toContain(".ei-topbar-custom-accent-preview-swatch");
-    expect(css).not.toContain(".ei-topbar-custom-accent-value");
+    expect(source).not.toMatch(/setTheme|setCustomAccent|THEME_METADATA|CustomAccentPicker/);
   });
 
-  it("active customAccent renders the TopBar swatch with oklch inline value", async () => {
+  it("active customAccent remains global without adding a TopBar swatch", () => {
     renderTopBar({
       initial: {
         customAccent: { h: 200, c: 0.18 },
       },
     });
-    // The custom row only renders while the theme menu is open.
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("topbar-theme-button"));
-    const swatch = screen.getByTestId("topbar-custom-accent-swatch");
-    expect(swatch.style.background).toMatch(/^oklch\(/);
-    expect(
-      screen.getByTestId("topbar-theme-custom-option"),
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(document.documentElement).toHaveAttribute("data-custom-accent", "active");
+    expect(screen.queryByTestId("topbar-custom-accent-swatch")).not.toBeInTheDocument();
   });
 });
 

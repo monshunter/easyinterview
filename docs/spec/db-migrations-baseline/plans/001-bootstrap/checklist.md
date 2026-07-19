@@ -1,8 +1,8 @@
 # DB Migrations Baseline Bootstrap Checklist
 
-> **版本**: 1.24
-> **状态**: active
-> **更新日期**: 2026-07-15
+> **版本**: 1.25
+> **状态**: completed
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -128,3 +128,10 @@
 - [x] 13.4 HANDOFF-GATE: backend-auth current-user store no longer selects/scans old fields；OpenAPI/generated/frontend/mock consumers use complete `email` with zero `emailMasked` or language-field compatibility references before B2 re-freeze；production zero-reference scan is clean.
   <!-- verified: 2026-07-15 method=typed-consumer-handoff+scoped-search evidence="backend auth exact store/handler PASS; frontend typecheck/build PASS; dev mock/generated exact four-field UserContext; p0-098 seed migrated to retained user_settings columns" -->
 - [x] 13.5 BDD-N/A/REGRESSION: migration contract/lint, clean+populated `make migrate-check`, privacy matrix, root `make test`, contexts/docs/diff pass；no E2E is added for internal column removal.
+
+## Phase 14: Account theme persistence
+
+- [x] 14.1 RED/GREEN: SQL contract requires reversible 000021 theme/custom columns, enum, paired-null and numeric-range constraints.
+- [x] 14.2 STORE-HANDOFF: backend-auth joined projection and atomic update consume exact columns without dual read/write or local business truth.
+- [x] 14.3 POPULATED-GATE: isolated PostgreSQL up/down/up proves defaults, valid values, invalid constraints, analytics retention and account cascade.
+- [x] 14.4 BDD-N/A/REGRESSION: migration lint/check, privacy, root test and docs/context/diff pass；observable behavior stays in auth/frontend E2E.

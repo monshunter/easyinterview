@@ -104,7 +104,7 @@ describe("locale bootstrap", () => {
     );
     expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("Home");
     expect(screen.getByTestId("topbar-settings")).toHaveAccessibleName(
-      "Settings & privacy",
+      "Settings",
     );
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
     expect(

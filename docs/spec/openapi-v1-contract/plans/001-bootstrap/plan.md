@@ -1,8 +1,8 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.32
-> **状态**: active
-> **更新日期**: 2026-07-16
+> **版本**: 1.33
+> **状态**: completed
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -42,7 +42,7 @@ This owner plan remains the executable contract/codegen evidence index；Phase 1
 
 | Tag | Operations |
 |-----|------------|
-| Auth | `getMe`, `completeMyProfile`, `deleteMe`, `startAuthEmailChallenge`, `verifyAuthEmailChallenge`, `logout`, `getRuntimeConfig` |
+| Auth | `getMe`, `updateMe`, `deleteMe`, `startAuthEmailChallenge`, `verifyAuthEmailChallenge`, `logout`, `getRuntimeConfig` |
 | Uploads | `createUploadPresign` |
 | Resumes | `listResumes`, `registerResume`, `getResume`, `getResumeSource`, `updateResume`, `duplicateResume`, `archiveResume`, `exportResume` |
 | TargetJobs | `importTargetJob`, `listTargetJobs`, `getTargetJob`, `updateTargetJob`, `archiveTargetJob` |
@@ -348,3 +348,14 @@ Add the operation and additive `REPORT_INVALID_STATE_TRANSITION` enum value to t
 | `regenerateFeedbackReport` | `Reports/regenerateFeedbackReport.json` | ReportsScreen failed latest-attempt recovery | Reports handler → review regeneration service | same `feedback_reports` row + fresh `async_jobs` + idempotency/audit | asynchronous `report.generate`; no provider call in HTTP handler | `BDD.REPORT.REGENERATE.001` + focused contract/domain tests |
 
 002 Phase 14 owns fixtures and dev-mock parity；003 Phase 13 proves the additive path/error-code diff and guarded re-freeze；backend/frontend owners implement behavior. BDD remains downstream-owned; this contract phase closes with inventory, fixture, codegen, diff and root regression gates.
+
+## 21 OPENAPI-008 account theme and generic updateMe
+
+在 baseline 不变时锁定 OPENAPI-008 的 3 breaking + 4 additive findings，并单独锁定 wrapper 未报告的 operationId `completeMyProfile -> updateMe`。以 closed `UpdateMeRequest` 取代 `CompleteProfileRequest`，允许完整资料补全字段对、`displayPreferences` 或二者组合；`UserContext` required 新增 closed `displayPreferences`。保持 PATCH path/method/200/session security、`getMe`、`deleteMe`、profile-completion 语义与 38/10 inventory。
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|----------|
+| `getMe` | `Auth/getMe.json` | auth bootstrap/runtime theme hydration；route 不读取 | current-user handler | users + user_settings | none | focused one-bootstrap request count + `E2E.P0.101` |
+| `updateMe` | `Auth/updateMe.json` | AuthProfileSetup + Settings one-save path | generic auth handler/service | one transaction over users + user_settings | none | auth/settings BDD + `E2E.P0.101` |
+
+002 Phase 15 owns fixture/Prism/dev-mock parity；003 Phase 14 owns audit/re-freeze；backend-auth Phase 14 and B4 Phase 14 own atomic persistence；frontend-shell 001/002 own no-refetch runtime and UI behavior。

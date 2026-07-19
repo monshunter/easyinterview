@@ -53,7 +53,7 @@ paths:
       tags: [Auth]
       operationId: getMe
       summary: Get current user context
-      description: Returns minimal context for the authenticated user (id, complete account email, display name, profile completion state).
+      description: Returns account context and the confirmed account theme for the authenticated user. Clients cache this response in the app runtime; route changes do not refetch it.
       parameters:
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
@@ -73,13 +73,14 @@ paths:
           $ref: '#/components/responses/ApiErrorResponse'
     patch:
       tags: [Auth]
-      operationId: completeMyProfile
-      summary: Complete first-login profile setup
+      operationId: updateMe
+      summary: Update current account
       description: |
-        Protected endpoint for first-login profile setup only. Stores the
-        user's non-unique display name and terms acceptance, then returns the
-        updated current-user context. Candidate profile, resume, JD, and
-        interview preferences are managed by their own domain endpoints.
+        Updates first-login profile fields, account theme preferences, or both
+        atomically. A profile update requires displayName and acceptedTerms=true.
+        A theme update requires a complete displayPreferences object. Returns
+        the complete current-user context so clients can update runtime state
+        without a follow-up GET /me.
       parameters:
         - $ref: '#/components/parameters/XRequestID'
         - $ref: '#/components/parameters/Traceparent'
@@ -90,10 +91,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CompleteProfileRequest'
+              $ref: '#/components/schemas/UpdateMeRequest'
       responses:
         '200':
-          description: First-login profile setup completed.
+          description: Current account updated.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/XRequestID'
@@ -1633,8 +1634,8 @@ components:
     UserContext:
       type: object
       additionalProperties: false
-      required: [id, email, displayName, profileCompletionRequired]
-      description: Minimal current-user context returned by `GET /me`.
+      required: [id, email, displayName, profileCompletionRequired, displayPreferences]
+      description: Current-user context returned by `GET /me` and `PATCH /me`.
       properties:
         id:
           type: string
@@ -1648,6 +1649,8 @@ components:
         profileCompletionRequired:
           type: boolean
           description: True when the signed-in account still needs first-login display name and terms completion before business actions can resume.
+        displayPreferences:
+          $ref: '#/components/schemas/AccountDisplayPreferences'
 
     AuthEmailStartRequest:
       type: object
@@ -1661,10 +1664,40 @@ components:
           type: string
           description: Optional post-verify redirect path on the same origin.
 
-    CompleteProfileRequest:
+    AccountTheme:
+      type: string
+      enum: [ocean, plum]
+
+    CustomAccent:
       type: object
-      required: [displayName, acceptedTerms]
-      description: First-login profile setup request for the current authenticated user.
+      additionalProperties: false
+      required: [h, c]
+      properties:
+        h:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 360
+        c:
+          type: number
+          minimum: 0
+          maximum: 0.28
+
+    AccountDisplayPreferences:
+      type: object
+      additionalProperties: false
+      required: [theme, customAccent]
+      properties:
+        theme:
+          $ref: '#/components/schemas/AccountTheme'
+        customAccent:
+          oneOf:
+            - $ref: '#/components/schemas/CustomAccent'
+            - type: 'null'
+
+    UpdateMeRequest:
+      type: object
+      additionalProperties: false
+      description: At least one complete update group is required. displayName and acceptedTerms must appear together; acceptedTerms must be true.
       properties:
         displayName:
           type: string
@@ -1674,6 +1707,8 @@ components:
         acceptedTerms:
           type: boolean
           description: Must be true to record first-login terms acceptance.
+        displayPreferences:
+          $ref: '#/components/schemas/AccountDisplayPreferences'
 
     Session:
       type: object

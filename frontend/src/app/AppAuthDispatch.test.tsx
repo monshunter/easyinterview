@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import getMeFixture from "../../../openapi/fixtures/Auth/getMe.json";
-import completeMyProfileFixture from "../../../openapi/fixtures/Auth/completeMyProfile.json";
+import updateMeFixture from "../../../openapi/fixtures/Auth/updateMe.json";
 import getRuntimeConfigFixture from "../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import logoutFixture from "../../../openapi/fixtures/Auth/logout.json";
 import startAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/startAuthEmailChallenge.json";
@@ -22,7 +22,7 @@ function buildClient(spy?: typeof fetch) {
     createFixtureRegistry([
       getRuntimeConfigFixture,
       getMeFixture,
-      completeMyProfileFixture,
+      updateMeFixture,
       logoutFixture,
       startAuthEmailChallengeFixture,
       verifyAuthEmailChallengeFixture,
@@ -37,7 +37,7 @@ function buildRecordingRuntimeClient(options?: { hangGetMe?: boolean }) {
     createFixtureRegistry([
       getRuntimeConfigFixture,
       getMeFixture,
-      completeMyProfileFixture,
+      updateMeFixture,
       logoutFixture,
       startAuthEmailChallengeFixture,
       verifyAuthEmailChallengeFixture,
@@ -337,13 +337,13 @@ describe("App auth route dispatch", () => {
     expect(calls.some((c) => c.url.includes("/api/v1/targets"))).toBe(false);
   });
 
-  it("wires auth_profile_setup through completeMyProfile and restores the pending route", async () => {
+  it("wires auth_profile_setup through updateMe and restores the pending route", async () => {
     const calls: Array<{ url: string; method: string; body: unknown }> = [];
     const fixtureFetch = createFixtureBackedFetch(
       createFixtureRegistry([
         getRuntimeConfigFixture,
         getMeFixture,
-        completeMyProfileFixture,
+        updateMeFixture,
       ]),
     );
     const spy: typeof fetch = async (input, init) => {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"strings"
@@ -323,6 +324,52 @@ func (s *EmailCodeService) CompleteProfile(ctx context.Context, in CompleteProfi
 		return UserContext{}, fmt.Errorf("accepted terms is required")
 	}
 	return s.store.CompleteUserProfile(ctx, userID, displayName, s.now().UTC())
+}
+
+func (s *EmailCodeService) UpdateMe(ctx context.Context, userID string, in UpdateUserContextInput) (UserContext, error) {
+	if s == nil || s.store == nil {
+		return UserContext{}, fmt.Errorf("email-code service store is nil")
+	}
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return UserContext{}, ErrSessionInvalid
+	}
+	hasProfileField := in.DisplayName != nil || in.AcceptedTerms != nil
+	if !hasProfileField && in.DisplayPreferences == nil {
+		return UserContext{}, fmt.Errorf("at least one account update is required")
+	}
+	if hasProfileField {
+		if in.DisplayName == nil || in.AcceptedTerms == nil {
+			return UserContext{}, fmt.Errorf("display name and accepted terms must be provided together")
+		}
+		normalized := normalizeDisplayName(*in.DisplayName)
+		if normalized == "" {
+			return UserContext{}, fmt.Errorf("display name is required")
+		}
+		if !*in.AcceptedTerms {
+			return UserContext{}, fmt.Errorf("accepted terms is required")
+		}
+		in.DisplayName = &normalized
+	}
+	if prefs := in.DisplayPreferences; prefs != nil {
+		if prefs.Theme != AccountThemeOcean && prefs.Theme != AccountThemePlum {
+			return UserContext{}, fmt.Errorf("unsupported account theme")
+		}
+		if accent := prefs.CustomAccent; accent != nil {
+			if math.IsNaN(accent.H) || math.IsInf(accent.H, 0) || accent.H < 0 || accent.H >= 360 ||
+				math.IsNaN(accent.C) || math.IsInf(accent.C, 0) || accent.C < 0 || accent.C > 0.28 {
+				return UserContext{}, fmt.Errorf("invalid custom accent")
+			}
+		}
+	}
+	if in.DisplayPreferences == nil {
+		return s.store.CompleteUserProfile(ctx, userID, *in.DisplayName, s.now().UTC())
+	}
+	updater, ok := s.store.(userContextUpdater)
+	if !ok {
+		return UserContext{}, fmt.Errorf("account update store is not configured")
+	}
+	return updater.UpdateUserContext(ctx, userID, in, s.now().UTC())
 }
 
 func (s *EmailCodeService) Logout(ctx context.Context, current CurrentSession) error {

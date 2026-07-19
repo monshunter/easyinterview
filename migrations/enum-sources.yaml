@@ -43,5 +43,6 @@ checks:
   - {table: auth_challenges, column: purpose, source: adr-q1-auth, values: [login, signup], checksum: "sha256:be2c339e444e576b"}
   - {table: auth_challenges, column: status, source: adr-q1-auth, values: [pending, consumed, expired, revoked], checksum: "sha256:38cf23b2215b354b"}
   - {table: sessions, column: status, source: adr-q1-auth, values: [active, revoked, expired], checksum: "sha256:ea957045a9f9613f"}
+  - {table: user_settings, column: theme, source: openapi-v1-contract.AccountTheme, values: [ocean, plum], checksum: "sha256:7e8aa196be829cdf"}
   - {table: agent_scans, column: status, source: backend-jobs-recommendations.AgentScanStatus, values: [idle, scanning, error], checksum: "sha256:043138d8c35d3689"}
   - {table: watchlist_items, column: tone, source: backend-jobs-recommendations.WatchlistTone, values: [ok, warn, muted], checksum: "sha256:6ef0974a7c579b0c"}

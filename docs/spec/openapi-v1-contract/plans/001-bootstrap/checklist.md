@@ -1,8 +1,8 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.32
-> **状态**: active
-> **更新日期**: 2026-07-16
+> **版本**: 1.33
+> **状态**: completed
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -165,4 +165,13 @@ git diff --check
   <!-- verified: 2026-07-16 method=focused-red evidence="inventory test failed because regenerateFeedbackReport was absent from EXPECTED_OPERATIONS before source mutation" -->
 - [x] 20.2 GREEN: update OpenAPI source and regenerate Go/TS artifacts with `REPORT_INVALID_STATE_TRANSITION` parity and no attempt/progress fields.<!-- verified: 2026-07-16 method=openapi-codegen-green evidence="protected bodyless POST + IK + 202 ReportWithJob generated in embedded Go and typed TS clients; conventions parity and 30-test inventory PASS; scoped attempt/progress search empty" -->
 - [x] 20.3 HANDOFF: 002 Phase 14, 003 Phase 13, backend-review and frontend-report-dashboard consume the exact operation matrix.<!-- verified: 2026-07-16 method=operation-handoff evidence="38/38 source/fixture/generated operation matrix; backend handler/store and frontend client/devMock consumers PASS; preserved D-40 audit exact" -->
-- [ ] 20.4 BDD-N/A/REGRESSION: contract gates plus downstream BDD references, `make lint-openapi validate-fixtures codegen-check openapi-diff` and root `make test` pass.
+- [x] 20.4 BDD-N/A/REGRESSION: contract gates plus downstream BDD references, `make lint-openapi validate-fixtures codegen-check openapi-diff` and root `make test` pass.
+
+## Phase 21: OPENAPI-008 account theme and generic updateMe
+
+- [x] 21.1 OWNER/RED: accepted OPENAPI-008 + spec/history 1.66；unchanged baseline reports exact 3 breaking + 4 additive findings and separately locks operationId rename with 38/10 Auth invariants.
+- [x] 21.2 GREEN: source/generated Go+TS replace completeMyProfile/CompleteProfileRequest with closed updateMe/UpdateMeRequest and required closed displayPreferences.
+- [x] 21.3 FIXTURE/CODEGEN: 002 Phase 15 replaces the fixture one-for-one；getMe returns theme；validators/Prism/dev mock/generated artifacts stay in parity.
+- [x] 21.4 HANDOFF: backend-auth Phase 14、B4 Phase 14、frontend-shell focused tests prove atomic persistence, one bootstrap GET and one-save PATCH without follow-up GET.
+- [x] 21.5 AUDIT/RE-FREEZE: preserve audit, re-freeze after consumer/migration gates, require zero diff and no old production operation/schema/fixture references.
+- [x] 21.6 REGRESSION: lint/fixtures/codegen/diff、root `make test`、docs/context/diff and downstream BDD/E2E gates pass.

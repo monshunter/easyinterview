@@ -1,16 +1,10 @@
-import { useCallback, useEffect, useState, type FC } from "react";
+import { useEffect, useState, type FC } from "react";
 
-import {
-  useDisplayPreferences,
-  type CustomAccent,
-  type Lang,
-  type Theme,
-} from "../display/DisplayPreferencesProvider";
+import { useDisplayPreferences } from "../display/DisplayPreferencesProvider";
 import { SUPPORTED_LOCALES } from "../i18n/localeCatalog";
 import { translate } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import { PRIMARY_NAV_ROUTES, type RouteName } from "../routes";
-import { THEME_METADATA } from "../theme/themes.data";
 
 /**
  * Three primary nav entries match docs/ui-design/auth-and-entry.md §4 after
@@ -32,16 +26,6 @@ const NAV_LABEL_KEYS: Record<(typeof PRIMARY_NAV_ROUTES)[number], Parameters<typ
   home: "nav.home",
   workspace: "nav.workspace",
   resume_versions: "nav.resume_versions",
-};
-
-const THEME_OPTIONS = ["ocean", "plum"] as const satisfies readonly Theme[];
-const THEME_LABEL_KEYS: Record<(typeof THEME_OPTIONS)[number], Parameters<typeof translate>[1]> = {
-  ocean: "theme.ocean",
-  plum: "theme.plum",
-};
-const CUSTOM_ACCENT_SEEDS: Record<Theme, CustomAccent> = {
-  ocean: { h: 255, c: 0.16 },
-  plum: { h: 340, c: 0.15 },
 };
 
 const NAV_ICONS: Record<(typeof PRIMARY_NAV_ROUTES)[number], IconName> = {
@@ -69,39 +53,22 @@ export const TopBar: FC<TopBarProps> = ({
 }) => {
   const prefs = useDisplayPreferences();
   const t = (key: Parameters<typeof translate>[1]) => translate(prefs.lang, key);
-  const customActive = prefs.customAccent != null;
-  const [pickerOpen, setPickerOpen] = useState<boolean>(customActive);
-  const [themeMenuOpen, setThemeMenuOpen] = useState<boolean>(false);
   const [langMenuOpen, setLangMenuOpen] = useState<boolean>(false);
-
-  const seed = CUSTOM_ACCENT_SEEDS[prefs.theme] ?? CUSTOM_ACCENT_SEEDS.ocean;
-  const accentValue: CustomAccent = prefs.customAccent ?? seed;
-  const swatchOklch = customActive
-    ? `oklch(${prefs.dark ? 68 : 58}% ${accentValue.c.toFixed(3)} ${accentValue.h.toFixed(1)})`
-    : "";
   const currentLocale =
     SUPPORTED_LOCALES.find((locale) => locale.code === prefs.lang) ??
     SUPPORTED_LOCALES.find((locale) => locale.code === "en") ??
     SUPPORTED_LOCALES[0];
 
   useEffect(() => {
-    if (!themeMenuOpen && !langMenuOpen) return;
+    if (!langMenuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setThemeMenuOpen(false);
         setLangMenuOpen(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [themeMenuOpen, langMenuOpen]);
-
-  const handleAccentChange = useCallback(
-    (next: Partial<CustomAccent>) => {
-      prefs.setCustomAccent({ ...accentValue, ...next });
-    },
-    [accentValue, prefs],
-  );
+  }, [langMenuOpen]);
   return (
     <header data-testid="app-shell-topbar" className="ei-shell-topbar">
       <div className="ei-topbar-brand">
@@ -140,115 +107,6 @@ export const TopBar: FC<TopBarProps> = ({
         data-testid="topbar-display-controls"
         className="ei-topbar-controls"
       >
-        <span className="ei-topbar-theme-wrap">
-          <button
-            type="button"
-            data-testid="topbar-theme-button"
-            title={prefs.lang === "en" ? "Theme" : "主题色"}
-            aria-label={prefs.lang === "en" ? "Theme" : "主题色"}
-            aria-expanded={themeMenuOpen}
-            className="ei-topbar-control ei-topbar-theme-button"
-            onClick={() => setThemeMenuOpen((open) => !open)}
-          >
-            <span
-              className="ei-topbar-theme-swatch"
-              data-testid="topbar-theme-swatch"
-            />
-            <span className="ei-topbar-caret" aria-hidden="true">
-              ▾
-            </span>
-          </button>
-          {themeMenuOpen && (
-            <>
-              <button
-                type="button"
-                className="ei-topbar-menu-backdrop"
-                aria-label={prefs.lang === "en" ? "Close theme menu" : "关闭主题菜单"}
-                onClick={() => setThemeMenuOpen(false)}
-              />
-              <div
-                data-testid="topbar-theme-menu"
-                className="ei-topbar-theme-menu"
-              >
-                <div className="ei-text-label ei-topbar-theme-menu-label">
-                  {prefs.lang === "en" ? "Theme" : "主题色"}
-                </div>
-                {THEME_OPTIONS.map((theme) => {
-                  const selected = prefs.theme === theme && !customActive;
-                  const metadata = THEME_METADATA.find((item) => item.key === theme);
-                  return (
-                    <button
-                      key={theme}
-                      type="button"
-                      data-testid={`topbar-theme-option-${theme}`}
-                      aria-pressed={selected}
-                      className={
-                        selected
-                          ? "ei-topbar-theme-option ei-topbar-theme-option--selected"
-                          : "ei-topbar-theme-option"
-                      }
-                      onClick={() => {
-                        prefs.setTheme(theme);
-                        prefs.setCustomAccent(null);
-                        setPickerOpen(false);
-                        setThemeMenuOpen(false);
-                      }}
-                    >
-                      <span
-                        className="ei-topbar-theme-option-swatch"
-                        style={{ background: metadata?.swatch }}
-                        aria-hidden="true"
-                      />
-                      <span>{t(THEME_LABEL_KEYS[theme])}</span>
-                      {selected && <Icon name="check" size={12} />}
-                    </button>
-                  );
-                })}
-                <div className="ei-topbar-theme-separator" />
-                <button
-                  type="button"
-                  data-testid="topbar-theme-custom-option"
-                  aria-pressed={customActive}
-                  className={
-                    customActive
-                      ? "ei-topbar-theme-option ei-topbar-theme-option--selected"
-                      : "ei-topbar-theme-option"
-                  }
-                  onClick={() => {
-                    if (!customActive) {
-                      prefs.setCustomAccent({ ...seed });
-                      setPickerOpen(true);
-                    } else {
-                      setPickerOpen((open) => !open);
-                    }
-                  }}
-                >
-                  <span
-                    data-testid="topbar-custom-accent-swatch"
-                    className="ei-topbar-custom-accent-rainbow"
-                    style={customActive ? { background: swatchOklch } : undefined}
-                  />
-                  <span>{prefs.lang === "en" ? "Custom" : "自定义"}</span>
-                  {customActive ? (
-                    <Icon name="check" size={12} />
-                  ) : (
-                    <span className="ei-topbar-caret" aria-hidden="true">
-                      {pickerOpen ? "▴" : "▾"}
-                    </span>
-                  )}
-                </button>
-                {pickerOpen && (
-                  <CustomAccentPicker
-                    accent={accentValue}
-                    onChange={handleAccentChange}
-                    lang={prefs.lang}
-                    dark={prefs.dark}
-                  />
-                )}
-              </div>
-            </>
-          )}
-        </span>
         <button
           type="button"
           data-testid="topbar-dark-toggle"
@@ -372,83 +230,6 @@ export const TopBar: FC<TopBarProps> = ({
   );
 };
 
-interface CustomAccentPickerProps {
-  accent: CustomAccent;
-  onChange: (next: Partial<CustomAccent>) => void;
-  lang: Lang;
-  dark: boolean;
-}
-
-const CustomAccentPicker: FC<CustomAccentPickerProps> = ({
-  accent,
-  onChange,
-  lang,
-  dark,
-}) => {
-  const accentL = dark ? 68 : 58;
-  const normalizedHue = ((accent.h % 360) + 360) % 360;
-  const hueStops = Array.from({ length: 13 }, (_, index) => {
-    const h = (index / 12) * 360;
-    return `oklch(${accentL}% 0.18 ${h})`;
-  }).join(", ");
-  const hueGradient = `linear-gradient(to right, ${hueStops})`;
-  const chromaGradient = `linear-gradient(to right, oklch(${accentL}% 0 ${normalizedHue}), oklch(${accentL}% 0.25 ${normalizedHue}))`;
-
-  return (
-    <div
-      data-testid="topbar-custom-accent-picker"
-      className="ei-topbar-custom-accent-picker"
-      role="group"
-      aria-label={lang === "en" ? "Custom accent picker" : "自定义主题色"}
-    >
-      <div className="ei-topbar-custom-accent-row">
-        <span className="ei-text-label">
-          {lang === "en" ? "Hue" : "色相"}
-        </span>
-        <div
-          className="ei-topbar-custom-accent-track"
-          style={{ background: hueGradient }}
-        >
-          <input
-            data-testid="topbar-custom-accent-hue"
-            className="ei-topbar-custom-accent-input"
-            type="range"
-            min={0}
-            max={360}
-            step={1}
-            aria-label={lang === "en" ? "Custom accent hue" : "自定义主题色色相"}
-            value={accent.h}
-            onChange={(e) => onChange({ h: Number(e.target.value) })}
-          />
-        </div>
-      </div>
-      <div className="ei-topbar-custom-accent-row">
-        <span className="ei-text-label">
-          {lang === "en" ? "Chroma" : "饱和度"}
-        </span>
-        <div
-          className="ei-topbar-custom-accent-track"
-          style={{ background: chromaGradient }}
-        >
-          <input
-            data-testid="topbar-custom-accent-chroma"
-            className="ei-topbar-custom-accent-input"
-            type="range"
-            min={0}
-            max={0.25}
-            step={0.005}
-            aria-label={
-              lang === "en" ? "Custom accent chroma" : "自定义主题色饱和度"
-            }
-            value={accent.c}
-            onChange={(e) => onChange({ c: Number(e.target.value) })}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
 type IconName =
   | "target"
   | "search"
@@ -485,12 +266,7 @@ const Icon: FC<IconProps> = ({ name, size = 13, "data-testid": testId }) => {
     play: <path d="M7 5l12 7-12 7V5z" fill="currentColor" stroke="none" />,
     file: <path d="M7 3h8l4 4v14H7z M15 3v5h4" />,
     flag: <path d="M5 22V3h13l-3 5 3 5H5" />,
-    settings: (
-      <>
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M4.5 19.5l2-2M17.5 6.5l2-2" />
-      </>
-    ),
+    settings: <path d="M19.14 12.94a7.43 7.43 0 000-1.88l2.03-1.58-1.92-3.32-2.39.96a7.2 7.2 0 00-1.63-.94L14.87 3h-3.84l-.36 2.18a7.2 7.2 0 00-1.63.94l-2.39-.96-1.92 3.32 2.03 1.58a7.43 7.43 0 000 1.88l-2.03 1.58 1.92 3.32 2.39-.96c.5.39 1.04.7 1.63.94l.36 2.18h3.84l.36-2.18c.59-.24 1.13-.55 1.63-.94l2.39.96 1.92-3.32-2.03-1.58zM12.95 15.2a3.2 3.2 0 110-6.4 3.2 3.2 0 010 6.4z" fill="currentColor" stroke="none" />,
     check: <path d="M5 12l5 5L20 7" />,
     moon: <path d="M21 13.5A8.5 8.5 0 1110.5 3a7 7 0 0010.5 10.5z" />,
     sun: (

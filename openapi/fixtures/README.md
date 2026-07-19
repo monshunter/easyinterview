@@ -146,7 +146,7 @@ the declared response.
 | operationId | Method/path | Expected |
 |-------------|-------------|----------|
 | `getMe` | `GET /me` | 200 |
-| `completeMyProfile` | `PATCH /me` | 200 |
+| `updateMe` | `PATCH /me` | 200 |
 | `listResumes` | `GET /resumes` | 200 |
 | `getResume` | `GET /resumes/{resumeId}` | 200 |
 | `listTargetJobs` | `GET /targets` | 200 |

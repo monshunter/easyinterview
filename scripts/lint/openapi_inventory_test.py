@@ -15,20 +15,21 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertIn(("Auth", "delete", "/me", "deleteMe"), inventory.EXPECTED_OPERATIONS)
         self.assertIn(("delete", "/me"), inventory.IK_REQUIRED)
 
-    def test_complete_my_profile_operation_is_registered_without_idempotency_key(self) -> None:
-        # Profile completion is guarded by the authenticated session and the
-        # latest displayName/terms payload; it is not a generic idempotent op.
-        self.assertIn(("Auth", "patch", "/me", "completeMyProfile"), inventory.EXPECTED_OPERATIONS)
+    def test_update_me_operation_is_registered_without_idempotency_key(self) -> None:
+        # Account updates are guarded by the authenticated session and return
+        # the updated context; they are not generic idempotent operations.
+        self.assertIn(("Auth", "patch", "/me", "updateMe"), inventory.EXPECTED_OPERATIONS)
         self.assertNotIn(("patch", "/me"), inventory.IK_REQUIRED)
         self.assertNotIn(("patch", "/me"), inventory.IK_FORBIDDEN)
 
-    def test_settings_user_context_is_exact_four_field_closed_contract(self) -> None:
+    def test_settings_user_context_is_exact_five_field_closed_contract(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         expected_fields = [
             "id",
             "email",
             "displayName",
             "profileCompletionRequired",
+            "displayPreferences",
         ]
         user_context = data["components"]["schemas"]["UserContext"]
         self.assertEqual("object", user_context["type"])
@@ -40,7 +41,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
 
         expected_operations = {
             ("get", "getMe", "200"),
-            ("patch", "completeMyProfile", "200"),
+            ("patch", "updateMe", "200"),
             ("delete", "deleteMe", "202"),
         }
         actual_operations = set()
@@ -68,8 +69,8 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         for retired in ("UiLanguage", "PreferredPracticeLanguage"):
             self.assertNotIn(retired, user_context_go)
         self.assertNotIn("EmailMasked", user_context_go)
-        self.assertEqual(4, len([line for line in user_context_ts.splitlines() if ":" in line]))
-        self.assertEqual(4, len([line for line in user_context_go.splitlines() if "`json:" in line]))
+        self.assertEqual(5, len([line for line in user_context_ts.splitlines() if ":" in line]))
+        self.assertEqual(5, len([line for line in user_context_go.splitlines() if "`json:" in line]))
 
     def test_report_conversation_replaces_the_public_practice_session_list(self) -> None:
         self.assertEqual(38, len(inventory.EXPECTED_OPERATIONS))

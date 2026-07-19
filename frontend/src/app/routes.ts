@@ -60,7 +60,7 @@ export function isKnownRouteName(value: string): value is RouteName {
   return KNOWN_ROUTE_NAMES.has(value);
 }
 
-const NO_CHROME_ROUTES = new Set<RouteName>(["practice", "generating"]);
+const NO_CHROME_ROUTES = new Set<RouteName>(["generating"]);
 
 /** Returns true when the route should hide the App chrome (TopBar etc). */
 export function isChromeHidden(name: RouteName): boolean {

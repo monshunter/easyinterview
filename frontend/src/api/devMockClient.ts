@@ -1,5 +1,5 @@
 import deleteMeFixture from "../../../openapi/fixtures/Auth/deleteMe.json";
-import completeMyProfileFixture from "../../../openapi/fixtures/Auth/completeMyProfile.json";
+import updateMeFixture from "../../../openapi/fixtures/Auth/updateMe.json";
 import getMeFixture from "../../../openapi/fixtures/Auth/getMe.json";
 import getRuntimeConfigFixture from "../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import logoutFixture from "../../../openapi/fixtures/Auth/logout.json";
@@ -55,7 +55,7 @@ const DEV_MOCK_FIXTURES = [
 	logoutFixture,
 	getJobFixture,
 	deleteMeFixture,
-	completeMyProfileFixture,
+	updateMeFixture,
 	getMeFixture,
 	createPracticePlanFixture,
 	getPracticePlanFixture,
@@ -110,6 +110,7 @@ export function createDevMockClient(
 		displayName: "",
 		email: "new.user@example.com",
 		lastEmail: "",
+		displayPreferences: { theme: "ocean", customAccent: null } as UserContext["displayPreferences"],
 	};
 	const fetch: typeof globalThis.fetch = async (input, init) => {
 		const request = readRequest(input, init);
@@ -170,6 +171,7 @@ function respondToStatefulAuthRequest(
 		displayName: string;
 		email: string;
 		lastEmail: string;
+		displayPreferences: UserContext["displayPreferences"];
 	},
 ): Response | null {
 	if (request.headers.has("Prefer")) return null;
@@ -190,7 +192,10 @@ function respondToStatefulAuthRequest(
 	if (request.method === "PATCH" && request.path === "/me") {
 		const body = parseJsonObject(request.bodyText);
 		const displayName = typeof body?.displayName === "string" ? body.displayName.trim() : "";
-		const acceptedTerms = body?.acceptedTerms === true;
+		const acceptedTerms = body?.acceptedTerms;
+		const displayPreferences = isAccountDisplayPreferences(body?.displayPreferences)
+			? body.displayPreferences
+			: null;
 		if (!state.signedIn) {
 			return jsonResponse(401, {
 				error: {
@@ -202,7 +207,8 @@ function respondToStatefulAuthRequest(
 				},
 			});
 		}
-		if (!displayName || !acceptedTerms) {
+		const hasProfileFields = body?.displayName !== undefined || body?.acceptedTerms !== undefined;
+		if ((!hasProfileFields && !displayPreferences) || (hasProfileFields && (!displayName || acceptedTerms !== true))) {
 			return jsonResponse(400, {
 				error: {
 					code: "VALIDATION_FAILED",
@@ -213,8 +219,11 @@ function respondToStatefulAuthRequest(
 				},
 			});
 		}
-		state.displayName = displayName;
-		state.profileComplete = true;
+		if (hasProfileFields) {
+			state.displayName = displayName;
+			state.profileComplete = true;
+		}
+		if (displayPreferences) state.displayPreferences = displayPreferences;
 		return jsonResponse(200, buildMockUserContext(state));
 	}
 	return null;
@@ -224,13 +233,23 @@ function buildMockUserContext(state: {
 	profileComplete: boolean;
 	displayName: string;
 	email: string;
+	displayPreferences: UserContext["displayPreferences"];
 }): UserContext {
 	return {
 		id: "01918fa0-0000-7000-8000-000000000101",
 		email: state.email,
 		displayName: state.profileComplete ? state.displayName || "Alice Example" : "",
 		profileCompletionRequired: !state.profileComplete,
+		displayPreferences: state.displayPreferences,
 	};
+}
+
+function isAccountDisplayPreferences(value: unknown): value is UserContext["displayPreferences"] {
+	if (!isObject(value) || (value.theme !== "ocean" && value.theme !== "plum")) return false;
+	if (value.customAccent === null) return true;
+	return isObject(value.customAccent) &&
+		typeof value.customAccent.h === "number" && value.customAccent.h >= 0 && value.customAccent.h < 360 &&
+		typeof value.customAccent.c === "number" && value.customAccent.c >= 0 && value.customAccent.c <= 0.28;
 }
 
 function jsonResponse(status: number, body: unknown): Response {

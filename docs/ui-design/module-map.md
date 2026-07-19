@@ -1,8 +1,8 @@
 # EasyInterview UI 目标模块地图
 
-> **版本**: 2.20
+> **版本**: 2.21
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-19
 
 ## 1 文档目的
 
@@ -14,11 +14,11 @@
 |------|----------|----------------|------|
 | Home / 首页 | 粘贴 JD 或继续最近模拟面试 | 单一 JD 文本框、ready 简历选择、最近模拟面试、创建简历入口 | 默认入口；JD 获取唯一入口，只接受粘贴文本 |
 | Interview / 面试 | 浏览并回访既有面试规划，再次发起 session | 面试规划列表、当前面试规划、切换/新建规划、JD/简历绑定、面试轮次、公司情报嵌入卡片、立即面试、会话记录 | 一级导航 |
-| Interview Session | 完成一场完整模拟面试 | 全宽连续文本聊天、user/assistant 安全 Markdown/GFM、普通消息自然推进、disabled 电话入口、结束生成报告 | 会话级页面 |
+| Interview Session | 完成一场完整模拟面试 | 全局 App TopBar、Practice Session Header、全宽连续文本聊天、user/assistant 安全 Markdown/GFM、disabled 电话入口、结束生成报告 | 会话级页面，不隐藏全局 chrome |
 | Reports / 当前规划报告 | 查看一个面试规划各轮当前报告与最新生成状态 | target-scoped canonical round list、loading/empty/error、进入 report/generating | 规划上下文页面，不是 TopBar 一级导航或全局中心 |
 | Report Dashboard | 查看一次已完成模拟面试的报告 | 仪表盘、上下文条、准备度、维度、证据、下一步；Header 唯一一对复练 / 下一轮 CTA | 隶属于 session，不是一级导航 |
 | Resume / 简历 | 管理简历资产 | 平铺简历列表、上传/粘贴创建后直接打开详情、只读原始正文、LLM-derived displayName、禁止 raw 第一行/文件名命名 | 一级导航 |
-| Account & Settings / 设置与隐私 | 查看真实账号信息并执行账号与隐私动作 | 只读姓名/完整账号邮箱、退出登录、导出暂不可用、删除账号 | 已登录 TopBar 设置齿轮入口 |
+| Account & Settings / 设置 | 保存账号级主题并执行账号与隐私动作 | Appearance 主题、只读姓名/完整邮箱、退出、导出不可用、删除账号 | 已登录 TopBar 设置齿轮入口 |
 | Auth / 认证 | 登录和退出 | 邮箱验证码登录、邮箱验证、首次账号资料补全、退出登录 | 操作级触发，不是默认入口 |
 | Global Display Controls / 全局显示控制 | 调整 UI 呈现 | 顶栏 Ocean / Plum / custom accent（仅色相、饱和度）、暗色模式、语言下拉 | 横切能力；custom accent 无 preview/value/reset，选择 Ocean / Plum 即退出自定义色；字体采用固定产品栈 |
 
@@ -116,13 +116,15 @@ User
 5. 复盘和用户画像不得作为静态源码、设计文档、正式前端、OpenAPI、backend、migrations、shared、config、scenario 正向资产。
 6. Home JD intake 只渲染 textarea、ready Resume 下拉框与「立即面试」CTA；不得出现其他 JD 导入控件、弹窗或并行请求形态。Resume 模块的文件上传不受此约束影响。
 7. `reports` 只展示当前 `targetJobId` 的 canonical rounds、current report 与 latest attempt；入口位于 Workspace 详情内容区，不进入 TopBar。Parse 无 ready 详情、嵌入列表/section 兼容，Reports Back 返回 Workspace detail，Report/Generating route 仍 reportId-only。
-8. Custom accent picker 只保留 hue/saturation；preview/value 区、“恢复主题默认色 / Reset to theme accent”与 `onClear` / `active` 冗余 props 必须零引用。Ocean / Plum 是退出自定义色的唯一预定义主题动作。
+8. Custom accent picker 位于“设置 > 外观”且只保留 hue/saturation；preview/value 区、“恢复主题默认色 / Reset to theme accent”与 `onClear` / `active` 冗余 props 必须零引用。Ocean / Plum 是退出自定义色的唯一预定义主题动作；拖动零请求，保存一次 `updateMe`。
 9. ready Home/Workspace 卡片只进入 `/workspace?targetJobId`，不得 import、poll、播放 Parse animation 或使用 `planId/resumeId` 做详情 locator；只有 Home POST import 进入 `/parse?targetJobId` 命令进度。
 10. Practice user/assistant Markdown 投影启用 `skipHtml` 且不使用 `rehypeRaw`；remote image/unsafe URI 不执行，安全 link hardened，same-ID retry 使用原始 text/clientMessageId，mobile code/table 不造成 document overflow。
-11. Settings 不保留 tab、登录安全、字体预设、产品信息或手机号/界面语言/时区等无当前数据源字段；Account 只读展示 runtime `/me` 姓名与完整账号邮箱，Privacy 只展示导出不可用和删除账号。
+11. Settings 不保留 tab、登录安全、字体预设、产品信息或手机号/界面语言/时区等无当前数据源字段；Appearance 保存账号级主题，Account 只读展示 runtime `/me` 姓名与完整账号邮箱，Privacy 只展示导出不可用和删除账号。route 切换不得重复读取 `/me`。
+12. Practice 必须显示全局 App TopBar；会话公司/角色/计时/动作属于独立 Practice Session Header，不得作为隐藏全局导航的替代物。
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.21 | 主题移入设置并按账号保存；Practice 恢复全局 App TopBar，明确会话控制栏边界。 |
 | 2026-07-15 | 2.20 | 采用设置简化方案 A：账号入口收敛为设置齿轮，Settings 只保留真实账号/隐私动作，全局字体改为固定产品栈。 |

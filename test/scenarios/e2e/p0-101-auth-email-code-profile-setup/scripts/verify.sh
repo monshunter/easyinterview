@@ -38,6 +38,9 @@ for marker in \
   "settingsAccount=runtime-full-email" \
   "settingsLegacySurfaces=absent" \
   "settingsMountedGetMe=0" \
+  "settingsRouteSwitchGetMe=0" \
+  "themeSavePatch=1" \
+  "themeRelogin=plum" \
   "deleteMeRequests=0" \
   "E2E.P0.101 auth email-code same-email lifecycle passed" \
   "mailCode=<redacted>" \

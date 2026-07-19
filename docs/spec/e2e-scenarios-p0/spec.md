@@ -50,7 +50,7 @@
 | `getReportConversation` | `Reports/getReportConversation.json` | ReportConversation | backend-review conversation handler | owned `feedback_reports.session_id` + ordered `practice_messages` | none | P0.099 real UI/API/DB binding；no list operation |
 | `startAuthEmailChallenge` | `Auth/startAuthEmailChallenge.json` | AuthLoginScreen | backend-auth challenge handler | auth challenge + email dispatch job | none | P0.101 real Mailpit delivery |
 | `verifyAuthEmailChallenge` | `Auth/verifyAuthEmailChallenge.json` | AuthVerifyScreen | backend-auth verification handler | challenge consumption + first-party session | none | P0.101 real code verification |
-| `completeMyProfile` | `Auth/completeMyProfile.json` | AuthProfileSetupScreen | backend-auth profile-completion handler | users display/profile/terms | none | P0.101 first-login setup |
+| `updateMe` | `Auth/updateMe.json` | AuthProfileSetupScreen + SettingsScreen | backend-auth generic current-user handler | users display/profile/terms + user_settings theme | none | P0.101 first-login/theme persistence |
 | `getMe` | `Auth/getMe.json` | AppRuntimeProvider + Settings | backend-auth current-user handler | session-owned user identity/profile | none | P0.101 real displayName/full email projection；no duplicate page request；evidence redacts email |
 | `logout` | `Auth/logout.json` | AuthLogoutScreen entered from Settings | backend-auth logout handler | session revocation | none | P0.101 real logout/relogin |
 

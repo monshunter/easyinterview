@@ -1,8 +1,8 @@
 # Workspace and Interview Context BDD Checklist
 
-> **版本**: 1.30
+> **版本**: 1.31
 > **状态**: completed
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -42,3 +42,9 @@
 - [x] 成功只导航到现有 `practice` route；失败卸载 transition 并保留各 caller 原有错误；未登录 auth redirect 不提前显示。
 - [x] title/body zh/en 完整，DOM 无百分比、伪阶段或 opening message；CSS reduced-motion gate 停用非必要循环动画。
 - [x] 记录 focused domain behavior 证据；根 `make test` 与独立 desktop/mobile Chrome pending-state 证据由主 checklist 30.4 收口。（验证：2026-07-18，5 files / 45 tests PASS；frontend typecheck PASS；根 frontend 127 files / 1035 tests PASS；真实 LLM pending 桌面/移动端与成功导航 PASS）
+
+## `BDD.PRACTICE.GLOBAL_CHROME.005` 会话页全局导航一致性
+
+- [x] App/router tests 证明 Practice 同时显示共享 global TopBar 与独立 Practice Session Header，Generating 仍可隐藏 chrome。
+- [x] 请求计数测试证明进入、离开和 Practice 内交互不追加 `getMe`。
+- [x] desktop/mobile responsive/a11y 与 current-run Chrome 截图证明导航、设置齿轮、会话 CTA 可达且 document 无横向溢出。

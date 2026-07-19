@@ -1,8 +1,8 @@
 # Email-Code Session Bootstrap Checklist
 
-> **版本**: 2.9
+> **版本**: 3.0
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -116,3 +116,10 @@
   <!-- verified: 2026-07-16 method=tdd-red-green evidence="RED: TestSMTPDeliveryWriterEncodesLocalizedMessageAsStandardsCompliantMIME failed on raw UTF-8 Subject. GREEN: the same test, all SMTPDeliveryWriter tests and go test ./internal/auth -count=1 PASS with RFC 2047 Subject and decoded quoted-printable text/plain/text/html assertions." -->
 - [x] 13.2 BDD-Gate: 重新验证 `BDD.AUTH.EMAIL.002` domain behavior，覆盖本地化 MIME 无损解码；focused auth、auth package、根 `make test`、`make build`、owner context/docs/index/diff gates通过后恢复 completed。
   <!-- verified: 2026-07-16 method=domain-behavior bddChecklist=complete evidence="TestSMTPDeliveryWriterEncodesLocalizedMessageAsStandardsCompliantMIME exists and PASS; go test ./internal/auth PASS; root make test PASS with Python 567 tests/4481 subtests, Go all packages and frontend 126 files/1004 tests; make build, A3 terminology lint, both owner contexts, docs-check and diff-check PASS. No E2E status changed." -->
+
+## Phase 14: OPENAPI-008 generic updateMe and account theme
+
+- [x] 14.1 RED/GREEN: generated handler/service tests replace completeMyProfile with updateMe and cover profile-only/theme-only/combined plus empty/partial/invalid input.
+- [x] 14.2 STORE: joined getMe projection returns displayPreferences；theme/combined updates use one transaction and reject partial writes.
+- [x] 14.3 HANDLER: exact generated UserContext includes displayPreferences and preserves session/profile/full-email privacy semantics.
+- [x] 14.4 REGRESSION: focused/full auth, root test, real PostgreSQL migration and old production operation zero-reference gates pass before restoring completed.

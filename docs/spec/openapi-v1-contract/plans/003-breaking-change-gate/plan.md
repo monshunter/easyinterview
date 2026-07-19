@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.25
-> **状态**: active
-> **更新日期**: 2026-07-16
+> **版本**: 1.26
+> **状态**: completed
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -236,3 +236,7 @@ Audit locks 37 operations/10 tags；exact `getMe` / `completeMyProfile` / `delet
 ## 15 Phase 13: Failed report regeneration additive gate
 
 Compare the unchanged current baseline with the proposed source and require only additive findings for the new protected path/operation and `REPORT_INVALID_STATE_TRANSITION` enum value. Lock existing 37 operations plus the one new operation as exactly 38/10, unchanged report read/conversation/completion contracts, and no attempt/progress fields. Preserve the audit before re-freeze；do not edit the baseline until 001 Phase 20, 002 Phase 14 and downstream backend/frontend handoffs pass. This governance phase has no independent BDD.
+
+## 16 Phase 14: OPENAPI-008 generic updateMe correction
+
+Before baseline mutation, preserve exact wrapper output of 3 breaking + 4 additive findings and the separately asserted PATCH operationId rename. Require accepted OPENAPI-008, spec/history 1.66, unchanged 38/10, and exact GET/PATCH/DELETE `/me` method/status/security boundaries. Re-freeze only after 001 Phase 21, 002 Phase 15, backend-auth/B4/frontend consumers and root regression pass；final zero diff is closure evidence, not authorization.

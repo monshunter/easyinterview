@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.23
+> **版本**: 1.24
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -142,3 +142,10 @@
 - [x] 14.2 GREEN: add schema-valid matching `ReportWithJob` and typed hidden/invalid/not-ready/context-too-large/idempotency errors.<!-- verified: 2026-07-16 method=fixture-green evidence="Reports/regenerateFeedbackReport.json supplies default/replay/hidden/invalid/not-ready/context-too-large/idempotency scenarios; focused fixture validation and 38/38 operation coverage PASS" -->
 - [x] 14.3 PARITY-GATE: fixture validation, rendered examples, Prism and dev-mock operation parity pass without raw AI content.<!-- verified: 2026-07-16 method=fixture-parity evidence="38 fixtures validate; example projection sha256 refreshed; live Prism 16/16 byte-equal including regenerateFeedbackReport; devMock and generated client tests included in root PASS; raw AI content absent" -->
 - [x] 14.4 BDD-N/A/HANDOFF: backend/frontend report BDD consumes markers；root regression and context/docs gates pass.<!-- verified: 2026-07-16 method=handoff-regression evidence="backend/frontend regeneration BDD owner checks complete; make test Python 584/4583 subtests, Go all packages, frontend 126/1026; context/docs/index PASS" -->
+
+## Phase 15: OPENAPI-008 Auth fixtures
+
+- [x] 15.1 RED/GREEN: replace completeMyProfile fixture with updateMe one-for-one and cover profile/theme/custom/combined/error matrices；getMe includes displayPreferences.
+- [x] 15.2 VALIDATION: source closure rejects missing/extra/invalid theme/custom fields and empty/partial updates；all 38 fixtures validate.
+- [x] 15.3 PARITY: rendered examples, Prism smoke and frontend dev mock use the same updateMe fixture without fallback business truth.
+- [x] 15.4 REGRESSION: root test and old operation/fixture positive zero-reference gates pass before restoring completed.

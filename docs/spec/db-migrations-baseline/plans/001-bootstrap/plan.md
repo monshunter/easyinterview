@@ -1,8 +1,8 @@
 # DB Migrations Baseline Bootstrap
 
-> **版本**: 1.24
-> **状态**: active
-> **更新日期**: 2026-07-15
+> **版本**: 1.25
+> **状态**: completed
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -214,6 +214,10 @@ Create `000020_drop_user_settings_display_preferences` through the repository mi
 
 Start with SQL contract RED against the post-chain net-state and explicit preserved-column inventory. Add populated PostgreSQL up/down/up probes proving analytics values survive up, all four obsolete columns disappear, the user_settings row still cascades on account hard delete, and down/up remains structurally valid. Coordinate backend-auth store changes before current up state is consumed；no dual-read, shadow columns, compatibility view or second preference table. This is an internal migration/contract phase, so BDD is not applicable；frontend Settings behavior remains in frontend-shell/001.
 
+### Phase 14: Account theme persistence
+
+Create reversible `000021_add_account_theme_preferences`. Add non-null `theme` default ocean plus nullable `custom_accent_hue/custom_accent_chroma` to `user_settings`. CHECK constraints enforce the theme enum, paired nullability and numeric ranges；down removes only these three columns. Focused SQL contract and populated PostgreSQL up/down/up prove defaults, valid ocean/plum/custom values, invalid pair/ranges, account cascade and retained analytics. BDD is not applicable to the migration；backend-auth and frontend-shell own observable save/relogin behavior.
+
 ## 5 验收标准
 
 - spec §6 C-1..C-16 全部具备本 plan 或下游 handoff 证据；C8/F1/C11 等运行时验证由各自 owner 后续关闭。
@@ -234,6 +238,7 @@ Start with SQL contract RED against the post-chain net-state and explicit preser
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-19 | 1.25 | Add Phase 14 and migration 000021 for account theme/custom accent persistence with paired range constraints. | OPENAPI-008 + backend-auth/001 + frontend-shell/001/002 |
 | 2026-07-15 | 1.24 | Add Phase 13 for migration 000020 removing obsolete user_settings display/practice preference columns while retaining analytics opt-in. | OPENAPI-007 + frontend-shell/001 + backend-auth/001 |
 | 2026-07-14 | 1.23 | Reopen Phase 11 for generation/90s lease fencing and Phase 12 to remove the TargetJob latest-report pointer. | backend-practice/002 + backend-review/001 |
 | 2026-07-13 | 1.21 | Reopen Phase 11 for durable Practice reply status and refresh-safe same-ID recovery. | backend-practice/002 + frontend-workspace-and-practice/002 |

@@ -129,15 +129,10 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(generated.UserContext{
-		Id:                        user.ID,
-		Email:                     user.Email,
-		DisplayName:               user.DisplayName,
-		ProfileCompletionRequired: user.ProfileCompletionRequired,
-	})
+	_ = json.NewEncoder(w).Encode(generatedUserContext(user))
 }
 
-func (h *Handler) CompleteMyProfile(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	current, ok := CurrentSessionFromContext(r.Context())
 	if !ok {
 		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required or invalid", false)
@@ -147,33 +142,53 @@ func (h *Handler) CompleteMyProfile(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "email-code service is not configured", false)
 		return
 	}
-	var body generated.CompleteProfileRequest
+	var body generated.UpdateMeRequest
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&body); err != nil {
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "invalid JSON request body", false)
 		return
 	}
-	if !body.AcceptedTerms {
-		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "acceptedTerms must be true", false)
-		return
+	var preferences *AccountDisplayPreferences
+	if body.DisplayPreferences != nil {
+		preferences = &AccountDisplayPreferences{Theme: AccountTheme(body.DisplayPreferences.Theme)}
+		if body.DisplayPreferences.CustomAccent != nil {
+			preferences.CustomAccent = &CustomAccent{H: body.DisplayPreferences.CustomAccent.H, C: body.DisplayPreferences.CustomAccent.C}
+		}
 	}
-	user, err := h.emailCode.CompleteProfile(r.Context(), CompleteProfileInput{
-		UserID:        current.UserID,
-		DisplayName:   body.DisplayName,
-		AcceptedTerms: body.AcceptedTerms,
+	user, err := h.emailCode.UpdateMe(r.Context(), current.UserID, UpdateUserContextInput{
+		DisplayName:        body.DisplayName,
+		AcceptedTerms:      body.AcceptedTerms,
+		DisplayPreferences: preferences,
 	})
 	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "profile could not be completed", false)
+		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "account could not be updated", false)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(generated.UserContext{
+	_ = json.NewEncoder(w).Encode(generatedUserContext(user))
+}
+
+func generatedUserContext(user UserContext) generated.UserContext {
+	preferences := generated.AccountDisplayPreferences{
+		Theme: generated.AccountTheme(user.DisplayPreferences.Theme),
+	}
+	if preferences.Theme == "" {
+		preferences.Theme = generated.AccountThemeOcean
+	}
+	if user.DisplayPreferences.CustomAccent != nil {
+		preferences.CustomAccent = &generated.CustomAccent{
+			H: user.DisplayPreferences.CustomAccent.H,
+			C: user.DisplayPreferences.CustomAccent.C,
+		}
+	}
+	return generated.UserContext{
 		Id:                        user.ID,
 		Email:                     user.Email,
 		DisplayName:               user.DisplayName,
 		ProfileCompletionRequired: user.ProfileCompletionRequired,
-	})
+		DisplayPreferences:        preferences,
+	}
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {

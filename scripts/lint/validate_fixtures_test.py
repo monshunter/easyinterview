@@ -388,26 +388,31 @@ class FixtureContentTest(unittest.TestCase):
         self.assertEqual(body["job"]["jobType"], "privacy_delete")
         self.assertEqual(body["job"]["resourceType"], "privacy_request")
 
-    def test_auth_user_context_fixtures_are_exact_full_email_four_field_projection(self) -> None:
+    def test_auth_user_context_fixtures_are_exact_full_email_five_field_projection(self) -> None:
         expected_fields = {
             "id",
             "email",
             "displayName",
             "profileCompletionRequired",
+            "displayPreferences",
         }
         fixtures = (
-            ("getMe", "default", False),
-            ("getMe", "authenticated", False),
-            ("getMe", "profileIncomplete", True),
-            ("completeMyProfile", "default", False),
+            ("getMe", "default", False, "ocean"),
+            ("getMe", "authenticated", False, "plum"),
+            ("getMe", "profileIncomplete", True, "ocean"),
+            ("updateMe", "default", False, "ocean"),
         )
-        for operation_id, scenario_name, completion_required in fixtures:
+        for operation_id, scenario_name, completion_required, theme in fixtures:
             with self.subTest(operationId=operation_id, scenario=scenario_name):
                 body = _load_fixture(operation_id, "Auth")["scenarios"][scenario_name][
                     "response"
                 ]["body"]
                 self.assertEqual(expected_fields, set(body))
                 self.assertEqual(completion_required, body["profileCompletionRequired"])
+                self.assertEqual(
+                    {"theme": theme, "customAccent": None},
+                    body["displayPreferences"],
+                )
                 self.assertRegex(body["email"], r"^[^@]+@example\.(?:com|test)$")
                 self.assertNotIn("*", body["email"])
                 self.assertNotIn("emailMasked", body)

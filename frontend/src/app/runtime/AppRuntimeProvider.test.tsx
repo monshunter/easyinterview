@@ -244,7 +244,8 @@ describe("AppRuntimeProvider", () => {
       id: "01918fa0-0000-7000-8000-00000000feed",
       email: "verified@example.com",
       displayName: "Verified User",
-      profileCompletionRequired: false,
+          profileCompletionRequired: false,
+          displayPreferences: { theme: "ocean", customAccent: null },
     };
     const view = (lang: "zh" | "en") => (
       <AppRuntimeProvider

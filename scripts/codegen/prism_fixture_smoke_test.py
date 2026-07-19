@@ -19,13 +19,13 @@ class PrismFixtureSmokeTest(unittest.TestCase):
         )
         self.assertEqual(
             (
-                "completeMyProfile",
+                "updateMe",
                 "PATCH",
                 "/me",
                 200,
-                "openapi/fixtures/Auth/completeMyProfile.json",
+                "openapi/fixtures/Auth/updateMe.json",
             ),
-            rows["completeMyProfile"],
+            rows["updateMe"],
         )
 
     def test_resume_matrix_covers_summary_list_and_full_detail_defaults(self) -> None:

@@ -40,7 +40,7 @@ func TestGetMeReturnsMaskedCurrentUser(t *testing.T) {
 	if body["id"] != "user-1" || body["displayName"] != "Candidate" {
 		t.Fatalf("bad user context: %+v", body)
 	}
-	wantKeys := map[string]bool{"id": true, "email": true, "displayName": true, "profileCompletionRequired": true}
+	wantKeys := map[string]bool{"id": true, "email": true, "displayName": true, "profileCompletionRequired": true, "displayPreferences": true}
 	if len(body) != len(wantKeys) {
 		t.Fatalf("user context keys=%v, want exact four-field projection", body)
 	}
@@ -90,7 +90,57 @@ func TestGetMeReturnsProfileCompletionRequiredForIncompleteUser(t *testing.T) {
 	}
 }
 
-func TestCompleteMyProfileRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
+func TestGetMeReturnsAccountThemeProjection(t *testing.T) {
+	store := &meStore{user: auth.UserContext{
+		ID:          "user-themed",
+		Email:       "themed@example.com",
+		DisplayName: "Themed Candidate",
+	}}
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{Store: store})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
+	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{SessionID: "session-1", UserID: "user-themed"}))
+	rec := httptest.NewRecorder()
+
+	handler.GetMe(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	preferences, ok := body["displayPreferences"].(map[string]any)
+	if !ok || preferences["theme"] != "ocean" || preferences["customAccent"] != nil {
+		t.Fatalf("displayPreferences = %#v, want ocean with null custom accent", body["displayPreferences"])
+	}
+}
+
+func TestUpdateMeAcceptsThemeOnlyAndReturnsFullContext(t *testing.T) {
+	store := &meStore{user: auth.UserContext{ID: "user-1", Email: "candidate@example.com", DisplayName: "Candidate"}}
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{Store: store})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/me", strings.NewReader(`{"displayPreferences":{"theme":"plum","customAccent":null}}`))
+	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{SessionID: "session-1", UserID: "user-1"}))
+	rec := httptest.NewRecorder()
+
+	handler.UpdateMe(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	preferences, ok := body["displayPreferences"].(map[string]any)
+	if !ok || preferences["theme"] != "plum" {
+		t.Fatalf("displayPreferences = %#v, want persisted plum", body["displayPreferences"])
+	}
+}
+
+func TestUpdateMeRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
 	store := &meStore{user: auth.UserContext{
 		ID:                        "user-incomplete",
 		Email:                     "new-user@example.com",
@@ -100,7 +150,7 @@ func TestCompleteMyProfileRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
 	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 
 	unauth := httptest.NewRecorder()
-	handler.CompleteMyProfile(unauth, httptest.NewRequest(http.MethodPatch, "/api/v1/me", nil))
+	handler.UpdateMe(unauth, httptest.NewRequest(http.MethodPatch, "/api/v1/me", nil))
 	if unauth.Code != http.StatusUnauthorized {
 		t.Fatalf("unauth status = %d body=%s", unauth.Code, unauth.Body.String())
 	}
@@ -108,7 +158,7 @@ func TestCompleteMyProfileRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
 	noTermsReq := httptest.NewRequest(http.MethodPatch, "/api/v1/me", strings.NewReader(`{"displayName":" Alice Candidate ","acceptedTerms":false}`))
 	noTermsReq = noTermsReq.WithContext(auth.ContextWithCurrentSession(noTermsReq.Context(), auth.CurrentSession{SessionID: "session-1", UserID: "user-incomplete"}))
 	noTerms := httptest.NewRecorder()
-	handler.CompleteMyProfile(noTerms, noTermsReq)
+	handler.UpdateMe(noTerms, noTermsReq)
 	if noTerms.Code != http.StatusBadRequest {
 		t.Fatalf("terms status = %d body=%s", noTerms.Code, noTerms.Body.String())
 	}
@@ -116,7 +166,7 @@ func TestCompleteMyProfileRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPatch, "/api/v1/me", strings.NewReader(`{"displayName":" Alice Candidate ","acceptedTerms":true}`))
 	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{SessionID: "session-1", UserID: "user-incomplete"}))
 	rec := httptest.NewRecorder()
-	handler.CompleteMyProfile(rec, req)
+	handler.UpdateMe(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
@@ -127,8 +177,8 @@ func TestCompleteMyProfileRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
 	if body["displayName"] != "Alice Candidate" || body["profileCompletionRequired"] != false {
 		t.Fatalf("bad completion response: %+v", body)
 	}
-	if len(body) != 4 {
-		t.Fatalf("completion user context keys=%v, want exact four-field projection", body)
+	if len(body) != 5 {
+		t.Fatalf("completion user context keys=%v, want exact five-field projection", body)
 	}
 }
 
@@ -197,6 +247,17 @@ func (s *meStore) GetSessionByHash(context.Context, string, time.Time) (auth.Ses
 }
 
 func (s *meStore) GetUserContext(context.Context, string) (auth.UserContext, error) {
+	return s.user, nil
+}
+
+func (s *meStore) UpdateUserContext(_ context.Context, _ string, in auth.UpdateUserContextInput, _ time.Time) (auth.UserContext, error) {
+	if in.DisplayName != nil {
+		s.user.DisplayName = *in.DisplayName
+		s.user.ProfileCompletionRequired = false
+	}
+	if in.DisplayPreferences != nil {
+		s.user.DisplayPreferences = *in.DisplayPreferences
+	}
 	return s.user, nil
 }
 

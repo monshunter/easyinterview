@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import getMeFixture from "../../../../openapi/fixtures/Auth/getMe.json";
@@ -116,7 +116,7 @@ describe("app shell visual system", () => {
     unmount();
   });
 
-  it("flips :root[data-theme][data-mode] and resolves CSS variables on theme + dark switch", async () => {
+  it("flips :root[data-mode] from TopBar while keeping theme controls in Settings", async () => {
     const client = buildClient();
     render(
       <App
@@ -143,19 +143,12 @@ describe("app shell visual system", () => {
       getComputedStyle(root).getPropertyValue("--ei-color-fg-primary").trim(),
     ).toBe("#e8edf6");
 
-    await user.click(screen.getByTestId("topbar-theme-button"));
-    expect(screen.queryByTestId("topbar-theme-option-warm")).toBeNull();
-    expect(screen.queryByTestId("topbar-theme-option-forest")).toBeNull();
-    await user.click(screen.getByTestId("topbar-theme-option-plum"));
-    expect(root.getAttribute("data-theme")).toBe("plum");
-    expect(
-      getComputedStyle(root).getPropertyValue("--ei-color-bg-canvas").trim(),
-    ).toBe("#15101a");
+    expect(screen.queryByTestId("topbar-theme-button")).not.toBeInTheDocument();
   });
 
-  it("updates customAccent from hue/chroma and exits only through Ocean or Plum", async () => {
+  it("does not expose account theme mutation from TopBar", async () => {
     const client = buildClient();
-    render(
+    const { unmount } = render(
       <App
         client={client}
         requestOptions={{
@@ -163,55 +156,16 @@ describe("app shell visual system", () => {
         }}
       />,
     );
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("topbar-theme-button"));
-    await user.click(screen.getByTestId("topbar-theme-custom-option"));
     const root = document.documentElement;
-    expect(root.getAttribute("data-custom-accent")).toBe("active");
-
-    const accent = root.style.getPropertyValue("--ei-color-accent");
-    const accentSoft = root.style.getPropertyValue("--ei-color-accent-soft");
-    expect(accent).toMatch(/^oklch\(58%/);
-    expect(accentSoft).toMatch(/^oklch\(92%/);
-
-    // Base palette tokens MUST NOT be overridden by the custom accent overlay.
-    expect(root.style.getPropertyValue("--ei-color-bg-canvas")).toBe("");
-    expect(root.style.getPropertyValue("--ei-color-fg-primary")).toBe("");
-
-    expect(screen.getByTestId("topbar-custom-accent-hue")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("topbar-custom-accent-chroma"),
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId("topbar-custom-accent-clear")).toBeNull();
-    expect(screen.queryByText(/恢复主题默认色|Reset to theme accent/)).toBeNull();
-
-    fireEvent.change(screen.getByTestId("topbar-custom-accent-hue"), {
-      target: { value: "120" },
-    });
-    expect(root.style.getPropertyValue("--ei-color-accent")).toBe(
-      "oklch(58% 0.160 120.0)",
-    );
-    fireEvent.change(screen.getByTestId("topbar-custom-accent-chroma"), {
-      target: { value: "0.205" },
-    });
-    expect(root.style.getPropertyValue("--ei-color-accent")).toBe(
-      "oklch(58% 0.205 120.0)",
-    );
-
-    await user.click(screen.getByTestId("topbar-theme-option-ocean"));
-    expect(root.getAttribute("data-theme")).toBe("ocean");
+    expect(screen.queryByTestId("topbar-theme-custom-option")).not.toBeInTheDocument();
     expect(root.hasAttribute("data-custom-accent")).toBe(false);
-    expect(root.style.getPropertyValue("--ei-color-accent")).toBe("");
-    expect(root.style.getPropertyValue("--ei-color-accent-soft")).toBe("");
-
-    await user.click(screen.getByTestId("topbar-theme-button"));
-    await user.click(screen.getByTestId("topbar-theme-custom-option"));
-    expect(root.getAttribute("data-custom-accent")).toBe("active");
-    await user.click(screen.getByTestId("topbar-theme-option-plum"));
-    expect(root.getAttribute("data-theme")).toBe("plum");
-    expect(root.hasAttribute("data-custom-accent")).toBe(false);
-    expect(root.style.getPropertyValue("--ei-color-accent")).toBe("");
-    expect(root.style.getPropertyValue("--ei-color-accent-soft")).toBe("");
+    await waitFor(() =>
+      expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
+        "data-signed-in",
+        "false",
+      ),
+    );
+    unmount();
   });
 
   it("auth_login renders the ei-auth-shell card scaffold + D1 form testids when navigated", async () => {

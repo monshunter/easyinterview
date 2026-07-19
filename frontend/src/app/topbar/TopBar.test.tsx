@@ -106,7 +106,7 @@ describe("TopBar user menu", () => {
       />,
     );
 
-    const settings = screen.getByRole("button", { name: /设置与隐私|settings & privacy/i });
+    const settings = screen.getByRole("button", { name: /^设置$|^settings$/i });
     expect(settings).toHaveAttribute("data-testid", "topbar-settings");
     expect(screen.queryByTestId("topbar-user-chip")).not.toBeInTheDocument();
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
@@ -131,7 +131,7 @@ describe("TopBar user menu", () => {
 });
 
 describe("TopBar display controls", () => {
-  it("exposes theme / dark / lang dropdown controls bound to the display preferences provider", async () => {
+  it("keeps theme controls out of TopBar while exposing dark and language", async () => {
     render(
       <DisplayPreferencesProvider initial={{ lang: "zh" }}>
         <TopBar activeRoute="home" onNavigate={() => {}} />
@@ -139,23 +139,13 @@ describe("TopBar display controls", () => {
     );
     const user = userEvent.setup();
 
-    const themeButton = screen.getByTestId("topbar-theme-button");
     const darkToggle = screen.getByTestId("topbar-dark-toggle");
     const langToggle = screen.getByTestId("topbar-lang-toggle");
 
-    expect(themeButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByTestId("topbar-theme-button")).not.toBeInTheDocument();
     expect(darkToggle).toHaveAttribute("aria-pressed", "false");
     expect(langToggle).toHaveAttribute("aria-expanded", "false");
     expect(langToggle).toHaveTextContent("中文");
-
-    await user.click(themeButton);
-    expect(themeButton).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByTestId("topbar-theme-option-ocean")).toBeInTheDocument();
-    expect(screen.getByTestId("topbar-theme-option-plum")).toBeInTheDocument();
-    expect(screen.queryByTestId("topbar-theme-option-warm")).toBeNull();
-    expect(screen.queryByTestId("topbar-theme-option-forest")).toBeNull();
-    await user.click(screen.getByTestId("topbar-theme-option-plum"));
-    expect(themeButton).toHaveAttribute("aria-expanded", "false");
 
     await user.click(darkToggle);
     expect(darkToggle).toHaveAttribute("aria-pressed", "true");

@@ -33,8 +33,8 @@ type ServerInterface interface {
 	// getMe — get /me: Get current user context
 	GetMe(w http.ResponseWriter, r *http.Request)
 
-	// completeMyProfile — patch /me: Complete first-login profile setup
-	CompleteMyProfile(w http.ResponseWriter, r *http.Request)
+	// updateMe — patch /me: Update current account
+	UpdateMe(w http.ResponseWriter, r *http.Request)
 
 	// createPracticePlan — post /practice/plans: Create a practice plan
 	CreatePracticePlan(w http.ResponseWriter, r *http.Request)
@@ -149,7 +149,7 @@ var AllRoutes = []Route{
 	{OperationID: "getJob", Method: "get", Path: "/jobs/{jobId}", PathParams: []string{"jobId"}},
 	{OperationID: "deleteMe", Method: "delete", Path: "/me", PathParams: nil},
 	{OperationID: "getMe", Method: "get", Path: "/me", PathParams: nil},
-	{OperationID: "completeMyProfile", Method: "patch", Path: "/me", PathParams: nil},
+	{OperationID: "updateMe", Method: "patch", Path: "/me", PathParams: nil},
 	{OperationID: "createPracticePlan", Method: "post", Path: "/practice/plans", PathParams: nil},
 	{OperationID: "getPracticePlan", Method: "get", Path: "/practice/plans/{planId}", PathParams: []string{"planId"}},
 	{OperationID: "startPracticeSession", Method: "post", Path: "/practice/sessions", PathParams: nil},

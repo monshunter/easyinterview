@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../api/generated/client";
 import {
@@ -35,6 +36,35 @@ function buildWorkspaceClient(): EasyInterviewClient {
 }
 
 describe("App shell", () => {
+  it("hydrates account display preferences once and does not refetch /me across routes", async () => {
+    const client = buildWorkspaceClient();
+    const getMeSpy = vi.spyOn(client, "getMe");
+    const user = userEvent.setup();
+
+    render(
+      <App
+        client={client}
+        requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }}
+        initialRoute={{ name: "settings", params: {} }}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("topbar-user-area")).toHaveAttribute(
+        "data-signed-in",
+        "true",
+      ),
+    );
+    expect(screen.getByTestId("settings-appearance")).toBeInTheDocument();
+    expect(getMeSpy).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByTestId("topbar-nav-home"));
+    expect(screen.getByTestId("route-home")).toBeInTheDocument();
+    await user.click(screen.getByTestId("topbar-settings"));
+    expect(screen.getByTestId("settings-appearance")).toBeInTheDocument();
+    expect(getMeSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("defaults to the home route with App chrome rendered", () => {
     render(<App />);
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
@@ -84,13 +114,12 @@ describe("App shell", () => {
     expect(screen.queryByTestId("route-reports")).not.toBeInTheDocument();
   });
 
-  it("hides chrome for immersive practice / generating routes", () => {
-    // practice route now mounts PracticeScreen; without sessionId it falls
-    // back to PracticeSessionLostState (still chrome-less).
+  it("keeps Practice chrome visible and hides it only for Generating", () => {
+    // Practice keeps the shared App TopBar even when the session locator is missing.
     const practiceRender = render(
       <App initialRoute={{ name: "practice", params: {} }} />,
     );
-    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
     expect(screen.getByTestId("practice-session-lost")).toBeInTheDocument();
     practiceRender.unmount();
 

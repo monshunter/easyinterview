@@ -1,6 +1,6 @@
 import { useState, type FC, type FormEvent } from "react";
 
-import type { CompleteProfileRequest } from "../../api/generated/types";
+import type { UpdateMeRequest } from "../../api/generated/types";
 import { useI18n } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
 import type { Route } from "../routes";
@@ -12,7 +12,7 @@ export interface AuthProfileSetupScreenProps {
   route: Route;
   onNavigate: (next: LooseRoute) => void;
   onCompleteProfile: (
-    req: CompleteProfileRequest,
+    req: UpdateMeRequest,
   ) => Promise<AuthProfileSetupResult>;
 }
 

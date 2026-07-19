@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-008",
+  "mode": "exact-set",
+  "authority": {"decision": "OPENAPI-008", "specDecision": "D-41", "historyVersion": "1.66", "productDecision": "方案 B"},
+  "baselineSource": "git:5ed2fbef69f94c9e2e4e5cd3fea4c1bba497693e:openapi/baseline/openapi-v1.0.0.yaml",
+  "currentSource": "openapi/openapi.yaml",
+  "baselineSha256": "545a5925fb58cd6d77612b10f3b67298f01c8f3cd7cecd83deffdd0928e69c5b",
+  "currentSha256": "a17711f9d58f1c70ba95a4cf0045c0a3b830724f2fa6d742d03e496c4d684644",
+  "summary": {"breaking": 3, "additive": 4, "informational": 0},
+  "operationInvariant": {"path": "/api/v1/me", "method": "PATCH", "before": "completeMyProfile", "after": "updateMe", "status": 200, "security": "sessionCookie"},
+  "findings": [
+    {"kind": "ref-changed", "severity": "breaking", "where": "PATCH /me requestBody[application/json]", "fromRef": "#/components/schemas/CompleteProfileRequest", "toRef": "#/components/schemas/UpdateMeRequest"},
+    {"kind": "field-required-added", "severity": "breaking", "where": "components.schemas.UserContext.displayPreferences"},
+    {"kind": "schema-removed", "severity": "breaking", "schema": "CompleteProfileRequest"},
+    {"kind": "schema-added", "severity": "additive", "schema": "AccountTheme"},
+    {"kind": "schema-added", "severity": "additive", "schema": "CustomAccent"},
+    {"kind": "schema-added", "severity": "additive", "schema": "AccountDisplayPreferences"},
+    {"kind": "schema-added", "severity": "additive", "schema": "UpdateMeRequest"}
+  ],
+  "errors": []
+}

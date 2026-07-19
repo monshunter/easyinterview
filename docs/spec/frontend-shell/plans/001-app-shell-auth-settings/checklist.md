@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.32
-> **状态**: active
-> **更新日期**: 2026-07-16
+> **版本**: 1.33
+> **状态**: completed
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -41,7 +41,7 @@
 
 - [x] 6.1 Single-entry email-code login 通过；验证: AuthLogin / App dispatch tests 覆盖 email-only challenge body、safe pendingAction round-trip、account-existence privacy copy and route transitions。
 - [x] 6.2 Profile setup guard 通过；验证: runtime / route tests 覆盖 verify 后 profileIncomplete、refresh、deep link、logout/relogin 和 cross-browser relogin 均先进入 `auth_profile_setup`。
-- [x] 6.3 Profile setup submit 通过；验证: AuthProfileSetup tests 覆盖 trimmed displayName、acceptedTerms、`completeMyProfile`、`/me.profileCompletionRequired=false` 后恢复 pendingAction。
+- [x] 6.3 Profile setup submit 通过；验证: AuthProfileSetup tests 覆盖 trimmed displayName、acceptedTerms、`updateMe`、`/me.profileCompletionRequired=false` 后恢复 pendingAction。
 - [x] 6.4 BDD-Gate: `BDD.SHELL.AUTH.001` 由 [BDD checklist](./bdd-checklist.md) 关联 auth guard、profile setup、pendingAction 与 settings owner behavior tests。
 - [x] 6.4a E2E-HANDOFF: `E2E.P0.101` 仅覆盖 Mailpit email-code/profile setup；本轮未运行，current-run 状态仍为 `Ready`。
 - [x] 6.5 阶段单测完成证据统一为仓库根 `make test`；focused shell/auth tests 只作开发反馈。
@@ -112,3 +112,14 @@
 - [x] 15.1 RED: 中文 locale 下 auth loading/error route gate 测试必须先证明当前硬编码英文仍可见，并锁定业务 screen/API 不提前挂载.<!-- verified: 2026-07-16 method=focused-locale-red evidence="app-shell-language-switch produced 2 expected failures: Chinese loading/error gates rendered AUTH plus hard-coded English title/body; protected Resume screen/API remained unmounted" -->
 - [x] 15.2 GREEN: gate eyebrow、loading/error title 与 body 全部改为 typed locale keys；中文零英文残留，英文切换保持原文案语义。<!-- verified: 2026-07-16 method=focused-locale-green evidence="app-shell-language-switch passed 3/3; Chinese loading/error gates use typed locale keys with zero hard-coded English residue, and runtime switching preserves the English authentication copy" -->
 - [ ] 15.3 BDD/REGRESSION: `BDD.SHELL.AUTH.LOCALE.001`、focused locale/auth tests、locale reachability、typecheck/build、根 `make test` 与 current-run Chrome skill 真实本地页面验收通过后恢复 completed；Chrome 证据不得冒充独立 E2E ID。
+
+## Phase 16: account theme persistence and Practice global chrome
+
+- [x] 16.1 RED-CONTRACT: OpenAPI/fixture/generated/backend tests 先失败并锁定 `updateMe` 完整 `UserContext`、profile-only/theme-only/combined/empty-invalid matrix，以及 `user_settings` theme/custom enum-range/all-or-none constraints 和 legacy ocean 默认。
+- [x] 16.2 GREEN-CONTRACT: 非空 000021 migration、generated artifacts、fixture transport、backend service/store/handler 以同一事务完成 profile/theme 更新；`getMe` 返回同一持久投影，非法请求无部分写入。
+- [x] 16.3 RED-FRONTEND: TopBar/Settings/runtime/route tests 先失败并锁定“设置 / Settings”、明确 gear、TopBar 零主题 menu、Appearance 草稿预览、拖动零请求、Save 单次 `updateMe`、成功零 follow-up GET、失败/离开恢复和 route 切换零 `/me`。
+- [x] 16.4 GREEN-FRONTEND: runtime bootstrap/auth recovery hydrate server-confirmed theme；Settings 保存响应直接提交 runtime/display context；Practice 从 no-chrome allowlist 移除并同时渲染 global TopBar + Practice Session Header。
+- [x] 16.5 BDD-Gate: 完成 `BDD.SHELL.SETTINGS.THEME.001`；`E2E.P0.101` 原地扩展真实主题保存、logout/relogin 恢复，不新增伪场景；Practice chrome 由 cross-owner `BDD.PRACTICE.GLOBAL_CHROME.005` 承接。
+- [x] 16.6 REGRESSION: OpenAPI validate/fixture/codegen drift、migration/backend focused、frontend focused/typecheck/build、根 `make test`、owner contexts、sync/docs/diff/residual gates 全部通过。
+- [x] 16.7 REAL-UI: 按 scenario-env/scenario-run 合同重建真实环境，运行 `E2E.P0.101`；使用 Chrome skill 验证 Settings 与 Practice desktop/mobile DOM、请求计数、无横向溢出并保存精选截图。
+- [x] 16.8 POST-PASS: 同步 bug/retrospective/index/work-journal 与真实证据，恢复受影响 owner lifecycle 并在 feature branch 原子提交。

@@ -165,7 +165,7 @@ function renderRouteScreen(
           route={route}
           onNavigate={navigate}
           onCompleteProfile={async (req) => {
-            const user = await runtime.client.completeMyProfile(
+            const user = await runtime.client.updateMe(
               req,
               withLocaleHeader(lang),
             );
@@ -449,9 +449,32 @@ const AppRuntimeShell: FC<{
       skipInitialAuthProbe={skipInitialAuthProbe}
       requestOptions={localizedRequestOptions}
     >
+      <AccountThemeRuntimeSync />
       {children}
     </AppRuntimeProvider>
   );
+};
+
+const AccountThemeRuntimeSync: FC = () => {
+  const runtime = useAppRuntimeOptional();
+  const prefs = useDisplayPreferences();
+  const user = runtime?.auth.status === "authenticated" ? runtime.auth.user : null;
+  const theme = user?.displayPreferences?.theme;
+  const customH = user?.displayPreferences?.customAccent?.h;
+  const customC = user?.displayPreferences?.customAccent?.c;
+
+  useEffect(() => {
+    if (!user || (theme !== "ocean" && theme !== "plum")) return;
+    prefs.commitAccountPreferences({
+      theme,
+      customAccent:
+        typeof customH === "number" && typeof customC === "number"
+          ? { h: customH, c: customC }
+          : null,
+    });
+  }, [user?.id, theme, customH, customC, prefs.commitAccountPreferences]);
+
+  return null;
 };
 
 export const App: FC<AppProps> = ({

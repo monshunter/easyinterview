@@ -1,8 +1,8 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.34
+> **版本**: 1.35
 > **状态**: active
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 ## 1 目标
 
@@ -14,7 +14,8 @@
 
 ```text
 PracticeScreen(sessionId)
-├─ TopBar
+├─ Global App TopBar（首页 / 面试 / 简历 / 暗色 / 语言 / 设置）
+├─ Practice Session Header
 │  ├─ 公司 / 岗位
 │  ├─ 面试官角色
 │  ├─ 计时
@@ -37,7 +38,7 @@ PracticeScreen(sessionId)
 必须删除：
 
 - 左侧“本轮题目”与所有 SessionMap DOM。
-- TopBar 题号/总题数。
+- Practice Session Header 题号/总题数。
 - 主体 QuestionCard、题目 badge/topic/prompt。
 - 专用 hint button/banner/count。
 - PhoneSurface、字幕、麦克风、VAD、TTS、barge-in、hangup。
@@ -61,7 +62,9 @@ PracticeScreen(sessionId)
 - timeout 对账读到 pending/retryable/terminal/complete 时采用 server truth；读失败或尚无该 ID 时保留原 optimistic row/ID 为 unresolved，继续锁定新 ID submit 与 Finish，不能因为 loader error 解锁 composer。
 - 任一 optimistic pending/retryable-failed/retrying/terminal-recovery 状态都必须禁用 Finish，直到 server messages 完成收敛。
 
-## 4 Top Bar
+## 4 Practice Session Header
+
+全局 App TopBar 在 Practice 保持可见，且与其他页面消费同一个内存 runtime/display context；进入、离开或切换 Practice route 不得重新调用 `getMe`。下列条目只描述其下方的会话控制栏。
 
 - 公司/岗位优先来自 session.targetJobId 对应 generated `getTargetJob`。
 - 面试官角色来自当前 round/plan，只读展示。
@@ -73,8 +76,8 @@ PracticeScreen(sessionId)
 
 ## 5 Layout
 
-- Desktop：Conversation 占满 TopBar 下方可用宽度；内容列使用可读 max-width 居中，transcript 自适应增长，composer 固定在会话区底部。
-- Mobile：单列；TopBar 控件可换行但结束 CTA 可达；transcript 与 composer 不横向溢出。Markdown pre/code/table 只能在消息容器内局部滚动或安全换行，document `scrollWidth` 不得超过 viewport。
+- Desktop：Conversation 占满全局 App TopBar 与 Practice Session Header 下方可用宽度；内容列使用可读 max-width 居中，transcript 自适应增长，composer 固定在会话区底部。
+- Mobile：单列；两层顶栏都可按各自合同换行，结束 CTA 可达；transcript 与 composer 不横向溢出。Markdown pre/code/table 只能在消息容器内局部滚动或安全换行，document `scrollWidth` 不得超过 viewport。
 - 不保留空白 sidebar grid column。
 
 ## 6 报告边界
@@ -109,7 +112,7 @@ Ready 报告只展示：
 
 | ID | Given | When | Then |
 |----|-------|------|------|
-| U-1 | session 有 opening message | 进入 practice | 只看到 TopBar + 全宽聊天 + composer |
+| U-1 | session 有 opening message | 进入 practice | 看到全局 App TopBar + Practice Session Header + 全宽聊天 + composer |
 | U-2 | running session | 用户提交消息并等待 | user message 立即显示、composer 清空/禁用、面试官思考；成功后无重复 |
 | U-3 | phone disabled | 查看/键盘操作电话图标 | 图标置灰且不能改变模式 |
 | U-4 | send failure | 查看失败消息并点击其底部 retry icon | retry 只在失败后显示，复用原文与同一 clientMessageId；下一条草稿保留，成功后 user message 不重复且只有一个 reply |
@@ -128,6 +131,7 @@ Ready 报告只展示：
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.35 | Practice 恢复全局 App TopBar，并把公司/角色/计时/会话动作明确命名为 Practice Session Header；route 切换不得重复读取账号偏好。 |
 | 2026-07-18 | 1.34 | 在所有正式会话启动入口与 Practice 之间增加统一、诚实、可访问的面试准备过渡态。 |
 | 2026-07-16 | 1.33 | 补齐已结束会话的 failed report 恢复：同 report 手动重新生成与任意状态只读面试记录。 |
 | 2026-07-15 | 1.32 | 合并 report-owned 只读会话记录，复用正式 Practice 安全 Markdown message renderer，不恢复会话列表、sessionId route 或已删 Demo runtime。 |

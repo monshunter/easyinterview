@@ -194,10 +194,11 @@ type PaginatedEnvelope struct {
 }
 
 type UserContext struct {
-	DisplayName               string `json:"displayName"`
-	Email                     string `json:"email"`
-	Id                        string `json:"id"`
-	ProfileCompletionRequired bool   `json:"profileCompletionRequired"`
+	DisplayName               string                    `json:"displayName"`
+	DisplayPreferences        AccountDisplayPreferences `json:"displayPreferences"`
+	Email                     string                    `json:"email"`
+	Id                        string                    `json:"id"`
+	ProfileCompletionRequired bool                      `json:"profileCompletionRequired"`
 }
 
 type AuthEmailStartRequest struct {
@@ -205,9 +206,33 @@ type AuthEmailStartRequest struct {
 	ReturnTo *string `json:"returnTo,omitempty"`
 }
 
-type CompleteProfileRequest struct {
-	AcceptedTerms bool   `json:"acceptedTerms"`
-	DisplayName   string `json:"displayName"`
+type AccountTheme string
+
+const (
+	AccountThemeOcean AccountTheme = "ocean"
+	AccountThemePlum  AccountTheme = "plum"
+)
+
+// AllAccountThemes lists every defined value in declaration order.
+var AllAccountThemes = []AccountTheme{
+	AccountThemeOcean,
+	AccountThemePlum,
+}
+
+type CustomAccent struct {
+	C float64 `json:"c"`
+	H float64 `json:"h"`
+}
+
+type AccountDisplayPreferences struct {
+	CustomAccent *CustomAccent `json:"customAccent"`
+	Theme        AccountTheme  `json:"theme"`
+}
+
+type UpdateMeRequest struct {
+	AcceptedTerms      *bool                      `json:"acceptedTerms,omitempty"`
+	DisplayName        *string                    `json:"displayName,omitempty"`
+	DisplayPreferences *AccountDisplayPreferences `json:"displayPreferences,omitempty"`
 }
 
 type Session struct {

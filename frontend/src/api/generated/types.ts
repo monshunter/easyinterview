@@ -86,6 +86,7 @@ export interface PaginatedEnvelope {
 
 export interface UserContext {
 	displayName: string;
+	displayPreferences: AccountDisplayPreferences;
 	email: string;
 	id: string;
 	profileCompletionRequired: boolean;
@@ -96,9 +97,24 @@ export interface AuthEmailStartRequest {
 	returnTo?: string;
 }
 
-export interface CompleteProfileRequest {
-	acceptedTerms: boolean;
-	displayName: string;
+export type AccountTheme = "ocean" | "plum";
+
+export const AllAccountThemes = ["ocean", "plum"] as const;
+
+export interface CustomAccent {
+	c: number;
+	h: number;
+}
+
+export interface AccountDisplayPreferences {
+	customAccent: CustomAccent | null;
+	theme: AccountTheme;
+}
+
+export interface UpdateMeRequest {
+	acceptedTerms?: boolean;
+	displayName?: string;
+	displayPreferences?: AccountDisplayPreferences;
 }
 
 export interface Session {

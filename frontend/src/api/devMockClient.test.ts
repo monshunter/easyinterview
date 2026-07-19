@@ -130,7 +130,7 @@ describe("frontend dev fixture-backed mock client", () => {
 			profileCompletionRequired: true,
 		});
 
-		await client.completeMyProfile({
+		await client.updateMe({
 			displayName: "Alice Example",
 			acceptedTerms: true,
 		});
@@ -150,7 +150,7 @@ describe("frontend dev fixture-backed mock client", () => {
 		await client.verifyAuthEmailChallenge({
 			query: { token: "654321" },
 		});
-		await client.completeMyProfile({
+		await client.updateMe({
 			displayName: "Alice Example",
 			acceptedTerms: true,
 		});

@@ -1,8 +1,8 @@
 # Email-Code Session Bootstrap
 
-> **版本**: 2.9
+> **版本**: 3.0
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -28,7 +28,7 @@ ADR-Q1 已锁定自建 email-code challenge + first-party session cookie。B2 Op
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `getMe` | `Auth/getMe.json` | AppRuntimeProvider、Settings、auth/profile guards | current-user handler | users + session；analytics opt-in internal read | none | auth/settings domain + extended `E2E.P0.101` |
-| `completeMyProfile` | `Auth/completeMyProfile.json` | AuthProfileSetupScreen | profile completion handler | users display/profile/terms | none | `BDD.AUTH.EMAIL.001` + `E2E.P0.101` |
+| `updateMe` | `Auth/updateMe.json` | AuthProfileSetupScreen + SettingsScreen | generic current-user handler | users display/profile/terms + user_settings theme | none | `BDD.AUTH.EMAIL.001` + `E2E.P0.101` |
 | `deleteMe` | `Auth/deleteMe.json` | Settings destructive confirmation | account delete handoff | user soft delete、all-session revoke、privacy job | none | backend contract + `BDD.SHELL.SETTINGS.DELETE.001` |
 | `logout` | `Auth/logout.json` | AuthLogoutScreen from Settings | optional-session logout handler | session revocation | none | auth/settings domain + `E2E.P0.101` |
 
@@ -273,3 +273,14 @@ Phase 11 的单实例 MVP 边界由 Phase 12 取代：验证码不进入 job pay
 | C1 绕过 B3 email payload 红线 | Phase 2.3 强制使用 generated `BuildEmailDispatchPayload`，并用 negative tests 拒绝 redacted fields |
 | C1 抢占 privacy deletion 执行 | Phase 3.5 只做 auth/session handoff，backend internal runner / B4 删除执行不进入本 plan |
 | C1 新增未登记 auth metric | Phase 4.3 先跑 F1 registry preflight；未登记则先修订 F1，不在 C1 私造 metric |
+
+### Phase 14: OPENAPI-008 generic updateMe and account theme
+
+Replace the profile-only operation binding with `updateMe`. Validation accepts a complete profile pair, display preferences, or both；empty requests, half profile pairs, invalid theme and invalid custom ranges fail before persistence. Theme/combined requests use one SQL transaction.
+
+`GetUserContext` joins `user_settings` and defaults migration-transition rows to ocean only at the SQL projection boundary. `UpdateUserContext` updates users and user_settings atomically and returns the joined context before commit. It must not log raw email or create a second theme cache. Frontend consumes the PATCH response directly, so no follow-up GET is required.
+
+| operationId | fixture | frontend consumer | handler | persistence | AI dependency | coverage |
+|-------------|---------|-------------------|---------|-------------|---------------|----------|
+| `getMe` | `Auth/getMe.json` | auth bootstrap only | current-user handler | joined users/user_settings read | none | focused store/handler + E2E.P0.101 |
+| `updateMe` | `Auth/updateMe.json` | profile setup + Settings save | generic validation/service | one transaction over users/user_settings | none | BDD.AUTH.EMAIL.001 + settings BDD + E2E.P0.101 |

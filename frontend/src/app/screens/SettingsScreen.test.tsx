@@ -35,6 +35,7 @@ function renderSettings() {
   });
   const getMe = vi.spyOn(client, "getMe");
   const deleteMe = vi.spyOn(client, "deleteMe");
+  const updateMe = vi.spyOn(client, "updateMe");
   const refreshAuth = vi.fn().mockResolvedValue({ status: "unauthenticated" });
   const navigate = vi.fn();
   const replaceRoute = vi.fn();
@@ -47,7 +48,8 @@ function renderSettings() {
         id: "user-1",
         displayName: "Alice Candidate",
         email: "alice@example.com",
-        profileCompletionRequired: false,
+      profileCompletionRequired: false,
+      displayPreferences: { theme: "ocean", customAccent: null },
       },
     },
     refreshAuth,
@@ -61,10 +63,34 @@ function renderSettings() {
       </AppRuntimeContext.Provider>
     </DisplayPreferencesProvider>,
   );
-  return { deleteMe, getMe, navigate, refreshAuth, replaceRoute };
+  return { deleteMe, getMe, navigate, refreshAuth, replaceRoute, updateMe };
 }
 
 describe("Settings account and privacy contract", () => {
+  it("previews locally and saves one theme update without a follow-up getMe", async () => {
+    const { getMe, refreshAuth, updateMe } = renderSettings();
+    updateMe.mockResolvedValue({
+      id: "user-1",
+      displayName: "Alice Candidate",
+      email: "alice@example.com",
+      profileCompletionRequired: false,
+      displayPreferences: { theme: "plum", customAccent: null },
+    });
+    const user = userEvent.setup();
+
+    expect(screen.getByTestId("settings-appearance")).toBeInTheDocument();
+    await user.click(screen.getByTestId("settings-theme-plum"));
+    expect(document.documentElement).toHaveAttribute("data-theme", "plum");
+    expect(updateMe).not.toHaveBeenCalled();
+    expect(getMe).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId("settings-theme-save"));
+    await waitFor(() => expect(updateMe).toHaveBeenCalledTimes(1));
+    expect(updateMe).toHaveBeenCalledWith({ displayPreferences: { theme: "plum", customAccent: null } });
+    expect(refreshAuth).toHaveBeenCalledTimes(1);
+    expect(getMe).not.toHaveBeenCalled();
+  });
+
   it("uses the runtime user without a second getMe and routes sign-out", async () => {
     const { getMe, navigate } = renderSettings();
 

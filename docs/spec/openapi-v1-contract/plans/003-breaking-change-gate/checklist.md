@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
-> **版本**: 1.25
-> **状态**: active
-> **更新日期**: 2026-07-16
+> **版本**: 1.26
+> **状态**: completed
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -123,4 +123,11 @@
 - [x] 13.1 RED/AUDIT: proposed source yields only the declared additive path/operation/error-enum findings while baseline stays unchanged.<!-- verified: 2026-07-16 method=generic-diff-preserved-audit evidence="unchanged baseline 921fbc2... vs proposed 545a592... yields exactly endpoint-added + enum-value-added, breaking=0; preserved as D-40-failed-report-regeneration.json" -->
 - [x] 13.2 INVARIANT-GATE: inventory is exactly 38/10；existing report read/conversation/completion contracts and absence of attempt/progress fields remain locked.<!-- verified: 2026-07-16 method=inventory-invariant evidence="openapi inventory suite 30/30 PASS; scoped generated/source search has zero attemptCount/retryCount/generationAttempt/retryReason" -->
 - [x] 13.3 HANDOFF: 001 Phase 20, 002 Phase 14, backend/frontend report owners and generated consumers pass before baseline edit.<!-- verified: 2026-07-16 method=coordinated-handoff evidence="001 operation contract, 002 fixture parity, backend atomic regeneration and frontend recovery consumers PASS; D-40 preserved audit records exactly two additive findings and zero breaking findings before re-freeze" -->
-- [ ] 13.4 RE-FREEZE/REGRESSION: preserve audit, re-freeze and independently run diff/lint/fixture/codegen/root-test/context/docs gates.
+- [x] 13.4 RE-FREEZE/REGRESSION: preserve audit, re-freeze and independently run diff/lint/fixture/codegen/root-test/context/docs gates.
+
+## Phase 14: OPENAPI-008 generic updateMe correction
+
+- [x] 14.1 RED/AUDIT: unchanged baseline emits exact 3 breaking + 4 additive findings；preserved audit records hashes/source and completeMyProfile→updateMe invariant.
+- [x] 14.2 AUTHORITY: OPENAPI-008 accepted and spec/history 1.66 lock scheme B, 38/10 and unchanged GET/PATCH/DELETE method/status/security.
+- [x] 14.3 HANDOFF: 001 Phase 21, 002 Phase 15, backend-auth, B4 and frontend focused consumers pass before baseline edit.
+- [x] 14.4 RE-FREEZE/REGRESSION: re-freeze, require zero diff plus lint/fixture/codegen/root/docs gates and old production operation/schema zero-reference.

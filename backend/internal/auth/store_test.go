@@ -32,6 +32,91 @@ func TestUserContextHasNoDisplayPreferencesOrAnalyticsProjection(t *testing.T) {
 	}
 }
 
+func TestUserContextOwnsAccountThemeProjection(t *testing.T) {
+	typeOfUser := reflect.TypeOf(auth.UserContext{})
+	if _, ok := typeOfUser.FieldByName("DisplayPreferences"); !ok {
+		t.Fatal("auth.UserContext must expose account-owned DisplayPreferences")
+	}
+}
+
+func TestSQLStoreUpdateUserContextCommitsProfileAndThemeTogether(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	store := auth.NewSQLStore(db)
+	now := time.Date(2026, 7, 19, 3, 0, 0, 0, time.UTC)
+	displayName := "Alice Candidate"
+	acceptedTerms := true
+	prefs := auth.AccountDisplayPreferences{Theme: auth.AccountThemePlum}
+
+	mock.ExpectBegin()
+	mock.ExpectExec("update users").
+		WithArgs("user-1", sql.NullString{String: displayName, Valid: true}, now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("update user_settings").
+		WithArgs("user-1", "plum", nil, nil, now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery("from users u").
+		WithArgs("user-1").
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "email", "display_name", "profile_completed_at", "terms_accepted_at",
+			"theme", "custom_accent_hue", "custom_accent_chroma",
+		}).AddRow("user-1", "alice@example.com", displayName, now, now, "plum", nil, nil))
+	mock.ExpectCommit()
+
+	got, err := store.UpdateUserContext(context.Background(), "user-1", auth.UpdateUserContextInput{
+		DisplayName:        &displayName,
+		AcceptedTerms:      &acceptedTerms,
+		DisplayPreferences: &prefs,
+	}, now)
+	if err != nil {
+		t.Fatalf("UpdateUserContext: %v", err)
+	}
+	if got.DisplayName != displayName || got.DisplayPreferences.Theme != auth.AccountThemePlum {
+		t.Fatalf("updated context = %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStoreUpdateUserContextRollsBackProfileWhenThemeWriteFails(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	store := auth.NewSQLStore(db)
+	now := time.Date(2026, 7, 19, 3, 0, 0, 0, time.UTC)
+	displayName := "Alice Candidate"
+	acceptedTerms := true
+	prefs := auth.AccountDisplayPreferences{Theme: auth.AccountThemePlum}
+
+	mock.ExpectBegin()
+	mock.ExpectExec("update users").
+		WithArgs("user-1", sql.NullString{String: displayName, Valid: true}, now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("update user_settings").
+		WithArgs("user-1", "plum", nil, nil, now).
+		WillReturnError(driver.ErrBadConn)
+	mock.ExpectRollback()
+
+	if _, err := store.UpdateUserContext(context.Background(), "user-1", auth.UpdateUserContextInput{
+		DisplayName:        &displayName,
+		AcceptedTerms:      &acceptedTerms,
+		DisplayPreferences: &prefs,
+	}, now); err == nil {
+		t.Fatal("UpdateUserContext error = nil, want rollback on theme write failure")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSQLStoreAuthTableBoundaries(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -107,12 +192,18 @@ func TestSQLStoreAuthTableBoundaries(t *testing.T) {
 			"display_name",
 			"profile_completed_at",
 			"terms_accepted_at",
+			"theme",
+			"custom_accent_hue",
+			"custom_accent_chroma",
 		}).AddRow(
 			"018f2a40-0000-7000-9000-000000000003",
 			"candidate@example.com",
 			"Candidate",
 			now,
 			now,
+			"ocean",
+			nil,
+			nil,
 		))
 
 	if _, err := store.GetUserContext(context.Background(), "018f2a40-0000-7000-9000-000000000003"); err != nil {

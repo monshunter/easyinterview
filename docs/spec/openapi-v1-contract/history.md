@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.65
+> **版本**: 1.66
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 ## 1 修订规则
 
@@ -30,6 +30,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-19 | 1.66 | 用户选择方案 B：protected `PATCH /api/v1/me` 在未上线 v1.0.0 中从 `completeMyProfile` 原地泛化为 `updateMe`；新增 closed `UpdateMeRequest` 与 required `UserContext.displayPreferences`，账号主题由 bootstrap `getMe` 一次读取、单 PATCH 保存且不追加 GET；保留 38 operations / 10 tags、path/method/status/session/profile-completion 语义。 | OPENAPI-008 + openapi-v1-contract/001/002/003 + backend-auth/001 + db-migrations-baseline/001 + frontend-shell/001/002 |
 | 2026-07-16 | 1.65 | 用户确认方案 A：additive 新增 protected `POST /api/v1/reports/{reportId}/regenerate` / `regenerateFeedbackReport`，必带 `Idempotency-Key`、无 request body、返回同 report ID 的 `202 + ReportWithJob`；`ApiErrorCode` 新增 `REPORT_INVALID_STATE_TRANSITION`，inventory 37→38 operations / 10 tags，内部 attempt/progress 仍不公开。 | D-40 + openapi-v1-contract/001/002/003 + backend-review/001 + frontend-report-dashboard/001 |
 | 2026-07-15 | 1.63 | 接受 OPENAPI-007：`UserContext` 删除无正式消费者的 required `uiLanguage/preferredPracticeLanguage`，保留四字段 closed current-user 投影；Auth method/path/status 与 session/profile/delete 语义不变，全部 consumer/migration 同批迁移后才 re-freeze。 | OPENAPI-007 + openapi-v1-contract/001/002/003 + backend-auth/001 + frontend-shell/001 + db-migrations-baseline/001 |
 | 2026-07-15 | 1.64 | 用户确认 authenticated Settings 正常显示完整账号 email；OPENAPI-007 四字段投影以 `email` 替换 `emailMasked`，无兼容 alias，日志与 E2E 证据仍脱敏。 | OPENAPI-007 + openapi-v1-contract/001/002/003 + backend-auth/001 + frontend-shell/001 + e2e-scenarios-p0/001 |

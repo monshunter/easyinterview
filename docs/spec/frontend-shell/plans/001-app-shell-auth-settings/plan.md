@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.32
-> **状态**: active
-> **更新日期**: 2026-07-16
+> **版本**: 1.33
+> **状态**: completed
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,9 +11,9 @@
 
 ## 1 目标
 
-本计划交付当前正式前端 App shell：默认 Home、三入口 TopBar、全局显示控制、email-code 认证页、资料补全 gate、`requestAuth(pendingAction)` 恢复、已登录设置齿轮、无 tab 的真实账号/隐私设置页、runtime / generated client bootstrap，以及面试业务 route 的登录前置保护。
+本计划交付当前正式前端 App shell：默认 Home、三入口 TopBar、email-code 认证页、资料补全 gate、`requestAuth(pendingAction)` 恢复、明确齿轮设置入口、含账号级 Appearance 的无 tab 设置页、runtime/generated client bootstrap，以及面试业务 route 的登录前置保护。
 
-当前 Phase 15 原地修复 auth route gate 的 locale 实现漂移，不新增页面、route 或 auth flow。任何新增可见页面、route、auth flow 或设置页能力，必须先更新 `docs/ui-design/` 和 `frontend-shell` spec，再修订本 owner。
+当前 Phase 16 原地承接设置/主题/Practice chrome 修订：现有 `PATCH /me` 按用户确认的方案 B 泛化为 `updateMe`，主题写入账号设置，并锁定 route 切换零重复 `/me`。Phase 1-15 的既有状态仅为历史证据。
 
 Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设置合同 owner，并取代其中关于账号 chip/dropdown、Settings tab 与 font preset 的旧正向描述。实施与验收不得把历史文字当作现行 UI 要求。
 
@@ -30,11 +30,11 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 
 ### 2.2 Auth / settings / display
 
-- Auth UI 只通过 email-code flow 触发 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`completeMyProfile`、`logout` 和 first-party session cookie。
+- Auth UI 只通过 email-code flow 触发 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`updateMe`、`logout` 和 first-party session cookie；`updateMe` 同时承接首次资料补全和 authenticated 主题更新。
 - `profileCompletionRequired=true` 时，登录后必须先进入 `auth_profile_setup`；资料补全成功并刷新 `/me` 后，才恢复 pendingAction 或回 Home。
 - `pendingAction` 只保存 route name、canonical URL 和 safe params，不保存 JD 原文、简历原文、验证码、AI prompt/response 或解析正文。
-- Settings 为无 tab 单页：Account 复用 runtime user 展示只读 `displayName/email`（完整账号邮箱）并提供退出入口；Privacy 展示导出暂不可用状态和账号删除确认流程。
-- 显示偏好由前端持有：主题、暗色和语言下拉在登录前后保持稳定；默认主题与无效值 fallback 为 `ocean`。字体固定，不保留 preset 状态。
+- Settings 统一命名为“设置 / Settings”且无 tab：Appearance 本地预览并保存账号级主题；Account 复用 runtime user 展示只读 `displayName/email`；Privacy 保留退出、导出不可用和账号删除。
+- `getMe` 只在应用 bootstrap/auth recovery 读取完整 `UserContext`；Settings 挂载、普通 route 切换和 Practice 进入/离开均不得再次读取。主题保存只发送一次 `updateMe`，成功响应直接更新 runtime/display context，不追加 GET。
 - 统一 auth route gate 的 loading/error eyebrow、title、body 必须消费 typed locale keys；中文模式不得回退或混入英文硬编码。
 
 ### 2.3 StrictMode-safe GET orchestration
@@ -48,29 +48,29 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 
 - **Plan 类型**: `feature-behavior` + `frontend` + `contract`。
 - **TDD 策略**: 本计划按 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 完成。focused Vitest / component / route-state test 只用于开发反馈；阶段完成由仓库根 `make test` 承接前后端全量单测。
-- **BDD 策略**: `BDD.SHELL.AUTH.001` 继续验证 auth guard、profile setup 与 pendingAction；`BDD.SHELL.SETTINGS.001/.002` 和 `BDD.SHELL.SETTINGS.DELETE.001` 覆盖单一设置入口、真实账号数据、登录保护与删除状态机。`E2E.P0.101` 原地扩展为真实 email-code/profile setup 后进入设置、核对真实账号字段并退出；删除账号只由 domain/contract tests 验证，不在共享登录场景中执行破坏性操作。
+- **BDD 策略**: 既有 auth/settings behaviors 保持；新增 `BDD.SHELL.SETTINGS.THEME.001` 覆盖主题预览、单次保存、失败恢复、runtime 直更和 route 零重复 `/me`。`E2E.P0.101` 原地扩展真实主题保存、logout/relogin 恢复；账号删除仍不加入共享 E2E。
 
 ## 4 Operation Matrix
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `getRuntimeConfig` | `openapi/fixtures/Auth/getRuntimeConfig.json#default` | `AppRuntimeProvider` | backend-auth runtime config handler | 无 | 无 | 当前无真实 E2E owner；root `make test` |
-| `getMe` | `openapi/fixtures/Auth/getMe.json#authenticated\|unauthenticated\|profileIncomplete` | `AppRuntimeProvider`、Settings、profile/protected-route guards | backend-auth current-user handler | `users` + session lookup；`user_settings.analytics_opt_in` 仅供 runtime config | 无 | `E2E.P0.101` session/profile + Settings 真实字段 |
+| `getMe` | `openapi/fixtures/Auth/getMe.json#authenticated\|unauthenticated\|profileIncomplete` | `AppRuntimeProvider` bootstrap/auth recovery；Settings/route 仅消费内存 context | backend-auth current-user handler | `users` + `user_settings` account theme + session lookup | 无 | `E2E.P0.101` session/profile/theme restore；component request-count gate |
 | `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json#default` | `AuthLoginScreen` | backend-auth challenge handler | auth challenge storage | 无 | `E2E.P0.101` |
 | `verifyAuthEmailChallenge` | `openapi/fixtures/Auth/verifyAuthEmailChallenge.json#default` | `AuthVerifyScreen` | backend-auth verify handler | challenge consumption + session | 无 | `E2E.P0.101` |
-| `completeMyProfile` | `openapi/fixtures/Auth/completeMyProfile.json#default` | `AuthProfileSetupScreen` | backend-auth `PATCH /me` handler | backend user display name, terms acceptance and profile completion fields | 无 | root `make test`；`E2E.P0.101` profile completion |
+| `updateMe` | `openapi/fixtures/Auth/updateMe.json#profileCompletion\|themeOcean\|themePlum\|customAccent` | `AuthProfileSetupScreen` + `SettingsScreen` | backend-auth generic `PATCH /me` handler | one transaction over user profile/terms + `user_settings` theme/custom accent | 无 | root `make test`；`E2E.P0.101` profile completion + theme save/relogin |
 | `logout` | `openapi/fixtures/Auth/logout.json#default` | `AuthLogoutScreen`，由 Settings 进入 | backend-auth logout handler | session revocation | 无 | `E2E.P0.101` logout/relogin |
 | `deleteMe` | `openapi/fixtures/Auth/deleteMe.json#default` | `SettingsScreen` destructive confirmation | backend-auth delete handoff | users soft delete + all-session revoke + privacy delete job | 无 | `BDD.SHELL.SETTINGS.DELETE.001` + backend contract；不加入共享 E2E |
 | `requestPrivacyExport` | `openapi/fixtures/Privacy/requestPrivacyExport.json#default` | Settings disabled/unavailable presentation；P0 不发伪请求 | Privacy P0 typed 501 handler | 无 | 无 | contract/component gate；不新增 E2E |
 | `listTargetJobs` / `importTargetJob` | current fixtures | Home authenticated read/import guard | targetjob handlers | targetjob owner | import may enqueue AI parse | 当前无 auth-shell E2E owner；root `make test` |
 | safe-read orchestration | existing generated operations | runtime and screen loaders | owner handlers | owner stores | unchanged | 当前无真实 E2E owner；root `make test` |
-| UI shell/settings/display | N/A | routes、TopBar 设置齿轮、Settings、display provider | 无 | display preference only | 无 | `E2E.P0.101` 只承接设置入口/真实字段/logout；其余 UI/typecheck/build gates |
+| UI shell/settings/display | N/A | routes、明确齿轮、Settings Appearance、display/runtime provider、Practice chrome | 无 | theme only via `updateMe`; language/dark remain client display state | 无 | `E2E.P0.101` 设置/主题/logout/relogin；其余 component/responsive/Chrome gates |
 
 ## 5 验收标准
 
 - 默认打开 App 渲染 Home、三入口 TopBar、单一登录入口和显示控制；已登录时登录入口替换为单一设置齿轮。
 - Browser History URL、hash adapter 输入和 in-memory route 均进入同一 normalization / route store 合同。
-- 语言、主题与暗色在未登录、登录、退出登录和 `/me` refresh 中保持前端偏好优先级；generated client 请求携带当前 UI locale display hint；字体保持固定产品栈。
+- 语言与暗色保持现有客户端显示合同；authenticated 主题由 bootstrap/auth recovery 的 `getMe` 恢复。普通 route 切换不得触发 `/me`；主题 slider 零请求，保存一次 `updateMe`，成功无 follow-up GET。
 - 未登录用户触发受保护动作时进入 `auth_login(pendingAction)`；email-code 验证成功后先执行资料补全 gate，再恢复 safe route params。
 - Settings 无 tab，复用 runtime user 展示真实姓名/完整邮箱，不重复调用 `getMe`；完整邮箱不写入日志/场景证据；退出进入既有确认页，导出诚实显示暂不可用，删除账号覆盖确认、pending、失败重试，以及 `202` 后复用 `refreshAuth()` 重探测 `/me` 并回到 Home。
 - 面试业务 route 在 runtime auth loading / unauthenticated 状态下不挂载业务 screen，不调用受保护 API；Home 未登录态不请求账号记录。
@@ -78,7 +78,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 - Auth verify 成功后的 `/me` refresh failure 不被渲染为验证码错误；App 离开 verify 页并在 route gate 中表达 auth/profile loading 或 error。
 - Auth loading/error route gate 的四段可见文案全部跟随当前 `zh`/`en` 显示偏好；切换语言不改变 route、auth probe 或业务 API gate。
 - StrictMode 下同 key safe-read GET 同时在途只发出一个底层 request；settle 后可重新读取。不同 client/query/header/epoch/auth、带 signal、非 GET 与 `/auth/email/verify` 保持独立；verify 成功推进 auth epoch，auth/locale 变化不会被旧 key 吞并。
-- UI 结构、文案、密度、主题和交互节奏可追溯到 `frontend/` 与 `docs/ui-design/`。
+- UI 结构、文案、密度、主题和交互节奏可追溯到 `frontend/` 与 `docs/ui-design/`；Practice 显示全局 TopBar 与独立 Practice Session Header。
 
 ## 6 当前验证面
 
@@ -128,6 +128,14 @@ Review remediation 继续由本 Phase owning：默认 fixture-backed client 在 
 
 先以 App shell locale behavior RED 复现：当前语言为中文且 `/me` probe loading/error 时，统一 `auth-route-gate` 仍渲染硬编码 `AUTH`、英文标题和英文说明。GREEN 仅把 eyebrow、loading/error title 与 body 接入现有 typed locale catalog；不改变 protected-route 判定、pendingAction、请求时序或 auth 状态机。中英文切换、业务 screen/API 不提前挂载、locale key reachability、typecheck/build 与根回归共同验收；current-run 还必须使用 Chrome extension automation skill 在真实本地前后端页面核对中文 gate 与英文切换，不新增或冒充 E2E ID。
 
+### Phase 16: Account theme persistence and Practice global chrome
+
+先以 OpenAPI/backend/frontend RED 锁定方案 B：`PATCH /me` operationId 改为 `updateMe`，request 支持 profile-completion 字段与可选 `displayPreferences.theme/customAccent`，response 为完整 `UserContext`。`user_settings` 新增 typed theme/custom columns 与 enum/range/all-or-none constraints；GET/PATCH 在 owner store 中读写同一投影，非法值 fail closed，legacy row 默认 ocean。profile-only、theme-only 和组合更新必须单事务，空 patch、字段组合错误与非法范围拒绝且不产生部分写入。
+
+前端把主题菜单从 TopBar 移入 Settings Appearance；设置入口文案统一为“设置 / Settings”，图标使用明确齿轮。Appearance 以 runtime server-confirmed 值初始化草稿；选择/拖动即时本地预览且零请求，Save 只发一次 `updateMe`。成功以响应 `UserContext` 同步 runtime 与 display provider，不发 follow-up `getMe`；失败保留草稿/预览和错误，离开未保存页面恢复确认值。App bootstrap/auth recovery 读取一次 `/me`，Home/Settings/Practice 等 route 切换请求计数保持为零。
+
+`practice` 从 no-chrome allowlist 移除；全局 App TopBar 与 Practice Session Header 同时渲染并在 desktop/mobile 无溢出。Focused request-count/component/responsive/a11y tests、OpenAPI fixture/codegen drift、migration/backend contract、根 `make test`、`E2E.P0.101` 真实保存/重登、Chrome desktop/mobile 截图共同收口。
+
 
 ## 7 风险与应对
 
@@ -144,6 +152,7 @@ Review remediation 继续由本 Phase owning：默认 fixture-backed client 在 
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.33 | Reopen Phase 16 for generic updateMe, account-persisted theme with zero route refetch, Settings naming/gear, and Practice global chrome. |
 | 2026-07-16 | 1.32 | Reopen Phase 15 to localize the shared auth loading/error route gate without changing auth behavior. |
 | 2026-07-15 | 1.31 | Complete Phase 14 review remediation for fixture delete auth state and failure-path evidence redaction. |
 | 2026-07-15 | 1.29 | Reopen Phase 14 for the approved single settings icon, real account/privacy page, logout relocation, deleteMe state machine and removal of static/font-preset surfaces. |

@@ -1,8 +1,8 @@
 # Frontend Shell Spec
 
-> **版本**: 1.35
+> **版本**: 1.36
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 ## 1 背景与目标
 
@@ -19,14 +19,14 @@
 - 上下文 route：`parse`、`practice`、`reports`、`generating`、`report`。
 - 账号入口 route：已登录 TopBar 设置齿轮直达 `settings`；`auth_logout` 只由设置页发起。
 - Auth route：`auth_login`、`auth_verify`、`auth_profile_setup`、`auth_logout`。
-- Settings：无 tab 的账号与隐私单页；复用 runtime `/me` 展示真实 `displayName/email`（完整账号邮箱），提供既有退出登录入口、导出暂不可用状态和账号删除确认流程。
+- Settings：页面名称统一为“设置 / Settings”，无 tab；Appearance 保存账号级主题，Account 复用 runtime `/me` 展示真实 `displayName/email`，Privacy 提供退出、导出暂不可用和账号删除。
 - `requestAuth(pendingAction)`：未登录用户触发受保护动作时进入登录页，登录和资料补全完成后恢复 safe route params。
 - Email-code auth：`auth_verify` 承接 6 位验证码输入，通过 generated `verifyAuthEmailChallenge` 完成验证。
 - Runtime bootstrap：`getRuntimeConfig`、`getMe`、generated client、fixture-backed mock transport and dev mock session state。
 - GET request orchestration：React StrictMode 保持开启；同一逻辑 GET 的同时在途调用共享一个底层 request，并在 settle 后立即驱逐，不成为数据缓存。
 - URL-addressable routing：Browser History canonical path + query，支持直开、刷新、复制链接和 back/forward。
 - Protected route guard：业务 route 只在 runtime auth 明确 authenticated 后挂载 screen 和调用受保护 API。
-- Display preferences：主题、暗色和语言下拉；默认主题和无效值 fallback 为 `ocean`；当前 TopBar 只提供 `ocean` / `plum` 两个预定义主题和只含色相、饱和度控件的 custom accent。字体使用固定产品栈，不再是 preference。
+- Display preferences：TopBar 只保留暗色和语言；主题选择移入 Settings Appearance，支持 `ocean` / `plum` 与只含色相、饱和度的 custom accent，并通过账号 `updateMe` 持久化。默认/无效值 fail closed 为 `ocean`；字体固定。
 
 ### 2.2 Out of Scope
 
@@ -43,9 +43,9 @@
 | D-1 | 默认入口 | `home` | 未登录用户也能看到首页和输入入口 |
 | D-2 | 一级导航 | `home` / `workspace` / `resume_versions` | TopBar 一级导航保持三入口 |
 | D-3 | Auth gate | 操作级 `requestAuth(pendingAction)` | 登录成功后恢复原业务动作和 safe params |
-| D-4 | Auth API | `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`completeMyProfile`、`logout` + first-party session cookie | 前端不创建自定义 session contract |
+| D-4 | Account API | `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`updateMe`、`logout` + first-party session cookie | 现有 `PATCH /me` 从 profile-only operation 原地泛化；前端不创建自定义 session contract |
 | D-5 | Profile setup gate | `/me.profileCompletionRequired=true` 强制进入 `auth_profile_setup` | 资料补全前不恢复业务 route |
-| D-6 | Display preferences | 前端持有语言、主题和暗色；字体固定为产品默认栈 | 登录态和 runtime config 不覆盖用户显式选择；不保留 font preset 状态或兼容键 |
+| D-6 | Display preferences | 语言/暗色为当前客户端显示态；主题为账号级服务端事实；字体固定 | `getMe` bootstrap/auth recovery 一次读取主题；route 切换零 `/me`；保存成功直接提交完整 `UserContext` 到 runtime，无 follow-up GET |
 | D-7 | Canonical URL | Browser History path + safe query | URL 表达页面和稳定上下文，不表达后端 action 或敏感正文 |
 | D-8 | UI 设计 owner | `docs/ui-design/` | UI 架构、页面流程、交互约束和设计决策先在文档中收敛；正式 `frontend/` 直接实施，不维护可运行 Demo 或双源 parity |
 | D-9 | 主题色范围 | 预定义主题只保留 `ocean` / `plum`，另保留 custom accent | 移除 `warm` / `forest` active palette、TopBar option 和 locale 文案 |
@@ -54,11 +54,12 @@
 | D-12 | 规划 route 分工 | `/parse?targetJobId` 只承载刚导入规划的 queued/processing 命令进度；`/workspace` 展示列表，`/workspace?targetJobId` 展示只读详情 | ready 初读或轮询转 ready 必须 replace 到 workspace 详情；已解析卡片不再经过 Parse 动画 |
 | D-13 | Custom accent 最小控件 | `CustomAccentPicker` 只保留色相与饱和度；选择 Ocean / Plum 是退出自定义色的唯一清晰路径 | 删除 preview/value 区、恢复默认色按钮与 `onClear` / `active` 冗余 props，不增加第二套 reset 语义 |
 | D-14 | 设置简化方案 A | 已登录 TopBar 只保留设置齿轮；Settings 为无 tab 的真实账号/隐私单页，退出迁入页面；删除账号 chip/dropdown、静态登录安全、字体预设、产品信息和无后端事实字段 | `getMe` 复用 runtime context；导出按 501 诚实禁用；`deleteMe` 覆盖确认/pending/failure/202 success；无兼容 UI 或重复请求 |
+| D-15 | 账号主题方案 B | `PATCH /me` 改为 `updateMe`，同一 operation 同时支持首次资料补全与主题更新；`UserContext` 返回确认后的主题 | 迁移 `user_settings`；custom 草稿本地预览，显式保存一次请求；失败不污染确认值；其他平台首次 `/me` 恢复同一主题 |
 
 ## 4 设计约束
 
 - Route normalization 只能把 unsupported route input 映射到当前 route catalog 或 `home`。
-- `practice` 和 `generating` 可以隐藏 TopBar；其他 route 默认保留 App chrome。
+- 只有 `generating` 可以隐藏 TopBar；`practice` 与其他业务 route 保留 App chrome。Practice 的会话控制栏是独立 `Practice Session Header`，不能替代全局 TopBar。
 - `reports` 保留 App chrome 但不得加入 `PRIMARY_NAV_ROUTES` / TopBar；直开、刷新、back/forward 和 auth continuation 只保留合法 `targetJobId`。
 - `parse` 不接受 `section=reports`；`report` / `generating` 的资源 locator 只接受 `reportId`。报告状态、target/round/resume 等业务事实必须由受保护 API response 提供，不能由 query/pendingAction 注入。
 - `/workspace` 只允许可选 `targetJobId`；`planId`、`resumeId`、auto-start 和其他业务状态必须剔除。`/parse` 只允许 `targetJobId` 并作为 command/progress route；ready 后使用 replace 导航到 `/workspace?targetJobId`。
@@ -74,7 +75,7 @@
 - Demo-only `#route=...` adapter 不属于正式 route contract；真实开发和场景验证使用 canonical Browser History URL。
 - TopBar language dropdown 从 locale catalog 渲染；locale priority 为用户显式选择 > browser locale > `en` fallback，并通过 `Accept-Language` 作为 display hint。
 - TopBar 已登录账号区只渲染设置齿轮，必须具备本地化 accessible name、focus ring 与不小于 40×40px 的点击区域；头像、姓名、caret、backdrop、dropdown 与 TopBar logout 不属于当前 DOM/CSS/i18n 合同。
-- Settings 只消费 `AppRuntimeContext.auth.user` 与 generated `deleteMe`；页面挂载不得再次调用 `getMe`。账号删除一次确认生命周期内复用同一 idempotency key，失败可重试；`202` 后调用现有 `refreshAuth()` 重探测 `/me`（预期 401），提交 unauthenticated 状态并 replace Home，不新增清 session 方法。默认 fixture-backed dev client 必须复现相同 auth transition：成功 `deleteMe` 后下一次无 `Prefer` 的 `getMe` 返回 401，不得继续投影 authenticated 用户。
+- Settings 只消费 `AppRuntimeContext.auth.user` 与 generated `updateMe/deleteMe`；页面挂载和 route 切换不得再次调用 `getMe`。主题草稿拖动零网络，保存只发一次 `updateMe`；成功返回完整 `UserContext` 并直接更新 runtime/theme，禁止 follow-up `getMe`；失败保留草稿与可恢复错误，离开未保存页面恢复服务端确认主题。账号删除仍按既有状态机在 `202` 后调用 `refreshAuth()` 重探测 `/me`（预期 401）。
 - `E2E.P0.101` 的完整账号邮箱只用于真实页面/API 断言；PASS 与 FAIL reporter、`trigger.log` 和 result artifact 均不得包含原文或 URL percent-encoded 等价值。失败断言不得把完整邮箱作为 matcher expected/received 文本直接交给 reporter，场景落盘前还必须执行流式脱敏作为纵深防御。
 - UI implementation 必须符合对应产品 spec 与 `docs/ui-design/` 的信息架构、流程、交互和响应式约束；具体实现由正式组件、token、可访问性、component/browser tests 与真实业务场景验证，不要求按设计合同实现或像素对照。
 
@@ -97,7 +98,7 @@
 | C-3 | Settings 单入口 | 已登录用户点击 TopBar 设置齿轮 | 进入 settings，查看账号或选择退出 | TopBar 无账号菜单；Settings 复用真实 runtime 用户并由页面进入 `auth_logout` | 001-app-shell-auth-settings |
 | C-4 | Unsupported route fallback | URL / hash / localStorage 带 unsupported route input | App normalize route | 映射到当前 route catalog 或 Home，不产生独立页面 | 001-app-shell-auth-settings / 004-url-addressable-routing |
 | C-5 | Runtime bootstrap | App 启动且 mock transport 可用 | 读取 runtime config 与 `/me` | 公开配置按 allowlist 生效，auth state 驱动用户区和 route guard | 001-app-shell-auth-settings |
-| C-6 | Display preferences | 用户切换语言、主题或暗色 | 刷新、登录、退出或 `/me` refresh | 前端显式选择优先，generated client 请求带当前 UI locale display hint；字体保持固定产品栈 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
+| C-6 | Display preferences | authenticated 用户在 Settings 调整主题 | 拖动 custom、保存、切换 route、刷新或在其他平台登录 | 拖动只本地预览；保存一次 `updateMe` 且无 follow-up GET；route 切换零 `/me`；bootstrap `getMe` 恢复账号主题；语言/暗色与固定字体保持现有合同 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
 | C-7 | Protected route guard | 用户未登录并打开业务 route | runtime auth loading / unauthenticated | 不挂载业务 screen，不调用受保护 API，进入 `auth_login(pendingAction)` | 001-app-shell-auth-settings |
 | C-8 | Email-code profile setup | 新邮箱完成验证码验证 | `/me.profileCompletionRequired=true` | 先进入 `auth_profile_setup`，资料补全成功后再恢复 pendingAction 或 Home | 001-app-shell-auth-settings |
 | C-9 | Canonical URL | 用户打开、刷新或复制 frontend URL | Browser History parse / back / forward | Route、safe params、chrome behavior 和 auth gate 保持一致 | 004-url-addressable-routing |
@@ -105,9 +106,10 @@
 | C-11 | Reports deep link | 用户直开/刷新 `/reports?targetJobId=<uuid>`，或未登录后完成鉴权 | route normalize / history / pendingAction restore | 仅合法 targetJobId 被保留并进入受保护 ReportsScreen；缺失/非法 target 以 replace-only 回 workspace 且不形成 Back 循环；chrome visible、TopBar 无报告入口；旧 `section` 与 report/status/round 等 query 被剔除 | 004-url-addressable-routing |
 | C-12 | StrictMode safe-read 去重 | AppRuntimeProvider 或 Home/Parse/Workspace/Reports/Practice loader 在 StrictMode mount cycle 内发出同 key safe-read GET | 两个 caller 同时等待、settle 后重试、使用不同 `okStatuses`，或在任一语义写请求前/期间/settle 后读取 | 同时在途只产生一次底层 GET；settle 后重试产生新 GET；不同 client/query/header/okStatuses/epoch/auth、带 signal、非 GET 与 verify GET 均不合并；所有语义写请求 dispatch 前和 settle 后推进 read epoch，verify 成功另推进 auth/session epoch并真实刷新 | 001-app-shell-auth-settings |
 | C-13 | Parse/workspace route 分工 | TargetJob 为 queued/processing 或 ready | 打开 `/parse?targetJobId`、轮询转 ready、或打开 ready 卡片 | Parse 只在处理中展示进度；ready 使用 replace 进入 `/workspace?targetJobId`；无 target 的 workspace 仍为列表，详情不显示 Parse 动画 | 004-url-addressable-routing |
-| C-14 | Custom accent 最小选择器 | TopBar 主题菜单打开 | 用户调整自定义色或选择 Ocean / Plum | 只显示色相、饱和度；不显示 preview/value、恢复主题默认色按钮；选择预定义主题清晰退出 custom accent | 002-app-shell-visual-system |
+| C-14 | Custom accent 最小选择器 | Settings Appearance 打开 | 用户调整自定义色、选择 Ocean / Plum 并保存 | 只显示色相、饱和度；拖动零请求；保存一次账号更新；不显示 preview/value/reset；选择预定义主题退出 custom accent | 001-app-shell-auth-settings / 002-app-shell-visual-system |
 | C-15 | Settings 真实数据与隐私动作 | authenticated runtime 已取得 `/me` | 打开设置、查看导出状态、退出或删除账号 | 只显示真实 `displayName/email`，其中 email 完整显示但不进入 PASS/FAIL 日志或证据；不重复 `getMe`；导出显示暂不可用；删除流程具备确认/pending/failure/202 success；默认 fixture client 在删除后也返回 unauthenticated，且旧 tab/block/字段零引用 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
 | C-16 | Auth route gate 本地化 | 中文或英文显示偏好已生效，受保护 route 的 auth probe 为 loading/error | App 挂载统一 route gate 或用户切换语言 | eyebrow/title/body 全部跟随当前 locale，业务 screen/API 仍不提前挂载，中文模式无英文 fallback | 001-app-shell-auth-settings |
+| C-17 | Practice 全局 chrome | authenticated 用户进入 Practice | route render 与 desktop/mobile 响应式布局 | 全局 TopBar 保持可见，其下是独立 Practice Session Header；页面切换不触发 `/me` | 001-app-shell-auth-settings + frontend-workspace-and-practice/001 |
 
 ## 7 关联计划
 
@@ -120,6 +122,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.36 | 2026-07-19 | 采用账号主题方案 B：设置更名、主题移入 Appearance 并由 updateMe 持久化；锁定 bootstrap 单次读取、route 零重复读取、保存一次写入及 Practice 全局 chrome。 |
 | 1.35 | 2026-07-16 | 修复统一 auth route gate 绕过 locale catalog 的实现漂移，锁定 loading/error 双语与中文零英文残留。 |
 | 1.34 | 2026-07-15 | 补齐 settings review remediation：fixture-backed deleteMe 后必须转 unauthenticated，并要求 P0.101 的失败 reporter 与落盘证据同样脱敏。 |
 | 1.32 | 2026-07-15 | 采用设置简化方案 A：TopBar 已登录态收敛为设置齿轮，Settings 改为真实账号/隐私单页，删除字体预设与静态冗余字段，并接入 logout/deleteMe 合同。 |

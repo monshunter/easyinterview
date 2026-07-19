@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FC,
   type ReactNode,
@@ -56,10 +57,14 @@ export interface DisplayPreferences {
   dark: boolean;
   lang: Lang;
   customAccent: CustomAccent | null;
+  confirmedTheme: Theme;
+  confirmedCustomAccent: CustomAccent | null;
   setTheme: (next: Theme) => void;
   setDark: (next: boolean) => void;
   setLang: (next: Lang) => void;
   setCustomAccent: (next: CustomAccent | null) => void;
+  commitAccountPreferences: (next: { theme: Theme; customAccent: CustomAccent | null }) => void;
+  restoreConfirmedAccountPreferences: () => void;
 }
 
 const DEFAULTS = {
@@ -95,6 +100,11 @@ export const DisplayPreferencesProvider: FC<
   const [customAccent, setCustomAccentState] = useState<CustomAccent | null>(
     initial?.customAccent ?? DEFAULTS.customAccent,
   );
+  const confirmedRef = useRef({
+    theme: initial?.theme ?? DEFAULTS.theme,
+    customAccent: initial?.customAccent ?? DEFAULTS.customAccent,
+  });
+  const [confirmed, setConfirmed] = useState(confirmedRef.current);
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
@@ -103,6 +113,18 @@ export const DisplayPreferencesProvider: FC<
 
   const setCustomAccent = useCallback((next: CustomAccent | null) => {
     setCustomAccentState(next);
+  }, []);
+
+  const commitAccountPreferences = useCallback((next: { theme: Theme; customAccent: CustomAccent | null }) => {
+    confirmedRef.current = next;
+    setConfirmed(next);
+    setTheme(next.theme);
+    setCustomAccentState(next.customAccent);
+  }, []);
+
+  const restoreConfirmedAccountPreferences = useCallback(() => {
+    setTheme(confirmedRef.current.theme);
+    setCustomAccentState(confirmedRef.current.customAccent);
   }, []);
 
   // Root-element wiring: write data-theme / data-mode / data-custom-accent on
@@ -138,12 +160,16 @@ export const DisplayPreferencesProvider: FC<
       dark,
       lang,
       customAccent,
+      confirmedTheme: confirmed.theme,
+      confirmedCustomAccent: confirmed.customAccent,
       setTheme,
       setDark,
       setLang,
       setCustomAccent,
+      commitAccountPreferences,
+      restoreConfirmedAccountPreferences,
     }),
-    [theme, dark, lang, customAccent, setLang, setCustomAccent],
+    [theme, dark, lang, customAccent, confirmed, setLang, setCustomAccent, commitAccountPreferences, restoreConfirmedAccountPreferences],
   );
 
   return <Context.Provider value={value}>{children}</Context.Provider>;

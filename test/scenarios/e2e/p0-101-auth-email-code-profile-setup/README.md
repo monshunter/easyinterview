@@ -14,7 +14,7 @@
 - backend API: `http://127.0.0.1:10901/api/v1`
 - Mailpit Web/API: `http://127.0.0.1:${MAILPIT_WEB_HOST_PORT:-8025}`，端口从 `deploy/dev-stack/.env` 解析
 - `deploy/dev-stack/.env` 中 `VITE_EI_API_MODE=real` 且 `VITE_EI_API_BASE_URL` 指向 backend。
-- Postgres `users` 表包含 `profile_completed_at` 与 `terms_accepted_at`，否则 `setup.sh` 会在消费验证码前失败并提示先运行 migrations。
+- Postgres `users` 包含 profile completion columns，`user_settings` 包含 `theme/custom_accent_hue/custom_accent_chroma`，否则 setup 在消费验证码前失败并提示先运行 migrations。
 
 场景使用 setup 生成的一个 synthetic `.example.test` 邮箱。该邮箱从单一登录入口首次登录时创建用户，但用户资料保持未补全；在完成 displayName + 条款确认前，刷新、深链、关闭浏览器后重登、换浏览器后重登、退出后重登都必须停在 `auth_profile_setup`。资料补全后，同一邮箱后续登录直接进入正常账号。它不使用真实外部邮箱账号，不直接写 `sessions` 表，也不启动场景专属 backend helper。
 
@@ -46,8 +46,8 @@ pnpm --filter @easyinterview/frontend exec playwright test \
 - Mailpit 邮件只包含 6 位验证码，不包含 frontend `/auth/verify?token=...` URL callback 或 backend verify API URL。
 - 输入验证码后，frontend 调用 backend `verifyAuthEmailChallenge` 兑换 `ei_session`，`GET /me` 返回 200 且 `profileCompletionRequired=true`，页面进入 `auth_profile_setup`。
 - 资料补全前刷新 `auth_profile_setup`、深链到业务 route、关闭 browser context 后重登同一邮箱、换 browser context 后重登同一邮箱、退出后重登同一邮箱，均继续停在 `auth_profile_setup`，不得接续 pending action。
-- `auth_profile_setup` 提交 trimmed displayName 和 `acceptedTerms=true` 后调用 `PATCH /me`，`GET /me.profileCompletionRequired=false`；已登录 TopBar 只有一个设置齿轮。
-- 点击设置齿轮后，Settings 使用 runtime `/me` 的同一 displayName 与完整账号邮箱，不追加页面级 `GET /me`；日志与证据仍脱敏，且无旧账号 dropdown、tab、sign-in/security 或 font preset。
+- `auth_profile_setup` 提交 trimmed displayName 和 `acceptedTerms=true` 后调用 `PATCH /me updateMe`，响应直接给出 `profileCompletionRequired=false`；已登录 TopBar 只有一个设置齿轮。
+- 点击设置齿轮后，Settings 使用 bootstrap runtime `/me` 的账号与主题，不追加页面级 GET；选择 plum 只本地预览，保存只发一次 PATCH 且不追加 GET；Settings→Home→Settings 仍不重新 GET，退出重登恢复 plum。
 - 从 Settings 进入既有退出确认；退出后使用同一邮箱再次登录时不再进入 `auth_profile_setup`，直接进入正常账号。
 - 场景不触发 `DELETE /me`；破坏性账号删除只由 frontend/backend contract tests 承接。
 - 所有 `POST /auth/email/start` request body 只包含 email，不包含 `purpose`、`displayName`、password 或 OAuth 字段。

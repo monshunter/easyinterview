@@ -57,7 +57,7 @@ describe("default home shell", () => {
       primaryNav.querySelectorAll("button[data-testid^='topbar-nav-']"),
     ).toHaveLength(3);
 
-    expect(screen.getByTestId("topbar-theme-button")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-theme-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("topbar-dark-toggle")).toBeInTheDocument();
     expect(screen.getByTestId("topbar-lang-toggle")).toBeInTheDocument();
 

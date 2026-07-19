@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.23
+> **版本**: 1.24
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -235,3 +235,7 @@ Regenerate OpenAPI examples and prove Prism/dev-mock byte parity for `getMe` and
 ## 16 Phase 14: Failed report regeneration fixtures
 
 Add `Reports/regenerateFeedbackReport.json` with `default`, replay, hidden 404, invalid state, active-job not-ready, context-too-large and idempotency-mismatch scenarios. Every success returns the same path `reportId` and a matching queued report-generation job；header-only requests carry `Idempotency-Key` and no body. Validate all 38 fixtures, render examples, extend Prism/dev-mock operation parity and prove raw report/provider content is absent. User behavior remains in backend/frontend report BDD；this phase is fixture/codegen support only.
+
+## 17 Phase 15: OPENAPI-008 Auth fixtures
+
+Delete `Auth/completeMyProfile.json` and add `Auth/updateMe.json` one-for-one, keeping 38/38. Cover profile completion, ocean/plum, custom accent, combined update and invalid/partial requests. Every successful UserContext, including `getMe`, contains the closed display-preference projection. Render examples and prove fixture validation, Prism and dev-mock parity；the old operation fails closed.

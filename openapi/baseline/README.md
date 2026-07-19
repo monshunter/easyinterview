@@ -23,8 +23,8 @@ Auth, Uploads, Resumes, TargetJobs, PracticePlans, PracticeSessions, Reports,
 ResumeTailor, Jobs, and Privacy. It includes `DELETE /api/v1/me`
 (`operationId=deleteMe`), flat Resume operations including PDF source preview,
 TargetJob archive (`operationId=archiveTargetJob`), Practice session / voice
-contracts, and Auth `completeMyProfile`
-profile-completion endpoint. The
+contracts, and Auth `updateMe`, which owns both profile completion and account
+display-preference updates. The
 freeze also includes protected failed-report same-ID regeneration
 (`operationId=regenerateFeedbackReport`). The
 project is still in a pre-launch P0 phase. A `v1.0.0 pre-release correction`
@@ -41,6 +41,10 @@ The current runtime content-limit correction is preserved at
 [`audits/OPENAPI-006-runtime-content-limits.json`](./audits/OPENAPI-006-runtime-content-limits.json);
 it records the old-baseline Git source and exact 1 breaking + 8 additive finding
 set before the guarded in-place re-freeze.
+The OPENAPI-008 generic current-user update correction is preserved at
+[`audits/OPENAPI-008-account-theme-update-me.json`](./audits/OPENAPI-008-account-theme-update-me.json);
+it records the unchanged old baseline, exact 3 breaking + 4 additive wrapper findings,
+and the separately locked `completeMyProfile -> updateMe` operationId invariant.
 
 After a baseline is release-ready or published, follow [the SemVer upgrade
 flow](#semver-upgrade-flow) below and never modify that existing baseline file.

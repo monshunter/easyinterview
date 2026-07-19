@@ -64,6 +64,16 @@ if [ "$PROFILE_COLUMN_COUNT" != "2" ]; then
   echo "setup: missing users profile completion columns; run test/scenarios/env-setup.sh --with-migrations before E2E.P0.101" >&2
   exit 1
 fi
+THEME_COLUMN_COUNT="$(psql "$PG_DSN" -tAc "
+select count(*)
+from information_schema.columns
+where table_name = 'user_settings'
+  and column_name in ('theme', 'custom_accent_hue', 'custom_accent_chroma');
+")"
+if [ "$THEME_COLUMN_COUNT" != "3" ]; then
+  echo "setup: missing user_settings theme columns; run test/scenarios/env-setup.sh --with-migrations before E2E.P0.101" >&2
+  exit 1
+fi
 
 {
   echo "scenario=E2E.P0.101"

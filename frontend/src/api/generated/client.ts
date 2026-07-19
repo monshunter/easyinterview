@@ -296,8 +296,8 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** completeMyProfile — patch /me: Complete first-login profile setup */
-	async completeMyProfile(body: Types.CompleteProfileRequest, opts?: RequestOptions): Promise<Types.UserContext> {
+	/** updateMe — patch /me: Update current account */
+	async updateMe(body: Types.UpdateMeRequest, opts?: RequestOptions): Promise<Types.UserContext> {
 		return this.request<Types.UserContext>(
 			"PATCH",
 			"/me",
@@ -627,7 +627,7 @@ export const ALL_OPERATION_IDS = [
 	"getJob",
 	"deleteMe",
 	"getMe",
-	"completeMyProfile",
+	"updateMe",
 	"createPracticePlan",
 	"getPracticePlan",
 	"startPracticeSession",
@@ -676,7 +676,7 @@ export const ALL_ROUTES = [
 	{ operationId: "getJob", method: "GET", path: "/jobs/{jobId}" },
 	{ operationId: "deleteMe", method: "DELETE", path: "/me" },
 	{ operationId: "getMe", method: "GET", path: "/me" },
-	{ operationId: "completeMyProfile", method: "PATCH", path: "/me" },
+	{ operationId: "updateMe", method: "PATCH", path: "/me" },
 	{ operationId: "createPracticePlan", method: "POST", path: "/practice/plans" },
 	{ operationId: "getPracticePlan", method: "GET", path: "/practice/plans/{planId}" },
 	{ operationId: "startPracticeSession", method: "POST", path: "/practice/sessions" },

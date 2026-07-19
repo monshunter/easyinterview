@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.46
+> **版本**: 1.47
 > **状态**: completed
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -22,6 +22,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 本次 v1.20 原地修订修复面试列表卡片规格回归：desktop plan-list grid 必须使用固定最大列宽，1/2/3 张卡片的规格保持稳定，不得因单卡数量被拉伸为整行宽卡。
 本次 v1.21 原地修订融合 Home 最近模拟面试与 workspace 面试列表卡片：workspace 卡片必须复用 Home recent card 的主体结构、公司、岗位、可选真实地点和 mini round rail。本次 v1.22 原地修订把列表卡片的 `进入规划` 可见 footer CTA 改为点击卡片主体承接，并增加 `立即面试` 主按钮和使用简历列表 trash 图标样式的删除能力；Home recent 复用同一卡片动作模型但不展示删除按钮。本次 v1.45 原地修订移除同一 `TargetJob.status` 的重复展示和空地点 `Location not set` 占位，真实地点仍按原层级展示。
 本次 v1.46 原地重开 Phase 30，修复共享 `startPracticeFromParams` 在等待 session opening LLM 时仅禁用入口按钮、页面看似卡死的实现漂移：四类正式入口必须共享同一全屏面试准备过渡态，并在成功/失败、可访问性与 reduced-motion 路径中一致收敛。
+本次 v1.47 原地重开 Phase 31：Practice 不再隐藏 App chrome；全局 TopBar 与独立 Practice Session Header 同时存在，并复用 frontend-shell 的内存 runtime/display context，route 切换零额外 `/me`。
 本次 v1.38 原地修订收口结构化轮次目录与时长一致性：`TargetJob.summary.interviewRounds[]` 是轮次顺序和规划时长的唯一来源；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照，Practice Top Bar 从 plan 读取预算；报告下一轮只取有序列表的紧邻后一项，末轮、空/未知轮次、加载失败和重复点击 fail closed，不再使用固定 `25:00`、固定轮次表或默认回退。当前轮的持久化事实由 v1.39 `practiceProgress` 接管。
 本次 v1.39 按方案 A 把轮次进度事实收回后端：Home/Workspace/Parse/Report 只消费 `TargetJob.practiceProgress`，不再用 TargetJob lifecycle `status`、自由文本、时长或浏览器状态猜测当前轮；计划只按 exact round pair 复用，全部完成后启动 fail closed。
 
@@ -56,7 +57,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 ### 2.2 UI / Route Boundary
 
-- `workspace` 保留 App chrome；`practice` 和 `generating` 由下游 owner 隐藏 chrome。
+- `workspace` 与 `practice` 保留 App chrome；只有 `generating` 由下游 owner 隐藏 chrome。Practice 会话控件属于独立 Practice Session Header。
 - TopBar 显示 `面试` / `Interview`；query-free workspace 是列表，可选 `targetJobId` 是详情；Parse 不是 ready-card route。
 - 当前面试规划不展示练习模式卡片、成长中心、单题深钻、专项练习、独立 voice route 或独立公司信号页面。
 - `resumeId` 是当前简历绑定键；`resumeVersionId` 不作为本 plan 正向 route/context 字段。
@@ -307,10 +308,15 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 保持 `startPracticeFromParams`、generated client、fixtures、OpenAPI、backend、persistence、route params 与 idempotency 不变；执行 focused caller/component/a11y tests、frontend typecheck/build、仓库根 `make test`、owner context/docs/index/diff gates，并完成必要的真实浏览器 desktop/mobile pending-state检查后恢复 completed lifecycle。
 
+### Phase 31: Practice global App chrome
+
+从 shell no-chrome allowlist 删除 `practice`，保留 `generating`。`PracticeScreen` 上方渲染共享 App TopBar，其下现有公司/岗位/角色/计时/暂停/电话/结束控件明确作为 Practice Session Header；不复制导航、主题或账号状态。component/router tests 锁定全局与会话两层 header、TopBar 导航/设置可用、进入/离开 Practice 的 `/me` 请求增量为 0；desktop/mobile responsive 与 Chrome 截图证明关键动作可达且无 document overflow。
+
 ## 6 变更记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.47 | Reopen Phase 31 so Practice retains the global App TopBar above its session header with zero route-level account refetch. |
 | 2026-07-18 | 1.46 | Reopen Phase 30 to add one shared accessible launch transition across every formal practice-session entry while the opening LLM request is pending. |
 | 2026-07-17 | 1.45 | Reopen Phase 29 to remove duplicated lifecycle status and empty-location placeholders from the shared interview-plan card. |
 | 2026-07-15 | 1.44 | Reopen Phase 28 to replace the standalone resume-binding launch block with a title-adjacent resume link and a leading Start/Reports action row. |

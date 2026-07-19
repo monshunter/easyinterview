@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.33
+> **版本**: 2.34
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-19
 
 ## 1 文档目的
 
@@ -21,9 +21,9 @@
 7. 报告内容只有 session-scoped Dashboard；允许从规划详情内容区进入 target-scoped ReportsScreen 索引当前轮次报告，但不加入 TopBar、不形成全局中心或第二种报告内容形态。报告后续开练动作只有 `复练当前轮` 与 `进入下一轮`。
 8. 简历是一级模块：平铺列表、上传 / 粘贴创建、注册后直接详情、只读原始正文。
 9. 当前只开放连续文本面试；电话入口置灰，不产生 `phone` / `voice` route state，通用 speech 基础设施留待后续重新评审。
-10. 顶栏主题色、暗色模式和语言下拉是全部全局显示控制；产品字体采用固定默认栈，不提供字体预设。
+10. TopBar 只保留暗色模式、语言下拉和设置入口；主题色移入“设置”页的“外观”区并保存为账号级偏好。产品字体采用固定默认栈，不提供字体预设。
 11. Desktop TopBar 保持 58px 单行节奏；`<=720px` 使用内容驱动的响应式换行，primary nav 独占下一行，`<=460px` 收起品牌文字并限制语言标签宽度。移动端页面内容必须从 TopBar 实际底部开始，所有控件与导航都留在 viewport 内，不允许用固定 58px 或横向页面溢出来伪造对齐。
-12. Custom accent picker 只保留色相与饱和度两个调整维度；不展示额外 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean 或 Plum 是退出自定义色的唯一清晰路径。
+12. “设置 > 外观”的 custom accent picker 只保留色相与饱和度两个调整维度；不展示额外 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean 或 Plum 是退出自定义色的唯一清晰路径。调整只做本地预览，点击保存才发送一次账号更新请求。
 13. `/workspace` 是无参规划列表，`/workspace?targetJobId=...` 是统一只读规划详情；ready 卡片直接进入详情。`/parse?targetJobId=...` 只承接新导入 queued/processing 命令进度，ready 后 replace 到 Workspace 详情。
 14. Practice 的 persisted user/assistant text 通过 `react-markdown + remark-gfm` 安全投影；`skipHtml`、no `rehypeRaw`、no remote image、safe link，send/retry 仍使用原始 text/clientMessageId。
 
@@ -34,7 +34,6 @@
 ├─ TopBar
 │  ├─ Brand: E mark + EasyInterview
 │  ├─ Primary nav: 首页 / 面试 / 简历
-│  ├─ Theme: Ocean / Plum / Custom hue + saturation
 │  ├─ Dark / language
 │  └─ Account: 已登录设置齿轮 / 未登录登录入口
 ├─ Home / 首页
@@ -50,6 +49,8 @@
 │  ├─ JD / 简历 / InterviewRound
 │  └─ 立即面试
 ├─ Interview Session
+│  ├─ Global App TopBar
+│  ├─ Practice Session Header（公司 / 岗位 / 角色 / 计时 / 暂停 / 电话 / 结束）
 │  ├─ 全宽连续文本聊天
 │  ├─ 电话入口置灰
 │  ├─ 即时 user row + pending interviewer thinking
@@ -73,7 +74,7 @@
 └─ Settings / Auth
    ├─ 邮箱验证码登录
    ├─ 首次账号资料补全
-   └─ 设置与隐私（账号真实字段 / 退出 / 导出不可用 / 删除账号）
+   └─ 设置（外观账号级主题 / 账号真实字段 / 退出 / 导出不可用 / 删除账号）
 ```
 
 ## 4 顶部导航
@@ -83,10 +84,6 @@
 ├─ 首页
 ├─ 面试
 ├─ 简历
-├─ 主题色菜单
-│  ├─ Ocean
-│  ├─ Plum
-│  └─ Custom accent: 色相 + 饱和度
 ├─ 暗色模式
 ├─ 语言下拉
 └─ 用户区
@@ -111,6 +108,7 @@
 - Desktop：TopBar 单行、58px 高、左右 32px padding。
 - Mobile：TopBar 可按当前语言和已登录设置按钮换行，左右 14px padding；primary nav 独占一行并可在自身容器内横向滚动，但不得扩大 document 宽度。
 - 报告等带 App Shell 的页面从 TopBar 实际 `getBoundingClientRect().bottom` 开始；中英文或登录态引起的合法高度差不能用页面局部 offset 抹平。
+- Practice 也属于带 App Shell 的页面：全局 TopBar 下方再渲染 Practice Session Header；不得把会话控制栏冒充全局导航，也不得因进入或切换 Practice route 重新读取 `/me`。
 
 ## 5 目标模块关系
 
@@ -230,6 +228,7 @@ ROUTE_ALIASES
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.34 | 将主题色移入“设置 > 外观”并按账号保存；TopBar 保留暗色/语言/设置齿轮；Practice 恢复全局 App TopBar，并区分会话控制栏。 |
 | 2026-07-15 | 2.33 | 采用设置简化方案 A：TopBar 已登录账号区收敛为设置齿轮；设置页改为无 tab 的真实账号/隐私单页；字体收敛为固定默认栈。 |
 | 2026-07-14 | 2.32 | 将 Workspace 拆为无参列表与 targetJobId 只读详情，Parse 收窄为新导入命令进度；Reports/terminal 返回详情，并加入 Practice 安全 Markdown/GFM 投影边界。 |
 | 2026-07-14 | 2.31 | 将 CustomAccentPicker 收敛为色相与饱和度，并以 Ocean / Plum 作为退出自定义色的唯一清晰路径。 |

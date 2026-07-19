@@ -223,7 +223,7 @@ describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () 
     await waitFor(() =>
       expect(screen.getByTestId("practice-conversation")).toBeInTheDocument(),
     );
-    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
     expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
   });
 

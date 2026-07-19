@@ -197,6 +197,36 @@ func TestUserSettingsDisplayPreferencesPruningMigrationContract(t *testing.T) {
 	}
 }
 
+func TestAccountThemePreferenceMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000021_add_account_theme_preferences.up.sql")))
+	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000021_add_account_theme_preferences.down.sql")))
+
+	for _, required := range []string{
+		"add column theme text not null default 'ocean'",
+		"theme in ('ocean', 'plum')",
+		"add column custom_accent_hue",
+		"add column custom_accent_chroma",
+		"custom_accent_hue >= 0",
+		"custom_accent_hue < 360",
+		"custom_accent_chroma >= 0",
+		"custom_accent_chroma <= 0.28",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("account theme migration missing %q", required)
+		}
+	}
+	if !strings.Contains(up, "custom_accent_hue is null and custom_accent_chroma is null") ||
+		!strings.Contains(up, "custom_accent_hue is not null and custom_accent_chroma is not null") {
+		t.Fatal("account theme migration must require custom accent fields to be both null or both non-null")
+	}
+	for _, removed := range []string{"drop column custom_accent_chroma", "drop column custom_accent_hue", "drop column theme"} {
+		if !strings.Contains(down, removed) {
+			t.Fatalf("account theme down migration missing %q", removed)
+		}
+	}
+}
+
 func TestPracticeIdempotencyMigrationContract(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readAllUpMigrations(t, filepath.Join(root, "migrations")))

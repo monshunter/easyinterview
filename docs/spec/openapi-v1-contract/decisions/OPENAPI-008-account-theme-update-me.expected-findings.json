@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-008",
+  "baseline": "openapi/baseline/openapi-v1.0.0.yaml@5ed2fbef69f94c9e2e4e5cd3fea4c1bba497693e",
+  "proposed": "openapi/openapi.yaml@working-tree",
+  "comparison": {
+    "mode": "exact-set",
+    "keyFields": ["severity", "kind", "where", "schema", "fromRef", "toRef"],
+    "orderSignificant": false,
+    "missingFinding": "fail",
+    "unexpectedFinding": "fail"
+  },
+  "authority": {
+    "decision": "OPENAPI-008",
+    "specDecision": "D-41",
+    "historyVersion": "1.66",
+    "productDecision": "方案 B"
+  },
+  "invariants": {
+    "inventory": {"operations": 38, "tags": 10},
+    "getMe": {"path": "/api/v1/me", "method": "GET", "operationId": "getMe", "successStatus": 200},
+    "updateMe": {"path": "/api/v1/me", "method": "PATCH", "oldOperationId": "completeMyProfile", "operationId": "updateMe", "successStatus": 200},
+    "deleteMe": {"path": "/api/v1/me", "method": "DELETE", "operationId": "deleteMe", "successStatus": 202}
+  },
+  "findings": [
+    {"kind": "ref-changed", "severity": "breaking", "where": "PATCH /me requestBody[application/json]", "fromRef": "#/components/schemas/CompleteProfileRequest", "toRef": "#/components/schemas/UpdateMeRequest"},
+    {"kind": "field-required-added", "severity": "breaking", "where": "components.schemas.UserContext.displayPreferences"},
+    {"kind": "schema-removed", "severity": "breaking", "schema": "CompleteProfileRequest"},
+    {"kind": "schema-added", "severity": "additive", "schema": "AccountTheme"},
+    {"kind": "schema-added", "severity": "additive", "schema": "CustomAccent"},
+    {"kind": "schema-added", "severity": "additive", "schema": "AccountDisplayPreferences"},
+    {"kind": "schema-added", "severity": "additive", "schema": "UpdateMeRequest"}
+  ]
+}

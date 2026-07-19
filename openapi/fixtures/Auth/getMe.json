@@ -11,7 +11,8 @@
           "id": "01918fa0-0000-7000-8000-000000000100",
           "email": "alice@example.com",
           "displayName": "Alice Example",
-          "profileCompletionRequired": false
+          "profileCompletionRequired": false,
+          "displayPreferences": {"theme": "ocean", "customAccent": null}
         }
       }
     },
@@ -25,7 +26,8 @@
           "id": "01918fa0-0000-7000-8000-000000000100",
           "email": "alice@example.com",
           "displayName": "Alice Example",
-          "profileCompletionRequired": false
+          "profileCompletionRequired": false,
+          "displayPreferences": {"theme": "plum", "customAccent": null}
         }
       }
     },
@@ -39,7 +41,8 @@
           "id": "01918fa0-0000-7000-8000-000000000101",
           "email": "new.user@example.com",
           "displayName": "",
-          "profileCompletionRequired": true
+          "profileCompletionRequired": true,
+          "displayPreferences": {"theme": "ocean", "customAccent": null}
         }
       }
     },

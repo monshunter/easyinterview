@@ -1,8 +1,8 @@
 # App Shell Visual System
 
-> **版本**: 3.3
+> **版本**: 3.4
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -38,7 +38,7 @@ Phase 1-19 的已勾选内容只保留历史交付证据；Phase 20 是当前视
 
 ### 4.1 Token / theme
 
-`frontend/src/app/theme/` 以 CSS variables 表达语义 token。TS 侧只导出语义键名，不能导出 hex 字面量；`themes.css` 必须覆盖 ocean / plum × light / dark 4 个组合；默认与 fallback 均为 `ocean`。TopBar 主题菜单只暴露 `深海 / Ocean`、`梅子 / Plum` 和 `自定义 / Custom`，不得再展示 `暖陶 / Warm` 或 `苔林 / Forest`。
+`frontend/src/app/theme/` 以 CSS variables 表达语义 token。TS 侧只导出语义键名，不能导出 hex 字面量；`themes.css` 必须覆盖 ocean / plum × light / dark 4 个组合；默认与 fallback 均为 `ocean`。Settings Appearance 只暴露 `深海 / Ocean`、`梅子 / Plum` 和 `自定义 / Custom`，不得再展示 `暖陶 / Warm` 或 `苔林 / Forest`。
 
 ### 4.2 Display preferences
 
@@ -50,7 +50,7 @@ Phase 1-19 的已勾选内容只保留历史交付证据；Phase 20 是当前视
 
 ### 4.4 TopBar
 
-TopBar 保持三入口 nav、主题菜单、最小 custom accent row、暗色 icon toggle、语言 dropdown 与登录入口。已登录账号区只有设置齿轮：不渲染头像、姓名、caret、backdrop、dropdown 或 TopBar logout。`CustomAccentPicker` 只保留色相与饱和度控件；不渲染 preview/value/reset。设置按钮保持清晰 focus、>=40px 点击区域与 desktop/mobile viewport containment。
+TopBar 保持三入口 nav、暗色 icon toggle、语言 dropdown 与登录/设置入口，不再渲染主题菜单或 custom accent row。已登录账号区使用明确 cog/gear：不渲染头像、姓名、caret、backdrop、dropdown 或 TopBar logout。`CustomAccentPicker` 移入 Settings Appearance，只保留色相与饱和度控件；不渲染 preview/value/reset。设置按钮保持清晰 focus、>=40px 点击区域与 desktop/mobile viewport containment。
 
 ### 4.5 Auth / Settings / Screen shell
 
@@ -72,7 +72,7 @@ TopBar 保持三入口 nav、主题菜单、最小 custom accent row、暗色 ic
 
 ### 4.11 Theme data ownership wording
 
-`themes.data.ts` contains four palette combinations and two TopBar theme metadata entries. It does not own font-preset pairs. `THEME_METADATA` is consumed by TopBar；`themes.css` is the checked-in runtime source verified against the data and UI design truth source。
+`themes.data.ts` contains four palette combinations and two predefined theme metadata entries. It does not own font-preset pairs. `THEME_METADATA` is consumed by Settings Appearance；`themes.css` is the checked-in runtime source verified against the data and UI design truth source。
 
 
 
@@ -116,10 +116,15 @@ python3 .agent-skills/implement/shared/scripts/validate_context.py --context doc
 pnpm --filter @easyinterview/frontend build
 ```
 
+### Phase 21: Settings Appearance and explicit gear
+
+视觉/source RED 先拒绝 TopBar theme menu/custom row 与难辨识的设置 glyph，并要求 Settings 在 Account/Privacy 之前新增 Appearance card。GREEN 复用既有 token、theme metadata 与 `CustomAccentPicker`，不建立第二套 palette；draft/confirmed/error/save/pending 状态保持既有 card rhythm，Save 是清晰 primary action。desktop 1440 与 mobile 390 验证 TopBar 更简洁、gear 可识别、Appearance 控件和 Practice 双层 header 均无 document overflow。
+
 ## 7 修订记录
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-19 | 3.4 | Reopen Phase 21 to move theme controls into Settings Appearance, use an explicit gear icon, and validate Practice double-header responsiveness. |
 | 2026-07-15 | 3.2 | Reopen Phase 20 for the single settings gear, Account/Privacy page visual states, fixed three-family font stack and removal of obsolete menu/preset assets. |
 | 2026-07-14 | 3.1 | Reopen to reduce CustomAccentPicker to hue/saturation and make Ocean/Plum the only custom-accent exit. |
 | 2026-07-10 | 3.0 | Consolidate the TopBar login declarations into one equivalent rule. |

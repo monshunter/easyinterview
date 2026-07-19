@@ -143,7 +143,7 @@ describe("canonical path deep-link, reload, and browser history", () => {
     render(<App />);
     expect(screen.getByTestId("practice-conversation")).toBeInTheDocument();
     expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
-    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/practice");
   });
 
@@ -243,7 +243,7 @@ describe("canonical path deep-link, reload, and browser history", () => {
     await waitFor(() => screen.getByTestId("workspace-detail-loading"));
     await user.click(screen.getByTestId("go-practice-chat"));
     await waitFor(() => screen.getByTestId("practice-conversation"));
-    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
     expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
     await user.click(screen.getByTestId("go-reports"));
     await waitFor(() => screen.getByTestId("reports-screen"));
@@ -271,7 +271,7 @@ describe("canonical path deep-link, reload, and browser history", () => {
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
     await waitFor(() => screen.getByTestId("practice-conversation"));
-    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
 
     act(() => {
       window.history.back();

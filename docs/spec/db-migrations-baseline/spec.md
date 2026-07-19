@@ -1,8 +1,8 @@
 # DB Migrations Baseline Spec
 
-> **版本**: 1.38
+> **版本**: 1.39
 > **状态**: active
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-19
 
 ## 1 背景与目标
 
@@ -49,7 +49,7 @@
   18. `outbox_events`
   19. `privacy_requests`
   20. `audit_events`
-- **Minimal user settings net-state**：`user_settings` 只保留 `user_id`、仍被 runtime-config 消费的 `analytics_opt_in` 与审计时间列；不存在 `ui_language`、`preferred_practice_language`、`region`、`timezone`。TopBar display language 与 Practice language 不由该表持久化。
+- **Account display settings net-state**：`user_settings` 保留 `user_id`、`analytics_opt_in`、`theme`、nullable pair `custom_accent_hue/custom_accent_chroma` 与审计时间列；不存在 `ui_language`、`preferred_practice_language`、`region`、`timezone`。theme 只允许 ocean/plum；custom pair 必须同 null 或同非 null，`0 <= hue < 360`、`0 <= chroma <= 0.28`。TopBar display language 与 Practice language不由该表持久化。
 - **TargetJob paste-only net-state**：`target_jobs.raw_jd_text` 是唯一 JD 原文列；`source_type` / `source_url` / `source_file_object_id` 不存在，`target_job_sources` 表不存在。独立 `source_records` 表保留，不作为 TargetJob 导入来源。
 - **上传 purpose net-state**：`file_objects` 保留 `resume` / `privacy_export` 与仍有 owner 的 DB-local purpose；不存在 JD attachment purpose。Resume 的 `source_type IN ('upload','paste')` 是简历域合同，不得因 TargetJob paste-only 被误删。
 - **Async job net-state**：`async_jobs.job_type` 不包含 JD source refresh；其它 canonical job 由 B3 owner 驱动。

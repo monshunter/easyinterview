@@ -44,7 +44,7 @@ describe("D1 shell i18n", () => {
       expect(languageControl).toHaveTextContent("English");
     }
     expect(screen.getByTestId("topbar-settings")).toHaveAccessibleName(
-      "Settings & privacy",
+      "Settings",
     );
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
 
@@ -55,7 +55,7 @@ describe("D1 shell i18n", () => {
       "Send sign-in code",
     );
     expect(screen.getByTestId("route-settings")).toHaveTextContent(
-      "Settings & privacy",
+      "Settings",
     );
     expect(screen.getByTestId("route-workspace")).toHaveTextContent(
       "Interview plans",

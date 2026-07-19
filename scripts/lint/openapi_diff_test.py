@@ -2674,9 +2674,9 @@ class D40PreservedAuditTests(unittest.TestCase):
     def test_repo_failed_report_regeneration_audit_is_exactly_additive(self) -> None:
         audit = _read_preserved_audit("D-40-failed-report-regeneration.json")
         baseline, _ = _load_audit_baseline(audit)
-        current_text = (REPO_ROOT / audit["currentSource"]).read_text(encoding="utf-8")
-        self.assertEqual(audit["currentSha256"], od._sha256_text(current_text))
-        current = yaml.safe_load(current_text)
+        current, current_text, _ = _load_chained_audit_current(
+            audit, "OPENAPI-008-account-theme-update-me.json"
+        )
 
         findings = od.diff_documents(baseline, current)
 
