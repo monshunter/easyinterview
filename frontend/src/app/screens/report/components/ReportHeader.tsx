@@ -66,6 +66,9 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           data-variant={replayVariant}
           className="ei-report-header-cta"
         >
+          <span data-testid="report-replay-icon" className="ei-report-header-cta-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12a8 8 0 1 0 2.34-5.66L4 8.68" /><path d="M4 4v4.68h4.68" /></svg>
+          </span>
           {t("report.header.cta.replay")}
         </button>
         <button
@@ -79,6 +82,9 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           className="ei-report-header-cta"
         >
           {t("report.header.cta.nextRound")}
+          <span data-testid="report-next-icon" className="ei-report-header-cta-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h13" /><path d="m14 7 5 5-5 5" /></svg>
+          </span>
         </button>
         {disableNextRound && nextDisabledReason ? (
           <span id="report-next-disabled-reason" data-testid="report-next-disabled-reason" className="ei-report-header-disabled-reason">

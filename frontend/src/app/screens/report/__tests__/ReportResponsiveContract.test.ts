@@ -30,17 +30,25 @@ describe("Report ready responsive layout contract", () => {
     );
   });
 
-  it("aligns the ready dashboard to the supplied 1336px reference canvas", () => {
+  it("rebuilds the ready dashboard as the supplied 1432px target composition", () => {
     const source = readFileSync(CSS_PATH, "utf8");
     const dashboard = readFileSync(resolve(__dirname, "../components/ReportDashboard.tsx"), "utf8");
     const header = readFileSync(resolve(__dirname, "../components/ReportHeader.tsx"), "utf8");
+    const context = readFileSync(resolve(__dirname, "../components/ReportContextStrip.tsx"), "utf8");
 
-    expect(source).toMatch(/\.ei-report-screen\s*\{[^}]*max-width:\s*1336px/s);
-    expect(source).toMatch(/\.ei-report-header\s*\{[^}]*margin-bottom:\s*24px/s);
+    expect(source).toMatch(/\.ei-report-screen\s*\{[^}]*max-width:\s*1432px/s);
+    expect(source).toMatch(/\.ei-report-context-grid\s*\{[^}]*gap:\s*0[^}]*background:[^}]*border:[^}]*border-radius:\s*12px/s);
+    expect(source).toMatch(/\.ei-report-context-item:not\(:last-child\)::after\s*\{/s);
+    expect(source).toMatch(/\.ei-report-detail-card-icon\s*\{/s);
+    expect(source).toMatch(/\.ei-report-overall-icon\s*\{/s);
     expect(source).toMatch(/\.ei-report-metric\s*\{[^}]*border-radius:\s*12px/s);
     expect(source).toMatch(/\.ei-report-panel-card\s*\{[^}]*border-radius:\s*12px/s);
     expect(source).toMatch(/\.ei-report-overall\s*\{[^}]*grid-column:\s*1 \/ -1/s);
     expect(dashboard).toContain('className="ei-report-screen ei-fadein"');
+    expect(dashboard).not.toContain("style={{");
+    expect(context).not.toContain("style={{");
     expect(header).toContain('className="ei-report-header"');
+    expect(header).toContain('data-testid="report-replay-icon"');
+    expect(header).toContain('data-testid="report-next-icon"');
   });
 });

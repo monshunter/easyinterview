@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.11
+> **版本**: 3.12
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 ## 1 Unit-test ownership
 
@@ -67,3 +67,9 @@
 
 - `ReportResponsiveContract.test.ts` and ready-report component/source tests first reject the narrow `1120px` inline-styled implementation, then require a class-based approximately 1336px shared grid, rounded Context/Metric/Detail/Overall surfaces, semantic SVG icons and Header CTA hierarchy.
 - Existing `4/2/2/2/1`, frozen context, privacy, failure, replay/next/back and 390px single-column assertions remain the behavior fence. Real ready-report Chrome inspection is scoped visual evidence and does not claim a complete `E2E.P0.099` run.
+
+## 11 Complete target-composition rebuild
+
+- `ReportResponsiveContract.test.ts` locks `1432px`, one Context surface with internal dividers, four semantic Detail icon kinds, class-owned ready styling and desktop/mobile breakpoints; it must fail on a width-only shell even when overflow is zero.
+- `ConversationReport.test.tsx` locks the icon-led panel structure and proves Highlights/Issues do not repeat confidence while Dimensions continue to expose localized status/confidence.
+- Chrome geometry on the current real ready report checks Header, Context, Metrics, both Detail rows and Overall bboxes in the user's current desktop viewport, including full Overall visibility for the current typical payload. The `390×844` mobile boundary remains covered by the deterministic responsive/component contract unless an exact mobile Chrome viewport is actually executed. These are scoped UI acceptance artifacts, not a complete `E2E.P0.099` run.

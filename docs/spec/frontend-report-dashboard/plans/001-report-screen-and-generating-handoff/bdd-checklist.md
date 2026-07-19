@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.14
+> **版本**: 3.15
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -74,3 +74,9 @@
 
 - [x] Owner tests 覆盖 1336px shared grid、Header CTA、Context/Metric/Detail/Overall rounded surfaces、semantic icons 与 390px 单列，并保留 API truth 和 `4/2/2/2/1`。
 - [x] 根 `make test` 与正式 frontend repository ready fixture 的 Chrome 1916×821 / 390×844 视图验收完成；不复用或声明真实 ready-report / 完整 `E2E.P0.099` PASS。<!-- verified: 2026-07-19 evidence="root frontend 131 files/1054 tests PASS; desktop/mobile hierarchy and zero-overflow visual acceptance complete" -->
+
+## Phase 17 `BDD.REPORT.UI.001` complete composition revision
+
+- [x] RED rejects the Phase 16 width-only result: four Context cards, absent Detail icons, inline visual assembly and max-width/overflow-only geometry cannot satisfy the behavior.<!-- verified: 2026-07-19 evidence="expected RED for absent Detail data-icon and missing 1432 composition" -->
+- [x] GREEN proves one divided Context card, four icon-led Detail cards, compact evidence/action hierarchy, preserved report truth and unchanged CTA/navigation behavior.<!-- verified: 2026-07-19 evidence="23 owner behavior/structure tests PASS; root frontend 1055 PASS" -->
+- [x] Current real-report Chrome proves target composition in the actually observed desktop viewport; deterministic responsive/component coverage proves the same-order `390×844` boundary unless an exact mobile Chrome viewport is actually run. Do not claim complete `E2E.P0.099` PASS.<!-- verified: 2026-07-19 evidence="real ready report desktop 1920x964 and exact mobile 390x844 full-page PASS; no horizontal overflow; scoped visual acceptance only" -->

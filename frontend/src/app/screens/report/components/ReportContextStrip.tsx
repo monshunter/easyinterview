@@ -9,8 +9,7 @@ import { formatRouteUrl } from "../../../routeUrl";
 export const ReportContextStrip: FC<{
   report: { context: ReportContextSnapshot };
   conversationReportId?: string;
-  marginBottom?: number;
-}> = ({ report, conversationReportId, marginBottom = 22 }) => {
+}> = ({ report, conversationReportId }) => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
   const context = report.context;
@@ -25,7 +24,7 @@ export const ReportContextStrip: FC<{
     fields.push({ id: "conversation", label: "report.context.conversation", value: t("report.conversation.entry"), route });
   }
   return (
-    <section className="ei-report-context-grid" data-columns={fields.length} data-testid="report-context-strip" style={{ marginBottom }}>
+    <section className="ei-report-context-grid" data-columns={fields.length} data-testid="report-context-strip">
       {fields.map((field) => (
         <div key={field.id} data-testid={`report-context-${field.id}`} className="ei-report-context-item">
           <span className="ei-report-context-icon"><ContextIcon kind={field.id} /></span>

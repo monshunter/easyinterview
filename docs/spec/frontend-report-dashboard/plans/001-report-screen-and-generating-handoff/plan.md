@@ -1,8 +1,8 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 4.3
+> **版本**: 4.4
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -199,6 +199,12 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 
 以提供的 ready Report 参考图为 desktop 视觉合同，保持 `reportId` truth、`4/2/2/2/1` 信息层级、CTA/replay/next 行为与完整错误态不变，重构 ReportDashboard/Header/ContextStrip/metrics/panels/overall 的正式 class-based UI。先由 `ReportResponsiveContract.test.ts`、`ConversationReport.test.tsx` 与新增 source/geometry gate 固化约 1336px 内容面、浅蓝背景、共享网格、圆角/阴影、语义 SVG icon、CTA 主次和 390px 单列，再实施组件/CSS。Chrome 使用真实 ready report 做视图验收，不复用或冒充完整 `E2E.P0.099` 六图 PASS。
 
+### Phase 17: Complete target-composition rebuild
+
+用户验收确认 Phase 16 仅完成外层宽度、背景与圆角包装，没有把目标稿的组件结构落入正式页面。本阶段不在旧卡片上继续做局部调参，而是重构完整 ready dashboard composition：desktop `2048×917` 使用约 `1432px` 居中内容面；Header 固定复练为带刷新 icon 的 accent 主按钮、下一轮为带右箭头的描边次按钮；Context Strip 改为一张共享外框、四列内部竖线分隔的整卡；Dimensions / Highlights / Issues / Next Actions 统一为带左侧圆形语义 icon 的内容卡；维度项、证据列表和行动列表使用目标稿的紧凑层级，Highlights/Issues 不重复渲染 confidence。Metrics 与 Overall 同步校准尺寸、间距、按钮和字体。典型两维度/两证据合法报告需让 Overall Summary 完整进入首屏，长合法内容仍完整换行并自然增高。
+
+TDD 先扩展 `ReportResponsiveContract.test.ts` 与 `ConversationReport.test.tsx`，拒绝四张独立 Context card、无 Detail icon、ready 主路径行内视觉样式和只断言 max-width/overflow 的假绿；再实施组件与 CSS。Chrome 必须在用户当前真实 ready report 的实际 desktop viewport 上逐块记录 bbox/computed style，并与目标图的结构、比例和首屏露出关系复验；mobile `390×844` 至少由 deterministic responsive/component contract 覆盖，只有实际运行 exact viewport 时才可记录 Chrome PASS。不以 fixture 截图冒充真实报告或完整 `E2E.P0.099`。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -222,6 +228,7 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 | summary 被继续误当顶部准备度说明或重复展示 | 用 DOM 顺序与唯一文本断言锁定底部 Overall Summary 为唯一 owner；Summary Metrics 只允许两个数量指标 |
 | CTA 主次被误当业务权限 | variant 只表达推荐；可用性仍由 round/state/replay lock 决定 |
 | 截图 gate 假绿 | 强制正式 frontend DOM/style/bbox/responsive baseline 与 full-page artifact，并断言底部总评可见 |
+| 只调外层宽度即误报目标稿完成 | Source/DOM gate 同时锁定单体 Context Strip、内部 divider、四种 Detail icon、无 ready 行内视觉拼装和典型内容首屏 Overall bbox；Chrome 逐块比对而非只看页面宽度/overflow |
 | 用户验收截图来源或状态漂移 | 固定 formal real ready state、两种 exact viewport、两张固定文件名和逐图 SHA-256/DOM-a11y sentinel manifest；拒绝 fixture-only 页面、裁剪图和额外状态图 |
 | 前端重新成为业务事实源 | URL/request negative gate，后端 source report integration proof |
 | 空 focus 被误判为不可复练，或非法非空 focus 被静默删改 | 空数组显式正向 fixture；非空 cross-reference fail-closed table tests；前端不补默认 focus |
@@ -235,6 +242,7 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 4.4 | Reopen Phase 17 for a complete report composition rebuild after user acceptance confirmed Phase 16 was only a superficial width and card-shell change. |
 | 2026-07-16 | 4.2 | Close the failed-conversation owner-resolution Back race with an explicit resolving state and focused regression coverage. |
 | 2026-07-19 | 4.3 | Reopen Phase 16 for the supplied report reference: 1336px shared grid, soft canvas, semantic icons, rounded cards and CTA hierarchy without changing report truth. |
 | 2026-07-16 | 4.1 | Complete Phase 15 coverage mapping and record scoped Chrome evidence for status-independent report-owned conversation actions. |

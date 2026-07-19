@@ -1,8 +1,8 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 4.3
+> **版本**: 4.4
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -105,3 +105,11 @@
 - [x] 16.2 GREEN: 重构 ReportDashboard / ReportHeader / ReportContextStrip 与 owner CSS，清除 ready 主路径内联视觉拼装，保持 report truth、`4/2/2/2/1`、CTA 与状态语义。<!-- verified: 2026-07-19 method=focused-vitest evidence="report focused suite 30 tests PASS, including mobile header flex-basis regression" -->
 - [x] 16.3 BDD-Gate: `BDD.REPORT.UI.001` 在新视觉层级下继续覆盖 ready/failure/route/CTA；正式 frontend 的 repository ready fixture 完成 Chrome 1916×821 / 390×844 验收，不声明真实 ready-report 或完整 `E2E.P0.099` PASS。<!-- verified: 2026-07-19 method=chrome-formal-frontend-fixture evidence="desktop x=290 width=1336 with 4/2/2/2/1 hierarchy; mobile header height=263.7 and context starts y=454.7 after flex-basis fix; documentOverflow=0" -->
 - [x] 16.4 REGRESSION-GATE: focused frontend、根 `make test`、typecheck/build、context/docs/index/diff 通过后恢复 completed。<!-- verified: 2026-07-19 method=focused+root-regression evidence="report focused 30 PASS; root Python 615/4615 subtests, Go all packages, frontend 131 files/1054 tests PASS; typecheck/build PASS" -->
+
+## Phase 17: Complete target-composition rebuild
+
+- [x] 17.1 RED: source/component/responsive tests reject four independent Context cards, missing Detail semantic icons, ready-path inline visual styles, the 1336px width-only shell and geometry gates that inspect only width/overflow.<!-- verified: 2026-07-19 method=vitest-red evidence="two expected failures: missing detail data-icon and 1432px target composition; remaining frontend suite 1053 tests passed" -->
+- [x] 17.2 GREEN: rebuild Header / single-card Context Strip / Metrics / icon-led Detail cards / Overall Summary at the 1432px desktop composition while preserving API truth, CTA behavior, privacy and `4/2/2/2/1` DOM order.<!-- verified: 2026-07-19 method=focused-vitest+typecheck evidence="23 report tests PASS; fixed replay-primary CTA RED/GREEN PASS; tsc --noEmit PASS" -->
+- [x] 17.3 BDD-Gate: `BDD.REPORT.UI.001` proves desktop single-card dividers, four Detail icon kinds, compact non-duplicated evidence hierarchy, typical-content first-viewport Overall visibility and 390px long-content containment.<!-- verified: 2026-07-19 method=source+component+real-chrome evidence="one divided context surface; four detail icon kinds; highlights/issues omit duplicate confidence; desktop overall bottom=906.5<964; mobile full-page order/containment PASS" -->
+- [x] 17.4 CHROME: use the user’s current real ready report in the actually observed desktop Chrome viewport to capture a screenshot plus block-level bbox/computed-style audit; record `390×844` as deterministic responsive/component coverage unless an exact mobile Chrome viewport is actually run; do not claim full `E2E.P0.099`.<!-- verified: 2026-07-19 method=chrome-real-ready-report evidence="desktop 1920x964 dashboard=1432; context=4x357.5; metrics/panels=709 columns; detail icons=4x46; overall bottom=906.5; exact mobile 390x844 fullPage; overflowX=0; local-dev dependencies=4/4 OK" -->
+- [x] 17.5 REGRESSION-GATE: focused report tests, root `make test`, typecheck/build, context/docs/index/link/diff gates pass before restoring completed.<!-- verified: 2026-07-19 method=focused+root-regression evidence="report 23 PASS; Python 615/4615 subtests; Go all packages; frontend 131 files/1055 tests; typecheck/build PASS; document gates PASS" -->

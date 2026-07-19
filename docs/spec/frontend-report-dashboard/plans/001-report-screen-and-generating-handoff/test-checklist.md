@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.12
+> **版本**: 3.13
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -76,3 +76,10 @@
 
 - [x] Source/component/responsive tests pass for the 1336px shared grid, Header CTA hierarchy, semantic icons, rounded surfaces, `4/2/2/2/1` and 390px containment.
 - [x] Focused owner tests, root regression and formal-frontend fixture Chrome 1916×821 / 390×844 visual checks pass without claiming a real ready-report or full `E2E.P0.099`.<!-- verified: 2026-07-19 evidence="report 30 focused tests; root frontend 1054 tests; typecheck/build; documentOverflow=0 at both viewports" -->
+
+## Phase 17 complete target-composition rebuild
+
+- [x] RED/GREEN source and component tests cover the single Context surface/dividers, four Detail icon kinds, 1432px composition and removal of ready inline visual assembly.<!-- verified: 2026-07-19 evidence="RED missing data-icon/1432 composition; GREEN 2 files/23 tests PASS" -->
+- [x] Behavior tests prove Dimensions retain localized status/confidence while Highlights/Issues omit duplicate confidence and preserve server evidence verbatim.<!-- verified: 2026-07-19 evidence="ConversationReport icon-led/no-duplicate-confidence regression PASS" -->
+- [x] Current real-report Chrome desktop bbox, screenshot and zero-clipping checks pass at the actually observed viewport; typical desktop content fully shows Overall Summary in the first viewport. The `390×844` boundary is separately covered by the deterministic responsive/component contract unless an exact mobile Chrome viewport is run.<!-- verified: 2026-07-19 evidence="real report desktop 1920x964 and exact mobile 390x844 full-page PASS; overflowX=0; viewport override reset" -->
+- [x] Focused owner tests, root regression, typecheck/build and document gates pass after GREEN.<!-- verified: 2026-07-19 evidence="23 focused; root Python 615/4615, Go all, frontend 1055; typecheck/build/docs PASS" -->

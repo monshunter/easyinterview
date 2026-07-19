@@ -1,8 +1,8 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.32
+> **版本**: 1.33
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-19
 
 ## 1 背景与目标
 
@@ -18,12 +18,12 @@
 - `reports` 的 loading / empty / error / ready 状态彼此完备；target/round identity 漂移、跨规划响应和 stale request 均 fail closed，不渲染其他规划 sentinel 或错链。
 - `generating`：轮询真实 report status，展示诚实的异步等待说明；不伪造百分比、实时观察或通知订阅。
 - `report`：Header、四项 Context Strip（目标岗位 / 轮次 / 可链接简历副本 / 面试记录）、两项 Summary Metrics、两行各两个常驻内容区（Dimensions / Strength Evidence / Risks / Next Actions），以及底部一个全宽 Overall Summary。
-- `report` desktop `1916×821` 参考视图使用约 `1336px` 居中内容面与浅蓝全视口背景；Back、标题、CTA、Context Strip、两列卡片和底部总评共享同一横向网格。卡片使用大圆角、柔和阴影、语义圆形 icon 与可读紧凑排版，Header 主次按钮分别使用蓝色实心与白色描边；不得继续用 `1120px` 窄内容列或方角/内联样式拼装视觉结构。
+- `report` desktop `2048×917` 目标视图使用约 `1432px` 居中内容面与浅蓝全视口背景；Back、标题、CTA、Context Strip、两列卡片和底部总评共享同一横向网格。Context Strip 是一张由三条内部竖线分成四列的整卡；四张内容卡必须具备语义圆形 icon 与紧凑正文结构，优势/风险不重复显示能力维度行已经表达的 confidence。典型两维度/两证据合法报告的底部总评应完整进入首屏；长合法内容仍完整换行且不得截断。不得把只调整 max-width、圆角、背景或无溢出当作目标稿改造完成。
 - `report-conversation`：仅以 `reportId` 读取报告附属的 ordered user/assistant transcript，安全渲染 Markdown/GFM，并返回同一报告状态页；queued/generating/ready/failed 都可访问。ReportsScreen 只要存在代表已结束会话的 current report 或 latest attempt，就必须独立展示“查看面试记录”，不能被“查看生成进度”或重新生成动作替代。
 - failed latest attempt recovery：除 `REPORT_CONTEXT_TOO_LARGE` 外，ReportsScreen 以同一 `reportId` 调用 `regenerateFeedbackReport` 并进入 Generating；所有 failed report 都保留“查看面试记录”。
 - Overall Summary 使用“面试总评”标题，同时展示 localized readiness tier 与服务端 `summary`；二者不得继续出现在顶部指标区，`summary` 全页只展示一次。
 - Dimension 使用动态 `label`，status/confidence 走完整 zh/en i18n，不泄漏 raw enum/code。
-- Header 保留唯一一对 CTA；`nextActions[0].type` 决定现有按钮主次，不新增 CTA。
+- Header 保留唯一一对 CTA；按目标稿固定“复练当前轮”为 accent 主按钮、“进入下一轮”为描边次按钮，并分别显示刷新/右箭头 icon。`nextActions[0]` 仍作为报告正文建议展示，但不再交换 Header 视觉层级；按钮可用性、请求与导航语义不变。
 - Replay focus 由后端 source report 投影；URL/前端 request 不承载 focus/evidence-gap 业务事实。
 - `reportId` 是唯一 locator；status/error、Context Strip 和 CTA identity 全部来自 `getFeedbackReport` 的 frozen `context`，route 中冲突值一律忽略。
 - Reports 的 Back 直接返回当前规划只读详情 `/workspace?targetJobId=...`，不进入 Parse 命令/进度页，不触发解析动画、import 或 polling；Report / Generating 的 Back 使用 API trusted context 中的 `targetJobId` 返回 `/reports?targetJobId=...`，只有无法取得可信 TargetJob identity 时才回 `/workspace` 列表。
@@ -213,7 +213,7 @@ ReportConversation(reportId)
 |----|------|-------|------|------|-----------|
 | C-1 | honest generating | report queued/generating | 页面轮询 | 无假百分比、假观察、假通知 | 001 |
 | C-2 | ready dashboard | direct semantic report | 打开 report | desktop 为 `4/2/2/2/1`；四项上下文同属一个 block，简历具有 canonical URL、面试记录使用不暴露 reportId 的 action，两组 detail panel 同行等高；顶部只有两个数量指标，四个内容区之后是全宽面试总评，localized readiness 与唯一 `summary` 完整 | 001 |
-| C-3 | recommended action | retry/next/review first action | 查看 Header | 仅切换现有 CTA 主次且功能可用 | 001 |
+| C-3 | fixed Header hierarchy | retry/next/review first action | 查看 Header | 复练始终为带刷新 icon 的 accent 主按钮，下一轮始终为带右箭头的描边次按钮；功能与禁用规则保持可用 | 001 |
 | C-4 | server-owned replay | report 含 retry focus | 点击复练 | request 不传 focus，服务端 plan/session 得到 focus | 001 |
 | C-5 | long/mobile | 长 target/round/resume/evidence | desktop/mobile 打开 | 完整可读、mobile 单列、无横向溢出 | 001 |
 | C-6 | deterministic responsive contract | frontend/OpenAPI fixtures 含恰好 24-whitespace-word / 64-Unicode-code-point actions | 运行正式 frontend component/browser gate | DOM 顺序、style、bbox 与 viewport 证明 desktop `4/2/2/2/1`、两组 detail panel 同行等高、mobile 同序单列、底部总评全宽/可读、边界 label 完整换行且无截断/省略/横溢 | 001 |
@@ -228,6 +228,7 @@ ReportConversation(reportId)
 | C-15 | Reports Back 直达只读规划详情 | ReportsScreen 已闭合可信 `targetJobId` | 点击 Back | 直接到 `/workspace?targetJobId=...`，query 只有 `targetJobId`；不进入 Parse、不展示解析动画、不触发 import/polling；无可信 identity 时回 `/workspace` 列表 | 001 |
 | C-16 | failed report recovery | latest attempt 为普通 failed、超限 failed，或旧 ready + 更新 failed | 点击重新生成/查看记录，可能双击、网络未知或切换 target | 普通 failed 同 ID 生成且进入 matching Generating；同 key 复用、双击单请求、stale/malformed response 不导航；超限只有记录；旧/新 locator 与 accessible name 可区分 | 001 |
 | C-17 | 已结束面试记录始终可用 | current report 或 latest attempt 已存在，报告处于 queued/generating/ready/failed | 打开 ReportsScreen | 每个不同 reportId 都有“查看面试记录”；queued/generating 同时保留“查看生成进度”，failed 同时保留允许的恢复动作，same-ID ready 不重复，empty round 不虚构记录入口 | 001 |
+| C-18 | 目标稿整页结构 | 合法 ready report 在 2048×917 / 390×844 展示 | 逐块检查 Header、Context、Metrics、Detail 与 Overall | desktop 约 1432px 居中；Context 为一张四列分隔整卡；四个 Detail card 带语义 icon 并使用紧凑列表结构；典型内容总评完整进入首屏；mobile 同序单列且长内容不截断 | 001 |
 
 ## 9 关联计划
 
@@ -237,6 +238,7 @@ ReportConversation(reportId)
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.33 | Reopen the ready dashboard for a complete target-composition rebuild after the prior width-only alignment failed to implement the supplied UI structure. |
 | 2026-07-16 | 1.31 | Hide failed-conversation Back until the trusted report owner resolves, preventing a transient workspace misroute. |
 | 2026-07-16 | 1.30 | Require the interview-record action for every completed-session report projection, including queued/generating rows alongside generation progress. |
 | 2026-07-16 | 1.29 | Add same-report failed regeneration and failed-transcript actions to ReportsScreen, with oversize exclusion, idempotency and stale-response fences. |

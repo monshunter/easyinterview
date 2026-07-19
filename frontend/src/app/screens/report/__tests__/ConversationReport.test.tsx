@@ -250,11 +250,6 @@ describe("grounded direct-semantic feedback report", () => {
     const actionLabel = screen.getByText("模型原文：补齐一个取舍案例后进入下一轮。");
     expect(actionLabel).toBeInTheDocument();
     expect(actionLabel).toHaveClass("ei-report-action-label");
-    expect(actionLabel).toHaveStyle({
-      minWidth: 0,
-      overflowWrap: "anywhere",
-      wordBreak: "normal",
-    });
     expect(screen.getByTestId("report-dimensions")).toHaveTextContent("Strong · Strong evidence");
     expect(screen.getByTestId("report-dimensions")).toHaveTextContent("Needs work · Some evidence");
     expect(document.body.textContent).not.toMatch(/answer_structure|technical_tradeoffs|needs_work|\bhigh\b|\bmedium\b/);
@@ -274,7 +269,7 @@ describe("grounded direct-semantic feedback report", () => {
     expect(screen.getByTestId("report-detail-grid").children).toHaveLength(5);
 
     const overall = screen.getByTestId("report-overall-summary");
-    expect(overall).toHaveStyle({ gridColumn: "1 / -1" });
+    expect(overall).toHaveClass("ei-report-overall");
     expect(overall).toHaveTextContent("面试总评");
     expect(overall).toHaveTextContent("建议再练");
     expect(overall).toHaveTextContent(value.summary ?? "");
@@ -292,9 +287,27 @@ describe("grounded direct-semantic feedback report", () => {
     ]);
   });
 
-  it("uses the first action only for CTA visual priority and keeps an empty replay focus valid", async () => {
+  it("uses icon-led detail cards without repeating confidence in evidence lists", async () => {
+    localStorage.setItem("ei-lang", "zh");
+    const { client } = clientFor(report());
+    render(<App client={client} initialRoute={{ name: "report", params: { reportId: REPORT_ID } }} />);
+
+    await screen.findByTestId("report-dashboard");
+    expect(screen.getByTestId("report-dimensions")).toHaveAttribute("data-icon", "dimensions");
+    expect(screen.getByTestId("report-highlights")).toHaveAttribute("data-icon", "highlights");
+    expect(screen.getByTestId("report-issues")).toHaveAttribute("data-icon", "issues");
+    expect(screen.getByTestId("report-actions")).toHaveAttribute("data-icon", "actions");
+    expect(screen.getAllByTestId("report-detail-card-icon")).toHaveLength(4);
+    expect(screen.getByTestId("report-overall-icon")).toBeInTheDocument();
+
+    expect(screen.getByTestId("report-dimensions")).toHaveTextContent("强项 · 判断依据充分");
+    expect(screen.getByTestId("report-highlights").querySelector(".ei-report-evidence-confidence")).toBeNull();
+    expect(screen.getByTestId("report-issues").querySelector(".ei-report-evidence-confidence")).toBeNull();
+  });
+
+  it("keeps replay visually primary regardless of the first report action", async () => {
     const value = report({
-      nextActions: [{ type: "retry_current_round", label: "通用同轮复练。" }],
+      nextActions: [{ type: "next_round", label: "进入下一轮。" }],
       retryFocusDimensionCodes: [],
     });
     const { client } = clientFor(value);
@@ -321,23 +334,12 @@ describe("grounded direct-semantic feedback report", () => {
     expect(label).toBeDefined();
     if (!label) throw new Error("dimension label span is missing");
     expect(label).toHaveClass("ei-report-dimension-label");
-    expect(label).toHaveStyle({
-      flex: "1 1 160px",
-      overflowWrap: "break-word",
-      wordBreak: "normal",
-    });
     const row = label.parentElement;
     expect(row).not.toBeNull();
     expect(row).toHaveClass("ei-report-dimension-row");
-    expect(row).toHaveStyle({ flexWrap: "wrap", gap: "8px 16px" });
     const status = row?.querySelector(".ei-report-dimension-status");
     expect(status).not.toBeNull();
-    expect(status).toHaveStyle({
-      flex: "0 1 auto",
-      maxWidth: "100%",
-      overflowWrap: "break-word",
-      wordBreak: "normal",
-    });
+    expect(status).toHaveClass("ei-report-dimension-status");
   });
 
   it("fails closed when non-empty replay focus is not backed by a needs-work dimension and same-code issue", async () => {
@@ -420,11 +422,6 @@ describe("grounded direct-semantic feedback report", () => {
 
     const label = await screen.findByText(unbroken);
     expect(label).toHaveClass("ei-report-action-label");
-    expect(label).toHaveStyle({
-      minWidth: 0,
-      overflowWrap: "anywhere",
-      wordBreak: "normal",
-    });
     expect(label.parentElement).toHaveClass("ei-report-action-row");
   });
 });

@@ -15,9 +15,9 @@
 
 - 本次交付按三张参考图重构上传简历、面试进行和面试报告三页的导航下方起点、desktop 内容面、响应式网格、卡片层级、按钮、SVG icon、字体与间距，同时保持既有 API、路由、消息、简历注册和报告事实语义。
 - 用户追加要求已闭环：AI/用户角色改为方形标识；说明胶囊带 sparkle icon；Transcript 成为唯一滚动区；Composer 整体固定在会话卡底部；说明胶囊固定贴在输入框上方 8px。
-- TDD 证据：Resume create 4 files / 21 tests；Practice 最终 4 files / 56 tests；Report 30 tests 全部通过。Practice helper ownership 的 RED 为 3 个预期失败，移动后转 GREEN。
-- 根回归：Python 615 tests / 4615 subtests、Go 全包、frontend 131 files / 1054 tests 全部通过；frontend typecheck 与 production build 通过。
-- Chrome 证据：Resume 使用正式 real-mode frontend 完成 1916×821 / 390×844 containment；Practice / Report 使用正式 frontend repository fixture 展示完整视觉状态。Practice 在 desktop/mobile 的 Transcript 实际滚动前后，input 坐标与 helper/input 8px gap 不变，document overflow 为 0。
+- TDD 证据：Resume create 4 files / 21 tests；Practice 最终 4 files / 56 tests；报告页追加 2 files / 23 tests 的目标构图 RED/GREEN，并由根级 frontend 131 files / 1055 tests 完整覆盖。报告页 RED 明确拒绝缺失 Detail icon 与 1432px 目标构图，随后转 GREEN。
+- 根回归：Python 615 tests / 4615 subtests、Go 全包、frontend 131 files / 1055 tests 全部通过；frontend typecheck 与 production build 通过。
+- Chrome 证据：Resume 使用正式 real-mode frontend 完成 1916×821 / 390×844 containment；Practice 的 Transcript 在 desktop/mobile 实际滚动前后，input 坐标与 helper/input 8px gap 不变。报告页使用当前真实 backend ready report 完成 desktop 1920×964 与 exact mobile 390×844 full-page 验收：desktop 主体 1432px、四列 Context、两列 709px 内容卡、四个 46px Detail icon 和首屏完整 Overall 均闭合，两档 document overflow 均为 0。
 - 文档证据：三组原 owner spec/plan/checklist/BDD/test 原地修订并恢复 `completed`；context、Header/INDEX、docs links 与 `git diff --check` 通过。
 
 ## 2 会话中的主要阻点/痛点
@@ -37,6 +37,11 @@
 - **证据**：`make lint` 唯一失败来自未改动的 `.agent-skills/change-intake/SKILL.md:120`，`generic-api-key` 规则把普通英文示例短语误判为密钥；其余 lint owner、Go lint 和 frontend lint 全部通过。
 - **影响**：完整 lint 聚合无法给出绿色结果，需要额外拆分运行并解释现有误报。
 
+### 2.4 报告页第一轮视觉 gate 允许“旧结构换皮”假绿
+
+- **证据**：Phase 16 只锁定 1336px 宽度、背景、圆角和部分语义图标；用户再次指出报告页完全没有按目标稿改造，并用标框明确 Header CTA、单体 Context Strip 和贯穿各卡片的左侧语义图标轨。源码反查确认旧的四卡 Context 和无 Detail icon 结构仍在。
+- **影响**：历史 focused/root/fixture 结果全部为绿，但没有回答目标图的组件结构问题，造成一次完整返工和用户二次纠正。
+
 ## 3 根因归类
 
 - 固定 Composer / 滚动 Transcript 最初没有成为可执行 DOM/CSS/BBox 不变量，只描述了视觉形态。
@@ -47,6 +52,8 @@
   - **类别**：skill
 - Chrome finalize 参数的两次格式尝试没有影响产品结果，属于一次性工具调用失误。
   - **类别**：无需仓库改动
+- 报告页视觉合同把 max-width/rounded/overflow 当成主要完成证据，没有将参考图标框转换为共享 surface、divider、icon rail 和首屏 Overall 的结构性 RED。
+  - **类别**：spec/plan
 
 ## 4 对流程资产的改进建议
 
@@ -59,9 +66,13 @@
 - 由 secrets-config / skills owner 单独处理 `.agent-skills/change-intake/SKILL.md:120` 的稳定误报：优先重写示例短语或增加精确、最小 allowlist，并保留真实 generic-key negative fixture。
   - **落点**：change-intake Skill + secrets lint owner
   - **优先级**：medium
+- UI 参考图修订必须先列出可观察的组件所有权与几何关系，再以 source/component RED 拒绝旧结构；宽度、背景、圆角和无溢出只能是辅助 gate，不能单独作为完成条件。本轮已在原 report spec/plan Phase 17 固化该规则。
+  - **落点**：相关 UI spec / plan
+  - **优先级**：high
 
 ## 5 建议优先级与后续动作
 
-- 下一轮最高价值动作：把“滚动内容 + 固定操作区”的结构不变量补入 UI plan 模板或前端验证规范，避免其他聊天、报告记录、长表单页面重复出现静态截图通过但动态体验漂移。
+- 下一轮最高价值动作：把“参考图标框 → 组件所有权/几何关系 → source/component RED → real Chrome bbox”的闭环补入 UI plan 模板或前端验证规范，避免再次出现宽度和圆角已变、页面结构仍未改造的假绿。
+- 同一优先级的后续项：把“滚动内容 + 固定操作区”的结构不变量补入聊天类 UI owner，覆盖短/长内容与滚动前后 bbox。
 - 第二优先级：单独修复 secrets scanner 的现有治理文本误报，使根 `make lint` 恢复可直接作为聚合门禁使用。
 - 可延后：为 fixture visual acceptance 增加更多长内容 fixture；当前通过压缩 desktop/mobile viewport 已真实产生 Transcript overflow 并验证了固定 Composer，不构成本次交付 blocker。
