@@ -14,8 +14,8 @@ import { PRIMARY_NAV_ROUTES, type RouteName } from "../routes";
  * Labels are rendered through the D1 i18n catalog. English RouteName keys stay
  * canonical so route-state tests and URL hashes do not depend on UI locale.
  *
- * D2 visual contract: every text node uses `ei-text-*` className, every layout
- * literal (height 58, padding 0 32, gap 28, etc.) is sourced from
+ * D2 visual contract: every text node uses `ei-text-*` className and every layout
+ * literal is sourced from
  * `topbar.css`, and the custom-accent control surfaces hue / chroma sliders
  * mirroring `formal frontend implementation` `AccentPicker`. Language selection is a
  * TopBar dropdown, not a binary toggle, so future locale options can be added
@@ -29,7 +29,7 @@ const NAV_LABEL_KEYS: Record<(typeof PRIMARY_NAV_ROUTES)[number], Parameters<typ
 };
 
 const NAV_ICONS: Record<(typeof PRIMARY_NAV_ROUTES)[number], IconName> = {
-  home: "target",
+  home: "home",
   workspace: "play",
   resume_versions: "file",
 };
@@ -95,7 +95,7 @@ export const TopBar: FC<TopBarProps> = ({
           >
             <Icon
               name={NAV_ICONS[name]}
-              size={13}
+              size={19}
               data-testid={`topbar-nav-icon-${name}`}
             />
             {t(NAV_LABEL_KEYS[name])}
@@ -132,7 +132,17 @@ export const TopBar: FC<TopBarProps> = ({
           className="ei-topbar-control ei-topbar-dark"
           onClick={() => prefs.setDark(!prefs.dark)}
         >
-          <Icon name={prefs.dark ? "sun" : "moon"} size={12} />
+          <Icon name="sun" size={15} />
+          <span
+            data-testid="topbar-dark-track"
+            className="ei-topbar-dark-track"
+            aria-hidden="true"
+          >
+            <span
+              data-testid="topbar-dark-thumb"
+              className="ei-topbar-dark-thumb"
+            />
+          </span>
         </button>
         <span className="ei-topbar-lang-wrap">
           <button
@@ -213,7 +223,9 @@ export const TopBar: FC<TopBarProps> = ({
             className="ei-topbar-settings"
             onClick={() => onNavigate({ name: "settings", params: {} })}
           >
-            <Icon name="settings" size={16} />
+            <span className="ei-topbar-settings-mark" aria-hidden="true">
+              E
+            </span>
           </button>
         ) : (
           <button
@@ -231,6 +243,7 @@ export const TopBar: FC<TopBarProps> = ({
 };
 
 type IconName =
+  | "home"
   | "target"
   | "search"
   | "play"
@@ -250,6 +263,7 @@ interface IconProps {
 
 const Icon: FC<IconProps> = ({ name, size = 13, "data-testid": testId }) => {
   const paths: Record<IconName, JSX.Element> = {
+    home: <path d="M3.5 11.2L12 4l8.5 7.2M5.7 9.5V20h4.1v-5.8h4.4V20h4.1V9.5" />,
     target: (
       <>
         <circle cx="12" cy="12" r="9" />
@@ -263,7 +277,12 @@ const Icon: FC<IconProps> = ({ name, size = 13, "data-testid": testId }) => {
         <path d="M20 20l-4-4" />
       </>
     ),
-    play: <path d="M7 5l12 7-12 7V5z" fill="currentColor" stroke="none" />,
+    play: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M10 8.5l5.5 3.5-5.5 3.5v-7z" fill="currentColor" stroke="none" />
+      </>
+    ),
     file: <path d="M7 3h8l4 4v14H7z M15 3v5h4" />,
     flag: <path d="M5 22V3h13l-3 5 3 5H5" />,
     settings: <path d="M19.14 12.94a7.43 7.43 0 000-1.88l2.03-1.58-1.92-3.32-2.39.96a7.2 7.2 0 00-1.63-.94L14.87 3h-3.84l-.36 2.18a7.2 7.2 0 00-1.63.94l-2.39-.96-1.92 3.32 2.03 1.58a7.43 7.43 0 000 1.88l-2.03 1.58 1.92 3.32 2.39-.96c.5.39 1.04.7 1.63.94l.36 2.18h3.84l.36-2.18c.59-.24 1.13-.55 1.63-.94l2.39.96 1.92-3.32-2.03-1.58zM12.95 15.2a3.2 3.2 0 110-6.4 3.2 3.2 0 010 6.4z" fill="currentColor" stroke="none" />,

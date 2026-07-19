@@ -1,7 +1,7 @@
 # Frontend Shell Spec
 
-> **版本**: 1.36
-> **状态**: active
+> **版本**: 1.37
+> **状态**: completed
 > **更新日期**: 2026-07-19
 
 ## 1 背景与目标
@@ -17,7 +17,7 @@
 - 默认入口：`home`。
 - 一级 TopBar 入口：`home`、`workspace`、`resume_versions`。
 - 上下文 route：`parse`、`practice`、`reports`、`generating`、`report`。
-- 账号入口 route：已登录 TopBar 设置齿轮直达 `settings`；`auth_logout` 只由设置页发起。
+- 账号入口 route：已登录 TopBar 使用圆形 `E` initial-mark 设置按钮直达 `settings`；它仍是单一设置入口，不是用户头像或账号下拉；`auth_logout` 只由设置页发起。
 - Auth route：`auth_login`、`auth_verify`、`auth_profile_setup`、`auth_logout`。
 - Settings：页面名称统一为“设置 / Settings”，无 tab；Appearance 保存账号级主题，Account 复用 runtime `/me` 展示真实 `displayName/email`，Privacy 提供退出、导出暂不可用和账号删除。
 - `requestAuth(pendingAction)`：未登录用户触发受保护动作时进入登录页，登录和资料补全完成后恢复 safe route params。
@@ -53,7 +53,7 @@
 | D-11 | Safe-read single-flight | 保留 React StrictMode；只合并同一 client、method/path/query、规范化相关 header、normalized `okStatuses`、read/auth epoch 与 auth scope 下、且没有 caller `AbortSignal` 的语义只读在途 GET | resolve/reject 后驱逐；不同 client/query/header/okStatuses/epoch/auth 不合并；带 signal、非 GET 与语义写入 GET（含 `/auth/email/verify`）永不合并；所有语义写请求在 dispatch 前与 settle 后都推进 read epoch |
 | D-12 | 规划 route 分工 | `/parse?targetJobId` 只承载刚导入规划的 queued/processing 命令进度；`/workspace` 展示列表，`/workspace?targetJobId` 展示只读详情 | ready 初读或轮询转 ready 必须 replace 到 workspace 详情；已解析卡片不再经过 Parse 动画 |
 | D-13 | Custom accent 最小控件 | `CustomAccentPicker` 只保留色相与饱和度；选择 Ocean / Plum 是退出自定义色的唯一清晰路径 | 删除 preview/value 区、恢复默认色按钮与 `onClear` / `active` 冗余 props，不增加第二套 reset 语义 |
-| D-14 | 设置简化方案 A | 已登录 TopBar 只保留设置齿轮；Settings 为无 tab 的真实账号/隐私单页，退出迁入页面；删除账号 chip/dropdown、静态登录安全、字体预设、产品信息和无后端事实字段 | `getMe` 复用 runtime context；导出按 501 诚实禁用；`deleteMe` 覆盖确认/pending/failure/202 success；无兼容 UI 或重复请求 |
+| D-14 | 设置简化方案 A | 已登录 TopBar 只保留一个圆形 `E` initial-mark 设置按钮；Settings 为无 tab 的真实账号/隐私单页，退出迁入页面 | initial mark 不表达用户画像、不打开 dropdown；删除账号 chip/menu、静态登录安全、字体预设、产品信息和无后端事实字段；无兼容 UI 或重复请求 |
 | D-15 | 账号主题方案 B | `PATCH /me` 改为 `updateMe`，同一 operation 同时支持首次资料补全与主题更新；`UserContext` 返回确认后的主题 | 迁移 `user_settings`；custom 草稿本地预览，显式保存一次请求；失败不污染确认值；其他平台首次 `/me` 恢复同一主题 |
 
 ## 4 设计约束
@@ -74,7 +74,7 @@
 - `AppRuntimeProvider`、Home / `useRecentTargetJobs`、Parse、`useWorkspaceTargetJobs`、Reports 和 Practice 等 screen loader effect 只依赖稳定 client/auth/request-option/route identity 输入，不依赖每次 render 都变化的整体 runtime object；locale、auth scope 或 epoch 变化仍必须产生新的 request key 和真实 refresh。
 - Demo-only `#route=...` adapter 不属于正式 route contract；真实开发和场景验证使用 canonical Browser History URL。
 - TopBar language dropdown 从 locale catalog 渲染；locale priority 为用户显式选择 > browser locale > `en` fallback，并通过 `Accept-Language` 作为 display hint。
-- TopBar 已登录账号区只渲染设置齿轮，必须具备本地化 accessible name、focus ring 与不小于 40×40px 的点击区域；头像、姓名、caret、backdrop、dropdown 与 TopBar logout 不属于当前 DOM/CSS/i18n 合同。
+- TopBar 已登录账号区只渲染圆形 `E` initial-mark 设置按钮，必须具备本地化 accessible name、focus ring 与不小于 40×40px 的点击区域；它不是用户头像。姓名、caret、backdrop、dropdown 与 TopBar logout 不属于当前 DOM/CSS/i18n 合同。
 - Settings 只消费 `AppRuntimeContext.auth.user` 与 generated `updateMe/deleteMe`；页面挂载和 route 切换不得再次调用 `getMe`。主题草稿拖动零网络，保存只发一次 `updateMe`；成功返回完整 `UserContext` 并直接更新 runtime/theme，禁止 follow-up `getMe`；失败保留草稿与可恢复错误，离开未保存页面恢复服务端确认主题。账号删除仍按既有状态机在 `202` 后调用 `refreshAuth()` 重探测 `/me`（预期 401）。
 - `E2E.P0.101` 的完整账号邮箱只用于真实页面/API 断言；PASS 与 FAIL reporter、`trigger.log` 和 result artifact 均不得包含原文或 URL percent-encoded 等价值。失败断言不得把完整邮箱作为 matcher expected/received 文本直接交给 reporter，场景落盘前还必须执行流式脱敏作为纵深防御。
 - UI implementation 必须符合对应产品 spec 与 `docs/ui-design/` 的信息架构、流程、交互和响应式约束；具体实现由正式组件、token、可访问性、component/browser tests 与真实业务场景验证，不要求按设计合同实现或像素对照。
@@ -95,7 +95,7 @@
 |----|------|-------|------|------|-----------|
 | C-1 | 默认壳可用 | 用户未登录 | 打开 App | 渲染 Home、三入口 TopBar、单一登录入口和显示控制 | 001-app-shell-auth-settings |
 | C-2 | Pending action 恢复 | 未登录用户触发受保护动作 | 完成 email-code 登录和资料补全 gate | 恢复目标 route，并保留 safe params | 001-app-shell-auth-settings |
-| C-3 | Settings 单入口 | 已登录用户点击 TopBar 设置齿轮 | 进入 settings，查看账号或选择退出 | TopBar 无账号菜单；Settings 复用真实 runtime 用户并由页面进入 `auth_logout` | 001-app-shell-auth-settings |
+| C-3 | Settings 单入口 | 已登录用户点击 TopBar 圆形 `E` 设置按钮 | 进入 settings，查看账号或选择退出 | TopBar 无账号菜单；initial mark 不作为画像/头像；Settings 复用真实 runtime 用户并由页面进入 `auth_logout` | 001-app-shell-auth-settings |
 | C-4 | Unsupported route fallback | URL / hash / localStorage 带 unsupported route input | App normalize route | 映射到当前 route catalog 或 Home，不产生独立页面 | 001-app-shell-auth-settings / 004-url-addressable-routing |
 | C-5 | Runtime bootstrap | App 启动且 mock transport 可用 | 读取 runtime config 与 `/me` | 公开配置按 allowlist 生效，auth state 驱动用户区和 route guard | 001-app-shell-auth-settings |
 | C-6 | Display preferences | authenticated 用户在 Settings 调整主题 | 拖动 custom、保存、切换 route、刷新或在其他平台登录 | 拖动只本地预览；保存一次 `updateMe` 且无 follow-up GET；route 切换零 `/me`；bootstrap `getMe` 恢复账号主题；语言/暗色与固定字体保持现有合同 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
@@ -122,6 +122,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.37 | 2026-07-19 | Reopen the visual owner for the supplied Home reference: 76px desktop chrome, pill dark toggle and a single circular E initial-mark settings entry without reintroducing account menus. |
 | 1.36 | 2026-07-19 | 采用账号主题方案 B：设置更名、主题移入 Appearance 并由 updateMe 持久化；锁定 bootstrap 单次读取、route 零重复读取、保存一次写入及 Practice 全局 chrome。 |
 | 1.35 | 2026-07-16 | 修复统一 auth route gate 绕过 locale catalog 的实现漂移，锁定 loading/error 双语与中文零英文残留。 |
 | 1.34 | 2026-07-15 | 补齐 settings review remediation：fixture-backed deleteMe 后必须转 unauthenticated，并要求 P0.101 的失败 reporter 与落盘证据同样脱敏。 |

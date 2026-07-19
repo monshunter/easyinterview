@@ -1,8 +1,6 @@
 /*
- * D2 TopBar visual rhythm. Every literal value is transcribed from
- * formal frontend implementation so the production frontend's chrome matches
- * the static prototype DOM/style/density (height 58, padding 0 32, gap 28,
- * sticky top, z-index 30, etc.).
+ * Home-reference TopBar visual rhythm. The desktop chrome uses a 76px rail,
+ * prominent brand/navigation controls, and compact pill-shaped utilities.
  *
  * Custom accent control (hue + chroma sliders) mirrors the
  * `AccentPicker` component in app.jsx.
@@ -17,9 +15,9 @@
 .ei-shell-topbar {
   display: flex;
   align-items: center;
-  gap: var(--ei-space-7);
-  height: 58px;
-  padding: 0 var(--ei-space-8);
+  gap: 24px;
+  height: 76px;
+  padding: 0 22px;
   background: var(--ei-color-bg-canvas);
   color: var(--ei-color-fg-primary);
   border-bottom: 1px solid var(--ei-color-rule-strong);
@@ -31,7 +29,7 @@
 .ei-topbar-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   cursor: pointer;
 }
 
@@ -39,13 +37,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 13px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   background: var(--ei-color-accent);
   color: #fff;
   font-family: var(--ei-font-serif);
-  font-size: 15px;
+  font-size: 21px;
   font-weight: 600;
 }
 
@@ -54,24 +52,32 @@
   align-items: center;
 }
 
+.ei-topbar-brand-copy .ei-text-subtitle {
+  font-family: var(--ei-font-sans);
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
 .ei-topbar-nav {
   display: inline-flex;
   align-items: center;
-  gap: var(--ei-space-1);
-  margin-left: var(--ei-space-5);
+  gap: 28px;
+  margin-left: 39px;
 }
 
 .ei-topbar-nav-button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--ei-radius-sm);
+  gap: 9px;
+  min-height: 42px;
+  padding: 0 15px;
+  border-radius: 8px;
   border: none;
   background: transparent;
   color: var(--ei-color-fg-tertiary);
   font-family: var(--ei-font-sans);
-  font-size: 13.5px;
+  font-size: 17px;
   font-weight: 400;
   cursor: pointer;
 }
@@ -82,9 +88,9 @@
 }
 
 .ei-topbar-nav-button[aria-current="page"] {
-  background: var(--ei-color-bg-soft);
-  color: var(--ei-color-fg-primary);
-  font-weight: 500;
+  background: color-mix(in srgb, var(--ei-color-accent) 7%, var(--ei-color-bg-canvas));
+  color: var(--ei-color-accent);
+  font-weight: 600;
 }
 
 .ei-topbar-spacer {
@@ -94,21 +100,21 @@
 .ei-topbar-controls {
   display: inline-flex;
   align-items: center;
-  gap: var(--ei-space-2);
+  gap: 24px;
 }
 
 .ei-topbar-control {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 8px;
-  border-radius: var(--ei-radius-sm);
+  gap: 9px;
+  height: 40px;
+  padding: 0 13px;
+  border-radius: 18px;
   border: 1px solid var(--ei-color-rule-strong);
-  background: transparent;
+  background: var(--ei-color-bg-card);
   color: var(--ei-color-fg-secondary);
   font-family: var(--ei-font-sans);
-  font-size: 12px;
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -133,16 +139,52 @@
 }
 
 .ei-topbar-dark {
-  height: 26px;
-  width: 30px;
-  padding: 5px 8px;
-  justify-content: center;
+  width: 88px;
+  justify-content: space-between;
+}
+
+.ei-topbar-dark-track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 32px;
+  height: 16px;
+  padding: 2px;
+  border-radius: var(--ei-radius-pill);
+  background: var(--ei-color-bg-soft);
+  transition: background-color 160ms ease;
+}
+
+.ei-topbar-dark-thumb {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ei-color-fg-tertiary);
+  box-shadow: var(--ei-shadow-elev1);
+  transform: translateX(16px);
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.ei-topbar-dark[aria-pressed="true"] .ei-topbar-dark-track {
+  background: color-mix(in srgb, var(--ei-color-accent) 16%, var(--ei-color-bg-soft));
+}
+
+.ei-topbar-dark[aria-pressed="true"] .ei-topbar-dark-thumb {
+  transform: translateX(0);
+  background: var(--ei-color-fg-tertiary);
+}
+
+.ei-topbar-dark[aria-pressed="false"] .ei-topbar-dark-track {
+  background: color-mix(in srgb, var(--ei-color-accent) 16%, var(--ei-color-bg-soft));
+}
+
+.ei-topbar-dark[aria-pressed="false"] .ei-topbar-dark-thumb {
+  background: var(--ei-color-accent);
 }
 
 .ei-topbar-lang {
-  height: 29px;
-  padding: 5px 10px;
-  min-width: 88px;
+  min-width: 114px;
   justify-content: center;
 }
 
@@ -221,20 +263,25 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   padding: 0;
   border-radius: var(--ei-radius-pill);
-  border: 1px solid var(--ei-color-rule-strong);
-  background: transparent;
-  color: var(--ei-color-fg-secondary);
+  border: 1px solid var(--ei-color-accent);
+  background: var(--ei-color-accent);
+  color: #fff;
   cursor: pointer;
 }
 
 .ei-topbar-settings:hover {
-  border-color: var(--ei-color-fg-tertiary);
-  background: var(--ei-color-bg-soft);
-  color: var(--ei-color-fg-primary);
+  filter: brightness(1.06);
+}
+
+.ei-topbar-settings-mark {
+  font-family: var(--ei-font-serif);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .ei-topbar-settings:focus-visible {
@@ -264,7 +311,7 @@
   .ei-shell-topbar {
     flex-wrap: wrap;
     height: auto;
-    min-height: 58px;
+    min-height: 64px;
     padding: 8px 14px;
     gap: 8px 10px;
     overflow-x: clip;
@@ -309,7 +356,9 @@
 
   .ei-topbar-nav-button {
     flex: 0 0 auto;
-    padding: 6px 10px;
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 14px;
   }
 }
 

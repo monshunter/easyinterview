@@ -322,6 +322,6 @@ describe("canonical path deep-link, reload, and browser history", () => {
     expect(window.location.pathname).toBe("/");
     expect(window.location.hash).toBe("");
     expect(window.location.search).toBe("");
-    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
   });
 });

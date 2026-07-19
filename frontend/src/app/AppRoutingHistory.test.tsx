@@ -282,7 +282,7 @@ describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () 
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
     await waitFor(() =>
-      expect(screen.getByTestId("home-hero-label")).toBeInTheDocument(),
+      expect(screen.getByTestId("home-hero-title")).toBeInTheDocument(),
     );
   });
 });

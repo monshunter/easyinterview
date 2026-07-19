@@ -159,7 +159,7 @@ describe("App shell", () => {
 
   it("renders HomeScreen on the home route instead of the route shell", () => {
     render(<App />);
-    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
     expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
     expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
   });

@@ -172,6 +172,13 @@ describe("HomeRecentMocks", () => {
         screen.getByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-000000002100"),
       ).toBeInTheDocument();
     });
+    expect(screen.getByTestId("home-recent-more")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-000000002000"),
+    ).toHaveAttribute("data-presentation", "home-record");
+    expect(screen.getByTestId("home-recent-mock-grid").className).toMatch(
+      /\bei-home-recent-grid\b/,
+    );
   });
 
   it("shows empty state for empty variant", async () => {
@@ -193,9 +200,7 @@ describe("HomeRecentMocks", () => {
       ).toBeInTheDocument();
     });
     const grid = screen.getByTestId("home-recent-mock-grid");
-    expect(grid.style.gridTemplateColumns).toContain("360px");
-    expect(grid.style.gridTemplateColumns).not.toContain("1fr");
-    expect(grid.style.justifyContent).toBe("start");
+    expect(grid.className).toMatch(/\bei-home-recent-grid\b/);
   });
 
   it("renders at most 3 cards for twelve-plus variant and exposes More navigation", async () => {
@@ -236,7 +241,10 @@ describe("HomeRecentMocks", () => {
 
     expect(
       screen.getByTestId("home-recent-mock-start-01918fa0-0000-7000-8000-000000002000"),
-    ).toHaveTextContent("Start a mock interview");
+    ).toHaveTextContent("Continue practice");
+    expect(
+      screen.getByTestId("home-recent-mock-date-01918fa0-0000-7000-8000-000000002000"),
+    ).toHaveTextContent("Last practiced");
     expect(
       screen.queryByTestId("home-recent-mock-delete-01918fa0-0000-7000-8000-000000002000"),
     ).toBeNull();

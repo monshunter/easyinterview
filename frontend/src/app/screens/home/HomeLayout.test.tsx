@@ -1,4 +1,7 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
@@ -40,12 +43,11 @@ describe("Home layout", () => {
 
     expect(resumeRow).toContainElement(resumeSelect);
     expect(resumeRow).toContainElement(createCta);
-    expect(resumeSelect).toHaveStyle({ width: "360px" });
-    expect(resumeSelect).toHaveStyle({ maxWidth: "100%" });
-    expect(resumeSelect).not.toHaveStyle({ width: "100%" });
+    expect(resumeRow.className).toMatch(/\bei-home-resume-row\b/);
+    expect(resumeSelect.className).toMatch(/\bei-home-resume-select\b/);
   });
 
-  it("places immediate interview below resume selection and outside the JD input card", () => {
+  it("groups JD, resume, submit and privacy into one intake card", () => {
     render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
 
     const inputCard = screen.getByTestId("home-jd-input-card");
@@ -54,10 +56,23 @@ describe("Home layout", () => {
     const submitButton = screen.getByTestId("home-jd-submit");
 
     expect(submitRow).toContainElement(submitButton);
-    expect(inputCard).not.toContainElement(submitButton);
+    expect(inputCard).toContainElement(resumeRow);
+    expect(inputCard).toContainElement(submitButton);
+    expect(inputCard).toContainElement(screen.getByTestId("home-privacy-notice"));
     expect(
       resumeRow.compareDocumentPosition(submitRow) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("defines the screenshot-aligned desktop hierarchy and mobile stacking in scoped CSS", () => {
+    const css = readFileSync(resolve(__dirname, "..", "screens.css"), "utf8");
+
+    expect(css).toMatch(/\.ei-home-screen\s*\{[^}]*max-width:\s*none/);
+    expect(css).toMatch(/\.ei-home-content\s*\{[^}]*max-width:\s*1400px/);
+    expect(css).toMatch(/\.ei-home-intake-card\s*\{[^}]*border-radius:\s*16px/);
+    expect(css).toMatch(/\.ei-home-jd-textarea\s*\{[^}]*min-height:\s*106px/);
+    expect(css).toMatch(/\.ei-home-recent-grid\s*\{[^}]*grid-template-columns:\s*1fr/);
+    expect(css).toMatch(/@media \(max-width: 760px\)[\s\S]*\.ei-home-resume-action-row\s*\{[^}]*grid-template-columns:\s*1fr/);
   });
 });

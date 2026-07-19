@@ -70,13 +70,10 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
     );
   });
 
-  it("topbar.css defines the current TopBar rhythm (height 58, padding 32, gap 28)", () => {
+  it("topbar.css defines the Home-reference desktop rhythm", () => {
     const css = readFileSync(TOPBAR_CSS, "utf8");
-    expect(css).toMatch(/\.ei-shell-topbar\s*\{[^}]*height:\s*58px/);
-    expect(css).toMatch(
-      /\.ei-shell-topbar\s*\{[^}]*padding:\s*0\s+var\(--ei-space-8\)/,
-    );
-    expect(css).toMatch(/\.ei-shell-topbar\s*\{[^}]*gap:\s*var\(--ei-space-7\)/);
+    expect(css).toMatch(/\.ei-shell-topbar\s*\{[^}]*height:\s*76px/);
+    expect(css).toMatch(/\.ei-shell-topbar\s*\{[^}]*padding:\s*0\s+22px/);
     expect(css).toMatch(
       /\.ei-shell-topbar\s*\{[^}]*border-bottom:\s*1px solid var\(--ei-color-rule-strong\)/,
     );
@@ -125,16 +122,18 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
     ).toHaveLength(1);
   });
 
-  it("uses one accessible 40px settings gear and removes account-menu styling", () => {
+  it("uses one accessible circular E settings entry and removes account-menu styling", () => {
     renderTopBar({ signedIn: true });
     const settings = screen.getByTestId("topbar-settings");
     expect(settings).toHaveAccessibleName(/^设置$|^settings$/i);
     expect(settings.className).toMatch(/\bei-topbar-settings\b/);
+    expect(settings).toHaveTextContent(/^E$/);
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
 
     const css = readFileSync(TOPBAR_CSS, "utf8");
-    expect(css).toMatch(/\.ei-topbar-settings\s*\{[^}]*width:\s*40px/);
-    expect(css).toMatch(/\.ei-topbar-settings\s*\{[^}]*height:\s*40px/);
+    expect(css).toMatch(/\.ei-topbar-settings\s*\{[^}]*width:\s*42px/);
+    expect(css).toMatch(/\.ei-topbar-settings\s*\{[^}]*height:\s*42px/);
+    expect(css).toMatch(/\.ei-topbar-settings\s*\{[^}]*background:\s*var\(--ei-color-accent\)/);
     expect(css).toMatch(/\.ei-topbar-settings:focus-visible\s*\{[^}]*outline:/);
     expect(css).not.toMatch(/\.ei-topbar-user-(button|menu|backdrop|avatar|name|email)/);
     expect(css).toMatch(
@@ -155,6 +154,8 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
       "aria-pressed",
       "false",
     );
+    expect(screen.getByTestId("topbar-dark-track")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-dark-thumb")).toBeInTheDocument();
   });
 });
 
@@ -175,10 +176,10 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
   it("active nav button gets [aria-current=page] which CSS styles via ei-topbar-nav-button[aria-current=page]", () => {
     const css = readFileSync(TOPBAR_CSS, "utf8");
     expect(css).toMatch(
-      /\.ei-topbar-nav-button\[aria-current="page"\]\s*\{[^}]*background:\s*var\(--ei-color-bg-soft\)/,
+      /\.ei-topbar-nav-button\[aria-current="page"\]\s*\{[^}]*background:\s*color-mix\([^;]+var\(--ei-color-accent\)/,
     );
     expect(css).toMatch(
-      /\.ei-topbar-nav-button\[aria-current="page"\]\s*\{[^}]*color:\s*var\(--ei-color-fg-primary\)/,
+      /\.ei-topbar-nav-button\[aria-current="page"\]\s*\{[^}]*color:\s*var\(--ei-color-accent\)/,
     );
   });
 
@@ -198,7 +199,9 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
     expect(screen.getByTestId("topbar-dark-toggle").className).toMatch(
       /\bei-topbar-dark\b/,
     );
-    expect(screen.getByTestId("topbar-dark-toggle")).toHaveTextContent("");
+    expect(screen.getByTestId("topbar-dark-track")).toContainElement(
+      screen.getByTestId("topbar-dark-thumb"),
+    );
     expect(screen.getByTestId("topbar-lang-toggle").className).toMatch(
       /\bei-topbar-lang\b/,
     );

@@ -1,12 +1,12 @@
 # 认证与默认入口
 
-> **版本**: 1.27
+> **版本**: 1.28
 > **状态**: active
 > **更新日期**: 2026-07-19
 
 ## 1 文档目的
 
-本文档定义当前默认入口、认证触发点、pendingAction 接续和账号设置边界。未登录时显示登录入口；已登录时不再显示账号 chip 或用户菜单，只显示一个设置齿轮。
+本文档定义当前默认入口、认证触发点、pendingAction 接续和账号设置边界。未登录时显示登录入口；已登录时不再显示账号 chip 或用户菜单，只显示一个圆形 `E` initial-mark 设置按钮。
 
 ## 2 已确认决策
 
@@ -15,7 +15,7 @@
 3. 登录是操作级拦截，不是默认前置页。
 4. 登录成功后若 `profileCompletionRequired=true`，进入 `auth_profile_setup`；完成账号资料补全后接续 pendingAction。
 5. `auth_profile_setup` 是账号资料补全，不是用户画像。
-6. 已登录 TopBar 账号区只显示一个带可访问名称的设置齿轮，直接进入 `settings`；退出登录迁入设置页。
+6. 已登录 TopBar 账号区只显示一个带可访问名称的圆形 `E` initial-mark 设置按钮，直接进入 `settings`；它不是用户头像；退出登录迁入设置页。
 7. `用户画像` 不是 TopBar 或设置页入口。
 8. `复盘` 不是业务入口或登录触发点。
 9. `/reports?targetJobId=...` 是受保护的规划上下文页面；鉴权接续只保留合法 `targetJobId`，但它不进入 TopBar 一级导航。
@@ -39,10 +39,10 @@
 └─ 登录
 
 已登录
-└─ 设置齿轮 -> settings
+└─ 圆形 E initial-mark 设置按钮 -> settings
 ```
 
-设置入口必须使用可明确识别的齿轮图标和标准 button，具备 `aria-label="设置 / Settings"`、清晰 focus ring 和至少 40×40px 点击区域。desktop 与 mobile 都不得再出现头像、姓名、caret、backdrop 或账号 dropdown。
+设置入口必须使用圆形品牌 initial mark 与标准 button，具备 `aria-label="设置 / Settings"`、清晰 focus ring 和至少 40×40px 点击区域。initial mark 不读取用户字段，也不表示用户头像；desktop 与 mobile 都不得出现姓名、caret、backdrop 或账号 dropdown。
 
 ## 5 认证页面
 
@@ -72,7 +72,7 @@ auth_logout
 | 复练当前轮 | `practice` | 从 report header 发起 |
 | 进入下一轮 | `practice` | 从 report header 发起 |
 | 保存简历 | `resume_versions` | 创建或编辑简历 |
-| 打开设置 | `settings` | 已登录用户通过设置齿轮或受保护深链进入账号和隐私设置；route 不携带用户字段 |
+| 打开设置 | `settings` | 已登录用户通过圆形 `E` initial-mark 设置按钮或受保护深链进入账号和隐私设置；route 不携带用户字段 |
 
 不得创建 pendingAction 到 `debrief`、`debrief_full` 或 `profile`。
 
@@ -87,7 +87,7 @@ auth_logout
 
 ## 8 后续实现输入
 
-1. TopBar 已登录账号区只能有设置齿轮；不得包含头像/姓名 chip、dropdown、退出按钮或 `用户画像`。
+1. TopBar 已登录账号区只能有圆形 `E` initial-mark 设置按钮；不得包含用户头像/姓名 chip、dropdown、退出按钮或 `用户画像`。
 2. 未登录保护路由不得把 `debrief` 或 `profile` 当业务目标。
 3. 正式前端、URL fallback 和 scenario 都必须覆盖范围外入口负向。
 4. 设置页为无 tab 单页，承载账号级主题偏好、真实账号字段、退出登录和当前可执行的隐私状态/动作；语言与暗色继续由 TopBar 控制，字体不再可配置。
@@ -123,6 +123,7 @@ Settings
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.28 | 将已登录单一设置入口从齿轮视觉改为圆形 E initial mark；保持直达 Settings、无用户头像数据、无账号 dropdown。 |
 | 2026-07-19 | 1.27 | 设置页更名为“设置”，新增账号级外观主题保存；锁定 bootstrap 单次读取、route 零重复读取和单次保存更新合同。 |
 | 2026-07-16 | 1.26 | 明确 auth loading/error route gate 属于本地化 shell UI，中文模式不得出现英文硬编码。 |
 | 2026-07-15 | 1.25 | 采用设置简化方案 A：已登录 TopBar 仅保留设置齿轮，设置页改为无 tab 的真实账号/隐私单页，并明确退出、导出不可用与账号删除状态机。 |

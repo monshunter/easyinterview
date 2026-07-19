@@ -1,6 +1,6 @@
 # App Shell Visual System Checklist
 
-> **版本**: 3.4
+> **版本**: 3.5
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -123,3 +123,10 @@
 - [x] 21.2 GREEN: 复用既有 theme metadata/token/CustomAccentPicker 到 Settings；TopBar 只保留 dark/language/auth/settings，不保留隐藏 theme DOM/CSS/locale residue。
 - [x] 21.3 A11Y/RESPONSIVE: 明确 gear accessible name/40px/focus，Appearance 在 1440/390 可用；Practice global TopBar + Session Header 无横向溢出。
 - [x] 21.4 BDD/REGRESSION: 更新 `BDD.SHELL.VISUAL.001`，运行 focused/root/typecheck/build/context/docs/diff/Chrome gates 后恢复 completed。
+
+## Phase 22: Home-reference desktop chrome
+
+- [x] 22.1 RED: `TopBarVisual.test.tsx` 固化 76px desktop header、品牌/导航比例、active nav、dark track、language pill 与圆形 `E` settings entry，并保留三 route、accessible name、40px hit target 和 mobile containment。<!-- verified: RED 4 failed / 13 passed; failures matched old 58px, gear and absent dark track/thumb -->
+- [x] 22.2 GREEN: 正式 `TopBar.tsx` / `topbar.css` 对齐参考图；不恢复 theme menu、用户姓名/头像数据、dropdown、TopBar logout 或额外 route。<!-- verified: TopBarVisual 17/17 PASS -->
+- [x] 22.3 BDD-Gate: 执行更新后的 `BDD.SHELL.VISUAL.001` owner tests；Chrome `1916x821` / `390x844` 与 Home Phase 25 共用人工视觉验收，不声明 E2E。<!-- verified: TopBarVisual 17/17 and root frontend 1044/1044 PASS; Chrome desktop/mobile console warnings/errors=0 -->
+- [x] 22.4 REGRESSION-GATE: focused/root/typecheck/build/context/docs/diff/Chrome gates 通过后恢复 completed。<!-- verified: TopBar 17/17, root frontend 1044/1044, build/context/docs/diff and desktop/mobile Chrome PASS -->

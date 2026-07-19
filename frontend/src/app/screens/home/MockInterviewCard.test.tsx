@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { MockInterviewCard } from "./MockInterviewCard";
 import type { TargetJob } from "../../../api/generated/types";
@@ -315,5 +315,36 @@ describe("MockInterviewCard", () => {
     expect(
       screen.queryByTestId("home-recent-mock-delete-job-001"),
     ).toBeNull();
+  });
+
+  it("makes the Home record keyboard-openable without hijacking its nested action", () => {
+    const open = vi.fn();
+    const start = vi.fn();
+    render(
+      <MockInterviewCard
+        job={mockJob}
+        presentation="home-record"
+        onClick={open}
+        primaryAction={{
+          label: "Continue practice",
+          testId: "home-recent-mock-start-job-001",
+          onClick: start,
+        }}
+      />,
+    );
+
+    const record = screen.getByTestId("home-recent-mock-card-job-001");
+    const action = screen.getByTestId("home-recent-mock-start-job-001");
+    expect(record).toHaveAttribute("role", "button");
+    expect(record).toHaveAttribute("tabindex", "0");
+
+    fireEvent.keyDown(record, { key: "Enter" });
+    expect(open).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(action, { key: "Enter" });
+    expect(open).toHaveBeenCalledTimes(1);
+    action.click();
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledTimes(1);
   });
 });

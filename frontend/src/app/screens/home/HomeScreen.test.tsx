@@ -35,12 +35,16 @@ describe("HomeScreen", () => {
   it("renders the home shell with required testids", () => {
     render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
 
-    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
+    expect(screen.queryByTestId("home-hero-label")).not.toBeInTheDocument();
     expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
-    expect(screen.queryByTestId("home-hero-sub")).not.toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-title-accent")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-sub")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-illustration")).toBeInTheDocument();
     expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
+    expect(screen.getByTestId("home-jd-counter")).toBeInTheDocument();
     expect(screen.getByTestId("home-jd-submit")).toBeInTheDocument();
     expect(screen.getByTestId("home-resume-select")).toBeInTheDocument();
+    expect(screen.getByTestId("home-privacy-notice")).toBeInTheDocument();
     expect(screen.queryByTestId("home-aux-jobpicks")).not.toBeInTheDocument();
     expect(screen.queryByTestId("home-aux-debrief")).not.toBeInTheDocument();
   });
@@ -65,6 +69,7 @@ describe("HomeScreen", () => {
     expect(root).toBeInTheDocument();
     expect(root.getAttribute("data-route-name")).toBe("home");
     expect(root.className).toMatch(/\bei-screen-shell\b/);
+    expect(root.className).toMatch(/\bei-home-screen\b/);
   });
 
   it("submit button is disabled when textarea is empty", () => {
@@ -107,11 +112,11 @@ describe("HomeScreen", () => {
       </NavigationProvider>,
     );
 
-    expect(screen.getByTestId("home-hero-label")).toHaveTextContent(
-      "Mock interviews",
-    );
     expect(screen.getByTestId("home-hero-title")).toHaveTextContent(
-      "Practice for the interview that's already on your calendar.",
+      "For the interview in front of you, practice it seriously once.",
+    );
+    expect(screen.getByTestId("home-hero-sub")).toHaveTextContent(
+      "Simulate a real interview",
     );
     expect(screen.getByTestId("home-jd-submit")).toHaveTextContent(
       "Start a mock interview",

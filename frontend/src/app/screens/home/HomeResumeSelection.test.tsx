@@ -138,16 +138,21 @@ describe("Home resume selection", () => {
     );
   });
 
-  it("renders the home quick-start copy without the out-of-scope hero sub or CTA", async () => {
+  it("renders the home quick-start copy with the reference hero and runtime-owned counter", async () => {
     const client = createClient("default");
     renderHome(client);
 
-    expect(screen.queryByTestId("home-hero-sub")).not.toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-sub")).toHaveTextContent(
+      "模拟真实面试场景，获得专业反馈，提升每一次机会。",
+    );
     expect(screen.getByTestId("home-jd-submit")).toHaveTextContent("开始模拟面试");
     expect(screen.queryByText("解析并确认面试")).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByTestId("home-resume-select")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("home-jd-counter")).toHaveTextContent(/^0 \/ \d+$/);
     });
     expect(screen.getByTestId("home-resume-select").tagName).toBe("SELECT");
     expect(screen.getByTestId("home-resume-select")).toHaveRole("combobox");

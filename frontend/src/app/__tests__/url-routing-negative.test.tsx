@@ -40,7 +40,7 @@ describe("canonical and out-of-scope route negative regression", () => {
   it("ignores fragment route data and strips the fragment", () => {
     window.history.replaceState(null, "", "/#route=workspace&targetJobId=tj-1");
     render(<App />);
-    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/");
     expect(window.location.search).toBe("");
     expect(window.location.hash).toBe("");
@@ -49,13 +49,13 @@ describe("canonical and out-of-scope route negative regression", () => {
   it("unknown / malformed canonical path falls back to home without crashing", () => {
     window.history.replaceState(null, "", "/totally-unknown?foo=bar");
     render(<App />);
-    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
   });
 
   it("direct-open of `/voice` path normalizes to home (no standalone voice route)", () => {
     window.history.replaceState(null, "", "/voice?mode=voice");
     render(<App />);
-    expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
+    expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
   });
 
   it("ROUTE_TO_PATH must not include out-of-scope paths and must NOT have standalone /voice", () => {

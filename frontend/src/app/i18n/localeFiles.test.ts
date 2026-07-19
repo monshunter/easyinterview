@@ -148,14 +148,17 @@ describe("D1 shell i18n locale file structure", () => {
     );
 
     const requiredKeys = [
-      "home.heroLabel",
-      "home.heroTitle",
+      "home.heroTitleLead",
+      "home.heroTitleAccent",
+      "home.heroSubtitle",
       "home.jdPlaceholder",
       "home.pasteSource",
       "home.importBtn",
       "home.recentSection",
       "home.recentSectionSub",
       "home.recentMore",
+      "home.recentContinue",
+      "home.recentLastUsed",
       "home.resumeSelect",
       "home.resumeSelectPlaceholder",
       "home.resumeSelectHint",
@@ -163,6 +166,7 @@ describe("D1 shell i18n locale file structure", () => {
       "home.resumeLoading",
       "home.resumeEmpty",
       "home.resumeCreateLink",
+      "home.privacyNotice",
       "home.pendingImportInvalid",
     ];
 

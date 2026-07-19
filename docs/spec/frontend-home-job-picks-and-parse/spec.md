@@ -1,8 +1,8 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.28
+> **版本**: 2.29
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-19
 
 ## 1 背景与目标
 
@@ -28,11 +28,11 @@ Home 粘贴 JD
 
 - Home 屏（`route=home`）：
   - 按设计合同实现 `frontend/src` 当前结构。
-  - Hero 只保留 label + title。
-  - JD 输入卡只承载 textarea；不展示或挂载其他 JD intake 控件、弹窗或隐藏分支。
+  - Hero 使用主标题双层强调、副标题和右侧轻量插画；不展示旧 uppercase eyebrow。
+  - 单一白色 intake card 依次承载 JD label + textarea/count、Resume label + select/create link、右侧主 CTA 与隐私提示；`home-jd-input-card` 仍只包裹 textarea/count，不展示或挂载其他 JD intake 控件、弹窗或隐藏分支。
   - `listResumes` 读取未归档且 `parseStatus=ready` 或已有可读正文/结构化证据的 selectable 简历；用户必须显式选择一份后才能点击「立即面试」。
   - `还没有简历？1 分钟创建 ->` 与下拉框同行，点击进入 `resume_versions?flow=create`。
-  - `listTargetJobs` 渲染最近 3 张 ready mock interview card；卡片主体直接进入 `/workspace?targetJobId=...`，不经过 Parse/动画；超过 3 条时展示「更多」并跳转 `/workspace`。
+  - `listTargetJobs` 渲染最近 3 条 ready mock interview record；Home 使用全宽横向列表形态，依次展示公司/岗位、动态轮次 rail、最近使用时间与继续练习；主体直接进入 `/workspace?targetJobId=...`，不经过 Parse/动画；有记录时展示「查看全部」并跳转 `/workspace`。
   - Empty state 引导继续创建模拟面试，不展示示例业务数据。
   - 未登录 import 的 `pendingAction` 只携带 `opaquePendingImportId`；`rawText`、`targetLanguage`、`resumeId` 与同一次 import 的 idempotency key 只存在于当前进程的一次性内存 vault，不进入 route 或任何浏览器持久化介质。
   - i18n 支持 zh/en，所有文案通过 typed locale helper。
@@ -67,12 +67,12 @@ Home 粘贴 JD
 | D-3 | Home 提交流程 | 用户在唯一 textarea 粘贴 JD，并显式选择 selectable 简历后提交 | POST 成功只进入 `/parse?targetJobId=...`；route 不携带 `resumeId` 或原文 |
 | D-4 | Workspace detail handoff | Workspace targetJobId detail 是只读上下文收据；解析成功即已保存规划。标题旁“绑定简历”只查看 saved resume；标题下首行动作行的「立即面试」直接使用已绑定上下文进入 practice handoff，不先 PATCH `updateTargetJob` 或经由 route-side auto start | Practice session 创建使用已保存 TargetJob / Resume / Round 快照；不保留独立 launch/footer 区 |
 | D-5 | Parse 状态机 | `getTargetJob.analysisStatus` 驱动 queued/processing progress 与 failed；ready 必须 replace 到 workspace detail | Parse 是命令进度，不是 ready 详情回访页 |
-| D-6 | Recent mocks | Home 最多展示 3 张最近模拟面试卡片，更多列表入口交给 `workspace` | 首页保持新建任务优先 |
+| D-6 | Recent mocks | Home 最多展示 3 条最近模拟面试横向记录，有记录时「查看全部」交给 `workspace` | 首页保持新建任务优先 |
 | D-7 | i18n | 只维护当前 `home.*` 与 `parse.*` namespace | 与 typed locale helper 一致 |
 | D-8 | Privacy / auth continuation | JD 原文不进入 URL/localStorage/sessionStorage/IndexedDB/console/telemetry；`pendingAction` 的唯一字段是 `opaquePendingImportId` | vault entry 仅在当前进程内保存 `{ rawText, targetLanguage, resumeId, idempotencyKey, expiresAt }` 并原子 consume 一次；refresh / 进程重启、过期或重复 consume 均 fail closed，返回 Home 显示本地化重新粘贴/选择提示，不发起 import，也不尝试从 route 或 storage 恢复原文 |
 | D-9 | 统一详情母版 | 原 `JD 解析结果` 视觉改名为“面试规划详情 / 面试上下文确认”，只在 `/workspace?targetJobId` ready route 渲染；首次导入 ready 后 replace 到此，回访直接进入此页 | 用户只学习一个详情页面；Parse 不再作为 ready 详情入口 |
 | D-10 | 结构化轮次数据源 | 所有 TargetJob 关联的轮次展示与导航上下文使用 `TargetJob.summary.interviewRounds[]`；数组长度必须为 2~5，轮次类型、标题、时长和 focus 均由后端 LLM 结合 JD、岗位级别、公司/行业性质、团队/业务上下文与招聘流程线索推断并持久化 | 避免 Parse、Home 最近卡片、Workspace 回访或共享上下文保留固定 4 轮 / 固定 HR/技术/经理面 / 固定时长模板 |
-| D-11 | Recent card fixed grid and shared body | Home 最近模拟面试卡片使用固定最大列宽，并与 workspace 面试列表共用 `MockInterviewCard` 主体；Home 复用 `立即面试` 主按钮但不展示删除按钮 | 保证 Home recent 与 Interview list 不再表现为两套不同卡片规格 |
+| D-11 | Recent record and shared business mapper | Home recent 使用全宽横向 record，Workspace 保持固定最大列宽 card；两种 presentation 共用 `MockInterviewCard` 的 TargetJob/round/progress/action mapper | Home 可按参考图表达信息密度，同时不复制业务推导、路由或启动逻辑 |
 | D-12 | Recent card planning and start actions | Home ready 卡片主体直接进入 `/workspace?targetJobId=...`；`立即面试 / Start interview now` 仍用 generated practice handoff 启动 PracticeSession | 已解析规划不经过 Parse 动画；删除按钮只属于 workspace 列表 |
 | D-13 | Parse loading 信息层级 | loading 只说明当前进度与等待状态，不暴露 model/provider、rubric/prompt/version/hash、provenance 或典型耗时 | 内部诊断信息留在受控日志/观测面，不进入用户界面 |
 | D-14 | JD intake 单一合同 | Home 与 `importTargetJob` 只保留 `{ rawText, targetLanguage, resumeId }` | 不保留 source discriminator；删除其他 JD 导入形态但不影响 Resume 上传 |
@@ -82,11 +82,12 @@ Home 粘贴 JD
 | D-16 | Initial GET request count | Home `listResumes` / `listTargetJobs` 与 Parse 每个分类/调度 tick 的 `getTargetJob` 依赖 shell safe-read single-flight | StrictMode mount 不产生紧邻重复底层 GET；轮询只由明确 scheduler 在间隔到期后发起 |
 | D-17 | Workspace detail round state | 轮次假设卡片使用与 Home/Workspace mini rail 相同的 `practiceProgress` 投影：完成前缀为 `done/已进行`，首个未完成轮为 `current/即将进行`，其余为 `pending/未进行`；三态必须同时有不同背景、边框、文字标签和可测试状态属性 | 用户无需从顺序猜测进度；不从 lifecycle status、URL 或浏览器存储推断轮次状态 |
 | D-18 | Selectable Resume 永久前置 | Home 只有在用户显式选择未归档且 `parseStatus=ready` 或已有可读正文/结构化证据的 selectable Resume 后才能提交 exact import；TargetJob 必须保存该 `resumeId`，后续 Start、Reports、复练和下一轮都只消费该持久化事实 | 不实现无简历/JD-only 训练或报告降级；无 selectable 简历的用户只进入创建流程。历史缺失或无效绑定是异常数据并 fail closed，不自动选择最近简历，不从 route/browser storage 补齐 |
+| D-19 | Home screenshot-aligned visual hierarchy | Desktop Home 使用 1400px 级居中内容列、浅色渐变/斜切背景、标题强调、单一 intake card 与全宽 recent record；mobile 按 DOM 顺序收敛为单列 | 视觉重排不改变 operation matrix、Resume gate、route、privacy、idempotency 或 TargetJob round mapper；计数器必须显示 runtime owner 的真实上限，不硬编码参考图中的业务值 |
 
 ## 4 设计约束
 
 - DOM 构图、控件类型、间距、字体层级、状态、响应式行为和交互节奏必须可追溯到 `frontend/` 当前源码。
-- Home `home-jd-input-card` 只承载 `home-jd-textarea`；`home-resume-row` 与 `home-submit-row` 位于输入卡下方。旧 source controls、trigger 和 modal 锚点必须为零。
+- Home `home-intake-card` 是单一视觉容器；其中 `home-jd-input-card` 只承载 `home-jd-textarea` 与真实 runtime count，`home-resume-row` / `home-submit-row` / `home-privacy-note` 同属该视觉容器但不是 textarea DOM 的子节点。旧 source controls、trigger 和 modal 锚点必须为零。
 - Home resume select 使用紧凑下拉框；不得平铺所有简历。
 - 未登录提交时先创建不可逆推原文的 `opaquePendingImportId`，再把 exact import intent 写入一次性内存 vault；认证路由的 `pendingAction` 不得复制 `rawText`、`targetLanguage`、`resumeId`、intake source 或业务 route params。登录成功后必须原子 consume 一次并使用 vault 中原 idempotency key 提交 exact request；成功、失败、过期和重复 consume 后均不得让同一 entry 再次可读。
 - refresh / 进程重启导致 vault 丢失、entry 过期或 ID 已消费时，auth continuation 不调用 `importTargetJob`，清除无效 pending action，返回 Home 并以 zh/en 可访问提示要求用户重新粘贴 JD、选择简历；不得用 `localStorage`、`sessionStorage`、IndexedDB、URL、日志或 telemetry 延长 raw JD 生命周期。
@@ -130,11 +131,11 @@ Home 粘贴 JD
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Home 默认渲染 | 用户进入 App | 打开 `home` | Hero、唯一 JD textarea、resume select、create resume CTA、recent mocks/empty state 正常渲染；旧 source controls / trigger / modal 锚点不存在；TopBar 高亮首页 | 001 |
+| C-1 | Home 默认渲染 | 用户进入 App | 打开 `home` | screenshot-aligned Hero/subtitle/illustration、单一 intake card、唯一 JD textarea + 真实上限 count、resume select/create CTA、recent records/empty state 正常渲染；旧 source controls / trigger / modal 锚点不存在；TopBar 高亮首页 | 001 |
 | C-2 | Home resume gate | `listResumes` 返回 selectable 简历 | 用户尚未选择简历 | 「立即面试」disabled，不调用 import；选择 selectable 简历后才允许提交 | 001 |
 | C-3 | Paste JD import | 用户选择 selectable 简历并粘贴 JD | 点击「立即面试」 | 调用 `importTargetJob({ rawText, targetLanguage, resumeId })` 并携带 `Idempotency-Key`；POST 成功只进入 `/parse?targetJobId=...` | 001 |
 | C-4 | 非当前 JD intake 零残留 | paste-only 合同已生效 | 扫描 UI 设计文档、formal frontend、OpenAPI/generated、backend、active fixtures/scenarios | 不存在平行 JD intake UI、source discriminator、专属 handler/persistence/job/scenario；Resume 上传路径仍通过原 owner gate | 001 |
-| C-5 | Recent mocks | `listTargetJobs` 返回多条 ready 记录 | Home 加载完成 | Home `listTargetJobs`/`listResumes` 同 key 初载底层请求各 1 次；只展示最近 3 张；卡片主体直达 `/workspace?targetJobId=...`，不经过 Parse/动画；quick-start 与 More 保持 | 001 |
+| C-5 | Recent mocks | `listTargetJobs` 返回多条 ready 记录 | Home 加载完成 | Home `listTargetJobs`/`listResumes` 同 key 初载底层请求各 1 次；只展示最近 3 条全宽横向 record；主体直达 `/workspace?targetJobId=...`，不经过 Parse/动画；quick-start 与「查看全部」保持 | 001 |
 | C-6 | Parse ready replace | `getTargetJob` 首读 ready 或 queued/processing 轮询转 ready | 用户进入 `/parse?targetJobId=...` | 每个分类/调度 tick 同 key底层 GET 恰好 1；ready 立即 replace 到 `/workspace?targetJobId=...`，Back 不返回动画；Parse 不渲染 ready detail | 001 |
 | C-7 | Parse failed flow | `analysisStatus=failed` 或轮询超时 | Parse polling | 渲染失败态、重新解析和返回首页；不伪造 preview 数据 | 001 |
 | C-8 | Readonly plan receipt | Workspace detail 已绑定 selectable 简历，或历史 TargetJob 缺失/无效绑定 | 用户查看详情 | 初载同 key `getTargetJob` 底层 count=1 且不调用 `listResumes/getResume`；合法绑定精确进入对应 Resume 详情；无独立 binding/launch block、字段编辑、picker/rebind 或页尾动作；缺绑显示异常状态，Start、Reports、复练和下一轮全部 fail closed | 001 |
@@ -162,6 +163,7 @@ Home 粘贴 JD
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 2.29 | 2026-07-19 | Reopen Phase 25 to align the formal Home hierarchy, intake card and recent records with the supplied desktop reference while preserving runtime limits and all business contracts. |
 | 2.28 | 2026-07-15 | Lock a selectable Resume as a permanent prerequisite for import, practice and reports; preserve readable-evidence selection, remove resume-less fallback commitments, and fail closed on invalid historical bindings. |
 | 2.27 | 2026-07-15 | Move the bound-resume viewer beside the plan title, remove the standalone launch/binding block, and place Start plus Reports in one leading action row. |
 | 2.26 | 2026-07-14 | Add RuntimeConfig-backed 96KiB JD UTF-8 boundary to Home without changing the paste-only UI structure. |

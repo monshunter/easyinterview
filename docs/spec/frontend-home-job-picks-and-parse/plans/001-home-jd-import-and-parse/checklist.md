@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.33
+> **版本**: 2.34
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -156,6 +156,14 @@
 - [x] 24.1 Product/UI truth sources 明确 selectable Resume 是 JD import、Practice、Reports、复练和下一轮的永久强制前置，并删除无简历训练与降级报告承诺。<!-- verified: 2026-07-15 method=in-place-design-reconcile evidence="product-scope D-30/C-28 and four UI owner documents now reject resume-less import, training and report downgrade while preserving ready-or-readable-evidence selection; stale commitment search is zero" -->
 - [x] 24.2 Owner spec/plan/BDD/context 将无选择时零 import、形成可读证据后返回 Home 显式选择、历史缺失/无效绑定全链路 fail closed 固化为当前合同。<!-- verified: 2026-07-15 method=focused-contract-evidence evidence="Home/Parse 5 files 38 tests PASS; Home selection predicate, canSubmit/import guard and OpenAPI required resumeId match the revised owner contract" -->
 - [x] 24.3 Existing Home/Workspace focused tests、active-doc negative search、context、Header/INDEX、docs、diff 与 pruning gates 全部通过；本阶段无代码变更且不声明新 E2E。<!-- verified: 2026-07-15 method=post-pass-gates evidence="5 focused files 38 tests PASS; stale commitment rg returned zero matches; validate_context, sync-doc-index, docs-check, git diff --check and lint-core-loop-pruning-surface PASS with real_residuals=0" -->
+
+## Phase 25: Screenshot-aligned Home visual system
+
+- [x] 25.1 RED: `HomeLayout.test.tsx` / `HomeRecentMocks.test.tsx` 固化 screenshot-aligned hierarchy、single intake card、真实 runtime count 与横向 recent record；旧 Home fixed-card grid/eyebrow/分散表单结构先失败。TopBar 由 `frontend-shell/002` Phase 22 独立承接。<!-- verified: focused Home RED 32 tests, 10 failed / 22 passed; failures covered the complete retired visual structure -->
+- [x] 25.2 GREEN: `.ei-home-screen` page-scoped CSS 与正式 Home/MockInterviewCard 实现 1:1 还原参考 viewport；保留 generated client、Resume gate、privacy、route、idempotency、structured rounds 和 practice handoff。<!-- verified: Home focused 32/32 PASS; frontend typecheck PASS; production source keeps client/auth/import/practice chain -->
+- [x] 25.3 BDD-Gate: 执行 `BDD.HOME.JD.003` owner behavior tests，完成 zh/en、loading/empty/error、disabled/enabled、1~3 recent records、theme/dark 与 accessibility 断言。<!-- verified: Home/TopBar/i18n focused 102/102 PASS plus MockInterviewCard keyboard regression 14/14 PASS; root frontend 1044/1044 PASS -->
+- [x] 25.4 CHROME-GATE: 用户现有 Chrome 在 `1916x821` 对照参考图检查 bbox/spacing/type/color/no-overflow，并在 `390x844` 检查单列、触控与 document containment；记录截图路径和 console 结果，不声明真实 E2E。<!-- verified: Chrome desktop card y=242 h=325, recent record y=679 h=130, scrollWidth=1916; mobile scrollWidth=390, light/dark and disabled/enabled transitions PASS; console warnings/errors=0; evidence=.test-output/home-ui-acceptance -->
+- [x] 25.5 REGRESSION-GATE: focused tests、根 `make test`、frontend typecheck/build、owner contexts、Header/INDEX/docs/diff/pruning gates 全部通过后恢复 completed。<!-- verified: focused Home/TopBar/i18n 102/102, keyboard 14/14, root 615 tooling plus backend plus frontend 1044/1044, build/context/docs/diff/pruning PASS -->
 
 ## BDD Gate
 

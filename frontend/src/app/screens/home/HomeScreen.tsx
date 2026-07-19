@@ -7,19 +7,21 @@ import {
   type FC,
 } from "react";
 
-import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
+import type { ResumeSummary, TargetJob } from "../../../api/generated/types";
+import { resolveContentLimits, utf8ByteLength } from "../../../lib/contentLimits";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n, type MessageKey } from "../../i18n/messages";
+import { PracticeLaunchTransition } from "../../interview-context/PracticeLaunchTransition";
 import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
-import { PracticeLaunchTransition } from "../../interview-context/PracticeLaunchTransition";
-import { useNavigation } from "../../navigation/NavigationProvider";
 import {
   isTargetJobPracticeStartable,
   targetJobDetailRouteParams,
   targetJobPracticeRouteParams,
 } from "../../navigation/interviewContext";
+import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
+import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { MockInterviewCard } from "./MockInterviewCard";
 import {
   consumePendingImportIntent,
@@ -27,8 +29,6 @@ import {
   type PendingImportIntent,
 } from "./pendingImportState";
 import { useRecentTargetJobs } from "./useRecentTargetJobs";
-import type { ResumeSummary, TargetJob } from "../../../api/generated/types";
-import { resolveContentLimits, utf8ByteLength } from "../../../lib/contentLimits";
 
 function idempotencyKey(): string {
   return `ik-${crypto.randomUUID()}`;
@@ -43,6 +43,49 @@ function resumeMeta(resume: ResumeSummary): string {
     .filter(Boolean)
     .join(" · ");
 }
+
+function formatRecentDate(value: string, lang: "zh" | "en"): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+  return new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en-US", {
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
+}
+
+const HomeHeroIllustration: FC = () => (
+  <svg
+    data-testid="home-hero-illustration"
+    className="ei-home-hero-illustration"
+    viewBox="0 0 280 150"
+    fill="none"
+    aria-hidden="true"
+  >
+    <defs>
+      <linearGradient id="home-ill-card" x1="0" y1="0" x2="1" y2="1">
+        <stop stopColor="currentColor" stopOpacity="0.28" />
+        <stop offset="1" stopColor="currentColor" stopOpacity="0.04" />
+      </linearGradient>
+    </defs>
+    <path d="M34 68l4 12 12 4-12 4-4 12-4-12-12-4 12-4 4-12z" fill="currentColor" opacity=".25" />
+    <rect x="92" y="22" width="166" height="116" rx="15" fill="url(#home-ill-card)" />
+    <rect x="92" y="22" width="166" height="23" rx="15" fill="currentColor" opacity=".14" />
+    <circle cx="108" cy="34" r="3" fill="currentColor" opacity=".42" />
+    <circle cx="119" cy="34" r="3" fill="currentColor" opacity=".32" />
+    <circle cx="130" cy="34" r="3" fill="currentColor" opacity=".24" />
+    <rect x="108" y="50" width="112" height="41" rx="10" fill="var(--ei-color-bg-card)" opacity=".78" />
+    <circle cx="124" cy="69" r="8" fill="currentColor" opacity=".22" />
+    <rect x="140" y="63" width="40" height="9" rx="4.5" fill="currentColor" opacity=".3" />
+    <rect x="108" y="100" width="74" height="7" rx="3.5" fill="currentColor" opacity=".13" />
+    <rect x="108" y="114" width="56" height="7" rx="3.5" fill="currentColor" opacity=".09" />
+    <rect x="218" y="105" width="12" height="33" rx="5" fill="currentColor" opacity=".25" />
+    <rect x="235" y="92" width="12" height="46" rx="5" fill="currentColor" opacity=".38" />
+    <rect x="65" y="92" width="58" height="35" rx="10" fill="currentColor" opacity=".34" />
+    <circle cx="81" cy="109" r="3" fill="white" opacity=".75" />
+    <circle cx="94" cy="109" r="3" fill="white" opacity=".75" />
+    <circle cx="107" cy="109" r="3" fill="white" opacity=".75" />
+  </svg>
+);
 
 export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const { lang, t } = useI18n();
@@ -66,21 +109,17 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const contentLimits = resolveContentLimits(
     runtime?.runtime.status === "ready" ? runtime.runtime.config : undefined,
   );
-  const showRecentMocks = isAuthenticated;
   const selectedResume = useMemo(
     () => readyResumes.find((resume) => resume.id === selectedResumeId) ?? null,
     [readyResumes, selectedResumeId],
   );
   const canSubmit = Boolean(contentLimits) && Boolean(input.trim()) && Boolean(selectedResume) && !importing;
-
-  const sortedJobs = useMemo(() => {
-    return [...rawJobs].sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
-  }, [rawJobs]);
-  const jobs = useMemo(() => sortedJobs.slice(0, 3), [sortedJobs]);
-  const hasMoreRecentMocks = sortedJobs.length > jobs.length;
+  const jobs = useMemo(
+    () => [...rawJobs]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 3),
+    [rawJobs],
+  );
 
   const openProtectedRoute = useCallback(
     (next: Route, label: string) => {
@@ -110,7 +149,6 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     let active = true;
     setResumesLoading(true);
     setResumeError(null);
-
     client
       .listResumes({ headers: { "Accept-Language": lang } })
       .then((page) => {
@@ -119,12 +157,9 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           .filter(isSelectableInterviewResume)
           .sort(sortByMostRecentResume);
         setReadyResumes(ready);
-        setSelectedResumeId((current) => {
-          if (current && ready.some((resume) => resume.id === current)) {
-            return current;
-          }
-          return "";
-        });
+        setSelectedResumeId((current) =>
+          current && ready.some((resume) => resume.id === current) ? current : "",
+        );
       })
       .catch(() => {
         if (!active) return;
@@ -154,12 +189,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         },
         { idempotencyKey: intent.idempotencyKey },
       );
-      navigate({
-        name: "parse",
-        params: {
-          targetJobId: result.targetJobId,
-        },
-      });
+      navigate({ name: "parse", params: { targetJobId: result.targetJobId } });
     } catch {
       setImportError("home.errors.import");
     } finally {
@@ -170,12 +200,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   useEffect(() => {
     if (!runtime || runtime.auth.status !== "authenticated") return;
     const opaquePendingImportId = route.params.opaquePendingImportId;
-    if (
-      !opaquePendingImportId ||
-      handledPendingImportId.current === opaquePendingImportId
-    ) {
-      return;
-    }
+    if (!opaquePendingImportId || handledPendingImportId.current === opaquePendingImportId) return;
     handledPendingImportId.current = opaquePendingImportId;
 
     const intent = consumePendingImportIntent(opaquePendingImportId);
@@ -200,30 +225,23 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
       resumeId: selectedResume.id,
       idempotencyKey: idempotencyKey(),
     };
-
     if (runtime.auth.status !== "authenticated") {
       const opaquePendingImportId = storePendingImportIntent(intent);
       requestAuth({
         type: "import_jd",
         label: t("home.importBtn"),
         route: "home",
-        params: {
-          opaquePendingImportId,
-        },
+        params: { opaquePendingImportId },
       });
       return;
     }
-
     await submitImport(intent);
   };
 
   const openRecentPlan = useCallback(
     (job: TargetJob) => {
       openProtectedRoute(
-        {
-          name: "workspace",
-          params: targetJobDetailRouteParams(job),
-        },
+        { name: "workspace", params: targetJobDetailRouteParams(job) },
         job.title,
       );
     },
@@ -233,16 +251,10 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const startRecentInterview = useCallback(
     async (job: TargetJob) => {
       const params = targetJobPracticeRouteParams(job);
-      if (
-        !runtime ||
-        runtime.auth.status !== "authenticated" ||
-        !params.resumeId ||
-        !params.roundId
-      ) {
+      if (!runtime || runtime.auth.status !== "authenticated" || !params.resumeId || !params.roundId) {
         openRecentPlan(job);
         return;
       }
-
       setRecentStartError(null);
       setStartingRecentJobId(job.id);
       try {
@@ -261,418 +273,203 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     <>
       {startingRecentJobId ? <PracticeLaunchTransition /> : null}
       <section
-      data-testid={`route-${route.name}`}
-      data-route-name={route.name}
-      data-route-params={JSON.stringify(route.params)}
-      className="ei-screen-shell"
-      style={{ padding: "48px 56px 96px" }}
-    >
-      {/* Hero / import */}
-      <div style={{ marginBottom: 56 }}>
-        <div
-          data-testid="home-hero-label"
-          style={{
-            color: "var(--ei-color-fg-tertiary)",
-            marginBottom: 14,
-            fontSize: 11,
-            fontWeight: 500,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            fontFamily: "var(--ei-font-mono)",
-          }}
-        >
-          {t("home.heroLabel")}
-        </div>
-        <h1
-          data-testid="home-hero-title"
-          className="ei-text-display"
-          style={{ margin: 0, maxWidth: 820, textWrap: "balance" }}
-        >
-          {t("home.heroTitle")}
-        </h1>
-        {/* JD paste intake */}
-        <div
-          style={{
-            marginTop: 32,
-          }}
-        >
-          <div
-            style={{
-              color: "var(--ei-color-fg-tertiary)",
-              marginBottom: 8,
-              fontSize: 11,
-              fontWeight: 500,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              fontFamily: "var(--ei-font-mono)",
-            }}
-          >
-            {t("home.pasteSource")}
-          </div>
-          <div
-            data-testid="home-jd-input-card"
-            style={{
-              background: "var(--ei-color-bg-card)",
-              border: "1px solid var(--ei-color-rule-strong)",
-              borderRadius: 3,
-              padding: 20,
-            }}
-          >
-            <textarea
-              data-testid="home-jd-textarea"
-              aria-label={t("home.jdPlaceholder")}
-              placeholder={t("home.jdPlaceholder")}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              style={{
-                width: "100%",
-                minHeight: 120,
-                border: "none",
-                outline: "none",
-                resize: "vertical",
-                fontSize: 14.5,
-                lineHeight: 1.6,
-                color: "var(--ei-color-fg-primary)",
-                background: "transparent",
-                fontFamily: "var(--ei-font-sans)",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Resume selection and submit */}
-        <div
-          style={{
-            marginTop: 16,
-          }}
-        >
-          <div
-            style={{
-              color: "var(--ei-color-fg-tertiary)",
-              marginBottom: 8,
-              fontSize: 11,
-              fontWeight: 500,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              fontFamily: "var(--ei-font-mono)",
-            }}
-          >
-            {t("home.resumeSelect")}
-          </div>
-          <div
-            data-testid="home-resume-row"
-            style={{
-              display: "flex",
-              gap: 14,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
-            <select
-              data-testid="home-resume-select"
-              aria-label={t("home.resumeSelect")}
-              value={selectedResumeId}
-              disabled={resumesLoading || readyResumes.length === 0}
-              onChange={(event) => setSelectedResumeId(event.target.value)}
-              style={{
-                width: 360,
-                maxWidth: "100%",
-                flex: "0 1 360px",
-                boxSizing: "border-box",
-                minHeight: 42,
-                border: "1px solid var(--ei-color-rule-strong)",
-                borderRadius: 3,
-                background: "var(--ei-color-bg-card)",
-                color: "var(--ei-color-fg-primary)",
-                fontSize: 13.5,
-                fontFamily: "var(--ei-font-sans)",
-                padding: "0 12px",
-                outline: "none",
-                cursor:
-                  resumesLoading || readyResumes.length === 0
-                    ? "not-allowed"
-                    : "pointer",
-              }}
-            >
-              <option value="">
-                {resumesLoading
-                  ? t("home.resumeLoading")
-                  : t("home.resumeSelectPlaceholder")}
-              </option>
-              {readyResumes.map((resume) => (
-                <option
-                  key={resume.id}
-                  data-testid={`home-resume-option-${resume.id}`}
-                  value={resume.id}
-                >
-                  {`${resume.displayName || resume.title} · ${resumeMeta(resume)}`}
-                </option>
-              ))}
-            </select>
-            <button
-              data-testid="home-resume-create"
-              type="button"
-              onClick={() =>
-                openProtectedRoute(
-                  { name: "resume_versions", params: { flow: "create" } },
-                  t("home.resumeCreateLink"),
-                )
-              }
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "var(--ei-color-accent)",
-                fontSize: 13,
-                padding: 0,
-                cursor: "pointer",
-                fontWeight: 500,
-                minHeight: 42,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              {t("home.resumeCreateLink")}
-            </button>
-          </div>
-          {!resumesLoading && readyResumes.length === 0 && (
-            <div
-              data-testid="home-resume-empty"
-              style={{
-                marginTop: 8,
-                border: "1px dashed var(--ei-color-rule-strong)",
-                borderRadius: 3,
-                padding: "10px 12px",
-                color: "var(--ei-color-fg-tertiary)",
-                fontSize: 13,
-                maxWidth: 360,
-              }}
-            >
-              {resumeError ? t(resumeError) : t("home.resumeEmpty")}
-            </div>
-          )}
-          <div
-            data-testid="home-resume-selection-status"
-            style={{
-              marginTop: 8,
-              fontSize: 12.5,
-              color: selectedResume
-                ? "var(--ei-color-fg-secondary)"
-                : "var(--ei-color-fg-tertiary)",
-            }}
-          >
-            {selectedResume
-              ? `${t("home.resumeSelected")} · ${selectedResume.displayName || selectedResume.title}`
-              : t("home.resumeSelectHint")}
-          </div>
-          <div
-            data-testid="home-submit-row"
-            style={{
-              marginTop: 14,
-              display: "flex",
-            }}
-          >
-            <button
-              data-testid="home-jd-submit"
-              type="button"
-              disabled={!canSubmit}
-              onClick={handlePasteImport}
-              style={{
-                background: "var(--ei-color-accent)",
-                color: "#fff",
-                border: "1px solid var(--ei-color-accent)",
-                borderRadius: 2,
-                padding: "0 16px",
-                height: 38,
-                fontSize: 14,
-                fontWeight: 500,
-                cursor: canSubmit ? "pointer" : "not-allowed",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                opacity: canSubmit ? 1 : 0.5,
-                fontFamily: "var(--ei-sans)",
-                letterSpacing: "-0.005em",
-                transition: "transform .08s ease, opacity .15s",
-              }}
-            >
-              {t("home.importBtn")}
-              <svg
-                aria-hidden="true"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ flexShrink: 0, display: "inline-block", verticalAlign: "middle" }}
-              >
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </button>
-          </div>
-          {importError && (
-            <div
-              data-testid="home-import-error"
-              style={{
-                color: "var(--ei-color-danger)",
-                fontSize: 13,
-                marginTop: 10,
-              }}
-            >
-              {t(importError)}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Recent mock interviews */}
-      {showRecentMocks && (
-        <div data-testid="home-recent-mocks" style={{ marginBottom: 48 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-end",
-              marginBottom: 16,
-              gap: 20,
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  color: "var(--ei-color-fg-tertiary)",
-                  marginBottom: 8,
-                  fontSize: 11,
-                  fontWeight: 500,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  fontFamily: "var(--ei-font-mono)",
-                }}
-              >
-                RECENT
-              </div>
-              <div
-                style={{
-                  fontSize: 22,
-                  color: "var(--ei-color-fg-primary)",
-                  fontFamily: "var(--ei-font-serif)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {t("home.recentSection")}
-              </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: "var(--ei-color-fg-tertiary)",
-                  marginTop: 4,
-                }}
-              >
-                {t("home.recentSectionSub")}
-              </div>
-            </div>
-            {hasMoreRecentMocks && (
-              <button
-                data-testid="home-recent-more"
-                type="button"
-                onClick={() =>
-                  openProtectedRoute(
-                    { name: "workspace", params: {} },
-                    t("home.recentMore"),
-                  )
-                }
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--ei-color-accent)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  padding: 0,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {t("home.recentMore")}
-              </button>
-            )}
-          </div>
-          {loading ? (
-            <div className="ei-skeleton-stripe">
-              {t("home.recentSection")}...
-            </div>
-          ) : error ? (
-            <div
-              style={{
-                color: "var(--ei-color-danger)",
-                fontSize: 13,
-              }}
-            >
-              {t("home.errors.recentLoad")}
-            </div>
-          ) : jobs.length === 0 ? (
-            <div
-              style={{
-                background: "var(--ei-color-bg-soft)",
-                border: "1px solid var(--ei-color-rule-strong)",
-                borderRadius: 3,
-                padding: 32,
-                textAlign: "center",
-              }}
-            >
-              <p
-                style={{
-                  color: "var(--ei-color-fg-secondary)",
-                  fontSize: 14,
-                  margin: 0,
-                }}
-              >
-                {t("home.recentSection")}
+        data-testid={`route-${route.name}`}
+        data-route-name={route.name}
+        data-route-params={JSON.stringify(route.params)}
+        className="ei-screen-shell ei-home-screen"
+      >
+        <div className="ei-home-content">
+          <header className="ei-home-hero">
+            <div className="ei-home-hero-copy">
+              <h1 data-testid="home-hero-title" className="ei-home-hero-title">
+                <span>{t("home.heroTitleLead")}</span>{" "}
+                <span data-testid="home-hero-title-accent" className="ei-home-hero-title-accent">
+                  {t("home.heroTitleAccent")}
+                </span>
+              </h1>
+              <p data-testid="home-hero-sub" className="ei-home-hero-sub">
+                {t("home.heroSubtitle")}
               </p>
             </div>
-          ) : (
-            <div
-              data-testid="home-recent-mock-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 360px))",
-                justifyContent: "start",
-                gap: 16,
-              }}
-            >
-              {jobs.map((j) => (
-                <MockInterviewCard
-                  key={j.id}
-                  job={j}
-                  onClick={() => openRecentPlan(j)}
-                  primaryAction={{
-                    label: t("home.importBtn"),
-                    testId: `home-recent-mock-start-${j.id}`,
-                    onClick: () => startRecentInterview(j),
-                    disabled:
-                      startingRecentJobId === j.id ||
-                      !isTargetJobPracticeStartable(j),
-                  }}
-                />
-              ))}
+            <HomeHeroIllustration />
+          </header>
+
+          <div data-testid="home-jd-input-card" className="ei-home-intake-card">
+            <label className="ei-home-field-label" htmlFor="home-jd-textarea">
+              {t("home.pasteSource")}
+            </label>
+            <div className="ei-home-jd-frame">
+              <textarea
+                id="home-jd-textarea"
+                data-testid="home-jd-textarea"
+                className="ei-home-jd-textarea"
+                aria-label={t("home.jdPlaceholder")}
+                placeholder={t("home.jdPlaceholder")}
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+              />
+              <span data-testid="home-jd-counter" className="ei-home-jd-counter">
+                {utf8ByteLength(input)} / {contentLimits?.targetJobRawTextBytes ?? "—"}
+              </span>
             </div>
-          )}
-          {recentStartError ? (
-            <div
-              data-testid="home-recent-start-error"
-              style={{
-                color: "var(--ei-color-danger)",
-                fontSize: 13,
-                marginTop: 10,
-              }}
-            >
-              {t(recentStartError)}
+
+            <div className="ei-home-resume-action-row">
+              <div className="ei-home-resume-block">
+                <label className="ei-home-field-label" htmlFor="home-resume-select">
+                  {t("home.resumeSelect")}
+                </label>
+                <div data-testid="home-resume-row" className="ei-home-resume-row">
+                  <span className="ei-home-resume-select-wrap">
+                    <svg aria-hidden="true" className="ei-home-resume-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h5" />
+                    </svg>
+                    <select
+                      id="home-resume-select"
+                      data-testid="home-resume-select"
+                      className="ei-home-resume-select"
+                      aria-label={t("home.resumeSelect")}
+                      value={selectedResumeId}
+                      disabled={resumesLoading || readyResumes.length === 0}
+                      onChange={(event) => setSelectedResumeId(event.target.value)}
+                    >
+                      <option value="">
+                        {resumesLoading ? t("home.resumeLoading") : t("home.resumeSelectPlaceholder")}
+                      </option>
+                      {readyResumes.map((resume) => (
+                        <option
+                          key={resume.id}
+                          data-testid={`home-resume-option-${resume.id}`}
+                          value={resume.id}
+                        >
+                          {`${resume.displayName || resume.title} · ${resumeMeta(resume)}`}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
+                  <button
+                    data-testid="home-resume-create"
+                    type="button"
+                    className="ei-home-resume-create"
+                    onClick={() =>
+                      openProtectedRoute(
+                        { name: "resume_versions", params: { flow: "create" } },
+                        t("home.resumeCreateLink"),
+                      )
+                    }
+                  >
+                    {t("home.resumeCreateLink")}
+                  </button>
+                </div>
+                {!resumesLoading && readyResumes.length === 0 ? (
+                  <div data-testid="home-resume-empty" className="ei-home-resume-empty">
+                    {resumeError ? t(resumeError) : t("home.resumeEmpty")}
+                  </div>
+                ) : null}
+                <span data-testid="home-resume-selection-status" className="ei-home-visually-hidden">
+                  {selectedResume
+                    ? `${t("home.resumeSelected")} · ${selectedResume.displayName || selectedResume.title}`
+                    : t("home.resumeSelectHint")}
+                </span>
+              </div>
+
+              <div data-testid="home-submit-row" className="ei-home-submit-row">
+                <button
+                  data-testid="home-jd-submit"
+                  type="button"
+                  className="ei-home-submit"
+                  disabled={!canSubmit}
+                  onClick={handlePasteImport}
+                >
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l1.3 4.2L17.5 7.5l-4.2 1.3L12 13l-1.3-4.2-4.2-1.3 4.2-1.3L12 2zM18.5 13l.8 2.7 2.7.8-2.7.8-.8 2.7-.8-2.7-2.7-.8 2.7-.8.8-2.7z" />
+                  </svg>
+                  {t("home.importBtn")}
+                  <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </button>
+              </div>
             </div>
+
+            <div data-testid="home-privacy-notice" className="ei-home-privacy-notice">
+              <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3l7 3v5c0 4.5-2.7 8-7 10-4.3-2-7-5.5-7-10V6l7-3zM9 12l2 2 4-4" />
+              </svg>
+              {t("home.privacyNotice")}
+            </div>
+            {importError ? (
+              <div data-testid="home-import-error" className="ei-home-error">
+                {t(importError)}
+              </div>
+            ) : null}
+          </div>
+
+          {isAuthenticated ? (
+            <section data-testid="home-recent-mocks" className="ei-home-recent">
+              <header className="ei-home-recent-header">
+                <div>
+                  <h2>{t("home.recentSection")}</h2>
+                  <p>{t("home.recentSectionSub")}</p>
+                </div>
+                {jobs.length > 0 ? (
+                  <button
+                    data-testid="home-recent-more"
+                    type="button"
+                    className="ei-home-recent-more"
+                    onClick={() =>
+                      openProtectedRoute(
+                        { name: "workspace", params: {} },
+                        t("home.recentMore"),
+                      )
+                    }
+                  >
+                    {t("home.recentMore")}
+                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </button>
+                ) : null}
+              </header>
+              {loading ? (
+                <div className="ei-skeleton-stripe">{t("home.recentSection")}...</div>
+              ) : error ? (
+                <div className="ei-home-error">{t("home.errors.recentLoad")}</div>
+              ) : jobs.length === 0 ? (
+                <div className="ei-home-recent-empty">{t("home.recentSection")}</div>
+              ) : (
+                <div data-testid="home-recent-mock-grid" className="ei-home-recent-grid">
+                  {jobs.map((job) => (
+                    <MockInterviewCard
+                      key={job.id}
+                      job={job}
+                      presentation="home-record"
+                      onClick={() => openRecentPlan(job)}
+                      recentMeta={
+                        <span
+                          data-testid={`home-recent-mock-date-${job.id}`}
+                          className="ei-home-recent-date"
+                        >
+                          {t("home.recentLastUsed")} · {formatRecentDate(job.updatedAt, lang)}
+                        </span>
+                      }
+                      primaryAction={{
+                        label: t("home.recentContinue"),
+                        testId: `home-recent-mock-start-${job.id}`,
+                        onClick: () => startRecentInterview(job),
+                        disabled: startingRecentJobId === job.id || !isTargetJobPracticeStartable(job),
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              {recentStartError ? (
+                <div data-testid="home-recent-start-error" className="ei-home-error">
+                  {t(recentStartError)}
+                </div>
+              ) : null}
+            </section>
           ) : null}
         </div>
-      )}
       </section>
     </>
   );
