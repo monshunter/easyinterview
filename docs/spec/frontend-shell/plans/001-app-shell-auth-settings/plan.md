@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.39
+> **版本**: 1.40
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -49,7 +49,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 
 - **Plan 类型**: `feature-behavior` + `frontend` + `contract`。
 - **TDD 策略**: 本计划按 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 完成。focused Vitest / component / route-state test 只用于开发反馈；阶段完成由仓库根 `make test` 承接前后端全量单测。
-- **BDD 策略**: 既有 auth/settings behaviors 保持；`BDD.SHELL.SETTINGS.THEME.001` 覆盖主题预览与请求预算，新增 `BDD.SHELL.TOPBAR.IDENTITY.005` 覆盖语言 chevron 与用户名首字符设置入口。`E2E.P0.101` 保持真实主题保存、logout/relogin 恢复；账号删除与本次纯 shell 显示修订不新增 E2E。
+- **BDD 策略**: 既有 auth/settings behaviors 保持；`BDD.SHELL.SETTINGS.THEME.001` 覆盖主题预览、一级选项与 Save 固定主行、自定义二级展开和请求预算；`BDD.SHELL.TOPBAR.IDENTITY.005` 覆盖语言 chevron 与用户名首字符设置入口。`E2E.P0.101` 保持真实主题保存、logout/relogin 恢复；账号删除与本次纯 shell 显示修订不新增 E2E。
 
 ## 4 Operation Matrix
 
@@ -72,6 +72,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 - 默认打开 App 渲染 Home、三入口 TopBar、单一登录入口和显示控制；语言菜单有清晰开合 chevron；已登录时登录入口替换为从 runtime 用户名派生首字符的单一设置按钮。
 - Browser History URL、hash adapter 输入和 in-memory route 均进入同一 normalization / route store 合同。
 - 语言与暗色保持现有客户端显示合同；authenticated 主题由 bootstrap/auth recovery 的 `getMe` 恢复。普通 route 切换不得触发 `/me`；主题 slider 零请求，保存一次 `updateMe`，成功无 follow-up GET。
+- Settings Appearance 的 desktop 主操作行必须同时持有 Ocean / Plum / Custom 一级选项与 Save，选项靠左、Save 靠右；Custom hue/chroma 只在该行下方展开，切换前后 Save 的纵向位置不变。窄屏按同一 DOM 顺序安全换行且不得横向溢出。
 - 未登录用户触发受保护动作时进入 `auth_login(pendingAction)`；email-code 验证成功后先执行资料补全 gate，再恢复 safe route params。
 - Settings 无 tab，复用 runtime user 展示真实姓名/完整邮箱，不重复调用 `getMe`；完整邮箱不写入日志/场景证据；退出进入既有确认页，导出诚实显示暂不可用，删除账号覆盖确认、pending、失败重试，以及 `202` 后复用 `refreshAuth()` 重探测 `/me` 并回到 Home。
 - 面试业务 route 在 runtime auth loading / unauthenticated 状态下不挂载业务 screen，不调用受保护 API；Home 未登录态不请求账号记录。
@@ -189,10 +190,17 @@ GREEN 只在 `SettingsScreen` 增加明确的 theme editor 分组，并调整 `s
 
 `BDD.SHELL.TOPBAR.IDENTITY.005` 由 TopBar/App component、CSS responsive/a11y tests 与 current-run Chrome desktop 验收承接；验证中文用户名、语言菜单开合、设置直达、无横向溢出和零 browser error/warning，不新增 E2E ID。完成 focused、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 后收口本 Phase；Phase 15.3 仍保持独立未完成，主 plan 继续为 `active`。
 
+### Phase 23: Settings theme primary-row action anchoring
+
+先以 Settings component/visual RED 固定 DOM owner 与 CSS layout：Ocean / Plum / Custom 选项组和 Save 必须同属 `.ei-settings-theme-primary-row`，条件 Custom editor 与错误提示位于其后的正常文档流；旧的独立第三列 action 及跨整张 Appearance 内容垂直居中必须失败。GREEN 只重组 `SettingsScreen` 的主题区 DOM 与 page-scoped CSS；desktop 使用同一行左右分布，Custom 展开不会改变 Save 的 `top`/`bottom`，mobile 允许同一 primary row 内安全换行并保持 editor 在后，不改主题草稿、禁用态、单次 `updateMe`、错误恢复、runtime 同步或请求预算。
+
+`BDD.SHELL.SETTINGS.THEME.001` 原地扩展此布局行为。current-run Chrome 必须在 desktop 分别量测 preset 与 Custom 状态的 Save bbox 差值不超过 1px，并确认选项/Save 同一行、editor 严格位于下方；390px mobile 验证 DOM 顺序、可操作性和无横向溢出。完成 focused、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 后更新 BUG-0193 与既有复盘；Phase 15.3 仍保持独立未完成，主 plan 继续为 `active`。
+
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.40 | Reopen Phase 23 to anchor Save beside the first-level theme choices while the conditional custom editor expands only beneath that stable primary row. |
 | 2026-07-20 | 1.39 | Reopen Phase 22 to strengthen the language-menu chevron and derive the Settings entry mark from the authenticated display name without changing navigation or request budgets. |
 | 2026-07-20 | 1.38 | Reopen Phase 21 to redraw the Settings Header as the approved layered profile, chart, lock, shield and sparkle security illustration without changing account behavior. |
 | 2026-07-19 | 1.37 | Reopen Phase 20 for a shared screenshot-aligned asynchronous transition scene, persistent TopBar chrome and context-route navigation mapping. |

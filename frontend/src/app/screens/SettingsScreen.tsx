@@ -283,40 +283,45 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
             ),
           } as CSSProperties}
         >
-          <div className="ei-settings-theme-options" role="group" aria-label={t("settings.themeLabel")}>
-            {THEME_OPTIONS.map((theme) => {
-              const selected = prefs.theme === theme && prefs.customAccent == null;
-              const metadata = THEME_METADATA.find((item) => item.key === theme);
-              return (
-                <button
-                  key={theme}
-                  type="button"
-                  data-testid={`settings-theme-${theme}`}
-                  aria-pressed={selected}
-                  className={selected ? "ei-settings-theme-option ei-settings-theme-option--selected" : "ei-settings-theme-option"}
-                  onClick={() => {
-                    prefs.setTheme(theme);
-                    prefs.setCustomAccent(null);
-                    setThemeError(false);
-                  }}
-                >
-                  <span className="ei-settings-theme-swatch" style={{ background: metadata?.swatch }} aria-hidden="true" />
-                  {t(theme === "ocean" ? "theme.ocean" : "theme.plum")}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              data-testid="settings-theme-custom"
-              aria-pressed={prefs.customAccent != null}
-              className={prefs.customAccent != null ? "ei-settings-theme-option ei-settings-theme-option--selected" : "ei-settings-theme-option"}
-              onClick={() => {
-                prefs.setCustomAccent(prefs.customAccent ?? { ...CUSTOM_ACCENT_SEEDS[prefs.theme] });
-                setThemeError(false);
-              }}
-            >
-              <span className="ei-settings-theme-swatch ei-settings-theme-swatch--custom" aria-hidden="true" />
-              {t("settings.themeCustom")}
+          <div data-testid="settings-theme-primary-row" className="ei-settings-theme-primary-row">
+            <div className="ei-settings-theme-options" role="group" aria-label={t("settings.themeLabel")}>
+              {THEME_OPTIONS.map((theme) => {
+                const selected = prefs.theme === theme && prefs.customAccent == null;
+                const metadata = THEME_METADATA.find((item) => item.key === theme);
+                return (
+                  <button
+                    key={theme}
+                    type="button"
+                    data-testid={`settings-theme-${theme}`}
+                    aria-pressed={selected}
+                    className={selected ? "ei-settings-theme-option ei-settings-theme-option--selected" : "ei-settings-theme-option"}
+                    onClick={() => {
+                      prefs.setTheme(theme);
+                      prefs.setCustomAccent(null);
+                      setThemeError(false);
+                    }}
+                  >
+                    <span className="ei-settings-theme-swatch" style={{ background: metadata?.swatch }} aria-hidden="true" />
+                    {t(theme === "ocean" ? "theme.ocean" : "theme.plum")}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                data-testid="settings-theme-custom"
+                aria-pressed={prefs.customAccent != null}
+                className={prefs.customAccent != null ? "ei-settings-theme-option ei-settings-theme-option--selected" : "ei-settings-theme-option"}
+                onClick={() => {
+                  prefs.setCustomAccent(prefs.customAccent ?? { ...CUSTOM_ACCENT_SEEDS[prefs.theme] });
+                  setThemeError(false);
+                }}
+              >
+                <span className="ei-settings-theme-swatch ei-settings-theme-swatch--custom" aria-hidden="true" />
+                {t("settings.themeCustom")}
+              </button>
+            </div>
+            <button type="button" data-testid="settings-theme-save" className="ei-settings-primary-action" disabled={!user || !themeDirty || themePending} onClick={() => void saveTheme()}>
+              {themePending ? t("settings.themeSaving") : t("settings.themeSave")}
             </button>
           </div>
           {prefs.customAccent ? (
@@ -350,11 +355,6 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
             </div>
           ) : null}
           {themeError ? <p role="alert" className="ei-settings-theme-error ei-text-body">{t("settings.themeSaveError")}</p> : null}
-        </div>
-        <div className="ei-settings-actions">
-          <button type="button" data-testid="settings-theme-save" className="ei-settings-primary-action" disabled={!user || !themeDirty || themePending} onClick={() => void saveTheme()}>
-            {themePending ? t("settings.themeSaving") : t("settings.themeSave")}
-          </button>
         </div>
         </div>
       </section>

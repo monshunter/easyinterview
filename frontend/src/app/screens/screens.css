@@ -4270,7 +4270,7 @@
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr) auto;
   column-gap: 26px;
-  align-items: center;
+  align-items: start;
 }
 
 [data-testid="settings-appearance"] {
@@ -4283,17 +4283,12 @@
 }
 
 [data-testid="settings-appearance"] .ei-settings-theme-editor {
-  grid-column: 2;
+  grid-column: 2 / 4;
   grid-row: 1 / span 2;
   min-width: 0;
   display: grid;
   gap: 14px;
-  align-content: center;
-}
-
-[data-testid="settings-appearance"] .ei-settings-actions {
-  grid-column: 3;
-  grid-row: 1 / span 2;
+  align-content: start;
 }
 
 [data-testid="settings-account"] .ei-settings-card-body {
@@ -4377,6 +4372,15 @@
 .ei-settings-appearance-copy {
   margin: 0;
   color: var(--ei-color-fg-secondary);
+}
+
+.ei-settings-theme-primary-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 24px;
 }
 
 .ei-settings-theme-options {
@@ -4635,6 +4639,14 @@
 
   .ei-settings-theme-options,
   .ei-settings-theme-option {
+    width: 100%;
+  }
+
+  .ei-settings-theme-primary-row {
+    align-items: stretch;
+  }
+
+  .ei-settings-theme-primary-row .ei-settings-primary-action {
     width: 100%;
   }
 

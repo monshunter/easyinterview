@@ -228,9 +228,15 @@ describe("screens.css visual rhythm (Phase 5.1 + 5.2)", () => {
 
   it("stacks the custom theme editor below persistent choices with informative color tracks", () => {
     expect(css).toMatch(
-      /\[data-testid="settings-appearance"\]\s+\.ei-settings-theme-editor\s*\{[^}]*grid-column:\s*2[^}]*grid-row:\s*1\s*\/\s*span\s*2/,
+      /\[data-testid="settings-appearance"\]\s+\.ei-settings-theme-editor\s*\{[^}]*grid-column:\s*2\s*\/\s*4[^}]*grid-row:\s*1\s*\/\s*span\s*2/,
     );
     expect(css).toMatch(/\.ei-settings-theme-editor\s*\{[^}]*display:\s*grid[^}]*gap:/);
+    expect(css).toMatch(
+      /\.ei-settings-theme-primary-row\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*justify-content:\s*space-between/,
+    );
+    expect(css).not.toMatch(
+      /\[data-testid="settings-appearance"\]\s+\.ei-settings-actions\s*\{/,
+    );
     expect(css).not.toMatch(
       /\.ei-settings-theme-options,\s*\n\[data-testid="settings-appearance"\]\s+\.ei-settings-custom-accent/,
     );

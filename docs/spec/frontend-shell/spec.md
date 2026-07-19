@@ -1,6 +1,6 @@
 # Frontend Shell Spec
 
-> **版本**: 1.43
+> **版本**: 1.44
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -108,7 +108,7 @@
 | C-11 | Reports deep link | 用户直开/刷新 `/reports?targetJobId=<uuid>`，或未登录后完成鉴权 | route normalize / history / pendingAction restore | 仅合法 targetJobId 被保留并进入受保护 ReportsScreen；缺失/非法 target 以 replace-only 回 workspace 且不形成 Back 循环；chrome visible、TopBar 无报告入口；旧 `section` 与 report/status/round 等 query 被剔除 | 004-url-addressable-routing |
 | C-12 | StrictMode safe-read 去重 | AppRuntimeProvider 或 Home/Parse/Workspace/Reports/Practice loader 在 StrictMode mount cycle 内发出同 key safe-read GET | 两个 caller 同时等待、settle 后重试、使用不同 `okStatuses`，或在任一语义写请求前/期间/settle 后读取 | 同时在途只产生一次底层 GET；settle 后重试产生新 GET；不同 client/query/header/okStatuses/epoch/auth、带 signal、非 GET 与 verify GET 均不合并；所有语义写请求 dispatch 前和 settle 后推进 read epoch，verify 成功另推进 auth/session epoch并真实刷新 | 001-app-shell-auth-settings |
 | C-13 | Parse/workspace route 分工 | TargetJob 为 queued/processing 或 ready | 打开 `/parse?targetJobId`、轮询转 ready、或打开 ready 卡片 | Parse 只在处理中展示进度；ready 使用 replace 进入 `/workspace?targetJobId`；无 target 的 workspace 仍为列表，详情不显示 Parse 动画 | 004-url-addressable-routing |
-| C-14 | Custom accent 两层选择器 | Settings Appearance 打开 | 用户选择 Custom、调整自定义色、再选择 Ocean / Plum 并保存 | 一级 Ocean / Plum / Custom 始终可见；二级 hue/chroma 仅在 Custom 激活时于下方展示且不覆盖一级；hue 轨道展示完整光谱，chroma 轨道跟随当前 hue 从低彩渐变到高彩；拖动零请求；保存一次账号更新；选择预定义主题退出 custom accent 并隐藏二级编辑器 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
+| C-14 | Custom accent 两层选择器 | Settings Appearance 打开 | 用户选择 Custom、调整自定义色、再选择 Ocean / Plum 并保存 | 一级 Ocean / Plum / Custom 与 Save 组成固定主操作行：选项在左、Save 在右，Custom 展开/收起不得改变 Save 的纵向位置；二级 hue/chroma 仅在 Custom 激活时于主操作行下方展示且不覆盖一级；hue 轨道展示完整光谱，chroma 轨道跟随当前 hue 从低彩渐变到高彩；拖动零请求；保存一次账号更新；选择预定义主题退出 custom accent 并隐藏二级编辑器 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
 | C-15 | Settings 真实数据与隐私动作 | authenticated runtime 已取得 `/me` | 打开设置、查看导出状态、退出或删除账号 | 只显示真实 `displayName/email`，其中 email 完整显示但不进入 PASS/FAIL 日志或证据；不重复 `getMe`；导出显示暂不可用；删除流程具备确认/pending/failure/202 success；默认 fixture client 在删除后也返回 unauthenticated，且旧 tab/block/字段零引用 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
 | C-16 | Auth route gate 本地化 | 中文或英文显示偏好已生效，受保护 route 的 auth probe 为 loading/error | App 挂载统一 route gate 或用户切换语言 | eyebrow/title/body 全部跟随当前 locale，业务 screen/API 仍不提前挂载，中文模式无英文 fallback | 001-app-shell-auth-settings |
 | C-17 | Practice 全局 chrome | authenticated 用户进入 Practice | route render 与 desktop/mobile 响应式布局 | 全局 TopBar 保持可见，其下是独立 Practice Session Header；页面切换不触发 `/me` | 001-app-shell-auth-settings + frontend-workspace-and-practice/001 |
@@ -133,6 +133,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.44 | 2026-07-20 | Anchor Settings Save to the first-level theme selector in one desktop primary row, with the conditional custom editor isolated below so disclosure never shifts the action. |
 | 1.43 | 2026-07-20 | Standardize framed rectangular and square actions on an 8px semantic control radius while preserving circular, pill, borderless-link and non-button surfaces. |
 | 1.42 | 2026-07-20 | Make the language dropdown chevron explicit and derive the single Settings entry mark from the authenticated display name without adding account requests or menus. |
 | 1.41 | 2026-07-20 | Tighten the Settings Header art contract to the approved layered profile, chart, lock, shield and sparkle composition while preserving theme-aware decorative semantics. |

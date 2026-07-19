@@ -119,11 +119,16 @@ describe("Settings account and privacy contract", () => {
     await user.click(screen.getByTestId("settings-theme-custom"));
 
     const editor = screen.getByTestId("settings-theme-editor");
+    const primaryRow = screen.getByTestId("settings-theme-primary-row");
     const options = screen.getByRole("group", { name: "Choose a theme color" });
+    const save = screen.getByTestId("settings-theme-save");
     const customPanel = screen.getByTestId("settings-custom-accent");
     expect(editor).toContainElement(options);
     expect(editor).toContainElement(customPanel);
-    expect(options.compareDocumentPosition(customPanel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(primaryRow).toContainElement(options);
+    expect(primaryRow).toContainElement(save);
+    expect(primaryRow).not.toContainElement(customPanel);
+    expect(primaryRow.compareDocumentPosition(customPanel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     for (const theme of ["ocean", "plum", "custom"]) {
       expect(screen.getByTestId(`settings-theme-${theme}`)).toBeVisible();
     }

@@ -2,6 +2,7 @@
 
 > **日期**: 2026-07-19
 > **审查人**: Codex
+> **补充复盘**: 2026-07-20
 
 ## 1 复盘范围与成功证据
 
@@ -10,6 +11,8 @@
 - RED 为 Settings behavior/visual focused `2 failed, 23 passed`；GREEN 为 `25/25`，并证明预定义主题回退保持零网络请求。
 - `npm run typecheck`、production build、frontend redeploy、本地依赖 readiness 4/4 和根 `make test` 通过；根回归为 Python 615 tests / 4615 subtests、Go 全包和 frontend 全量。
 - Chrome 在真实本地 Settings 页完成 `1440×900` 与 `390×844` 验收：一级三个按钮始终可见，Custom 面板严格位于下方，Custom -> Ocean -> Custom 可逆，hue/chroma 渐变与键盘 slider 联动正确，两档均无横向溢出或 browser error/warning。
+- 2026-07-20 follow-up 修复了保存动作的剩余布局漂移：options 与 Save 现在同属固定 primary row；focused RED 为 2 failed / 24 passed，GREEN 为 26/26，主题相关回归 34/34、typecheck/build、根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 135 files / 1091 tests）和环境 readiness 4/4 通过。
+- Chrome follow-up 在 `1440×900` 量得 preset/custom 两态 Save 的 `top=341`、`bottom=385`，纵向差值为 `0px`；Custom panel 从 `top=399` 开始。`390×844` 下顺序、可逆切换与无横向溢出通过，browser warning/error 为 0。
 
 ## 2 会话中的主要阻点/痛点
 
@@ -22,16 +25,23 @@
 - 原生 range 灰色轨道虽然功能正确，但无法传达 hue/chroma 两个维度。
   - **证据**：用户补充全色彩参考；旧 CSS 只有 `accent-color`，轨道本身没有完整 hue 或当前 hue 下的 chroma 信息。
   - **影响**：用户需要试错才能理解拖动方向，视觉实现没有充分承接控件语义。
+- Phase 19 把一级选项与二级编辑器归入同一 owner，但仍让 Save 独立跨两行垂直居中。
+  - **证据**：旧 CSS 的 Appearance action 使用 `grid-row: 1 / span 2`；Chrome 参考图中 Custom 展开后按钮随 editor 总高度向下偏移。
+  - **影响**：一级/二级层级已正确，却仍产生动作锚点跳动，说明同一交互层级的 owner 不完整。
 
 ## 3 根因归类
 
 - 条件二级内容与一级选择器共享 grid area，且缺少展开态结构/bbox gate，属于 `spec/plan`；本轮已在 frontend-shell spec、UI design、Phase 19 与 BDD 原地补齐。
 - jsdom 不执行真实布局属于测试工具边界，类别为 `no repo change needed`；解决方式是把 source contract 与 current-run Chrome bbox/interaction 结合，而不是把更多视觉结论塞进 DOM 单测。
 - 色条信息表达不足属于当前 UI design 细节缺口，类别为 `spec/plan`；本轮已将完整 hue 与 hue-aware chroma 写入 owner 合同和 executable CSS gate。
+- Save 与条件 editor 的纵向耦合属于 `spec/plan`；follow-up 已把“一级选项 + Save 固定主行、editor 下方展开、bbox 差值不超过 1px”写入 Phase 23、BDD 与 UI design。
 
 ## 4 对流程资产的改进建议
 
 - 对所有“一级选择 + 条件二级编辑”组件，在 owner plan 中固定常驻/挂载关系、正常文档流和可逆点击路径；展开态必须是 Chrome 验收状态之一。
+  - **落点**：相关 UI owner 的 spec/plan/BDD
+  - **优先级**：high
+- 对含条件二级内容的操作区，不只检查“一级是否可见”，还要把同层主动作纳入共同 owner，并量测 collapsed/expanded 两态的稳定锚点。
   - **落点**：相关 UI owner 的 spec/plan/BDD
   - **优先级**：high
 - 视觉验收遇到 grid/flex 条件内容时，component test 负责 DOM/状态，source test 负责禁止共享覆盖区域，Chrome 负责 bbox、可点击性和 overflow；三类证据不可互相替代。
