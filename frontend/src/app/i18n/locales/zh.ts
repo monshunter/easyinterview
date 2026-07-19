@@ -190,6 +190,7 @@ export const zh = {
   "workspace.planList.emptyTitle": "还没有面试规划",
   "workspace.planList.emptyDesc": "先到首页导入一份目标 JD，系统会为你创建面试规划。",
   "workspace.planList.start": "开始模拟面试",
+  "workspace.planList.lastSaved": "上次保存",
   "workspace.planList.delete": "删除",
   "workspace.planList.deleteAuthError": "请先登录，再删除面试规划。",
   "workspace.errors.retry": "重试",

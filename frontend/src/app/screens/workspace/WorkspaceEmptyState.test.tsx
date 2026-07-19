@@ -151,22 +151,19 @@ describe("WorkspaceEmptyState", () => {
       expect(screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
     });
     const planCard = screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000");
-    expect(planCard).toBeDefined();
-    expect((planCard as HTMLElement).style.background).toBe("var(--ei-color-bg-card)");
-    expect((planCard as HTMLElement).style.border).toBe("1px solid var(--ei-color-rule-strong)");
-    expect((planCard as HTMLElement).style.padding).toBe("20px");
-    expect((planCard as HTMLElement).style.position).toBe("relative");
+    expect(planCard).toHaveClass("ei-workspace-card");
+    expect(planCard).toHaveAttribute("data-presentation", "workspace-card");
+    expect(planCard).toHaveAttribute("role", "button");
+    expect(planCard).toHaveAttribute("tabindex", "0");
     expect(within(planCard).queryByText(/URL import|Manual input|ZH-CN/i)).toBeNull();
     const rail = screen.getByTestId("workspace-plan-list-rail-01918fa0-0000-7000-8000-000000002000");
     expect(rail).toHaveTextContent("Frontend architecture screen · 45m");
     expect(rail).toHaveTextContent("Hiring manager impact interview · 50m");
     expect(screen.getByTestId("workspace-plan-list-card-body-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
     const cardFooter = screen.getByTestId("workspace-plan-list-card-footer-01918fa0-0000-7000-8000-000000002000");
-    expect(cardFooter).toBeDefined();
-    expect((cardFooter as HTMLElement).style.borderTop).toBe("1px solid var(--ei-color-rule-strong)");
-    expect((cardFooter as HTMLElement).style.background).toBe("var(--ei-color-bg-card)");
-    expect((cardFooter as HTMLElement).style.justifyContent).toBe("flex-end");
+    expect(cardFooter).toHaveClass("ei-workspace-card-footer");
     expect(cardFooter).toHaveTextContent("Start mock interview");
+    expect(cardFooter).toHaveTextContent("Last saved");
     expect(cardFooter).not.toHaveTextContent("Open plan");
     expect(
       cardFooter.querySelector(
@@ -177,12 +174,10 @@ describe("WorkspaceEmptyState", () => {
       screen.queryByTestId("workspace-plan-list-open-01918fa0-0000-7000-8000-000000002000"),
     ).toBeNull();
     const startButton = screen.getByTestId("workspace-plan-list-start-01918fa0-0000-7000-8000-000000002000");
-    expect((startButton as HTMLElement).style.background).toBe("var(--ei-color-accent)");
-    expect((startButton as HTMLElement).style.border).toBe("1px solid var(--ei-color-accent)");
+    expect(startButton).toHaveClass("ei-workspace-card-primary");
     const deleteButton = screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000");
     expect(deleteButton).toHaveAttribute("aria-label", "Delete");
-    expect((deleteButton as HTMLElement).style.position).toBe("absolute");
-    expect((deleteButton as HTMLElement).style.right).toBe("14px");
+    expect(deleteButton).toHaveClass("ei-workspace-card-delete");
     expect(deleteButton.querySelector('[data-icon="trash"]')).not.toBeNull();
   });
 

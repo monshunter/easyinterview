@@ -31,15 +31,26 @@ describe("Resume Workshop source-level CSS parity", () => {
     }
   });
 
-  it("locks key values transcribed from the resume workshop prototype source", () => {
+  it("locks key values transcribed from the supplied resume-list reference", () => {
     const source = css();
-    expect(source).toContain("max-width: 1320px");
-    expect(source).toContain("padding: 40px 48px 96px");
-    expect(source).toContain(
-      "grid-template-columns: repeat(auto-fill, minmax(300px, 360px))",
+    expect(source).toMatch(
+      /\.ei-screen-shell\[data-testid="resume-workshop-screen"\]\[data-flow="list"\]\s*\{[^}]*max-width:\s*1408px[^}]*padding:\s*50px 0 96px/s,
     );
-    expect(source).toContain("justify-content: start");
-    expect(source).toContain("border-radius: 2px");
+    expect(source).toMatch(
+      /\.ei-resume-workshop-card-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)[^}]*gap:\s*28px/s,
+    );
+    expect(source).toMatch(
+      /\.ei-resume-workshop-card\s*\{[^}]*min-height:\s*384px[^}]*padding:\s*28px[^}]*border-radius:\s*12px/s,
+    );
+    expect(source).toMatch(
+      /\.ei-resume-workshop-create\s*\{[^}]*height:\s*64px/s,
+    );
+    expect(source).toMatch(
+      /\.ei-resume-workshop-card-open\s*\{[^}]*min-width:\s*106px[^}]*height:\s*56px/s,
+    );
+    expect(source).not.toContain("repeat(auto-fill, minmax(300px, 360px))");
+    expect(source).not.toContain("grid-template-columns: minmax(0, 918px)");
+    expect(source).not.toContain(".ei-resume-workshop-lang-tag");
     expect(source).toContain("grid-template-columns: minmax(0, 860px)");
     expect(source).toContain("min-height: 720px");
     expect(source).toContain("box-shadow: 0 18px 50px rgba(30, 22, 15, 0.10)");
@@ -51,10 +62,10 @@ describe("Resume Workshop source-level CSS parity", () => {
     expect(source).not.toContain(".ei-resume-detail-preview-card--pdf");
   });
 
-  it("uses a fixed-width desktop grid, a single mobile column and no table selectors", () => {
+  it("uses two equal desktop card columns, a full-width mobile column and no table selectors", () => {
     const source = css();
     expect(source).toMatch(
-      /\.ei-resume-workshop-card-grid\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(auto-fill, minmax\(300px, 360px\)\)[^}]*justify-content:\s*start/s,
+      /\.ei-resume-workshop-card-grid\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/s,
     );
     expect(source).toMatch(
       /@media\s*\(max-width:\s*700px\)[\s\S]*?\.ei-resume-workshop-card-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/,

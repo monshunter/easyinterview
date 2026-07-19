@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 3.9
+> **版本**: 4.1
 > **状态**: completed
-> **更新日期**: 2026-07-15
+> **更新日期**: 2026-07-19
 
 **关联计划**: [plan](./plan.md)
 
@@ -110,7 +110,15 @@
 - [x] 21.2 GREEN：`useResume` 区分首次读取与已有 pending data 的后台轮询，后者保留等待态直到终态原子替换；同时移除图标循环缩放，保留 opacity/box-shadow 动画，并补 `prefers-reduced-motion: reduce`。（验证：focused CSS/component 17 tests PASS，frontend typecheck PASS）
 - [x] 21.3 REGRESSION：真实 Chrome 连续 40 次/50ms 采样覆盖多个 250ms poll，解析等待态 40/40、通用 loading 闪现 0 次；10 帧 geometry 采样中图标/标题/说明各只有 1 个唯一边界，computed transform 恒为 `none`；恢复合成 Resume 为 ready 后平滑进入详情。根 `make test` 通过 Python 584 tests/4583 subtests、Go 全包、frontend 126 files/1029 tests；owner context、docs/index/diff gates 单独执行。
 
+## Phase 22: Resume list reference alignment
+
+- [x] 22.1 RED：`ResumeListView.test.tsx` / `ResumeWorkshopCssParity.test.ts` 锁定标题区、desktop 每行两张等宽卡、与 Workspace 一致的 22px 圆圈加号、文件 icon、名称/摘要、meta、删除与 footer 层级，并拒绝 14px 裸加号、单列 918px 规则和语言 tag。（验证：用户补充双列后 focused Vitest 2 项 CSS 断言预期失败；图标补充断言以实际 `width=14` 预期失败）
+- [x] 22.2 GREEN：重构 `ResumeListView`、`ResumeWorkshopIcon` plus 几何与 `.ei-resume-workshop-*` scoped CSS；closed summary、排序、loading/empty/error/pagination、create/open/archive route/API 保持通过。（验证：create icon focused 8 tests PASS；此前双列修订 focused 16 tests 与 `npm run typecheck` PASS）
+- [x] 22.3 BDD-Gate: 完成 `BDD.RESUME.LIST.VISUAL.003` domain behavior evidence，不声明真实 E2E PASS。（验证：owner scope 24 files / 151 tests PASS；Chrome UI evidence 由 22.4 独立承接）
+- [x] 22.4 CHROME/REGRESSION：1916×821 下两张简历卡同排，分别 `x=254/972`、`width=690`、间距 28px；Resume/Workspace create icon 均实测为 22×22、`viewBox="0 0 24 24"`、`strokeWidth=1.8`、圆 `r=9` 与同一十字路径。390×844 下按钮和网格均为 358px 单列、icon 仍为 22×22、overflow 0；键盘 Enter、主题切换和 console 0 error 沿用本轮行为验收。截图保存于 `.test-output/list-ui-acceptance/`；focused 24 files / 151 tests、typecheck/build、根 `make test`（615 tests / 4615 subtests）、context/docs/index/diff gates 均通过后恢复 completed。
+
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.RESUME.READ.001` 由 [BDD checklist](./bdd-checklist.md) 关联 list/readonly-detail owner behavior tests；不创建或声明真实 E2E PASS。
 - [x] BDD-Gate: `BDD.RESUME.LIST.002` 由 [BDD checklist](./bdd-checklist.md) 关联 desktop/mobile 卡片列表、打开/删除与非表格语义行为；当前无真实 E2E owner，不把代码 gate 声明为 E2E PASS。
+- [x] BDD-Gate: `BDD.RESUME.LIST.VISUAL.003` 由 [BDD checklist](./bdd-checklist.md) 关联 desktop 双列等宽卡、打开/删除与 responsive 行为；current-run Chrome 只作 UI evidence。

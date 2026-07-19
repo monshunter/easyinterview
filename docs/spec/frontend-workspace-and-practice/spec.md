@@ -1,7 +1,7 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.49
-> **状态**: active
+> **版本**: 1.51
+> **状态**: completed
 > **更新日期**: 2026-07-19
 
 ## 1 背景与目标
@@ -16,6 +16,7 @@
 
 - `/workspace` 无 `targetJobId` 时渲染 ready TargetJob 规划卡片列表；`/workspace?targetJobId=<uuid>` 时通过 `getTargetJob` 渲染统一只读详情母版。
 - 卡片主体直接进入 workspace detail，右上角归档，底部只有 `立即面试`；已解析规划不得再经过 Parse 动画。
+- 列表视觉按 1916×821 参考稿收敛：TopBar 下方背景层必须覆盖完整 viewport 宽度和剩余高度，不能受居中内容最大宽度或 overflow 裁剪；desktop 内容层约 1508px，header 与 card grid 共享 1456px 右边界，“新建面试规划”按钮右侧必须与第二列卡片右侧对齐；规划卡使用两列等宽宽卡与 28px 间距，单卡保持同一列宽而不横跨整行。卡内依次为公司、岗位、轮次 rail、分隔线与“上次保存 + 开始模拟面试”footer。mobile 保持同一 DOM 顺序并收敛为单列，不横向溢出。
 - Workspace 只允许 `targetJobId` 详情 locator；不接受 `planId`、`resumeId`、auto-start 或业务事实，不拥有 Resume Picker、Plan Switcher 或 route-side start side effect。
 - 快速启动通过 generated `createPracticePlan` / `startPracticeSession` 创建或复用 plan，然后进入 `practice`。
 - Home 最近面试、Workspace 列表、Workspace 详情与 Report 复练/下一轮的启动请求必须共享同一个全屏面试准备过渡态。过渡态从用户触发有效启动后立即出现，覆盖并阻断原页面交互，直到成功导航 `practice` 或失败回到原入口错误；不得只禁用按钮、保留看似静止的页面，也不得伪造百分比、阶段完成或 opening message。
@@ -87,6 +88,7 @@
 | D-14 | Workspace detail round-state affordance | 详情卡片与列表 mini rail 消费同一 `practiceProgress`：`done/已进行`、`current/即将进行`、`pending/未进行` 使用三种背景、边框、可见标签与 `data-round-state`；无效投影中性 fail closed | 不新增 API/schema/前端状态机，不从 TargetJob lifecycle、URL 或 storage 猜测 |
 | D-15 | Practice text limits | `AppRuntimeProvider.contentLimits.practiceMessageBytes/practiceSessionTextBytes` 是唯一前端数据源，缺字段用 A4 同值 code default 32768/262144；`TextEncoder` 计算 bytes；backend error 可覆盖前端估算 | 删除 8,000-rune 本地真理源，保持 composer DOM/视觉不变并防止正常长回答误拒 |
 | D-16 | Workspace detail leading controls | 删除独立 Interview Launch/绑定简历 block；标题旁的“绑定简历”只按 `TargetJob.resumeId` 打开对应简历详情，标题下首行动作行左对齐“立即面试 + 面试报告”。缺绑定时 link 不可用且 Start fail closed，Report 仍按可信 target 可用 | 减少重复上下文块，把查看绑定、开始面试和查看报告前置到详情开头，同时保持 backend 事实源与 route 最小化 |
+| D-17 | Workspace list reference geometry | desktop 使用两列宽卡、宽松页面标题区和 52px 级删除触控区；卡片 footer 左侧显示 API `updatedAt` 派生的本地化“上次保存”，右侧保留唯一开始 CTA；mobile 单列 | 只改变正式前端信息层级和几何，不修改 route、API、归档、轮次或启动事实源 |
 
 ## 4 UI 设计文档与 parity
 
@@ -135,6 +137,8 @@
 
 ## 7 Layout
 
+- Workspace list desktop：页面背景层全宽且至少覆盖 TopBar 下方剩余 viewport；居中内容层最大宽度 1508px，header 和卡片网格最大宽度 1456px，标题组与新建 CTA 分列且 CTA 右侧与第二列卡片右侧对齐；规划卡两列等宽，卡片最小高度约 384px，round rail 在正文中部，footer 贴近卡片底部。单卡不得扩展为两列宽度。
+- Workspace list mobile：标题组、创建 CTA、规划卡和 footer actions 顺序堆叠；按钮与长公司/岗位/轮次名保持可见且 document 无横向溢出。
 - Desktop：Top Bar 下只有一个 conversation column；内容 max-width 居中，不留 260px sidebar 空白。
 - Mobile：单列，Top Bar controls wrap；Transcript 和 Composer 不横向溢出。
 - Transcript 独立滚动，Composer 保持在会话区底部。
@@ -164,6 +168,7 @@
 | C-18 | Practice byte boundaries | owner config provides message/session UTF-8 limits | submit / reload | 注入小型 boundary 验证 overflow zero send and draft recovery；backend remains authoritative；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文本或配置 E2E | 002 Phase 12 |
 | C-19 | 面试规划卡片元信息 | ready TargetJob 的 lifecycle status 为任意值，地点可能有值或缺失 | 查看 Home 最近面试或 Workspace 规划卡片 | 卡片不展示 lifecycle status 文案/徽标；有地点时展示真实值，缺失或空白时不渲染地点占位行；轮次 rail 仍表达真实训练进度 | 001 |
 | C-20 | 会话启动等待反馈 | 用户从 Home、Workspace 列表/详情或 Report 复练/下一轮发起有效面试，session opening LLM 请求持续未返回或失败 | 点击启动并等待 | 立即展示统一全屏、可访问、阻断交互且 reduced-motion 兼容的诚实过渡态；不伪造进度/opening；成功进入 `practice`，失败关闭过渡态并在原入口显示错误；API、route、idempotency 与持久化合同不变 | 001 |
+| C-21 | 面试列表参考稿还原 | desktop/mobile 打开 query-free Workspace，存在 1~N 个 ready TargetJob | 查看标题区、规划卡、轮次 rail 与 footer actions | 背景层覆盖 TopBar 下方完整 viewport，不在内容区右侧形成空白带；desktop 以参考稿的 1508px 内容区和双列宽卡呈现；mobile 单列；公司/岗位/进度/上次保存/删除/启动层级一致，卡片打开、归档和启动行为不回退，控制台无错误且无横向溢出 | 001 Phase 32 |
 
 ## 9 关联计划
 
@@ -183,6 +188,8 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.51 | 2026-07-19 | Require a full-viewport Workspace canvas and align the header CTA right edge with the two-column card grid. |
+| 1.50 | 2026-07-19 | 按提供的面试列表参考稿重开 Workspace list 视觉 owner：桌面双列宽卡、参考级标题与动作层级、上次保存 footer，并保留现有 route/API/启动/归档合同。 |
 | 1.49 | 2026-07-19 | Practice 恢复全局 App TopBar，并把会话控制栏明确为独立 Practice Session Header；route 切换零账号重复读取。 |
 | 1.48 | 2026-07-18 | Add a shared accessible pre-session launch transition across Home, Workspace detail/list, and Report replay/next-round entry points while preserving the existing start-session contract. |
 | 1.47 | 2026-07-17 | Remove lifecycle status and empty-location placeholders from shared Home/Workspace interview-plan cards while retaining real location values and persisted round progress. |

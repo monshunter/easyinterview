@@ -42,7 +42,12 @@ export const ResumeWorkshopIcon: FC<ResumeWorkshopIconProps> = ({
     chevronRight: <path d="M9 6l6 6-6 6" />,
     file: <path d="M7 3h8l4 4v14H7z M15 3v5h4" />,
     layers: <path d="M12 3l9 5-9 5-9-5 9-5z M3 12l9 5 9-5M3 16l9 5 9-5" />,
-    plus: <path d="M12 5v14M5 12h14" />,
+    plus: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 8v8M8 12h8" />
+      </>
+    ),
     resume: <path d="M7 3h8l4 4v14H7z M9 12h6M9 16h6M15 3v5h4" />,
     sparkle: <path d="M12 2l1.8 5.5L19 9l-5.2 1.5L12 16l-1.8-5.5L5 9l5.2-1.5z" />,
     trash: <path d="M4 7h16M10 11v6M14 11v6M6 7l1 14h10l1-14M9 7V4h6v3" />,

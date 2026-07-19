@@ -53,7 +53,10 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
   }
 
   return (
-    <section {...rootDataAttributes} className="ei-screen-shell">
+    <section
+      {...rootDataAttributes}
+      className="ei-screen-shell ei-resume-workshop-screen"
+    >
       {body}
     </section>
   );

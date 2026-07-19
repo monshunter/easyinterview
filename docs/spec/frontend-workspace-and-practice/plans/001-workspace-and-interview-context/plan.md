@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.47
+> **版本**: 1.49
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -23,6 +23,8 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 本次 v1.21 原地修订融合 Home 最近模拟面试与 workspace 面试列表卡片：workspace 卡片必须复用 Home recent card 的主体结构、公司、岗位、可选真实地点和 mini round rail。本次 v1.22 原地修订把列表卡片的 `进入规划` 可见 footer CTA 改为点击卡片主体承接，并增加 `立即面试` 主按钮和使用简历列表 trash 图标样式的删除能力；Home recent 复用同一卡片动作模型但不展示删除按钮。本次 v1.45 原地修订移除同一 `TargetJob.status` 的重复展示和空地点 `Location not set` 占位，真实地点仍按原层级展示。
 本次 v1.46 原地重开 Phase 30，修复共享 `startPracticeFromParams` 在等待 session opening LLM 时仅禁用入口按钮、页面看似卡死的实现漂移：四类正式入口必须共享同一全屏面试准备过渡态，并在成功/失败、可访问性与 reduced-motion 路径中一致收敛。
 本次 v1.47 原地重开 Phase 31：Practice 不再隐藏 App chrome；全局 TopBar 与独立 Practice Session Header 同时存在，并复用 frontend-shell 的内存 runtime/display context，route 切换零额外 `/me`。
+本次 v1.48 原地重开 Phase 32：按用户提供的 1916×821 面试列表参考稿重构 query-free Workspace 主体、双列宽卡、轮次 rail、footer 与响应式几何；共享 TopBar 维持 frontend-shell owner，业务 route、API、归档与启动合同不变。
+本次 v1.49 补充 Phase 32 背景覆盖与对齐修正：全视口页面背景与 1508px 居中内容必须拆分为两层，禁止背景伪元素被限宽容器的 overflow 裁剪后在右侧留下空白带；header 与 card grid 共享 1456px 右边界，使新建 CTA 与第二列卡片右侧对齐。
 本次 v1.38 原地修订收口结构化轮次目录与时长一致性：`TargetJob.summary.interviewRounds[]` 是轮次顺序和规划时长的唯一来源；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照，Practice Top Bar 从 plan 读取预算；报告下一轮只取有序列表的紧邻后一项，末轮、空/未知轮次、加载失败和重复点击 fail closed，不再使用固定 `25:00`、固定轮次表或默认回退。当前轮的持久化事实由 v1.39 `practiceProgress` 接管。
 本次 v1.39 按方案 A 把轮次进度事实收回后端：Home/Workspace/Parse/Report 只消费 `TargetJob.practiceProgress`，不再用 TargetJob lifecycle `status`、自由文本、时长或浏览器状态猜测当前轮；计划只按 exact round pair 复用，全部完成后启动 fail closed。
 
@@ -312,10 +314,30 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 从 shell no-chrome allowlist 删除 `practice`，保留 `generating`。`PracticeScreen` 上方渲染共享 App TopBar，其下现有公司/岗位/角色/计时/暂停/电话/结束控件明确作为 Practice Session Header；不复制导航、主题或账号状态。component/router tests 锁定全局与会话两层 header、TopBar 导航/设置可用、进入/离开 Practice 的 `/me` 请求增量为 0；desktop/mobile responsive 与 Chrome 截图证明关键动作可达且无 document overflow。
 
+### Phase 32: Interview plan-list reference alignment
+
+#### 32.1 RED：锁定参考稿页面级几何
+
+扩展 `WorkspaceScreen.test.tsx`、`MockInterviewCard.test.tsx` 与 `WorkspaceVisual.test.ts`，先要求全宽背景层 + 约 1508px desktop 内容层、header/grid 共享 1456px 右边界、两列等宽宽卡、公司/岗位/轮次 rail、上次保存 footer、52px 级删除触控区和参考级开始 CTA；旧 inline layout、360px 窄卡、CTA 右侧错位以及会裁剪全宽背景的单层容器合同必须先失败。
+
+#### 32.2 GREEN：重构 Workspace list 与 card presentation
+
+把 Workspace list 拆成全宽 `.ei-workspace-plan-list` 背景层和居中 `.ei-workspace-plan-inner` 内容层，并将 header/loading/error/empty/grid 从 inline style 收敛为 `.ei-workspace-*` 页面作用域；`MockInterviewCard` 的 Workspace presentation 改为参考稿的公司 icon、岗位标题、动态轮次 rail、分隔 footer 和本地化更新时间。保持卡片主体打开详情、右上角 `archiveTargetJob`、footer `startPracticeFromParams`、progress fail-closed 与 Home record presentation 不变。
+
+#### 32.3 BDD / A11Y / RESPONSIVE
+
+`BDD.WORKSPACE.LIST.VISUAL.006` 使用 Workspace/Card owner tests 验证可见层级与交互行为；desktop 1916×821 和 mobile 390×844 通过真实 Chrome bbox、screenshot、keyboard、theme、console 与 no-overflow 验收，不创建伪 E2E。
+
+#### 32.4 POST-PASS
+
+执行 focused Vitest、frontend typecheck/build、仓库根 `make test`、owner context、`sync-doc-index --check`、`make docs-check` 与 `git diff --check`；证据同步后恢复 completed lifecycle。
+
 ## 6 变更记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.49 | Keep the Workspace canvas full-viewport and align the header CTA with the card-grid right edge. |
+| 2026-07-19 | 1.48 | Reopen Phase 32 to align the Workspace plan-list body and wide-card geometry with the supplied desktop reference while preserving all runtime contracts. |
 | 2026-07-19 | 1.47 | Reopen Phase 31 so Practice retains the global App TopBar above its session header with zero route-level account refetch. |
 | 2026-07-18 | 1.46 | Reopen Phase 30 to add one shared accessible launch transition across every formal practice-session entry while the opening LLM request is pending. |
 | 2026-07-17 | 1.45 | Reopen Phase 29 to remove duplicated lifecycle status and empty-location placeholders from the shared interview-plan card. |

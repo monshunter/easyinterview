@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.18
+> **版本**: 2.20
 > **状态**: completed
-> **更新日期**: 2026-07-18
+> **更新日期**: 2026-07-19
 
 ## 1 背景与目标
 
@@ -11,7 +11,7 @@
 当前目标：
 
 1. **路由接管**：`resume_versions` route 渲染 `ResumeWorkshopScreen`，支持 list / create / detail 三类视图。
-2. **Flat Resume UI**：Resume 是平铺资产；列表使用响应式卡片网格，桌面固定最大列宽并左对齐、移动端单列；详情页是只读简历正文，上传 PDF 使用同源 source endpoint 渲染为从上到下平铺的 PDF 页面栈，粘贴、Markdown 文件和 TXT 文件使用 Markdown 渲染引擎；Markdown body 区域只渲染简历正文，不额外注入 `displayName`、header 名称、summary 或来源元数据；PDF 与 Markdown 使用统一阅读背景板和 page surface 节奏；不提供 preview / rewrites / edit tab、导出、复制、原件弹层、结构化草稿确认、PDF viewer 工具栏或二次编辑入口；所有前端数据投影都以 `resumeId` 识别简历。
+2. **Flat Resume UI**：Resume 是平铺资产；列表按当前确认的 desktop 规则每行排列两张等宽卡，mobile 占满可用内容宽度并收敛为单列；详情页是只读简历正文，上传 PDF 使用同源 source endpoint 渲染为从上到下平铺的 PDF 页面栈，粘贴、Markdown 文件和 TXT 文件使用 Markdown 渲染引擎；Markdown body 区域只渲染简历正文，不额外注入 `displayName`、header 名称、summary 或来源元数据；PDF 与 Markdown 使用统一阅读背景板和 page surface 节奏；不提供 preview / rewrites / edit tab、导出、复制、原件弹层、结构化草稿确认、PDF viewer 工具栏或二次编辑入口；所有前端数据投影都以 `resumeId` 识别简历。
 3. **CreateFlow**：`flow=create` 只提供 upload / paste 输入；upload 仅支持 PDF / Markdown / TXT；注册成功后进入 `resume_versions?resumeId=<id>` 的解析等待态，直到 backend parse 成功后展示来源格式自适应详情，或失败后展示可恢复失败态；CreateFlow 本身不渲染预览确认页或确认保存页。
 4. **真实 client 与 fixture fallback**：frontend 使用 generated client；列表只消费 closed `ResumeSummary`，详情才消费完整 `Resume`；real backend mode 与 fixture-backed dev path 都必须有测试护栏。
 5. **UI parity 可执行**：用户可见变更必须有 DOM anchor、computed style、bounding box、viewport screenshot smoke 或对应 owner gate。
@@ -24,7 +24,7 @@
 ### 2.1 In Scope
 
 - **Route shell**：`ResumeWorkshopScreen` 解析 `flow=create|list`、`resumeId` 和 `createMode=upload|paste`；out-of-scope `tab` / `tailorRunId` 参数被过滤或忽略，并与 app shell route / TopBar 状态一致。
-- **List view**：`ResumeListView` 只消费 `ResumeSummary` closed DTO，渲染响应式卡片网格、统计、唯一创建入口、详情入口和删除入口；卡片展示名称、摘要、来源、语言和最近编辑，底部保留“打开”，右上角保留删除；桌面固定最大列宽并左对齐，移动端单列。不得通过列表响应携带或读取详情正文、结构化档案、文件对象或审计时间字段；列表底部不再重复“上传或粘贴另一份简历”CTA。
+- **List view**：`ResumeListView` 只消费 `ResumeSummary` closed DTO，渲染 desktop 双列等宽卡片列表、唯一创建入口、详情入口和删除入口；Header “新建简历”使用与 Workspace “新建面试规划”一致的 22px 圆圈加号、线宽与图标间距；卡片展示文件 icon、名称、摘要、来源和最近编辑，底部右侧保留“打开”，右上角保留删除；mobile 占满可用宽度并收敛为单列。语言仍属于 closed summary，但不在参考稿列表卡片重复展示。不得通过列表响应携带或读取详情正文、结构化档案、文件对象或审计时间字段；列表底部不再重复“上传或粘贴另一份简历”CTA。
 - **Detail view**：`ResumeDetailView` 在 `queued/processing` 且正文快照为空时渲染解析等待态并轮询；`ready` 后根据来源格式展示 PDF 页面栈或 Markdown 正文；`failed` 且无可读正文时渲染失败态；`parsedTextSnapshot` / `originalText` 是 Markdown 渲染主要正文来源，结构化字段只能作为无原文时的降级兜底。
 - **Preview body**：`ResumePreviewTab` 作为只读正文投影，PDF 上传自动使用 source endpoint 的 PDF 页面栈 renderer，所有页面从上到下平铺展示，不使用浏览器内置 PDF viewer toolbar / sidebar / pagination controls；粘贴 / Markdown / TXT 自动使用 Markdown engine，body card 只包含 `parsedTextSnapshot` / `originalText` / fallback body 本身，不额外 prepend `displayName`、详情 header 名称、summary 或来源元数据；PDF 与 Markdown 共用阅读背景板，Markdown 正文也位于背景板内的白色 page surface；不渲染复制、导出、原件弹层、改写建议、结构化草稿确认或编辑控件。
 - **Create flow**：`ResumeCreateFlow` upload / paste 两路径；upload 只允许 `.pdf,.md,.markdown,.txt`；`createUploadPresign`、browser PUT、`registerResume` generated-client contract；upload 10MiB 与 paste 384KiB 默认边界从 `AppRuntimeProvider.contentLimits` 读取并按 UTF-8 bytes 本地校验，backend 仍作最终裁决；注册成功后导航到详情等待/终态页，不在创建流内 `getResume` 轮询或 `updateResume` 保存；右侧说明 rail 不再渲染。
@@ -64,7 +64,8 @@
 | D-13 | List/detail responsibility | `ResumeSummary` 字段集固定为 `id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt`；`originalText`、`parsedTextSnapshot`、`structuredProfile`、`fileObjectId`、`parsedSummary` object、`createdAt`、`deletedAt` 只属于详情或服务端内部，不得进入列表 item | 缩小列表 payload 与隐私面，避免一次列表读取传输所有简历正文和结构化详情 |
 | D-14 | StrictMode request identity | 相同 method + normalized URL/query + auth scope 且不带 `AbortSignal` 的并发初始 GET 共享一个 in-flight Promise；settled 后立即驱逐，reject 也必须驱逐；带 `AbortSignal` 的 loader/polling 不进入通用共享，业务轮询只在上一次请求 settle 后继续 | 保留 StrictMode 与合法重试/轮询语义，同时消除同一用户动作导致的重复实际 transport；不引入 TTL cache 或跨时间结果缓存 |
 | D-15 | CreateFlow content limits | 只消费 RuntimeConfig `resumeUploadBytes` / `resumePasteTextBytes`，缺 endpoint 字段时由 generated/runtime provider 使用 A4 同值 code default 10MiB/384KiB；按 `TextEncoder` UTF-8 bytes 判断；limit 接受、limit+1 不发 presign/register | 删除 2MiB 本地真理源并与 backend typed config 对齐；UI DOM/样式不变，只更新验证数据与错误文案 |
-| D-16 | List card layout | `ResumeListView` 使用语义化 list/card DOM，不再渲染 table/header/row；desktop 使用 `auto-fill` + 固定最大卡片列宽并 `justify-content:start`，mobile 使用同序单列；卡片不得因 1 张数据拉伸为整行宽块 | 复用面试规划卡片的响应式原则，在 PC 与移动端保持稳定规格和可扫描层级 |
+| D-16 | List card layout | `ResumeListView` 使用语义化 list/card DOM，不再渲染 table/header/row；desktop 在约 1408px 内容区内每行排列两张等宽卡，mobile 使用同序单列并占满可用宽度 | 以用户补充确认的双列规则在 PC 与移动端保持稳定、可扫描的信息层级 |
+| D-18 | List reference hierarchy | 页面标题区左侧显示“简历工坊 / 你的简历 / 说明”，右侧显示唯一“新建简历”；创建按钮使用与 Workspace 创建按钮相同的 22px circled-plus SVG；卡片 header 为 64px 文件 icon + 名称/摘要，右上角 60px 级删除控件；meta 与 footer 由规则线分隔，footer 仅右侧“打开” | 不修改 listResumes closed DTO、route、archiveResume 或 readonly detail 合同 |
 | D-17 | Parse waiting state stability | 首次详情请求才显示通用 loading；已有 queued/processing 数据后的后台轮询必须保留当前解析等待 DOM，禁止清空 `data` 或重新进入 loading。等待态的 56px 图标容器、SVG 与文案几何位置在动画周期内保持固定；禁止循环 `scale` / `translate`，只允许透明度或不参与布局的柔和光晕变化，并保留 reduced-motion 兼容 | 消除轮询期间“正在加载简历…”与“正在解析简历”整页交替闪现，以及边框/SVG 亚像素抖动，同时保留明确的首次加载和后台进行中反馈 |
 
 ## 4 设计约束
@@ -115,7 +116,7 @@
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | Route shell | Authenticated user opens `resume_versions` | Route renders | Resume Workshop shell appears and TopBar highlights resume nav | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
-| C-2 | List view | `listResumes` returns `ResumeSummary[]` | List loads | Responsive card grid, header create entrypoint, per-card open and top-right delete actions render; desktop card width stays stable and left-aligned, mobile is single-column, table/header/row semantics are absent; each card exposes only the locked summary fields, forbidden detail fields are absent, and duplicate bottom upload/paste CTA is absent | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
+| C-2 | List view | `listResumes` returns `ResumeSummary[]` | List loads | Header 唯一创建入口、每卡打开与右上角删除动作呈现；desktop 每行两张等宽卡，mobile 单列占满可用宽度，table/header/row 语义缺席；卡片只暴露锁定 summary 字段，不读取详情字段，不出现重复创建 CTA | [001 Phase 22](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-3 | Detail read-only | User opens a resume | Detail renders | Full `Resume` is fetched only through `getResume`; pending parse with no readable body shows a waiting state and polls sequentially without clearing prior data or flashing the generic loading state between requests; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; PDF and Markdown share the same reading backdrop and page-surface rhythm; failed with no readable body shows a failure state; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-4 | Create upload/paste | User selects valid file or enters text；owner config provides byte limits | Submit | 注入小型 boundary 验证 overflow inline rejection with zero presign/register；valid input navigates to waiting/detail；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文件或配置 E2E | [002 Phase 13](./plans/002-create-flow/plan.md) |
 | C-5 | Create paste | User enters text | Submit | Register completes and app navigates to the waiting/detail route; request title remains a neutral source title, and visible list/detail name comes from backend generated `displayName` after parse or extracted-text fallback, never from the raw first line or source filename/title fallback | [002](./plans/002-create-flow/plan.md) |
@@ -131,3 +132,10 @@
 
 - [001-listing-routing-and-detail-readonly](./plans/001-listing-routing-and-detail-readonly/plan.md)：route shell、list view、delete action、waiting/detail Markdown read-only body, display-name fallback and out-of-scope detail-action negative owner.
 - [002-create-flow](./plans/002-create-flow/plan.md)：current upload/paste CreateFlow input, RuntimeConfig 10MiB/384KiB validation, waiting/detail handoff, out-of-scope preview-confirm negative owner, CTA handoff, privacy and focused frontend tests.
+
+## 8 修订记录
+
+| 版本 | 日期 | 变更 |
+|------|------|------|
+| 2.20 | 2026-07-19 | Align the Resume create icon with the Workspace 22px circled-plus action while preserving all list behavior. |
+| 2.19 | 2026-07-19 | 按提供的简历列表参考稿锁定标题区、文件 icon、meta 分隔与 footer 动作层级，并根据用户补充将 desktop 明确为每行两张等宽卡；API/route/delete/detail 合同不变。 |

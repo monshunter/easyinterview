@@ -196,6 +196,7 @@ export const en: LocaleMessages = {
   "workspace.planList.emptyTitle": "No interview plans yet",
   "workspace.planList.emptyDesc": "Import a target JD from Home to create your first interview plan.",
   "workspace.planList.start": "Start mock interview",
+  "workspace.planList.lastSaved": "Last saved",
   "workspace.planList.delete": "Delete",
   "workspace.planList.deleteAuthError": "Sign in before deleting an interview plan.",
   "workspace.errors.retry": "Retry",

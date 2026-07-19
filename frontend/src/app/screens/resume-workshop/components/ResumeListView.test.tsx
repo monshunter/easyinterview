@@ -82,6 +82,16 @@ describe("ResumeListView default fixture rendering", () => {
       "Frontend platform engineer with product systems scope",
     );
     expect(
+      screen.getByTestId(`resume-list-card-${FIRST_ID}`).querySelector(
+        ".ei-resume-workshop-card-icon",
+      ),
+    ).not.toBeNull();
+    expect(
+      screen.getByTestId(`resume-list-card-${FIRST_ID}`).querySelector(
+        ".ei-resume-workshop-lang-tag",
+      ),
+    ).toBeNull();
+    expect(
       screen.getByTestId(`resume-list-open-${FIRST_ID}`),
     ).toHaveAccessibleName("打开 Alice Example - Senior Frontend Engineer");
     expect(
@@ -92,6 +102,14 @@ describe("ResumeListView default fixture rendering", () => {
     expect(screen.queryByTestId("resume-workshop-table")).not.toBeInTheDocument();
     expect(screen.getByTestId("resume-workshop-create")).toHaveTextContent(
       "新建简历",
+    );
+    const createIcon = screen
+      .getByTestId("resume-workshop-create")
+      .querySelector('svg[data-icon="plus"]');
+    expect(createIcon).toHaveAttribute("width", "22");
+    expect(createIcon?.querySelector("circle")).not.toBeNull();
+    expect(screen.getByTestId("resume-workshop-screen")).toHaveClass(
+      "ei-resume-workshop-screen",
     );
   });
 

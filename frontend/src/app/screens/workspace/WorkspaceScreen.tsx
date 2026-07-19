@@ -1,4 +1,4 @@
-import { useEffect, useState, type FC } from "react";
+import { useState, type FC } from "react";
 
 import type { TargetJob } from "../../../api/generated/types";
 import { generateIdempotencyKey } from "../../../lib/conventions/idempotency";
@@ -21,15 +21,19 @@ interface WorkspaceScreenProps {
 }
 
 export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route: _route }) => {
-  const workspaceListCompactLayout = useWorkspaceCompactLayout();
-  return <WorkspacePlanList compactLayout={workspaceListCompactLayout} />;
+  return <WorkspacePlanList />;
 };
 
-interface WorkspacePlanListProps {
-  compactLayout: boolean;
+export function formatWorkspaceSavedAt(value: string, lang: "zh" | "en"): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+  return new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en-US", {
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
 }
 
-const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
+const WorkspacePlanList: FC = () => {
   const { lang, t } = useI18n();
   const runtime = useAppRuntimeOptional();
   const { navigate } = useNavigation();
@@ -100,212 +104,134 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
   return (
     <>
       {startingJobId ? <PracticeLaunchTransition /> : null}
-      <div
-      data-testid="workspace-plan-list"
-      className="ei-fadein"
-      style={{
-        maxWidth: 1120,
-        margin: "0 auto",
-        padding: compactLayout ? "32px 16px 72px" : "48px 48px 96px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 24,
-          flexWrap: "wrap",
-          marginBottom: 28,
-        }}
+      <main
+        data-testid="workspace-plan-list"
+        className="ei-workspace-plan-list ei-fadein"
       >
-        <div style={{ maxWidth: 640 }}>
-          <div
-            data-testid="workspace-plan-list-eyebrow"
-            className="ei-label"
-            style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 8 }}
-          >
-            {t("workspace.planList.eyebrow")}
-          </div>
-          <h1
-            data-testid="workspace-plan-list-title"
-            className="ei-serif"
-            style={{
-              fontSize: compactLayout ? 30 : 40,
-              color: "var(--ei-color-fg-primary)",
-              margin: 0,
-              lineHeight: 1.14,
-            }}
-          >
-            {t("workspace.planList.title")}
-          </h1>
-          <div
-            data-testid="workspace-plan-list-subtitle"
-            style={{
-              fontSize: 14,
-              color: "var(--ei-color-fg-secondary)",
-              marginTop: 10,
-              lineHeight: 1.6,
-            }}
-          >
-            {t("workspace.planList.subtitle")}
-          </div>
-        </div>
-        <button
-          data-testid="workspace-plan-list-create"
-          type="button"
-          onClick={() => navigate({ name: "home", params: {} })}
-          style={{
-            height: 34,
-            padding: "0 16px",
-            fontSize: 13,
-            fontWeight: 500,
-            background: "var(--ei-color-accent)",
-            color: "#fff",
-            border: "1px solid var(--ei-color-accent)",
-            borderRadius: 2,
-            cursor: "pointer",
-            fontFamily: "var(--ei-sans)",
-          }}
+        <div
+          data-testid="workspace-plan-inner"
+          className="ei-workspace-plan-inner"
         >
-          {t("workspace.planList.create")}
-        </button>
-      </div>
+          <header className="ei-workspace-plan-header">
+            <div className="ei-workspace-plan-heading-copy">
+              <div
+                data-testid="workspace-plan-list-eyebrow"
+                className="ei-workspace-plan-eyebrow"
+              >
+                {t("workspace.planList.eyebrow")}
+              </div>
+              <h1
+                data-testid="workspace-plan-list-title"
+                className="ei-workspace-plan-title"
+              >
+                {t("workspace.planList.title")}
+              </h1>
+              <div
+                data-testid="workspace-plan-list-subtitle"
+                className="ei-workspace-plan-subtitle"
+              >
+                {t("workspace.planList.subtitle")}
+              </div>
+            </div>
+            <button
+              data-testid="workspace-plan-list-create"
+              type="button"
+              className="ei-workspace-plan-create"
+              onClick={() => navigate({ name: "home", params: {} })}
+            >
+              <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v8M8 12h8" />
+              </svg>
+              {t("workspace.planList.create")}
+            </button>
+          </header>
 
-      {loading ? (
-        <div
-          data-testid="workspace-plan-list-loading"
-          style={{
-            background: "var(--ei-color-bg-card)",
-            border: "1px solid var(--ei-color-rule-strong)",
-            borderRadius: 3,
-            padding: 24,
-            color: "var(--ei-color-fg-tertiary)",
-            fontSize: 13,
-          }}
-        >
-          {t("workspace.planList.loading")}
+          {loading ? (
+            <div
+              data-testid="workspace-plan-list-loading"
+              className="ei-workspace-plan-state"
+            >
+              {t("workspace.planList.loading")}
+            </div>
+          ) : error ? (
+            <div
+              data-testid="workspace-plan-list-error"
+              className="ei-workspace-plan-state"
+            >
+              {t("workspace.planList.error")}
+            </div>
+          ) : visibleJobs.length === 0 ? (
+            <div
+              data-testid="workspace-plan-list-empty"
+              className="ei-workspace-plan-state ei-workspace-plan-state-empty"
+            >
+              <div className="ei-workspace-plan-state-title">
+                {t("workspace.planList.emptyTitle")}
+              </div>
+              <div className="ei-workspace-plan-state-copy">
+                {t("workspace.planList.emptyDesc")}
+              </div>
+            </div>
+          ) : (
+            <div
+              data-testid="workspace-plan-list-grid"
+              className="ei-workspace-plan-grid"
+            >
+              {visibleJobs.map((job) => (
+                <MockInterviewCard
+                  key={job.id}
+                  job={job}
+                  onClick={() => openPlan(job)}
+                  cardTestId={`workspace-plan-list-card-${job.id}`}
+                  bodyTestId={`workspace-plan-list-card-body-${job.id}`}
+                  railTestId={`workspace-plan-list-rail-${job.id}`}
+                  footerTestId={`workspace-plan-list-card-footer-${job.id}`}
+                  footer={(
+                    <span className="ei-workspace-card-saved">
+                      <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 7v5l3.5 2" />
+                      </svg>
+                      {t("workspace.planList.lastSaved")}：{formatWorkspaceSavedAt(job.updatedAt, lang)}
+                    </span>
+                  )}
+                  primaryAction={{
+                    label: t("workspace.planList.start"),
+                    testId: `workspace-plan-list-start-${job.id}`,
+                    onClick: () => startInterview(job),
+                    disabled:
+                      startingJobId === job.id ||
+                      !isTargetJobPracticeStartable(job),
+                  }}
+                  deleteAction={{
+                    label: t("workspace.planList.delete"),
+                    testId: `workspace-plan-list-delete-${job.id}`,
+                    onClick: () => deletePlan(job),
+                    disabled: deletingJobId === job.id,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          {deleteError ? (
+            <div
+              data-testid="workspace-plan-list-delete-error"
+              className="ei-workspace-plan-error"
+            >
+              {t(deleteError)}
+            </div>
+          ) : null}
+          {startError ? (
+            <div
+              data-testid="workspace-plan-list-start-error"
+              className="ei-workspace-plan-error"
+            >
+              {t(startError)}
+            </div>
+          ) : null}
         </div>
-      ) : error ? (
-        <div
-          data-testid="workspace-plan-list-error"
-          style={{
-            background: "var(--ei-color-bg-card)",
-            border: "1px solid var(--ei-color-rule-strong)",
-            borderRadius: 3,
-            padding: 24,
-            color: "var(--ei-color-fg-tertiary)",
-            fontSize: 13,
-          }}
-        >
-          {t("workspace.planList.error")}
-        </div>
-      ) : visibleJobs.length === 0 ? (
-        <div
-          data-testid="workspace-plan-list-empty"
-          style={{
-            background: "var(--ei-color-bg-card)",
-            border: "1px solid var(--ei-color-rule-strong)",
-            borderRadius: 3,
-            padding: 32,
-            textAlign: "center",
-          }}
-        >
-          <div
-            className="ei-serif"
-            style={{ fontSize: 18, color: "var(--ei-color-fg-primary)", marginBottom: 10 }}
-          >
-            {t("workspace.planList.emptyTitle")}
-          </div>
-          <div style={{ fontSize: 13, color: "var(--ei-color-fg-tertiary)", lineHeight: 1.55 }}>
-            {t("workspace.planList.emptyDesc")}
-          </div>
-        </div>
-      ) : (
-        <div
-          data-testid="workspace-plan-list-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: compactLayout
-              ? "minmax(0, 1fr)"
-              : "repeat(auto-fill, minmax(300px, 360px))",
-            justifyContent: "start",
-            gap: 16,
-            alignItems: "stretch",
-          }}
-        >
-          {visibleJobs.map((job) => (
-            <MockInterviewCard
-              key={job.id}
-              job={job}
-              onClick={() => openPlan(job)}
-              cardTestId={`workspace-plan-list-card-${job.id}`}
-              bodyTestId={`workspace-plan-list-card-body-${job.id}`}
-              railTestId={`workspace-plan-list-rail-${job.id}`}
-              footerTestId={`workspace-plan-list-card-footer-${job.id}`}
-              primaryAction={{
-                label: t("workspace.planList.start"),
-                testId: `workspace-plan-list-start-${job.id}`,
-                onClick: () => startInterview(job),
-                disabled:
-                  startingJobId === job.id ||
-                  !isTargetJobPracticeStartable(job),
-              }}
-              deleteAction={{
-                label: t("workspace.planList.delete"),
-                testId: `workspace-plan-list-delete-${job.id}`,
-                onClick: () => deletePlan(job),
-                disabled: deletingJobId === job.id,
-              }}
-            />
-          ))}
-        </div>
-      )}
-      {deleteError ? (
-        <div
-          data-testid="workspace-plan-list-delete-error"
-          style={{
-            color: "var(--ei-color-danger)",
-            fontSize: 13,
-            marginTop: 12,
-          }}
-        >
-          {t(deleteError)}
-        </div>
-      ) : null}
-      {startError ? (
-        <div
-          data-testid="workspace-plan-list-start-error"
-          style={{
-            color: "var(--ei-color-danger)",
-            fontSize: 13,
-            marginTop: 12,
-          }}
-        >
-          {t(startError)}
-        </div>
-      ) : null}
-      </div>
+      </main>
     </>
   );
 };
-
-function useWorkspaceCompactLayout(): boolean {
-  const [compact, setCompact] = useState(() => {
-    if (typeof window === "undefined") return false;
-    if (typeof window.matchMedia !== "function") return false;
-    return window.matchMedia("(max-width: 720px)").matches;
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (typeof window.matchMedia !== "function") return;
-    const query = window.matchMedia("(max-width: 720px)");
-    const update = () => setCompact(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-
-  return compact;
-}

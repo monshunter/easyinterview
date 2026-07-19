@@ -1,8 +1,8 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.44
-> **状态**: active
-> **更新日期**: 2026-07-18
+> **版本**: 1.46
+> **状态**: completed
+> **更新日期**: 2026-07-19
 
 ## 1 文档目的
 
@@ -103,7 +103,7 @@
   点击立即面试 -> 全屏面试准备过渡态 -> start practice session
 ```
 
-一级 `面试` 入口不得默认展示“没有 JD 上下文”的死胡同；query-free `/workspace` 展示面试规划列表，列表候选来自当前 `listTargetJobs(analysisStatus=ready)` 契约。Workspace 列表继续以固定最大列宽卡片承载规划；Home recent 则以全宽横向 record 承载同一个公司/岗位、动态 mini round rail、最近使用时间和 quick-start 语义。两种 presentation 必须共用 TargetJob/round/progress/action mapper，但不要求视觉盒型相同；均不得展示 TargetJob lifecycle `status` 文案或空地点占位。Workspace 卡片底部追加 `立即面试` 主按钮，并把删除图标固定在卡片右上角。桌面端响应式多列，移动端单列；桌面端卡片列必须使用固定最大列宽，1 张、2 张或 3 张规划卡片的规格保持一致，不得因为 `auto-fit + 1fr` 拉伸成整行宽卡。卡片信息必须保持简洁，不得展示 `sourceType`、目标语言、`手动输入` 等导入元信息；解析失败、非 ready 或空标题 JD 不得显示。主体点击进入 `/workspace?targetJobId=...` 统一只读详情；`立即面试` 使用主题 accent 样式并直接启动 practice。首次导入主路径为 `Home 粘贴 JD -> 选择已有简历 -> POST import -> Parse queued/processing -> ready replace Workspace 详情 -> practice`；回访既有 ready 规划直接进入 Workspace 详情，不经过 Parse 动画。
+一级 `面试` 入口不得默认展示“没有 JD 上下文”的死胡同；query-free `/workspace` 展示面试规划列表，列表候选来自当前 `listTargetJobs(analysisStatus=ready)` 契约。Workspace list 按参考稿使用宽卡承载规划；Home recent 则以全宽横向 record 承载同一个公司/岗位、动态 mini round rail、最近使用时间和 quick-start 语义。两种 presentation 必须共用 TargetJob/round/progress/action mapper，但不要求视觉盒型相同；均不得展示 TargetJob lifecycle `status` 文案或空地点占位。Workspace 卡片底部左侧显示由 `updatedAt` 派生的本地化“上次保存”，右侧保留唯一 `开始模拟面试` 主按钮，删除图标固定在卡片右上角。页面背景层必须从 TopBar 下沿连续覆盖整个可视窗口宽度与剩余高度，不得被 1508px 内容容器或 `overflow` 裁剪；标题、按钮和卡片另由居中内容层约束。1916px desktop 内容区约 1508px，实际 header 与 card grid 共享 1456px 布局右边界，使“新建面试规划”按钮右侧与第二张卡片右侧精确对齐；卡片使用两列等宽宽卡与约 28px 列间距，1 张卡片仍保持单列宽度，mobile 收敛为同序单列。卡片信息必须保持简洁，不得展示 `sourceType`、目标语言、`手动输入` 等导入元信息；解析失败、非 ready 或空标题 JD 不得显示。主体点击进入 `/workspace?targetJobId=...` 统一只读详情；启动按钮使用主题 accent 样式并直接启动 practice。首次导入主路径为 `Home 粘贴 JD -> 选择已有简历 -> POST import -> Parse queued/processing -> ready replace Workspace 详情 -> practice`；回访既有 ready 规划直接进入 Workspace 详情，不经过 Parse 动画。
 
 ### 4.2 切换或新建规划
 
@@ -268,6 +268,8 @@ Resume
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.46 | 明确 Workspace 背景层全视口覆盖、内容层独立限宽，并让 header CTA 与双列卡片网格共享右边界；禁止背景裁剪空白带和按钮右侧错位。 |
+| 2026-07-19 | 1.45 | Workspace list 按提供的桌面参考稿改为 1508px 内容区、双列宽卡、上次保存 footer 与参考级动作几何；mobile 保持单列，业务 mapper/route/API 不变。 |
 | 2026-07-19 | 1.44 | Home 按桌面参考图重组为单一 intake card 与全宽横向 recent records；Workspace 仍保留固定列宽卡片，两者共用业务 mapper 而非强制同一盒型。 |
 | 2026-07-18 | 1.43 | 所有正式面试启动入口统一增加可访问、诚实且 reduced-motion 兼容的全屏面试准备过渡态；成功进入 Practice，失败回到原入口错误。 |
 | 2026-07-17 | 1.42 | 面试规划卡片移除重复且不可操作的 lifecycle status；地点缺失时不再显示 `Location not set` 占位。 |

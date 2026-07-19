@@ -263,7 +263,10 @@ describe("MockInterviewCard", () => {
 
     expect(
       screen.getByTestId("workspace-plan-list-card-job-001"),
-    ).toBeInTheDocument();
+    ).toHaveClass("ei-workspace-card");
+    expect(
+      screen.getByTestId("workspace-plan-list-card-job-001"),
+    ).toHaveAttribute("data-presentation", "workspace-card");
     expect(
       screen.getByTestId("workspace-plan-list-card-body-job-001"),
     ).toBeInTheDocument();
@@ -288,9 +291,7 @@ describe("MockInterviewCard", () => {
 
     const deleteButton = screen.getByTestId("workspace-plan-list-delete-job-001");
     expect(deleteButton).toHaveAttribute("aria-label", "Delete");
-    expect((deleteButton as HTMLElement).style.position).toBe("absolute");
-    expect((deleteButton as HTMLElement).style.right).toBe("14px");
-    expect((deleteButton as HTMLElement).style.top).toBe("14px");
+    expect(deleteButton).toHaveClass("ei-workspace-card-delete");
     expect(deleteButton.querySelector('[data-icon="trash"]')).not.toBeNull();
     deleteButton.click();
     expect(remove).toHaveBeenCalledTimes(1);

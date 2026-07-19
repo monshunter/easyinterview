@@ -157,7 +157,7 @@ describe("WorkspaceScreen route split", () => {
     expect(screen.queryByTestId("mistake-queue-entry")).toBeNull();
   });
 
-  it("keeps desktop plan cards on a stable fixed-width grid when only one card is present", async () => {
+  it("renders the reference-scoped desktop list and workspace card hierarchy", async () => {
     workspaceTargetJobsMock.result = {
       loading: false,
       jobs: [READY_TARGET_JOB],
@@ -178,19 +178,28 @@ describe("WorkspaceScreen route split", () => {
       "workspace-plan-list-rail-01918fa0-0000-7000-8000-000000002000",
     );
 
-    expect(grid.style.gridTemplateColumns).toContain("360px");
-    expect(grid.style.gridTemplateColumns).not.toContain("1fr");
-    expect(grid.style.justifyContent).toBe("start");
+    expect(screen.getByTestId("workspace-plan-list")).toHaveClass(
+      "ei-workspace-plan-list",
+    );
+    expect(screen.getByTestId("workspace-plan-inner")).toHaveClass(
+      "ei-workspace-plan-inner",
+    );
+    expect(grid).toHaveClass("ei-workspace-plan-grid");
+    expect(grid).not.toHaveAttribute("style");
     const card = screen.getByTestId(
       "workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000",
     );
-    expect((card as HTMLElement).style.position).toBe("relative");
+    expect(card).toHaveClass("ei-workspace-card");
+    expect(card).toHaveAttribute("data-presentation", "workspace-card");
+    expect(card).toHaveAttribute("role", "button");
+    expect(card).toHaveAttribute("tabindex", "0");
     expect(rail).toHaveTextContent("技术电话面 · 30m");
     expect(rail).toHaveTextContent("主管面 · 45m");
     const footer = screen.getByTestId(
       "workspace-plan-list-card-footer-01918fa0-0000-7000-8000-000000002000",
     );
     expect(footer).toHaveTextContent("Start mock interview");
+    expect(footer).toHaveTextContent("Last saved");
     expect(footer).not.toHaveTextContent("Open plan");
     expect(
       footer.querySelector(
@@ -206,8 +215,7 @@ describe("WorkspaceScreen route split", () => {
     const deleteButton = screen.getByTestId(
       "workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000",
     );
-    expect((deleteButton as HTMLElement).style.position).toBe("absolute");
-    expect((deleteButton as HTMLElement).style.right).toBe("14px");
+    expect(deleteButton).toHaveClass("ei-workspace-card-delete");
     expect(deleteButton.querySelector('[data-icon="trash"]')).not.toBeNull();
   });
 });

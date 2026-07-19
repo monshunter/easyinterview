@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.47
+> **版本**: 1.49
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -229,3 +229,10 @@
 - [x] 31.2 GREEN: 仅从 no-chrome allowlist 移除 `practice`；保留 `generating`，不复制 TopBar 或改动会话业务状态机。
 - [x] 31.3 PERFORMANCE/A11Y: 进入、离开和在 Practice 内交互的 `/me` 请求增量为 0；desktop/mobile 导航、设置齿轮、会话 CTA、焦点与 document no-overflow 通过。
 - [x] 31.4 BDD-Gate: 完成 `BDD.PRACTICE.GLOBAL_CHROME.005`；focused/root gates 与 current-run Chrome desktop/mobile 截图完成后恢复 completed。
+
+## Phase 32: Interview plan-list reference alignment
+
+- [x] 32.1 RED：`WorkspaceScreen.test.tsx` / `MockInterviewCard.test.tsx` / `WorkspaceVisual.test.ts` 锁定页面作用域、全宽背景与 1508px 内容分层、header/grid 共享 1456px 右边界、desktop 双列宽卡、公司/岗位/动态 rail、上次保存 footer、删除/启动层级，并拒绝 360px 窄卡、CTA 右侧错位、页面级 inline layout 与会裁剪背景的单层容器。（验证：初始 focused Vitest 4 项 Workspace 断言失败；背景与 CTA 对齐补充回归断言各 1 项预期失败）
+- [x] 32.2 GREEN：实现全视口 `.ei-workspace-plan-list` 背景层、居中 `.ei-workspace-plan-inner` 内容层、1456px header/grid 共用边界及 Workspace 专属 card presentation；保留 card open、generated archive、shared start、progress fail-closed、loading/empty/error 和 Home record 行为。（验证：背景/CTA 修正 focused Workspace CSS/component 7 tests PASS；此前 Workspace/Card/CSS 20 tests 与 `npm run typecheck` PASS）
+- [x] 32.3 BDD-Gate: 完成 `BDD.WORKSPACE.LIST.VISUAL.006` domain behavior evidence，不声明真实 E2E PASS。（验证：owner scope 24 files / 151 tests PASS；Chrome UI evidence 由 32.4 独立承接）
+- [x] 32.4 CHROME/REGRESSION：1916×821 下背景 `x=0/right=1916`、双列卡片 `714×384`、CTA/第二列卡片 `right=1660` 且差值 `0px`；2048×917 复核背景 `0→2048` 与右边界差值 `0px`；390×844 为 358px 单列且无 overflow。键盘打开、主题切换与 console 0 error 延续本轮验收；截图保存于 `.test-output/list-ui-acceptance/`。focused 24 files / 151 tests、typecheck/build、根 `make test`（615 tests / 4615 subtests）、context/docs/index/diff gates 均通过后恢复 completed。

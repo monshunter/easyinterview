@@ -8,11 +8,11 @@
 | [目标用户流程](./user-flow.md) | 2.32 | active | 2026-07-19 | 设置主题本地预览/单次保存/重登恢复；页面切换零重复 `/me`；其余核心流程保持 |
 | [目标模块地图](./module-map.md) | 2.22 | active | 2026-07-19 | 账号级 Appearance、圆形 E 设置入口、Practice 双层 header 与 Workspace/Reports 边界 |
 | [认证与默认入口](./auth-and-entry.md) | 1.28 | active | 2026-07-19 | 单一圆形 E 设置入口、账号主题、bootstrap 单次读取、设置页和 pendingAction 边界 |
-| [当前面试规划目标模块](./module-job-workspace.md) | 1.44 | active | 2026-07-19 | Home 单一 intake card、全宽 recent records 与 Workspace 固定列宽卡片的共享业务 mapper |
+| [当前面试规划目标模块](./module-job-workspace.md) | 1.45 | active | 2026-07-19 | Home 全宽 recent records；Workspace 参考稿双列宽卡与上次保存 footer，共用业务 mapper |
 | [模拟面试与报告目标模块](./module-practice-review.md) | 1.35 | active | 2026-07-19 | Practice 保留 global App TopBar，并在其下使用独立 Session Header 与全宽连续文本聊天 |
 | [报告仪表盘目标结构](./report-dashboard.md) | 1.41 | active | 2026-07-16 | reportId-only frozen detail、任意报告状态保留面试记录、failed recovery、desktop `4/2/2/2/1` 与 mobile 同序单列 |
-| [简历一级模块](./resume-module.md) | 3.7 | active | 2026-07-15 | 响应式简历卡片网格、desktop 固定最大列宽/mobile 单列、上传/粘贴创建、closed 摘要与只读来源格式详情边界（D-20） |
-| [多 JD 与多简历管理](./jd-resume-management.md) | 3.8 | active | 2026-07-15 | Home POST 强制绑定 selectable Resume；无简历/JD-only 训练和报告降级为零，历史缺绑 fail closed |
+| [简历一级模块](./resume-module.md) | 3.8 | active | 2026-07-19 | 参考稿 desktop 单列宽卡/mobile 满宽单列、上传/粘贴创建、closed 摘要与只读详情边界（D-20） |
+| [多 JD 与多简历管理](./jd-resume-management.md) | 3.9 | active | 2026-07-19 | Home 强制绑定 selectable Resume；Resume list 单列宽卡；历史缺绑规划 fail closed |
 | [首次无简历引导](./resume-onboarding.md) | 1.17 | active | 2026-07-15 | 上传/粘贴创建 selectable 简历；形成可读证据后返回 Home 显式选择，禁止跳过进入训练或报告链路 |
 
 ## 2 参考

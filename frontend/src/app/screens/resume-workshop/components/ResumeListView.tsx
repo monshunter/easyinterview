@@ -117,7 +117,7 @@ export const ResumeListView: FC = () => {
           data-testid="resume-workshop-create"
           onClick={onCreate}
         >
-          <ResumeWorkshopIcon name="plus" size={14} />
+          <ResumeWorkshopIcon name="plus" size={22} />
           {t("resumeWorkshop.create")}
         </button>
       </header>
@@ -152,14 +152,15 @@ export const ResumeListView: FC = () => {
 
               <div className="ei-resume-workshop-card-heading">
                 <span className="ei-resume-workshop-card-icon">
-                  <ResumeWorkshopIcon name="resume" size={16} />
+                  <ResumeWorkshopIcon name="resume" size={29} />
                 </span>
-                <h2>{resume.name}</h2>
+                <div className="ei-resume-workshop-card-heading-copy">
+                  <h2>{resume.name}</h2>
+                  {resume.summary ? (
+                    <p className="ei-resume-workshop-card-summary">{resume.summary}</p>
+                  ) : null}
+                </div>
               </div>
-
-              {resume.summary ? (
-                <p className="ei-resume-workshop-card-summary">{resume.summary}</p>
-              ) : null}
 
               <dl className="ei-resume-workshop-card-meta">
                 <div>
@@ -173,9 +174,6 @@ export const ResumeListView: FC = () => {
               </dl>
 
               <div className="ei-resume-workshop-card-footer">
-                <span className="ei-resume-workshop-lang-tag">
-                  {resume.langTag}
-                </span>
                 <button
                   type="button"
                   aria-label={`${t("resumeWorkshop.list.open")} ${resume.name}`}

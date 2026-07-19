@@ -1,6 +1,6 @@
 # Workspace and Interview Context BDD Checklist
 
-> **版本**: 1.31
+> **版本**: 1.33
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -48,3 +48,10 @@
 - [x] App/router tests 证明 Practice 同时显示共享 global TopBar 与独立 Practice Session Header，Generating 仍可隐藏 chrome。
 - [x] 请求计数测试证明进入、离开和 Practice 内交互不追加 `getMe`。
 - [x] desktop/mobile responsive/a11y 与 current-run Chrome 截图证明导航、设置齿轮、会话 CTA 可达且 document 无横向溢出。
+
+## `BDD.WORKSPACE.LIST.VISUAL.006` 面试列表参考稿层级
+
+- [x] 确认验证入口为 Workspace/Card domain behavior tests 与 current-run Chrome UI acceptance，不创建 E2E wrapper。
+- [x] 执行 owner tests，验证全视口背景与居中内容分层、header CTA 与第二列卡片右边界对齐、desktop 双列宽卡、mobile 单列、公司/岗位/动态 rail/上次保存/footer 动作层级。（验证：背景与 CTA 对齐各 RED 1 项后，Workspace CSS/component 7 tests PASS；其余 Workspace/Card/CSS owner tests PASS）
+- [x] 执行打开、删除成功/失败、启动 fail-closed 与 loading/empty/error 回归，确认 generated client 和 route 合同不变。（验证：owner scope 24 files / 150 tests PASS）
+- [x] 记录 1916×821 / 2048×917 / 390×844 bbox、截图、keyboard、theme、console 与 no-overflow 证据。（验证：desktop 背景左右边界差值均为 0，CTA 与第二列卡片右边界差值 0px；mobile 358px 单列、document overflow 0；截图位于 `.test-output/list-ui-acceptance/`）
