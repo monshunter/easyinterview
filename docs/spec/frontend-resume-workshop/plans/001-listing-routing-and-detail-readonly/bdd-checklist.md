@@ -1,6 +1,6 @@
 # Resume Listing and Readonly Detail BDD Checklist
 
-> **版本**: 2.10
+> **版本**: 2.11
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -24,3 +24,9 @@
 - [x] 执行 owner tests，验证 desktop 双列等宽卡、mobile 满宽单列、与 Workspace 一致的 22px circled-plus create icon、文件 icon、名称/摘要、meta、删除与 footer 打开层级。（验证：create icon RED 后 focused 8 tests PASS；其余 Resume list/CSS owner tests PASS）
 - [x] 执行 create/open/archive success/failure 与 loading/empty/error/pagination 回归，确认 route/generated client/closed DTO 不变。（验证：owner scope 24 files / 150 tests PASS）
 - [x] 记录 1916×821 / 390×844 bbox、circled-plus 一致性、截图、keyboard、theme、console 与 no-overflow 证据。（验证：Resume/Workspace 图标均为 22×22、同一 viewBox/圆/十字路径/1.8 线宽；desktop 双列 690px，mobile 358px 单列，overflow 0；截图位于 `.test-output/list-ui-acceptance/`）
+
+## `BDD.RESUME.DETAIL.VISUAL.004` 简历预览目标构图
+
+- [x] Owner component/CSS tests 先 RED 后 GREEN，覆盖 Header 层级与 `1512/1310/1150px` desktop 内容面、背景板、白色纸张。<!-- verified: 2026-07-19 evidence="Resume detail component/CSS gates PASS within owner 32 files/242 tests" -->
+- [x] PDF/Markdown renderer、无 header metadata 注入、无 actions/tabs/native viewer 与 mobile no-overflow 回归保持通过。<!-- verified: 2026-07-19 evidence="root frontend 132 files/1057 tests PASS; exact mobile overflowX=0" -->
+- [x] Chrome skill 在真实 frontend/backend 上记录 desktop/mobile bbox、截图、主题、console 与 no-overflow；该 scoped UI evidence 不声明 E2E PASS。<!-- verified: 2026-07-19 evidence="desktop board/paper=1310/1150; mobile board/paper=358/332; screenshots captured and browser finalized" -->

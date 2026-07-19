@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.21
+> **版本**: 2.22
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -11,7 +11,7 @@
 当前目标：
 
 1. **路由接管**：`resume_versions` route 渲染 `ResumeWorkshopScreen`，支持 list / create / detail 三类视图。
-2. **Flat Resume UI**：Resume 是平铺资产；列表按当前确认的 desktop 规则每行排列两张等宽卡，mobile 占满可用内容宽度并收敛为单列；详情页是只读简历正文，上传 PDF 使用同源 source endpoint 渲染为从上到下平铺的 PDF 页面栈，粘贴、Markdown 文件和 TXT 文件使用 Markdown 渲染引擎；Markdown body 区域只渲染简历正文，不额外注入 `displayName`、header 名称、summary 或来源元数据；PDF 与 Markdown 使用统一阅读背景板和 page surface 节奏；不提供 preview / rewrites / edit tab、导出、复制、原件弹层、结构化草稿确认、PDF viewer 工具栏或二次编辑入口；所有前端数据投影都以 `resumeId` 识别简历。
+2. **Flat Resume UI**：Resume 是平铺资产；列表按当前确认的 desktop 规则每行排列两张等宽卡，mobile 占满可用内容宽度并收敛为单列；详情页是只读简历正文，desktop 使用约 `1512px` 内容面、约 `1310px` 阅读背景板和约 `1150px` 白色纸张，Back、蓝色 eyebrow、名称 kicker、主标题与 meta 共享左边界；上传 PDF 使用同源 source endpoint 渲染为从上到下平铺的 PDF 页面栈，粘贴、Markdown 文件和 TXT 文件使用 Markdown 渲染引擎；Markdown body 区域只渲染简历正文，不额外注入 `displayName`、header 名称、summary 或来源元数据；PDF 与 Markdown 使用统一阅读背景板和 page surface 节奏；不提供 preview / rewrites / edit tab、导出、复制、原件弹层、结构化草稿确认、PDF viewer 工具栏或二次编辑入口；所有前端数据投影都以 `resumeId` 识别简历。
 3. **CreateFlow**：`flow=create` 只提供 upload / paste 输入；upload 仅支持 PDF / Markdown / TXT；注册成功后进入 `resume_versions?resumeId=<id>` 的解析等待态，直到 backend parse 成功后展示来源格式自适应详情，或失败后展示可恢复失败态；CreateFlow 本身不渲染预览确认页或确认保存页。
 4. **真实 client 与 fixture fallback**：frontend 使用 generated client；列表只消费 closed `ResumeSummary`，详情才消费完整 `Resume`；real backend mode 与 fixture-backed dev path 都必须有测试护栏。
 5. **UI parity 可执行**：用户可见变更必须有 DOM anchor、computed style、bounding box、viewport screenshot smoke 或对应 owner gate。
@@ -26,7 +26,7 @@
 
 - **Route shell**：`ResumeWorkshopScreen` 解析 `flow=create|list`、`resumeId` 和 `createMode=upload|paste`；out-of-scope `tab` / `tailorRunId` 参数被过滤或忽略，并与 app shell route / TopBar 状态一致。
 - **List view**：`ResumeListView` 只消费 `ResumeSummary` closed DTO，渲染 desktop 双列等宽卡片列表、唯一创建入口、详情入口和删除入口；Header “新建简历”使用与 Workspace “新建面试规划”一致的 22px 圆圈加号、线宽与图标间距；卡片展示文件 icon、名称、摘要、来源和最近编辑，底部右侧保留“打开”，右上角保留删除；mobile 占满可用宽度并收敛为单列。语言仍属于 closed summary，但不在参考稿列表卡片重复展示。不得通过列表响应携带或读取详情正文、结构化档案、文件对象或审计时间字段；列表底部不再重复“上传或粘贴另一份简历”CTA。
-- **Detail view**：`ResumeDetailView` 在 `queued/processing` 且正文快照为空时渲染解析等待态并轮询；`ready` 后根据来源格式展示 PDF 页面栈或 Markdown 正文；`failed` 且无可读正文时渲染失败态；`parsedTextSnapshot` / `originalText` 是 Markdown 渲染主要正文来源，结构化字段只能作为无原文时的降级兜底。
+- **Detail view**：`ResumeDetailView` 在 `queued/processing` 且正文快照为空时渲染解析等待态并轮询；`ready` 后使用参考稿 Header 层级和 `1512/1310/1150px` desktop 构图，根据来源格式展示 PDF 页面栈或 Markdown 正文；mobile 取消固定宽度并保持同一阅读顺序；`failed` 且无可读正文时渲染失败态；`parsedTextSnapshot` / `originalText` 是 Markdown 渲染主要正文来源，结构化字段只能作为无原文时的降级兜底。
 - **Preview body**：`ResumePreviewTab` 作为只读正文投影，PDF 上传自动使用 source endpoint 的 PDF 页面栈 renderer，所有页面从上到下平铺展示，不使用浏览器内置 PDF viewer toolbar / sidebar / pagination controls；粘贴 / Markdown / TXT 自动使用 Markdown engine，body card 只包含 `parsedTextSnapshot` / `originalText` / fallback body 本身，不额外 prepend `displayName`、详情 header 名称、summary 或来源元数据；PDF 与 Markdown 共用阅读背景板，Markdown 正文也位于背景板内的白色 page surface；不渲染复制、导出、原件弹层、改写建议、结构化草稿确认或编辑控件。
 - **Create flow**：`ResumeCreateFlow` upload / paste 两路径；upload 只允许 `.pdf,.md,.markdown,.txt`；`createUploadPresign`、browser PUT、`registerResume` generated-client contract；upload 10MiB 与 paste 384KiB 默认边界从 `AppRuntimeProvider.contentLimits` 读取并按 UTF-8 bytes 本地校验，backend 仍作最终裁决；注册成功后导航到详情等待/终态页，不在创建流内 `getResume` 轮询或 `updateResume` 保存；右侧说明 rail 不再渲染。
 - **Home entry handoff**：Home `还没有简历？1 分钟创建` 进入当前 CreateFlow；Home `选择已有简历` 消费 `listResumes`，对非归档且已有可读简历证据的记录保持可选，不因 `parseStatus` 仍为 `queued` / `processing` / `failed` 但已有正文快照而显示空态。
@@ -118,7 +118,7 @@
 |----|------|-------|------|------|-----------|
 | C-1 | Route shell | Authenticated user opens `resume_versions` | Route renders | Resume Workshop shell appears and TopBar highlights resume nav | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-2 | List view | `listResumes` returns `ResumeSummary[]` | List loads | Header 唯一创建入口、每卡打开与右上角删除动作呈现；desktop 每行两张等宽卡，mobile 单列占满可用宽度，table/header/row 语义缺席；卡片只暴露锁定 summary 字段，不读取详情字段，不出现重复创建 CTA | [001 Phase 22](./plans/001-listing-routing-and-detail-readonly/plan.md) |
-| C-3 | Detail read-only | User opens a resume | Detail renders | Full `Resume` is fetched only through `getResume`; pending parse with no readable body shows a waiting state and polls sequentially without clearing prior data or flashing the generic loading state between requests; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; PDF and Markdown share the same reading backdrop and page-surface rhythm; failed with no readable body shows a failure state; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
+| C-3 | Detail read-only | User opens a resume | Detail renders | Full `Resume` is fetched only through `getResume`; pending parse with no readable body shows a waiting state and polls sequentially without clearing prior data or flashing the generic loading state between requests; ready desktop uses the reference Header plus approximately `1512px` content / `1310px` backdrop / `1150px` paper composition, while mobile remains full-width and readable; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; PDF and Markdown share the same reading backdrop and page-surface rhythm; failed with no readable body shows a failure state; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001 Phase 23](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-4 | Create upload/paste | User selects valid file or enters text；owner config provides byte limits | Submit | 注入小型 boundary 验证 overflow inline rejection with zero presign/register；valid input navigates to waiting/detail；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文件或配置 E2E | [002 Phase 13](./plans/002-create-flow/plan.md) |
 | C-5 | Create paste | User enters text | Submit | Register completes and app navigates to the waiting/detail route; request title remains a neutral source title, and visible list/detail name comes from backend generated `displayName` after parse or extracted-text fallback, never from the raw first line or source filename/title fallback | [002](./plans/002-create-flow/plan.md) |
 | C-6 | Create recovery | Register or upload fails | User retries from input | Input is preserved locally and no raw content leaks | [002](./plans/002-create-flow/plan.md) |
@@ -138,5 +138,6 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 2.22 | 2026-07-19 | Reopen the read-only detail for the supplied preview composition: aligned Header hierarchy plus 1512/1310/1150px desktop content, backdrop and paper surfaces without changing renderer or API truth. |
 | 2.20 | 2026-07-19 | Align the Resume create icon with the Workspace 22px circled-plus action while preserving all list behavior. |
 | 2.19 | 2026-07-19 | 按提供的简历列表参考稿锁定标题区、文件 icon、meta 分隔与 footer 动作层级，并根据用户补充将 desktop 明确为每行两张等宽卡；API/route/delete/detail 合同不变。 |

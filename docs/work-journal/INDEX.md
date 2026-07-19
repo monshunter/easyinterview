@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-19](2026-07-19.md) | `fix(frontend): align resume and report record views (BUG-0192)` | #fix #ui #test #docs #bdd #chrome |
 | [2026-07-19](2026-07-19.md) | `fix(report): rebuild dashboard target composition (BUG-0192)` | #fix #ui #test #docs #bdd #chrome |
 | [2026-07-19](2026-07-19.md) | `fix(frontend): align core workflow pages with UI references (BUG-0192)` | #fix #ui #i18n #test #docs #bdd #chrome |
 | [2026-07-19](2026-07-19.md) | `feat(frontend): align interview and resume lists` | #feat #ui #i18n #test #docs #bdd |

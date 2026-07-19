@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.15
+> **版本**: 3.16
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -80,3 +80,9 @@
 - [x] RED rejects the Phase 16 width-only result: four Context cards, absent Detail icons, inline visual assembly and max-width/overflow-only geometry cannot satisfy the behavior.<!-- verified: 2026-07-19 evidence="expected RED for absent Detail data-icon and missing 1432 composition" -->
 - [x] GREEN proves one divided Context card, four icon-led Detail cards, compact evidence/action hierarchy, preserved report truth and unchanged CTA/navigation behavior.<!-- verified: 2026-07-19 evidence="23 owner behavior/structure tests PASS; root frontend 1055 PASS" -->
 - [x] Current real-report Chrome proves target composition in the actually observed desktop viewport; deterministic responsive/component coverage proves the same-order `390×844` boundary unless an exact mobile Chrome viewport is actually run. Do not claim complete `E2E.P0.099` PASS.<!-- verified: 2026-07-19 evidence="real ready report desktop 1920x964 and exact mobile 390x844 full-page PASS; no horizontal overflow; scoped visual acceptance only" -->
+
+## Phase 18 `BDD.REPORT.RECORDS.VISUAL.002`
+
+- [x] Owner source/component tests 先 RED 后 GREEN，覆盖 ReportsScreen 1372px Header/插画/真实事实摘要卡/编号时间线/独立轮次卡与动作主次。<!-- verified: 2026-07-19 evidence="final owner scope 32 files/242 tests PASS" -->
+- [x] Owner tests 覆盖 ReportConversation 同宽 Header、三列 Context Strip、约 60px avatar、assistant/user 共用描边整行卡片与一致头像轮廓，并保持角色色彩以及 reportId-only/Back/Markdown/privacy negatives。<!-- verified: 2026-07-19 evidence="desktop both cards width=1372/border=1/radius=10 and badges=60x60/radius=9; mobile badges=48x48/radius=9" -->
+- [x] Chrome skill 在真实 frontend/backend 上记录两页 desktop/mobile bbox、截图、键盘、theme、console 与 no-overflow；该 scoped UI evidence 不声明完整 `E2E.P0.099` PASS。<!-- verified: 2026-07-19 evidence="Chrome desktop 1920x964 and exact mobile 390x844; all three pages overflowX=0; browser finalized after evidence capture" -->

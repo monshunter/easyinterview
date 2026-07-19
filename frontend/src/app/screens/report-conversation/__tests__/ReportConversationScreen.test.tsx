@@ -208,6 +208,26 @@ describe("report-owned readonly conversation", () => {
       "data-role",
       "user",
     );
+    expect(screen.getByTestId("report-conversation-screen")).not.toHaveAttribute(
+      "style",
+    );
+    expect(screen.getByTestId("report-conversation-header-illustration")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(screen.getByTestId("report-conversation-context-strip")).toHaveClass(
+      "ei-report-conversation-context",
+    );
+    expect(screen.getByTestId("report-conversation-message-1")).toHaveClass(
+      "ei-report-conversation-message",
+      "ei-report-conversation-message-assistant",
+    );
+    expect(screen.getByTestId("report-conversation-message-2")).toHaveClass(
+      "ei-report-conversation-message",
+      "ei-report-conversation-message-user",
+    );
+    expect(screen.getByTestId("report-conversation-badge-1")).toHaveTextContent("AI");
+    expect(screen.getByTestId("report-conversation-badge-2")).toHaveTextContent("Me");
     expect(root).toHaveTextContent("Explain the constraints first.");
     expect(root).not.toHaveTextContent(REPORT_ID);
     expect(root).not.toHaveTextContent("01918fa0-0050-7000-8000-000000000050");

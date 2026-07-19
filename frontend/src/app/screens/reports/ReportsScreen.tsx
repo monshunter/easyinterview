@@ -13,6 +13,7 @@ import { useI18n } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
+import { ReportPageIllustration } from "./ReportPageIllustration";
 import { useReportRegeneration } from "./hooks/useReportRegeneration";
 
 interface ReportsScreenProps {
@@ -74,28 +75,53 @@ function reportDate(value: string, lang: "en" | "zh"): string {
 const ArrowRightIcon: FC = () => (
   <svg
     aria-hidden="true"
-    width="15"
-    height="15"
+    className="ei-reports-action-icon"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
     strokeWidth="1.5"
     strokeLinecap="round"
     strokeLinejoin="round"
-    style={{
-      flexShrink: 0,
-      display: "inline-block",
-      verticalAlign: "middle",
-    }}
   >
     <path d="M5 12h14M13 6l6 6-6 6" />
   </svg>
 );
 
-const SecondaryButton: FC<{
+const RecordIcon: FC = () => (
+  <svg
+    aria-hidden="true"
+    className="ei-reports-action-icon"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M6 3h9l3 3v15H6zM15 3v4h3M9 11h6M9 15h6" />
+  </svg>
+);
+
+const TargetIcon: FC = () => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    width="24"
+    height="24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 21V7l8-4 8 4v14M2 21h20M8 10h2M14 10h2M8 14h2M14 14h2M10 21v-3h4v3" />
+  </svg>
+);
+
+const ReportAction: FC<{
   onClick: () => void;
-  size?: "sm" | "md";
-  icon?: boolean;
+  variant?: "primary" | "secondary" | "quiet";
+  icon?: "arrow" | "record";
   ariaBusy?: boolean;
   ariaLabel?: string;
   disabled?: boolean;
@@ -103,15 +129,14 @@ const SecondaryButton: FC<{
   children: ReactNode;
 }> = ({
   onClick,
-  size = "md",
-  icon = false,
+  variant = "secondary",
+  icon,
   ariaBusy,
   ariaLabel,
   disabled = false,
   testId,
   children,
 }) => {
-  const compact = size === "sm";
   return (
     <button
       type="button"
@@ -120,57 +145,17 @@ const SecondaryButton: FC<{
       aria-label={ariaLabel}
       data-testid={testId}
       disabled={disabled}
-      onMouseDown={(event) => {
-        event.currentTarget.style.transform = "translateY(0.5px)";
-      }}
-      onMouseUp={(event) => {
-        event.currentTarget.style.transform = "";
-      }}
-      onMouseLeave={(event) => {
-        event.currentTarget.style.transform = "";
-      }}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        height: compact ? 30 : 38,
-        padding: compact ? "0 12px" : "0 16px",
-        fontSize: compact ? 13 : 14,
-        fontWeight: 500,
-        background: "var(--ei-color-bg-canvas)",
-        color: "var(--ei-color-fg-primary)",
-        border: "1px solid var(--ei-color-rule-strong)",
-        borderRadius: 2,
-        cursor: disabled ? "wait" : "pointer",
-        opacity: disabled ? 0.62 : 1,
-        fontFamily: "var(--ei-font-sans)",
-        letterSpacing: "-0.005em",
-        transition: "transform .08s ease, opacity .15s",
-      }}
+      className={`ei-reports-action ei-reports-action-${variant}`}
     >
-      {icon ? <ArrowRightIcon /> : null}
+      {icon === "record" ? <RecordIcon /> : null}
       {children}
+      {icon === "arrow" ? <ArrowRightIcon /> : null}
     </button>
   );
 };
 
-const Card: FC<{ pad?: number; children: ReactNode }> = ({
-  pad = 20,
-  children,
-}) => (
-  <div
-    style={{
-      background: "var(--ei-color-bg-card)",
-      border: "1px solid var(--ei-color-rule-strong)",
-      borderRadius: 3,
-      padding: pad,
-      cursor: "default",
-      transition: "border-color .15s, transform .15s",
-    }}
-  >
-    {children}
-  </div>
+const StateCard: FC<{ children: ReactNode }> = ({ children }) => (
+  <section className="ei-reports-state-card">{children}</section>
 );
 
 export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
@@ -292,166 +277,108 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
 
   return (
     <main
-      className="ei-fadein"
+      className="ei-fadein ei-reports-screen"
       data-testid="reports-screen"
-      style={{
-        maxWidth: 1120,
-        margin: "0 auto",
-        padding: "32px clamp(16px, 5vw, 48px) 96px",
-      }}
     >
       <button
         type="button"
         data-testid="reports-back-button"
         onClick={goBack}
-        style={{
-          border: 0,
-          background: "transparent",
-          color: "var(--ei-color-fg-tertiary)",
-          cursor: "pointer",
-          marginBottom: 20,
-          padding: 0,
-        }}
+        className="ei-reports-back"
       >
         ← {targetJobId ? t("reports.backToPlan") : t("reports.backToWorkspace")}
       </button>
 
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 20,
-          flexWrap: "wrap",
-          marginBottom: 24,
-        }}
-      >
-        <div style={{ minWidth: 0, flex: "1 1 520px" }}>
-          <div
-            className="ei-label"
-            style={{
-              color: "var(--ei-color-fg-tertiary)",
-              marginBottom: 8,
-            }}
-          >
+      <header className="ei-report-records-header">
+        <div className="ei-report-records-header-copy">
+          <div className="ei-report-records-eyebrow">
             {t("reports.eyebrow")}
           </div>
           <h1
             data-testid="reports-target-title"
-            className="ei-serif"
-            style={{
-              margin: 0,
-              fontSize: 36,
-              color: "var(--ei-color-fg-primary)",
-              lineHeight: 1.2,
-              overflowWrap: "anywhere",
-            }}
+            className="ei-report-records-title"
           >
             {targetJob
               ? `${targetJob.companyName} · ${targetJob.title}`
               : t("reports.currentPlanTitle")}
           </h1>
-          <p
-            style={{
-              margin: "10px 0 0",
-              color: "var(--ei-color-fg-secondary)",
-              fontSize: 14,
-              lineHeight: 1.65,
-            }}
-          >
-            {t("reports.subtitle")}
-          </p>
+          <p className="ei-report-records-subtitle">{t("reports.subtitle")}</p>
         </div>
+        <ReportPageIllustration testId="reports-header-illustration" />
       </header>
 
       {renderedState.status === "loading" ? (
-        <Card>
+        <StateCard>
           <div
             data-testid="reports-loading"
             role="status"
-            style={{
-              color: "var(--ei-color-fg-tertiary)",
-              fontSize: 13,
-              lineHeight: 1.65,
-            }}
+            className="ei-reports-state-copy"
           >
             {t("reports.loading")}
           </div>
-        </Card>
+        </StateCard>
       ) : renderedState.status === "error" ? (
-        <Card>
+        <StateCard>
           <div data-testid="reports-error" role="alert">
-            <div
-              className="ei-label"
-              style={{
-                color: "var(--ei-color-danger)",
-                marginBottom: 10,
-              }}
-            >
+            <div className="ei-reports-state-eyebrow ei-reports-state-eyebrow-error">
               {t("reports.errorEyebrow")}
             </div>
-            <div
-              className="ei-serif"
-              style={{
-                color: "var(--ei-color-fg-primary)",
-                fontSize: 24,
-                marginBottom: 10,
-              }}
-            >
+            <div className="ei-reports-state-title">
               {t("reports.errorTitle")}
             </div>
-            <p
-              style={{
-                color: "var(--ei-color-fg-secondary)",
-                fontSize: 13,
-                lineHeight: 1.65,
-                margin: "0 0 18px",
-              }}
-            >
+            <p className="ei-reports-state-description">
               {t("reports.errorDescription")}
             </p>
-            <SecondaryButton onClick={goBack}>
+            <ReportAction onClick={goBack}>
               {targetJobId ? t("reports.returnToPlan") : t("reports.backToWorkspace")}
-            </SecondaryButton>
+            </ReportAction>
           </div>
-        </Card>
+        </StateCard>
       ) : isEmpty ? (
-        <Card>
+        <StateCard>
           <div data-testid="reports-empty" role="status">
-            <div
-              className="ei-label"
-              style={{
-                color: "var(--ei-color-fg-tertiary)",
-                marginBottom: 10,
-              }}
-            >
+            <div className="ei-reports-state-eyebrow">
               {t("reports.emptyEyebrow")}
             </div>
-            <div
-              className="ei-serif"
-              style={{
-                color: "var(--ei-color-fg-primary)",
-                fontSize: 24,
-                marginBottom: 10,
-              }}
-            >
+            <div className="ei-reports-state-title">
               {t("reports.emptyTitle")}
             </div>
-            <p
-              style={{
-                color: "var(--ei-color-fg-secondary)",
-                fontSize: 13,
-                lineHeight: 1.65,
-                margin: 0,
-              }}
-            >
+            <p className="ei-reports-state-description">
               {t("reports.emptyDescription")}
             </p>
           </div>
-        </Card>
+        </StateCard>
       ) : (
-        <Card pad={0}>
-          <div data-testid="reports-list">
+        <>
+          <section
+            className="ei-reports-target-summary"
+            data-testid="reports-target-summary"
+          >
+            <span className="ei-reports-target-summary-icon">
+              <TargetIcon />
+            </span>
+            <div className="ei-reports-target-summary-copy">
+              <div className="ei-reports-target-summary-label">
+                {t("reports.eyebrow")}
+              </div>
+              <h2>{targetJob!.title}</h2>
+              <div className="ei-reports-target-summary-meta">
+                <span>{lang === "zh" ? "公司" : "Company"}：{targetJob!.companyName}</span>
+                {targetJob!.locationText ? (
+                  <span>{lang === "zh" ? "地点" : "Location"}：{targetJob!.locationText}</span>
+                ) : null}
+                <span>{lang === "zh" ? "轮次" : "Rounds"}：{renderedState.overview.rounds.length}</span>
+                <span>{lang === "zh" ? "面试日期" : "Interview date"}：{reportDate(targetJob!.createdAt, lang)}</span>
+              </div>
+            </div>
+          </section>
+
+          <div
+            className="ei-reports-timeline"
+            data-testid="reports-timeline"
+            data-timeline="true"
+          >
+            <div className="ei-reports-timeline-list" data-testid="reports-list">
             {renderedState.overview.rounds.map((item, index) => {
               const latestStatus = item.latestAttempt?.status;
               const latestIsDifferent = Boolean(
@@ -478,41 +405,32 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
               );
 
               return (
-                <div
+                <article
                   key={item.displayRound.id}
                   data-testid={`reports-round-${item.displayRound.sequence}`}
-                  style={{
-                    padding: "18px 22px",
-                    borderBottom:
-                      index < renderedState.overview.rounds.length - 1
-                        ? "1px dotted var(--ei-color-rule-strong)"
-                        : "none",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 16,
-                    flexWrap: "wrap",
-                  }}
+                  className="ei-reports-round-card"
                 >
-                  <div style={{ minWidth: 0, flex: "1 1 320px" }}>
-                    <div
-                      style={{
-                        color: "var(--ei-color-fg-primary)",
-                        fontSize: 14,
-                        fontWeight: 500,
-                        overflowWrap: "anywhere",
-                      }}
+                  <div className="ei-reports-round-marker" aria-hidden="true">
+                    <span
+                      className="ei-reports-round-index"
+                      data-testid={`reports-round-index-${item.displayRound.sequence}`}
                     >
-                      {item.displayRound.name}
+                      {String(item.displayRound.sequence).padStart(2, "0")}
+                    </span>
+                    {index < renderedState.overview.rounds.length - 1 ? (
+                      <span className="ei-reports-round-line" />
+                    ) : null}
+                  </div>
+                  <div className="ei-reports-round-copy">
+                    <div className="ei-reports-round-heading">
+                      <h2>{item.displayRound.name}</h2>
+                      {item.currentReport ? (
+                        <span className="ei-reports-round-status">
+                          {t("reports.currentReport")}
+                        </span>
+                      ) : null}
                     </div>
-                    <div
-                      style={{
-                        color: "var(--ei-color-fg-tertiary)",
-                        fontSize: 11.5,
-                        lineHeight: 1.55,
-                        marginTop: 5,
-                      }}
-                    >
+                    <div className="ei-reports-round-meta">
                       {item.currentReport ? (
                         <>
                           {t("reports.currentReport")} · {reportDate(item.currentReport.generatedAt, lang)}
@@ -535,13 +453,13 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
                       ) : null}
                     </div>
                   </div>
-                  <div style={{ display: "grid", gap: 7, justifyItems: "end" }}>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <div className="ei-reports-round-actions">
+                    <div className="ei-reports-round-action-row">
                       {item.currentReport ? (
-                        <span data-testid="reports-current" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                          <SecondaryButton
-                            size="sm"
-                            icon
+                        <span data-testid="reports-current" className="ei-reports-current-actions">
+                          <ReportAction
+                            variant="primary"
+                            icon="arrow"
                             ariaLabel={t("reports.openCurrentA11y")}
                             onClick={() =>
                               navigate({
@@ -551,28 +469,27 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
                             }
                           >
                             {t("reports.openCurrent")}
-                          </SecondaryButton>
-                          <button
-                            aria-label={t("reports.viewCurrentConversationA11y")}
-                            data-testid="reports-conversation-entry"
-                            type="button"
+                          </ReportAction>
+                          <ReportAction
+                            ariaLabel={t("reports.viewCurrentConversationA11y")}
+                            testId="reports-conversation-entry"
+                            icon="record"
                             onClick={() =>
                               navigate({
                                 name: "report_conversation",
                                 params: { reportId: item.currentReport!.id },
                               })
                             }
-                            style={{ border: 0, padding: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", fontSize: 12, fontFamily: "var(--ei-font-sans)", cursor: "pointer" }}
                           >
                             {t("reports.viewConversation")}
-                          </button>
+                          </ReportAction>
                         </span>
                       ) : null}
                       {showGenerating && item.latestAttempt ? (
                         <span data-testid="reports-generating">
-                          <SecondaryButton
-                            size="sm"
-                            icon
+                          <ReportAction
+                            variant="quiet"
+                            icon="arrow"
                             onClick={() =>
                               navigate({
                                 name: "generating",
@@ -581,14 +498,14 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
                             }
                           >
                             {t("reports.viewGeneration")}
-                          </SecondaryButton>
+                          </ReportAction>
                         </span>
                       ) : null}
                       {failedAttempt ? (
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        <span className="ei-reports-failed-actions">
                           {canRegenerate ? (
-                            <SecondaryButton
-                              size="sm"
+                            <ReportAction
+                              variant="quiet"
                               ariaBusy={regenerationState?.pending || undefined}
                               ariaLabel={t("reports.regenerateFailedA11y")}
                               disabled={regenerationState?.pending ?? false}
@@ -598,48 +515,42 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
                               {regenerationState?.pending
                                 ? t("reports.regenerateFailedPending")
                                 : t("reports.regenerateFailed")}
-                            </SecondaryButton>
+                            </ReportAction>
                           ) : null}
                         </span>
                       ) : null}
                       {latestConversationAttempt ? (
-                        <button
-                          aria-label={t("reports.viewLatestConversationA11y")}
-                          data-testid="reports-latest-conversation-entry"
-                          type="button"
+                        <ReportAction
+                          ariaLabel={t("reports.viewLatestConversationA11y")}
+                          testId="reports-latest-conversation-entry"
+                          icon="record"
                           onClick={() =>
                             navigate({
                               name: "report_conversation",
                               params: { reportId: latestConversationAttempt.id },
                             })
                           }
-                          style={{ border: 0, padding: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", fontSize: 12, fontFamily: "var(--ei-font-sans)", cursor: "pointer" }}
                         >
                           {t("reports.viewConversation")}
-                        </button>
+                        </ReportAction>
                       ) : null}
                     </div>
                     {failedAttempt && regenerationState?.error ? (
                       <div
                         data-testid="reports-regenerate-error"
                         role="alert"
-                        style={{
-                          color: "var(--ei-color-danger)",
-                          fontSize: 11.5,
-                          lineHeight: 1.5,
-                          maxWidth: 300,
-                          textAlign: "right",
-                        }}
+                        className="ei-reports-regenerate-error"
                       >
                         {t("reports.regenerateError")}
                       </div>
                     ) : null}
                   </div>
-                </div>
+                </article>
               );
             })}
+            </div>
           </div>
-        </Card>
+        </>
       )}
     </main>
   );

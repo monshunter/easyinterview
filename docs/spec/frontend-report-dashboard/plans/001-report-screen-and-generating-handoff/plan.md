@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 4.4
+> **版本**: 4.6
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -205,6 +205,20 @@ Report/Generating 恢复合同不变：当前/最后可信 API response 有 `tar
 
 TDD 先扩展 `ReportResponsiveContract.test.ts` 与 `ConversationReport.test.tsx`，拒绝四张独立 Context card、无 Detail icon、ready 主路径行内视觉样式和只断言 max-width/overflow 的假绿；再实施组件与 CSS。Chrome 必须在用户当前真实 ready report 的实际 desktop viewport 上逐块记录 bbox/computed style，并与目标图的结构、比例和首屏露出关系复验；mobile `390×844` 至少由 deterministic responsive/component contract 覆盖，只有实际运行 exact viewport 时才可记录 Chrome PASS。不以 fixture 截图冒充真实报告或完整 `E2E.P0.099`。
 
+### Phase 18: Report list and conversation reference composition
+
+#### 18.1 RED: reject narrow utility-page layouts
+
+扩展 `ReportsScreen.test.tsx`、`ReportConversationScreen.test.tsx` 与 source/responsive contract，拒绝 `1120/880px` 窄 shell、ready 主路径行内视觉拼装、单一列表整卡 + dotted row、缺失 Header illustration/目标摘要/编号时间线，以及 `28px` 消息头像和无 user full-row surface；同时保持 current/latest/status、regenerate、route、safe Markdown、privacy 与 a11y 行为断言。
+
+#### 18.2 GREEN: rebuild the two compositions
+
+ReportsScreen 使用约 `1372px` 内容面、共享 Header illustration、仅由现有 TargetJob 字段形成的目标摘要卡和编号时间线；轮次卡显示 canonical name/duration、真实 report 时间/状态，并以蓝色主报告按钮、白色描边记录按钮及必要状态动作建立主次。ReportConversation 使用同宽 Header、三列 Context Strip，以及 assistant/user 共用的浅色整行卡片、描边、圆角、内边距和约 `60px` 方形头像轮廓；只以蓝色 AI / 灰色“我”的色彩与角色文案区分身份。两页 mobile 保持同一 DOM 顺序并单列无横溢。
+
+#### 18.3 ACCEPTANCE/CLOSEOUT
+
+完成 focused owner tests、frontend typecheck/build、根 `make test`、owner context、docs/index/diff gates；通过 Chrome skill 在真实 frontend/backend 上验收 ReportsScreen 与 ReportConversation 的 desktop/mobile bbox、截图、键盘、theme、console 和 no-overflow。Scoped UI evidence 不声明完整 `E2E.P0.099` PASS。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -242,6 +256,7 @@ TDD 先扩展 `ReportResponsiveContract.test.ts` 与 `ConversationReport.test.ts
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 4.5 | Reopen Phase 18 to rebuild ReportsScreen and ReportConversation against the supplied summary-card, round-timeline, shared-context and role-row compositions. |
 | 2026-07-19 | 4.4 | Reopen Phase 17 for a complete report composition rebuild after user acceptance confirmed Phase 16 was only a superficial width and card-shell change. |
 | 2026-07-16 | 4.2 | Close the failed-conversation owner-resolution Back race with an explicit resolving state and focused regression coverage. |
 | 2026-07-19 | 4.3 | Reopen Phase 16 for the supplied report reference: 1336px shared grid, soft canvas, semantic icons, rounded cards and CTA hierarchy without changing report truth. |

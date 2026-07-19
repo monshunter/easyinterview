@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 4.1
+> **版本**: 4.2
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -117,8 +117,16 @@
 - [x] 22.3 BDD-Gate: 完成 `BDD.RESUME.LIST.VISUAL.003` domain behavior evidence，不声明真实 E2E PASS。（验证：owner scope 24 files / 151 tests PASS；Chrome UI evidence 由 22.4 独立承接）
 - [x] 22.4 CHROME/REGRESSION：1916×821 下两张简历卡同排，分别 `x=254/972`、`width=690`、间距 28px；Resume/Workspace create icon 均实测为 22×22、`viewBox="0 0 24 24"`、`strokeWidth=1.8`、圆 `r=9` 与同一十字路径。390×844 下按钮和网格均为 358px 单列、icon 仍为 22×22、overflow 0；键盘 Enter、主题切换和 console 0 error 沿用本轮行为验收。截图保存于 `.test-output/list-ui-acceptance/`；focused 24 files / 151 tests、typecheck/build、根 `make test`（615 tests / 4615 subtests）、context/docs/index/diff gates 均通过后恢复 completed。
 
+## Phase 23: Resume preview reference composition
+
+- [x] 23.1 RED：`ResumeDetailView.test.tsx` / `ResumeWorkshopCssParity.test.ts` 拒绝 breadcrumb 拼接、缺失名称 kicker、窄 `1320/860/720px` 构图与只检查 overflow 的视觉 gate；既有 readonly/PDF/Markdown/privacy negatives 保持通过。<!-- verified: 2026-07-19 method=focused-vitest-red evidence="69 tests run; 8 expected structural failures, 61 existing behavior tests PASS; resume failures identify breadcrumb and 1512/1310/1150 composition gaps" -->
+- [x] 23.2 GREEN：实现 Back + 蓝色 eyebrow + 名称 kicker + 主标题 + meta 的 Header 层级，以及约 `1512/1310/1150px` desktop 内容面/背景板/纸张；mobile 同序满宽且无横溢。<!-- verified: 2026-07-19 method=focused-vitest+typecheck evidence="Resume detail component/CSS gates PASS within 69-test focused run; tsc --noEmit PASS" -->
+- [x] 23.3 BDD-Gate: `BDD.RESUME.DETAIL.VISUAL.004` 由 owner component/CSS tests 与 current-run Chrome UI evidence 验证，不创建 E2E wrapper。<!-- verified: 2026-07-19 method=chrome-real-local evidence="desktop 1916x821 screen=1512 board=1310 paper=1150 boardTop=346; exact mobile 390x844 board=358 paper=332; overflowX=0" -->
+- [x] 23.4 REGRESSION：focused owner tests、frontend typecheck/build、根 `make test`、owner context、docs/index/diff 与 Chrome desktop/mobile evidence 通过后恢复 completed。<!-- verified: 2026-07-19 method=focused+root-regression evidence="owner 32 files/242 tests; root Python 615/4615 subtests; Go all packages; frontend 132 files/1057 tests; typecheck/build/redeploy PASS; dependencies 4/4 OK" -->
+
 ## BDD Gate
 
 - [x] BDD-Gate: `BDD.RESUME.READ.001` 由 [BDD checklist](./bdd-checklist.md) 关联 list/readonly-detail owner behavior tests；不创建或声明真实 E2E PASS。
 - [x] BDD-Gate: `BDD.RESUME.LIST.002` 由 [BDD checklist](./bdd-checklist.md) 关联 desktop/mobile 卡片列表、打开/删除与非表格语义行为；当前无真实 E2E owner，不把代码 gate 声明为 E2E PASS。
 - [x] BDD-Gate: `BDD.RESUME.LIST.VISUAL.003` 由 [BDD checklist](./bdd-checklist.md) 关联 desktop 双列等宽卡、打开/删除与 responsive 行为；current-run Chrome 只作 UI evidence。
+- [x] BDD-Gate: `BDD.RESUME.DETAIL.VISUAL.004` 由 [BDD checklist](./bdd-checklist.md) 关联详情 Header、背景板、纸张和 responsive 行为；current-run Chrome 只作 UI evidence。

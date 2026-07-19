@@ -51,14 +51,17 @@ describe("Resume Workshop source-level CSS parity", () => {
     expect(source).not.toContain("repeat(auto-fill, minmax(300px, 360px))");
     expect(source).not.toContain("grid-template-columns: minmax(0, 918px)");
     expect(source).not.toContain(".ei-resume-workshop-lang-tag");
-    expect(source).toContain("width: min(100%, 860px)");
+    expect(source).toMatch(
+      /data-flow="detail"\]\s*\{[^}]*max-width:\s*1512px/s,
+    );
+    expect(source).toContain("width: min(100%, 1310px)");
     expect(source).toContain("min-height: 720px");
     expect(source).toContain("box-shadow: 0 18px 50px rgba(30, 22, 15, 0.10)");
     expect(source).toContain("background: #f6f3ee");
-    expect(source).toContain("padding: 28px");
-    expect(source).toContain("padding: 44px 56px");
+    expect(source).toContain("padding: 52px 68px");
     expect(source).toContain("gap: 22px");
-    expect(source).toContain("width: min(100%, 720px)");
+    expect(source).toContain("width: min(100%, 1150px)");
+    expect(source).not.toContain("width: min(100%, 860px)");
     expect(source).not.toContain(".ei-resume-detail-preview-card--pdf");
   });
 

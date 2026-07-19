@@ -26,7 +26,7 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
   const rootDataAttributes: Record<string, string> = {
     "data-testid": "resume-workshop-screen",
     "data-route-name": route.name,
-    "data-flow": params.flow,
+    "data-flow": params.resumeId ? "detail" : params.flow,
     "data-auth-status": runtime?.auth.status ?? "unmounted",
   };
   if (params.targetJobId) {

@@ -355,7 +355,24 @@ describe("ReportsScreen", () => {
     expect(client.listTargetJobReports).toHaveBeenCalledWith(TARGET_A_ID);
     expect(client.listTargetJobs).not.toHaveBeenCalled();
 
+    expect(screen.getByTestId("reports-screen")).not.toHaveAttribute("style");
+    expect(screen.getByTestId("reports-header-illustration")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(screen.getByTestId("reports-target-summary")).toHaveTextContent(
+      "Acme",
+    );
+    expect(screen.getByTestId("reports-target-summary")).toHaveTextContent(
+      "Frontend Engineer A",
+    );
+    expect(screen.getByTestId("reports-timeline")).toContainElement(
+      screen.getByTestId("reports-round-index-1"),
+    );
+    expect(screen.getByTestId("reports-round-index-1")).toHaveTextContent("01");
+
     const differentReady = screen.getByTestId("reports-round-1");
+    expect(differentReady).toHaveClass("ei-reports-round-card");
     expect(differentReady).toHaveTextContent("Architecture · 50m");
     expect(differentReady).toHaveTextContent("The latest report is ready");
     expect(within(differentReady).getAllByRole("button")).toHaveLength(3);

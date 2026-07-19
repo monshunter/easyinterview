@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.13
+> **版本**: 3.15
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -83,3 +83,10 @@
 - [x] Behavior tests prove Dimensions retain localized status/confidence while Highlights/Issues omit duplicate confidence and preserve server evidence verbatim.<!-- verified: 2026-07-19 evidence="ConversationReport icon-led/no-duplicate-confidence regression PASS" -->
 - [x] Current real-report Chrome desktop bbox, screenshot and zero-clipping checks pass at the actually observed viewport; typical desktop content fully shows Overall Summary in the first viewport. The `390×844` boundary is separately covered by the deterministic responsive/component contract unless an exact mobile Chrome viewport is run.<!-- verified: 2026-07-19 evidence="real report desktop 1920x964 and exact mobile 390x844 full-page PASS; overflowX=0; viewport override reset" -->
 - [x] Focused owner tests, root regression, typecheck/build and document gates pass after GREEN.<!-- verified: 2026-07-19 evidence="23 focused; root Python 615/4615, Go all, frontend 1055; typecheck/build/docs PASS" -->
+
+## Phase 18 report list and conversation reference composition
+
+- [x] RED/GREEN source and component tests cover the 1372px shared shell, illustrated Header, target summary card, numbered timeline, independent round cards and primary/secondary action hierarchy.<!-- verified: 2026-07-19 evidence="expected structural RED followed by final owner 32 files/242 tests PASS" -->
+- [x] RED/GREEN ReportConversation tests cover the three-column Context Strip, 60px role avatars, shared assistant/user outlined message cards and matching avatar silhouettes without changing role colors or reportId-only/safe-Markdown/privacy behavior.<!-- verified: 2026-07-19 evidence="ReportConversation behavior 19 tests plus source visual contract 2 tests PASS; desktop cards/badges share geometry and surface" -->
+- [x] Desktop/mobile responsive and current-run Chrome evidence prove shared bounds, same-order single-column containment and zero horizontal overflow without claiming `E2E.P0.099`.<!-- verified: 2026-07-19 evidence="desktop 1920x964 and exact mobile 390x844 PASS; conversation badges 60/48px, shared radius; overflowX=0" -->
+- [x] Focused owner tests, root regression, typecheck/build and document gates pass after GREEN.<!-- verified: 2026-07-19 evidence="owner 242; root frontend 1057 plus Python/Go; typecheck/build/redeploy PASS" -->

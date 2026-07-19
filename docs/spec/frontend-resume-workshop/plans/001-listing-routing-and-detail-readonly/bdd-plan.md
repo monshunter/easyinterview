@@ -1,6 +1,6 @@
 # Resume Listing and Readonly Detail BDD Plan
 
-> **版本**: 2.10
+> **版本**: 2.11
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -13,5 +13,6 @@
 | `BDD.RESUME.READ.001` | 用户已有、缺失、处理中或读取失败的 resume | 打开、刷新或重试 Workshop list / readonly detail | UI 只从 API 渲染摘要与正文并保持 route、waiting/failure、删除和隐私边界；不从 fixture、URL 或浏览器存储伪造内容 | `frontend/src/app/screens/resume-workshop/ResumeWorkshopScreen.test.tsx` + `components/ResumeDetailView.test.tsx`，由根 `make test` 承接 |
 | `BDD.RESUME.LIST.002` | 用户在 desktop 或 mobile 打开已有一份或多份简历的 Workshop 列表 | 浏览语义卡片、打开详情或删除一份简历 | 列表以语义 card/list 展示 closed 摘要；打开只携带 `resumeId`，删除失败保留原卡片，页面不出现 table/header/row 语义 | `frontend/src/app/screens/resume-workshop/components/ResumeListView.test.tsx` domain behavior tests，由根 `make test` 承接代码行为；几何由 `BDD.RESUME.LIST.VISUAL.003` owner |
 | `BDD.RESUME.LIST.VISUAL.003` | 用户在 desktop/mobile 打开已有简历的 Workshop 列表 | 浏览参考稿标题区、卡片、meta 与 footer，或使用创建/打开/删除动作 | desktop 每行排列两张等宽卡，mobile 占满可用宽度并收敛为单列；创建入口使用与 Workspace 一致的 22px circled-plus；文件 icon、名称/摘要、来源/最近编辑、删除和“打开”层级一致；create/open/archive 仍使用既有 route/generated client，失败保留卡片且无横向溢出 | `ResumeListView.test.tsx` + `ResumeWorkshopCssParity.test.ts` domain behavior tests；current-run Chrome 仅作 UI 证据 |
+| `BDD.RESUME.DETAIL.VISUAL.004` | 用户在 desktop/mobile 打开已有可读正文的简历详情 | 浏览 Header 与来源格式自适应正文 | desktop 显示共享左边界的 Back、蓝色 eyebrow、名称 kicker、主标题和 meta，并以约 `1512/1310/1150px` 形成内容面、浅色背景板和居中白色纸张；mobile 同序满宽可读；PDF/Markdown renderer、只读行为和正文事实不变 | `ResumeDetailView.test.tsx` + `ResumeWorkshopCssParity.test.ts` domain behavior tests；current-run Chrome 仅作 UI 证据 |
 
 当前没有覆盖 list/detail/删除的真实 API/UI E2E owner。代码层回归统一由根 `make test` 承接，不能作为 E2E 证据。

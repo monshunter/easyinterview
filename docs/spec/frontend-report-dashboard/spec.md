@@ -1,6 +1,6 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.33
+> **版本**: 1.35
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -14,12 +14,12 @@
 
 ### 2.1 In Scope
 
-- `reports`：受保护的独立页面，唯一上下文参数为 `targetJobId`；读取当前 TargetJob 与 `listTargetJobReports(targetJobId)`，只展示该规划 canonical rounds 的 `currentReport/latestAttempt`，不做全局中心或完整版本历史。
+- `reports`：受保护的独立页面，唯一上下文参数为 `targetJobId`；读取当前 TargetJob 与 `listTargetJobReports(targetJobId)`，只展示该规划 canonical rounds 的 `currentReport/latestAttempt`，不做全局中心或完整版本历史。Desktop 使用约 `1372px` 内容面、Header decorative illustration、只消费现有事实的目标摘要卡，以及“左侧两位编号/贯穿竖线 + 右侧独立轮次卡”的时间线构图；主报告、记录、生成和恢复动作按状态保持明确主次。
 - `reports` 的 loading / empty / error / ready 状态彼此完备；target/round identity 漂移、跨规划响应和 stale request 均 fail closed，不渲染其他规划 sentinel 或错链。
 - `generating`：轮询真实 report status，展示诚实的异步等待说明；不伪造百分比、实时观察或通知订阅。
 - `report`：Header、四项 Context Strip（目标岗位 / 轮次 / 可链接简历副本 / 面试记录）、两项 Summary Metrics、两行各两个常驻内容区（Dimensions / Strength Evidence / Risks / Next Actions），以及底部一个全宽 Overall Summary。
 - `report` desktop `2048×917` 目标视图使用约 `1432px` 居中内容面与浅蓝全视口背景；Back、标题、CTA、Context Strip、两列卡片和底部总评共享同一横向网格。Context Strip 是一张由三条内部竖线分成四列的整卡；四张内容卡必须具备语义圆形 icon 与紧凑正文结构，优势/风险不重复显示能力维度行已经表达的 confidence。典型两维度/两证据合法报告的底部总评应完整进入首屏；长合法内容仍完整换行且不得截断。不得把只调整 max-width、圆角、背景或无溢出当作目标稿改造完成。
-- `report-conversation`：仅以 `reportId` 读取报告附属的 ordered user/assistant transcript，安全渲染 Markdown/GFM，并返回同一报告状态页；queued/generating/ready/failed 都可访问。ReportsScreen 只要存在代表已结束会话的 current report 或 latest attempt，就必须独立展示“查看面试记录”，不能被“查看生成进度”或重新生成动作替代。
+- `report-conversation`：仅以 `reportId` 读取报告附属的 ordered user/assistant transcript，安全渲染 Markdown/GFM，并返回同一报告状态页；queued/generating/ready/failed 都可访问。Desktop 使用约 `1372px` 内容面、Header decorative illustration、三列分隔 Context Strip；assistant/user 共享浅色整行卡片、描边、圆角、内边距与同宽方形头像轮廓，只以蓝色 AI / 灰色“我”的色彩和角色文案区分身份。ReportsScreen 只要存在代表已结束会话的 current report 或 latest attempt，就必须独立展示“查看面试记录”，不能被“查看生成进度”或重新生成动作替代。
 - failed latest attempt recovery：除 `REPORT_CONTEXT_TOO_LARGE` 外，ReportsScreen 以同一 `reportId` 调用 `regenerateFeedbackReport` 并进入 Generating；所有 failed report 都保留“查看面试记录”。
 - Overall Summary 使用“面试总评”标题，同时展示 localized readiness tier 与服务端 `summary`；二者不得继续出现在顶部指标区，`summary` 全页只展示一次。
 - Dimension 使用动态 `label`，status/confidence 走完整 zh/en i18n，不泄漏 raw enum/code。
@@ -229,6 +229,8 @@ ReportConversation(reportId)
 | C-16 | failed report recovery | latest attempt 为普通 failed、超限 failed，或旧 ready + 更新 failed | 点击重新生成/查看记录，可能双击、网络未知或切换 target | 普通 failed 同 ID 生成且进入 matching Generating；同 key 复用、双击单请求、stale/malformed response 不导航；超限只有记录；旧/新 locator 与 accessible name 可区分 | 001 |
 | C-17 | 已结束面试记录始终可用 | current report 或 latest attempt 已存在，报告处于 queued/generating/ready/failed | 打开 ReportsScreen | 每个不同 reportId 都有“查看面试记录”；queued/generating 同时保留“查看生成进度”，failed 同时保留允许的恢复动作，same-ID ready 不重复，empty round 不虚构记录入口 | 001 |
 | C-18 | 目标稿整页结构 | 合法 ready report 在 2048×917 / 390×844 展示 | 逐块检查 Header、Context、Metrics、Detail 与 Overall | desktop 约 1432px 居中；Context 为一张四列分隔整卡；四个 Detail card 带语义 icon 并使用紧凑列表结构；典型内容总评完整进入首屏；mobile 同序单列且长内容不截断 | 001 |
+| C-19 | 报告列表目标构图 | 当前 TargetJob 有 canonical rounds 和 current/latest 报告事实 | 打开 `/reports?targetJobId=...` | desktop 约 1372px，Header 插画、现有事实目标摘要卡、编号时间线和独立轮次卡完整；报告/记录/生成/恢复动作保持各自 locator、状态与 a11y；mobile 同序无横溢 | [001 Phase 18](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| C-20 | 面试记录目标构图 | report-owned transcript 含合法 assistant/user 消息 | 打开 report-conversation | desktop 约 1372px，Header、三列 Context Strip 和消息列共享边界；assistant/user 共享浅色整行卡片、描边、圆角、内边距和同宽方形头像轮廓，只以蓝色 AI / 灰色“我”区分身份；Markdown、安全边界、Back 与无 composer/internal IDs 合同不变，mobile 同序无横溢 | [001 Phase 18](./plans/001-report-screen-and-generating-handoff/plan.md) |
 
 ## 9 关联计划
 
@@ -238,6 +240,8 @@ ReportConversation(reportId)
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.35 | Align assistant/user transcript cards to one shared outlined surface and avatar silhouette per acceptance feedback. |
+| 2026-07-19 | 1.34 | Reopen ReportsScreen and ReportConversation for the supplied target composition: shared illustrated Header, real-fact summary card, numbered round timeline, three-column context and differentiated assistant/user rows. |
 | 2026-07-19 | 1.33 | Reopen the ready dashboard for a complete target-composition rebuild after the prior width-only alignment failed to implement the supplied UI structure. |
 | 2026-07-16 | 1.31 | Hide failed-conversation Back until the trusted report owner resolves, preventing a transient workspace misroute. |
 | 2026-07-16 | 1.30 | Require the interview-record action for every completed-session report projection, including queued/generating rows alongside generation progress. |

@@ -70,6 +70,19 @@ describe("ResumeDetailView read-only contract", () => {
     await waitFor(() => {
       expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("resume-detail-crumb")).toHaveTextContent(
+      "Resume Workshop",
+    );
+    expect(screen.getByTestId("resume-detail-crumb")).not.toHaveTextContent(
+      "›",
+    );
+    expect(screen.getByTestId("resume-detail-kicker")).toHaveTextContent(
+      document.querySelector(".ei-resume-detail-header h1")?.textContent ?? "",
+    );
+    expect(screen.getByTestId("resume-detail-container")).toHaveClass(
+      "ei-resume-detail",
+      "ei-resume-detail-reference",
+    );
     expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
       "Original resume parsed text snapshot",
     );

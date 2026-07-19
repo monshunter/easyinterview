@@ -8,6 +8,7 @@
 **关联计划**:
 
 - [Resume Create Flow](../spec/frontend-resume-workshop/plans/002-create-flow/plan.md)
+- [Resume Listing and Readonly Detail](../spec/frontend-resume-workshop/plans/001-listing-routing-and-detail-readonly/plan.md)
 - [Practice Text Event Loop](../spec/frontend-workspace-and-practice/plans/002-practice-text-event-loop/plan.md)
 - [Report Screen and Generating Handoff](../spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/plan.md)
 
@@ -15,8 +16,9 @@
 
 - 本次交付按三张参考图重构上传简历、面试进行和面试报告三页的导航下方起点、desktop 内容面、响应式网格、卡片层级、按钮、SVG icon、字体与间距，同时保持既有 API、路由、消息、简历注册和报告事实语义。
 - 用户追加要求已闭环：AI/用户角色改为方形标识；说明胶囊带 sparkle icon；Transcript 成为唯一滚动区；Composer 整体固定在会话卡底部；说明胶囊固定贴在输入框上方 8px。
+- 三张追加参考图也已闭环：简历预览采用 `1512/1310/1150px` Header/背景板/纸张构图；报告列表采用 `1372px` 插画 Header、事实摘要卡和编号时间线；面试记录采用同宽三列 Context Strip，并让 AI/“我”共用消息卡片与头像轮廓。
 - TDD 证据：Resume create 4 files / 21 tests；Practice 最终 4 files / 56 tests；报告页追加 2 files / 23 tests 的目标构图 RED/GREEN，并由根级 frontend 131 files / 1055 tests 完整覆盖。报告页 RED 明确拒绝缺失 Detail icon 与 1432px 目标构图，随后转 GREEN。
-- 根回归：Python 615 tests / 4615 subtests、Go 全包、frontend 131 files / 1055 tests 全部通过；frontend typecheck 与 production build 通过。
+- 根回归：Python 615 tests / 4615 subtests、Go 全包、frontend 132 files / 1057 tests 全部通过；三页 owner 32 files / 242 tests、frontend typecheck 与 production build 通过。
 - Chrome 证据：Resume 使用正式 real-mode frontend 完成 1916×821 / 390×844 containment；Practice 的 Transcript 在 desktop/mobile 实际滚动前后，input 坐标与 helper/input 8px gap 不变。报告页使用当前真实 backend ready report 完成 desktop 1920×964 与 exact mobile 390×844 full-page 验收：desktop 主体 1432px、四列 Context、两列 709px 内容卡、四个 46px Detail icon 和首屏完整 Overall 均闭合，两档 document overflow 均为 0。
 - 文档证据：三组原 owner spec/plan/checklist/BDD/test 原地修订并恢复 `completed`；context、Header/INDEX、docs links 与 `git diff --check` 通过。
 
@@ -42,6 +44,11 @@
 - **证据**：Phase 16 只锁定 1336px 宽度、背景、圆角和部分语义图标；用户再次指出报告页完全没有按目标稿改造，并用标框明确 Header CTA、单体 Context Strip 和贯穿各卡片的左侧语义图标轨。源码反查确认旧的四卡 Context 和无 Detail icon 结构仍在。
 - **影响**：历史 focused/root/fixture 结果全部为绿，但没有回答目标图的组件结构问题，造成一次完整返工和用户二次纠正。
 
+### 2.5 面试记录角色样式被错误设计为非对称层级
+
+- **证据**：初次追加改造让 AI 消息直接显示在主体背景中，只给“我”增加独立 surface，并让“我”的头像轮廓与 AI 不同；用户明确要求两种消息与头像轮廓保持一致。
+- **影响**：共同组件没有形成共同视觉合同，导致一次可避免的细节返工；若只看页面整体截图，仍可能漏掉角色间的 computed-style 差异。
+
 ## 3 根因归类
 
 - 固定 Composer / 滚动 Transcript 最初没有成为可执行 DOM/CSS/BBox 不变量，只描述了视觉形态。
@@ -53,6 +60,8 @@
 - Chrome finalize 参数的两次格式尝试没有影响产品结果，属于一次性工具调用失误。
   - **类别**：无需仓库改动
 - 报告页视觉合同把 max-width/rounded/overflow 当成主要完成证据，没有将参考图标框转换为共享 surface、divider、icon rail 和首屏 Overall 的结构性 RED。
+  - **类别**：spec/plan
+- 面试记录 visual gate 只验证用户消息 surface，没有对 assistant/user 的边框、圆角、padding、阴影和头像几何做成对称断言。
   - **类别**：spec/plan
 
 ## 4 对流程资产的改进建议
@@ -68,6 +77,9 @@
   - **优先级**：medium
 - UI 参考图修订必须先列出可观察的组件所有权与几何关系，再以 source/component RED 拒绝旧结构；宽度、背景、圆角和无溢出只能是辅助 gate，不能单独作为完成条件。本轮已在原 report spec/plan Phase 17 固化该规则。
   - **落点**：相关 UI spec / plan
+  - **优先级**：high
+- 聊天记录的角色 visual contract 必须同时断言“共享基类 surface”和“仅身份 token 不同”：两类卡片的 border/radius/padding/shadow 相同，两类头像的 width/height/radius 相同。本轮已在 report owner Phase 18 原地固化。
+  - **落点**：ReportConversation owner spec / plan / source contract test
   - **优先级**：high
 
 ## 5 建议优先级与后续动作

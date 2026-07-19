@@ -1,6 +1,6 @@
 # Resume 一级模块目标结构
 
-> **版本**: 3.9
+> **版本**: 4.0
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -16,7 +16,7 @@
 2. 简历是平铺列表中的独立资产：每份简历自带原始来源（文件或粘贴文本，只读）、解析文本快照和结构化内容，不区分原始简历 / 主版本 / 岗位定制版本（D-20）。
 3. 简历首页是 `Resume Workshop` 平铺卡片列表，无树形分组、无视图切换、无“选为底稿”；桌面端每行排列两张等宽卡，移动端使用同序单列并占满可用宽度。
 4. 创建新简历经历 `上传 / 粘贴 -> 注册成功 -> 解析等待 -> 来源格式自适应详情 / 失败态`；不展示结构化草稿确认页或确认保存页；轻量问答建档不属于当前流程。
-5. 简历详情页是只读正文页：上传 PDF 使用同源 source endpoint 渲染为从上到下平铺的 PDF 页面栈；粘贴、Markdown 文件和 TXT 文件使用 Markdown 渲染引擎展示正文；Markdown body 区只渲染简历正文本身，不额外注入 `displayName`、header 名称、summary 或来源元数据；PDF 与 Markdown 使用统一阅读背景板和白色 page surface；不提供导出、复制、编辑、预览标签、改写建议、结构化草稿确认、浏览器 PDF 工具栏或查看原始简历弹层。
+5. 简历详情页是只读正文页：上传 PDF 使用同源 source endpoint 渲染为从上到下平铺的 PDF 页面栈；粘贴、Markdown 文件和 TXT 文件使用 Markdown 渲染引擎展示正文；Markdown body 区只渲染简历正文本身，不额外注入 `displayName`、header 名称、summary 或来源元数据；PDF 与 Markdown 使用统一阅读背景板和白色 page surface。Desktop `1916×821` 下详情内容面约 `1512px`，Back、蓝色 eyebrow、名称 kicker、主标题和 meta 共享左边界；阅读背景板约 `1310px`，其中白色 PDF/Markdown 纸张约 `1150px` 并居中。详情不提供导出、复制、编辑、预览标签、改写建议、结构化草稿确认、浏览器 PDF 工具栏或查看原始简历弹层。
 6. 原件预览不是独立二级入口，而是详情正文区域根据来源格式自动选择的渲染方式，对用户透明。
 7. 用户上传或粘贴生成的简历都必须有可识别名称；最终 `displayName` 优先由 backend parse 根据 LLM `displayName` / 结构化结果生成。若 LLM 输出失败但 backend 已抽取可读正文，backend 必须写入非通用 fallback 名称；不以“上传的简历”“粘贴的简历”、文件名或 raw resume 第一行作为完成态名称。
 8. 系统必须保留原始文件或原始文本；上传 PDF / Markdown / text 的 prompt input 来自文件可读正文提取，粘贴和 Markdown/text 成功态详情正文来自 LLM 生成的 Markdown 快照，PDF 成功态详情正文使用原始 PDF 文件渲染出的纵向页面栈，解析结果不能覆盖原始来源快照。DOCX 不属于当前上传支持范围。
@@ -126,7 +126,7 @@ No Resume
 
 1. 简历卡片列表和简历选择弹窗都必须展示简历名称、来源和最近编辑时间；列表卡片可展示 closed `ResumeSummary.summaryHeadline`，但参考稿列表不重复展示语言 tag，且不得读取详情正文。
 2. 简历列表是单层卡片列表，不得出现表头、表格行、树形分组、主版本 / 定制版本标签或“选为底稿”动作；desktop 页面内容区约 1408px，每行排列两张等宽卡；mobile 保持同一 DOM/阅读顺序并占满可用宽度。卡片 header 使用文件 icon + 名称/摘要，右上角是独立删除动作；meta 与 footer 由规则线分隔，footer 只在右侧保留“打开”。
-3. 简历详情必须只展示简历内容本身；PDF 上传用从上到下平铺的 PDF 页面栈，粘贴 / Markdown / TXT 用 Markdown 渲染；Markdown body 不得额外注入 `displayName`、header 名称、summary 或来源元数据；PDF 与 Markdown 必须使用统一阅读背景板；不得出现预览 / 改写 / 编辑 tabs、导出、复制、原件弹层、浏览器 PDF 工具栏或二次编辑动作。
+3. 简历详情必须只展示简历内容本身；Header 使用 Back、蓝色 eyebrow、名称 kicker、主标题与来源/日期 meta 的参考稿层级；desktop 内容面约 `1512px`，阅读背景板约 `1310px`，内部白色纸张约 `1150px` 且居中；PDF 上传用从上到下平铺的 PDF 页面栈，粘贴 / Markdown / TXT 用 Markdown 渲染；Markdown body 不得额外注入 `displayName`、header 名称、summary 或来源元数据；PDF 与 Markdown 必须使用统一阅读背景板；mobile 收敛为满宽背景板和可读纸张，且不得出现预览 / 改写 / 编辑 tabs、导出、复制、原件弹层、浏览器 PDF 工具栏或二次编辑动作。
 4. 创建新简历时，不展示结构化预览确认页；注册成功后必须进入解析等待态，成功后打开来源格式自适应只读详情，失败后展示失败态。
 5. parse 成功后的完成态名称必须优先使用 LLM 根据简历内容生成的 `displayName`；parse 失败但已有可读正文时必须使用 backend 生成的非通用 fallback 名称。通用上传 / 粘贴标题、文件名和 raw resume 第一行只能作为来源信息或正文内容，前端不得展示为列表或详情名称。
 6. 创建面试规划前通过 Home 显式选择 ready 简历；解析确认页与模拟面试规划页不提供更换简历入口。
@@ -136,6 +136,7 @@ No Resume
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 4.0 | 2026-07-19 | 按简历预览参考稿补齐详情 Header 与 `1512/1310/1150px` 内容面、阅读背景板和白色纸张构图；保持来源格式 renderer、只读行为和数据合同不变。 |
 | 3.9 | 2026-07-19 | 简历 Header 创建入口改用与 Workspace 一致的 22px 圆圈加号，保持创建 route 与双列卡片布局不变。 |
 | 3.8 | 2026-07-19 | 按提供的简历列表参考稿锁定标题区、文件 icon、meta 分隔、删除与 footer 打开层级，并根据用户补充将 desktop 明确为每行两张等宽卡；数据与路由合同不变。 |
 | 3.7 | 2026-07-15 | 将 Resume Workshop 列表从表格行修订为与面试规划一致的响应式卡片网格：桌面固定最大列宽、移动单列，并保留打开/删除及 closed ResumeSummary 边界。 |

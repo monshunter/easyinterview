@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 4.4
+> **版本**: 4.5
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -113,3 +113,10 @@
 - [x] 17.3 BDD-Gate: `BDD.REPORT.UI.001` proves desktop single-card dividers, four Detail icon kinds, compact non-duplicated evidence hierarchy, typical-content first-viewport Overall visibility and 390px long-content containment.<!-- verified: 2026-07-19 method=source+component+real-chrome evidence="one divided context surface; four detail icon kinds; highlights/issues omit duplicate confidence; desktop overall bottom=906.5<964; mobile full-page order/containment PASS" -->
 - [x] 17.4 CHROME: use the user’s current real ready report in the actually observed desktop Chrome viewport to capture a screenshot plus block-level bbox/computed-style audit; record `390×844` as deterministic responsive/component coverage unless an exact mobile Chrome viewport is actually run; do not claim full `E2E.P0.099`.<!-- verified: 2026-07-19 method=chrome-real-ready-report evidence="desktop 1920x964 dashboard=1432; context=4x357.5; metrics/panels=709 columns; detail icons=4x46; overall bottom=906.5; exact mobile 390x844 fullPage; overflowX=0; local-dev dependencies=4/4 OK" -->
 - [x] 17.5 REGRESSION-GATE: focused report tests, root `make test`, typecheck/build, context/docs/index/link/diff gates pass before restoring completed.<!-- verified: 2026-07-19 method=focused+root-regression evidence="report 23 PASS; Python 615/4615 subtests; Go all packages; frontend 131 files/1055 tests; typecheck/build PASS; document gates PASS" -->
+
+## Phase 18: Report list and conversation reference composition
+
+- [x] 18.1 RED：ReportsScreen/ReportConversation source、component 与 responsive tests 拒绝 `1120/880px` 窄 shell、单一列表整卡、缺失目标摘要/编号时间线/Header illustration、`28px` avatar 与无 user full-row surface；既有 current/latest/regenerate/route/Markdown/privacy/a11y 保持通过。<!-- verified: 2026-07-19 method=focused-vitest-red evidence="69 tests run; 8 expected structural failures, 61 existing behavior tests PASS; report failures identify inline 1120/880 shells and missing composition selectors/anchors" -->
+- [x] 18.2 GREEN：两页实现约 `1372px` 共享构图；ReportsScreen 使用真实 TargetJob 摘要卡、左侧两位编号/贯穿线与独立轮次卡；ReportConversation 使用三列 Context Strip，assistant/user 共用浅色整行卡片、描边、圆角、内边距和约 `60px` 方形头像轮廓，只以角色色彩/文案区分；mobile 同序单列。<!-- verified: 2026-07-19 method=focused-vitest+typecheck evidence="Report records/conversation focused 61 tests PASS after GREEN; final owner scope 32 files/242 tests PASS; tsc --noEmit PASS" -->
+- [x] 18.3 BDD-Gate: `BDD.REPORT.RECORDS.VISUAL.002` 由 owner tests 与 current-run Chrome UI evidence 验证，不创建 E2E wrapper，也不声明完整 `E2E.P0.099` PASS。<!-- verified: 2026-07-19 method=chrome-real-local evidence="desktop 1920x964 report conversation assistant/user cards both width=1372 border=1 radius=10; badges both 60x60 radius=9; exact mobile 390x844 cards=358 and badges=48x48 radius=9; overflowX=0" -->
+- [x] 18.4 REGRESSION：focused owner tests、frontend typecheck/build、根 `make test`、owner context、docs/index/diff 和 Chrome desktop/mobile evidence 通过后恢复 completed。<!-- verified: 2026-07-19 method=focused+root-regression evidence="owner 32 files/242 tests; root Python 615/4615 subtests; Go all packages; frontend 132 files/1057 tests; typecheck/production build/redeploy PASS; local dependencies 4/4 OK" -->

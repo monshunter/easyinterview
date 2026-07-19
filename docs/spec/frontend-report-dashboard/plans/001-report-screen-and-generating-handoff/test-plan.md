@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.12
+> **版本**: 3.14
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -73,3 +73,9 @@
 - `ReportResponsiveContract.test.ts` locks `1432px`, one Context surface with internal dividers, four semantic Detail icon kinds, class-owned ready styling and desktop/mobile breakpoints; it must fail on a width-only shell even when overflow is zero.
 - `ConversationReport.test.tsx` locks the icon-led panel structure and proves Highlights/Issues do not repeat confidence while Dimensions continue to expose localized status/confidence.
 - Chrome geometry on the current real ready report checks Header, Context, Metrics, both Detail rows and Overall bboxes in the user's current desktop viewport, including full Overall visibility for the current typical payload. The `390×844` mobile boundary remains covered by the deterministic responsive/component contract unless an exact mobile Chrome viewport is actually executed. These are scoped UI acceptance artifacts, not a complete `E2E.P0.099` run.
+
+## 12 Report list and conversation reference composition
+
+- `ReportsScreen.test.tsx` adds structure/source assertions for the approximately `1372px` shell, decorative Header illustration, real-fact target summary card, numbered timeline, independent round cards and primary/secondary actions while preserving the full current/latest/status/regeneration matrix.
+- `ReportConversationScreen.test.tsx` adds structure/source assertions for the same Header, three-column Context Strip, approximately `60px` role avatars, and one shared outlined full-width message-card silhouette for assistant/user while preserving role colors, reportId-only loading/failure/Back/safe-Markdown/privacy behavior.
+- Responsive CSS/source tests require desktop shared bounds and mobile same-order single-column containment; current-run Chrome records desktop/mobile screenshots and bbox/overflow evidence against the real frontend/backend without promoting the scoped run to `E2E.P0.099`.

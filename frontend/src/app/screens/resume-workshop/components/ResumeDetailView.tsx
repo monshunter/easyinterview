@@ -88,7 +88,10 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({ resumeId }) => {
   }
 
   return (
-    <div data-testid="resume-detail-container" className="ei-resume-detail">
+    <div
+      data-testid="resume-detail-container"
+      className="ei-resume-detail ei-resume-detail-reference"
+    >
       <button
         type="button"
         data-testid="resume-detail-back"
@@ -99,10 +102,11 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({ resumeId }) => {
       </button>
 
       <header className="ei-resume-detail-header">
-        <div className="ei-resume-detail-crumb" data-testid="resume-detail-crumb">
-          <span className="ei-text-label">{t("resumeWorkshop.eyebrow")}</span>
-          <span className="ei-text-label">›</span>
-          <span className="ei-text-label">{ui.name}</span>
+        <div className="ei-resume-detail-eyebrow" data-testid="resume-detail-crumb">
+          {t("resumeWorkshop.eyebrow")}
+        </div>
+        <div className="ei-resume-detail-kicker" data-testid="resume-detail-kicker">
+          {ui.name}
         </div>
         <h1 className="ei-text-display">{ui.name}</h1>
         <div
