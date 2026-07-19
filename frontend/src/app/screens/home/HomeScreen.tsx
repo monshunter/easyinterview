@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -103,6 +104,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const [resumeError, setResumeError] = useState<MessageKey | null>(null);
   const [startingRecentJobId, setStartingRecentJobId] = useState<string | null>(null);
   const [recentStartError, setRecentStartError] = useState<MessageKey | null>(null);
+  const jdTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const handledPendingImportId = useRef<string | null>(null);
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
   const targetLanguage = lang === "zh" ? "zh-CN" : "en";
@@ -120,6 +122,14 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
       .slice(0, 3),
     [rawJobs],
   );
+
+  useLayoutEffect(() => {
+    const textarea = jdTextareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [input]);
 
   const openProtectedRoute = useCallback(
     (next: Route, label: string) => {
@@ -300,6 +310,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
             </label>
             <div className="ei-home-jd-frame">
               <textarea
+                ref={jdTextareaRef}
                 id="home-jd-textarea"
                 data-testid="home-jd-textarea"
                 className="ei-home-jd-textarea"

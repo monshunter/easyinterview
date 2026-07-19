@@ -28,6 +28,7 @@
 - Chrome 等待态证据：在真实 frontend/backend 上触发多次 Practice 启动、Resume/JD 解析和 Report 生成；1920px viewport 下 Resume scene `x=0/width=1920`，Report card `x=415/width=1090`，JD 读取到 1–4 marker/state，所有流程都真实 handoff 到 ready 页面，browser error/warning=0。最终 focused 9 files / 89 tests、production build/redeploy、环境 4/4 与根 `make test` 615 / 4615 通过。
 - 2026-07-20 Settings 插画补充闭环：把旧山形人物稀疏线稿重画为资料窗口、头像信息、柱状图、锁、盾牌对勾与星芒组成的 7 层 code-native SVG；focused Settings visual/behavior 26/26、typecheck、production build、frontend redeploy、环境 4/4 和根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 134 files / 1082 tests）通过。Chrome 在真实 `1264×964` Settings 页面测得插画 `360×200`、Header/Appearance 同边界、`documentWidth=viewportWidth`，Ocean/Plum/Custom 主题预览和刷新恢复均正常。
 - 2026-07-20 TopBar 补充闭环：语言入口改为带可见底板和展开旋转的 code-native SVG chevron；设置入口从 authenticated runtime `displayName` 派生首个 Unicode 字符，拉丁字母大写、空名称显示 `?`。Focused 43/43、typecheck/build、frontend redeploy、环境 4/4 与根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 134 files / 1087 tests）通过；真实 Chrome 验证 `星期无 → 星`、设置直达、无横向溢出及 0 warning/error。
+- 2026-07-20 Home JD textarea 补充闭环：保留 `width: 100%`，默认 `min-height` 从 `106px` 增至 `212px`，长内容随最新 `scrollHeight` 自动增高并在删减后回缩。RED 先暴露静态尺寸与缺少重算，GREEN 后 Home 9 files / 67 tests、typecheck/build、frontend redeploy、环境 4/4 和根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 134 files / 1088 tests）通过；真实 Chrome 验证空/短内容 `212px`、36 行 JD `993px` 且 `clientHeight=scrollHeight`、无横向溢出及 0 warning/error。
 - 文档证据：Home/Parse owner 恢复 `completed`；Shell 视觉 Phase 完成但因独立 Phase 15.3 继续保持 `active`；两个 context、Header/INDEX、docs links 与 `git diff --check` 通过。
 
 ## 2 会话中的主要阻点/痛点
@@ -82,6 +83,11 @@
 - **证据**：TopBar 左侧品牌已经固定展示 `E`，右侧设置入口仍重复固定 `E`；同时语言入口只使用 9px 文本 `▾`。用户明确要求右侧入口展示用户名首字符并增强箭头辨识度，旧 spec 还把固定 `E` 写成正式合同。
 - **影响**：实现与文档同时一致却仍不符合当前产品语义；若不先修订 owner spec，代码层只能持续保护错误设计。
 
+### 2.11 自然语言尺寸要求需要先翻译为轴向与 overflow 合同
+
+- **证据**：用户要求 JD 输入区“默认宽度加倍并自动适配”，但正式页面的 textarea 已经横向 `width: 100%`；真实 bbox 为 textarea/外框 `1346/1348px`，继续横向翻倍会突破 `1916px` viewport。截图所指的实际体验缺口是 `106px` 纵向可视容量和长内容内部滚动。
+- **影响**：如果机械修改 CSS width，会制造横向溢出且仍不能完整展示多行内容；本轮先把要求转译为 `min-height + scrollHeight + overflow` 可测合同，再以 RED/GREEN 与 Chrome 几何闭环。
+
 ## 3 根因归类
 
 - 固定 Composer / 滚动 Transcript 最初没有成为可执行 DOM/CSS/BBox 不变量，只描述了视觉形态。
@@ -105,6 +111,8 @@
 - Settings Header 视觉合同只有“有账号/安全插画”的抽象描述和容器存在性测试，没有目标对象集合、前后景和透明层级的可执行定义。
   - **类别**：spec/plan
 - TopBar 把品牌字母和字体三角当作稳定 UI 合同，没有定义 authenticated runtime identity 派生、Unicode/空值边界和 SVG 开合状态。
+  - **类别**：spec/plan
+- Home textarea 只拥有静态 `106px` 高度断言，没有定义空/短/长/删减四态的轴向、回缩与 overflow 不变量。
   - **类别**：spec/plan
 
 ## 4 对流程资产的改进建议
@@ -139,6 +147,9 @@
 - 共享 TopBar 的品牌标识与账号身份必须分开建模：设置入口只消费现有 authenticated runtime 的最小身份投影，并覆盖中文、拉丁、前导空白和空值；语言开合提示使用 code-native SVG、可见底板和 transform 状态。本轮已在 Shell Phase 22 原地固化。
   - **落点**：Shell UI design / spec / plan / TopBar tests
   - **优先级**：high
+- 对 textarea / editor 的“尺寸加倍、自动适配”需求，UI owner 必须显式拆成 `width` containment、`min-height`、内容驱动 height、缩短回收、overflow 与 mobile no-overflow 六个断言；本轮已在 Home Phase 28 和 `BDD.HOME.JD.TEXTAREA.006` 原地固化。
+  - **落点**：相关 UI design / spec / plan / component test / Chrome bbox gate
+  - **优先级**：high
 
 ## 5 建议优先级与后续动作
 
@@ -149,4 +160,5 @@
 - 下一轮同样应保留本次新固化的 transition caller-bbox gate；新增异步页面时必须先接入 shared scene，再在真实 pending 状态验收嵌入后的 viewport geometry。
 - 新增或重画装饰插画时，先列出必须出现与明确禁止的图层，再写 component/CSS RED，最后用当前主题下的真实 Chrome 截图和 bbox 验收；不得再次以单个 SVG selector 存在作为完成依据。
 - 共享导航下一轮继续优先审计“品牌、导航、账号、语言”四类语义是否被同一视觉符号混用；身份入口必须来自当前 runtime，语言入口必须有独立开合状态，且不得以新增账号请求换取显示信息。
+- 后续涉及 textarea、Markdown editor 或会话输入区尺寸调整时，先复用本轮的六项尺寸合同，不再只断言单个 `min-height`；Chrome 必须同时记录 `clientHeight/scrollHeight` 和 `documentWidth/viewportWidth`。
 - 可延后：为 fixture visual acceptance 增加更多长内容 fixture；当前通过压缩 desktop/mobile viewport 已真实产生 Transcript overflow 并验证了固定 Composer，不构成本次交付 blocker。

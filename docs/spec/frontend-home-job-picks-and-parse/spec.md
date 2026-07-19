@@ -1,8 +1,8 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.31
+> **版本**: 2.32
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 ## 1 背景与目标
 
@@ -30,6 +30,7 @@ Home 粘贴 JD
   - 按设计合同实现 `frontend/src` 当前结构。
   - Hero 使用主标题双层强调、副标题和右侧轻量插画；不展示旧 uppercase eyebrow。
   - 单一白色 intake card 依次承载 JD label + textarea/count、Resume label + select/create link、右侧主 CTA 与隐私提示；`home-jd-input-card` 仍只包裹 textarea/count，不展示或挂载其他 JD intake 控件、弹窗或隐藏分支。
+  - 唯一 JD textarea 保持 `width: 100%`；默认 `min-height` 从 106px 翻倍为 212px，输入或粘贴内容超过默认高度时按实际内容自动增高，删除内容时回缩但不低于 212px，不出现内部纵向滚动条。
   - `listResumes` 读取未归档且 `parseStatus=ready` 或已有可读正文/结构化证据的 selectable 简历；用户必须显式选择一份后才能点击「立即面试」。
   - `还没有简历？1 分钟创建 ->` 与下拉框同行，点击进入 `resume_versions?flow=create`。
   - `listTargetJobs` 渲染最近 3 条 ready mock interview record；Home 使用全宽横向列表形态，依次展示公司/岗位、动态轮次 rail、最近使用时间与继续练习；主体直接进入 `/workspace?targetJobId=...`，不经过 Parse/动画；有记录时展示「查看全部」并跳转 `/workspace`。
@@ -83,11 +84,13 @@ Home 粘贴 JD
 | D-17 | Workspace detail round state | 轮次假设卡片使用与 Home/Workspace mini rail 相同的 `practiceProgress` 投影：完成前缀为 `done/已进行`，首个未完成轮为 `current/即将进行`，其余为 `pending/未进行`；三态必须同时有不同背景、边框、文字标签和可测试状态属性 | 用户无需从顺序猜测进度；不从 lifecycle status、URL 或浏览器存储推断轮次状态 |
 | D-18 | Selectable Resume 永久前置 | Home 只有在用户显式选择未归档且 `parseStatus=ready` 或已有可读正文/结构化证据的 selectable Resume 后才能提交 exact import；TargetJob 必须保存该 `resumeId`，后续 Start、Reports、复练和下一轮都只消费该持久化事实 | 不实现无简历/JD-only 训练或报告降级；无 selectable 简历的用户只进入创建流程。历史缺失或无效绑定是异常数据并 fail closed，不自动选择最近简历，不从 route/browser storage 补齐 |
 | D-19 | Home screenshot-aligned visual hierarchy | Desktop Home 使用 1400px 级居中内容列、浅色渐变/斜切背景、标题强调、单一 intake card 与全宽 recent record；mobile 按 DOM 顺序收敛为单列 | 视觉重排不改变 operation matrix、Resume gate、route、privacy、idempotency 或 TargetJob round mapper；计数器必须显示 runtime owner 的真实上限，不硬编码参考图中的业务值 |
+| D-20 | Home JD textarea 自适应高度 | 横向固定为 intake card 的 `100%`，默认 `min-height=212px`；每次受控值变化后按 `scrollHeight` 自动增高或回缩，不低于默认高度且不显示内部纵向滚动条 | 长 JD 当前内容完整可见，mobile 不横溢；不改变 runtime byte limit、计数、request、route、privacy 或 Resume gate |
 
 ## 4 设计约束
 
 - DOM 构图、控件类型、间距、字体层级、状态、响应式行为和交互节奏必须可追溯到 `frontend/` 当前源码。
 - Home `home-intake-card` 是单一视觉容器；其中 `home-jd-input-card` 只承载 `home-jd-textarea` 与真实 runtime count，`home-resume-row` / `home-submit-row` / `home-privacy-note` 同属该视觉容器但不是 textarea DOM 的子节点。旧 source controls、trigger 和 modal 锚点必须为零。
+- Home textarea 使用 212px 默认最小高度与内容驱动的自动高度：写入前先清除旧 inline height，再读取当前 `scrollHeight`；长内容增高、删减内容回缩，CSS `min-height` 负责 212px 下限。禁止恢复内部纵向滚动条、横向自增长或手动 resize。
 - Home resume select 使用紧凑下拉框；不得平铺所有简历。
 - 未登录提交时先创建不可逆推原文的 `opaquePendingImportId`，再把 exact import intent 写入一次性内存 vault；认证路由的 `pendingAction` 不得复制 `rawText`、`targetLanguage`、`resumeId`、intake source 或业务 route params。登录成功后必须原子 consume 一次并使用 vault 中原 idempotency key 提交 exact request；成功、失败、过期和重复 consume 后均不得让同一 entry 再次可读。
 - refresh / 进程重启导致 vault 丢失、entry 过期或 ID 已消费时，auth continuation 不调用 `importTargetJob`，清除无效 pending action，返回 Home 并以 zh/en 可访问提示要求用户重新粘贴 JD、选择简历；不得用 `localStorage`、`sessionStorage`、IndexedDB、URL、日志或 telemetry 延长 raw JD 生命周期。
@@ -147,6 +150,7 @@ Home 粘贴 JD
 | C-14 | JD size boundary | owner config 提供 UTF-8 JD byte limit | 点击「立即面试」 | 注入小型 boundary 验证 overflow inline validation 且零 import；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文本或配置 E2E | 001 Phase 22 |
 | C-15 | 强制简历前置零残留 | 用户没有 selectable 简历或尚未显式选择 | 输入合法 JD 并尝试提交，随后扫描 active 产品/UI/owner 文档 | CTA disabled 且 `importTargetJob` 调用为零；创建并形成可读证据后仍须回 Home 显式选择；不存在无简历/JD-only 导入、训练、报告降级或历史缺绑 fallback 承诺 | 001 Phase 24 |
 | C-16 | 规划详情参考构图 | ready Workspace detail 有真实 TargetJob、简历和动态轮次 | 在 desktop/mobile 查看并操作 Header 与四层信息卡 | 约 1250px 内容列中 Header 左侧为步骤/标题/简历/说明，右侧为 Start/Reports；基本信息、要求、隐性关注点与动态轮次形成四层响应式卡面，无横向溢出且不改变请求、route、progress 或 fail-closed 行为 | 001 Phase 26 |
+| C-17 | JD textarea 自适应高度 | 用户进入 Home，JD 可能为空、短于默认高度或包含多行长文本 | 输入、粘贴或删除 JD 内容 | textarea 默认至少 212px；长内容按 `scrollHeight` 增高并完整显示，删减后回缩但不低于 212px；desktop/mobile 均保持 100% 横向宽度、无内部纵向滚动和无页面横向溢出 | 001 Phase 28 |
 
 ### 7.1 JD 解析等待态目标构图
 
@@ -168,6 +172,7 @@ command-only Parse 在 queued/processing 期间使用共享 `AsyncTransitionScen
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 2.32 | 2026-07-20 | Reopen Phase 28 to double the Home JD textarea default height and auto-fit pasted content without changing width, limits, requests or routes. |
 | 2.31 | 2026-07-19 | Reopen the command-only Parse owner for the supplied four-step JD transition while preserving ready replacement, polling and internal-metadata boundaries. |
 | 2.30 | 2026-07-19 | Reopen Phase 26 to align the Workspace plan-detail header and four-layer card composition with the supplied reference while preserving TargetJob behavior. |
 | 2.29 | 2026-07-19 | Reopen Phase 25 to align the formal Home hierarchy, intake card and recent records with the supplied desktop reference while preserving runtime limits and all business contracts. |

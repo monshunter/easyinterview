@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.36
+> **版本**: 2.37
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
@@ -183,3 +183,10 @@
 - [x] 27.2 GREEN: queued/processing 复用 shared `job` variant；保留 command-only route、polling、ready replace、error/Back、Resume binding 与 exact request counts。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="Parse screen/flow 13 tests PASS including StrictMode transport counts and ready replace" -->
 - [x] 27.3 BDD-Gate: `BDD.HOME.JD.PARSE.VISUAL.005` 覆盖步进、ready/error、中文/英文、desktop Chrome 与 mobile responsive contract，不新增 E2E ID。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Three real imports captured the shared JD scene at step 1 and step 4; final DOM exposed markers 1-4 with current/pending truth, vertical rail, TopBar and Back, then replaced to Workspace ready detail." -->
 - [x] 27.4 REGRESSION: focused、typecheck/build、根 `make test`、context/docs/diff 与 Chrome gates 通过后恢复 completed。<!-- verified: 2026-07-19 evidence="Parse focused 6 plus final shared 89 PASS; production build/redeploy and root make test 615 / 4615 PASS; final browser route reached Workspace and console stayed clean." -->
+
+## Phase 28: Auto-fitting Home JD textarea
+
+- [x] 28.1 RED: `HomeLayout.test.tsx` 锁定 textarea 默认 `min-height: 212px`、`width: 100%`、`overflow-y: hidden`，并以可控 `scrollHeight` 证明长内容必须增高、删减后必须重新测量回缩；旧 106px 固定高度实现先失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="HomeLayout 5 tests ran with exactly 2 expected failures: the legacy 106px CSS contract and the missing 420px scrollHeight-driven remeasurement; 3 unrelated layout tests stayed green." -->
+- [x] 28.2 GREEN: `HomeScreen` 只增加 textarea ref + layout effect，在受控值变化后清除旧 height、读取当前 `scrollHeight` 并写入新高度；不增加 max-height、内部滚动、手动 resize、请求、route、storage 或业务状态。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="HomeLayout 5/5 PASS after adding only the textarea ref/layout effect plus 212px min-height and hidden vertical overflow; controlled 420px growth and 224px shrink both pass." -->
+- [x] 28.3 BDD-Gate: `BDD.HOME.JD.TEXTAREA.006` 由 Home layout/component tests 与 current-run Chrome desktop 验收承接；验证默认约 212px、长 JD `clientHeight >= scrollHeight`、计数器/Resume/CTA 顺序稳定、无横向溢出，不新增 E2E ID。<!-- verified: 2026-07-20 method=focused-vitest-plus-chrome evidence="Home 67/67 and typecheck PASS; Chrome 1916x821 measured 212px default/shrunk and 993px for 36 lines with clientHeight=scrollHeight, no horizontal overflow, stable downstream ordering and zero browser issues." -->
+- [x] 28.4 REGRESSION: focused、typecheck/build、frontend redeploy、环境 4/4、根 `make test`、owner context、Header/INDEX/docs/diff gate 通过并完成 bug/复盘/日志收尾后恢复 completed。<!-- verified: 2026-07-20 method=post-pass-gates evidence="Home 67/67, typecheck/build, frontend redeploy, environment 4/4 and root make test Python 615/4615, Go all, frontend 134/1088 PASS; BUG-0192 and the existing alignment retrospective were updated before lifecycle restoration." -->

@@ -218,8 +218,9 @@
 .ei-home-jd-textarea {
   display: block;
   width: 100%;
-  min-height: 106px;
+  min-height: 212px;
   padding: 14px 16px 31px;
+  overflow-y: hidden;
   resize: none;
   box-sizing: border-box;
   color: var(--ei-color-fg-primary);

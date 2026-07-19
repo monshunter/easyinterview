@@ -1,8 +1,8 @@
 # Home JD Import and Parse BDD Checklist
 
-> **版本**: 2.31
+> **版本**: 2.32
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -37,3 +37,9 @@
 
 - [x] Owner tests 覆盖 shared job variant、四步 done/current/pending、真实 step label、ready replace、error/Back 和 internal-metadata negative。
 - [x] Current-run desktop Chrome 对照参考稿验证 TopBar、JD/搜索插画、编号步骤轴和无横向溢出；mobile/reduced-motion 由 shared component contract 覆盖，不新增 E2E ID。（真实 step 1 与 step 4 均已捕获，最终到达 Workspace。）
+
+## `BDD.HOME.JD.TEXTAREA.006` JD 输入区自动适配
+
+- [x] Home layout/component tests 证明 212px 默认高度、100% 横向宽度、内部无纵向滚动，以及内容增长/删减时按最新 `scrollHeight` 增高/回缩。<!-- verified: 2026-07-20 method=focused-home-vitest evidence="All 9 Home files and 67 tests pass; HomeLayout directly proves 212px/100%/hidden-overflow plus controlled 420px growth and 224px shrink." -->
+- [x] Chrome 在真实 desktop Home 验证空输入默认高度、粘贴多行长 JD 后完整可见、计数器/Resume/CTA 顺序稳定、`documentWidth=viewportWidth` 且 browser warning/error 为零；不新增 E2E ID。<!-- verified: 2026-07-20 method=chrome-extension-manual evidence="At 1916x821 the empty and shrunk textarea measured 212px; a 36-line JD grew to 993px with clientHeight=scrollHeight, width stayed 1346px inside a 1348px frame, documentWidth=viewportWidth=1916, Resume/CTA stayed ordered and console warnings/errors were zero. Evidence: .test-output/home-jd-textarea-acceptance/." -->
+- [x] 根 `make test`、typecheck/build 与 owner/document gates 通过并记录证据。<!-- verified: 2026-07-20 method=full-regression evidence="Python 615/4615 subtests, Go all packages and frontend 134 files/1088 tests PASS; typecheck/build, redeploy, environment 4/4, owner context and doc/index/diff gates pass." -->

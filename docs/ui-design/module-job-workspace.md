@@ -1,12 +1,14 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.47
+> **版本**: 1.48
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 ## 1 文档目的
 
 本文档定义当前静态 UI 中 `面试` 一级模块的目标结构。`/workspace` 无 `targetJobId` 时展示可继续的面试规划列表，`/workspace?targetJobId=...` 时展示该规划的统一只读“面试规划详情 / 面试上下文确认”母版；列表卡片主体和 Home ready 最近记录都直接进入该 Workspace 详情，不播放解析动画。`/parse?targetJobId=...` 仅承接首页新建 JD 后的 queued/processing 命令进度；分析 ready 后以 replace 导航到 Workspace 详情。卡片右上角展示删除图标按钮，卡片底部只展示 `立即面试` 主按钮，不再展示可见的 `进入规划` 按钮；删除图标调用 generated `archiveTargetJob` 持久软归档，成功后卡片移出列表且刷新后不得回灌。该模块是既有面试规划的回访入口，不是“当前岗位”页。首页最近模拟面试只展示 3 条全宽横向记录，复用同一个 TargetJob round/progress/action mapper，但使用 Home 专属 record presentation，不展示删除按钮；有记录时固定显示「查看全部」进入 Workspace 列表。首次导入新 JD 时，首页以一个白色 intake card 组合 JD textarea/runtime count、selectable 简历下拉框、创建入口、「立即面试」CTA 与隐私提示；selectable 指未归档且 `parseStatus=ready` 或已有可读正文/结构化证据。提交 `{ rawText, targetLanguage, resumeId }` 后只进入 Parse 命令进度，ready 后由 Workspace 详情只读展示 JD / 简历 / 轮次上下文。缺少或无效简历的历史规划属于异常数据：Start、Reports、复练和下一轮全部 fail closed，不在当前规划上补绑，不默认选择最近简历，也不提供无简历训练或报告降级路径。
+
+Home 的唯一 JD textarea 横向继续占满 intake card，不允许横向随文本增长。默认可视高度由 `106px` 提升为 `212px`；输入或粘贴内容超过默认高度后，textarea 按实际内容高度自动增高，完整显示当前文本且不出现内部纵向滚动条。删除内容时允许自动回缩，但不得低于 `212px`；desktop/mobile 均保持 `width: 100%` 与页面无横向溢出。该视觉行为不改变 runtime UTF-8 byte limit、计数器、提交请求、route、隐私或简历前置合同。
 
 ## 2 模块职责
 
@@ -270,6 +272,7 @@ Resume
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.48 | Home JD textarea 默认可视高度翻倍为 212px，并随输入内容自动增高/回缩以完整显示文本；横向宽度、runtime limit 与业务合同不变。 |
 | 2026-07-19 | 1.47 | 按参考稿锁定 Workspace 详情的 1250px Header 动作区与基本信息、要求、隐性关注点、轮次四层卡面构图；业务 owner 与动态轮次合同不变。 |
 | 2026-07-19 | 1.46 | 明确 Workspace 背景层全视口覆盖、内容层独立限宽，并让 header CTA 与双列卡片网格共享右边界；禁止背景裁剪空白带和按钮右侧错位。 |
 | 2026-07-19 | 1.45 | Workspace list 按提供的桌面参考稿改为 1508px 内容区、双列宽卡、上次保存 footer 与参考级动作几何；mobile 保持单列，业务 mapper/route/API 不变。 |

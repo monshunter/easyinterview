@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { DisplayPreferencesProvider } from "../../display/DisplayPreferencesProvider";
 import { NavigationProvider } from "../../navigation/NavigationProvider";
@@ -71,8 +71,30 @@ describe("Home layout", () => {
     expect(css).toMatch(/\.ei-home-screen\s*\{[^}]*max-width:\s*none/);
     expect(css).toMatch(/\.ei-home-content\s*\{[^}]*max-width:\s*1400px/);
     expect(css).toMatch(/\.ei-home-intake-card\s*\{[^}]*border-radius:\s*16px/);
-    expect(css).toMatch(/\.ei-home-jd-textarea\s*\{[^}]*min-height:\s*106px/);
+    expect(css).toMatch(/\.ei-home-jd-textarea\s*\{[^}]*width:\s*100%/);
+    expect(css).toMatch(/\.ei-home-jd-textarea\s*\{[^}]*min-height:\s*212px/);
+    expect(css).toMatch(/\.ei-home-jd-textarea\s*\{[^}]*overflow-y:\s*hidden/);
     expect(css).toMatch(/\.ei-home-recent-grid\s*\{[^}]*grid-template-columns:\s*1fr/);
     expect(css).toMatch(/@media \(max-width: 760px\)[\s\S]*\.ei-home-resume-action-row\s*\{[^}]*grid-template-columns:\s*1fr/);
+  });
+
+  it("remeasures the JD textarea when pasted content grows and shrinks", () => {
+    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
+
+    const textarea = screen.getByTestId("home-jd-textarea");
+    let scrollHeight = 420;
+    Object.defineProperty(textarea, "scrollHeight", {
+      configurable: true,
+      get: () => scrollHeight,
+    });
+
+    fireEvent.change(textarea, {
+      target: { value: "第一行\n第二行\n第三行\n第四行" },
+    });
+    expect(textarea).toHaveStyle({ height: "420px" });
+
+    scrollHeight = 224;
+    fireEvent.change(textarea, { target: { value: "缩短后的 JD" } });
+    expect(textarea).toHaveStyle({ height: "224px" });
   });
 });
