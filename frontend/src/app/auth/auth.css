@@ -175,7 +175,7 @@
   border: 1px solid var(--ei-color-accent);
   background: var(--ei-color-accent);
   color: #fff;
-  border-radius: 8px;
+  border-radius: var(--ei-radius-control);
   font-family: var(--ei-font-sans);
   font-size: 17px;
   font-weight: 650;

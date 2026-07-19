@@ -474,7 +474,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 fontFamily: "var(--ei-font-sans)",
                 background: "var(--ei-color-accent)",
                 border: "none",
-                borderRadius: "var(--ei-radius-sm)",
+                borderRadius: "var(--ei-radius-control)",
                 color: "#fff",
                 cursor: "pointer",
               }}
@@ -490,7 +490,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 fontFamily: "var(--ei-font-sans)",
                 background: "transparent",
                 border: "1px solid var(--ei-color-rule-strong)",
-                borderRadius: "var(--ei-radius-sm)",
+                borderRadius: "var(--ei-radius-control)",
                 color: "var(--ei-color-fg-primary)",
                 cursor: "pointer",
               }}
@@ -550,7 +550,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               fontFamily: "var(--ei-font-sans)",
               background: "var(--ei-color-accent)",
               border: "none",
-              borderRadius: "var(--ei-radius-sm)",
+              borderRadius: "var(--ei-radius-control)",
               color: "#fff",
               cursor: "pointer",
             }}

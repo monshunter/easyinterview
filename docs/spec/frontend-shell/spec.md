@@ -1,6 +1,6 @@
 # Frontend Shell Spec
 
-> **版本**: 1.42
+> **版本**: 1.43
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -55,6 +55,7 @@
 | D-13 | Custom accent 两层控件 | Ocean / Plum / Custom 一级选择器始终可见；`CustomAccentPicker` 仅在 Custom 激活时于一级下方展示色相与彩度；hue 为完整光谱，chroma 为当前色相从低彩到高彩的渐变；选择 Ocean / Plum 是退出自定义色的唯一清晰路径 | 二级编辑器进入正常文档流，不得覆盖/替换一级；保留原生 range 键盘/focus 语义；删除 preview/value 区、恢复默认色按钮与 `onClear` / `active` 冗余 props，不增加第二套 reset 语义 |
 | D-14 | 设置简化方案 A | 已登录 TopBar 只保留一个从 runtime `displayName` 派生用户名首字符的圆形设置按钮；Settings 为无 tab 的真实账号/隐私单页，退出迁入页面 | initial mark 不表达用户画像、不打开 dropdown；名称为空显示 `?`，不使用固定品牌字母；删除账号 chip/menu、静态登录安全、字体预设、产品信息和无后端事实字段；无兼容 UI 或重复请求 |
 | D-15 | 账号主题方案 B | `PATCH /me` 改为 `updateMe`，同一 operation 同时支持首次资料补全与主题更新；`UserContext` 返回确认后的主题 | 迁移 `user_settings`；custom 草稿本地预览，显式保存一次请求；失败不污染确认值；其他平台首次 `/me` 恢复同一主题 |
+| D-16 | 操作按钮圆角 | 有明确背景或边框的矩形/方形操作按钮统一消费 `--ei-radius-control: 8px` | 覆盖主次、危险、失败恢复、禁用和小型图标 action；圆形 initial、pill toggle、无边框文字链接、卡片、输入框、状态标签和装饰图形保持各自语义；禁止全局 `button` 覆盖 |
 
 ## 4 设计约束
 
@@ -78,6 +79,7 @@
 - Settings 只消费 `AppRuntimeContext.auth.user` 与 generated `updateMe/deleteMe`；页面挂载和 route 切换不得再次调用 `getMe`。主题草稿拖动零网络，保存只发一次 `updateMe`；成功返回完整 `UserContext` 并直接更新 runtime/theme，禁止 follow-up `getMe`；失败保留草稿与可恢复错误，离开未保存页面恢复服务端确认主题。账号删除仍按既有状态机在 `202` 后调用 `refreshAuth()` 重探测 `/me`（预期 401）。
 - `E2E.P0.101` 的完整账号邮箱只用于真实页面/API 断言；PASS 与 FAIL reporter、`trigger.log` 和 result artifact 均不得包含原文或 URL percent-encoded 等价值。失败断言不得把完整邮箱作为 matcher expected/received 文本直接交给 reporter，场景落盘前还必须执行流式脱敏作为纵深防御。
 - UI implementation 必须符合对应产品 spec 与 `docs/ui-design/` 的信息架构、流程、交互和响应式约束；具体实现由正式组件、token、可访问性、component/browser tests 与真实业务场景验证，不要求按设计合同实现或像素对照。
+- 有明确背景或边框的正式操作按钮必须通过 `--ei-radius-control` 获得一致圆角；新增/修改页面不得以 `--ei-radius-sm`、`2px` 或页面私有尖角值表达同类 action。Source gate 应枚举目标 action consumer 并显式排除 circular/pill、无边框 link/back 及非按钮 surface，不能用全局 `button` selector 掩盖 owner 差异。
 
 ## 5 模块边界
 
@@ -112,6 +114,7 @@
 | C-17 | Practice 全局 chrome | authenticated 用户进入 Practice | route render 与 desktop/mobile 响应式布局 | 全局 TopBar 保持可见，其下是独立 Practice Session Header；页面切换不触发 `/me` | 001-app-shell-auth-settings + frontend-workspace-and-practice/001 |
 | C-18 | Auth / Settings 参考构图 | 用户打开登录、验证码、退出或设置 | 正式前端在 desktop/mobile 渲染当前业务状态 | Auth 三页共享宽幅双栏、原则卡与右侧主操作卡；Settings 使用由账号资料窗口、头像信息、柱状图、前景锁、盾牌对勾与星芒组成的主题色 Header 插画和三张横向功能卡，拒绝山形人物稀疏线稿；操作、请求、错误与可访问性语义不变且无伪倒计时/伪成功 | 001-app-shell-auth-settings |
 | C-19 | TopBar 控件辨识与账号 initial | authenticated runtime 已有 `displayName`，当前语言菜单关闭或展开 | 用户查看语言按钮或设置入口 | 语言 chevron 清晰并随展开状态旋转；设置入口显示用户名首字符而非固定 `E`，名称缺失显示 `?`；不增加 `/me` 请求、账号菜单或完整姓名暴露 | 001-app-shell-auth-settings |
+| C-20 | 跨页面操作按钮圆角一致性 | 用户在 TopBar/Auth/Home/Workspace/Parse/Practice/Reports/Report/Generating/Resume/Settings 查看主次、危险或恢复 action | 按钮处于默认、hover、focus、disabled、pending 或 error-recovery 状态 | 所有有框矩形/方形 action 的 computed `border-radius` 为 `8px` 且颜色/状态机/点击区域不变；圆形、pill、无边框链接及非按钮 surface 不被误改，desktop/mobile 无溢出 | 002-app-shell-visual-system |
 
 ### 6.1 跨业务等待态视觉合同
 
@@ -130,6 +133,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.43 | 2026-07-20 | Standardize framed rectangular and square actions on an 8px semantic control radius while preserving circular, pill, borderless-link and non-button surfaces. |
 | 1.42 | 2026-07-20 | Make the language dropdown chevron explicit and derive the single Settings entry mark from the authenticated display name without adding account requests or menus. |
 | 1.41 | 2026-07-20 | Tighten the Settings Header art contract to the approved layered profile, chart, lock, shield and sparkle composition while preserving theme-aware decorative semantics. |
 | 1.40 | 2026-07-19 | Reopen the shared shell visual contract for four screenshot-aligned asynchronous transition scenes, persistent TopBar chrome and interview-context navigation ownership. |

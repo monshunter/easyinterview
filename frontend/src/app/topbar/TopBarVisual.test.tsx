@@ -109,7 +109,7 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
     expect(baseRules).toHaveLength(1);
     expect(baseDeclarations).toMatch(/height:\s*30px/);
     expect(baseDeclarations).toMatch(/padding:\s*0 12px/);
-    expect(baseDeclarations).toMatch(/border-radius:\s*var\(--ei-radius-sm\)/);
+    expect(baseDeclarations).toMatch(/border-radius:\s*var\(--ei-radius-control\)/);
     expect(baseDeclarations).toMatch(/font-family:\s*var\(--ei-font-sans\)/);
     expect(baseDeclarations).toMatch(/font-size:\s*13px/);
     expect(baseDeclarations).toMatch(/font-weight:\s*500/);

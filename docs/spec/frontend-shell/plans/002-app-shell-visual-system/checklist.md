@@ -1,12 +1,12 @@
 # App Shell Visual System Checklist
 
-> **版本**: 3.5
+> **版本**: 3.6
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
-> Phase 1-19 的勾选项是历史证据；Phase 20 取代其中账号 menu 与 font preset 的旧正向口径。
+> Phase 1-22 的勾选项是历史证据；Phase 23 取代历史固定 `E` initial 与页面私有尖角 action 的旧正向口径。
 
 ## Phase 1: Token / theme
 
@@ -130,3 +130,10 @@
 - [x] 22.2 GREEN: 正式 `TopBar.tsx` / `topbar.css` 对齐参考图；不恢复 theme menu、用户姓名/头像数据、dropdown、TopBar logout 或额外 route。<!-- verified: TopBarVisual 17/17 PASS -->
 - [x] 22.3 BDD-Gate: 执行更新后的 `BDD.SHELL.VISUAL.001` owner tests；Chrome `1916x821` / `390x844` 与 Home Phase 25 共用人工视觉验收，不声明 E2E。<!-- verified: TopBarVisual 17/17 and root frontend 1044/1044 PASS; Chrome desktop/mobile console warnings/errors=0 -->
 - [x] 22.4 REGRESSION-GATE: focused/root/typecheck/build/context/docs/diff/Chrome gates 通过后恢复 completed。<!-- verified: TopBar 17/17, root frontend 1044/1044, build/context/docs/diff and desktop/mobile Chrome PASS -->
+
+## Phase 23: Framed action radius consistency
+
+- [x] 23.1 RED: 在 `tokens.test.ts` 与新的 framed-action source contract 中要求 `--ei-radius-control: 8px`，并枚举 TopBar/Auth/Home/Workspace/Parse/Practice/Reports/Report/Generating/Resume/Settings 的有框 action；现有 token 缺失与 `2px`/`--ei-radius-sm`/页面私有 `6px/7px` action 必须产生目标化失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="4 targeted failures: missing token/CSS declaration, 26 CSS action consumers and 10 inline recovery actions; circular/pill/borderless/non-button exception gate passed" -->
+- [x] 23.2 GREEN: 最小增加并导出 `--ei-radius-control`，把 inventory 中的有框矩形/方形 action 显式迁移到该 token；Settings 保存/退出/注销/dialog action 同圆角，且不新增全局 `button` selector、不改 circular/pill、borderless link/back、card/input/status surface。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="tokens/framed-action/TopBar/Settings/Screens/Practice 6 files, 62 tests PASS; 28 CSS selectors plus 10 inline recovery actions consume the control token" -->
+- [x] 23.3 REGRESSION-GATE: focused token/source/affected component tests、根 `make test`、frontend typecheck/build、owner context、docs/index/diff 与旧尖角 action negative search 全部通过。<!-- verified: 2026-07-20 method=regression evidence="focused 62/62; root make test 615 passed/4615 subtests; typecheck/build/context/sync-doc-index/diff PASS; remaining small-radius matches classified as non-action exceptions" -->
+- [x] 23.4 BDD-Gate: 执行 `BDD.SHELL.VISUAL.002` owner behavior test，并在 Chrome desktop/mobile 验收 Settings 及跨页面样本的 computed `border-radius: 8px`、状态语义与 viewport containment；browser 证据不声明 E2E。<!-- verified: 2026-07-20 method=chrome-manual evidence="real host frontend; Settings desktop 1264x964 and mobile 390x844 save/sign-out/delete/dialog actions computed 8px; TopBar/Home/Workspace/Parse/Practice/Report/Resume samples PASS; mobile overflow=false; console warnings/errors=0; screenshots and metrics under .test-output/ui-alignment/button-radius; not E2E" -->

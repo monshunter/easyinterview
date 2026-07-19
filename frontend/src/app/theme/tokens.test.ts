@@ -62,6 +62,7 @@ describe("design token module (Phase 1.1)", () => {
     expect(RADIUS_TOKENS).toMatchObject({
       sm: "--ei-radius-sm",
       md: "--ei-radius-md",
+      control: "--ei-radius-control",
       pill: "--ei-radius-pill",
     });
 
@@ -170,6 +171,7 @@ describe("themes.css CSS variable wiring (Phase 1.1)", () => {
   it("defines radius / shadow / spacing / typography tokens at :root", () => {
     expect(/:root\s*\{[^}]*--ei-radius-sm:\s*2px/.test(css)).toBe(true);
     expect(/:root\s*\{[^}]*--ei-radius-md:\s*3px/.test(css)).toBe(true);
+    expect(/:root\s*\{[^}]*--ei-radius-control:\s*8px/.test(css)).toBe(true);
     expect(/:root\s*\{[^}]*--ei-radius-pill:\s*999px/.test(css)).toBe(true);
     expect(/:root\s*\{[^}]*--ei-shadow-elev1:[^;]+/.test(css)).toBe(true);
     expect(/:root\s*\{[^}]*--ei-shadow-elev2:[^;]+/.test(css)).toBe(true);

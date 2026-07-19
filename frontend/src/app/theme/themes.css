@@ -15,9 +15,11 @@
  */
 
 :root {
-  /* radius — taken from Btn (2px) / Card (3px) / avatar pill in app.jsx */
+  /* radius — compact surfaces retain the legacy scale; framed actions use a
+     dedicated product control radius so cards/inputs are not widened with it */
   --ei-radius-sm: 2px;
   --ei-radius-md: 3px;
+  --ei-radius-control: 8px;
   --ei-radius-pill: 999px;
 
   /* shadow — taken from app.jsx menu popovers and toast */

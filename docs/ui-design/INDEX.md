@@ -4,7 +4,7 @@
 
 | 文档 | 版本 | 状态 | 更新日期 | 说明 |
 |------|------|------|----------|------|
-| [目标总体架构](./ui-architecture.md) | 2.36 | active | 2026-07-19 | Home 参考视觉、76px desktop TopBar、三入口、圆形 E 设置入口与 Practice 双层 header |
+| [目标总体架构](./ui-architecture.md) | 2.39 | active | 2026-07-20 | 统一有框操作按钮 8px 语义圆角、用户名首字符设置入口、76px desktop TopBar 与 Practice 双层 header |
 | [目标用户流程](./user-flow.md) | 2.32 | active | 2026-07-19 | 设置主题本地预览/单次保存/重登恢复；页面切换零重复 `/me`；其余核心流程保持 |
 | [目标模块地图](./module-map.md) | 2.22 | active | 2026-07-19 | 账号级 Appearance、圆形 E 设置入口、Practice 双层 header 与 Workspace/Reports 边界 |
 | [认证与默认入口](./auth-and-entry.md) | 1.28 | active | 2026-07-19 | 单一圆形 E 设置入口、账号主题、bootstrap 单次读取、设置页和 pendingAction 边界 |

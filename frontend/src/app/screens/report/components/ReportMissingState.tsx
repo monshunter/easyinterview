@@ -68,7 +68,7 @@ export const ReportMissingState: FC<ReportMissingStateProps> = ({
             background: "var(--ei-color-accent)",
             color: "#fff",
             border: "1px solid var(--ei-color-accent)",
-            borderRadius: 2,
+            borderRadius: "var(--ei-radius-control)",
             cursor: "pointer",
             fontFamily: "var(--ei-font-sans)",
             fontSize: 13,

@@ -49,6 +49,7 @@ export const COLOR_TOKENS = {
 export const RADIUS_TOKENS = {
   sm: "--ei-radius-sm",
   md: "--ei-radius-md",
+  control: "--ei-radius-control",
   pill: "--ei-radius-pill",
 } as const;
 

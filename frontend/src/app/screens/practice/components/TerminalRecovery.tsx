@@ -53,7 +53,7 @@ export const TerminalRecovery: FC<TerminalRecoveryProps> = ({
         background: "var(--ei-color-bg-canvas)",
         color: "var(--ei-color-fg-primary)",
         border: "1px solid var(--ei-color-rule-strong)",
-        borderRadius: 2,
+        borderRadius: "var(--ei-radius-control)",
         cursor: "pointer",
         opacity: 1,
         fontFamily: "var(--ei-font-sans)",

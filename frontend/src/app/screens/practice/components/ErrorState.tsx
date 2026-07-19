@@ -45,7 +45,7 @@ export const ErrorState: FC<ErrorStateProps> = ({
             border: "1px solid var(--ei-color-danger)",
             color: "var(--ei-color-danger)",
             padding: "4px 10px",
-            borderRadius: 2,
+            borderRadius: "var(--ei-radius-control)",
             cursor: "pointer",
             fontSize: 11,
           }}

@@ -340,7 +340,7 @@
   color: #fff;
   background: var(--ei-color-accent);
   border: 1px solid var(--ei-color-accent);
-  border-radius: 6px;
+  border-radius: var(--ei-radius-control);
   box-shadow: 0 8px 18px color-mix(in srgb, var(--ei-color-accent) 23%, transparent);
   font-family: var(--ei-font-sans);
   font-size: 16px;
@@ -572,7 +572,7 @@
   color: var(--ei-color-accent);
   background: color-mix(in srgb, var(--ei-color-accent) 7%, var(--ei-color-bg-card));
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--ei-radius-control);
   font-family: var(--ei-font-sans);
   font-size: 14px;
   font-weight: 600;
@@ -789,7 +789,7 @@
   color: #fff;
   background: var(--ei-color-accent);
   border: 1px solid var(--ei-color-accent);
-  border-radius: 7px;
+  border-radius: var(--ei-radius-control);
   box-shadow: 0 10px 24px color-mix(in srgb, var(--ei-color-accent) 18%, transparent);
   font-family: var(--ei-font-sans);
   font-size: 19px;
@@ -921,7 +921,7 @@
   color: var(--ei-color-fg-secondary);
   background: color-mix(in srgb, var(--ei-color-bg-card) 94%, transparent);
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 8px;
+  border-radius: var(--ei-radius-control);
   cursor: pointer;
 }
 
@@ -1043,7 +1043,7 @@
   color: #fff;
   background: var(--ei-color-accent);
   border: 1px solid var(--ei-color-accent);
-  border-radius: 7px;
+  border-radius: var(--ei-radius-control);
   font-family: var(--ei-font-sans);
   font-size: 18px;
   font-weight: 600;
@@ -1269,7 +1269,7 @@
   color: #fff;
   background: var(--ei-color-accent);
   border: 1px solid var(--ei-color-accent);
-  border-radius: 7px;
+  border-radius: var(--ei-radius-control);
   cursor: pointer;
 }
 
@@ -1366,7 +1366,7 @@
   color: var(--ei-color-fg-primary);
   background: var(--ei-color-bg-card);
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 7px;
+  border-radius: var(--ei-radius-control);
   font-family: var(--ei-font-sans);
   font-size: 14px;
   font-weight: 600;
@@ -2068,7 +2068,7 @@
   color: var(--ei-color-fg-primary);
   background: var(--ei-color-bg-card);
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 7px;
+  border-radius: var(--ei-radius-control);
   font-family: var(--ei-font-sans);
   font-size: 13px;
   font-weight: 600;
@@ -2309,7 +2309,7 @@
   color: #fff;
   background: var(--ei-color-accent);
   border: 1px solid var(--ei-color-accent);
-  border-radius: 7px;
+  border-radius: var(--ei-radius-control);
   box-shadow: 0 10px 24px color-mix(in srgb, var(--ei-color-accent) 18%, transparent);
   font-family: var(--ei-font-sans);
   font-size: 19px;
@@ -2434,7 +2434,7 @@
   color: #fff;
   background: var(--ei-color-accent);
   border: 1px solid var(--ei-color-accent);
-  border-radius: 7px;
+  border-radius: var(--ei-radius-control);
   font-family: var(--ei-font-sans);
   font-size: 18px;
   font-weight: 600;
@@ -2454,7 +2454,7 @@
   color: var(--ei-color-fg-primary);
   background: color-mix(in srgb, var(--ei-color-bg-card) 94%, transparent);
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 8px;
+  border-radius: var(--ei-radius-control);
   cursor: pointer;
 }
 
@@ -2473,7 +2473,7 @@
   color: var(--ei-color-fg-tertiary);
   background: transparent;
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 2px;
+  border-radius: var(--ei-radius-control);
 }
 
 .ei-mock-interview-card-delete:disabled {
@@ -2887,7 +2887,7 @@
   color: var(--ei-color-fg-secondary);
   background: var(--ei-color-bg-card);
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 7px;
+  border-radius: var(--ei-radius-control);
 }
 
 .ei-practice-session-phone {
@@ -2920,7 +2920,7 @@
   color: #fff;
   background: var(--ei-color-accent);
   border: 1px solid var(--ei-color-accent);
-  border-radius: 7px;
+  border-radius: var(--ei-radius-control);
   box-shadow: 0 5px 13px color-mix(in srgb, var(--ei-color-accent) 19%, transparent);
 }
 
@@ -3029,7 +3029,7 @@
   color: var(--ei-color-accent);
   background: var(--ei-color-bg-card);
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 6px;
+  border-radius: var(--ei-radius-control);
 }
 
 .ei-practice-thinking {
@@ -3114,7 +3114,7 @@
   color: #fff;
   background: var(--ei-color-accent);
   border: 1px solid var(--ei-color-accent);
-  border-radius: 6px;
+  border-radius: var(--ei-radius-control);
   font-family: var(--ei-font-sans);
   font-size: 13px;
   font-weight: 600;
@@ -3741,7 +3741,7 @@
   gap: 8px;
   padding: 0 16px;
   height: 48px;
-  border-radius: 6px;
+  border-radius: var(--ei-radius-control);
   font-size: 16px;
   font-weight: 500;
   font-family: var(--ei-font-sans);
@@ -3925,7 +3925,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 8px;
+  border-radius: var(--ei-radius-control);
   font-family: var(--ei-font-sans);
   font-size: 14px;
   font-weight: 650;
@@ -4393,7 +4393,7 @@
   align-items: center;
   gap: 9px;
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 8px;
+  border-radius: var(--ei-radius-control);
   background: var(--ei-color-bg-card);
   color: var(--ei-color-fg-primary);
   cursor: pointer;
@@ -4499,7 +4499,7 @@
   min-height: 44px;
   padding: 0 20px;
   border: 1px solid var(--ei-color-accent);
-  border-radius: 8px;
+  border-radius: var(--ei-radius-control);
   background: var(--ei-color-accent);
   color: var(--ei-color-bg-card);
   font-weight: 600;
@@ -4537,7 +4537,7 @@
 .ei-settings-danger-action {
   min-height: 40px;
   padding: 8px 14px;
-  border-radius: var(--ei-radius-sm);
+  border-radius: var(--ei-radius-control);
   font-family: var(--ei-font-sans);
   font-size: 13px;
   font-weight: 500;
@@ -5150,7 +5150,7 @@
   color: var(--ei-color-fg-secondary);
   background: color-mix(in srgb, var(--ei-color-bg-card) 92%, transparent);
   border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 9px;
+  border-radius: var(--ei-radius-control);
   font-family: var(--ei-font-sans);
   font-size: 14px;
   font-weight: 560;

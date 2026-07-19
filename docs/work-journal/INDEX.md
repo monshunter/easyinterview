@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-20](2026-07-20.md) | `fix(frontend): unify framed action button radius (BUG-0192)` | #fix #ui #test #docs #bdd #chrome |
 | [2026-07-20](2026-07-20.md) | `fix(home): expand and auto-fit JD input (BUG-0192)` | #fix #ui #test #docs #bdd #chrome |
 | [2026-07-20](2026-07-20.md) | `fix(topbar): clarify language and account controls (BUG-0192)` | #fix #ui #i18n #test #docs #bdd #chrome |
 | [2026-07-20](2026-07-20.md) | `fix(settings): redraw header security illustration (BUG-0192)` | #fix #ui #test #docs #bdd #chrome |

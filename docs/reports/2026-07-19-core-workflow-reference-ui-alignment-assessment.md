@@ -13,6 +13,7 @@
 - [Report Screen and Generating Handoff](../spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/plan.md)
 - [Home + JD Import + Parse](../spec/frontend-home-job-picks-and-parse/plans/001-home-jd-import-and-parse/plan.md)
 - [App Shell, Auth Gate, and Settings Entrypoints](../spec/frontend-shell/plans/001-app-shell-auth-settings/plan.md)
+- [App Shell Visual System](../spec/frontend-shell/plans/002-app-shell-visual-system/plan.md)
 
 ## 1 复盘范围与成功证据
 
@@ -29,6 +30,7 @@
 - 2026-07-20 Settings 插画补充闭环：把旧山形人物稀疏线稿重画为资料窗口、头像信息、柱状图、锁、盾牌对勾与星芒组成的 7 层 code-native SVG；focused Settings visual/behavior 26/26、typecheck、production build、frontend redeploy、环境 4/4 和根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 134 files / 1082 tests）通过。Chrome 在真实 `1264×964` Settings 页面测得插画 `360×200`、Header/Appearance 同边界、`documentWidth=viewportWidth`，Ocean/Plum/Custom 主题预览和刷新恢复均正常。
 - 2026-07-20 TopBar 补充闭环：语言入口改为带可见底板和展开旋转的 code-native SVG chevron；设置入口从 authenticated runtime `displayName` 派生首个 Unicode 字符，拉丁字母大写、空名称显示 `?`。Focused 43/43、typecheck/build、frontend redeploy、环境 4/4 与根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 134 files / 1087 tests）通过；真实 Chrome 验证 `星期无 → 星`、设置直达、无横向溢出及 0 warning/error。
 - 2026-07-20 Home JD textarea 补充闭环：保留 `width: 100%`，默认 `min-height` 从 `106px` 增至 `212px`，长内容随最新 `scrollHeight` 自动增高并在删减后回缩。RED 先暴露静态尺寸与缺少重算，GREEN 后 Home 9 files / 67 tests、typecheck/build、frontend redeploy、环境 4/4 和根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 134 files / 1088 tests）通过；真实 Chrome 验证空/短内容 `212px`、36 行 JD `993px` 且 `clientHeight=scrollHeight`、无横向溢出及 0 warning/error。
+- 2026-07-20 操作按钮圆角补充闭环：建立 `--ei-radius-control: 8px`，以 28 个 CSS selector + 10 个内联恢复 action 的显式 inventory 统一 TopBar/Auth/Home/Workspace/Parse/Practice/Reports/Report/Generating/Resume/Settings 有框操作，同时保留 circular/pill、无边框 link/back 与非按钮 surface。Focused 6 files / 62 tests、根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 全量）、typecheck/build、frontend redeploy、环境 4/4 通过；真实 Chrome 验证 Settings desktop/mobile、弹窗与跨页样本 computed `8px`、无横向溢出和 0 warning/error，证据不声明 E2E。
 - 文档证据：Home/Parse owner 恢复 `completed`；Shell 视觉 Phase 完成但因独立 Phase 15.3 继续保持 `active`；两个 context、Header/INDEX、docs links 与 `git diff --check` 通过。
 
 ## 2 会话中的主要阻点/痛点
@@ -88,6 +90,11 @@
 - **证据**：用户要求 JD 输入区“默认宽度加倍并自动适配”，但正式页面的 textarea 已经横向 `width: 100%`；真实 bbox 为 textarea/外框 `1346/1348px`，继续横向翻倍会突破 `1916px` viewport。截图所指的实际体验缺口是 `106px` 纵向可视容量和长内容内部滚动。
 - **影响**：如果机械修改 CSS width，会制造横向溢出且仍不能完整展示多行内容；本轮先把要求转译为 `min-height + scrollHeight + overflow` 可测合同，再以 RED/GREEN 与 Chrome 几何闭环。
 
+### 2.12 页面私有圆角值让同类 action 持续分叉
+
+- **证据**：Settings 退出/注销为 `2px`，Parse/Practice/Report/Generating 恢复动作和其他页面 action 又分别使用 `6px`、`7px` 或 surface small token；第一次尝试批量替换时还会同时命中 input、card icon 等非操作 surface，必须逐项反查并恢复。
+- **影响**：缺少语义 token 与 consumer inventory 时，单页修复会继续制造新的局部半径；若改用全局 `button` selector，则会反向破坏 circular initial、pill toggle 和无边框 link/back。
+
 ## 3 根因归类
 
 - 固定 Composer / 滚动 Transcript 最初没有成为可执行 DOM/CSS/BBox 不变量，只描述了视觉形态。
@@ -113,6 +120,8 @@
 - TopBar 把品牌字母和字体三角当作稳定 UI 合同，没有定义 authenticated runtime identity 派生、Unicode/空值边界和 SVG 开合状态。
   - **类别**：spec/plan
 - Home textarea 只拥有静态 `106px` 高度断言，没有定义空/短/长/删减四态的轴向、回缩与 overflow 不变量。
+  - **类别**：spec/plan
+- 视觉系统缺少有框 action 专属语义 token 和跨页面 consumer/exception 清单，页面私有半径值可以在各自测试全绿时持续漂移。
   - **类别**：spec/plan
 
 ## 4 对流程资产的改进建议
@@ -150,6 +159,9 @@
 - 对 textarea / editor 的“尺寸加倍、自动适配”需求，UI owner 必须显式拆成 `width` containment、`min-height`、内容驱动 height、缩短回收、overflow 与 mobile no-overflow 六个断言；本轮已在 Home Phase 28 和 `BDD.HOME.JD.TEXTAREA.006` 原地固化。
   - **落点**：相关 UI design / spec / plan / component test / Chrome bbox gate
   - **优先级**：high
+- 跨页面有框 action 应共享一个语义 control radius；source contract 必须显式枚举 consumer，并把 circular、pill、borderless 与非按钮 surface 固化为负向例外，禁止用全局 `button` selector 掩盖分类缺失。本轮已在 Shell Visual Phase 23 原地固化。
+  - **落点**：Shell UI design / spec / visual plan / token source contract
+  - **优先级**：high
 
 ## 5 建议优先级与后续动作
 
@@ -161,4 +173,5 @@
 - 新增或重画装饰插画时，先列出必须出现与明确禁止的图层，再写 component/CSS RED，最后用当前主题下的真实 Chrome 截图和 bbox 验收；不得再次以单个 SVG selector 存在作为完成依据。
 - 共享导航下一轮继续优先审计“品牌、导航、账号、语言”四类语义是否被同一视觉符号混用；身份入口必须来自当前 runtime，语言入口必须有独立开合状态，且不得以新增账号请求换取显示信息。
 - 后续涉及 textarea、Markdown editor 或会话输入区尺寸调整时，先复用本轮的六项尺寸合同，不再只断言单个 `min-height`；Chrome 必须同时记录 `clientHeight/scrollHeight` 和 `documentWidth/viewportWidth`。
+- 后续新增有框 action 时，优先消费 `--ei-radius-control` 并更新 inventory test；只有 circular、pill 或明确无边框 action 才能进入例外清单，避免页面私有 `border-radius` 再次回流。
 - 可延后：为 fixture visual acceptance 增加更多长内容 fixture；当前通过压缩 desktop/mobile viewport 已真实产生 Transcript overflow 并验证了固定 Composer，不构成本次交付 blocker。

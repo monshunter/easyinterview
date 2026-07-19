@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.38
+> **版本**: 2.39
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 ## 1 文档目的
 
@@ -14,7 +14,7 @@
 
 1. App 默认进入首页；未登录状态由当前页面内的登录入口和业务前置登录处理。
 2. 顶部导航为：`首页`、`面试`、`简历`。
-3. 未登录时 TopBar 显示登录入口；已登录时账号区只显示一个直接进入 `settings` 的圆形 `E` initial-mark 按钮。它是视觉化设置入口，不是用户头像，不显示账号 chip 或 dropdown；退出登录位于设置页。
+3. 未登录时 TopBar 显示登录入口；已登录时账号区只显示一个直接进入 `settings`、由 authenticated runtime `displayName` 派生首字符的圆形 initial-mark 按钮。它是视觉化设置入口，不是用户头像，不显示账号 chip 或 dropdown；名称为空显示 `?`，退出登录位于设置页。
 4. `复盘` 和 `用户画像` 不属于当前 UI 范围，不是一级导航、账号设置入口、目标 route、正式页面或后续默认 workstream。
 5. `debrief`、`debrief_full`、`profile` 等范围外 route 输入归一到 `home`，不得 materialize 范围外页面。
 6. `auth_profile_setup` 仍保留为首次登录资料补全页；这是账号资料补全，不是用户画像。
@@ -26,6 +26,7 @@
 12. “设置 > 外观”的 Ocean / Plum / Custom 是始终可见的一级主题选择器；custom accent picker 是仅在选择 Custom 后于一级下方展开的二级编辑器，只保留色相与饱和度两个调整维度。二级编辑器不得覆盖或替换一级选择器；色相轨道必须展示完整光谱，彩度轨道必须以当前色相从低彩到高彩渐变，不增加 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean 或 Plum 是退出自定义色的唯一清晰路径。调整只做本地预览，点击保存才发送一次账号更新请求。
 13. `/workspace` 是无参规划列表，`/workspace?targetJobId=...` 是统一只读规划详情；ready 卡片直接进入详情。`/parse?targetJobId=...` 只承接新导入 queued/processing 命令进度，ready 后 replace 到 Workspace 详情。
 14. Practice 的 persisted user/assistant text 通过 `react-markdown + remark-gfm` 安全投影；`skipHtml`、no `rehypeRaw`、no remote image、safe link，send/retry 仍使用原始 text/clientMessageId。
+15. 正式前端中具有明确背景或边框的矩形、方形文字/图标操作按钮统一使用 `8px` 语义控件圆角；主次、危险、失败恢复与禁用状态只改变颜色和交互反馈，不得回退为 `2px` 尖角。圆形 initial、pill toggle、无边框文字链接、卡片、输入框、状态标签和纯装饰图形不属于该控件圆角合同，仍由各自语义 token 或页面布局承接。
 
 ## 3 目标产品骨架
 
@@ -35,7 +36,7 @@
 │  ├─ Brand: E mark + EasyInterview
 │  ├─ Primary nav: 首页 / 面试 / 简历
 │  ├─ Dark / language
-│  └─ Account: 已登录圆形 E 设置入口 / 未登录登录入口
+│  └─ Account: 已登录圆形用户名首字符设置入口 / 未登录登录入口
 ├─ Home / 首页
 │  ├─ 粘贴 JD 输入框（唯一 JD intake）
 │  ├─ 选择已有简历（适度宽度下拉框）
@@ -220,16 +221,18 @@ ROUTE_ALIASES
 10. Settings Appearance 的 1440 desktop 与 390 mobile tests 必须覆盖 Ocean / Plum / custom accent 草稿预览、一级常驻/二级按需展开、保存、DOM、computed style、viewport containment 与必要 screenshot smoke；TopBar 删除旧主题区域后不得留下空白占位或横向溢出。
 11. Route/component gate 必须证明 query-free Workspace 列表、targetJobId Workspace 详情和 Parse command-progress 三态互斥；ready 卡片详情执行一次同 key `getTargetJob`，不得 import、poll、播放 Parse animation 或在 route side 启动 session。
 12. Practice message renderer 必须同时覆盖 user/assistant GFM、raw HTML/remote image/unsafe URI 负向、安全 link、exact raw same-ID retry，以及 390px pre/code/table 局部滚动且 document 无横向溢出。
-13. TopBar 已登录态只渲染圆形 `E` initial-mark 设置按钮；它不得读取或暗示用户头像数据。component/responsive/a11y gate 必须证明姓名、caret、backdrop、dropdown 与 TopBar logout 零引用，且 desktop/mobile 点击区域和 focus ring 可用。
+13. TopBar 已登录态只渲染从 authenticated runtime `displayName` 派生首字符的圆形 initial-mark 设置按钮；名称为空显示 `?`，它不得读取或暗示用户头像数据。component/responsive/a11y gate 必须证明姓名、caret、backdrop、dropdown 与 TopBar logout 零引用，且 desktop/mobile 点击区域和 focus ring 可用。
 14. Settings 为无 tab 单页：Account 只读展示 runtime `/me.displayName` / 完整 `email` 并进入既有 logout 确认；Privacy 只展示导出暂不可用与账号删除。完整 email 只用于 authenticated 页面显示，不写入日志/场景证据。删除流程覆盖确认、pending、失败重试；`202` 后调用现有 `refreshAuth()` 重探测 `/me`（预期 401），提交 unauthenticated 状态并 replace Home；不得重复实现清 session 方法、挂载时重复调用 `/me`、保留 `emailMasked` alias 或伪静态字段。
 15. 字体固定为 Noto Serif SC（标题）、Inter（正文）与 JetBrains Mono（标签/代码）；删除其它 font preset 数据、包、CSS imports、locale 文案和兼容状态。
 16. 进入面试、解析简历、生成报告与解析 JD 共用一套 `AsyncTransitionScene` 视觉骨架：保留共享 TopBar，在柔和蓝白画布上使用中心轨道插画、状态标签、衬线标题、说明和明确的恢复动作；四个业务 owner 只提供真实状态、文案、进度表达和返回路径，不复制 TopBar、背景或动效实现。
 17. `parse`、`practice`、`reports`、`generating`、`report`、`report_conversation` 在 TopBar 中统一高亮“面试”；`resume_versions` 高亮“简历”。当前正式 route 不再隐藏 TopBar。循环轨道、漂浮与 indeterminate rule 在 `prefers-reduced-motion: reduce` 下停用，进度不得伪造百分比、服务端阶段或完成时间。
+18. 视觉系统必须提供单一 `--ei-radius-control: 8px` 语义 token，并由 TopBar 登录/语言选项、Auth 主按钮、Home、Workspace、Parse、Practice、Reports/Report、Generating、Resume 与 Settings 的有框操作按钮显式消费。不得使用全局 `button` selector 批量覆盖；source gate 必须枚举正式 action consumer，并允许 circular/pill、borderless link/back、card/input/status 等非目标 surface 保持各自圆角。
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 2.39 | 统一正式前端有框操作按钮为 8px 语义控件圆角，明确 circular/pill、无边框链接与非按钮 surface 的例外；同时把设置入口旧固定 E 口径对齐为 runtime 用户名首字符。 |
 | 2026-07-19 | 2.38 | 统一四类异步过渡场景的共享画布、轨道插画、状态与响应式合同；生成页恢复 TopBar，上下文 route 高亮“面试”，并锁定诚实 indeterminate/reduced-motion 边界。 |
 | 2026-07-19 | 2.37 | 锁定 Settings Appearance 两层主题结构：一级预定义/Custom 选择器常驻，二级 hue/chroma 仅在 Custom 激活时于下方展开；hue 使用完整光谱，chroma 使用当前色相的低彩到高彩渐变。 |
 | 2026-07-19 | 2.36 | Home 参考图成为当前首页视觉方向：desktop TopBar 调整为 76px，已登录设置入口使用单一圆形 E initial mark，不恢复账号菜单。 |

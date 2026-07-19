@@ -166,7 +166,7 @@ function buttonStyle(variant: "accent" | "secondary") {
     border: accent
       ? "1px solid var(--ei-color-accent)"
       : "1px solid var(--ei-color-rule-strong)",
-    borderRadius: 2,
+    borderRadius: "var(--ei-radius-control)",
     cursor: "pointer",
     fontFamily: "var(--ei-font-sans)",
     letterSpacing: "-0.005em",
