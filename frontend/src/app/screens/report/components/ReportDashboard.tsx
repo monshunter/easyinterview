@@ -45,7 +45,7 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
   if (validReport.status === "queued" || validReport.status === "generating") {
     return (
       <div data-testid="report-pending-state" className="ei-report-pending-state">
-        <button type="button" data-testid="report-pending-back-button" onClick={goBack} className="ei-report-pending-back">← {t("report.back")}</button>
+        <button type="button" data-testid="report-pending-back-button" onClick={goBack} className="ei-report-pending-back">← {t("common.back")}</button>
         <p>{t("report.pending")}</p>
         <button type="button" onClick={() => navigate({ name: "generating", params: { reportId } })} className="ei-report-pending-cta">{t("report.pending.cta")}</button>
       </div>
@@ -73,7 +73,7 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
     <>
       {replay.starting ? <PracticeLaunchTransition /> : null}
       <main data-testid="report-dashboard" className="ei-report-screen ei-fadein">
-      <button type="button" data-testid="report-back-button" onClick={goBack} className="ei-report-back">← {t("report.back")}</button>
+      <button type="button" data-testid="report-back-button" onClick={goBack} className="ei-report-back">← {t("common.back")}</button>
       <ReportHeader
         breadcrumb={lang === "en" ? "CONVERSATION REPORT" : "会话报告"}
         title={`${data.context.targetJobCompany} · ${data.context.targetJobTitle}`}

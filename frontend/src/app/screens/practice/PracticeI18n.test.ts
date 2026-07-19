@@ -19,7 +19,7 @@ describe("Practice recovery i18n", () => {
     expect(translate("en", "practice.terminal.title")).toBe("The interviewer's reply was interrupted");
     expect(translate("zh", "practice.terminal.description")).toBe("请返回当前面试规划，重新开始一场模拟面试。");
     expect(translate("en", "practice.terminal.description")).toBe("Return to this interview plan and start a new mock interview.");
-    expect(translate("zh", "practice.terminal.backToPlan")).toBe("返回当前面试规划");
-    expect(translate("en", "practice.terminal.backToPlan")).toBe("Return to this interview plan");
+    expect(translate("zh", "common.back")).toBe("返回");
+    expect(translate("en", "common.back")).toBe("Back");
   });
 });

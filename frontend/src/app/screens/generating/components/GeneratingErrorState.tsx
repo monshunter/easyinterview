@@ -137,11 +137,7 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
               onClick={onBack}
               style={buttonStyle("secondary")}
             >
-              {t(
-                backDestination === "reports"
-                  ? "generating.errors.backToReports"
-                  : "generating.errors.backToWorkspace",
-              )}
+              {t("common.back")}
             </button>
           </span>
         </div>

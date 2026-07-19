@@ -140,8 +140,9 @@ describe("GeneratingScreen honest state projection", () => {
     await waitFor(() => expect(screen.getByTestId("generating-screen")).toHaveAttribute("data-report-status", "generating"));
     expect(screen.getByTestId("generating-header-title")).toHaveTextContent("正在生成面试报告");
     expect(screen.getByTestId("generating-screen")).toHaveAttribute("data-transition-variant", "report");
+    expect(screen.getByTestId("generating-screen")).not.toHaveClass("ei-transition-scene--card");
     expect(screen.getByTestId("transition-illustration-report")).toBeInTheDocument();
-    expect(screen.getByTestId("generating-transition-card")).toBeInTheDocument();
+    expect(screen.queryByTestId("generating-transition-card")).not.toBeInTheDocument();
     expect(screen.getByTestId("transition-progress")).not.toHaveAttribute("aria-valuenow");
     expect(screen.queryByTestId("generating-progress")).not.toBeInTheDocument();
     expect(screen.queryByTestId("generating-phase-list")).not.toBeInTheDocument();

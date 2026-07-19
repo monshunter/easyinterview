@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.16
+> **版本**: 3.17
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -96,3 +96,9 @@
 - [x] RED/GREEN component tests覆盖 shared report scene、TopBar、中心卡、真实状态和返回动作，并拒绝 percent/phase/notification。
 - [x] Polling/visibility/reportId/trusted Back/terminal error 回归保持通过。
 - [x] Responsive/reduced-motion contract 与 current-run desktop Chrome 视觉验收通过，不声明完整 `E2E.P0.099` PASS。（1090px centered card；两次真实 ready handoff；console clean。）
+
+## Phase 20 cardless report generating transition
+
+- [x] RED/GREEN tests 覆盖 `card` surface 删除和共享画布直出，并证明报告真实状态与恢复行为未回归。<!-- verified: 2026-07-20 evidence="Expected two-test RED followed by AsyncTransitionScene/GeneratingScreen 12/12 GREEN; affected owner regression included in 65 files/495 tests PASS." -->
+- [x] Desktop/mobile Chrome 记录中心内容透明背景、零边框/阴影、统一返回控件、无横向溢出和零 browser warning/error。<!-- verified: 2026-07-20 evidence="Real Generating at 1512x777 and 390x844: rgba(0,0,0,0), border 0, shadow none, backdrop-filter none, Back=返回, overflowX=0, console clean." -->
+- [x] Focused、typecheck/build 与根 `make test` 通过。<!-- verified: 2026-07-20 evidence="Affected owner regression 65 files/495 tests; typecheck and production build PASS; root make test PASS with Python 615/4615 subtests, all Go packages, and frontend 136 files/1107 tests." -->

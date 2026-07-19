@@ -1,6 +1,6 @@
 # Frontend Shell Spec
 
-> **版本**: 1.44
+> **版本**: 1.45
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -56,6 +56,7 @@
 | D-14 | 设置简化方案 A | 已登录 TopBar 只保留一个从 runtime `displayName` 派生用户名首字符的圆形设置按钮；Settings 为无 tab 的真实账号/隐私单页，退出迁入页面 | initial mark 不表达用户画像、不打开 dropdown；名称为空显示 `?`，不使用固定品牌字母；删除账号 chip/menu、静态登录安全、字体预设、产品信息和无后端事实字段；无兼容 UI 或重复请求 |
 | D-15 | 账号主题方案 B | `PATCH /me` 改为 `updateMe`，同一 operation 同时支持首次资料补全与主题更新；`UserContext` 返回确认后的主题 | 迁移 `user_settings`；custom 草稿本地预览，显式保存一次请求；失败不污染确认值；其他平台首次 `/me` 恢复同一主题 |
 | D-16 | 操作按钮圆角 | 有明确背景或边框的矩形/方形操作按钮统一消费 `--ei-radius-control: 8px` | 覆盖主次、危险、失败恢复、禁用和小型图标 action；圆形 initial、pill toggle、无边框文字链接、卡片、输入框、状态标签和装饰图形保持各自语义；禁止全局 `button` 覆盖 |
+| D-17 | 返回控件文案 | 二级/三级页面统一显示“返回 / Back” | 目标 route、replace/push、trusted-context 与 fail-closed 恢复由原页面 owner 保持；正文可描述目标，但控件不得使用“返回首页/简历工坊/报告/面试”等目标特定标签 |
 
 ## 4 设计约束
 
@@ -133,6 +134,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.45 | 2026-07-20 | Standardize secondary and tertiary return controls on shared Back copy while preserving every owner route and recovery decision. |
 | 1.44 | 2026-07-20 | Anchor Settings Save to the first-level theme selector in one desktop primary row, with the conditional custom editor isolated below so disclosure never shifts the action. |
 | 1.43 | 2026-07-20 | Standardize framed rectangular and square actions on an 8px semantic control radius while preserving circular, pill, borderless-link and non-button surfaces. |
 | 1.42 | 2026-07-20 | Make the language dropdown chevron explicit and derive the single Settings entry mark from the authenticated display name without adding account requests or menus. |

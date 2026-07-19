@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -77,3 +77,9 @@
 - [x] TopBar/App component tests 证明中文、拉丁、前导空白与空名称 initial 派生正确，settings 仍直达且不增加账号请求或菜单。（2026-07-20 focused TopBar/App/i18n 43/43 PASS。）
 - [x] TopBar visual/responsive/a11y tests 证明语言按钮使用清晰 SVG chevron、独立可见底板、展开旋转、键盘/accessible name 和 mobile containment。（TopBarVisual 18/18 + typecheck PASS。）
 - [x] Chrome extension automation skill 在 current-run 真实 desktop 页面验证中文用户名首字符、语言菜单开合、设置直达、无横向溢出和 browser error/warning 为零；不新增 E2E ID。（2026-07-20 Chrome：displayName `星期无` 对应设置标记 `星`；chevron 为 20×20 底板内 14×14 SVG，展开旋转 180°；设置按钮 42×42，`documentWidth=viewportWidth=1920`，跳转 `/settings`，0 warning/error。）
+
+## `BDD.SHELL.BACK.COPY.006` 统一返回文案
+
+- [x] Locale/source contract 证明所有正式二三级返回控件只消费 `common.back`，中文“返回”、英文“Back”，旧目标特定 action key 无消费者。<!-- verified: 2026-07-20 evidence="backNavigationCopy 16/16 PASS after an explicit all-failing RED." -->
+- [x] Component navigation tests 证明标签统一后，各页面仍进入原 route/target，并保留 trusted-context、replace/push 与 fail-closed 行为。<!-- verified: 2026-07-20 evidence="Affected owner scope 65 files/495 tests PASS, including trusted report/generating Back and page route assertions." -->
+- [x] Current-run Chrome 抽样验证报告生成及至少一个其它二三级页面的中文/英文返回标签、可操作目标、无横向溢出与零 browser warning/error。<!-- verified: 2026-07-20 evidence="Generating used 返回 at desktop/mobile with zero overflow; Report and Reports used Back after real language switch, Report Back reached /reports?targetJobId=<trusted-target>, Chinese was restored, and browser logs were empty." -->

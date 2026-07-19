@@ -1,6 +1,6 @@
 # Resume 一级模块目标结构
 
-> **版本**: 4.1
+> **版本**: 4.2
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -124,7 +124,7 @@ No Resume
 
 ## 8 后续实现输入
 
-- `queued/processing` 详情使用共享 `AsyncTransitionScene` 的 resume variant：TopBar 保持“简历”高亮，中心文件插画由多层轨道和单一运动点围绕，标题/说明位于同一轴线，返回简历工坊是明确文本动作。
+- `queued/processing` 详情使用共享 `AsyncTransitionScene` 的 resume variant：TopBar 保持“简历”高亮，中心文件插画由多层轨道和单一运动点围绕，标题/说明位于同一轴线；返回控件统一显示“返回 / Back”，目标仍为简历工坊。
 - 后台 poll 必须持续保留这一 DOM；首次尚无 Resume 数据的通用 loading 与解析等待态分离。循环轨道只改变不参与布局的 opacity/transform，并在 reduced-motion 下停用；desktop/mobile 均不得因动画造成 geometry 抖动或 document 横向溢出。
 
 1. 简历卡片列表和简历选择弹窗都必须展示简历名称、来源和最近编辑时间；列表卡片可展示 closed `ResumeSummary.summaryHeadline`，但参考稿列表不重复展示语言 tag，且不得读取详情正文。
@@ -139,6 +139,7 @@ No Resume
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 4.2 | 2026-07-20 | 将简历详情与解析等待态的返回控件统一为“返回 / Back”，保持简历工坊目标不变。 |
 | 4.1 | 2026-07-19 | 按解析简历参考稿统一等待场景：共享蓝白画布、中心文件轨道插画、稳定几何、返回入口与 reduced-motion；保持后台轮询无 loading 闪现。 |
 | 4.0 | 2026-07-19 | 按简历预览参考稿补齐详情 Header 与 `1512/1310/1150px` 内容面、阅读背景板和白色纸张构图；保持来源格式 renderer、只读行为和数据合同不变。 |
 | 3.9 | 2026-07-19 | 简历 Header 创建入口改用与 Workspace 一致的 22px 圆圈加号，保持创建 route 与双列卡片布局不变。 |

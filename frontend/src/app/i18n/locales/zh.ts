@@ -7,6 +7,7 @@ export const zh = {
   "display.language": "语言",
   "user.settings": "设置",
   "user.logout": "退出登录",
+  "common.back": "返回",
   "auth.login": "登录",
   "auth.email": "邮箱",
   "auth.emailPlaceholder": "请输入邮箱",
@@ -21,7 +22,6 @@ export const zh = {
   "auth.resend": "重新发送",
   "auth.logoutHint": "退出后，这台设备上的登录状态会被清除，账号数据不会受影响。",
   "auth.confirmLogout": "确认退出",
-  "auth.backHome": "返回首页",
   "auth.routeGate.eyebrow": "登录状态",
   "auth.routeGate.loadingTitle": "正在检查登录状态",
   "auth.routeGate.loadingBody": "正在验证当前会话，请稍候。",
@@ -146,9 +146,6 @@ export const zh = {
   "parse.roundState.current": "即将进行",
   "parse.roundState.pending": "未进行",
   "parse.reports.label": "面试报告",
-  "reports.backToPlan": "面试规划",
-  "reports.returnToPlan": "返回面试规划",
-  "reports.backToWorkspace": "面试",
   "reports.eyebrow": "面试报告",
   "reports.currentPlanTitle": "当前面试规划",
   "reports.subtitle": "查看每轮面试的报告和生成进度。",
@@ -180,10 +177,8 @@ export const zh = {
   "parse.failedTitle": "JD 解析失败",
   "parse.failedMessage": "这份 JD 暂时无法解析，请再试一次。",
   "parse.failedReparse": "重新解析",
-  "parse.failedHome": "返回首页",
   "parse.errorTitle": "页面加载失败",
   "parse.errorMessage": "JD 解析页面没有正常打开。",
-  "parse.errorHome": "返回首页",
   "parse.errors.start": "模拟面试启动失败，请稍后再试。",
   "workspace.planList.eyebrow": "面试规划",
   "workspace.detail.loading": "正在读取面试规划详情…",
@@ -202,7 +197,6 @@ export const zh = {
   "workspace.errors.retry": "重试",
   "workspace.errors.start": "模拟面试启动失败，请稍后再试。",
   "workspace.errors.delete": "面试规划删除失败，请稍后再试。",
-  "resumeWorkshop.create.back": "返回简历工坊",
   "resumeWorkshop.create.eyebrow": "创建简历",
   "resumeWorkshop.create.title": "上传文件或粘贴文字，创建一份简历",
   "resumeWorkshop.create.subtitle":
@@ -249,7 +243,6 @@ export const zh = {
   "resumeWorkshop.list.open": "打开",
   "resumeWorkshop.list.delete": "删除简历",
   "resumeWorkshop.list.deleteError": "简历删除失败，请稍后再试。",
-  "resumeWorkshop.detail.back": "返回简历工坊",
   "resumeWorkshop.detail.lastEdit": "最近编辑",
   "resumeWorkshop.detail.loading": "正在加载简历…",
   "resumeWorkshop.detail.error": "简历加载失败，请再试一次。",
@@ -262,7 +255,6 @@ export const zh = {
   "resumeWorkshop.detail.notFoundTitle": "未找到该简历",
   "resumeWorkshop.detail.notFoundBody":
     "这份简历可能已被删除，或链接已经失效。请返回简历工坊重新选择。",
-  "resumeWorkshop.detail.notFoundCta": "返回列表",
   // ── Practice screen (plan 002) ──
   "practice.launch.eyebrow": "面试准备中",
   "practice.launch.title": "正在准备你的面试",
@@ -291,7 +283,6 @@ export const zh = {
   "practice.sessionLost.title": "会话已结束或不存在",
   "practice.sessionLost.desc":
     "这场模拟面试已结束、已取消或没有成功启动。请返回面试规划重新开始。",
-  "practice.sessionLost.cta": "返回面试规划",
   "practice.errors.messageRejected": "这条消息无法发送，请检查内容后再试。",
   "practice.errors.messageAborted": "发送已中断，请确认面试仍在进行后再试。",
   "practice.errors.messageFailed": "消息发送失败，请稍后再试。",
@@ -301,7 +292,6 @@ export const zh = {
   "practice.errors.retry": "重试",
   "practice.terminal.title": "面试官的回复中断了",
   "practice.terminal.description": "请返回当前面试规划，重新开始一场模拟面试。",
-  "practice.terminal.backToPlan": "返回当前面试规划",
 
   "generating.status.queued": "等待生成报告",
   "generating.status.generating": "报告生成中",
@@ -328,12 +318,8 @@ export const zh = {
   "generating.errors.contextTooLarge.title": "材料和对话内容太长",
   "generating.errors.contextTooLarge.desc": "请返回面试规划，精简输入后重新开始。",
   "generating.errors.continueCheck": "重新查看进度",
-  "generating.errors.backToReports": "返回面试报告",
-  "generating.errors.backToWorkspace": "返回面试",
 
-  "report.back": "面试报告",
   "report.conversation.entry": "查看本次面试记录",
-  "report.conversation.back": "返回报告",
   "report.conversation.eyebrow": "本次面试记录",
   "report.conversation.subtitle": "这里按对话顺序保留了整场模拟面试。",
   "report.conversation.transcriptLabel": "面试对话记录",
@@ -345,11 +331,9 @@ export const zh = {
   "report.conversation.loading.eyebrow": "正在读取记录",
   "report.conversation.loading.title": "正在打开本次面试记录…",
   "report.conversation.loading.description": "确认报告与本场面试匹配后，对话内容会显示在这里。",
-  "report.conversation.loading.back": "返回面试",
   "report.conversation.unavailable.eyebrow": "记录暂时不可用",
   "report.conversation.unavailable.title": "这份面试记录无法打开",
   "report.conversation.unavailable.description": "请返回面试列表，选择另一份报告。",
-  "report.conversation.unavailable.back": "返回面试",
   "report.loading": "正在打开报告…",
   "report.pending": "报告还在整理这场面试中的具体表现。",
   "report.pending.cta": "查看生成进度",
@@ -392,8 +376,6 @@ export const zh = {
   "report.failureState.contextTooLarge.desc":
     "请返回面试规划，精简输入后重新开始。",
   "report.failureState.retry": "重新加载",
-  "report.failureState.backToReports": "返回面试报告",
-  "report.failureState.backToWorkspace": "返回面试",
   "report.failureState.notFound.eyebrow": "找不到报告",
   "report.failureState.notFound.title": "未找到该报告",
   "report.failureState.notFound.desc":
@@ -402,7 +384,6 @@ export const zh = {
   "report.missingReport.title": "报告链接不完整",
   "report.missingReport.desc":
     "请从一场已完成的模拟面试中重新打开报告。",
-  "report.missingReport.cta": "返回面试",
 } as const;
 
 export type MessageKey = keyof typeof zh;

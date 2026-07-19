@@ -436,7 +436,7 @@ const PracticeSessionScreen: FC<PracticeScreenProps & { sessionId: string }> = (
             <TerminalRecovery
               title={t("practice.terminal.title")}
               description={t("practice.terminal.description")}
-              ctaLabel={t("practice.terminal.backToPlan")}
+              ctaLabel={t("common.back")}
               onBackToPlan={backToCurrentPlan}
             />
           ) : undefined}

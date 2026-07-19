@@ -74,7 +74,7 @@ export const ReportMissingState: FC<ReportMissingStateProps> = ({
             fontSize: 13,
           }}
         >
-          {t("report.missingReport.cta")}
+          {t("common.back")}
         </button>
       </div>
     </div>

@@ -495,7 +495,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 cursor: "pointer",
               }}
             >
-              {t("parse.failedHome")}
+              {t("common.back")}
             </button>
           </div>
         </div>
@@ -555,7 +555,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               cursor: "pointer",
             }}
           >
-            {t("parse.errorHome")}
+            {t("common.back")}
           </button>
         </div>
       </section>
@@ -605,7 +605,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           testId: `parse-loading-step-${index}`,
         }))}
         action={{
-          label: t("parse.errorHome"),
+          label: t("common.back"),
           onClick: handleCancel,
           testId: "parse-loading-back",
         }}

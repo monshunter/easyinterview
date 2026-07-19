@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.15
+> **版本**: 3.16
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 ## 1 Unit-test ownership
 
@@ -85,3 +85,9 @@
 - `GeneratingScreen` tests覆盖 queued/generating/recoverable/terminal、reportId switch、visibility pause/resume、trusted Back 和无伪百分比/阶段/通知。
 - Shared scene/route/CSS tests覆盖 report illustration、中心白卡、TopBar/Interview active、indeterminate 语义、reduced-motion 与 390px containment。
 - Current-run Chrome desktop/mobile 只作为本次视觉验收；完整 `E2E.P0.099` 仍需其独立真实六图矩阵。
+
+## 14 Cardless report generating transition
+
+- `GeneratingScreen` 与 shared-scene source tests 先拒绝 `card` prop/class 及白色背景、边框、阴影、毛玻璃，再确认报告等待内容直接复用共享氛围画布。
+- 既有 queued/generating/recoverable/terminal、reportId switch、visibility、trusted Back、TopBar、responsive 与 reduced-motion tests 保持通过。
+- Chrome desktop/mobile 检查中心内容 computed background transparent、border 0、box-shadow none、统一“返回 / Back”控件、无横向溢出及 browser warning/error 为零。

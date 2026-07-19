@@ -32,7 +32,6 @@ export interface AsyncTransitionSceneProps
   steps?: readonly AsyncTransitionStep[];
   action?: AsyncTransitionAction;
   showProgress?: boolean;
-  card?: boolean;
   contentTestId?: string;
   eyebrowTestId?: string;
   titleTestId?: string;
@@ -51,7 +50,6 @@ export const AsyncTransitionScene = forwardRef<HTMLElement, AsyncTransitionScene
       steps,
       action,
       showProgress = false,
-      card = false,
       contentTestId,
       eyebrowTestId,
       titleTestId,
@@ -64,7 +62,6 @@ export const AsyncTransitionScene = forwardRef<HTMLElement, AsyncTransitionScene
     const classes = [
       "ei-transition-scene",
       `ei-transition-scene--${variant}`,
-      card ? "ei-transition-scene--card" : "",
       className ?? "",
     ].filter(Boolean).join(" ");
 

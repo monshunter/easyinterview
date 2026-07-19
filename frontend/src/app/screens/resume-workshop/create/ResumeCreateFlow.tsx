@@ -122,7 +122,7 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
         onClick={handleBackToWorkshop}
       >
         <ResumeWorkshopIcon name="arrowLeft" size={14} />
-        {t("resumeWorkshop.create.back")}
+        {t("common.back")}
       </button>
 
       <header className="ei-resume-create-header">

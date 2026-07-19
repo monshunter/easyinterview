@@ -147,11 +147,7 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
               fontSize: 13,
             }}
           >
-            {t(
-              backDestination === "reports"
-                ? "report.failureState.backToReports"
-                : "report.failureState.backToWorkspace",
-            )}
+          {t("common.back")}
           </button>
         </div>
       </div>

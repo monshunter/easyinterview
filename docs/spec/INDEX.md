@@ -47,7 +47,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.21 | active | 2026-07-15 | [plans](./mock-contract-suite/plans/) |
-| [frontend-shell](./frontend-shell/spec.md) | 1.44 | active | 2026-07-20 | [plans](./frontend-shell/plans/) |
+| [frontend-shell](./frontend-shell/spec.md) | 1.45 | active | 2026-07-20 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.32 | completed | 2026-07-20 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.54 | completed | 2026-07-19 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 2.8 | active | 2026-07-19 | [plans](./backend-auth/plans/) |
@@ -58,5 +58,5 @@
 | [backend-upload](./backend-upload/spec.md) | 1.7 | active | 2026-07-14 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 2.9 | active | 2026-07-14 | [plans](./backend-resume/plans/) |
 | [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.23 | completed | 2026-07-19 | [plans](./frontend-resume-workshop/plans/) |
-| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.36 | completed | 2026-07-19 | [plans](./frontend-report-dashboard/plans/) |
+| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.37 | completed | 2026-07-20 | [plans](./frontend-report-dashboard/plans/) |
 | [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 2.18 | active | 2026-07-16 | [plans](./e2e-scenarios-p0/plans/) |

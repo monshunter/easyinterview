@@ -1,8 +1,8 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.17
+> **版本**: 3.18
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -91,3 +91,8 @@
 
 - [x] Owner tests 覆盖 shared report variant、queued/generating/recoverable/terminal、ready handoff、trusted Back 与无伪 percent/phase/notification。
 - [x] Current-run desktop Chrome 对照参考稿验证 TopBar、1090px 中心白卡、报告插画、indeterminate 线、返回动作和无横向溢出；mobile 由共享 responsive contract 覆盖，不声明完整 `E2E.P0.099`。
+
+## Phase 20 `BDD.REPORT.GENERATING.VISUAL.003` cardless revision
+
+- [x] Domain behavior tests 证明报告等待内容直接位于共享画布，无 `card` variant 与白色 surface，同时保留真实状态、handoff、failure 和 trusted Back。<!-- verified: 2026-07-20 evidence="Shared scene and Generating tests pass 12/12; affected report/generating route and polling regression passes inside 65 files/495 tests." -->
+- [x] Chrome desktop/mobile 证明中心内容透明、无边框/阴影/局部毛玻璃，统一返回控件可操作且无横向溢出；该 scoped UI evidence 不声明完整 `E2E.P0.099`。<!-- verified: 2026-07-20 evidence="Real frontend/backend Generating captured at desktop 1512x777 and exact mobile 390x844 before ready handoff; transparent content, zero border/shadow/backdrop-filter, no legacy card marker, Back=返回, overflowX=0, browser logs empty." -->

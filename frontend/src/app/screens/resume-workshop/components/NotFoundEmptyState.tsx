@@ -26,7 +26,7 @@ export const NotFoundEmptyState: FC<NotFoundEmptyStateProps> = ({ onBack }) => {
         className="ei-cta"
         onClick={onBack}
       >
-        {t("resumeWorkshop.detail.notFoundCta")}
+        {t("common.back")}
       </button>
     </div>
   );

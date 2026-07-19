@@ -1,8 +1,8 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 4.7
+> **版本**: 4.8
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -223,6 +223,10 @@ ReportsScreen 使用约 `1372px` 内容面、共享 Header illustration、仅由
 
 先扩展 `GeneratingScreen`、shared scene、routing 与 responsive tests，锁定 TopBar visible/Interview active、白色中心卡、`report` illustration、真实 queued/generating/typed failure、indeterminate 非百分比语义、返回动作、reduced-motion 和 mobile containment；当前窄 inline screen 与 no-chrome route 必须先失败。随后只替换 presentation 并移除 Generating 的 no-chrome 例外，保留 reportId-only `getFeedbackReport` polling、visibility pause/resume、attempt schedule、trusted Back 与 terminal error。`BDD.REPORT.GENERATING.VISUAL.003` 由 owner tests 与 current-run Chrome desktop/mobile 承接。
 
+### Phase 20: Cardless report generating composition
+
+以 `GeneratingScreen` / shared transition contract RED 锁定修订后的构图：报告插画、状态、标题、说明、indeterminate rule 与统一返回动作直接位于共享氛围画布上，禁止 `card` variant、白色背景、卡片边框/阴影/毛玻璃。GREEN 删除报告页唯一的卡片消费与无消费者样式分支，同时保持 reportId-only polling、visibility、trusted Back、typed error、TopBar 和 responsive/reduced-motion 行为不变。`BDD.REPORT.GENERATING.VISUAL.003` 由 domain tests 与 current-run Chrome desktop/mobile 验收承接；本 Phase 为纯 frontend presentation，Operation Matrix/API/fixture/backend/persistence 均 `N/A`。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -260,6 +264,7 @@ ReportsScreen 使用约 `1372px` 内容面、共享 Header illustration、仅由
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 4.8 | Reopen Phase 20 to remove the report transition white card and render the honest generating composition directly on the shared atmospheric canvas. |
 | 2026-07-19 | 4.7 | Reopen Phase 19 for the screenshot-aligned honest Generating transition and shared TopBar chrome. |
 | 2026-07-19 | 4.5 | Reopen Phase 18 to rebuild ReportsScreen and ReportConversation against the supplied summary-card, round-timeline, shared-context and role-row compositions. |
 | 2026-07-19 | 4.4 | Reopen Phase 17 for a complete report composition rebuild after user acceptance confirmed Phase 16 was only a superficial width and card-shell change. |

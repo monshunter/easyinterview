@@ -50,7 +50,7 @@ export const AuthLogoutScreen: FC<AuthLogoutScreenProps> = ({
           className="ei-auth-secondary-link"
           onClick={cancel}
         >
-          {t("auth.backHome")}
+          {t("common.back")}
         </button>
       </div>
     </AuthShell>

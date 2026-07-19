@@ -94,13 +94,7 @@ describe("frontend-report-dashboard/001 i18n coverage", () => {
   });
 
   it("distinguishes trusted reports Back from the workspace fallback in both locales", () => {
-    expect(zh["generating.errors.backToReports"]).toBe("返回面试报告");
-    expect(zh["report.failureState.backToReports"]).toBe("返回面试报告");
-    expect(zh["generating.errors.backToWorkspace"]).toBe("返回面试");
-    expect(zh["report.failureState.backToWorkspace"]).toBe("返回面试");
-    expect(en["generating.errors.backToReports"]).toBe("Back to interview reports");
-    expect(en["report.failureState.backToReports"]).toBe("Back to interview reports");
-    expect(en["generating.errors.backToWorkspace"]).toBe("Back to interviews");
-    expect(en["report.failureState.backToWorkspace"]).toBe("Back to interviews");
+    expect(zh["common.back"]).toBe("返回");
+    expect(en["common.back"]).toBe("Back");
   });
 });

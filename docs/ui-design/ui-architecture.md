@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.40
+> **版本**: 2.41
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -227,11 +227,13 @@ ROUTE_ALIASES
 16. 进入面试、解析简历、生成报告与解析 JD 共用一套 `AsyncTransitionScene` 视觉骨架：保留共享 TopBar，在柔和蓝白画布上使用中心轨道插画、状态标签、衬线标题、说明和明确的恢复动作；四个业务 owner 只提供真实状态、文案、进度表达和返回路径，不复制 TopBar、背景或动效实现。
 17. `parse`、`practice`、`reports`、`generating`、`report`、`report_conversation` 在 TopBar 中统一高亮“面试”；`resume_versions` 高亮“简历”。当前正式 route 不再隐藏 TopBar。循环轨道、漂浮与 indeterminate rule 在 `prefers-reduced-motion: reduce` 下停用，进度不得伪造百分比、服务端阶段或完成时间。
 18. 视觉系统必须提供单一 `--ei-radius-control: 8px` 语义 token，并由 TopBar 登录/语言选项、Auth 主按钮、Home、Workspace、Parse、Practice、Reports/Report、Generating、Resume 与 Settings 的有框操作按钮显式消费。不得使用全局 `button` selector 批量覆盖；source gate 必须枚举正式 action consumer，并允许 circular/pill、borderless link/back、card/input/status 等非目标 surface 保持各自圆角。
+19. 二级和三级页面的返回控件统一使用共享文案：中文显示“返回”，英文显示“Back”。返回目标、history replace/push 语义和可信上下文判断继续由页面 owner 持有；正文说明可以描述具体目标，但不得把“返回首页 / 返回简历工坊 / 返回报告 / 返回面试”等目标名称重新写进返回控件标签。
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 2.41 | 统一二三级页面返回控件为“返回 / Back”，保留各 owner 的目标路由和可信上下文恢复逻辑。 |
 | 2026-07-20 | 2.40 | 将 Settings 主题一级选项与保存按钮固定在同一主操作行，自定义色条仅在下方第二行展开，并要求 Chrome 量测切换前后保存按钮纵向位置不变。 |
 | 2026-07-20 | 2.39 | 统一正式前端有框操作按钮为 8px 语义控件圆角，明确 circular/pill、无边框链接与非按钮 surface 的例外；同时把设置入口旧固定 E 口径对齐为 runtime 用户名首字符。 |
 | 2026-07-19 | 2.38 | 统一四类异步过渡场景的共享画布、轨道插画、状态与响应式合同；生成页恢复 TopBar，上下文 route 高亮“面试”，并锁定诚实 indeterminate/reduced-motion 边界。 |

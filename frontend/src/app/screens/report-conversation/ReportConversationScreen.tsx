@@ -56,7 +56,7 @@ export const ReportConversationScreen: FC<ReportConversationScreenProps> = ({ ro
           onClick={() => navigate(backRoute)}
           className="ei-reports-back"
         >
-          ← {t("report.conversation.back")}
+          ← {t("common.back")}
         </button>
       ) : null}
 
@@ -152,7 +152,7 @@ const ReportConversationLoading: FC<{ onBack: () => void }> = ({ onBack }) => {
             onClick={onBack}
             className="ei-reports-action ei-reports-action-secondary"
           >
-            {t("report.conversation.loading.back")}
+            {t("common.back")}
           </button>
         </div>
       </section>
@@ -175,7 +175,7 @@ const ReportConversationUnavailable: FC<{ onBack: () => void }> = ({ onBack }) =
             onClick={onBack}
             className="ei-reports-action ei-reports-action-secondary"
           >
-            {t("report.conversation.unavailable.back")}
+            {t("common.back")}
           </button>
         </div>
       </section>

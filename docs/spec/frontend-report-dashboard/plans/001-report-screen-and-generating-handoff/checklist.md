@@ -1,8 +1,8 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 4.6
+> **版本**: 4.7
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
@@ -126,3 +126,10 @@
 - [x] 19.2 GREEN: Generating 复用 shared `report` variant 并移除 no-chrome 例外；保留 reportId-only polling、visibility、attempt schedule、trusted Back 与 typed terminal error。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="Generating screen/back/poll plus route suites PASS within 124-test run" -->
 - [x] 19.3 BDD-Gate: `BDD.REPORT.GENERATING.VISUAL.003` 覆盖 queued/generating/recoverable/terminal、desktop Chrome 与 mobile responsive contract，不新增 E2E ID，亦不冒充完整 `E2E.P0.099`。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Two real completed sessions entered reportId-only Generating; final card bbox x=415 width=1090 in a 1920px viewport, TopBar/Interview highlight and Back action remained visible, then both handed off to ready Report." -->
 - [x] 19.4 REGRESSION: focused、typecheck/build、根 `make test`、contexts/docs/diff 与 Chrome gates 通过后恢复 completed。<!-- verified: 2026-07-19 evidence="Generating/poll/route focused coverage included in final 89 PASS; production build/redeploy and root make test 615 / 4615 PASS; browser console clean." -->
+
+## Phase 20: Cardless report generating composition
+
+- [x] 20.1 RED: Generating/shared-scene tests 要求报告等待内容直接位于氛围画布，拒绝 `card` prop/class、白色 surface、边框、阴影和局部毛玻璃。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="AsyncTransitionScene source contract and Generating DOM failed on the existing card prop/class; 10 adjacent truthful-state tests remained green." -->
+- [x] 20.2 GREEN: 删除 Generating 的卡片消费及无消费者 shared card 分支；保持真实状态、polling、TopBar、trusted Back、typed error、responsive 与 reduced-motion 不变。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="AsyncTransitionScene and GeneratingScreen focused suites pass 12/12 after removing the sole card consumer, shared prop/class, desktop surface CSS and mobile override." -->
+- [x] 20.3 BDD-Gate: `BDD.REPORT.GENERATING.VISUAL.003` 通过 domain behavior tests 与 current-run Chrome desktop/mobile 验证无卡片构图、统一返回文案和零横向溢出；不声明完整 `E2E.P0.099`。<!-- verified: 2026-07-20 method=chrome-extension-automation evidence="A real completed interview entered Generating at 1512x777 and exact 390x844. The content layer was transparent with zero border/radius/shadow/backdrop-filter, no legacy card class/testid, Back read 返回, overflowX=0, and browser warning/error logs were empty. Screenshots: .test-output/ui-alignment/report-generating-cardless/." -->
+- [x] 20.4 REGRESSION: focused、typecheck/build、根 `make test`、frontend redeploy、环境 readiness、owner context、docs/index/diff 与 Chrome gates 通过后恢复 completed。<!-- verified: 2026-07-20 method=full-regression-and-document-gates evidence="Affected owner regression 65 files/495 tests, typecheck and production build pass; root make test passes Python 615/4615 subtests, all Go packages and frontend 136 files/1107 tests. Frontend redeploy, dependency readiness 4/4, both owner contexts, docs links, Header/INDEX sync and diff checks pass; Chrome desktop/mobile is clean." -->

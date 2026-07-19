@@ -95,6 +95,16 @@
 - **证据**：Settings 退出/注销为 `2px`，Parse/Practice/Report/Generating 恢复动作和其他页面 action 又分别使用 `6px`、`7px` 或 surface small token；第一次尝试批量替换时还会同时命中 input、card icon 等非操作 surface，必须逐项反查并恢复。
 - **影响**：缺少语义 token 与 consumer inventory 时，单页修复会继续制造新的局部半径；若改用全局 `button` selector，则会反向破坏 circular initial、pill toggle 和无边框 link/back。
 
+### 2.13 共享等待组件仍可保留单消费者视觉分叉
+
+- **证据**：报告生成已接入 `AsyncTransitionScene`，但 shared component 仍保留仅 Generating 使用的 `card` prop/class，desktop/mobile CSS 又为该分支增加白色 surface、边框、阴影与局部毛玻璃；用户按修订稿明确要求内容直接落在氛围画布。
+- **影响**：仅证明“使用共享组件”仍会让旧视觉分支获得错误完成感；必须把无卡片要求转为 source/DOM/CSS 负向 gate，并在短暂真实 pending 窗口读取 computed style。
+
+### 2.14 返回文案与导航目标被错误绑定
+
+- **证据**：14 个正式二级/三级页面分别消费 20 个目标特定 action key，产生“返回首页/报告/简历工坊/面试规划”等标签；统一 `common.back` 后，65 files / 495 tests 证明原 target、push/replace、trusted-context 与 fail-closed 语义无需改变。
+- **影响**：如果每个业务 owner 同时拥有动作标签与目标，文案会在 route 行为全部正确时持续漂移；共享 Shell 应只拥有统一标签，页面 owner 继续拥有目标和安全边界。
+
 ## 3 根因归类
 
 - 固定 Composer / 滚动 Transcript 最初没有成为可执行 DOM/CSS/BBox 不变量，只描述了视觉形态。
@@ -122,6 +132,10 @@
 - Home textarea 只拥有静态 `106px` 高度断言，没有定义空/短/长/删减四态的轴向、回缩与 overflow 不变量。
   - **类别**：spec/plan
 - 视觉系统缺少有框 action 专属语义 token 和跨页面 consumer/exception 清单，页面私有半径值可以在各自测试全绿时持续漂移。
+  - **类别**：spec/plan
+- shared transition 把统一画布与单消费者卡片分支放在同一组件，没有 caller inventory 和“无旧分支”负向 gate。
+  - **类别**：spec/plan
+- 返回动作标签由各页面 locale key 重复持有，缺少 Shell 统一文案与业务 target 分离的 ownership 合同。
   - **类别**：spec/plan
 
 ## 4 对流程资产的改进建议
@@ -162,6 +176,12 @@
 - 跨页面有框 action 应共享一个语义 control radius；source contract 必须显式枚举 consumer，并把 circular、pill、borderless 与非按钮 surface 固化为负向例外，禁止用全局 `button` selector 掩盖分类缺失。本轮已在 Shell Visual Phase 23 原地固化。
   - **落点**：Shell UI design / spec / visual plan / token source contract
   - **优先级**：high
+- 共享异步场景的视觉 variant 必须维护 caller inventory；修订稿删除某一构图时，source test 同时拒绝旧 prop/class/testid 和 desktop/mobile CSS，真实 Chrome 在 pending 窗口补 computed-style 证据。本轮已在 Report Phase 20 原地固化。
+  - **落点**：Report/Shell transition spec / plan / source contract / Chrome gate
+  - **优先级**：high
+- 返回动作应采用“Shell-owned label + page-owned target”合同：共享 locale key 只定义“返回 / Back”，每个页面的 route、history 和 trusted/fail-closed 语义由原 owner 测试继续证明。本轮已在 Shell Phase 24 原地固化。
+  - **落点**：Shell UI architecture / spec / plan / locale source contract
+  - **优先级**：high
 
 ## 5 建议优先级与后续动作
 
@@ -174,4 +194,6 @@
 - 共享导航下一轮继续优先审计“品牌、导航、账号、语言”四类语义是否被同一视觉符号混用；身份入口必须来自当前 runtime，语言入口必须有独立开合状态，且不得以新增账号请求换取显示信息。
 - 后续涉及 textarea、Markdown editor 或会话输入区尺寸调整时，先复用本轮的六项尺寸合同，不再只断言单个 `min-height`；Chrome 必须同时记录 `clientHeight/scrollHeight` 和 `documentWidth/viewportWidth`。
 - 后续新增有框 action 时，优先消费 `--ei-radius-control` 并更新 inventory test；只有 circular、pill 或明确无边框 action 才能进入例外清单，避免页面私有 `border-radius` 再次回流。
+- 后续修改共享 transition variant 时，先更新 caller inventory；没有剩余消费者的 prop/class/CSS 必须同步删除，并在真实 pending 窗口保存 desktop/mobile computed-style 与截图证据。
+- 后续新增二级/三级页面时，返回控件直接消费 `common.back`；页面只新增目标和安全语义测试，不再新增目标特定返回 locale key。
 - 可延后：为 fixture visual acceptance 增加更多长内容 fixture；当前通过压缩 desktop/mobile viewport 已真实产生 Transcript overflow 并验证了固定 Composer，不构成本次交付 blocker。

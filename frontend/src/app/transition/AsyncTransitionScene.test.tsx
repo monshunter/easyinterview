@@ -67,10 +67,14 @@ describe("AsyncTransitionScene", () => {
   });
 
   it("ships one responsive canvas and disables decorative motion for reduced-motion users", () => {
+    const source = readFileSync(resolve(__dirname, "AsyncTransitionScene.tsx"), "utf8");
     const css = readFileSync(resolve(__dirname, "..", "screens", "screens.css"), "utf8");
 
+    expect(source).not.toMatch(/\bcard\??:/);
+    expect(source).not.toContain("ei-transition-scene--card");
     expect(css).toMatch(/\.ei-transition-scene\s*\{[^}]*min-height:\s*calc\(100dvh\s*-\s*76px\)/s);
     expect(css).toMatch(/\.ei-transition-scene__content\s*\{[^}]*width:\s*min\(100%,\s*1090px\)/s);
+    expect(css).not.toContain(".ei-transition-scene--card");
     expect(css).toMatch(/\.ei-transition-scene--resume\s*\{[^}]*width:\s*100vw/s);
     expect(css).toMatch(/@media\s*\(max-width:\s*720px\)[\s\S]*?\.ei-transition-scene/s);
     expect(css).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.ei-transition-scene__illustration[^}]*animation:\s*none/s);

@@ -19,7 +19,7 @@ export const PracticeSessionLostState: FC<PracticeSessionLostStateProps> = ({
     () => ({
       title: t("practice.sessionLost.title"),
       desc: t("practice.sessionLost.desc"),
-      cta: t("practice.sessionLost.cta"),
+      cta: t("common.back"),
     }),
     [t],
   );

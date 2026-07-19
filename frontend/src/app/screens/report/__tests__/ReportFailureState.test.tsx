@@ -74,7 +74,7 @@ describe("ReportFailureState", () => {
     expect(screen.queryByTestId("report-failure-retry-cta")).not.toBeInTheDocument();
     const back = screen.getByTestId("report-failure-back-to-workspace");
     expect(back).toHaveAttribute("data-back-destination", "reports");
-    expect(back).toHaveTextContent("Back to interview reports");
+    expect(back).toHaveTextContent("Back");
     back.click();
     expect(onBack).toHaveBeenCalledTimes(1);
   });

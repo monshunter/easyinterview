@@ -69,8 +69,6 @@ export const GeneratingScreen: FC<GeneratingScreenProps> = ({ route }) => {
       testId="generating-screen"
       data-report-status={status}
       className="ei-fadein"
-      card
-      contentTestId="generating-transition-card"
       eyebrowTestId="generating-header-eyebrow"
       titleTestId="generating-header-title"
       bodyTestId="generating-header-subtitle"
@@ -83,11 +81,7 @@ export const GeneratingScreen: FC<GeneratingScreenProps> = ({ route }) => {
       body={t("generating.header.subtitle")}
       showProgress
       action={{
-        label: t(
-          backDestination === "reports"
-            ? "generating.errors.backToReports"
-            : "generating.errors.backToWorkspace",
-        ),
+        label: t("common.back"),
         onClick: goBack,
         wrapperTestId: "generating-back-button",
       }}

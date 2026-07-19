@@ -1006,8 +1006,8 @@ describe("PracticeScreen continuous conversation", () => {
   });
 
   it.each([
-    ["zh", "面试官的回复中断了", "请返回当前面试规划，重新开始一场模拟面试。", "返回当前面试规划"],
-    ["en", "The interviewer's reply was interrupted", "Return to this interview plan and start a new mock interview.", "Return to this interview plan"],
+    ["zh", "面试官的回复中断了", "请返回当前面试规划，重新开始一场模拟面试。", "返回"],
+    ["en", "The interviewer's reply was interrupted", "Return to this interview plan and start a new mock interview.", "Back"],
   ] as const)("renders the %s terminal state with one safe exact current-plan CTA", async (lang, title, description, ctaLabel) => {
     const practiceSource = readFileSync(resolve(__dirname, "PracticeScreen.tsx"), "utf8");
     expect(practiceSource).toContain('navigate({ name: "workspace", params: { targetJobId } })');

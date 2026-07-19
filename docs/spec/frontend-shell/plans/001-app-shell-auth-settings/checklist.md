@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.40
+> **版本**: 1.41
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -172,3 +172,10 @@
 - [x] 23.2 GREEN: 最小重组 `SettingsScreen` 与 page-scoped CSS；desktop 一级选项靠左、Save 靠右且 Custom 展开/收起不改变按钮纵向位置，mobile 安全换行并保持二级编辑器后置；主题状态机、保存禁用态和请求预算不变。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="SettingsScreen/ScreensVisual pass 26/26. The new primary row owns options plus Save, the editor/error remain following siblings, and Appearance no longer has a separate third-column action rule; existing save/request tests stay green." -->
 - [x] 23.3 BDD-Gate: `BDD.SHELL.SETTINGS.THEME.001` 原地覆盖固定主行；current-run Chrome 在 desktop 量测 preset/custom Save bbox 差值不超过 1px，并在 390px mobile 验证顺序、可操作性和无横向溢出，不新增 E2E ID。<!-- verified: 2026-07-20 method=chrome-extension-automation evidence="Real Settings at 1440x900 kept options and Save in the same 44px row at top=341/bottom=385 before and after Custom (delta=0px); the custom panel began below at top=399. At 390x844 the primary group and panel remained ordered and operable with documentWidth=viewportWidth=390; Custom -> Plum was reversible and browser warning/error logs were empty." -->
 - [x] 23.4 REGRESSION: focused、typecheck/build、根 `make test`、frontend redeploy、环境 readiness、owner context、Header/INDEX/docs/diff gate 通过；更新 BUG-0193、既有复盘和工作日志，Phase 15.3 仍保持独立未完成。<!-- verified: 2026-07-20 method=root-and-document-gates evidence="Focused theme suites pass 34/34, typecheck and production build pass; root make test passes Python 615/4615 subtests, all Go packages and frontend 135 files/1091 tests. Frontend redeploy and dependency readiness 4/4 pass; owner context, zero-drift Header/INDEX, docs links, pruning and diff checks pass. BUG-0193, its existing assessment and the phase work journal are current; Phase 15.3 remains open." -->
+
+## Phase 24: Shared secondary-page Back copy
+
+- [x] 24.1 RED: locale/source/component tests 枚举正式返回控件并要求统一消费 `common.back`；目标特定 action key 和可见“返回首页/简历工坊/报告/面试规划/面试”必须先失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="New shared Back source/catalog contract failed 16/16 against missing common.back, 14 legacy consumers and 20 target-specific action keys." -->
+- [x] 24.2 GREEN: 新增中英文共享返回文案、迁移正式消费者并删除无消费者旧 key；保留每个页面的 route target、replace/push、trusted-context、fail-closed 与请求行为。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="Shared contract passes 16/16; affected Auth/Parse/Resume/Practice/Reports/Generating/Report/Conversation scope passes 65 files and 495 tests, including existing navigation matrices." -->
+- [x] 24.3 BDD-Gate: `BDD.SHELL.BACK.COPY.006` 通过 locale/source/component navigation tests 与 current-run Chrome 抽样验证“返回 / Back”、点击目标和无横向溢出。<!-- verified: 2026-07-20 method=chrome-extension-automation evidence="Real Generating displayed 返回 at 1512x777 and 390x844 with overflowX=0; real Report and Reports pages switched to English and displayed Back, Report Back navigated to its target-scoped Reports route, then Chinese was restored; browser warning/error logs were empty." -->
+- [x] 24.4 REGRESSION: focused、typecheck/build、根 `make test`、frontend redeploy、环境 readiness、owner context、docs/index/diff gate 通过；Phase 15.3 仍保持独立未完成。<!-- verified: 2026-07-20 method=full-regression-and-document-gates evidence="Shared Back contract 16/16 and affected scope 65 files/495 tests pass; typecheck/build and root make test pass with Python 615/4615, all Go packages and frontend 136 files/1107 tests. Frontend redeploy, readiness 4/4, both owner contexts, docs/index/diff and Chrome gates pass; Shell remains active solely because Phase 15.3 is still open." -->

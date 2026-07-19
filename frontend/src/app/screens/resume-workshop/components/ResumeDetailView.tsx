@@ -71,7 +71,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({ resumeId }) => {
         title={t("resumeWorkshop.detail.waitingTitle")}
         body={t("resumeWorkshop.detail.waitingBody")}
         action={{
-          label: t("resumeWorkshop.detail.back"),
+          label: t("common.back"),
           onClick: onBack,
           testId: "resume-detail-parse-back",
         }}
@@ -86,7 +86,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({ resumeId }) => {
         icon="file"
         title={t("resumeWorkshop.detail.failedTitle")}
         body={t("resumeWorkshop.detail.failedBody")}
-        backLabel={t("resumeWorkshop.detail.back")}
+        backLabel={t("common.back")}
         onBack={onBack}
       />
     );
@@ -103,7 +103,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({ resumeId }) => {
         className="ei-resume-detail-back"
         onClick={onBack}
       >
-        ← {t("resumeWorkshop.detail.back")}
+        ← {t("common.back")}
       </button>
 
       <header className="ei-resume-detail-header">

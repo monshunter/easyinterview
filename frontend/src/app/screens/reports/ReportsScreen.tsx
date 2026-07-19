@@ -286,7 +286,7 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
         onClick={goBack}
         className="ei-reports-back"
       >
-        ← {targetJobId ? t("reports.backToPlan") : t("reports.backToWorkspace")}
+        ← {t("common.back")}
       </button>
 
       <header className="ei-report-records-header">
@@ -330,7 +330,7 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
               {t("reports.errorDescription")}
             </p>
             <ReportAction onClick={goBack}>
-              {targetJobId ? t("reports.returnToPlan") : t("reports.backToWorkspace")}
+              {t("common.back")}
             </ReportAction>
           </div>
         </StateCard>

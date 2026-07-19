@@ -9,6 +9,7 @@ export const en: LocaleMessages = {
   "display.language": "Language",
   "user.settings": "Settings",
   "user.logout": "Sign out",
+  "common.back": "Back",
   "auth.login": "Sign in",
   "auth.email": "Email",
   "auth.emailPlaceholder": "Enter your email",
@@ -24,7 +25,6 @@ export const en: LocaleMessages = {
   "auth.logoutHint":
     "Signing out clears your session on this device. Your account data stays safe.",
   "auth.confirmLogout": "Sign out",
-  "auth.backHome": "Back home",
   "auth.routeGate.eyebrow": "Authentication",
   "auth.routeGate.loadingTitle": "Checking sign-in",
   "auth.routeGate.loadingBody": "Please wait while we verify this session.",
@@ -152,9 +152,6 @@ export const en: LocaleMessages = {
   "parse.roundState.current": "Up next",
   "parse.roundState.pending": "Not started",
   "parse.reports.label": "Interview reports",
-  "reports.backToPlan": "Interview plan",
-  "reports.returnToPlan": "Back to interview plan",
-  "reports.backToWorkspace": "Interviews",
   "reports.eyebrow": "Interview reports",
   "reports.currentPlanTitle": "Current interview plan",
   "reports.subtitle": "View the report and generation progress for each interview round.",
@@ -186,10 +183,8 @@ export const en: LocaleMessages = {
   "parse.failedTitle": "We couldn't read this JD",
   "parse.failedMessage": "Try parsing the JD again.",
   "parse.failedReparse": "Try again",
-  "parse.failedHome": "Back to home",
   "parse.errorTitle": "Something went wrong",
   "parse.errorMessage": "The JD review page didn't load correctly.",
-  "parse.errorHome": "Back to home",
   "parse.errors.start": "We couldn't start the mock interview. Try again in a moment.",
   "workspace.planList.eyebrow": "Interview plans",
   "workspace.detail.loading": "Loading interview plan detail…",
@@ -208,7 +203,6 @@ export const en: LocaleMessages = {
   "workspace.errors.retry": "Retry",
   "workspace.errors.start": "We couldn't start the mock interview. Try again in a moment.",
   "workspace.errors.delete": "We couldn't delete the interview plan. Try again in a moment.",
-  "resumeWorkshop.create.back": "Back to resume workshop",
   "resumeWorkshop.create.eyebrow": "Create a resume",
   "resumeWorkshop.create.title":
     "Upload a file or paste text to create a resume",
@@ -260,7 +254,6 @@ export const en: LocaleMessages = {
   "resumeWorkshop.list.open": "Open",
   "resumeWorkshop.list.delete": "Delete resume",
   "resumeWorkshop.list.deleteError": "We couldn't delete the resume. Try again in a moment.",
-  "resumeWorkshop.detail.back": "Back to Resume Workshop",
   "resumeWorkshop.detail.lastEdit": "Last edited",
   "resumeWorkshop.detail.loading": "Loading resume…",
   "resumeWorkshop.detail.error": "We couldn't load this resume. Try again.",
@@ -273,7 +266,6 @@ export const en: LocaleMessages = {
   "resumeWorkshop.detail.notFoundTitle": "Resume not found",
   "resumeWorkshop.detail.notFoundBody":
     "This resume may have been deleted, or the link has expired. Return to Resume Workshop and choose another resume.",
-  "resumeWorkshop.detail.notFoundCta": "Back to list",
   // ── Practice screen (plan 002) ──
   "practice.launch.eyebrow": "Getting ready",
   "practice.launch.title": "Preparing your interview",
@@ -302,7 +294,6 @@ export const en: LocaleMessages = {
   "practice.sessionLost.title": "This interview is no longer available",
   "practice.sessionLost.desc":
     "The mock interview has ended, was canceled, or didn't start correctly. Return to the interview plan to start again.",
-  "practice.sessionLost.cta": "Back to interview plan",
   "practice.errors.messageRejected": "We couldn't send that message. Check it and try again.",
   "practice.errors.messageAborted": "Sending was interrupted. Make sure the interview is still active, then try again.",
   "practice.errors.messageFailed": "We couldn't send your message. Try again in a moment.",
@@ -312,7 +303,6 @@ export const en: LocaleMessages = {
   "practice.errors.retry": "Retry",
   "practice.terminal.title": "The interviewer's reply was interrupted",
   "practice.terminal.description": "Return to this interview plan and start a new mock interview.",
-  "practice.terminal.backToPlan": "Return to this interview plan",
 
   "generating.status.queued": "Waiting to generate report",
   "generating.status.generating": "Generating report",
@@ -339,12 +329,8 @@ export const en: LocaleMessages = {
   "generating.errors.contextTooLarge.title": "The source material and conversation are too long",
   "generating.errors.contextTooLarge.desc": "Return to your interview plan, shorten the input, and start again.",
   "generating.errors.continueCheck": "Check progress again",
-  "generating.errors.backToReports": "Back to interview reports",
-  "generating.errors.backToWorkspace": "Back to interviews",
 
-  "report.back": "Interview reports",
   "report.conversation.entry": "View this interview record",
-  "report.conversation.back": "Back to report",
   "report.conversation.eyebrow": "Interview record",
   "report.conversation.subtitle": "The full mock interview, shown in the order it happened.",
   "report.conversation.transcriptLabel": "Interview conversation record",
@@ -356,11 +342,9 @@ export const en: LocaleMessages = {
   "report.conversation.loading.eyebrow": "Loading interview record",
   "report.conversation.loading.title": "Opening this interview record…",
   "report.conversation.loading.description": "The conversation will appear once we confirm it belongs to this report.",
-  "report.conversation.loading.back": "Back to interviews",
   "report.conversation.unavailable.eyebrow": "Interview record unavailable",
   "report.conversation.unavailable.title": "We couldn't open this interview record",
   "report.conversation.unavailable.description": "Return to your interviews and choose another report.",
-  "report.conversation.unavailable.back": "Back to interviews",
   "report.loading": "Opening report…",
   "report.pending": "We're still reviewing your answers from this interview.",
   "report.pending.cta": "View progress",
@@ -403,8 +387,6 @@ export const en: LocaleMessages = {
   "report.failureState.contextTooLarge.desc":
     "Return to your interview plan, shorten the input, and start again.",
   "report.failureState.retry": "Reload",
-  "report.failureState.backToReports": "Back to interview reports",
-  "report.failureState.backToWorkspace": "Back to interviews",
   "report.failureState.notFound.eyebrow": "Report not found",
   "report.failureState.notFound.title": "Report not found",
   "report.failureState.notFound.desc":
@@ -413,5 +395,4 @@ export const en: LocaleMessages = {
   "report.missingReport.title": "This report link is incomplete",
   "report.missingReport.desc":
     "Open the report again from a completed mock interview.",
-  "report.missingReport.cta": "Back to interviews",
 };

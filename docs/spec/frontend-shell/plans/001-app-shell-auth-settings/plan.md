@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.40
+> **版本**: 1.41
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -196,10 +196,15 @@ GREEN 只在 `SettingsScreen` 增加明确的 theme editor 分组，并调整 `s
 
 `BDD.SHELL.SETTINGS.THEME.001` 原地扩展此布局行为。current-run Chrome 必须在 desktop 分别量测 preset 与 Custom 状态的 Save bbox 差值不超过 1px，并确认选项/Save 同一行、editor 严格位于下方；390px mobile 验证 DOM 顺序、可操作性和无横向溢出。完成 focused、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 后更新 BUG-0193 与既有复盘；Phase 15.3 仍保持独立未完成，主 plan 继续为 `active`。
 
+### Phase 24: Shared secondary-page Back copy
+
+先以 locale/source/component RED 枚举正式二三级页面返回控件，要求所有控件只消费共享 `common.back`，中文为“返回”、英文为“Back”；旧“返回首页/简历工坊/报告/面试规划/面试”等目标特定 action key 必须失败。GREEN 只统一可见标签并删除无消费者 action key，保留每个页面的 route target、replace/push、trusted context、fail-closed、请求时序与业务状态机。`BDD.SHELL.BACK.COPY.006` 由 locale/source/component navigation tests 与 current-run Chrome 抽样验收承接；纯前端显示合同，Operation Matrix/API/fixture/backend/persistence 均 `N/A`。Phase 15.3 仍独立未完成，主 plan 保持 `active`。
+
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.41 | Reopen Phase 24 to standardize secondary-page Back copy without changing route ownership or recovery behavior. |
 | 2026-07-20 | 1.40 | Reopen Phase 23 to anchor Save beside the first-level theme choices while the conditional custom editor expands only beneath that stable primary row. |
 | 2026-07-20 | 1.39 | Reopen Phase 22 to strengthen the language-menu chevron and derive the Settings entry mark from the authenticated display name without changing navigation or request budgets. |
 | 2026-07-20 | 1.38 | Reopen Phase 21 to redraw the Settings Header as the approved layered profile, chart, lock, shield and sparkle security illustration without changing account behavior. |
