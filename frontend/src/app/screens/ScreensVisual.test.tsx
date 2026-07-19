@@ -191,4 +191,20 @@ describe("screens.css visual rhythm (Phase 5.1 + 5.2)", () => {
     expect(css).toMatch(/\.ei-settings-card\s*\{[^}]*display:\s*grid/);
     expect(css).toMatch(/\.ei-settings-card\s*\{[^}]*grid-template-columns:\s*64px\s+minmax\(0,\s*1fr\)/);
   });
+
+  it("stacks the custom theme editor below persistent choices with informative color tracks", () => {
+    expect(css).toMatch(
+      /\[data-testid="settings-appearance"\]\s+\.ei-settings-theme-editor\s*\{[^}]*grid-column:\s*2[^}]*grid-row:\s*1\s*\/\s*span\s*2/,
+    );
+    expect(css).toMatch(/\.ei-settings-theme-editor\s*\{[^}]*display:\s*grid[^}]*gap:/);
+    expect(css).not.toMatch(
+      /\.ei-settings-theme-options,\s*\n\[data-testid="settings-appearance"\]\s+\.ei-settings-custom-accent/,
+    );
+    expect(css).toMatch(
+      /\.ei-settings-accent-range--hue\s*\{[^}]*linear-gradient\([^}]*#f45b69[^}]*#946bff[^}]*#f45b69/,
+    );
+    expect(css).toMatch(
+      /\.ei-settings-accent-range--chroma\s*\{[^}]*linear-gradient\([^}]*oklch\([^}]*var\(--ei-settings-accent-hue\)[^}]*oklch\([^}]*var\(--ei-settings-accent-hue\)/,
+    );
+  });
 });

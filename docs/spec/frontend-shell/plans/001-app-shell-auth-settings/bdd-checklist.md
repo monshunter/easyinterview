@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.24
+> **版本**: 1.25
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -43,6 +43,9 @@
 
 ## `BDD.SHELL.SETTINGS.THEME.001` 账号级主题与请求预算
 
+- [x] Ocean / Plum / Custom 一级选择器在预定义与自定义状态下始终可访问；Custom 激活后 hue/chroma 二级编辑器只在一级下方进入正常文档流，不覆盖或替换一级；hue 完整光谱与当前 hue 的 chroma 渐变可见且不破坏 range 键盘/focus 语义。（2026-07-19 focused 25/25 + Chrome desktop/mobile PASS。）
+- [x] 选择 Ocean / Plum 后二级编辑器隐藏且 custom accent 清除；切换过程零网络并保留既有 Save 请求预算。（2026-07-19 component + Chrome reversible switch PASS。）
+- [x] current-run Chrome 在 desktop/mobile 验证 Custom -> Ocean/Plum 可逆切换、无遮挡与无横向溢出。（1440×900、390×844；documentWidth=viewportWidth；browser error/warning=0。）
 - [x] Runtime/Settings tests 证明 bootstrap/auth recovery 的 `getMe` 提供确认主题，Settings/普通 route/Practice 切换均零额外 `/me`。（2026-07-19 frontend focused 45 tests PASS。）
 - [x] Appearance tests 证明预定义主题/custom hue/chroma 本地预览零网络，Save 恰好一次 `updateMe`，成功直接更新 runtime/display 且无 follow-up GET。（2026-07-19 frontend focused 45 tests PASS。）
 - [x] 失败、重试、离开未保存页面、迟到响应和 invalid server projection 均 fail closed，不污染最近一次确认主题或新的认证状态。（2026-07-19 新增 race/projection/atomicity tests 后 focused PASS。）

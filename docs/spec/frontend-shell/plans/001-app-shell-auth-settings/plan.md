@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.35
+> **版本**: 1.36
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -150,6 +150,14 @@ GREEN 只调整正式 React DOM、page-scoped CSS、typed locale 与仓库内 SV
 
 `BDD.SHELL.PAGES.VISUAL.002` 由 component/responsive/a11y tests 与 current-run Chrome desktop/mobile 真实页面验收承接，不建立第二套 Demo 或像素基线。完成 focused、locale reachability、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 后收口本 Phase；Phase 15.3 的 auth probe 中间 loading/error gate 仍是独立 Chrome 证据缺口，在真实运行时未捕获到该瞬态前不得冒充完成，主 plan 因此继续保持 `active`。
 
+### Phase 19: Settings custom theme disclosure hierarchy remediation
+
+先以 Settings behavior/visual RED 固化两层主题结构：Ocean / Plum / Custom 一级选择器在预定义与自定义状态下都必须存在；自定义 hue/chroma 二级编辑器只在 Custom 激活时挂载，并且与一级选择器处于同一内容列的后续正常文档流。现有把一级选择器和二级编辑器分配到同一 grid area 的实现必须形成 RED，避免仅用 jsdom “节点仍存在”掩盖真实遮挡。
+
+GREEN 只在 `SettingsScreen` 增加明确的 theme editor 分组，并调整 `settings-appearance` page-scoped CSS，使一级选择器与条件二级编辑器纵向堆叠；保存按钮继续独立位于操作列。hue range 使用完整光谱轨道，chroma range 使用当前 hue 的低彩到高彩渐变，并保留原生 range 的键盘、focus 与值域语义。选择 Ocean / Plum 必须继续清除 custom accent 并隐藏二级编辑器；主题预览、单次 `updateMe`、失败恢复、runtime 更新与零 follow-up `getMe` 合同不变。
+
+`BDD.SHELL.SETTINGS.THEME.001` 增补一级常驻、二级按需展开和预定义主题可回退断言；desktop/mobile component tests、根 `make test` 与 current-run Chrome 的 Custom -> Ocean/Plum 切换、无遮挡和无横向溢出共同收口本 Phase。Phase 15.3 仍是独立未完成项，不能因本修复通过而关闭主 plan。
+
 
 ## 7 风险与应对
 
@@ -166,6 +174,7 @@ GREEN 只调整正式 React DOM、page-scoped CSS、typed locale 与仓库内 SV
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.36 | Reopen Phase 19 to keep first-level Settings theme choices visible, stack the conditional custom editor below them, and add full-spectrum hue plus hue-aware chroma tracks without changing persistence behavior. |
 | 2026-07-19 | 1.35 | Reopen Phase 18 for screenshot-aligned login, verify, logout and settings compositions while preserving the existing generated-client and state-machine contracts. |
 | 2026-07-19 | 1.34 | Reopen Phase 17 to remediate stale account-theme responses, fail-closed runtime projection, dev-mock atomic parity and active owner contract drift found by L2 review. |
 | 2026-07-19 | 1.33 | Reopen Phase 16 for generic updateMe, account-persisted theme with zero route refetch, Settings naming/gear, and Practice global chrome. |

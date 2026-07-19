@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-app-shell-auth-settings](./001-app-shell-auth-settings/plan.md) | [plan](./001-app-shell-auth-settings/plan.md) / [checklist](./001-app-shell-auth-settings/checklist.md) / [context](./001-app-shell-auth-settings/context.yaml) / [bdd-plan](./001-app-shell-auth-settings/bdd-plan.md) / [bdd-checklist](./001-app-shell-auth-settings/bdd-checklist.md) | 1.35 | active | 2026-07-19 |
+| [001-app-shell-auth-settings](./001-app-shell-auth-settings/plan.md) | [plan](./001-app-shell-auth-settings/plan.md) / [checklist](./001-app-shell-auth-settings/checklist.md) / [context](./001-app-shell-auth-settings/context.yaml) / [bdd-plan](./001-app-shell-auth-settings/bdd-plan.md) / [bdd-checklist](./001-app-shell-auth-settings/bdd-checklist.md) | 1.36 | active | 2026-07-19 |
 
 ## 2 已完成（Completed）
 

@@ -4186,11 +4186,13 @@
   grid-column: 1;
 }
 
-[data-testid="settings-appearance"] .ei-settings-theme-options,
-[data-testid="settings-appearance"] .ei-settings-custom-accent,
-[data-testid="settings-appearance"] .ei-settings-theme-error {
+[data-testid="settings-appearance"] .ei-settings-theme-editor {
   grid-column: 2;
   grid-row: 1 / span 2;
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  align-content: center;
 }
 
 [data-testid="settings-appearance"] .ei-settings-actions {
@@ -4326,9 +4328,9 @@
 .ei-settings-custom-accent {
   display: grid;
   gap: 14px;
-  margin-top: 18px;
   padding: 16px;
   border: 1px solid var(--ei-color-rule-soft);
+  border-radius: 10px;
   background: var(--ei-color-bg-soft);
 }
 
@@ -4339,9 +4341,62 @@
   gap: 14px;
 }
 
-.ei-settings-accent-row input {
+.ei-settings-accent-range {
   width: 100%;
-  accent-color: var(--ei-color-accent);
+  height: 12px;
+  margin: 0;
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--ei-color-fg-primary) 18%, transparent);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 2px color-mix(in srgb, #000 18%, transparent);
+  cursor: pointer;
+}
+
+.ei-settings-accent-range--hue {
+  background: linear-gradient(
+    90deg,
+    #f45b69 0%,
+    #f6ad3c 14%,
+    #e7df43 27%,
+    #4fd18b 41%,
+    #38bcd8 56%,
+    #5b7cff 71%,
+    #946bff 84%,
+    #f05ba8 93%,
+    #f45b69 100%
+  );
+}
+
+.ei-settings-accent-range--chroma {
+  background: linear-gradient(
+    90deg,
+    oklch(72% 0.01 var(--ei-settings-accent-hue)),
+    oklch(72% 0.28 var(--ei-settings-accent-hue))
+  );
+}
+
+.ei-settings-accent-range::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  appearance: none;
+  border: 3px solid var(--ei-color-bg-card);
+  border-radius: 50%;
+  background: var(--ei-color-accent);
+  box-shadow: 0 1px 5px color-mix(in srgb, #000 30%, transparent);
+}
+
+.ei-settings-accent-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 3px solid var(--ei-color-bg-card);
+  border-radius: 50%;
+  background: var(--ei-color-accent);
+  box-shadow: 0 1px 5px color-mix(in srgb, #000 30%, transparent);
+}
+
+.ei-settings-accent-range:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ei-color-accent) 42%, transparent);
+  outline-offset: 3px;
 }
 
 .ei-settings-primary-action {

@@ -111,6 +111,40 @@ describe("Settings account and privacy contract", () => {
     expect(getMe).not.toHaveBeenCalled();
   });
 
+  it("keeps preset themes available while the custom color editor expands below them", async () => {
+    const { getMe, updateMe } = renderSettings();
+    const user = userEvent.setup();
+
+    expect(screen.queryByTestId("settings-custom-accent")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("settings-theme-custom"));
+
+    const editor = screen.getByTestId("settings-theme-editor");
+    const options = screen.getByRole("group", { name: "Choose a theme color" });
+    const customPanel = screen.getByTestId("settings-custom-accent");
+    expect(editor).toContainElement(options);
+    expect(editor).toContainElement(customPanel);
+    expect(options.compareDocumentPosition(customPanel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const theme of ["ocean", "plum", "custom"]) {
+      expect(screen.getByTestId(`settings-theme-${theme}`)).toBeVisible();
+    }
+    expect(screen.getByTestId("settings-custom-accent-hue")).toHaveClass(
+      "ei-settings-accent-range--hue",
+    );
+    expect(screen.getByTestId("settings-custom-accent-chroma")).toHaveClass(
+      "ei-settings-accent-range--chroma",
+    );
+    expect(editor.style.getPropertyValue("--ei-settings-accent-hue")).toBe("255");
+    expect(updateMe).not.toHaveBeenCalled();
+    expect(getMe).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId("settings-theme-plum"));
+    expect(screen.queryByTestId("settings-custom-accent")).not.toBeInTheDocument();
+    expect(screen.getByTestId("settings-theme-plum")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("settings-theme-custom")).toHaveAttribute("aria-pressed", "false");
+    expect(updateMe).not.toHaveBeenCalled();
+    expect(getMe).not.toHaveBeenCalled();
+  });
+
   it("keeps a rejected theme draft retryable and commits only the successful response", async () => {
     const { refreshAuth, updateMe } = renderSettings();
     updateMe

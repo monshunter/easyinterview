@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.36
+> **版本**: 2.37
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -23,7 +23,7 @@
 9. 当前只开放连续文本面试；电话入口置灰，不产生 `phone` / `voice` route state，通用 speech 基础设施留待后续重新评审。
 10. TopBar 只保留暗色模式、语言下拉和设置入口；主题色移入“设置”页的“外观”区并保存为账号级偏好。产品字体采用固定默认栈，不提供字体预设。
 11. Desktop TopBar 使用与 Home 参考图一致的 76px 单行节奏；`<=720px` 使用内容驱动的响应式换行，primary nav 独占下一行，`<=460px` 收起品牌文字并限制语言标签宽度。移动端页面内容必须从 TopBar 实际底部开始，所有控件与导航都留在 viewport 内，不允许用固定 desktop 高度或横向页面溢出来伪造对齐。
-12. “设置 > 外观”的 custom accent picker 只保留色相与饱和度两个调整维度；不展示额外 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean 或 Plum 是退出自定义色的唯一清晰路径。调整只做本地预览，点击保存才发送一次账号更新请求。
+12. “设置 > 外观”的 Ocean / Plum / Custom 是始终可见的一级主题选择器；custom accent picker 是仅在选择 Custom 后于一级下方展开的二级编辑器，只保留色相与饱和度两个调整维度。二级编辑器不得覆盖或替换一级选择器；色相轨道必须展示完整光谱，彩度轨道必须以当前色相从低彩到高彩渐变，不增加 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean 或 Plum 是退出自定义色的唯一清晰路径。调整只做本地预览，点击保存才发送一次账号更新请求。
 13. `/workspace` 是无参规划列表，`/workspace?targetJobId=...` 是统一只读规划详情；ready 卡片直接进入详情。`/parse?targetJobId=...` 只承接新导入 queued/processing 命令进度，ready 后 replace 到 Workspace 详情。
 14. Practice 的 persisted user/assistant text 通过 `react-markdown + remark-gfm` 安全投影；`skipHtml`、no `rehypeRaw`、no remote image、safe link，send/retry 仍使用原始 text/clientMessageId。
 
@@ -216,8 +216,8 @@ ROUTE_ALIASES
 6. Home 必须只保留 JD textarea、ready Resume 下拉框和主 CTA；正式前端不得保留其他 JD intake 控件或弹窗，desktop 1440px 与 mobile 390px responsive/browser smoke 必须证明该单一路径。
 7. Practice transient optimistic row 不得成为跨刷新事实源；`getPracticeSession` 必须恢复 user `clientMessageId/replyStatus`，pending/retryable/terminal/complete UI 由该服务端投影收敛。
 8. `ReportsScreen(targetJobId)` 是受保护、chrome-visible 的上下文页面，入口仅在 Workspace 规划详情内容区右上角；TopBar 仍严格为三入口。Parse 不渲染 ready 详情、不嵌入列表或保留 `section=reports`，Reports Back 返回 Workspace detail，Report/Generating trusted Back 返回 ReportsScreen。
-9. `CustomAccentPicker` 只允许 hue/saturation DOM 与更新回调。component/source negative gate 必须证明 preview/value/reset 区、“恢复主题默认色 / Reset to theme accent”双语文案及仅为旧 UI 服务的 `onClear` / `active` props 零引用；选择 Ocean / Plum 恢复预定义主题。
-10. Settings Appearance 的 1440 desktop 与 390 mobile tests 必须覆盖 Ocean / Plum / custom accent 草稿预览、保存、DOM、computed style、viewport containment 与必要 screenshot smoke；TopBar 删除旧主题区域后不得留下空白占位或横向溢出。
+9. `CustomAccentPicker` 只允许 hue/saturation DOM 与更新回调。Ocean / Plum / Custom 一级选择器始终可见；custom editor 只在 Custom 激活时挂载于同列下方，且不得与一级选择器共享覆盖式 grid area。component/source negative gate 必须证明 preview/value/reset 区、“恢复主题默认色 / Reset to theme accent”双语文案及仅为旧 UI 服务的 `onClear` / `active` props 零引用；选择 Ocean / Plum 恢复预定义主题并隐藏二级编辑器。
+10. Settings Appearance 的 1440 desktop 与 390 mobile tests 必须覆盖 Ocean / Plum / custom accent 草稿预览、一级常驻/二级按需展开、保存、DOM、computed style、viewport containment 与必要 screenshot smoke；TopBar 删除旧主题区域后不得留下空白占位或横向溢出。
 11. Route/component gate 必须证明 query-free Workspace 列表、targetJobId Workspace 详情和 Parse command-progress 三态互斥；ready 卡片详情执行一次同 key `getTargetJob`，不得 import、poll、播放 Parse animation 或在 route side 启动 session。
 12. Practice message renderer 必须同时覆盖 user/assistant GFM、raw HTML/remote image/unsafe URI 负向、安全 link、exact raw same-ID retry，以及 390px pre/code/table 局部滚动且 document 无横向溢出。
 13. TopBar 已登录态只渲染圆形 `E` initial-mark 设置按钮；它不得读取或暗示用户头像数据。component/responsive/a11y gate 必须证明姓名、caret、backdrop、dropdown 与 TopBar logout 零引用，且 desktop/mobile 点击区域和 focus ring 可用。
@@ -228,6 +228,7 @@ ROUTE_ALIASES
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.37 | 锁定 Settings Appearance 两层主题结构：一级预定义/Custom 选择器常驻，二级 hue/chroma 仅在 Custom 激活时于下方展开；hue 使用完整光谱，chroma 使用当前色相的低彩到高彩渐变。 |
 | 2026-07-19 | 2.36 | Home 参考图成为当前首页视觉方向：desktop TopBar 调整为 76px，已登录设置入口使用单一圆形 E initial mark，不恢复账号菜单。 |
 | 2026-07-19 | 2.35 | 修正设置账号主题验收 owner：desktop/mobile 主题交互由 Settings Appearance 承接，TopBar 不再承接 Theme menu。 |
 | 2026-07-19 | 2.34 | 将主题色移入“设置 > 外观”并按账号保存；TopBar 保留暗色/语言/设置齿轮；Practice 恢复全局 App TopBar，并区分会话控制栏。 |

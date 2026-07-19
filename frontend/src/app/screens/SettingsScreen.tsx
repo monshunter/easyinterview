@@ -3,6 +3,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type FC,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
@@ -219,55 +220,83 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
           <h2 className="ei-text-title">{t("settings.appearance")}</h2>
         </div>
         <p className="ei-text-body ei-settings-appearance-copy">{t("settings.appearanceDescription")}</p>
-        <div className="ei-settings-theme-options" role="group" aria-label={t("settings.themeLabel")}>
-          {THEME_OPTIONS.map((theme) => {
-            const selected = prefs.theme === theme && prefs.customAccent == null;
-            const metadata = THEME_METADATA.find((item) => item.key === theme);
-            return (
-              <button
-                key={theme}
-                type="button"
-                data-testid={`settings-theme-${theme}`}
-                aria-pressed={selected}
-                className={selected ? "ei-settings-theme-option ei-settings-theme-option--selected" : "ei-settings-theme-option"}
-                onClick={() => {
-                  prefs.setTheme(theme);
-                  prefs.setCustomAccent(null);
-                  setThemeError(false);
-                }}
-              >
-                <span className="ei-settings-theme-swatch" style={{ background: metadata?.swatch }} aria-hidden="true" />
-                {t(theme === "ocean" ? "theme.ocean" : "theme.plum")}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            data-testid="settings-theme-custom"
-            aria-pressed={prefs.customAccent != null}
-            className={prefs.customAccent != null ? "ei-settings-theme-option ei-settings-theme-option--selected" : "ei-settings-theme-option"}
-            onClick={() => {
-              prefs.setCustomAccent(prefs.customAccent ?? { ...CUSTOM_ACCENT_SEEDS[prefs.theme] });
-              setThemeError(false);
-            }}
-          >
-            <span className="ei-settings-theme-swatch ei-settings-theme-swatch--custom" aria-hidden="true" />
-            {t("settings.themeCustom")}
-          </button>
-        </div>
-        {prefs.customAccent ? (
-          <div data-testid="settings-custom-accent" className="ei-settings-custom-accent">
-            <label className="ei-settings-accent-row ei-text-label">
-              <span>{t("settings.themeHue")}</span>
-              <input data-testid="settings-custom-accent-hue" type="range" min={0} max={359} step={1} value={prefs.customAccent.h} onChange={(event) => prefs.setCustomAccent({ ...prefs.customAccent!, h: Number(event.target.value) })} />
-            </label>
-            <label className="ei-settings-accent-row ei-text-label">
-              <span>{t("settings.themeChroma")}</span>
-              <input data-testid="settings-custom-accent-chroma" type="range" min={0} max={0.28} step={0.005} value={prefs.customAccent.c} onChange={(event) => prefs.setCustomAccent({ ...prefs.customAccent!, c: Number(event.target.value) })} />
-            </label>
+        <div
+          data-testid="settings-theme-editor"
+          className="ei-settings-theme-editor"
+          style={{
+            "--ei-settings-accent-hue": String(
+              prefs.customAccent?.h ?? CUSTOM_ACCENT_SEEDS[prefs.theme].h,
+            ),
+          } as CSSProperties}
+        >
+          <div className="ei-settings-theme-options" role="group" aria-label={t("settings.themeLabel")}>
+            {THEME_OPTIONS.map((theme) => {
+              const selected = prefs.theme === theme && prefs.customAccent == null;
+              const metadata = THEME_METADATA.find((item) => item.key === theme);
+              return (
+                <button
+                  key={theme}
+                  type="button"
+                  data-testid={`settings-theme-${theme}`}
+                  aria-pressed={selected}
+                  className={selected ? "ei-settings-theme-option ei-settings-theme-option--selected" : "ei-settings-theme-option"}
+                  onClick={() => {
+                    prefs.setTheme(theme);
+                    prefs.setCustomAccent(null);
+                    setThemeError(false);
+                  }}
+                >
+                  <span className="ei-settings-theme-swatch" style={{ background: metadata?.swatch }} aria-hidden="true" />
+                  {t(theme === "ocean" ? "theme.ocean" : "theme.plum")}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              data-testid="settings-theme-custom"
+              aria-pressed={prefs.customAccent != null}
+              className={prefs.customAccent != null ? "ei-settings-theme-option ei-settings-theme-option--selected" : "ei-settings-theme-option"}
+              onClick={() => {
+                prefs.setCustomAccent(prefs.customAccent ?? { ...CUSTOM_ACCENT_SEEDS[prefs.theme] });
+                setThemeError(false);
+              }}
+            >
+              <span className="ei-settings-theme-swatch ei-settings-theme-swatch--custom" aria-hidden="true" />
+              {t("settings.themeCustom")}
+            </button>
           </div>
-        ) : null}
-        {themeError ? <p role="alert" className="ei-settings-theme-error ei-text-body">{t("settings.themeSaveError")}</p> : null}
+          {prefs.customAccent ? (
+            <div data-testid="settings-custom-accent" className="ei-settings-custom-accent">
+              <label className="ei-settings-accent-row ei-text-label">
+                <span>{t("settings.themeHue")}</span>
+                <input
+                  data-testid="settings-custom-accent-hue"
+                  className="ei-settings-accent-range ei-settings-accent-range--hue"
+                  type="range"
+                  min={0}
+                  max={359}
+                  step={1}
+                  value={prefs.customAccent.h}
+                  onChange={(event) => prefs.setCustomAccent({ ...prefs.customAccent!, h: Number(event.target.value) })}
+                />
+              </label>
+              <label className="ei-settings-accent-row ei-text-label">
+                <span>{t("settings.themeChroma")}</span>
+                <input
+                  data-testid="settings-custom-accent-chroma"
+                  className="ei-settings-accent-range ei-settings-accent-range--chroma"
+                  type="range"
+                  min={0}
+                  max={0.28}
+                  step={0.005}
+                  value={prefs.customAccent.c}
+                  onChange={(event) => prefs.setCustomAccent({ ...prefs.customAccent!, c: Number(event.target.value) })}
+                />
+              </label>
+            </div>
+          ) : null}
+          {themeError ? <p role="alert" className="ei-settings-theme-error ei-text-body">{t("settings.themeSaveError")}</p> : null}
+        </div>
         <div className="ei-settings-actions">
           <button type="button" data-testid="settings-theme-save" className="ei-settings-primary-action" disabled={!user || !themeDirty || themePending} onClick={() => void saveTheme()}>
             {themePending ? t("settings.themeSaving") : t("settings.themeSave")}

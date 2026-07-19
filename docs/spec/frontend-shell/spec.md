@@ -1,6 +1,6 @@
 # Frontend Shell Spec
 
-> **版本**: 1.38
+> **版本**: 1.39
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -52,7 +52,7 @@
 | D-10 | 规划范围报告路由 | `/reports?targetJobId=<uuid>` 是受保护的上下文 route，chrome visible，但不属于 TopBar 一级导航 | safe params 只允许 `targetJobId`；全局一级导航仍严格保持三入口 |
 | D-11 | Safe-read single-flight | 保留 React StrictMode；只合并同一 client、method/path/query、规范化相关 header、normalized `okStatuses`、read/auth epoch 与 auth scope 下、且没有 caller `AbortSignal` 的语义只读在途 GET | resolve/reject 后驱逐；不同 client/query/header/okStatuses/epoch/auth 不合并；带 signal、非 GET 与语义写入 GET（含 `/auth/email/verify`）永不合并；所有语义写请求在 dispatch 前与 settle 后都推进 read epoch |
 | D-12 | 规划 route 分工 | `/parse?targetJobId` 只承载刚导入规划的 queued/processing 命令进度；`/workspace` 展示列表，`/workspace?targetJobId` 展示只读详情 | ready 初读或轮询转 ready 必须 replace 到 workspace 详情；已解析卡片不再经过 Parse 动画 |
-| D-13 | Custom accent 最小控件 | `CustomAccentPicker` 只保留色相与饱和度；选择 Ocean / Plum 是退出自定义色的唯一清晰路径 | 删除 preview/value 区、恢复默认色按钮与 `onClear` / `active` 冗余 props，不增加第二套 reset 语义 |
+| D-13 | Custom accent 两层控件 | Ocean / Plum / Custom 一级选择器始终可见；`CustomAccentPicker` 仅在 Custom 激活时于一级下方展示色相与彩度；hue 为完整光谱，chroma 为当前色相从低彩到高彩的渐变；选择 Ocean / Plum 是退出自定义色的唯一清晰路径 | 二级编辑器进入正常文档流，不得覆盖/替换一级；保留原生 range 键盘/focus 语义；删除 preview/value 区、恢复默认色按钮与 `onClear` / `active` 冗余 props，不增加第二套 reset 语义 |
 | D-14 | 设置简化方案 A | 已登录 TopBar 只保留一个圆形 `E` initial-mark 设置按钮；Settings 为无 tab 的真实账号/隐私单页，退出迁入页面 | initial mark 不表达用户画像、不打开 dropdown；删除账号 chip/menu、静态登录安全、字体预设、产品信息和无后端事实字段；无兼容 UI 或重复请求 |
 | D-15 | 账号主题方案 B | `PATCH /me` 改为 `updateMe`，同一 operation 同时支持首次资料补全与主题更新；`UserContext` 返回确认后的主题 | 迁移 `user_settings`；custom 草稿本地预览，显式保存一次请求；失败不污染确认值；其他平台首次 `/me` 恢复同一主题 |
 
@@ -106,7 +106,7 @@
 | C-11 | Reports deep link | 用户直开/刷新 `/reports?targetJobId=<uuid>`，或未登录后完成鉴权 | route normalize / history / pendingAction restore | 仅合法 targetJobId 被保留并进入受保护 ReportsScreen；缺失/非法 target 以 replace-only 回 workspace 且不形成 Back 循环；chrome visible、TopBar 无报告入口；旧 `section` 与 report/status/round 等 query 被剔除 | 004-url-addressable-routing |
 | C-12 | StrictMode safe-read 去重 | AppRuntimeProvider 或 Home/Parse/Workspace/Reports/Practice loader 在 StrictMode mount cycle 内发出同 key safe-read GET | 两个 caller 同时等待、settle 后重试、使用不同 `okStatuses`，或在任一语义写请求前/期间/settle 后读取 | 同时在途只产生一次底层 GET；settle 后重试产生新 GET；不同 client/query/header/okStatuses/epoch/auth、带 signal、非 GET 与 verify GET 均不合并；所有语义写请求 dispatch 前和 settle 后推进 read epoch，verify 成功另推进 auth/session epoch并真实刷新 | 001-app-shell-auth-settings |
 | C-13 | Parse/workspace route 分工 | TargetJob 为 queued/processing 或 ready | 打开 `/parse?targetJobId`、轮询转 ready、或打开 ready 卡片 | Parse 只在处理中展示进度；ready 使用 replace 进入 `/workspace?targetJobId`；无 target 的 workspace 仍为列表，详情不显示 Parse 动画 | 004-url-addressable-routing |
-| C-14 | Custom accent 最小选择器 | Settings Appearance 打开 | 用户调整自定义色、选择 Ocean / Plum 并保存 | 只显示色相、饱和度；拖动零请求；保存一次账号更新；不显示 preview/value/reset；选择预定义主题退出 custom accent | 001-app-shell-auth-settings / 002-app-shell-visual-system |
+| C-14 | Custom accent 两层选择器 | Settings Appearance 打开 | 用户选择 Custom、调整自定义色、再选择 Ocean / Plum 并保存 | 一级 Ocean / Plum / Custom 始终可见；二级 hue/chroma 仅在 Custom 激活时于下方展示且不覆盖一级；hue 轨道展示完整光谱，chroma 轨道跟随当前 hue 从低彩渐变到高彩；拖动零请求；保存一次账号更新；选择预定义主题退出 custom accent 并隐藏二级编辑器 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
 | C-15 | Settings 真实数据与隐私动作 | authenticated runtime 已取得 `/me` | 打开设置、查看导出状态、退出或删除账号 | 只显示真实 `displayName/email`，其中 email 完整显示但不进入 PASS/FAIL 日志或证据；不重复 `getMe`；导出显示暂不可用；删除流程具备确认/pending/failure/202 success；默认 fixture client 在删除后也返回 unauthenticated，且旧 tab/block/字段零引用 | 001-app-shell-auth-settings / 002-app-shell-visual-system |
 | C-16 | Auth route gate 本地化 | 中文或英文显示偏好已生效，受保护 route 的 auth probe 为 loading/error | App 挂载统一 route gate 或用户切换语言 | eyebrow/title/body 全部跟随当前 locale，业务 screen/API 仍不提前挂载，中文模式无英文 fallback | 001-app-shell-auth-settings |
 | C-17 | Practice 全局 chrome | authenticated 用户进入 Practice | route render 与 desktop/mobile 响应式布局 | 全局 TopBar 保持可见，其下是独立 Practice Session Header；页面切换不触发 `/me` | 001-app-shell-auth-settings + frontend-workspace-and-practice/001 |
@@ -123,6 +123,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.39 | 2026-07-19 | Lock Settings Appearance to an always-visible primary theme selector with a conditionally stacked custom editor, full-spectrum hue and hue-aware chroma tracks, preserving reversible preset selection and request budgets. |
 | 1.38 | 2026-07-19 | Reopen the shell owner to align login, verify, logout and settings with the supplied wide editorial compositions without changing auth or account behavior. |
 | 1.37 | 2026-07-19 | Reopen the visual owner for the supplied Home reference: 76px desktop chrome, pill dark toggle and a single circular E initial-mark settings entry without reintroducing account menus. |
 | 1.36 | 2026-07-19 | 采用账号主题方案 B：设置更名、主题移入 Appearance 并由 updateMe 持久化；锁定 bootstrap 单次读取、route 零重复读取、保存一次写入及 Practice 全局 chrome。 |

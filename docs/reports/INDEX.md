@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-19](./2026-07-19-settings-custom-theme-hierarchy-assessment.md) | Settings Custom Theme Hierarchy 交付复盘 | #assessment #settings #ui #chrome #BUG-0193 |
 | [2026-07-19](./2026-07-19-core-workflow-reference-ui-alignment-assessment.md) | 核心工作流参考图对齐交付复盘 | #assessment #ui #practice #resume #report #chrome #BUG-0192 |
 | [2026-07-19](./2026-07-19-list-pages-screenshot-alignment-assessment.md) | Workspace 与 Resume 列表视觉对齐交付复盘 | #assessment #ui #workspace #resume #chrome |
 | [2026-07-19](./2026-07-19-home-screenshot-alignment-assessment.md) | Home Screenshot Alignment 交付复盘 | #assessment #ui #home #chrome |

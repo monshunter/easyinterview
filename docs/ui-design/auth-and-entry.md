@@ -1,6 +1,6 @@
 # 认证与默认入口
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -108,8 +108,8 @@ auth_logout
 ```text
 Settings
 ├─ Appearance
-│  ├─ Theme: Ocean / Plum / Custom accent
-│  ├─ Custom accent: hue + saturation（本地预览）
+│  ├─ 一级 Theme: Ocean / Plum / Custom accent（始终可见）
+│  ├─ 二级 Custom accent: hue + saturation（仅选择 Custom 后在一级下方展示）
 │  └─ Save: 单次 updateMe，成功响应直接刷新 runtime
 ├─ Account
 │  ├─ Display name: /me.displayName（只读）
@@ -121,6 +121,7 @@ Settings
 ```
 
 - `SettingsScreen` 复用应用启动或认证恢复时已取得的 authenticated user，不为页面挂载或 route 切换重复调用 `getMe`；loading/error/unauthenticated 仍由统一 route guard 处理。
+- Appearance 的 Ocean / Plum / Custom accent 是始终可见的一级主题选择器。只有选择 Custom accent 时才在一级选择器下方挂载色相与饱和度二级编辑器；二级编辑器必须进入正常文档流，不得覆盖、替换或遮挡一级选择器。色相轨道使用完整光谱渐变，彩度轨道从当前色相的低彩中性色渐变到高彩色，使调节方向无需数值也可理解；thumb、键盘和 focus 仍沿用可访问 range 语义。选择 Ocean 或 Plum 后立即隐藏二级编辑器并退出自定义色，用户在任何状态下都能回退到预定义主题。
 - 主题草稿在设置页本地预览；拖动 hue/chroma 不发网络请求。点击保存只发一次 `updateMe`，成功响应返回完整用户上下文并直接更新 runtime/display context，不追加 `getMe`。失败保留草稿和错误供重试，不覆盖最近一次服务端确认值；离开未保存页面恢复确认值。重新登录或其他平台启动后由首个 `getMe` 恢复同一账号主题。
 - 不渲染 tab rail、手机号、界面语言行、时区、登录与安全、字体预设、产品信息、数据留存开关、数据概览、删除单次会话或删除所有练习数据等没有当前数据源/operation 的静态条目。
 - 数据导出沿用 P0 `501 PRIVACY_EXPORT_NOT_AVAILABLE` 契约，默认显示禁用态和可读的“暂不可用”原因；不得展示为可触发按钮，也不得把静态文案或未发请求状态显示成已受理。
@@ -134,6 +135,7 @@ Settings
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.30 | 明确 Appearance 的 Ocean / Plum / Custom 一级选择器始终可见；Custom 色相/饱和度仅在选择后于一级下方按正常文档流展开，并以完整色相光谱和当前色相的彩度渐变表达调节方向。 |
 | 2026-07-19 | 1.29 | 按五张参考稿锁定登录、验证码、退出的宽幅双栏认证构图，以及设置页 Header 插画与三张横向功能卡；不新增伪倒计时或业务操作。 |
 | 2026-07-19 | 1.28 | 将已登录单一设置入口从齿轮视觉改为圆形 E initial mark；保持直达 Settings、无用户头像数据、无账号 dropdown。 |
 | 2026-07-19 | 1.27 | 设置页更名为“设置”，新增账号级外观主题保存；锁定 bootstrap 单次读取、route 零重复读取和单次保存更新合同。 |
