@@ -1,8 +1,8 @@
 # 002 — Practice Continuous Text Conversation Checklist
 
-> **版本**: 3.1
+> **版本**: 3.2
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
@@ -102,3 +102,10 @@
 - [x] 14.2 GREEN: 明确 `Transcript` 是唯一滚动区、Composer 以 `flex: 0 0 auto` 固定在会话卡底部，并把 helper capsule 与 sparkle icon 移入 `InputBar`；保持文案、样式、a11y、消息与发送语义不变。<!-- verified: 2026-07-19 method=focused-vitest evidence="PracticeVisual, InputBar, Transcript and PracticeScreen: 4 files / 56 tests PASS" -->
 - [x] 14.3 CHROME: desktop/mobile 的短聊天与可滚动长聊天中，Composer/input 坐标和 helper/input gap 在 Transcript scroll 前后保持不变且 document 无横向溢出；fixture 证据不声明真实 active-session E2E PASS。<!-- verified: 2026-07-19 method=chrome-formal-frontend-fixture evidence="standard desktop helper 320x42 and mobile 292x42, gap=8 and overflow=0; compact desktop scrollTop 4→151 and mobile 0→175.5 while helperY/shellY/gap remained identical" -->
 - [x] 14.4 REGRESSION-GATE: focused Practice、根 `make test`、typecheck/build、context/docs/index/diff 通过后恢复 completed。<!-- verified: 2026-07-19 method=focused+root+docs evidence="focused 4 files/56 tests; root Python 615/4615 subtests, Go all packages, frontend 131 files/1054 tests; typecheck/build/context/docs/index/diff PASS; all lint owners except pre-existing change-intake generic-api-key false positive PASS" -->
+
+## Phase 15: Composer inner-surface send anchoring
+
+- [x] 15.1 RED: `InputBar` DOM/CSS owner tests 要求 textarea 与 send 同属 `practice-input-surface`，并拒绝悬浮在内外边框之间的 actions row；Chrome 首轮进一步证明 overlay + 126px 右内边距会压缩窄屏正文，测试随即要求非叠加 action area。<!-- verified: 2026-07-20 method=vitest-red+chrome evidence="Initial InputBar and PracticeVisual failures proved the missing surface; 390px Chrome then showed overlay padding narrowing text, so the refined CSS contract rejects absolute positioning" -->
+- [x] 15.2 GREEN: 新增内层 input surface，把 send 放入不覆盖 textarea 的底部 action area 并右对齐；保持完整文本宽度、click、Ctrl/Meta+Enter、disabled、pending/retry、helper 与固定 Composer 行为不变。<!-- verified: 2026-07-20 method=focused-vitest evidence="InputBar, PracticeVisual and PracticeScreen: 3 files / 55 tests PASS; focus-ring refinement preserved the same result" -->
+- [x] 15.3 BDD-Gate: `BDD.PRACTICE.TEXT.001` 覆盖 desktop/mobile 的按钮 containment、文本完整宽度、Composer 坐标稳定与零横向溢出；Chrome 视图证据不冒充未运行的真实业务动作 E2E。<!-- verified: 2026-07-20 method=chrome-real-session evidence="1512x829 and 390x844: surface owns textarea/send, send contained, textarea/action no overlap, full content width, helper gap=8, documentOverflow=0, one surface focus ring, no console errors" -->
+- [x] 15.4 REGRESSION-GATE: focused Practice、typecheck/build、根 `make test`、正式 frontend redeploy/readiness、context/docs/index/diff 全部通过后恢复 completed。<!-- verified: 2026-07-20 method=focused+root+chrome+docs evidence="focused 3 files/55 tests; root Python 615/4615 subtests, Go all packages, frontend 136 files/1109 tests; build/redeploy/readiness 4/4; context/docs/index/diff PASS" -->

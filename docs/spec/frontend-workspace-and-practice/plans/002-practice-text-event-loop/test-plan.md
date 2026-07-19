@@ -1,8 +1,8 @@
 # 002 Practice Continuous Conversation Test Plan
 
-> **版本**: 3.0
+> **版本**: 3.1
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-20
 
 ## Phase 1: Prototype/source
 - DOM shape, disabled phone control, no stale question/hint/phone-positive source, desktop/mobile geometry.
@@ -67,3 +67,9 @@
 
 - Source/component tests require `Conversation` flex-column + overflow-hidden, `Transcript` flexible/scrollable, fixed-size `InputBar`, helper ownership under `InputBar`, no `helperText` / helper DOM in `Transcript`, and the localized copy plus icon.
 - Chrome compares Composer/helper/input bounding boxes with short and overflowing transcripts before/after transcript scroll at desktop and mobile; the input position and gap must remain invariant and document overflow must remain zero.
+
+## Phase 15: Composer inner-surface send anchoring
+
+- `InputBar.test.tsx` first fails unless one `practice-input-surface` contains both textarea and send, with the textarea preceding the action in DOM order.
+- `PracticeVisual.test.ts` first fails unless the surface is a bounded column, textarea occupies the full available width, and a non-overlapping bottom action area right-aligns send; it rejects both the old outside-surface row and overlay/large-right-padding variants.
+- Focused behavior tests retain click, Ctrl/Meta+Enter and disabled semantics. Chrome desktop/mobile checks computed containment, full-width text/button non-overlap, Composer/helper coordinate stability and zero document overflow.

@@ -105,6 +105,11 @@
 - **证据**：14 个正式二级/三级页面分别消费 20 个目标特定 action key，产生“返回首页/报告/简历工坊/面试规划”等标签；统一 `common.back` 后，65 files / 495 tests 证明原 target、push/replace、trusted-context 与 fail-closed 语义无需改变。
 - **影响**：如果每个业务 owner 同时拥有动作标签与目标，文案会在 route 行为全部正确时持续漂移；共享 Shell 应只拥有统一标签，页面 owner 继续拥有目标和安全边界。
 
+### 2.15 desktop 可接受的 Composer overlay 在 mobile 形成新退化
+
+- **证据**：首轮修订把 send 绝对定位到新 input surface 右下角，并用 `126px` 右内边距避免文本覆盖；desktop Chrome containment 通过，但 `390×844` 截图显示正文被压成窄列，同时 textarea 全局 focus ring 与 surface `:focus-within` 形成双框。
+- **影响**：如果只在实现后做单一 desktop 截图，视觉归属修复会制造新的 mobile 可读性问题。本轮依据同一 Chrome 反馈重开 GREEN，把 action 改为 surface 内非叠加底部区域，并补单一 focus owner gate。
+
 ## 3 根因归类
 
 - 固定 Composer / 滚动 Transcript 最初没有成为可执行 DOM/CSS/BBox 不变量，只描述了视觉形态。
@@ -136,6 +141,8 @@
 - shared transition 把统一画布与单消费者卡片分支放在同一组件，没有 caller inventory 和“无旧分支”负向 gate。
   - **类别**：spec/plan
 - 返回动作标签由各页面 locale key 重复持有，缺少 Shell 统一文案与业务 target 分离的 ownership 合同。
+  - **类别**：spec/plan
+- Composer 合同只规定“右下角”，没有定义 input surface ownership、overlay/flow、窄屏文本宽度和 focus ring owner。
   - **类别**：spec/plan
 
 ## 4 对流程资产的改进建议
@@ -182,6 +189,9 @@
 - 返回动作应采用“Shell-owned label + page-owned target”合同：共享 locale key 只定义“返回 / Back”，每个页面的 route、history 和 trusted/fail-closed 语义由原 owner 测试继续证明。本轮已在 Shell Phase 24 原地固化。
   - **落点**：Shell UI architecture / spec / plan / locale source contract
   - **优先级**：high
+- Composer/editor 的附属 CTA 必须同时定义“所属边界 + 是否与内容叠加 + exact mobile 内容宽度 + focus owner”；第一轮真实 Chrome 若暴露新几何退化，应回写同一 phase 后再收口。本轮已在 Practice Phase 15 原地固化非叠加 action area。
+  - **落点**：Practice UI design / spec / plan / visual tests / Chrome bbox gate
+  - **优先级**：high
 
 ## 5 建议优先级与后续动作
 
@@ -196,4 +206,5 @@
 - 后续新增有框 action 时，优先消费 `--ei-radius-control` 并更新 inventory test；只有 circular、pill 或明确无边框 action 才能进入例外清单，避免页面私有 `border-radius` 再次回流。
 - 后续修改共享 transition variant 时，先更新 caller inventory；没有剩余消费者的 prop/class/CSS 必须同步删除，并在真实 pending 窗口保存 desktop/mobile computed-style 与截图证据。
 - 后续新增二级/三级页面时，返回控件直接消费 `common.back`；页面只新增目标和安全语义测试，不再新增目标特定返回 locale key。
+- 后续修改 Composer/editor 内的发送、保存或格式化动作时，优先使用同一 surface 内的非叠加 action area；必须同时跑 normal desktop 与 exact `390×844`，测量 action containment、内容宽度、overlap 和单一 focus ring。
 - 可延后：为 fixture visual acceptance 增加更多长内容 fixture；当前通过压缩 desktop/mobile viewport 已真实产生 Transcript overflow 并验证了固定 Composer，不构成本次交付 blocker。

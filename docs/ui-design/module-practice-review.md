@@ -1,8 +1,8 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.38
+> **版本**: 1.39
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 ## 1 目标
 
@@ -32,8 +32,9 @@ PracticeScreen(sessionId)
    ├─ loader/completion error state
    └─ Composer（固定区，不随 Transcript 滚动）
       ├─ helper capsule（固定贴在输入框上方；非业务 hint）
-      ├─ text input
-      └─ send
+      └─ input surface
+         ├─ text input（占用完整可用宽度）
+         └─ action area（内层底部区域，send 右对齐）
 ```
 
 必须删除：
@@ -78,7 +79,7 @@ PracticeScreen(sessionId)
 ## 5 Layout
 
 - Desktop：Practice 总高度只占全局 App TopBar 下方的 `calc(100dvh - 76px)`；浅蓝背景内的 Session Header 与 Conversation 使用约 `1708px` 居中内容面并共享左右边界。Session Header 为白色大圆角卡，左侧状态/岗位与右侧轮次、预算、计时、暂停、disabled 电话、结束动作按参考图分组；Conversation 为白色大圆角卡，transcript 自适应增长，composer 固定在会话区底部。
-- Desktop 消息行使用 48px AI/用户标记、角色/时间行和独立浅边框消息 surface；正文使用 16px 左右可读字号与 1.7 行高。Composer 使用不小于 150px 的文本区，发送按钮位于右下角，不能退化为窄工具条。helper capsule 是 Composer 子元素并固定贴在输入框正上方；无论 Transcript 有一条还是多条消息、是否滚动，它与输入框的间距都保持一致，不得作为最后一条 transcript row 随内容移动。
+- Desktop 消息行使用 48px AI/用户标记、角色/时间行和独立浅边框消息 surface；正文使用 16px 左右可读字号与 1.7 行高。Composer 使用不小于 150px 的文本区；textarea 与 send 必须共同位于一个有清晰边界的 input surface 中，send 位于该表面内部的底部 action area 并右对齐，不能悬浮在内外边框之间或退化为 Composer 外的独立工具条。action area 与 textarea 不叠加，使长文本、插入光标和 placeholder 使用完整可用宽度且不被按钮遮挡；textarea 聚焦时由 input surface 统一呈现单一 focus ring，不叠加第二层内框。helper capsule 是 Composer 子元素并固定贴在 input surface 正上方；无论 Transcript 有一条还是多条消息、是否滚动，它与输入框的间距都保持一致，不得作为最后一条 transcript row 随内容移动。
 - Mobile：单列；两层顶栏都可按各自合同换行，结束 CTA 可达；transcript 与 composer 不横向溢出。Markdown pre/code/table 只能在消息容器内局部滚动或安全换行，document `scrollWidth` 不得超过 viewport。
 - 不保留空白 sidebar grid column。
 
@@ -135,6 +136,7 @@ Ready 报告只展示：
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.39 | 明确 send 属于 Composer 内层 input surface 的底部 action area；禁止悬浮在内外边框之间或覆盖 textarea，并保持窄屏文本完整宽度。 |
 | 2026-07-19 | 1.38 | 按进入面试参考稿细化共享准备场景：保留 TopBar、中心 E 轨道插画、状态/标题/说明、诚实 indeterminate rule、背景阻断和 reduced-motion。 |
 | 2026-07-19 | 1.37 | 明确说明胶囊归属 Composer 固定区，始终贴在输入框上方且不随聊天记录滚动。 |
 | 2026-07-19 | 1.35 | Practice 恢复全局 App TopBar，并把公司/角色/计时/会话动作明确命名为 Practice Session Header；route 切换不得重复读取账号偏好。 |

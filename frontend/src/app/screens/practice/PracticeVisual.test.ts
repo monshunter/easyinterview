@@ -47,4 +47,30 @@ describe("Practice reference visual contract", () => {
     expect(css).toMatch(/\.ei-practice-input\s*\{[\s\S]*flex:\s*0 0 auto;/);
     expect(screen.indexOf("<Transcript")).toBeLessThan(screen.indexOf("<InputBar"));
   });
+
+  it("keeps send in a non-overlapping action area inside the input surface", () => {
+    const css = readFileSync(resolve(__dirname, "../screens.css"), "utf8");
+    const input = readFileSync(resolve(__dirname, "components/InputBar.tsx"), "utf8");
+    const surfaceRule = css.match(/\.ei-practice-input-surface\s*\{[^}]*\}/)?.[0] ?? "";
+    const textareaRule = css.match(/\.ei-practice-input-textarea\s*\{[^}]*\}/)?.[0] ?? "";
+    const textareaFocusRule = css.match(/\.ei-practice-input-textarea:focus-visible\s*\{[^}]*\}/)?.[0] ?? "";
+    const actionsRule = css.match(/\.ei-practice-input-actions\s*\{[^}]*\}/)?.[0] ?? "";
+
+    expect(input).toContain('data-testid="practice-input-surface"');
+    expect(input.indexOf('data-testid="practice-input-surface"')).toBeLessThan(
+      input.indexOf('data-testid="practice-input-textarea"'),
+    );
+    expect(input.indexOf('data-testid="practice-input-textarea"')).toBeLessThan(
+      input.indexOf('data-testid="practice-input-send"'),
+    );
+    expect(surfaceRule).toMatch(/display:\s*flex/);
+    expect(surfaceRule).toMatch(/flex-direction:\s*column/);
+    expect(surfaceRule).toMatch(/border:\s*1px solid/);
+    expect(textareaRule).toMatch(/flex:\s*1 1 auto/);
+    expect(textareaRule).not.toMatch(/padding-right:\s*126px/);
+    expect(textareaFocusRule).toMatch(/outline:\s*none/);
+    expect(actionsRule).toMatch(/flex:\s*0 0 auto/);
+    expect(actionsRule).toMatch(/justify-content:\s*flex-end/);
+    expect(actionsRule).not.toMatch(/position:\s*absolute/);
+  });
 });

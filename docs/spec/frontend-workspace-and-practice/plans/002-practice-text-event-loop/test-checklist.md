@@ -1,8 +1,8 @@
 # 002 Practice Continuous Conversation Test Checklist
 
-> **版本**: 3.0
+> **版本**: 3.1
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-20
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -54,3 +54,9 @@
 
 - [x] Fixed Composer/helper source/component tests pass: `Transcript` is the only flexible scroll region; `InputBar` is fixed-size at the conversation bottom, has no ancestor relationship with Transcript, and owns the localized icon capsule above the input shell.
 - [x] Short/long transcript Chrome bbox checks prove a stable helper/input gap at desktop/mobile before and after transcript scroll.<!-- verified: 2026-07-19 evidence="gap=8; desktop scrollTop 4→151; mobile scrollTop 0→175.5; helper/input coordinates stable; documentOverflow=0" -->
+
+## Phase 15
+
+- [x] Inner input-surface DOM/CSS RED-GREEN tests pass and reject the old outside-surface row plus overlay/large-right-padding variants.<!-- verified: 2026-07-20 evidence="PracticeVisual and InputBar owner tests PASS after expected RED failures" -->
+- [x] Click, Ctrl/Meta+Enter and disabled owner behavior tests remain green.<!-- verified: 2026-07-20 evidence="PracticeScreen focused suite included 49 behavior tests; focused aggregate 55 PASS" -->
+- [x] Chrome desktop/mobile containment, full-width content, fixed Composer and zero-overflow checks pass.<!-- verified: 2026-07-20 evidence="real session 1512x829 and 390x844; contained action, no overlap, width invariant, gap=8, overflow=0, no console errors" -->

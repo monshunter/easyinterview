@@ -1,8 +1,8 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.54
+> **版本**: 1.55
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 ## 1 背景与目标
 
@@ -29,7 +29,7 @@
 
 - Practice 在全局 76px App TopBar 下使用 `calc(100dvh - 76px)` 可用高度；desktop 外层以浅蓝背景承接约 `1708px` 会话内容面，Session Header 与 Conversation 卡共享左右边界，不得再以自身 `100vh` 造成页面纵向错位。
 - Session Header 按参考图分为状态/岗位、轮次与预算、计时、暂停/电话/结束动作五组；主结束动作保持蓝色高强调，其他控件使用白色描边按钮与统一图标，不使用字符 glyph 充当正式 icon。
-- Transcript 使用白色大圆角卡、48px 角色标记、独立消息 surface 与 16px 正文字号；Composer 固定在会话卡底部，使用大文本区和右下角蓝色发送按钮。说明胶囊是 Composer 的固定附属元素，位于输入框正上方且不属于 Transcript 的滚动内容；聊天记录增长、滚动或重渲染不得改变它与输入框的相对间距。加载、pending、retry、terminal 与 disabled 语义不变。
+- Transcript 使用白色大圆角卡、48px 角色标记、独立消息 surface 与 16px 正文字号；Composer 固定在会话卡底部，textarea 与蓝色发送按钮共同位于同一个内层 input surface，按钮位于该表面的底部 action area 并右对齐。action area 与 textarea 不重叠，使正文保持完整可用宽度；按钮不得悬浮在 input surface 与 Composer 外边框之间，也不得移出 Composer 成为脱离输入语境的动作。说明胶囊是 Composer 的固定附属元素，位于输入框正上方且不属于 Transcript 的滚动内容；聊天记录增长、滚动或重渲染不得改变它与输入框的相对间距。加载、pending、retry、terminal 与 disabled 语义不变。
 
 - Route 只需要稳定 `sessionId` 与 target/plan/resume/round IDs；不使用 `mode/modality/practiceMode/hintUsed/hintCount`。
 - Top Bar：真实公司/岗位、面试官角色、计时、暂停、disabled phone icon、结束并生成报告。
@@ -146,6 +146,7 @@
 - Desktop：Top Bar 下只有一个 conversation column；内容 max-width 居中，不留 260px sidebar 空白。
 - Mobile：单列，Top Bar controls wrap；Transcript 和 Composer 不横向溢出。
 - Transcript 独立滚动，Composer 保持在会话区底部；说明胶囊与输入框共同位于 Composer 固定区，短/长聊天记录下都保持相同垂直间距。
+- Desktop/mobile 均由一个内层 input surface 同时包裹 textarea 与 send；send 在不覆盖 textarea 的底部 action area 右对齐，任意长度文本、placeholder 与光标保持完整可用宽度。
 - disabled phone icon 不得在 narrow layout 变成可点击入口。
 
 ## 8 验收标准
@@ -174,6 +175,7 @@
 | C-19 | 面试规划卡片元信息 | ready TargetJob 的 lifecycle status 为任意值，地点可能有值或缺失 | 查看 Home 最近面试或 Workspace 规划卡片 | 卡片不展示 lifecycle status 文案/徽标；有地点时展示真实值，缺失或空白时不渲染地点占位行；轮次 rail 仍表达真实训练进度 | 001 |
 | C-20 | 会话启动等待反馈 | 用户从 Home、Workspace 列表/详情或 Report 复练/下一轮发起有效面试，session opening LLM 请求持续未返回或失败 | 点击启动并等待 | 立即展示统一全屏、可访问、阻断交互且 reduced-motion 兼容的诚实过渡态；不伪造进度/opening；成功进入 `practice`，失败关闭过渡态并在原入口显示错误；API、route、idempotency 与持久化合同不变 | 001 |
 | C-21 | 面试列表参考稿还原 | desktop/mobile 打开 query-free Workspace，存在 1~N 个 ready TargetJob | 查看标题区、规划卡、轮次 rail 与 footer actions | 背景层覆盖 TopBar 下方完整 viewport，不在内容区右侧形成空白带；desktop 以参考稿的 1508px 内容区和双列宽卡呈现；mobile 单列；公司/岗位/进度/上次保存/删除/启动层级一致，卡片打开、归档和启动行为不回退，控制台无错误且无横向溢出 | 001 Phase 32 |
+| C-22 | Composer 发送动作归属 | desktop/mobile 的 Practice Composer 可输入短文本或长文本 | 聚焦 textarea、输入并查看/触发发送按钮 | textarea 与 send 同属一个内层 input surface；send 在表面内部的底部 action area 右对齐，不位于内外边框之间且不覆盖 textarea；文本保持完整可用宽度，发送、快捷键、disabled 语义不变 | 002 Phase 15 |
 
 ### 8.1 Practice 启动过渡构图
 
@@ -198,6 +200,7 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.55 | 2026-07-20 | Reopen the Practice owner so send belongs to a non-overlapping bottom action area inside the input surface, preserving full-width text on narrow screens. |
 | 1.54 | 2026-07-19 | Reopen the Practice owner for the screenshot-aligned brand transition while preserving blocking, focus and honest opening-request semantics. |
 | 1.51 | 2026-07-19 | Require a full-viewport Workspace canvas and align the header CTA right edge with the two-column card grid. |
 | 1.50 | 2026-07-19 | 按提供的面试列表参考稿重开 Workspace list 视觉 owner：桌面双列宽卡、参考级标题与动作层级、上次保存 footer，并保留现有 route/API/启动/归档合同。 |

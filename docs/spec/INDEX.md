@@ -49,7 +49,7 @@
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.21 | active | 2026-07-15 | [plans](./mock-contract-suite/plans/) |
 | [frontend-shell](./frontend-shell/spec.md) | 1.45 | active | 2026-07-20 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.32 | completed | 2026-07-20 | [plans](./frontend-home-job-picks-and-parse/plans/) |
-| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.54 | completed | 2026-07-19 | [plans](./frontend-workspace-and-practice/plans/) |
+| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.55 | completed | 2026-07-20 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 2.8 | active | 2026-07-19 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 2.13 | active | 2026-07-14 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.37 | active | 2026-07-19 | [plans](./backend-practice/plans/) |

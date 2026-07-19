@@ -19,9 +19,11 @@ export const InputBar: FC<InputBarProps> = ({ value, onChange, helperText, place
       {recovery}
       <div data-testid="practice-input-helper" className="ei-practice-input-helper"><SparkleIcon /><span>{helperText}</span></div>
       <div data-testid="practice-input-shell" className="ei-practice-input-shell">
-        <textarea data-testid="practice-input-textarea" value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (!isSendDisabled && (event.metaKey || event.ctrlKey) && event.key === "Enter") onSend(); }} placeholder={placeholder} disabled={disabled} className="ei-practice-input-textarea" />
-        <div className="ei-practice-input-actions">
-          <button data-testid="practice-input-send" type="button" onClick={onSend} disabled={isSendDisabled} className="ei-practice-input-send">{sendLabel}<span aria-hidden="true">↵</span></button>
+        <div data-testid="practice-input-surface" className="ei-practice-input-surface">
+          <textarea data-testid="practice-input-textarea" value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (!isSendDisabled && (event.metaKey || event.ctrlKey) && event.key === "Enter") onSend(); }} placeholder={placeholder} disabled={disabled} className="ei-practice-input-textarea" />
+          <div className="ei-practice-input-actions">
+            <button data-testid="practice-input-send" type="button" onClick={onSend} disabled={isSendDisabled} className="ei-practice-input-send">{sendLabel}<span aria-hidden="true">↵</span></button>
+          </div>
         </div>
       </div>
     </div>

@@ -27,4 +27,26 @@ describe("Practice composer helper", () => {
     expect(helper.nextElementSibling).toBe(shell);
     expect(screen.queryByTestId("practice-transcript-helper")).not.toBeInTheDocument();
   });
+
+  it("keeps the textarea and send action inside one inner input surface", () => {
+    render(
+      <InputBar
+        value="A sufficiently long draft"
+        onChange={vi.fn()}
+        helperText="Answer like a real interview"
+        placeholder="Type your answer..."
+        sendLabel="Send"
+        disabled={false}
+        onSend={vi.fn()}
+      />,
+    );
+
+    const shell = screen.getByTestId("practice-input-shell");
+    const surface = within(shell).getByTestId("practice-input-surface");
+    const textarea = within(surface).getByTestId("practice-input-textarea");
+    const send = within(surface).getByTestId("practice-input-send");
+
+    expect(surface.parentElement).toBe(shell);
+    expect(textarea.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

@@ -1,8 +1,8 @@
 # 002 — Practice Continuous Text Conversation
 
-> **版本**: 3.0
+> **版本**: 3.1
 > **状态**: completed
-> **更新日期**: 2026-07-14
+> **更新日期**: 2026-07-20
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -118,6 +118,10 @@
 
 `Transcript` 是会话卡内唯一滚动区，Composer 整体以 `flex: 0 0 auto` 固定在会话卡底部；聊天记录从短到长、滚动到任意位置都不得改变输入框坐标。说明胶囊从 `Transcript` 滚动内容移交给 `InputBar` / Composer 固定区。RED source/component gate 必须拒绝 `Transcript` 的 `helperText` prop 和 helper DOM，并要求 `InputBar` 在输入 shell 正上方拥有 helper；Chrome 分别构造短聊天与可滚动长聊天，证明 Composer 坐标和 helper/input 垂直间距不随消息数量或 Transcript scrollTop 改变。该说明只解释作答方式，不恢复已删除的业务 hint 能力。
 
+### Phase 15: Composer inner-surface send anchoring
+
+把 `InputBar` 中的 textarea 与 send 收进同一个内层 input surface，send 位于该表面内部的底部 action area 并右对齐；action area 不与 textarea 叠加，避免长文本、placeholder 或光标被覆盖，也不以大块右内边距压缩窄屏正文。RED source/component/CSS gate 先拒绝当前悬浮在内外边框之间的 actions row，并拒绝 overlay + 固定右内边距方案；GREEN 只调整 DOM 与 CSS，不改变发送点击、Ctrl/Meta+Enter、disabled、pending/retry、helper、Composer 固定位置或 API 合同。该阶段是纯 frontend 视觉结构修订，Operation Matrix 全部 `operationId`、fixture、handler、persistence 与 AI 状态保持不变；Chrome 在 desktop/mobile 验证内层边界、按钮 containment、文本完整宽度、固定 Composer 与零横向溢出。
+
 ## 6 验收标准
 
 - No left rail, question count or QuestionCard at any viewport.
@@ -131,11 +135,13 @@
 - A send never waits beyond 95 seconds without reconciliation；timeout uses the same ID, preserves fail-locked state on uncertain reads and ignores stale responses. Terminal failure offers one generic CTA to the exact current `/workspace?targetJobId` read-only detail and never a row retry, query-free workspace fallback or `parse(targetJobId)` recovery.
 - Persisted user and assistant text renders through safe Markdown/GFM; raw HTML, remote images and unsafe URIs cannot execute/request; safe links are hardened; retry preserves exact raw text/clientMessageId; mobile code/table content does not overflow the document.
 - Runtime guard 使用 required fields；默认/override/invalid 归 A4，frontend 以小型 injected values 验证 overflow 保留 draft 且 zero send，backend aggregate remains authoritative。
+- Send 与 textarea 共享一个内层 input surface；按钮在不覆盖 textarea 的底部 action area 右对齐，窄屏文本保持完整宽度，且按钮不得悬浮在内外边框之间。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 3.1 | Add Phase 15 so textarea and send share one input surface with a non-overlapping bottom action area and full-width narrow-screen text. |
 | 2026-07-19 | 3.0 | Add Phase 14 so the helper capsule belongs to the fixed Composer instead of the scrolling Transcript. |
 | 2026-07-14 | 2.7 | Add Phase 11 safe react-markdown/remark-gfm projection, security negatives, exact raw retry, mobile code-overflow gates, and supersede terminal recovery to Workspace detail. |
 | 2026-07-19 | 2.9 | Reopen Phase 13 for the supplied active-interview reference: available viewport height, shared content grid, structured session controls, message surfaces and large composer. |
