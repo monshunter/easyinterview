@@ -1,6 +1,6 @@
 # URL-Addressable Routing Checklist
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -78,3 +78,9 @@
 - [x] 13.1 RED-GREEN: `isChromeHidden("practice")` 从 true 改为 false，`generating` 保持 true；direct/reload/back/forward 与 App tests 覆盖相同结果。
 - [x] 13.2 CROSS-OWNER BDD: `frontend-workspace-and-practice/001` 的 `BDD.PRACTICE.GLOBAL_CHROME.005` 承接用户行为；本 owner 只验证 route/chrome codec，不新增 E2E。
 - [x] 13.3 REGRESSION: focused route/App、根 `make test`、typecheck/build、contexts/docs/diff 与 old positive claim 搜索通过后恢复 completed。
+## Phase 15: Generating shared chrome correction
+
+- [x] 15.1 RED: route/App history tests 将 Generating 从 hidden chrome 改为 visible，并证明当前 `NO_CHROME_ROUTES` 实现失败。<!-- verified: 2026-07-19 method=focused-vitest-red evidence="canonical direct-open and popstate tests failed on absent TopBar; TopBar unit failed isChromeHidden(generating)=true" -->
+- [x] 15.2 GREEN: 删除 Generating no-chrome 例外；保留 canonical path/query、auth guard、initial open、refresh 与 Back/Forward 合同。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="TopBar 17, canonical routing 11 and App history 15 tests PASS" -->
+- [x] 15.3 BDD-Gate: `BDD.SHELL.ROUTING.001` 覆盖所有 canonical route 的共享 TopBar 和安全恢复，不新增业务 route。<!-- verified: 2026-07-19 evidence="App/route/TopBar focused suites PASS; current-run Practice, Resume, Parse and Generating all retained shared chrome and context-route Interview highlight." -->
+- [x] 15.4 REGRESSION: focused routing、App、typecheck/build、根 `make test` 与 context/docs/diff gates 通过后恢复 completed。<!-- verified: 2026-07-19 evidence="Final focused 89 PASS; production build PASS; root make test 615 / 4615 PASS; context/docs/index/diff gates pass." -->

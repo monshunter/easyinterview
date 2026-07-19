@@ -86,6 +86,20 @@ describe("TopBar primary nav", () => {
     );
   });
 
+  it.each(["parse", "practice", "reports", "generating", "report", "report_conversation"] as const)(
+    "maps the %s context route to the Interview primary navigation entry",
+    (activeRoute) => {
+      renderInProvider(<TopBar activeRoute={activeRoute} onNavigate={() => {}} />);
+      expect(screen.getByTestId("topbar-nav-workspace")).toHaveAttribute("aria-current", "page");
+      expect(screen.getByTestId("topbar-nav-home")).not.toHaveAttribute("aria-current");
+      expect(screen.getByTestId("topbar-nav-resume_versions")).not.toHaveAttribute("aria-current");
+    },
+  );
+
+  it("keeps Generating inside the shared App chrome", () => {
+    expect(isChromeHidden("generating")).toBe(false);
+  });
+
   it("invokes onNavigate with the clicked route name and empty params", async () => {
     const onNavigate = vi.fn();
     renderInProvider(<TopBar activeRoute="home" onNavigate={onNavigate} />);

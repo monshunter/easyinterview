@@ -139,6 +139,10 @@ describe("GeneratingScreen honest state projection", () => {
 
     await waitFor(() => expect(screen.getByTestId("generating-screen")).toHaveAttribute("data-report-status", "generating"));
     expect(screen.getByTestId("generating-header-title")).toHaveTextContent("正在生成面试报告");
+    expect(screen.getByTestId("generating-screen")).toHaveAttribute("data-transition-variant", "report");
+    expect(screen.getByTestId("transition-illustration-report")).toBeInTheDocument();
+    expect(screen.getByTestId("generating-transition-card")).toBeInTheDocument();
+    expect(screen.getByTestId("transition-progress")).not.toHaveAttribute("aria-valuenow");
     expect(screen.queryByTestId("generating-progress")).not.toBeInTheDocument();
     expect(screen.queryByTestId("generating-phase-list")).not.toBeInTheDocument();
     expect(screen.queryByTestId("generating-live-stream")).not.toBeInTheDocument();
@@ -174,9 +178,9 @@ describe("GeneratingScreen honest state projection", () => {
     })]);
     render(<App client={client} initialRoute={{ name: "generating", params: { reportId: REPORT_ID } }} />);
 
-    const surface = await screen.findByTestId("generating-screen");
-    expect(surface).toHaveStyle({ minHeight: "100vh" });
     const state = await screen.findByTestId("generating-error-state");
+    const surface = screen.getByTestId("generating-screen");
+    expect(surface).toHaveStyle({ minHeight: "100vh" });
     expect(state).toHaveAttribute("data-error-kind", "contextTooLarge");
     expect(screen.getByTestId("generating-header-eyebrow")).toHaveTextContent("报告不可用");
     expect(screen.getByTestId("generating-header-title")).toHaveTextContent("材料和对话内容太长");

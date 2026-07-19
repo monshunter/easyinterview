@@ -1,6 +1,6 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.53
+> **版本**: 1.54
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -175,6 +175,11 @@
 | C-20 | 会话启动等待反馈 | 用户从 Home、Workspace 列表/详情或 Report 复练/下一轮发起有效面试，session opening LLM 请求持续未返回或失败 | 点击启动并等待 | 立即展示统一全屏、可访问、阻断交互且 reduced-motion 兼容的诚实过渡态；不伪造进度/opening；成功进入 `practice`，失败关闭过渡态并在原入口显示错误；API、route、idempotency 与持久化合同不变 | 001 |
 | C-21 | 面试列表参考稿还原 | desktop/mobile 打开 query-free Workspace，存在 1~N 个 ready TargetJob | 查看标题区、规划卡、轮次 rail 与 footer actions | 背景层覆盖 TopBar 下方完整 viewport，不在内容区右侧形成空白带；desktop 以参考稿的 1508px 内容区和双列宽卡呈现；mobile 单列；公司/岗位/进度/上次保存/删除/启动层级一致，卡片打开、归档和启动行为不回退，控制台无错误且无横向溢出 | 001 Phase 32 |
 
+### 8.1 Practice 启动过渡构图
+
+- 从任一合法入口创建/恢复会话后，在 opening request pending 期间使用共享 `AsyncTransitionScene` 的 `brand` variant：全局 TopBar 仍可见，抽象蓝白画布、同心轨道与中心 E 标识对应参考稿。
+- transition 继续承担既有 portal、背景 inert、focus/scroll lock 与成功/失败恢复，不展示无 producer 的百分比或 opening 内容；reduced-motion 下停止非必要轨道动画。
+
 ## 9 关联计划
 
 - [001-workspace-and-interview-context](./plans/001-workspace-and-interview-context/plan.md)
@@ -193,6 +198,7 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.54 | 2026-07-19 | Reopen the Practice owner for the screenshot-aligned brand transition while preserving blocking, focus and honest opening-request semantics. |
 | 1.51 | 2026-07-19 | Require a full-viewport Workspace canvas and align the header CTA right edge with the two-column card grid. |
 | 1.50 | 2026-07-19 | 按提供的面试列表参考稿重开 Workspace list 视觉 owner：桌面双列宽卡、参考级标题与动作层级、上次保存 footer，并保留现有 route/API/启动/归档合同。 |
 | 1.49 | 2026-07-19 | Practice 恢复全局 App TopBar，并把会话控制栏明确为独立 Practice Session Header；route 切换零账号重复读取。 |

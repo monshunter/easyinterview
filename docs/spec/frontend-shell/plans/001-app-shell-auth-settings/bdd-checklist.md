@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.25
+> **版本**: 1.26
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -57,3 +57,9 @@
 - [x] Auth/Settings visual/component tests 覆盖 desktop 宽幅布局、mobile 单列、无溢出、装饰语义和退出堆叠操作，并先证明旧构图失败。
 - [x] Auth/Settings behavior、locale、请求预算、主题/退出/删除状态机在视觉重排后保持通过；验证码页不出现无 producer 的倒计时或成功状态。
 - [x] Chrome extension automation skill 在 current-run 真实页面验收登录、验证码、退出、设置 desktop/mobile，并验证真实中英文切换与 pendingAction 回跳；不新增 E2E ID。`BDD.SHELL.AUTH.LOCALE.001` 的 auth probe 中间 loading/error gate 仍独立保持未完成。
+
+## `BDD.SHELL.TRANSITION.VISUAL.003` 共享异步等待态
+
+- [x] Shared component tests 覆盖 brand/resume/report/job 四种 code-native SVG、状态语义、可选步骤/动作、无伪百分比与装饰隔离。（最终 focused 9 files / 89 tests PASS。）
+- [x] TopBar/route tests 覆盖 Practice、Parse、Reports、Generating、报告详情/记录统一显示全局 chrome 并高亮“面试”。
+- [x] Responsive/reduced-motion tests 与 current-run desktop Chrome 验证视觉层级、可操作返回、无横向溢出和非必要动画降级；mobile 由同一组件的 720px contract 覆盖，不新增 E2E ID。（1920px 四态真实截图，browser error/warning=0。）

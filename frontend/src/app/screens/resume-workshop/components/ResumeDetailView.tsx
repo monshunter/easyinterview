@@ -2,6 +2,7 @@ import type { FC } from "react";
 
 import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
+import { AsyncTransitionScene } from "../../../transition/AsyncTransitionScene";
 import { buildResumeBodyMarkdown, mapResumeToUiSource } from "../adapters/resume";
 import { useResume } from "../hooks/useResume";
 import { NotFoundEmptyState } from "./NotFoundEmptyState";
@@ -63,13 +64,17 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({ resumeId }) => {
 
   if (isParsing) {
     return (
-      <ResumeParseState
+      <AsyncTransitionScene
+        variant="resume"
         testId="resume-detail-parse-waiting"
-        icon="sparkle"
+        eyebrow={t("resumeWorkshop.eyebrow")}
         title={t("resumeWorkshop.detail.waitingTitle")}
         body={t("resumeWorkshop.detail.waitingBody")}
-        backLabel={t("resumeWorkshop.detail.back")}
-        onBack={onBack}
+        action={{
+          label: t("resumeWorkshop.detail.back"),
+          onClick: onBack,
+          testId: "resume-detail-parse-back",
+        }}
       />
     );
   }

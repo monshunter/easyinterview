@@ -48,6 +48,7 @@ const ALL_ROUTE_NAMES = [
 ] as const;
 
 export type RouteName = (typeof ALL_ROUTE_NAMES)[number];
+export type PrimaryNavRouteName = (typeof PRIMARY_NAV_ROUTES)[number];
 
 export interface Route {
   name: RouteName;
@@ -60,11 +61,31 @@ export function isKnownRouteName(value: string): value is RouteName {
   return KNOWN_ROUTE_NAMES.has(value);
 }
 
-const NO_CHROME_ROUTES = new Set<RouteName>(["generating"]);
+const NO_CHROME_ROUTES = new Set<RouteName>();
 
 /** Returns true when the route should hide the App chrome (TopBar etc). */
 export function isChromeHidden(name: RouteName): boolean {
   return NO_CHROME_ROUTES.has(name);
+}
+
+const INTERVIEW_PRIMARY_CONTEXT_ROUTES: ReadonlySet<RouteName> = new Set([
+  "parse",
+  "practice",
+  "reports",
+  "generating",
+  "report",
+  "report_conversation",
+]);
+
+/** Maps a route to the single primary-nav entry that owns its current context. */
+export function resolvePrimaryNavRoute(
+  name: RouteName,
+): PrimaryNavRouteName | null {
+  if (INTERVIEW_PRIMARY_CONTEXT_ROUTES.has(name)) return "workspace";
+  if ((PRIMARY_NAV_ROUTES as readonly RouteName[]).includes(name)) {
+    return name as PrimaryNavRouteName;
+  }
+  return null;
 }
 
 /** Only Practice hydrates mutable interview context; report routes resolve their own locators. */

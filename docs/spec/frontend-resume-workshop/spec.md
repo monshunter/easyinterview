@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.22
+> **版本**: 2.23
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -129,6 +129,10 @@
 | C-12 | StrictMode list read | Authenticated list mounts under React StrictMode | `listResumes` effects overlap | Identical concurrent reads produce exactly one underlying transport; a rejected read is evicted, and retry produces a new transport and can succeed | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-13 | StrictMode detail read | Authenticated ready detail mounts under React StrictMode | `getResume(resumeId)` effects overlap | Initial identical read produces exactly one underlying transport; rejected reads remain retryable; queued/processing polling may issue a later request only after the previous request settles | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 
+### 6.1 解析等待态目标构图
+
+queued/processing 且尚无可读正文时，详情 route 使用共享 `AsyncTransitionScene` 的 `resume` variant：保留全局 TopBar 与“简历”高亮，显示文档/轨道插画、真实等待标题/说明和返回 Workshop 动作。顺序轮询必须保留同一 DOM，不回退通用 loading、不缩放关键几何；reduced-motion 下停止非必要动画。
+
 ## 7 关联计划
 
 - [001-listing-routing-and-detail-readonly](./plans/001-listing-routing-and-detail-readonly/plan.md)：route shell、list view、delete action、waiting/detail Markdown read-only body, display-name fallback and out-of-scope detail-action negative owner.
@@ -138,6 +142,7 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 2.23 | 2026-07-19 | Reopen the readonly-detail owner for the screenshot-aligned resume parsing transition while preserving stable sequential polling and readable-evidence replacement. |
 | 2.22 | 2026-07-19 | Reopen the read-only detail for the supplied preview composition: aligned Header hierarchy plus 1512/1310/1150px desktop content, backdrop and paper surfaces without changing renderer or API truth. |
 | 2.20 | 2026-07-19 | Align the Resume create icon with the Workspace 22px circled-plus action while preserving all list behavior. |
 | 2.19 | 2026-07-19 | 按提供的简历列表参考稿锁定标题区、文件 icon、meta 分隔与 footer 动作层级，并根据用户补充将 desktop 明确为每行两张等宽卡；API/route/delete/detail 合同不变。 |

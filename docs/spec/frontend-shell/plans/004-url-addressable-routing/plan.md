@@ -1,6 +1,6 @@
 # URL-Addressable Routing
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -31,7 +31,7 @@
 | `parse` | `/parse` | `targetJobId` | visible |
 | `practice` | `/practice` | `sessionId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `sourceReportId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `language` | hidden |
 | `reports` | `/reports` | `targetJobId` | visible |
-| `generating` | `/generating` | `reportId` | hidden |
+| `generating` | `/generating` | `reportId` | visible |
 | `report` | `/report` | `reportId` | visible |
 | `settings` | `/settings` | `tab` | visible |
 | `auth_login` | `/auth/login` | `next`, `email`, encoded pendingAction safe params | visible |
@@ -104,7 +104,7 @@ Blocked payload categories:
 
 - Every current route serializes to and parses from its canonical URL with sorted safe query params.
 - Direct open, reload, App navigation, replace, back and forward preserve route state without double-push behavior.
-- `practice` stays chrome-visible when opened by canonical URL；only `generating` remains chrome-hidden.
+- Every canonical route stays chrome-visible when opened by URL；Practice/Parse/Reports/Generating/report context routes resolve to the Interview primary-nav active state.
 - `reports` is protected and chrome-visible, accepts only `targetJobId`, survives direct/reload/history/auth restore, and never appears in TopBar.
 - `/workspace` without target is the list and `/workspace?targetJobId` is read-only detail; only `targetJobId` survives normalization. `/parse?targetJobId` is command/progress only and ready state replace-navigates to workspace detail.
 - Parse strips legacy `section=reports`; report/generating preserve only reportId and cannot use query state as trusted report context.
@@ -121,10 +121,15 @@ Blocked payload categories:
 | Host fallback swallows API paths | Explicit fallback tests distinguish known frontend paths from API/static/script paths |
 | Components bypass router | Route adapter remains the only write path; focused tests cover navigation behavior |
 
+### Phase 15: Generating shared chrome correction
+
+将 `generating` 从历史 no-chrome 例外移除：所有 canonical route 均保留共享 TopBar，且页面 URL、auth guard、Back/Forward、query ownership 与业务数据事实源完全不变。先修订 routing tests 证明旧 `Generating chrome hidden` 断言失败，再以最小 route catalog 改动恢复通过，并由 `BDD.SHELL.ROUTING.001` 覆盖直开、刷新和历史导航。
+
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.16 | Reopen Phase 15 to remove the stale Generating no-chrome exception while preserving canonical URLs, guards and history semantics. |
 | 2026-07-19 | 1.15 | Reopen Phase 13 to make canonical Practice chrome-visible while keeping Generating hidden. |
 | 2026-07-15 | 1.14 | UI Demo pruning reconcile：删除当前 hash-adapter/browser-harness 合同，统一为 canonical path/query 与 fragment rejection。 |
 | 2026-07-14 | 1.12 | Supersede workspace-zero-query with `/workspace?targetJobId` read-only detail and make `/parse?targetJobId` command-only with ready replace. |

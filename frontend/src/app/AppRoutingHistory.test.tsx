@@ -259,7 +259,7 @@ describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () 
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
   });
 
-  it("popstate hydrates InterviewContext / chrome-hidden state for generating route", async () => {
+  it("popstate hydrates the shared chrome state for generating route", async () => {
     render(<App />);
     act(() => {
       window.history.pushState(
@@ -272,7 +272,8 @@ describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () 
     await waitFor(() =>
       expect(screen.getByTestId("generating-screen")).toBeInTheDocument(),
     );
-    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-nav-workspace")).toHaveAttribute("aria-current", "page");
   });
 
   it("popstate to unknown / out-of-scope path falls back to home", async () => {

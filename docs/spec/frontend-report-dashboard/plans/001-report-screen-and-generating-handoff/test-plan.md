@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.14
+> **版本**: 3.15
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -79,3 +79,9 @@
 - `ReportsScreen.test.tsx` adds structure/source assertions for the approximately `1372px` shell, decorative Header illustration, real-fact target summary card, numbered timeline, independent round cards and primary/secondary actions while preserving the full current/latest/status/regeneration matrix.
 - `ReportConversationScreen.test.tsx` adds structure/source assertions for the same Header, three-column Context Strip, approximately `60px` role avatars, and one shared outlined full-width message-card silhouette for assistant/user while preserving role colors, reportId-only loading/failure/Back/safe-Markdown/privacy behavior.
 - Responsive CSS/source tests require desktop shared bounds and mobile same-order single-column containment; current-run Chrome records desktop/mobile screenshots and bbox/overflow evidence against the real frontend/backend without promoting the scoped run to `E2E.P0.099`.
+
+## 13 Report generating transition
+
+- `GeneratingScreen` tests覆盖 queued/generating/recoverable/terminal、reportId switch、visibility pause/resume、trusted Back 和无伪百分比/阶段/通知。
+- Shared scene/route/CSS tests覆盖 report illustration、中心白卡、TopBar/Interview active、indeterminate 语义、reduced-motion 与 390px containment。
+- Current-run Chrome desktop/mobile 只作为本次视觉验收；完整 `E2E.P0.099` 仍需其独立真实六图矩阵。

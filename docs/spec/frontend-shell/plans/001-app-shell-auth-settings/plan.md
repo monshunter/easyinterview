@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.36
+> **版本**: 1.37
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -170,10 +170,17 @@ GREEN 只在 `SettingsScreen` 增加明确的 theme editor 分组，并调整 `s
 | UI 与原型偏离 | `frontend/` 源码和 `docs/ui-design/` 是唯一 UI 设计文档；可见变更必须先更新原型再迁移正式前端 |
 | 删除账号被重复提交、键盘不可达或失败后失去恢复路径 | confirmation lifecycle 复用同一 idempotency key，dialog 管理 focus/Escape/取消，pending 锁定关闭与提交，recoverable 错误留在对话框并允许重试，`401` 交给统一 auth probe；仅 `202` 后复用 `refreshAuth()` 重探测 `/me` |
 
+### Phase 20: Shared asynchronous transition visual system
+
+先以 shared transition / TopBar tests 锁定统一蓝白画布、四种代码内 SVG variant、真实 indeterminate 语义、reduced-motion、mobile containment，以及 Practice/Parse/Reports/Generating 上下文 route 统一高亮“面试”。随后只新增 shell-owned `AsyncTransitionScene` 视觉骨架和 route-to-primary-nav 映射；业务状态、generated client、轮询、错误恢复与返回动作仍由原 owner 持有。
+
+`BDD.SHELL.TRANSITION.VISUAL.003` 由 shared component、TopBar、route/chrome、responsive/a11y tests 与 current-run Chrome desktop/mobile 验收承接；不建立并行 Demo、不生成像素基线，也不把装饰性 indeterminate 轨道描述为后端百分比。Phase 15.3 的 auth probe 中间态仍是独立缺口，不能因本 Phase 完成而关闭主 plan。
+
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.37 | Reopen Phase 20 for a shared screenshot-aligned asynchronous transition scene, persistent TopBar chrome and context-route navigation mapping. |
 | 2026-07-19 | 1.36 | Reopen Phase 19 to keep first-level Settings theme choices visible, stack the conditional custom editor below them, and add full-spectrum hue plus hue-aware chroma tracks without changing persistence behavior. |
 | 2026-07-19 | 1.35 | Reopen Phase 18 for screenshot-aligned login, verify, logout and settings compositions while preserving the existing generated-client and state-machine contracts. |
 | 2026-07-19 | 1.34 | Reopen Phase 17 to remediate stale account-theme responses, fail-closed runtime projection, dev-mock atomic parity and active owner contract drift found by L2 review. |

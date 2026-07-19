@@ -1,6 +1,6 @@
 # Workspace and Interview Context BDD Checklist
 
-> **版本**: 1.33
+> **版本**: 1.34
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -55,3 +55,7 @@
 - [x] 执行 owner tests，验证全视口背景与居中内容分层、header CTA 与第二列卡片右边界对齐、desktop 双列宽卡、mobile 单列、公司/岗位/动态 rail/上次保存/footer 动作层级。（验证：背景与 CTA 对齐各 RED 1 项后，Workspace CSS/component 7 tests PASS；其余 Workspace/Card/CSS owner tests PASS）
 - [x] 执行打开、删除成功/失败、启动 fail-closed 与 loading/empty/error 回归，确认 generated client 和 route 合同不变。（验证：owner scope 24 files / 150 tests PASS）
 - [x] 记录 1916×821 / 2048×917 / 390×844 bbox、截图、keyboard、theme、console 与 no-overflow 证据。（验证：desktop 背景左右边界差值均为 0，CTA 与第二列卡片右边界差值 0px；mobile 358px 单列、document overflow 0；截图位于 `.test-output/list-ui-acceptance/`）
+## `BDD.PRACTICE.LAUNCH.VISUAL.007` Practice 启动过渡构图
+
+- [x] Shared/caller tests 覆盖 brand variant、portal blocking、focus/scroll lock、single-flight、成功与失败恢复、无伪百分比。
+- [x] Current-run desktop Chrome 对照参考稿验证 TopBar、同心轨道、E 标识、标题/说明/indeterminate 线和无横向溢出；mobile 由共享 responsive contract 覆盖，不新增 E2E ID。（Workspace 与 Report caller 均完成真实启动并成功进入 Practice。）

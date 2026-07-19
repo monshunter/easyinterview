@@ -1,7 +1,7 @@
 # 多 JD 与多简历目标管理结构
 
-> **版本**: 4.0
-> **状态**: completed
+> **版本**: 4.1
+> **状态**: active
 > **更新日期**: 2026-07-19
 
 ## 1 文档目的
@@ -130,6 +130,9 @@ MockInterviewPlan
 
 ## 7 UI 行为
 
+- 新导入 JD 的 `queued/processing` Parse 使用共享蓝白过渡画布与 JD 文档/放大镜轨道插画。状态标签显示当前四项等待节奏，标题与步骤列表共用中心内容列；已完成、当前、待处理三态分别使用 success/accent/neutral 语义，当前项可显示“处理中”。
+- 四项进度只是现有 Parse 客户端等待表达，不展示百分比、provider、model、prompt/rubric、hash、典型耗时或完成承诺。ready 仍 replace 到 Workspace 详情，failed/error 保留原恢复页；TopBar 保持可见并高亮“面试”。
+
 | 场景 | 目标行为 |
 |------|----------|
 | 用户新增 JD | 首页先选择已有 selectable 简历，再点击「立即面试」POST import；只进入 `/parse?targetJobId` queued/processing 进度，ready 后 replace 到 `/workspace?targetJobId` 只读 JD / 简历 / 轮次详情，唯一成功 CTA 是立即面试 |
@@ -169,6 +172,7 @@ MockInterviewPlan
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 4.1 | 2026-07-19 | 按解析 JD 参考稿统一蓝白过渡画布、JD 轨道插画和四项进度层级；保留 command-only route、ready replace 与内部元数据负向边界。 |
 | 4.0 | 2026-07-19 | 简历唯一 Header 创建入口统一使用 Workspace 同款 22px 圆圈加号。 |
 | 3.9 | 2026-07-19 | 按提供的简历列表参考稿锁定 Resume asset list 卡片层级，并根据用户补充将 desktop 明确为每行两张等宽卡、mobile 满宽单列；绑定、删除与只读详情边界不变。 |
 | 3.8 | 2026-07-15 | 将 selectable 简历锁定为模拟面试全链路强制前置；无简历只允许创建简历，历史缺绑规划 fail closed。 |

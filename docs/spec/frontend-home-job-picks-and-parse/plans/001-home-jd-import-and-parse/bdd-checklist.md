@@ -1,6 +1,6 @@
 # Home JD Import and Parse BDD Checklist
 
-> **版本**: 2.30
+> **版本**: 2.31
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -32,3 +32,8 @@
 - [x] Parse/Workspace behavior tests 覆盖 saved/missing Resume、Start/Reports、合法/无效 progress、2~5 动态轮次、keyboard/touch 与请求/route 不变。
 - [x] Chrome `1916x821` 对照参考稿并在 `390x844` 验证单列/no-overflow；截图与 console 结果只作 manual visual evidence，不新增真实 E2E。
 - [x] 根 `make test`、typecheck/build、owner/docs/diff gates 通过后恢复 owner lifecycle。
+
+## `BDD.HOME.JD.PARSE.VISUAL.005` JD 解析等待态
+
+- [x] Owner tests 覆盖 shared job variant、四步 done/current/pending、真实 step label、ready replace、error/Back 和 internal-metadata negative。
+- [x] Current-run desktop Chrome 对照参考稿验证 TopBar、JD/搜索插画、编号步骤轴和无横向溢出；mobile/reduced-motion 由 shared component contract 覆盖，不新增 E2E ID。（真实 step 1 与 step 4 均已捕获，最终到达 Workspace。）

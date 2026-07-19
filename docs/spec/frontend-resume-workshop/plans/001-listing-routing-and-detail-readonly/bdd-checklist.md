@@ -1,6 +1,6 @@
 # Resume Listing and Readonly Detail BDD Checklist
 
-> **版本**: 2.11
+> **版本**: 2.12
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -30,3 +30,8 @@
 - [x] Owner component/CSS tests 先 RED 后 GREEN，覆盖 Header 层级与 `1512/1310/1150px` desktop 内容面、背景板、白色纸张。<!-- verified: 2026-07-19 evidence="Resume detail component/CSS gates PASS within owner 32 files/242 tests" -->
 - [x] PDF/Markdown renderer、无 header metadata 注入、无 actions/tabs/native viewer 与 mobile no-overflow 回归保持通过。<!-- verified: 2026-07-19 evidence="root frontend 132 files/1057 tests PASS; exact mobile overflowX=0" -->
 - [x] Chrome skill 在真实 frontend/backend 上记录 desktop/mobile bbox、截图、主题、console 与 no-overflow；该 scoped UI evidence 不声明 E2E PASS。<!-- verified: 2026-07-19 evidence="desktop board/paper=1310/1150; mobile board/paper=358/332; screenshots captured and browser finalized" -->
+
+## `BDD.RESUME.PARSE.VISUAL.005` 简历解析等待态
+
+- [x] Component/polling tests 覆盖 resume variant、连续 pending 请求间 DOM 稳定、ready/failed 原子替换、返回动作和无伪进度。
+- [x] Current-run desktop Chrome 连续采样证明等待构图不闪烁、不缩放、TopBar/返回可用且全宽无横向溢出；mobile 由共享 responsive contract 覆盖，不新增 E2E ID。（scene x=0、width=viewport=1920。）

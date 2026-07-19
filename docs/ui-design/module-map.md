@@ -1,6 +1,6 @@
 # EasyInterview UI 目标模块地图
 
-> **版本**: 2.22
+> **版本**: 2.23
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -121,11 +121,13 @@ User
 10. Practice user/assistant Markdown 投影启用 `skipHtml` 且不使用 `rehypeRaw`；remote image/unsafe URI 不执行，安全 link hardened，same-ID retry 使用原始 text/clientMessageId，mobile code/table 不造成 document overflow。
 11. Settings 不保留 tab、登录安全、字体预设、产品信息或手机号/界面语言/时区等无当前数据源字段；Appearance 保存账号级主题，Account 只读展示 runtime `/me` 姓名与完整账号邮箱，Privacy 只展示导出不可用和删除账号。route 切换不得重复读取 `/me`。
 12. Practice 必须显示全局 App TopBar；会话公司/角色/计时/动作属于独立 Practice Session Header，不得作为隐藏全局导航的替代物。
+13. 当前全部正式 route 都保留共享 TopBar；面试上下文 route 统一高亮“面试”。进入面试、解析简历、生成报告和解析 JD 复用同一过渡画布与动效 primitive，业务页面不得复制导航或伪造进度事实。
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.23 | 统一四类异步过渡场景与上下文 route 的 TopBar 高亮；Generating 不再隐藏全局导航。 |
 | 2026-07-19 | 2.22 | Home 参考图把单一设置入口改为圆形 E initial mark；保持无用户头像数据、无账号菜单和 Settings 直达语义。 |
 | 2026-07-19 | 2.21 | 主题移入设置并按账号保存；Practice 恢复全局 App TopBar，明确会话控制栏边界。 |
 | 2026-07-15 | 2.20 | 采用设置简化方案 A：账号入口收敛为设置齿轮，Settings 只保留真实账号/隐私动作，全局字体改为固定产品栈。 |

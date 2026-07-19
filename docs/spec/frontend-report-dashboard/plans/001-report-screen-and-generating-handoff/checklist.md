@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 4.5
+> **版本**: 4.6
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -120,3 +120,9 @@
 - [x] 18.2 GREEN：两页实现约 `1372px` 共享构图；ReportsScreen 使用真实 TargetJob 摘要卡、左侧两位编号/贯穿线与独立轮次卡；ReportConversation 使用三列 Context Strip，assistant/user 共用浅色整行卡片、描边、圆角、内边距和约 `60px` 方形头像轮廓，只以角色色彩/文案区分；mobile 同序单列。<!-- verified: 2026-07-19 method=focused-vitest+typecheck evidence="Report records/conversation focused 61 tests PASS after GREEN; final owner scope 32 files/242 tests PASS; tsc --noEmit PASS" -->
 - [x] 18.3 BDD-Gate: `BDD.REPORT.RECORDS.VISUAL.002` 由 owner tests 与 current-run Chrome UI evidence 验证，不创建 E2E wrapper，也不声明完整 `E2E.P0.099` PASS。<!-- verified: 2026-07-19 method=chrome-real-local evidence="desktop 1920x964 report conversation assistant/user cards both width=1372 border=1 radius=10; badges both 60x60 radius=9; exact mobile 390x844 cards=358 and badges=48x48 radius=9; overflowX=0" -->
 - [x] 18.4 REGRESSION：focused owner tests、frontend typecheck/build、根 `make test`、owner context、docs/index/diff 和 Chrome desktop/mobile evidence 通过后恢复 completed。<!-- verified: 2026-07-19 method=focused+root-regression evidence="owner 32 files/242 tests; root Python 615/4615 subtests; Go all packages; frontend 132 files/1057 tests; typecheck/production build/redeploy PASS; local dependencies 4/4 OK" -->
+## Phase 19: Screenshot-aligned report generating transition
+
+- [x] 19.1 RED: Generating/shared-scene/route tests 锁定 TopBar visible/Interview active、report illustration、中心白卡、真实状态、无 determinate percent、返回动作、reduced-motion 与 mobile containment；旧 inline/no-chrome 实现先失败。<!-- verified: 2026-07-19 method=focused-vitest-red evidence="Generating structure and two route-chrome tests failed on old inline/no-chrome implementation; prior truthful-status negatives passed" -->
+- [x] 19.2 GREEN: Generating 复用 shared `report` variant 并移除 no-chrome 例外；保留 reportId-only polling、visibility、attempt schedule、trusted Back 与 typed terminal error。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="Generating screen/back/poll plus route suites PASS within 124-test run" -->
+- [x] 19.3 BDD-Gate: `BDD.REPORT.GENERATING.VISUAL.003` 覆盖 queued/generating/recoverable/terminal、desktop Chrome 与 mobile responsive contract，不新增 E2E ID，亦不冒充完整 `E2E.P0.099`。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Two real completed sessions entered reportId-only Generating; final card bbox x=415 width=1090 in a 1920px viewport, TopBar/Interview highlight and Back action remained visible, then both handed off to ready Report." -->
+- [x] 19.4 REGRESSION: focused、typecheck/build、根 `make test`、contexts/docs/diff 与 Chrome gates 通过后恢复 completed。<!-- verified: 2026-07-19 evidence="Generating/poll/route focused coverage included in final 89 PASS; production build/redeploy and root make test 615 / 4615 PASS; browser console clean." -->

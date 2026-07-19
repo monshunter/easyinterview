@@ -2,6 +2,7 @@ import { useEffect, useRef, type FC } from "react";
 import { createPortal } from "react-dom";
 
 import { useI18n } from "../i18n/messages";
+import { AsyncTransitionScene } from "../transition/AsyncTransitionScene";
 
 interface BackgroundState {
   element: HTMLElement;
@@ -11,16 +12,23 @@ interface BackgroundState {
 
 export const PracticeLaunchTransition: FC = () => {
   const { t } = useI18n();
-  const transitionRef = useRef<HTMLDivElement>(null);
+  const transitionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const transition = transitionRef.current;
     if (!transition) return;
 
-    const background: BackgroundState[] = Array.from(document.body.children)
-      .filter((element): element is HTMLElement => (
-        element instanceof HTMLElement && !element.contains(transition)
-      ))
+    const appMain = document.querySelector<HTMLElement>(
+      '[data-testid="app-root"] > main',
+    );
+    const backgroundCandidates = appMain
+      ? [appMain]
+      : Array.from(document.body.children).filter(
+          (element): element is HTMLElement => (
+            element instanceof HTMLElement && !element.contains(transition)
+          ),
+        );
+    const background: BackgroundState[] = backgroundCandidates
       .map((element) => ({
         element,
         inert: element.getAttribute("inert"),
@@ -51,38 +59,18 @@ export const PracticeLaunchTransition: FC = () => {
   }, []);
 
   const content = (
-    <div
+    <AsyncTransitionScene
       ref={transitionRef}
+      variant="brand"
+      testId="practice-launch-transition"
       className="ei-practice-launch-transition"
-      data-testid="practice-launch-transition"
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
       tabIndex={-1}
-    >
-      <div className="ei-practice-launch-panel">
-        <div className="ei-practice-launch-visual" aria-hidden="true">
-          <span className="ei-practice-launch-orbit ei-practice-launch-orbit-outer" />
-          <span className="ei-practice-launch-orbit ei-practice-launch-orbit-inner" />
-          <span className="ei-practice-launch-core">E</span>
-        </div>
-        <div className="ei-label ei-practice-launch-eyebrow">
-          {t("practice.launch.eyebrow")}
-        </div>
-        <h1 className="ei-serif ei-practice-launch-title">
-          {t("practice.launch.title")}
-        </h1>
-        <p className="ei-practice-launch-body">
-          {t("practice.launch.body")}
-        </p>
-        <div className="ei-practice-launch-rule" aria-hidden="true">
-          <span />
-        </div>
-        <p className="ei-practice-launch-hint">
-          {t("practice.launch.hint")}
-        </p>
-      </div>
-    </div>
+      eyebrow={t("practice.launch.eyebrow")}
+      title={t("practice.launch.title")}
+      body={t("practice.launch.body")}
+      hint={t("practice.launch.hint")}
+      showProgress
+    />
   );
 
   return createPortal(content, document.body);

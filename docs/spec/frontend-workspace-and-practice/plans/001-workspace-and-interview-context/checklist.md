@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.49
+> **版本**: 1.50
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -236,3 +236,9 @@
 - [x] 32.2 GREEN：实现全视口 `.ei-workspace-plan-list` 背景层、居中 `.ei-workspace-plan-inner` 内容层、1456px header/grid 共用边界及 Workspace 专属 card presentation；保留 card open、generated archive、shared start、progress fail-closed、loading/empty/error 和 Home record 行为。（验证：背景/CTA 修正 focused Workspace CSS/component 7 tests PASS；此前 Workspace/Card/CSS 20 tests 与 `npm run typecheck` PASS）
 - [x] 32.3 BDD-Gate: 完成 `BDD.WORKSPACE.LIST.VISUAL.006` domain behavior evidence，不声明真实 E2E PASS。（验证：owner scope 24 files / 151 tests PASS；Chrome UI evidence 由 32.4 独立承接）
 - [x] 32.4 CHROME/REGRESSION：1916×821 下背景 `x=0/right=1916`、双列卡片 `714×384`、CTA/第二列卡片 `right=1660` 且差值 `0px`；2048×917 复核背景 `0→2048` 与右边界差值 `0px`；390×844 为 358px 单列且无 overflow。键盘打开、主题切换与 console 0 error 延续本轮验收；截图保存于 `.test-output/list-ui-acceptance/`。focused 24 files / 151 tests、typecheck/build、根 `make test`（615 tests / 4615 subtests）、context/docs/index/diff gates 均通过后恢复 completed。
+## Phase 33: Screenshot-aligned Practice launch transition
+
+- [x] 33.1 RED: transition/shared-scene tests 锁定 brand illustration、参考层级、TopBar 可见、背景 inert/focus/scroll lock、无伪进度、reduced-motion 和 mobile containment，并证明旧 panel 构图失败。<!-- verified: 2026-07-19 method=focused-vitest-red evidence="Practice component failed missing brand variant/illustration and z-index composition while prior blocking assertions remained green" -->
+- [x] 33.2 GREEN: `PracticeLaunchTransition` 复用 shared `brand` variant；保留 portal、single-flight、opening pending、成功 route 与失败恢复合同。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="shared and Practice component tests PASS within 124-test owner run; topbar remains above z-index 20 overlay" -->
+- [x] 33.3 BDD-Gate: `BDD.PRACTICE.LAUNCH.VISUAL.007` 覆盖 Home/Workspace/Report caller、desktop Chrome 与 mobile responsive contract，不新增 E2E ID。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Workspace and Report repeat callers both exposed the same brand transition with TopBar visible; 1920px screenshot shows centered orbit/E/title/body/indeterminate rule. Shared 720px CSS/component contract covers mobile containment." -->
+- [x] 33.4 REGRESSION: focused、typecheck/build、根 `make test`、contexts/docs/diff 与 Chrome gates 通过后恢复 completed。<!-- verified: 2026-07-19 evidence="Final focused 89 PASS; production build/redeploy PASS; root make test 615 / 4615 PASS; browser console clean." -->

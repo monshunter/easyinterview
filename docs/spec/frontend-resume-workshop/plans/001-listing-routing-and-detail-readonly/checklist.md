@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 4.2
+> **版本**: 4.3
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -130,3 +130,10 @@
 - [x] BDD-Gate: `BDD.RESUME.LIST.002` 由 [BDD checklist](./bdd-checklist.md) 关联 desktop/mobile 卡片列表、打开/删除与非表格语义行为；当前无真实 E2E owner，不把代码 gate 声明为 E2E PASS。
 - [x] BDD-Gate: `BDD.RESUME.LIST.VISUAL.003` 由 [BDD checklist](./bdd-checklist.md) 关联 desktop 双列等宽卡、打开/删除与 responsive 行为；current-run Chrome 只作 UI evidence。
 - [x] BDD-Gate: `BDD.RESUME.DETAIL.VISUAL.004` 由 [BDD checklist](./bdd-checklist.md) 关联详情 Header、背景板、纸张和 responsive 行为；current-run Chrome 只作 UI evidence。
+
+## Phase 24: Screenshot-aligned resume parsing transition
+
+- [x] 24.1 RED: detail/shared-scene/CSS tests 锁定 resume illustration、共享画布、TopBar active、同一 waiting DOM、返回动作、无伪百分比、reduced-motion 与 mobile containment，旧 circle block 先失败。<!-- verified: 2026-07-19 method=focused-vitest-red evidence="Resume pending-PDF test failed on missing resume variant/illustration while existing polling flow still reached ready" -->
+- [x] 24.2 GREEN: queued/processing 无正文时复用 shared `resume` variant；保留 sequential poll、pending data、ready/failed atomic replacement、generated client 与 route。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="Resume detail 9 and CSS parity 8 tests PASS including inter-request waiting DOM" -->
+- [x] 24.3 BDD-Gate: `BDD.RESUME.PARSE.VISUAL.005` 覆盖中文/英文、连续轮询、ready replace、desktop Chrome 与 mobile responsive contract，不新增 E2E ID。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Two real pasted-resume parses rendered one stable shared waiting DOM, full-bleed x=0 width=1920 canvas, shared TopBar and return action, then atomically replaced with ready details. Locale and mobile boundary remain component contracts." -->
+- [x] 24.4 REGRESSION: focused、typecheck/build、根 `make test`、context/docs/diff 与 no-flash intermediate-DOM gate 通过后恢复 completed。<!-- verified: 2026-07-19 evidence="Resume focused 9 plus shared final 89 PASS; production build/redeploy and root make test 615 / 4615 PASS; no legacy loading string in ready DOM and browser console clean." -->

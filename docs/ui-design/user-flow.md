@@ -1,6 +1,6 @@
 # EasyInterview 目标用户流程
 
-> **版本**: 2.32
+> **版本**: 2.33
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -177,10 +177,18 @@ Auth
 | URL fragment 携带 `route` / 业务参数 | fragment 不参与 routing，按 canonical path/query 解析并在首次 replace 时移除 |
 | 范围外 `auth_reset` | 归一到 `auth_login` |
 
+四条长耗时流程使用一致的过渡体验，但不共享业务进度事实：
+
+1. 开始面试：有效启动请求发出后立即进入全屏准备场景，保留 TopBar，成功进入 Practice，失败回到原入口错误。
+2. 注册简历后：详情 route 在 `queued/processing` 持续显示解析场景并允许返回简历工坊，轮询不得闪回通用 loading。
+3. 完成面试后：Generating 保留 TopBar 与返回面试报告动作，只展示 API `queued/generating` 事实和 indeterminate 进度，ready 自动进入报告。
+4. 导入 JD 后：Parse 以四项步骤列表表达当前客户端等待节奏，ready 后 replace 到 Workspace 详情；不得展示 provider、prompt、rubric、耗时或百分比。
+
 ## 11 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.33 | 将进入面试、简历解析、报告生成和 JD 解析统一为共享过渡体验，同时保留各自真实状态、返回路径与无假进度边界。 |
 | 2026-07-19 | 2.32 | 设置入口统一更名为“设置”，新增账号级主题保存流程与页面切换零重复 `/me` 读取约束。 |
 | 2026-07-16 | 2.31 | Reports 增加已结束会话的 failed report 同 ID 重生成与只读面试记录恢复，超限失败保持不可重试。 |
 | 2026-07-15 | 2.30 | 将 selectable 简历设为 JD import、训练、报告及报告后动作的永久强制前置；历史缺绑规划统一 fail closed。 |

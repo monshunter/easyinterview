@@ -5,7 +5,7 @@ UI truth: `formal frontend implementation` (lines 269-399).
 
 ## Composition
 
-- `GeneratingScreen.tsx` — displays only the observed `queued` / `generating` state and routes to `report` when the poll observes `status=ready`.
+- `GeneratingScreen.tsx` — projects only the observed `queued` / `generating` state through the shared `AsyncTransitionScene` report composition and routes to `report` when the poll observes `status=ready`.
 - `hooks/useReportGenerationPoll.ts` — 8-state poller for `getFeedbackReport(reportId)`:
   - States: `idle / polling / ready / failed / invalid / timeout / error / paused`.
   - Exponential backoff: initial 1.5s, factor 1.5, cap 8s, max attempts 49 (about 6 minutes), so status checks remain active across four 60-second provider calls plus the report-specific 10s / 20s / 40s retry delays.
@@ -14,11 +14,11 @@ UI truth: `formal frontend implementation` (lines 269-399).
   - Retained responses are owned by the exact `{client, reportId}` pair. A client or report identity change fails closed during render, before passive-effect cleanup; retrying with the same pair keeps the last trusted response available for recovery navigation.
   - Read-only contract: no `Idempotency-Key`. HTTP 404 surfaces `failed + REPORT_NOT_FOUND`.
   - `onReady(report)` / `onFailed(errorCode)` are debounced via `handoffNavigatedRef` so the same observation cannot nav twice.
-- `components/HeaderHero / GeneratingErrorState` — source-level mirrors of the truthful prototype composition. There is no synthetic progress, phase, evidence stream, SLA, notification or records promise.
+- `components/GeneratingErrorState` — typed terminal/recoverable error surface. The shared transition has an indeterminate visual rule but no synthetic percentage, phase, evidence stream, SLA, notification or records promise.
 
 ## Route boundary
 
-`generating` lives in `frontend/src/app/routes.ts::NO_CHROME_ROUTES` — the screen owns the full viewport while polling. Without `reportId`, the screen renders `GeneratingErrorState` and never invokes the read.
+`generating` keeps the shared App TopBar and maps to the Interview primary navigation context. The transition owns the remaining viewport while polling. Without `reportId`, the screen renders `GeneratingErrorState` and never invokes the read.
 
 ## Handoff contract
 

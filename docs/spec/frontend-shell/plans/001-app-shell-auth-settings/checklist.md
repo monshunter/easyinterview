@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.36
+> **版本**: 1.37
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -144,3 +144,10 @@
 - [x] 19.2 GREEN: `SettingsScreen` 与 page-scoped CSS 改为一级选择器常驻、二级编辑器按需纵向堆叠；hue 使用完整光谱轨道，chroma 使用当前 hue 的低彩到高彩渐变并保留 range 可访问语义；选择 Ocean / Plum 清除 custom accent 并隐藏二级编辑器，保存状态机和请求预算不变。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="SettingsScreen/ScreensVisual pass 25/25; the editor wrapper owns persistent theme choices plus conditional custom controls, preset selection hides the panel with zero network calls, and CSS contracts pin full-spectrum hue plus hue-aware chroma tracks." -->
 - [x] 19.3 BDD-Gate: `BDD.SHELL.SETTINGS.THEME.001` 覆盖一级常驻、Custom 二级展开、预定义主题回退；desktop/mobile component 与 current-run Chrome 验证无遮挡和无横向溢出。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Real local Settings at 1440x900 and 390x844 kept all three preset/custom buttons visible, placed the custom panel strictly below options, supported Custom -> Ocean -> Custom reversal, rendered full-spectrum hue and live hue-aware chroma gradients, retained keyboard slider focus, matched document/viewport width, and logged no browser errors." -->
 - [x] 19.4 REGRESSION: focused tests、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gates 通过并记录 current-run 证据；Phase 15.3 继续保持未完成，主 plan 保持 `active`。<!-- verified: 2026-07-19 method=full-regression evidence="Focused Settings/visual 25/25, frontend lint/typecheck/build, root make test (Python 615 / 4615 subtests, Go all packages, frontend full), local frontend redeploy, environment readiness 4/4, owner context, docs/index/link and git diff checks pass. BUG-0193 and the delivery retrospective are linked; Phase 15.3 remains open." -->
+
+## Phase 20: Shared asynchronous transition visual system
+
+- [x] 20.1 RED: shared transition、TopBar 与 route tests 先锁定四种 variant、统一画布、无 determinate percent、reduced-motion、mobile containment 和面试上下文导航高亮，当前重复等待态/Generating 隐藏 chrome 必须先失败。<!-- verified: 2026-07-19 method=focused-vitest-red evidence="8 files: 14 expected failures plus one missing shared-component suite; 52 existing assertions passed" -->
+- [x] 20.2 GREEN: 新增单一 shell-owned `AsyncTransitionScene` 与 page-scoped CSS/code-native SVG；补齐 context route -> “面试”映射，不改变各业务 owner 的 API、轮询、错误恢复与动作合同。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="12 files / 124 tests PASS; frontend typecheck PASS" -->
+- [x] 20.3 BDD-Gate: `BDD.SHELL.TRANSITION.VISUAL.003` 由 component/responsive/a11y tests 与 current-run desktop Chrome 承接，不新增 E2E ID 或像素基线。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Real local Practice/Resume/Generating/Parse transitions retained the shared TopBar and correct primary-nav context at 1920px; component/CSS contracts cover the 720px mobile boundary and reduced motion. Browser error/warning=0." -->
+- [x] 20.4 REGRESSION: focused、typecheck/build、根 `make test`、owner contexts、Header/INDEX/docs/diff gate 通过；Phase 15.3 仍保持独立未完成。<!-- verified: 2026-07-19 method=full-regression evidence="Final transition-focused 9 files / 89 tests PASS; frontend production build and local redeploy PASS; root make test passes 615 tests / 4615 subtests; environment dependencies 4/4 OK. Phase 15.3 remains independently open." -->

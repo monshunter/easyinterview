@@ -1,7 +1,7 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.37
-> **状态**: completed
+> **版本**: 1.38
+> **状态**: active
 > **更新日期**: 2026-07-19
 
 ## 1 目标
@@ -129,11 +129,13 @@ Ready 报告只展示：
 | U-13 | 报告资源已创建且 Practice 已结束 | 从报告打开会话记录 | 只读页按 sequence 显示同一安全 Markdown transcript；无 live controls、无 sessionId、无会话列表，并返回同一报告状态页 |
 | U-14 | 报告生成失败且会话已结束 | 从 ReportsScreen 查看记录或重新生成 | 记录继续绑定同一 report；普通失败重新排队同一 report，超限失败只允许查看记录 |
 | U-15 | 1916×821 / 390×844 | 打开 active Practice | 全局导航、Session Header、Conversation 主体共享正确内容节奏；desktop 无额外 100vh 高度，mobile 控件可达且无横向溢出 |
+| U-16 | 任一正式入口的 session opening 请求保持 pending | 用户点击开始面试 | TopBar 保持可见且“面试”高亮；其下显示共享蓝白过渡画布、E 核心与多层轨道、状态标签、标题/说明、indeterminate rule 和保持页面开启提示；背景交互被阻断，成功/失败语义沿用原 owner，reduced-motion 停用循环位移/缩放 |
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.38 | 按进入面试参考稿细化共享准备场景：保留 TopBar、中心 E 轨道插画、状态/标题/说明、诚实 indeterminate rule、背景阻断和 reduced-motion。 |
 | 2026-07-19 | 1.37 | 明确说明胶囊归属 Composer 固定区，始终贴在输入框上方且不随聊天记录滚动。 |
 | 2026-07-19 | 1.35 | Practice 恢复全局 App TopBar，并把公司/角色/计时/会话动作明确命名为 Practice Session Header；route 切换不得重复读取账号偏好。 |
 | 2026-07-19 | 1.36 | 按参考图锁定 Practice 双层内容网格、可用视口高度、大圆角会话面、消息 surface 与大型 Composer。 |

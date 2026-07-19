@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.34
+> **版本**: 2.35
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -392,6 +392,10 @@ Focused tests 覆盖合法/缺绑/无效 progress、2~5 动态轮次、desktop H
 
 
 
+### Phase 27: Screenshot-aligned JD parsing transition
+
+先扩展 Parse/shared-scene/CSS/route tests，锁定 TopBar/Interview active、`job` illustration、四步列表、current/done/pending 视觉、真实 `第 N/4 步`、无百分比/内部模型元数据、reduced-motion 与 mobile containment；当前 520px inline screen 必须先失败。随后只替换 queued/processing presentation，保留 `getTargetJob` polling、command-only route、ready replace、error/Back、Resume binding 与 exact request counts。`BDD.HOME.JD.PARSE.VISUAL.005` 由 owner tests 与 current-run Chrome desktop/mobile 承接。
+
 ## 6 验收标准
 
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
@@ -417,6 +421,7 @@ Focused tests 覆盖合法/缺绑/无效 progress、2~5 动态轮次、desktop H
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.35 | Reopen Phase 27 for the screenshot-aligned four-step JD parsing transition without changing import, polling or ready-detail handoff. |
 | 2026-07-19 | 2.34 | Reopen Phase 26 for the screenshot-aligned Workspace plan-detail header and four-layer card composition without changing the operation matrix. |
 | 2026-07-19 | 2.33 | Reopen Phase 25 for screenshot-aligned Home hierarchy, page-scoped styling, horizontal recent records and Chrome acceptance without changing the operation matrix. |
 | 2026-07-15 | 2.32 | Add Phase 24 to reconcile the permanent selectable-Resume prerequisite across product, UI and owner documents without adding a resume-less compatibility path. |

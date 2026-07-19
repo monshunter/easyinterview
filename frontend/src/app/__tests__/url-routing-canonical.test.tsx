@@ -147,7 +147,7 @@ describe("canonical path deep-link, reload, and browser history", () => {
     expect(window.location.pathname).toBe("/practice");
   });
 
-  it("direct-open /generating?reportId=... mounts GeneratingScreen with chrome hidden", () => {
+  it("direct-open /generating?reportId=... mounts GeneratingScreen with shared chrome", () => {
     window.history.replaceState(
       null,
       "",
@@ -155,7 +155,8 @@ describe("canonical path deep-link, reload, and browser history", () => {
     );
     render(<App />);
     expect(screen.getByTestId("generating-screen")).toBeInTheDocument();
-    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-nav-workspace")).toHaveAttribute("aria-current", "page");
   });
 
   it("direct-open /reports with hostile legacy params keeps only targetJobId and no TopBar entry", async () => {

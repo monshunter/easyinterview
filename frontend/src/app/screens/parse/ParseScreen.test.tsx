@@ -28,6 +28,16 @@ describe("ParseScreen", () => {
     expect(screen.getByTestId("parse-loading-step-1")).toBeInTheDocument();
     expect(screen.getByTestId("parse-loading-step-2")).toBeInTheDocument();
     expect(screen.getByTestId("parse-loading-step-3")).toBeInTheDocument();
+    expect(screen.getByTestId("route-parse")).toHaveAttribute(
+      "data-transition-variant",
+      "job",
+    );
+    expect(screen.getByTestId("transition-illustration-job")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-loading-step-0")).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
+    expect(screen.getByTestId("parse-loading-back")).toBeInTheDocument();
     expect(screen.queryByTestId("parse-loading-footer")).not.toBeInTheDocument();
   });
 

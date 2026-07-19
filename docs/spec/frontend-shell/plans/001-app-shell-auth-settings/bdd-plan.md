@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Plan
 
-> **版本**: 1.25
+> **版本**: 1.26
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -23,6 +23,7 @@
 | `BDD.SHELL.AUTH.LOCALE.001` | 当前显示偏好为中文或英文，受保护 route 的 auth probe 为 loading/error | App 渲染统一 auth route gate 或用户切换语言 | eyebrow/title/body 全部跟随当前 locale；中文无英文硬编码，且业务 screen/API 仍不提前挂载 | App shell language-switch + AppAuthDispatch focused tests，由根 `make test` 承接 |
 | `BDD.SHELL.SETTINGS.THEME.001` | authenticated runtime 已从首次 `getMe` 取得服务端确认主题 | 用户打开 Settings、切换预定义色或拖动 custom、保存、切换 route、刷新/重登；服务端也可能拒绝保存、返回非法投影或在页面离开后迟到返回 | Ocean / Plum / Custom 一级选择器始终可见；hue/chroma 二级编辑器仅在 Custom 激活时于一级下方展示且不遮挡一级，hue 轨道展示完整光谱，chroma 轨道跟随当前 hue 从低彩到高彩，选择预定义主题后隐藏；页面挂载/route 切换零额外 `getMe`；拖动零请求；Save 恰好一次 `updateMe` 且成功零 follow-up GET并立即同步全局；失败保留草稿并可重试，离开恢复确认值；迟到响应不覆盖新 auth/theme；非法投影 fail closed 为 ocean；刷新/其他平台首次 `getMe` 恢复账号主题 | Settings/DisplayPreferences/AppRuntime request-count/race/visual tests + dev-mock/backend update contract；根 `make test`，真实主路径原地关联 `E2E.P0.101` |
 | `BDD.SHELL.PAGES.VISUAL.002` | 用户处于登录、验证码、退出或已登录设置页面 | 在 desktop/mobile 查看、键盘操作或触发既有动作 | Auth 三页共享宽幅双栏和主操作卡，Settings 展示 Header 与三张横向功能卡；页面无横向溢出，装饰不污染语义，业务状态机和请求预算不变且没有伪计时/伪成功 | Auth/Settings component + visual + accessibility tests、Phase 15 locale tests 与 current-run Chrome manual acceptance；根 `make test` 承接代码层回归 |
+| `BDD.SHELL.TRANSITION.VISUAL.003` | authenticated 用户进入 Practice、Parse、Reports、Generating 或报告上下文 route，业务请求仍 pending | 查看等待反馈、切换显示偏好或使用返回动作 | 共享 TopBar 始终可见且“面试”高亮；等待态复用蓝白画布和对应 SVG variant，只有真实文案/步骤/indeterminate 语义，reduced-motion 与 mobile containment 有效 | Shared transition/TopBar/route component tests + current-run Chrome desktop/mobile manual acceptance；根 `make test` 承接代码层回归 |
 
 `E2E.P0.101` 只原地增加真实设置齿轮、账号字段、主题保存与 logout/relogin 恢复主路径；请求次数、失败/离开恢复、pendingAction、导出 501 和账号删除仍由 domain/contract tests 承接，不另建并行场景。
 

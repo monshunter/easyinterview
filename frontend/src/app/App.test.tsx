@@ -139,7 +139,7 @@ describe("App shell", () => {
     expect(screen.queryByTestId("route-reports")).not.toBeInTheDocument();
   });
 
-  it("keeps Practice chrome visible and hides it only for Generating", () => {
+  it("keeps shared chrome visible for Practice and Generating context routes", () => {
     // Practice keeps the shared App TopBar even when the session locator is missing.
     const practiceRender = render(
       <App initialRoute={{ name: "practice", params: {} }} />,
@@ -149,10 +149,14 @@ describe("App shell", () => {
     practiceRender.unmount();
 
     // generating route is now wired to GeneratingScreen (frontend-report-dashboard/001).
-    // Without reportId it short-circuits to GeneratingErrorState — both layouts
-    // are immersive so the TopBar must still be hidden.
+    // Without reportId it short-circuits to GeneratingErrorState while retaining
+    // the same global chrome and Interview context ownership.
     render(<App initialRoute={{ name: "generating", params: {} }} />);
-    expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-nav-workspace")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     expect(screen.getByTestId("generating-error-state")).toBeInTheDocument();
     expect(screen.queryByTestId("route-generating")).not.toBeInTheDocument();
   });

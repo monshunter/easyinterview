@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.37
+> **版本**: 2.38
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -223,11 +223,14 @@ ROUTE_ALIASES
 13. TopBar 已登录态只渲染圆形 `E` initial-mark 设置按钮；它不得读取或暗示用户头像数据。component/responsive/a11y gate 必须证明姓名、caret、backdrop、dropdown 与 TopBar logout 零引用，且 desktop/mobile 点击区域和 focus ring 可用。
 14. Settings 为无 tab 单页：Account 只读展示 runtime `/me.displayName` / 完整 `email` 并进入既有 logout 确认；Privacy 只展示导出暂不可用与账号删除。完整 email 只用于 authenticated 页面显示，不写入日志/场景证据。删除流程覆盖确认、pending、失败重试；`202` 后调用现有 `refreshAuth()` 重探测 `/me`（预期 401），提交 unauthenticated 状态并 replace Home；不得重复实现清 session 方法、挂载时重复调用 `/me`、保留 `emailMasked` alias 或伪静态字段。
 15. 字体固定为 Noto Serif SC（标题）、Inter（正文）与 JetBrains Mono（标签/代码）；删除其它 font preset 数据、包、CSS imports、locale 文案和兼容状态。
+16. 进入面试、解析简历、生成报告与解析 JD 共用一套 `AsyncTransitionScene` 视觉骨架：保留共享 TopBar，在柔和蓝白画布上使用中心轨道插画、状态标签、衬线标题、说明和明确的恢复动作；四个业务 owner 只提供真实状态、文案、进度表达和返回路径，不复制 TopBar、背景或动效实现。
+17. `parse`、`practice`、`reports`、`generating`、`report`、`report_conversation` 在 TopBar 中统一高亮“面试”；`resume_versions` 高亮“简历”。当前正式 route 不再隐藏 TopBar。循环轨道、漂浮与 indeterminate rule 在 `prefers-reduced-motion: reduce` 下停用，进度不得伪造百分比、服务端阶段或完成时间。
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 2.38 | 统一四类异步过渡场景的共享画布、轨道插画、状态与响应式合同；生成页恢复 TopBar，上下文 route 高亮“面试”，并锁定诚实 indeterminate/reduced-motion 边界。 |
 | 2026-07-19 | 2.37 | 锁定 Settings Appearance 两层主题结构：一级预定义/Custom 选择器常驻，二级 hue/chroma 仅在 Custom 激活时于下方展开；hue 使用完整光谱，chroma 使用当前色相的低彩到高彩渐变。 |
 | 2026-07-19 | 2.36 | Home 参考图成为当前首页视觉方向：desktop TopBar 调整为 76px，已登录设置入口使用单一圆形 E initial mark，不恢复账号菜单。 |
 | 2026-07-19 | 2.35 | 修正设置账号主题验收 owner：desktop/mobile 主题交互由 Settings Appearance 承接，TopBar 不再承接 Theme menu。 |

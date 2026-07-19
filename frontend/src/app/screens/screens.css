@@ -4717,147 +4717,451 @@
   background: var(--ei-practice-bg-soft, var(--ei-color-bg-soft, #eef2f7));
   font-weight: 500;
 }
-.ei-practice-launch-transition {
-  position: fixed;
-  inset: 0;
-  z-index: 1200;
-  display: grid;
-  place-items: center;
-  min-height: 100dvh;
-  padding: clamp(24px, 7vw, 72px);
-  overflow: auto;
-  background:
-    radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--ei-color-accent) 10%, transparent), transparent 34%),
-    color-mix(in srgb, var(--ei-color-bg-canvas) 96%, transparent);
-  backdrop-filter: blur(10px);
-  cursor: wait;
-}
-
-.ei-practice-launch-panel {
-  width: min(100%, 620px);
-  text-align: center;
-  color: var(--ei-color-fg-primary);
-}
-
-.ei-practice-launch-visual {
+/* Shared asynchronous transition composition for Practice, Resume, Report and JD. */
+.ei-transition-scene {
   position: relative;
-  width: 112px;
-  height: 112px;
-  margin: 0 auto 32px;
+  isolation: isolate;
+  box-sizing: border-box;
   display: grid;
+  min-height: calc(100dvh - 76px);
   place-items: center;
+  padding: clamp(44px, 7vw, 88px) clamp(20px, 5vw, 64px);
+  overflow: hidden;
+  color: var(--ei-color-fg-primary);
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--ei-color-accent) 9%, transparent) 0 13%, transparent 37%),
+    radial-gradient(circle at 14% 18%, color-mix(in srgb, var(--ei-color-accent) 8%, transparent), transparent 25%),
+    linear-gradient(135deg, color-mix(in srgb, var(--ei-color-accent) 4%, var(--ei-color-bg-canvas)), var(--ei-color-bg-canvas) 48%, color-mix(in srgb, var(--ei-color-accent) 7%, var(--ei-color-bg-canvas)));
 }
 
-.ei-practice-launch-orbit {
+.ei-transition-scene__atmosphere {
   position: absolute;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--ei-color-accent) 55%, var(--ei-color-rule-strong));
-  animation: ei-practice-launch-breathe 2.4s ease-in-out infinite;
-}
-
-.ei-practice-launch-orbit-outer {
   inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
 }
 
-.ei-practice-launch-orbit-inner {
-  inset: 17px;
+.ei-transition-scene__blob {
+  position: absolute;
+  display: block;
+  width: clamp(220px, 25vw, 440px);
+  aspect-ratio: 1.45;
+  border-radius: 48% 52% 68% 32% / 44% 38% 62% 56%;
+  background: color-mix(in srgb, var(--ei-color-accent) 6%, transparent);
+  filter: blur(1px);
+  animation: ei-transition-drift 8s ease-in-out infinite alternate;
+}
+
+.ei-transition-scene__blob--left {
+  top: 8%;
+  left: -10%;
+  transform: rotate(-18deg);
+}
+
+.ei-transition-scene__blob--right {
+  right: -8%;
+  bottom: 8%;
+  animation-delay: -4s;
+  transform: rotate(22deg);
+}
+
+.ei-transition-scene--brand .ei-transition-scene__blob--left,
+.ei-transition-scene--resume .ei-transition-scene__blob--left,
+.ei-transition-scene--report .ei-transition-scene__blob--left,
+.ei-transition-scene--job .ei-transition-scene__blob--left {
+  top: auto;
+  bottom: -8%;
+}
+
+.ei-transition-scene--brand .ei-transition-scene__blob--right,
+.ei-transition-scene--job .ei-transition-scene__blob--right {
+  top: -8%;
+  bottom: auto;
+}
+
+.ei-transition-scene--resume .ei-transition-scene__blob--right {
+  top: 44%;
+  bottom: auto;
+}
+
+.ei-transition-scene__dot {
+  position: absolute;
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ei-color-accent) 45%, transparent);
+  animation: ei-transition-dot 3.2s ease-in-out infinite;
+}
+
+.ei-transition-scene__dot--one {
+  bottom: 17%;
+  left: 4%;
+  width: 88px;
+  height: 88px;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--ei-color-accent) 26%, transparent) 0 2px, transparent 2.5px);
+  background-size: 15px 15px;
+}
+
+.ei-transition-scene__dot--two {
+  top: 18%;
+  right: 8%;
+  width: 74px;
+  height: 74px;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--ei-color-accent) 24%, transparent) 0 2px, transparent 2.5px);
+  background-size: 15px 15px;
   animation-delay: -1.2s;
 }
+.ei-transition-scene__dot--three { right: 29%; bottom: 17%; animation-delay: -2.3s; }
 
-.ei-practice-launch-core {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: var(--ei-color-accent);
-  color: #fff;
-  font-family: var(--ei-font-serif);
-  font-size: 21px;
-  box-shadow: 0 0 0 8px color-mix(in srgb, var(--ei-color-accent) 10%, transparent);
+.ei-transition-scene__content {
+  box-sizing: border-box;
+  width: min(100%, 1090px);
+  text-align: center;
 }
 
-.ei-practice-launch-eyebrow {
-  margin-bottom: 12px;
+.ei-transition-scene--resume {
+  left: 50%;
+  width: 100vw;
+  max-width: none;
+  margin-left: -50vw;
+}
+
+.ei-transition-scene--card .ei-transition-scene__content {
+  padding: clamp(38px, 5vw, 62px) clamp(24px, 6vw, 76px) clamp(34px, 4.5vw, 54px);
+  border: 1px solid color-mix(in srgb, var(--ei-color-accent) 14%, var(--ei-color-rule-strong));
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--ei-color-bg-card) 96%, transparent);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--ei-color-accent) 10%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.ei-transition-scene__illustration {
+  display: block;
+  width: min(100%, 260px);
+  height: auto;
+  margin: 0 auto 24px;
+  overflow: visible;
   color: var(--ei-color-accent);
+  animation: ei-transition-float 4s ease-in-out infinite;
 }
 
-.ei-practice-launch-title {
-  margin: 0;
-  font-size: clamp(32px, 5vw, 52px);
-  line-height: 1.08;
-  letter-spacing: -0.025em;
+.ei-transition-scene__illustration-orbit {
+  stroke: color-mix(in srgb, var(--ei-color-accent) 19%, transparent);
+  stroke-width: 1;
+}
+
+.ei-transition-scene__illustration-dot,
+.ei-transition-scene__accent {
+  fill: var(--ei-color-accent);
+  stroke: none;
+}
+
+.ei-transition-scene__halo {
+  fill: color-mix(in srgb, var(--ei-color-accent) 7%, transparent);
+  stroke: color-mix(in srgb, var(--ei-color-accent) 11%, transparent);
+}
+
+.ei-transition-scene__surface {
+  fill: color-mix(in srgb, var(--ei-color-bg-card) 95%, transparent);
+  stroke: color-mix(in srgb, var(--ei-color-accent) 62%, var(--ei-color-rule-strong));
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.ei-transition-scene__line,
+.ei-transition-scene__accent-line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ei-color-accent) 52%, var(--ei-color-fg-tertiary));
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ei-transition-scene__accent-line {
+  stroke: var(--ei-color-accent);
+  stroke-width: 3;
+}
+
+.ei-transition-scene__brand-letter {
+  fill: #fff;
+  font-family: var(--ei-font-serif);
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.ei-transition-scene__eyebrow {
+  margin-bottom: 14px;
+  color: var(--ei-color-accent);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+
+.ei-transition-scene__title {
+  max-width: 760px;
+  margin: 0 auto;
+  color: var(--ei-color-fg-primary);
+  font-size: clamp(38px, 5vw, 56px);
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
   text-wrap: balance;
 }
 
-.ei-practice-launch-body {
-  max-width: 540px;
-  margin: 20px auto 0;
+.ei-transition-scene__body {
+  max-width: 680px;
+  margin: 18px auto 0;
   color: var(--ei-color-fg-secondary);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.75;
   text-wrap: pretty;
 }
 
-.ei-practice-launch-rule {
-  width: min(100%, 360px);
-  height: 1px;
-  margin: 30px auto 18px;
+.ei-transition-scene__progress {
+  width: min(100%, 430px);
+  height: 2px;
+  margin: 30px auto 0;
   overflow: hidden;
-  background: var(--ei-color-rule-strong);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ei-color-accent) 12%, var(--ei-color-rule-strong));
 }
 
-.ei-practice-launch-rule span {
+.ei-transition-scene__progress span {
   display: block;
   width: 36%;
   height: 100%;
+  border-radius: inherit;
   background: var(--ei-color-accent);
-  animation: ei-practice-launch-scan 1.8s ease-in-out infinite;
+  animation: ei-transition-scan 1.8s ease-in-out infinite;
 }
 
-.ei-practice-launch-hint {
-  margin: 0;
+.ei-transition-scene__steps {
+  display: grid;
+  width: min(100%, 500px);
+  gap: 0;
+  margin: 30px auto 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.ei-transition-scene__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 58px;
+  padding: 3px 0;
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-transition-scene__step:not(:last-child)::after {
+  position: absolute;
+  z-index: 0;
+  top: calc(50% + 16px);
+  bottom: calc(-50% + 16px);
+  left: 15px;
+  width: 1px;
+  content: "";
+  background: color-mix(in srgb, var(--ei-color-accent) 20%, var(--ei-color-rule-strong));
+}
+
+.ei-transition-scene__step--current {
+  color: var(--ei-color-fg-primary);
+}
+
+.ei-transition-scene__step--done {
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-transition-scene__step-marker {
+  display: grid;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  box-sizing: border-box;
+  color: var(--ei-color-fg-tertiary);
+  background: var(--ei-color-bg-canvas);
+  border: 1.5px solid var(--ei-color-rule-strong);
+  border-radius: 50%;
+  font-family: var(--ei-font-mono);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.ei-transition-scene__step--done .ei-transition-scene__step-marker {
+  color: #fff;
+  border-color: var(--ei-color-ok);
+  background: var(--ei-color-ok);
+}
+
+.ei-transition-scene__step--done .ei-transition-scene__step-marker svg {
+  width: 15px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ei-transition-scene__step--current .ei-transition-scene__step-marker {
+  color: var(--ei-color-accent);
+  border-color: var(--ei-color-accent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--ei-color-accent) 7%, transparent);
+}
+
+.ei-transition-scene__step-label {
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.ei-transition-scene__step--current .ei-transition-scene__step-label {
+  font-weight: 650;
+}
+
+.ei-transition-scene__step-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 12px;
+  color: var(--ei-color-accent);
+  background: color-mix(in srgb, var(--ei-color-accent) 7%, var(--ei-color-bg-card));
+  border-radius: 999px;
+  font-family: var(--ei-font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.ei-transition-scene__action-wrap {
+  display: inline-flex;
+  margin-top: 28px;
+}
+
+.ei-transition-scene__action {
+  display: inline-flex;
+  min-height: 43px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  color: var(--ei-color-fg-secondary);
+  background: color-mix(in srgb, var(--ei-color-bg-card) 92%, transparent);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 9px;
+  font-family: var(--ei-font-sans);
+  font-size: 14px;
+  font-weight: 560;
+  cursor: pointer;
+}
+
+.ei-transition-scene__action:hover {
+  color: var(--ei-color-accent);
+  border-color: color-mix(in srgb, var(--ei-color-accent) 46%, var(--ei-color-rule-strong));
+}
+
+.ei-transition-scene__action:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ei-color-accent) 34%, transparent);
+  outline-offset: 3px;
+}
+
+.ei-transition-scene__hint {
+  margin: 17px 0 0;
   color: var(--ei-color-fg-tertiary);
   font-family: var(--ei-font-mono);
   font-size: 11px;
   line-height: 1.6;
 }
 
-@keyframes ei-practice-launch-breathe {
-  0%,
-  100% {
-    opacity: 0.34;
-    transform: scale(0.94);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1);
-  }
+.ei-practice-launch-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  min-height: 100dvh;
+  cursor: wait;
 }
 
-@keyframes ei-practice-launch-scan {
-  0%,
-  100% {
-    transform: translateX(-110%);
+@keyframes ei-transition-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+@keyframes ei-transition-drift {
+  from { translate: -2% -1%; }
+  to { translate: 4% 3%; }
+}
+
+@keyframes ei-transition-dot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes ei-transition-scan {
+  0%, 100% { transform: translateX(-110%); }
+  50% { transform: translateX(290%); }
+}
+
+@media (max-width: 720px) {
+  .ei-transition-scene {
+    min-height: calc(100dvh - 104px);
+    padding: 34px 16px 48px;
+    overflow-y: auto;
   }
-  50% {
-    transform: translateX(290%);
+
+  .ei-transition-scene--card .ei-transition-scene__content {
+    padding: 30px 18px 32px;
+    border-radius: 15px;
+  }
+
+  .ei-transition-scene__illustration {
+    width: min(100%, 205px);
+    margin-bottom: 18px;
+  }
+
+  .ei-transition-scene__title {
+    font-size: clamp(32px, 10vw, 42px);
+  }
+
+  .ei-transition-scene__body {
+    margin-top: 14px;
+    font-size: 14px;
+  }
+
+  .ei-transition-scene__steps {
+    margin-top: 24px;
+  }
+
+  .ei-transition-scene__step {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px;
+    padding-right: 8px;
+  }
+
+  .ei-transition-scene__step-status {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .ei-practice-launch-transition {
+    min-height: 100dvh;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ei-practice-launch-orbit,
-  .ei-practice-launch-rule span {
+  .ei-transition-scene__illustration,
+  .ei-transition-scene__blob,
+  .ei-transition-scene__dot,
+  .ei-transition-scene__progress span {
     animation: none;
   }
 
-  .ei-practice-launch-orbit {
-    opacity: 0.72;
-    transform: none;
-  }
-
-  .ei-practice-launch-rule span {
+  .ei-transition-scene__progress span {
     width: 100%;
   }
 }

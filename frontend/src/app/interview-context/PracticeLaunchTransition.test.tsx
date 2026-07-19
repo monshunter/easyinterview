@@ -22,6 +22,8 @@ describe("PracticeLaunchTransition", () => {
     expect(transition).toHaveAttribute("aria-live", "polite");
     expect(transition).toHaveAttribute("aria-busy", "true");
     expect(transition).toHaveTextContent("Preparing your interview");
+    expect(transition).toHaveAttribute("data-transition-variant", "brand");
+    expect(screen.getByTestId("transition-illustration-brand")).toBeInTheDocument();
     expect(transition).toHaveFocus();
     expect(container).toHaveAttribute("inert");
     expect(container).toHaveAttribute("aria-hidden", "true");
@@ -38,7 +40,7 @@ describe("PracticeLaunchTransition", () => {
   it("ships a fixed viewport layer and disables non-essential motion for reduced-motion users", () => {
     const css = readFileSync(resolve(__dirname, "..", "screens", "screens.css"), "utf8");
 
-    expect(css).toMatch(/\.ei-practice-launch-transition\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0/s);
-    expect(css).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.ei-practice-launch-orbit[\s\S]*?animation:\s*none/);
+    expect(css).toMatch(/\.ei-practice-launch-transition\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*z-index:\s*20/s);
+    expect(css).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.ei-transition-scene[^}]*animation:\s*none/s);
   });
 });

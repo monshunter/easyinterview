@@ -4,9 +4,9 @@ import type { FeedbackReport } from "../../../api/generated/types";
 import { useI18n } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
+import { AsyncTransitionScene } from "../../transition/AsyncTransitionScene";
 import { resolveReportBackRoute } from "../report/reportBackRoute";
 import { GeneratingErrorState, type GeneratingErrorKind } from "./components/GeneratingErrorState";
-import { HeaderHero } from "./components/HeaderHero";
 import { useReportGenerationPoll } from "./hooks/useReportGenerationPoll";
 
 interface GeneratingScreenProps {
@@ -64,61 +64,34 @@ export const GeneratingScreen: FC<GeneratingScreenProps> = ({ route }) => {
 
   const status = poll.report?.status === "generating" ? "generating" : "queued";
   return (
-    <div
-      data-testid="generating-screen"
+    <AsyncTransitionScene
+      variant="report"
+      testId="generating-screen"
       data-report-status={status}
-      aria-live="polite"
       className="ei-fadein"
-      style={{
-        minHeight: "100vh",
-        background: "var(--ei-color-bg-canvas)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "48px clamp(16px, 6vw, 48px)",
+      card
+      contentTestId="generating-transition-card"
+      eyebrowTestId="generating-header-eyebrow"
+      titleTestId="generating-header-title"
+      bodyTestId="generating-header-subtitle"
+      eyebrow={t(
+        status === "queued"
+          ? "generating.status.queued"
+          : "generating.status.generating",
+      )}
+      title={t("generating.header.title")}
+      body={t("generating.header.subtitle")}
+      showProgress
+      action={{
+        label: t(
+          backDestination === "reports"
+            ? "generating.errors.backToReports"
+            : "generating.errors.backToWorkspace",
+        ),
+        onClick: goBack,
+        wrapperTestId: "generating-back-button",
       }}
-    >
-      <div style={{ maxWidth: 780, width: "100%" }}>
-        <HeaderHero status={status} />
-        <div
-          style={{
-            marginTop: 28,
-            paddingTop: 16,
-            borderTop: "1px solid var(--ei-color-rule-strong)",
-            display: "flex",
-            gap: 10,
-            flexWrap: "wrap",
-          }}
-        >
-          <span data-testid="generating-back-button">
-            <button
-              type="button"
-              onClick={goBack}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                height: 30,
-                padding: "0 12px",
-                fontSize: 13,
-                fontWeight: 500,
-                background: "var(--ei-color-bg-canvas)",
-                color: "var(--ei-color-fg-primary)",
-                border: "1px solid var(--ei-color-rule-strong)",
-                borderRadius: 2,
-                cursor: "pointer",
-                fontFamily: "var(--ei-font-sans)",
-                letterSpacing: "-0.005em",
-                transition: "transform .08s ease, opacity .15s",
-              }}
-            >
-              {t(backDestination === "reports" ? "generating.errors.backToReports" : "generating.errors.backToWorkspace")}
-            </button>
-          </span>
-        </div>
-      </div>
-    </div>
+    />
   );
 };
 

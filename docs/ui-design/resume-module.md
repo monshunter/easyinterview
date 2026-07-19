@@ -1,7 +1,7 @@
 # Resume 一级模块目标结构
 
-> **版本**: 4.0
-> **状态**: completed
+> **版本**: 4.1
+> **状态**: active
 > **更新日期**: 2026-07-19
 
 ## 1 文档目的
@@ -124,6 +124,9 @@ No Resume
 
 ## 8 后续实现输入
 
+- `queued/processing` 详情使用共享 `AsyncTransitionScene` 的 resume variant：TopBar 保持“简历”高亮，中心文件插画由多层轨道和单一运动点围绕，标题/说明位于同一轴线，返回简历工坊是明确文本动作。
+- 后台 poll 必须持续保留这一 DOM；首次尚无 Resume 数据的通用 loading 与解析等待态分离。循环轨道只改变不参与布局的 opacity/transform，并在 reduced-motion 下停用；desktop/mobile 均不得因动画造成 geometry 抖动或 document 横向溢出。
+
 1. 简历卡片列表和简历选择弹窗都必须展示简历名称、来源和最近编辑时间；列表卡片可展示 closed `ResumeSummary.summaryHeadline`，但参考稿列表不重复展示语言 tag，且不得读取详情正文。
 2. 简历列表是单层卡片列表，不得出现表头、表格行、树形分组、主版本 / 定制版本标签或“选为底稿”动作；desktop 页面内容区约 1408px，每行排列两张等宽卡；mobile 保持同一 DOM/阅读顺序并占满可用宽度。卡片 header 使用文件 icon + 名称/摘要，右上角是独立删除动作；meta 与 footer 由规则线分隔，footer 只在右侧保留“打开”。
 3. 简历详情必须只展示简历内容本身；Header 使用 Back、蓝色 eyebrow、名称 kicker、主标题与来源/日期 meta 的参考稿层级；desktop 内容面约 `1512px`，阅读背景板约 `1310px`，内部白色纸张约 `1150px` 且居中；PDF 上传用从上到下平铺的 PDF 页面栈，粘贴 / Markdown / TXT 用 Markdown 渲染；Markdown body 不得额外注入 `displayName`、header 名称、summary 或来源元数据；PDF 与 Markdown 必须使用统一阅读背景板；mobile 收敛为满宽背景板和可读纸张，且不得出现预览 / 改写 / 编辑 tabs、导出、复制、原件弹层、浏览器 PDF 工具栏或二次编辑动作。
@@ -136,6 +139,7 @@ No Resume
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 4.1 | 2026-07-19 | 按解析简历参考稿统一等待场景：共享蓝白画布、中心文件轨道插画、稳定几何、返回入口与 reduced-motion；保持后台轮询无 loading 闪现。 |
 | 4.0 | 2026-07-19 | 按简历预览参考稿补齐详情 Header 与 `1512/1310/1150px` 内容面、阅读背景板和白色纸张构图；保持来源格式 renderer、只读行为和数据合同不变。 |
 | 3.9 | 2026-07-19 | 简历 Header 创建入口改用与 Workspace 一致的 22px 圆圈加号，保持创建 route 与双列卡片布局不变。 |
 | 3.8 | 2026-07-19 | 按提供的简历列表参考稿锁定标题区、文件 icon、meta 分隔、删除与 footer 打开层级，并根据用户补充将 desktop 明确为每行两张等宽卡；数据与路由合同不变。 |

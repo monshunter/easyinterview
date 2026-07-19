@@ -19,6 +19,7 @@ import { PracticeLaunchTransition } from "../../interview-context/PracticeLaunch
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { targetJobPracticeRouteParams } from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
+import { AsyncTransitionScene } from "../../transition/AsyncTransitionScene";
 import type { TargetJob } from "../../../api/generated/types";
 
 type Stage = "loading" | "preview" | "error" | "failed";
@@ -36,6 +37,13 @@ const loadingStepKeys = [
   "parse.loadingStep2",
   "parse.loadingStep3",
   "parse.loadingStep4",
+] as const;
+
+const loadingLabelKeys = [
+  "parse.loadingLabel",
+  "parse.loadingLabelStep2",
+  "parse.loadingLabelStep3",
+  "parse.loadingLabelStep4",
 ] as const;
 
 const loadingStepTicks = [600, 900, 800, 700] as const;
@@ -115,6 +123,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const loadedTargetJobRef = useRef<TargetJob | null>(null);
 
   const steps = loadingStepKeys;
+  const visualLoadingStep = Math.min(step, loadingStepKeys.length - 1);
   const targetJobId =
     typeof route.params?.targetJobId === "string"
       ? route.params.targetJobId
@@ -573,132 +582,34 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       );
     }
     return (
-      <section
-        data-testid={routeTestId}
+      <AsyncTransitionScene
+        variant="job"
+        testId={routeTestId}
         data-route-name={route.name}
         data-route-params={JSON.stringify(route.params)}
         className="ei-fadein"
-        style={{
-          minHeight: "calc(100vh - 58px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 48,
+        eyebrow={t(loadingLabelKeys[visualLoadingStep] ?? loadingLabelKeys[0])}
+        title={t("parse.loadingTitle")}
+        steps={steps.map((stepKey, index) => ({
+          label: t(stepKey),
+          state:
+            index < visualLoadingStep
+              ? "done"
+              : index === visualLoadingStep
+                ? "current"
+                : "pending",
+          statusLabel:
+            index === visualLoadingStep
+              ? t("parse.loadingWorking")
+              : undefined,
+          testId: `parse-loading-step-${index}`,
+        }))}
+        action={{
+          label: t("parse.errorHome"),
+          onClick: handleCancel,
+          testId: "parse-loading-back",
         }}
-      >
-        <div style={{ maxWidth: 520, width: "100%" }}>
-          <div
-            className="ei-label"
-            style={{
-              color: "var(--ei-color-fg-tertiary)",
-              marginBottom: 12,
-            }}
-          >
-            {t("parse.loadingLabel")}
-          </div>
-          <div
-            className="ei-serif"
-            style={{
-              fontSize: 28,
-              color: "var(--ei-color-fg-primary)",
-              letterSpacing: "-0.015em",
-              lineHeight: 1.3,
-              marginBottom: 32,
-            }}
-          >
-            {t("parse.loadingTitle")}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {steps.map((s, i) => {
-              const done = i < step;
-              const active = i === step;
-              return (
-                <div
-                  key={i}
-                  data-testid={`parse-loading-step-${i}`}
-                  style={{
-                    display: "flex",
-                    gap: 14,
-                    alignItems: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 11,
-                      border: `1.5px solid ${
-                        done
-                          ? "var(--ei-color-ok)"
-                          : active
-                            ? "var(--ei-color-accent)"
-                            : "var(--ei-color-rule-strong)"
-                      }`,
-                      background: done
-                        ? "var(--ei-color-ok)"
-                        : "transparent",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {done && (
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        stroke="#fff"
-                        strokeWidth="2.5"
-                      >
-                        <path d="M2 6l3 3 5-5" />
-                      </svg>
-                    )}
-                    {active && (
-                      <div
-                        className="ei-pulse"
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: 3,
-                          background: "var(--ei-color-accent)",
-                        }}
-                      />
-                    )}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      color: done
-                        ? "var(--ei-color-fg-tertiary)"
-                        : active
-                          ? "var(--ei-color-fg-primary)"
-                          : "var(--ei-color-fg-muted)",
-                      textDecoration: done ? "line-through" : "none",
-                    }}
-                  >
-                    {t(s as "parse.loadingStep1")}
-                  </div>
-                  {active && (
-                    <div
-                      style={{
-                        fontFamily: "var(--ei-font-mono)",
-                        fontSize: 11,
-                        color: "var(--ei-color-fg-muted)",
-                        marginLeft: "auto",
-                      }}
-                    >
-                      <span className="ei-pulse">●</span>{" "}
-                      {t("parse.loadingWorking")}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      />
     );
   }
 

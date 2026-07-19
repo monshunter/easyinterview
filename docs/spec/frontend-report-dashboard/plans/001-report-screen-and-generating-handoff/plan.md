@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 4.6
+> **版本**: 4.7
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -219,6 +219,10 @@ ReportsScreen 使用约 `1372px` 内容面、共享 Header illustration、仅由
 
 完成 focused owner tests、frontend typecheck/build、根 `make test`、owner context、docs/index/diff gates；通过 Chrome skill 在真实 frontend/backend 上验收 ReportsScreen 与 ReportConversation 的 desktop/mobile bbox、截图、键盘、theme、console 和 no-overflow。Scoped UI evidence 不声明完整 `E2E.P0.099` PASS。
 
+### Phase 19: Screenshot-aligned report generating transition
+
+先扩展 `GeneratingScreen`、shared scene、routing 与 responsive tests，锁定 TopBar visible/Interview active、白色中心卡、`report` illustration、真实 queued/generating/typed failure、indeterminate 非百分比语义、返回动作、reduced-motion 和 mobile containment；当前窄 inline screen 与 no-chrome route 必须先失败。随后只替换 presentation 并移除 Generating 的 no-chrome 例外，保留 reportId-only `getFeedbackReport` polling、visibility pause/resume、attempt schedule、trusted Back 与 terminal error。`BDD.REPORT.GENERATING.VISUAL.003` 由 owner tests 与 current-run Chrome desktop/mobile 承接。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -256,6 +260,7 @@ ReportsScreen 使用约 `1372px` 内容面、共享 Header illustration、仅由
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 4.7 | Reopen Phase 19 for the screenshot-aligned honest Generating transition and shared TopBar chrome. |
 | 2026-07-19 | 4.5 | Reopen Phase 18 to rebuild ReportsScreen and ReportConversation against the supplied summary-card, round-timeline, shared-context and role-row compositions. |
 | 2026-07-19 | 4.4 | Reopen Phase 17 for a complete report composition rebuild after user acceptance confirmed Phase 16 was only a superficial width and card-shell change. |
 | 2026-07-16 | 4.2 | Close the failed-conversation owner-resolution Back race with an explicit resolving state and focused regression coverage. |

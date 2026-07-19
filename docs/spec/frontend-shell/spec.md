@@ -1,6 +1,6 @@
 # Frontend Shell Spec
 
-> **版本**: 1.39
+> **版本**: 1.40
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -59,7 +59,7 @@
 ## 4 设计约束
 
 - Route normalization 只能把 unsupported route input 映射到当前 route catalog 或 `home`。
-- 只有 `generating` 可以隐藏 TopBar；`practice` 与其他业务 route 保留 App chrome。Practice 的会话控制栏是独立 `Practice Session Header`，不能替代全局 TopBar。
+- 当前 canonical route 全部保留 App TopBar；Practice 的会话控制栏是独立 `Practice Session Header`，不能替代全局 TopBar。业务上下文 route 通过一级 active mapping 表达归属，不建立 no-chrome 例外。
 - `reports` 保留 App chrome 但不得加入 `PRIMARY_NAV_ROUTES` / TopBar；直开、刷新、back/forward 和 auth continuation 只保留合法 `targetJobId`。
 - `parse` 不接受 `section=reports`；`report` / `generating` 的资源 locator 只接受 `reportId`。报告状态、target/round/resume 等业务事实必须由受保护 API response 提供，不能由 query/pendingAction 注入。
 - `/workspace` 只允许可选 `targetJobId`；`planId`、`resumeId`、auto-start 和其他业务状态必须剔除。`/parse` 只允许 `targetJobId` 并作为 command/progress route；ready 后使用 replace 导航到 `/workspace?targetJobId`。
@@ -112,6 +112,12 @@
 | C-17 | Practice 全局 chrome | authenticated 用户进入 Practice | route render 与 desktop/mobile 响应式布局 | 全局 TopBar 保持可见，其下是独立 Practice Session Header；页面切换不触发 `/me` | 001-app-shell-auth-settings + frontend-workspace-and-practice/001 |
 | C-18 | Auth / Settings 参考构图 | 用户打开登录、验证码、退出或设置 | 正式前端在 desktop/mobile 渲染当前业务状态 | Auth 三页共享宽幅双栏、原则卡与右侧主操作卡；Settings 使用 Header 插画和三张横向功能卡；操作、请求、错误与可访问性语义不变且无伪倒计时/伪成功 | 001-app-shell-auth-settings |
 
+### 6.1 跨业务等待态视觉合同
+
+- 所有受保护业务 route 均保留共享 `TopBar`；Practice、Parse、Reports、Generating 与报告详情等上下文 route 的一级导航统一高亮“面试”，不得通过页面私有导航或隐藏全局 chrome 形成第二套壳。
+- Shell 提供单一 `AsyncTransitionScene` 视觉骨架：蓝白渐变背景、代码内 SVG 插画、标题/说明、可选 indeterminate 进度和可选步骤列表；各业务 owner 只注入真实状态、文案与返回动作。
+- 等待态不得展示后端未提供的百分比、耗时、阶段成功或内部模型元数据；`prefers-reduced-motion` 下停止非必要轨道/漂浮动画，desktop/mobile 均不得横向溢出。
+
 ## 7 关联计划
 
 - [001-app-shell-auth-settings](./plans/001-app-shell-auth-settings/plan.md)
@@ -123,6 +129,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.40 | 2026-07-19 | Reopen the shared shell visual contract for four screenshot-aligned asynchronous transition scenes, persistent TopBar chrome and interview-context navigation ownership. |
 | 1.39 | 2026-07-19 | Lock Settings Appearance to an always-visible primary theme selector with a conditionally stacked custom editor, full-spectrum hue and hue-aware chroma tracks, preserving reversible preset selection and request budgets. |
 | 1.38 | 2026-07-19 | Reopen the shell owner to align login, verify, logout and settings with the supplied wide editorial compositions without changing auth or account behavior. |
 | 1.37 | 2026-07-19 | Reopen the visual owner for the supplied Home reference: 76px desktop chrome, pill dark toggle and a single circular E initial-mark settings entry without reintroducing account menus. |

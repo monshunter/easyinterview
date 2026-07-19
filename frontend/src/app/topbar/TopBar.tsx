@@ -4,7 +4,11 @@ import { useDisplayPreferences } from "../display/DisplayPreferencesProvider";
 import { SUPPORTED_LOCALES } from "../i18n/localeCatalog";
 import { translate } from "../i18n/messages";
 import type { LooseRoute } from "../normalizeRoute";
-import { PRIMARY_NAV_ROUTES, type RouteName } from "../routes";
+import {
+  PRIMARY_NAV_ROUTES,
+  resolvePrimaryNavRoute,
+  type RouteName,
+} from "../routes";
 
 /**
  * Three primary nav entries match docs/ui-design/auth-and-entry.md §4 after
@@ -54,6 +58,7 @@ export const TopBar: FC<TopBarProps> = ({
   const prefs = useDisplayPreferences();
   const t = (key: Parameters<typeof translate>[1]) => translate(prefs.lang, key);
   const [langMenuOpen, setLangMenuOpen] = useState<boolean>(false);
+  const activePrimaryRoute = resolvePrimaryNavRoute(activeRoute);
   const currentLocale =
     SUPPORTED_LOCALES.find((locale) => locale.code === prefs.lang) ??
     SUPPORTED_LOCALES.find((locale) => locale.code === "en") ??
@@ -89,7 +94,7 @@ export const TopBar: FC<TopBarProps> = ({
             key={name}
             type="button"
             data-testid={`topbar-nav-${name}`}
-            aria-current={activeRoute === name ? "page" : undefined}
+            aria-current={activePrimaryRoute === name ? "page" : undefined}
             className="ei-topbar-nav-button ei-text-body"
             onClick={() => onNavigate({ name, params: {} })}
           >

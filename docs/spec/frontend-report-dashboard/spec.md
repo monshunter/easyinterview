@@ -1,6 +1,6 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.35
+> **版本**: 1.36
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -231,6 +231,7 @@ ReportConversation(reportId)
 | C-18 | 目标稿整页结构 | 合法 ready report 在 2048×917 / 390×844 展示 | 逐块检查 Header、Context、Metrics、Detail 与 Overall | desktop 约 1432px 居中；Context 为一张四列分隔整卡；四个 Detail card 带语义 icon 并使用紧凑列表结构；典型内容总评完整进入首屏；mobile 同序单列且长内容不截断 | 001 |
 | C-19 | 报告列表目标构图 | 当前 TargetJob 有 canonical rounds 和 current/latest 报告事实 | 打开 `/reports?targetJobId=...` | desktop 约 1372px，Header 插画、现有事实目标摘要卡、编号时间线和独立轮次卡完整；报告/记录/生成/恢复动作保持各自 locator、状态与 a11y；mobile 同序无横溢 | [001 Phase 18](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | C-20 | 面试记录目标构图 | report-owned transcript 含合法 assistant/user 消息 | 打开 report-conversation | desktop 约 1372px，Header、三列 Context Strip 和消息列共享边界；assistant/user 共享浅色整行卡片、描边、圆角、内边距和同宽方形头像轮廓，只以蓝色 AI / 灰色“我”区分身份；Markdown、安全边界、Back 与无 composer/internal IDs 合同不变，mobile 同序无横溢 | [001 Phase 18](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| C-21 | 报告生成等待态目标构图 | report 仍为 queued/generating，或轮询可恢复失败 | 打开 Generating | 全局 TopBar 保留并高亮“面试”；共享 report transition 在居中白色卡片中展示报告插画、真实状态说明、indeterminate 线和返回报告动作；无假百分比/通知/阶段，失败恢复与 polling 合同不变 | [001 Phase 19](./plans/001-report-screen-and-generating-handoff/plan.md) |
 
 ## 9 关联计划
 
@@ -240,6 +241,7 @@ ReportConversation(reportId)
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.36 | Reopen the Generating owner for the supplied report-transition card while preserving truthful polling, terminal errors and reportId-only routing. |
 | 2026-07-19 | 1.35 | Align assistant/user transcript cards to one shared outlined surface and avatar silhouette per acceptance feedback. |
 | 2026-07-19 | 1.34 | Reopen ReportsScreen and ReportConversation for the supplied target composition: shared illustrated Header, real-fact summary card, numbered round timeline, three-column context and differentiated assistant/user rows. |
 | 2026-07-19 | 1.33 | Reopen the ready dashboard for a complete target-composition rebuild after the prior width-only alignment failed to implement the supplied UI structure. |

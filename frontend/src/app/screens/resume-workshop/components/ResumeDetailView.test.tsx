@@ -181,6 +181,12 @@ describe("ResumeDetailView read-only contract", () => {
     await waitFor(() => {
       expect(screen.getByTestId("resume-detail-parse-waiting")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("resume-detail-parse-waiting")).toHaveAttribute(
+      "data-transition-variant",
+      "resume",
+    );
+    expect(screen.getByTestId("transition-illustration-resume")).toBeInTheDocument();
+    expect(screen.getByTestId("resume-detail-parse-back")).toBeInTheDocument();
 
     await waitFor(
       () => {

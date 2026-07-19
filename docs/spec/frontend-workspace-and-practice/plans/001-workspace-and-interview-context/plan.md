@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.49
+> **版本**: 1.50
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -277,6 +277,10 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - BDD：`BDD.WORKSPACE.CARD.003` 使用共享卡片组件测试作为 domain behavior test，覆盖 Home 最近面试与 Workspace 规划列表的同源可见行为；不新增 E2E。
 - CLOSEOUT：执行 focused card/workspace/home tests、仓库根 `make test`、frontend typecheck、owner context、文档/index 与 diff gate；确认共享卡片源中无 lifecycle 状态展示和 `Location not set` 残留后恢复 `completed`。
 
+### Phase 33: Screenshot-aligned Practice launch transition
+
+先以 `PracticeLaunchTransition`/caller/shared-scene tests 固化 reference geometry、TopBar 可见、背景阻断、single-flight、失败恢复、reduced-motion 与 mobile containment；随后将现有 transition DOM 改为复用 shell-owned `brand` variant，同时保留 portal、focus、inert、scroll lock、route 与 opening request 语义。`BDD.PRACTICE.LAUNCH.VISUAL.007` 由 domain behavior tests 与 current-run Chrome desktop/mobile 承接，不新增 E2E ID。
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -336,6 +340,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-19 | 1.50 | Reopen Phase 33 for the supplied Practice-launch transition composition without changing session-start ownership or failure recovery. |
 | 2026-07-19 | 1.49 | Keep the Workspace canvas full-viewport and align the header CTA with the card-grid right edge. |
 | 2026-07-19 | 1.48 | Reopen Phase 32 to align the Workspace plan-list body and wide-card geometry with the supplied desktop reference while preserving all runtime contracts. |
 | 2026-07-19 | 1.47 | Reopen Phase 31 so Practice retains the global App TopBar above its session header with zero route-level account refetch. |

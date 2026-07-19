@@ -1,6 +1,6 @@
 # Workspace and Interview Context BDD Plan
 
-> **版本**: 1.33
+> **版本**: 1.34
 > **状态**: completed
 > **更新日期**: 2026-07-19
 
@@ -24,5 +24,6 @@
 | `BDD.PRACTICE.LAUNCH.004` | 用户从 Home recent、Workspace list/detail 或 Report replay/next-round 发起有效面试，opening LLM 请求保持 pending 或失败 | 点击启动并等待 | 立即显示统一全屏、可访问且阻断交互的诚实 indeterminate transition；无伪进度/opening；成功进入 `practice`，失败关闭 transition 并恢复原入口错误；auth redirect 不提前展示 | shared transition contract + `HomeRecentMocks.test.tsx`、`WorkspaceScreen.test.tsx`、`ParseResumeBinding.test.tsx`、`ReplayCta.test.tsx` domain behavior tests，由根 `make test` 承接 |
 | `BDD.PRACTICE.GLOBAL_CHROME.005` | authenticated 用户已由 app bootstrap 取得账号/runtime context | 进入、使用或离开 Practice | 全局 App TopBar 始终位于独立 Practice Session Header 上方，导航/显示/设置入口可用；route 切换 `/me` 增量为 0；desktop/mobile 无横向溢出 | App/router/Practice/request-count/responsive tests，由根 `make test`；current-run Chrome desktop/mobile 作为 UI 证据，不冒充 E2E ID |
 | `BDD.WORKSPACE.LIST.VISUAL.006` | authenticated 用户在 desktop/mobile 打开有 1~N 个 ready TargetJob 的 Workspace list | 浏览卡片、打开详情、删除或开始模拟面试 | TopBar 下方背景连续覆盖完整 viewport；内容层按参考稿显示标题区、双列宽卡/移动单列、公司/岗位/动态轮次、上次保存与独立动作，header CTA 右侧与第二列卡片右侧对齐；交互仍只调用既有 generated client/route，失败状态不丢卡且无横向溢出 | `WorkspaceScreen.test.tsx` + `WorkspaceVisual.test.ts` + `MockInterviewCard.test.tsx` domain/visual contract tests；current-run Chrome 仅作 UI 证据 |
+| `BDD.PRACTICE.LAUNCH.VISUAL.007` | 用户从合法 Home、Workspace 或 Report 动作发起会话且 opening request 仍 pending | 查看启动反馈、等待成功或遭遇失败 | 保留全局 TopBar 的共享 brand transition 阻断背景交互并管理 focus/scroll；只表达真实 pending，成功进入 Practice，失败恢复原入口，desktop/mobile 无横向溢出 | `PracticeLaunchTransition.test.tsx` + caller tests + current-run Chrome manual acceptance；根 `make test` 承接代码层回归 |
 
 `E2E.P0.098` 是 completion/progress refresh 的独立 suite handoff；quick-start/session start/next-round 不归入该 E2E。
