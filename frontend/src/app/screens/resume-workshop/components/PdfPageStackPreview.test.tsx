@@ -96,6 +96,8 @@ describe("PdfPageStackPreview", () => {
     expect(pdfMocks.getPage).toHaveBeenNthCalledWith(1, 1);
     expect(pdfMocks.getPage).toHaveBeenNthCalledWith(2, 2);
     expect(pdfMocks.renderPage).toHaveBeenCalledTimes(2);
+    expect(screen.getByLabelText("PDF page 1")).not.toHaveAttribute("style");
+    expect(screen.getByLabelText("PDF page 2")).not.toHaveAttribute("style");
     expect(document.querySelector("object, iframe, embed")).toBeNull();
   });
 

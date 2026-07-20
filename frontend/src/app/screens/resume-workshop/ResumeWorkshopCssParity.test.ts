@@ -56,7 +56,18 @@ describe("Resume Workshop source-level CSS parity", () => {
     );
     expect(source).toContain("padding: 52px 68px");
     expect(source).toContain("gap: 22px");
-    expect(source).toContain("width: min(100%, 1150px)");
+    const markdownPageRules =
+      source.match(/\.ei-resume-detail-markdown-page\s*\{[^}]*\}/gs) ?? [];
+    expect(markdownPageRules.length).toBeGreaterThan(0);
+    expect(markdownPageRules[0]).toMatch(/width:\s*min\(100%, 794px\)/);
+    for (const rule of markdownPageRules) {
+      expect(rule).not.toMatch(/aspect-ratio:/);
+      expect(rule).not.toMatch(/(?:min-)?height:/);
+    }
+    expect(source).toMatch(
+      /\.ei-resume-detail-pdf-page\s*\{[^}]*width:\s*min\(100%, 794px\)[^}]*aspect-ratio:\s*210 \/ 297/s,
+    );
+    expect(source).not.toContain("width: min(100%, 1150px)");
     expect(source).toMatch(
       /\.ei-resume-detail-preview\s*>\s*article\s*\{[^}]*width:\s*100%/s,
     );

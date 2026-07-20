@@ -2552,8 +2552,7 @@
 }
 
 .ei-resume-detail-markdown-page {
-  width: min(100%, 1150px);
-  min-height: 664px;
+  width: min(100%, 794px);
   margin: 0 auto;
   padding: 52px 68px;
   background: #ffffff;
@@ -2635,8 +2634,10 @@
 }
 
 .ei-resume-detail-pdf-page {
-  width: min(100%, 1150px);
+  width: min(100%, 794px);
+  aspect-ratio: 210 / 297;
   min-height: 320px;
+  box-sizing: border-box;
   background: #ffffff;
   border: 1px solid var(--ei-color-rule-strong);
   box-shadow: 0 10px 30px rgba(30, 22, 15, 0.08);
@@ -3470,7 +3471,6 @@
   }
 
   .ei-resume-detail-markdown-page {
-    min-height: 480px;
     padding: 32px 28px;
   }
 }

@@ -46,8 +46,6 @@ const PdfPageCanvas: FC<PdfPageCanvasProps> = ({ document, pageNumber }) => {
         const outputScale = window.devicePixelRatio || 1;
         canvas.width = Math.floor(viewport.width * outputScale);
         canvas.height = Math.floor(viewport.height * outputScale);
-        canvas.style.width = `${viewport.width}px`;
-        canvas.style.height = `${viewport.height}px`;
 
         if (typeof context.setTransform === "function") {
           context.setTransform(outputScale, 0, 0, outputScale, 0, 0);

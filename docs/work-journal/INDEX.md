@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-20](2026-07-20.md) | `fix(resume): align PDF and Markdown preview geometry` | #fix #ui #pdf #test #docs #bdd #chrome |
 | [2026-07-20](2026-07-20.md) | `feat(settings): add forest account theme preset` | #feat #ui #api #test #docs #bdd #e2e |
 | [2026-07-20](2026-07-20.md) | `feat(frontend): harden list flows and review contracts` | #feat #fix #ui #i18n #test #docs #bdd |
 | [2026-07-20](2026-07-20.md) | `feat(home): simplify resume option labels` | #feat #ui #test #docs |

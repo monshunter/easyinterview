@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-20](./2026-07-20-resume-a4-preview-assessment.md) | Resume A4 Preview 交付复盘 | #assessment #ui #resume #pdf #markdown #chrome |
 | [2026-07-20](./2026-07-20-destructive-delete-confirmation-ui-assessment.md) | Resume 与 Workspace 删除二次确认交付复盘 | #assessment #ui #workspace #resume #chrome |
 | [2026-07-20](./2026-07-20-frontend-list-pages-review-remediation-assessment.md) | Frontend List Pages Review Remediation 交付复盘 | #assessment #ui #review-remediation #BUG-0192 |
 | [2026-07-20](./2026-07-20-home-resume-option-labels-assessment.md) | Home 简历选项名称精简交付复盘 | #assessment #ui #home |

@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 4.5
+> **版本**: 4.6
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -154,4 +154,10 @@
 - [x] 26.1 RED: `ResumeListView.test.tsx` 与 shared dialog tests 锁定首次点击弹窗/零 archive、取消初始焦点、focus trap、Escape/遮罩关闭、focus restore、确认单次提交、pending 锁定、失败 same-key retry 与成功隐藏；验证: focused Vitest 在旧实现上按目标失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="Resume first-click zero-archive assertions failed twice because the old handler called archiveResume immediately; shared dialog suite failed on the intentionally missing component while 17 adjacent tests passed." -->
 - [x] 26.2 GREEN: 实现共享危险操作确认框并接入 Resume 删除；确认前零副作用，确认后调用 generated `archiveResume`，pending/失败/成功与 idempotency 语义符合 spec；验证: focused Vitest + typecheck PASS。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="Destructive dialog + Resume + Workspace focused suites 3 files / 23 tests PASS; TypeScript noEmit PASS. Resume cancel restores the trigger, confirm calls archive once, failure retains the card/dialog and retry reuses the first key." -->
 - [x] 26.3 BDD-Gate: `BDD.RESUME.DELETE.CONFIRM.006` 由 [BDD checklist](./bdd-checklist.md) 关联 domain behavior tests；真实 Chrome 只记录正式 UI 截图，不声明 E2E PASS。<!-- verified: 2026-07-20 evidence="3 focused files / 23 tests PASS; shared dialog covers focus trap, Escape/backdrop, pending lock and focus restore; Resume covers zero-call first click, one-call confirm and same-key retry." -->
+
+## Phase 27: A4 preview geometry
+
+- [x] 27.1 RED/GREEN: `ResumeWorkshopCssParity.test.ts` 先证明旧 `1150px` 纸宽不满足合同，再锁定 PDF/Markdown page surface 共用 `width: min(100%, 794px)`；PDF 保留 `aspect-ratio: 210 / 297`，Markdown 不得设置 `aspect-ratio`、fixed height 或 `min-height`，并保持 responsive containment；验证: focused CSS parity test。<!-- verified: 2026-07-20 evidence="RED captured Markdown desktop aspect-ratio/min-height; GREEN 10/10 focused preview geometry tests PASS after removing desktop/mobile height constraints while retaining 794px width." -->
+- [x] 27.2 保持 PDF.js source/credential/page order、Markdown DOM/正文事实、只读 action negatives 与无共享背景板合同；PDF canvas 只保留 intrinsic bitmap 尺寸，由 `width: 100%; height: auto` 等比填满 A4 page content width，不得用 inline presentation width/height 留出额外空白；验证: `PdfPageStackPreview.test.tsx`、`ResumePreviewTab.test.tsx`、Resume owner regression、typecheck/build 与根 `make test`。<!-- verified: 2026-07-20 evidence="Resume owner 20 files/118 tests PASS; typecheck and production build PASS; root make test PASS with 621 tests and 4628 subtests; PDF intrinsic bitmap and presentation-size regression remains GREEN." -->
+- [x] 27.3 BDD-Gate: `BDD.RESUME.DETAIL.A4.007` 由 [BDD checklist](./bdd-checklist.md) 关联 domain behavior tests；Chrome skill 在真实 frontend/backend 上验收 PDF desktop A4 bbox、Markdown desktop A4-width continuous height、mobile no-overflow 与 console，不声明 E2E PASS。<!-- verified: 2026-07-20 evidence="BDD.RESUME.DETAIL.A4.007 complete with domain tests plus current-run scoped Chrome UI evidence; no E2E PASS claimed." -->
 - [x] 26.4 REGRESSION/CHROME: Resume owner focused tests、frontend build、根 `make test`、owner context、docs/index/diff gates 通过；真实 frontend/backend 的简历确认框 desktop 截图、keyboard/focus、console/no-overflow 验收完成后恢复 completed。<!-- verified: 2026-07-20 evidence="Typecheck/build and root make test PASS; context/docs/index/diff gates PASS; frontend redeploy and dependencies 4/4 OK; Chrome 1212x912 screenshot, initial cancel focus, trigger focus restore, card retained and overflowX=false." -->

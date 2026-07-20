@@ -1,6 +1,6 @@
 # Resume Listing and Readonly Detail BDD Checklist
 
-> **版本**: 2.14
+> **版本**: 2.15
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -47,3 +47,10 @@
 - [x] 执行首次点击零 `archiveResume`、取消/Escape/遮罩零副作用、初始焦点/focus trap/trigger focus restore 行为断言。
 - [x] 执行确认单次提交、pending 关闭/重复提交锁定、失败保留卡片/弹窗与同 key retry、成功隐藏卡片行为断言。
 - [x] 使用 Chrome skill 在真实 frontend/backend 截取简历删除确认框并记录 keyboard、console 与 no-overflow；该截图证据不声明 E2E PASS。<!-- verified: 2026-07-20 method=chrome-extension-manual evidence="1212x912 real frontend/backend screenshot; cancel initially focused; cancel closed dialog, preserved 李四 card and restored delete-trigger focus; horizontal overflow false; screenshot=.test-output/delete-confirmation-ui/resume-delete-confirmation.png" -->
+
+## `BDD.RESUME.DETAIL.A4.007` A4 简历阅读纸张
+
+- [x] 确认验证入口为 Resume detail CSS/renderer domain behavior tests 与 current-run Chrome UI acceptance，不创建 E2E wrapper。
+- [x] 执行 owner tests，验证 PDF/Markdown desktop 共用 `794px` A4 纸宽、PDF 每页 `210:297`、Markdown 连续内容高度且无 A4 高度约束、mobile responsive containment，并拒绝旧 `1150px` 纸宽。<!-- verified: 2026-07-20 evidence="Resume owner 20 files/118 tests, typecheck, build, and root make test PASS." -->
+- [x] 执行 PDF.js source/credential/page order/canvas 与 Markdown DOM/只读边界回归，确认数据与 renderer 行为不变。<!-- verified: 2026-07-20 evidence="Focused CSS/PDF renderer tests 10/10 PASS; canvas has intrinsic bitmap dimensions only and Markdown remains one semantic article." -->
+- [x] 使用 Chrome skill 在真实 frontend/backend 记录 PDF desktop A4 bbox、Markdown desktop A4-width continuous height、mobile no-overflow、截图与 console；该 scoped UI evidence 不声明 E2E PASS。<!-- verified: 2026-07-20 method=chrome-extension-manual evidence="Markdown desktop 794x2003 and mobile 358x3429, count=1, aspect-ratio=auto, min-height=0, overflowX=false; PDF desktop 794x1123 and mobile 358x506 at 210:297 with canvas widths 792/356; no warning/error; screenshots=.test-output/resume-a4-preview/markdown-desktop.jpg,.test-output/resume-a4-preview/markdown-mobile.jpg" -->
