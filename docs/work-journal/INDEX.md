@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-20](2026-07-20.md) | `fix(frontend): restore report back copy and remove resume backdrop (BUG-0192)` | #fix #ui #i18n #test #docs #bdd #chrome |
 | [2026-07-20](2026-07-20.md) | `fix(practice): align send action surface (BUG-0192)` | #fix #ui #test #docs #bdd #chrome |
 | [2026-07-20](2026-07-20.md) | `fix(frontend): align report generating and back copy (BUG-0192)` | #fix #ui #i18n #test #docs #bdd #chrome |
 | [2026-07-20](2026-07-20.md) | `fix(settings): anchor theme save action (BUG-0193)` | #fix #ui #test #docs #bdd #chrome |

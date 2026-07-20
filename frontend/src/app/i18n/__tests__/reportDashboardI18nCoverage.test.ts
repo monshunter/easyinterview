@@ -94,6 +94,8 @@ describe("frontend-report-dashboard/001 i18n coverage", () => {
   });
 
   it("distinguishes trusted reports Back from the workspace fallback in both locales", () => {
+    expect(zh["generating.backToReports"]).toBe("返回面试报告");
+    expect(en["generating.backToReports"]).toBe("Back to interview reports");
     expect(zh["common.back"]).toBe("返回");
     expect(en["common.back"]).toBe("Back");
   });

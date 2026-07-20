@@ -1,8 +1,8 @@
 # Resume Listing and Readonly Detail BDD Checklist
 
-> **版本**: 2.12
+> **版本**: 2.13
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -30,6 +30,11 @@
 - [x] Owner component/CSS tests 先 RED 后 GREEN，覆盖 Header 层级与 `1512/1310/1150px` desktop 内容面、背景板、白色纸张。<!-- verified: 2026-07-19 evidence="Resume detail component/CSS gates PASS within owner 32 files/242 tests" -->
 - [x] PDF/Markdown renderer、无 header metadata 注入、无 actions/tabs/native viewer 与 mobile no-overflow 回归保持通过。<!-- verified: 2026-07-19 evidence="root frontend 132 files/1057 tests PASS; exact mobile overflowX=0" -->
 - [x] Chrome skill 在真实 frontend/backend 上记录 desktop/mobile bbox、截图、主题、console 与 no-overflow；该 scoped UI evidence 不声明 E2E PASS。<!-- verified: 2026-07-19 evidence="desktop board/paper=1310/1150; mobile board/paper=358/332; screenshots captured and browser finalized" -->
+
+### Phase 25 shared backdrop removal
+
+- [x] Owner component/CSS tests 证明正文直接 `article` 无 presentation class、共享 preview-card CSS 缺席，Markdown page/PDF stack 正向 renderer 仍在。<!-- verified: 2026-07-20 evidence="Focused 14/14 and full Resume owner 118/118 PASS; source parity rejects both shared preview-card selectors while renderer tests retain Markdown page and PDF stack." -->
+- [x] Current-run real Chrome detail smoke 证明正文不再出现共享浅色背景板，页面无横向溢出且 console 无 error；该 scoped UI evidence 不声明 E2E PASS。<!-- verified: 2026-07-20 evidence="Final real Markdown detail: legacy selector count 0; classless article is 1443px with transparent background, border none, radius 0, shadow none and padding 0; inner page is 1150px, overflowX 0, browser warning/error empty, screenshot captured." -->
 
 ## `BDD.RESUME.PARSE.VISUAL.005` 简历解析等待态
 

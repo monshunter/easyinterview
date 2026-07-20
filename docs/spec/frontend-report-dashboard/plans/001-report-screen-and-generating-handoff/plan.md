@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 4.8
+> **版本**: 4.9
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -227,6 +227,10 @@ ReportsScreen 使用约 `1372px` 内容面、共享 Header illustration、仅由
 
 以 `GeneratingScreen` / shared transition contract RED 锁定修订后的构图：报告插画、状态、标题、说明、indeterminate rule 与统一返回动作直接位于共享氛围画布上，禁止 `card` variant、白色背景、卡片边框/阴影/毛玻璃。GREEN 删除报告页唯一的卡片消费与无消费者样式分支，同时保持 reportId-only polling、visibility、trusted Back、typed error、TopBar 和 responsive/reduced-motion 行为不变。`BDD.REPORT.GENERATING.VISUAL.003` 由 domain tests 与 current-run Chrome desktop/mobile 验收承接；本 Phase 为纯 frontend presentation，Operation Matrix/API/fixture/backend/persistence 均 `N/A`。
 
+### Phase 21: Target-aware Generating Back copy
+
+以 locale/source/component RED 锁定 Generating 的受控例外：当 `resolveReportBackRoute` 已根据可信 report context 解析到 ReportsScreen，正常等待态及 typed error state 都显示“返回面试报告 / Back to interview reports”；尚无可信 TargetJob identity、只能回 Workspace 时继续显示共享“返回 / Back”。GREEN 只增加 Generating owner 的专用 locale key 并按既有 `backDestination` 选择标签；不恢复其它页面的旧目标特定文案，不改变 route、trusted-context、polling、retry、ready handoff 或 error state。`BDD.REPORT.GENERATING.VISUAL.003` 由 Generating navigation/i18n tests 与 current-run Chrome 验收承接；Operation Matrix/API/fixture/backend/persistence 均 `N/A`。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -264,6 +268,7 @@ ReportsScreen 使用约 `1372px` 内容面、共享 Header illustration、仅由
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 4.9 | Reopen Phase 21 to restore target-aware Generating Back copy without changing the trusted reports/workspace navigation matrix. |
 | 2026-07-20 | 4.8 | Reopen Phase 20 to remove the report transition white card and render the honest generating composition directly on the shared atmospheric canvas. |
 | 2026-07-19 | 4.7 | Reopen Phase 19 for the screenshot-aligned honest Generating transition and shared TopBar chrome. |
 | 2026-07-19 | 4.5 | Reopen Phase 18 to rebuild ReportsScreen and ReportConversation against the supplied summary-card, round-timeline, shared-context and role-row compositions. |

@@ -298,6 +298,7 @@ export const zh = {
   "generating.header.title": "正在生成面试报告",
   "generating.header.subtitle":
     "我们正在整理对话中的具体表现和改进建议。留在此页面即可查看进度。",
+  "generating.backToReports": "返回面试报告",
   "generating.errors.eyebrow": "报告不可用",
   "generating.errors.checkPaused": "进度更新已暂停",
   "generating.errors.missingReportId.title": "报告链接不完整",

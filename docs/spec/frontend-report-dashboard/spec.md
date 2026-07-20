@@ -1,6 +1,6 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.37
+> **版本**: 1.38
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -60,6 +60,7 @@
 | D-16 | 报告附属会话记录 | Report Context Strip 第四个同级子项是主入口；ReportsScreen 当轮 current report 与 queued/generating/failed latest attempt 都必须提供快捷入口，生成进度/恢复动作只能并列存在；canonical route 为 `/report-conversation?reportId=...` | 只消费 generated `getReportConversation`；不增加会话列表、第三个 Header CTA、新关系表或浏览器业务存储 |
 | D-17 | 报告上下文链接 | 面试记录并入 Context Strip 第四项；简历显示冻结 `resumeDisplayName` 并链接 frozen `resumeId` 的 canonical `/resume-versions?resumeId=...` | Report 不额外调用 `getResume`；URL 可复制、可新标签页打开，目标页复用既有简历详情读取链 |
 | D-18 | Failed report recovery | ReportsScreen 对非超限 failed latest attempt 显示“重新生成报告”与“查看面试记录”；regenerate 复用同一 reportId 和稳定 IK，成功只进入同 ID Generating | `REPORT_CONTEXT_TOO_LARGE` 不显示 regenerate；旧 current ready 与更新 failed 并存时两组动作分别绑定各自 locator，并有可区分 accessible name；双击、stale target response 与 malformed job fail closed。若另一页面已改变状态，`REPORT_INVALID_STATE_TRANSITION` / `REPORT_NOT_READY` 触发 current target + overview 重读，不能保留 stale failed 操作 |
+| D-19 | Generating 返回文案 | trusted `targetJobId` 已把返回目标解析为 ReportsScreen 时显示“返回面试报告 / Back to interview reports”；无可信 identity 的 Workspace fallback 显示通用“返回 / Back” | 文案只描述已解析目标，不改变 `resolveReportBackRoute`、route 参数、polling、错误恢复或 shared `common.back` 的其它消费者 |
 
 ## 4 UI 设计与正式实现
 
@@ -232,6 +233,7 @@ ReportConversation(reportId)
 | C-19 | 报告列表目标构图 | 当前 TargetJob 有 canonical rounds 和 current/latest 报告事实 | 打开 `/reports?targetJobId=...` | desktop 约 1372px，Header 插画、现有事实目标摘要卡、编号时间线和独立轮次卡完整；报告/记录/生成/恢复动作保持各自 locator、状态与 a11y；mobile 同序无横溢 | [001 Phase 18](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | C-20 | 面试记录目标构图 | report-owned transcript 含合法 assistant/user 消息 | 打开 report-conversation | desktop 约 1372px，Header、三列 Context Strip 和消息列共享边界；assistant/user 共享浅色整行卡片、描边、圆角、内边距和同宽方形头像轮廓，只以蓝色 AI / 灰色“我”区分身份；Markdown、安全边界、Back 与无 composer/internal IDs 合同不变，mobile 同序无横溢 | [001 Phase 18](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | C-21 | 报告生成等待态目标构图 | report 仍为 queued/generating，或轮询可恢复失败 | 打开 Generating | 全局 TopBar 保留并高亮“面试”；共享 report transition 的报告插画、真实状态说明、indeterminate 线和统一返回动作直接位于氛围画布上，无白卡/边框/阴影/局部毛玻璃；无假百分比/通知/阶段，失败恢复与 polling 合同不变 | [001 Phase 20](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| C-22 | Generating 返回目标消歧 | poll/terminal state 已有可信 targetJobId，或尚无可信 identity | 查看或点击返回动作 | trusted reports 目标显示“返回面试报告 / Back to interview reports”并进入 target-scoped ReportsScreen；Workspace fallback 继续显示“返回 / Back”；标签、导航目标、a11y 与 zh/en 同步 | [001 Phase 21](./plans/001-report-screen-and-generating-handoff/plan.md) |
 
 ## 9 关联计划
 
@@ -241,6 +243,7 @@ ReportConversation(reportId)
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.38 | Restore target-aware Generating Back copy: trusted reports navigation uses “返回面试报告 / Back to interview reports”, while untrusted Workspace fallback keeps the shared Back label. |
 | 2026-07-20 | 1.37 | Reopen the existing Generating owner to remove the obsolete white-card surface and align the report transition with the shared atmospheric canvas. |
 | 2026-07-19 | 1.36 | Reopen the Generating owner for the supplied report-transition card while preserving truthful polling, terminal errors and reportId-only routing. |
 | 2026-07-19 | 1.35 | Align assistant/user transcript cards to one shared outlined surface and avatar silhouette per acceptance feedback. |

@@ -78,7 +78,7 @@ describe("ResumePreviewTab read-only rendering", () => {
     expect(content.querySelector(".ei-text-title")).toBeNull();
   });
 
-  it("renders Markdown inside the same reading surface model as source pages", () => {
+  it("renders Markdown directly in its page surface without a styled wrapper", () => {
     renderPreview({
       ...RESUME,
       sourceType: "paste",
@@ -86,11 +86,11 @@ describe("ResumePreviewTab read-only rendering", () => {
       originalText: "plain fallback should not render",
     });
 
-    const card = screen
+    const article = screen
       .getByTestId("resume-detail-preview-content")
-      .querySelector(".ei-resume-detail-preview-card");
-    expect(card).not.toBeNull();
-    expect(card).not.toHaveClass("ei-resume-detail-preview-card--pdf");
+      .querySelector(":scope > article");
+    expect(article).not.toBeNull();
+    expect(article).not.toHaveAttribute("class");
     expect(screen.getByTestId("resume-detail-markdown-page")).toHaveClass(
       "ei-resume-detail-markdown-page",
     );
@@ -106,10 +106,6 @@ describe("ResumePreviewTab read-only rendering", () => {
     });
 
     const stack = screen.getByTestId("resume-detail-pdf-preview-stack");
-    const card = screen
-      .getByTestId("resume-detail-preview-content")
-      .querySelector(".ei-resume-detail-preview-card");
-    expect(card).not.toHaveClass("ei-resume-detail-preview-card--pdf");
     expect(stack).toHaveAttribute(
       "data-source-url",
       "/api/v1/resumes/01918fa0-0000-7000-8000-000000001000/source",

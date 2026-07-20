@@ -28,7 +28,7 @@ export const ResumePreviewTab: FC<ResumePreviewTabProps> = ({ resume }) => {
       data-testid="resume-detail-preview-content"
       className="ei-resume-detail-preview"
     >
-      <article className="ei-resume-detail-preview-card">
+      <article>
         {renderer === "pdf" ? (
           <PdfPageStackPreview sourceUrl={sourceUrl} label={uiResume.name} />
         ) : bodyMarkdown.trim() ? (

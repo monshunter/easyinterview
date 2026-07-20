@@ -52,6 +52,9 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
 }) => {
   const { t } = useI18n();
   const showRetry = (kind === "timeout" || kind === "loadFailed") && onRetry !== undefined;
+  const backLabel = backDestination === "reports"
+    ? t("generating.backToReports")
+    : t("common.back");
   return (
     <div
       data-testid="generating-screen"
@@ -137,7 +140,7 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
               onClick={onBack}
               style={buttonStyle("secondary")}
             >
-              {t("common.back")}
+              {backLabel}
             </button>
           </span>
         </div>

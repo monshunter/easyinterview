@@ -1,6 +1,6 @@
 # Frontend Shell Spec
 
-> **版本**: 1.45
+> **版本**: 1.46
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -116,6 +116,7 @@
 | C-18 | Auth / Settings 参考构图 | 用户打开登录、验证码、退出或设置 | 正式前端在 desktop/mobile 渲染当前业务状态 | Auth 三页共享宽幅双栏、原则卡与右侧主操作卡；Settings 使用由账号资料窗口、头像信息、柱状图、前景锁、盾牌对勾与星芒组成的主题色 Header 插画和三张横向功能卡，拒绝山形人物稀疏线稿；操作、请求、错误与可访问性语义不变且无伪倒计时/伪成功 | 001-app-shell-auth-settings |
 | C-19 | TopBar 控件辨识与账号 initial | authenticated runtime 已有 `displayName`，当前语言菜单关闭或展开 | 用户查看语言按钮或设置入口 | 语言 chevron 清晰并随展开状态旋转；设置入口显示用户名首字符而非固定 `E`，名称缺失显示 `?`；不增加 `/me` 请求、账号菜单或完整姓名暴露 | 001-app-shell-auth-settings |
 | C-20 | 跨页面操作按钮圆角一致性 | 用户在 TopBar/Auth/Home/Workspace/Parse/Practice/Reports/Report/Generating/Resume/Settings 查看主次、危险或恢复 action | 按钮处于默认、hover、focus、disabled、pending 或 error-recovery 状态 | 所有有框矩形/方形 action 的 computed `border-radius` 为 `8px` 且颜色/状态机/点击区域不变；圆形、pill、无边框链接及非按钮 surface 不被误改，desktop/mobile 无溢出 | 002-app-shell-visual-system |
+| C-21 | 返回文案默认值与 owner 消歧 | 二级/三级页面存在返回控件，且业务 owner 可能已解析明确父级目标 | 查看或点击返回控件 | 默认使用共享“返回 / Back”；仅当 owner 需要区分已解析目标时使用 owner 专用标签，例如 Generating trusted Reports 目标显示“返回面试报告 / Back to interview reports”；标签必须与真实目标一致，不改变导航状态机 | 001-app-shell-auth-settings + frontend-report-dashboard/001 |
 
 ### 6.1 跨业务等待态视觉合同
 
@@ -134,6 +135,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.46 | 2026-07-20 | Narrow shared Back copy to the default label while allowing an owner-specific label when a resolved parent destination needs disambiguation. |
 | 1.45 | 2026-07-20 | Standardize secondary and tertiary return controls on shared Back copy while preserving every owner route and recovery decision. |
 | 1.44 | 2026-07-20 | Anchor Settings Save to the first-level theme selector in one desktop primary row, with the conditional custom editor isolated below so disclosure never shifts the action. |
 | 1.43 | 2026-07-20 | Standardize framed rectangular and square actions on an 8px semantic control radius while preserving circular, pill, borderless-link and non-button surfaces. |

@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.30
+> **版本**: 1.31
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -83,3 +83,9 @@
 - [x] Locale/source contract 证明所有正式二三级返回控件只消费 `common.back`，中文“返回”、英文“Back”，旧目标特定 action key 无消费者。<!-- verified: 2026-07-20 evidence="backNavigationCopy 16/16 PASS after an explicit all-failing RED." -->
 - [x] Component navigation tests 证明标签统一后，各页面仍进入原 route/target，并保留 trusted-context、replace/push 与 fail-closed 行为。<!-- verified: 2026-07-20 evidence="Affected owner scope 65 files/495 tests PASS, including trusted report/generating Back and page route assertions." -->
 - [x] Current-run Chrome 抽样验证报告生成及至少一个其它二三级页面的中文/英文返回标签、可操作目标、无横向溢出与零 browser warning/error。<!-- verified: 2026-07-20 evidence="Generating used 返回 at desktop/mobile with zero overflow; Report and Reports used Back after real language switch, Report Back reached /reports?targetJobId=<trusted-target>, Chinese was restored, and browser logs were empty." -->
+
+## Phase 25 `BDD.SHELL.BACK.COPY.006` owner-specific exception
+
+- [x] Locale/source contract 证明 shared Back 是默认值，Generating trusted Reports 专用 key 是唯一显式 owner 例外，Workspace fallback 与其它页面不恢复旧长文案。<!-- verified: 2026-07-20 evidence="Shared Back-copy suite passes 19/19 and both locale coverage suites pass 28/28." -->
+- [x] Component navigation tests 证明专用标签只随既有 trusted destination 出现，route/target、replace/push 与 fail-closed 行为不变。<!-- verified: 2026-07-20 evidence="Generating waiting/error navigation suites retain the complete reports/workspace destination matrix while selecting copy from the same backDestination owner." -->
+- [x] Current-run Chrome 验证 Generating 显示“返回面试报告”；当前 target-scoped ReportsScreen destination 由 component tests 承接，且无横向溢出或 browser error/warning。<!-- verified: 2026-07-20 evidence="Real authenticated Generating visibly rendered 返回面试报告 before automatic ready handoff; the transient state expired before a reliable live click, so the route claim is intentionally limited to code-level navigation evidence." -->

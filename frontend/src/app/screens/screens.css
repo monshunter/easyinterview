@@ -2554,17 +2554,8 @@
   align-items: flex-start;
 }
 
-.ei-resume-detail-preview-card {
-  width: min(100%, 1310px);
-  min-height: 720px;
-  padding: 30px 79px 52px;
-  box-sizing: border-box;
-  color: #222222;
-  background: #f6f3ee;
-  border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 3px;
-  box-shadow: 0 18px 50px rgba(30, 22, 15, 0.10);
-  font-family: var(--ei-font-sans);
+.ei-resume-detail-preview > article {
+  width: 100%;
 }
 
 .ei-resume-detail-markdown-page {
@@ -2576,13 +2567,6 @@
   border: 1px solid var(--ei-color-rule-strong);
   box-shadow: 0 10px 30px rgba(30, 22, 15, 0.08);
   box-sizing: border-box;
-}
-
-.ei-resume-detail-preview-card .ei-text-body {
-  color: #333333;
-  font-family: var(--ei-font-sans);
-  font-size: 15.5px;
-  line-height: 1.72;
 }
 
 .ei-resume-detail-preview-body h1,
@@ -3073,8 +3057,8 @@
 }
 
 .ei-practice-input-shell {
-  min-height: 126px;
-  padding: 14px 15px 13px;
+  min-height: 112px;
+  padding: 1px 1px 1px;
   box-sizing: border-box;
   background: var(--ei-color-bg-card);
   border: 1px solid color-mix(in srgb, var(--ei-color-accent) 28%, var(--ei-color-rule-strong));
@@ -3085,7 +3069,7 @@
 .ei-practice-input-surface {
   position: relative;
   min-height: 112px;
-  padding: 8px 10px 10px;
+  padding: 1px 1px 1px;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -3490,11 +3474,6 @@
   .ei-resume-workshop-card-open {
     width: 100%;
     height: 52px;
-  }
-
-  .ei-resume-detail-preview-card {
-    min-height: 520px;
-    padding: 16px 12px 28px;
   }
 
   .ei-resume-detail-markdown-page {

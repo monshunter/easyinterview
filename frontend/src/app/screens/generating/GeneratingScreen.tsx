@@ -30,6 +30,9 @@ export const GeneratingScreen: FC<GeneratingScreenProps> = ({ route }) => {
   const poll = useReportGenerationPoll({ reportId, onReady: handleReady });
   const backRoute = resolveReportBackRoute(poll.report, reportId);
   const backDestination = backRoute.name === "reports" ? "reports" : "workspace";
+  const backLabel = backDestination === "reports"
+    ? t("generating.backToReports")
+    : t("common.back");
   const goBack = () => navigate(backRoute);
 
   if (!reportId) {
@@ -81,7 +84,7 @@ export const GeneratingScreen: FC<GeneratingScreenProps> = ({ route }) => {
       body={t("generating.header.subtitle")}
       showProgress
       action={{
-        label: t("common.back"),
+        label: backLabel,
         onClick: goBack,
         wrapperTestId: "generating-back-button",
       }}

@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.18
+> **版本**: 3.19
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -96,3 +96,8 @@
 
 - [x] Domain behavior tests 证明报告等待内容直接位于共享画布，无 `card` variant 与白色 surface，同时保留真实状态、handoff、failure 和 trusted Back。<!-- verified: 2026-07-20 evidence="Shared scene and Generating tests pass 12/12; affected report/generating route and polling regression passes inside 65 files/495 tests." -->
 - [x] Chrome desktop/mobile 证明中心内容透明、无边框/阴影/局部毛玻璃，统一返回控件可操作且无横向溢出；该 scoped UI evidence 不声明完整 `E2E.P0.099`。<!-- verified: 2026-07-20 evidence="Real frontend/backend Generating captured at desktop 1512x777 and exact mobile 390x844 before ready handoff; transparent content, zero border/shadow/backdrop-filter, no legacy card marker, Back=返回, overflowX=0, browser logs empty." -->
+
+## Phase 21 `BDD.REPORT.GENERATING.VISUAL.003` target-aware Back copy
+
+- [x] Domain behavior tests 证明 trusted Reports 与 Workspace fallback 使用各自准确的 zh/en 返回标签，同时导航目标与失败恢复不变。<!-- verified: 2026-07-20 evidence="Locale/source and Generating normal/error suites pass 43/43; expanded Generating/i18n scope passes 72/72." -->
+- [x] Chrome 在真实 Generating 页面验证“返回面试报告”可见；进入当前 target-scoped ReportsScreen 的既有 destination 由 component navigation tests 验证，该 scoped UI evidence 不声明完整 `E2E.P0.099`。<!-- verified: 2026-07-20 evidence="Real authenticated Generating at reportId 019f7cbe-c57f-72f1-8c10-74b9dca9676f visibly rendered 返回面试报告 before the approximately three-second ready handoff; no interception or mock was used. The live state expired before a reliable click, so route destination evidence remains code-level." -->

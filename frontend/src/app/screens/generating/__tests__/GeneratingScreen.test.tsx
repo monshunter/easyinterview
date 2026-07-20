@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { EasyInterviewClient } from "../../../../api/generated/client";
@@ -148,6 +148,7 @@ describe("GeneratingScreen honest state projection", () => {
     expect(screen.queryByTestId("generating-phase-list")).not.toBeInTheDocument();
     expect(screen.queryByTestId("generating-live-stream")).not.toBeInTheDocument();
     expect(screen.queryByTestId("generating-notify-cta")).not.toBeInTheDocument();
+    expect(within(screen.getByTestId("generating-back-button")).getByRole("button")).toHaveTextContent("返回面试报告");
     expect(document.body.textContent).not.toMatch(/实时观察|好了通知我|会话记录|\d+%/);
   });
 

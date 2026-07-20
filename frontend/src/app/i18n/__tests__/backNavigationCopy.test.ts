@@ -46,15 +46,30 @@ const RETIRED_RETURN_KEYS = [
   "report.missingReport.cta",
 ] as const;
 
+const GENERATING_OWNER_SOURCES = [
+  "../../screens/generating/GeneratingScreen.tsx",
+  "../../screens/generating/components/GeneratingErrorState.tsx",
+] as const;
+
 describe("shared secondary-page Back copy", () => {
   it("defines one locale-owned label for Chinese and English", () => {
     expect(zh).toHaveProperty("common.back", "返回");
     expect(en).toHaveProperty("common.back", "Back");
   });
 
+  it("defines the one target-disambiguating owner label for trusted report navigation", () => {
+    expect(zh).toHaveProperty("generating.backToReports", "返回面试报告");
+    expect(en).toHaveProperty("generating.backToReports", "Back to interview reports");
+  });
+
   it.each(RETURN_CONTROL_SOURCES)("uses common.back in %s", (path) => {
     const source = readFileSync(resolve(__dirname, path), "utf8");
     expect(source).toContain('t("common.back")');
+  });
+
+  it.each(GENERATING_OWNER_SOURCES)("uses the explicit trusted-reports label in %s", (path) => {
+    const source = readFileSync(resolve(__dirname, path), "utf8");
+    expect(source).toContain('t("generating.backToReports")');
   });
 
   it("retires target-specific return action keys from production sources and catalogs", () => {

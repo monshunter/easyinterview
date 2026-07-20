@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.16
+> **版本**: 3.17
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -91,3 +91,9 @@
 - `GeneratingScreen` 与 shared-scene source tests 先拒绝 `card` prop/class 及白色背景、边框、阴影、毛玻璃，再确认报告等待内容直接复用共享氛围画布。
 - 既有 queued/generating/recoverable/terminal、reportId switch、visibility、trusted Back、TopBar、responsive 与 reduced-motion tests 保持通过。
 - Chrome desktop/mobile 检查中心内容 computed background transparent、border 0、box-shadow none、统一“返回 / Back”控件、无横向溢出及 browser warning/error 为零。
+
+## 15 Target-aware Generating Back copy
+
+- `reportDashboardI18nCoverage.test.ts` 与 `backNavigationCopy.test.ts` 先要求新增 `generating.backToReports` 的 zh/en exact copy，并把 Generating 明确登记为 shared `common.back` 的唯一受控 owner 例外。
+- `GeneratingScreen.test.tsx` / `GeneratingBackNavigation.test.tsx` 覆盖 polling 与 typed error 两类 trusted Reports 目标显示专用文案并保持原 route；无可信 identity 的 Workspace fallback 继续显示通用文案。
+- Chrome 在真实 queued/generating 页面验证“返回面试报告”及其 target-scoped Reports destination；code-level tests 与真实浏览器证据分层记录。

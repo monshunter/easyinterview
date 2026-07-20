@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 4.3
+> **版本**: 4.4
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
@@ -137,3 +137,14 @@
 - [x] 24.2 GREEN: queued/processing 无正文时复用 shared `resume` variant；保留 sequential poll、pending data、ready/failed atomic replacement、generated client 与 route。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="Resume detail 9 and CSS parity 8 tests PASS including inter-request waiting DOM" -->
 - [x] 24.3 BDD-Gate: `BDD.RESUME.PARSE.VISUAL.005` 覆盖中文/英文、连续轮询、ready replace、desktop Chrome 与 mobile responsive contract，不新增 E2E ID。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Two real pasted-resume parses rendered one stable shared waiting DOM, full-bleed x=0 width=1920 canvas, shared TopBar and return action, then atomically replaced with ready details. Locale and mobile boundary remain component contracts." -->
 - [x] 24.4 REGRESSION: focused、typecheck/build、根 `make test`、context/docs/diff 与 no-flash intermediate-DOM gate 通过后恢复 completed。<!-- verified: 2026-07-19 evidence="Resume focused 9 plus shared final 89 PASS; production build/redeploy and root make test 615 / 4615 PASS; no legacy loading string in ready DOM and browser console clean." -->
+
+## Phase 25: Remove the shared preview backdrop
+
+- [x] 25.1 RED: `ResumePreviewTab` test 要求直接 `article` 无 presentation class，CSS parity 要求共享 preview-card selector 缺席；当前空 `class` attribute 与 desktop/mobile orphan CSS 必须先失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="ResumePreviewTab and CSS parity 14 tests: 2 expected failures for empty class attribute and orphan preview-card selectors; 12 unrelated assertions PASS" -->
+- [x] 25.2 GREEN: 删除空 `className`、desktop/mobile preview-card CSS 和旧背景板尺寸/阴影/颜色断言；保留 Markdown page、PDF stack、只读正文与 source endpoint tests。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="ResumePreviewTab and CSS parity 2 files / 14 tests PASS" -->
+- [x] 25.3 BDD-Gate: `BDD.RESUME.DETAIL.VISUAL.004` 证明 Header/renderer/正文事实不变且 PDF/Markdown page surface 直接位于详情画布；不新增 E2E ID。<!-- verified: 2026-07-20 method=component-css-and-chrome evidence="Owner 20 files / 118 tests preserve Header, Markdown and PDF renderer contracts; real Markdown detail exposes a classless transparent article and only the inner document page remains white." -->
+- [x] 25.4 REGRESSION: focused owner tests、typecheck/build、根 `make test`、frontend redeploy、owner context、docs/index/diff 与 real Chrome detail smoke 通过后恢复 completed。<!-- verified: 2026-07-20 method=full-regression-and-chrome evidence="Final focused 14/14 and Resume owner 118/118 pass; typecheck, production build and root make test 615 / 4615 pass; frontend redeploy and real Chrome confirm transparent outer article plus 1150px Markdown page." -->
+
+### Chrome follow-up: preserve the direct page width
+
+- [x] 25.5 RED/GREEN: source parity 先拒绝无宽度 owner 导致的短内容 shrink-to-fit，再为透明的直接 `article` 增加 `width: 100%`；不得恢复旧 class、背景、边框、圆角、阴影或 padding。<!-- verified: 2026-07-20 method=red-green-and-chrome evidence="Source parity first failed 1/8 only for the missing direct-article width owner; GREEN 14/14. Chrome changed the short-content article/page widths from 497/497 to 1443/1150 while keeping transparent/none/0 visual properties and legacy selector count 0." -->

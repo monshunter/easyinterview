@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen BDD Plan
 
-> **版本**: 4.7
+> **版本**: 4.8
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -12,7 +12,7 @@
 | `BDD.REPORT.CONVERSATION.001` | owned report 存在，状态为 queued/generating/ready/failed，消息投影可为合法或损坏 | 用户从 Report 或 ReportsScreen 打开记录、切换 reportId 或返回父页 | ReportsScreen 对每个不同 current/latest locator 独立显示记录入口，progress/regenerate 只作为并列动作；只以 reportId 读取并按 sequence 显示安全只读 Markdown；ready 返回 Report、queued/generating 返回 Generating、failed 以可信 target 直接返回 ReportsScreen；跨用户/乱序/非法 role/stale response 整体 fail closed，无 session list/live controls/internal IDs | `frontend/src/app/screens/report-conversation/__tests__/ReportConversationScreen.test.tsx` + `frontend/src/app/screens/reports/__tests__/ReportsScreen.test.tsx`，由根 `make test` 承接 |
 | `BDD.REPORT.REGENERATE.UI.001` | latest attempt 为普通 failed、超限 failed，或旧 ready 与更新 failed 并存 | 用户查看记录、点击重新生成、重试未知网络结果、另一 tab 已改变状态或切换 target | 普通 failed 使用同 reportId/稳定 IK 进入 matching Generating；双击单请求；超限仅记录；旧/新动作 locator 与 accessible name 可区分；typed state conflict 重读 current target + overview，stale/malformed/raw/unknown error fail closed | `frontend/src/app/screens/reports/__tests__/ReportsScreen.test.tsx` + generated-client contract tests，由根 `make test` 承接 |
 | `BDD.REPORT.RECORDS.VISUAL.002` | 当前 TargetJob 有 canonical rounds/current/latest，且 report-owned transcript 有合法 assistant/user 消息 | 用户浏览报告列表并打开面试记录 | ReportsScreen 以 1372px Header illustration、真实事实摘要卡和编号时间线展示独立轮次卡；ReportConversation 使用同宽 Header、三列 Context Strip，assistant/user 共用浅色整行卡片、描边、圆角、内边距和同宽方形头像轮廓，只以蓝色 AI / 灰色“我”区分身份；所有 locator/status/regenerate/Back/Markdown/privacy 行为不变，mobile 同序无横溢 | `ReportsScreen.test.tsx` + `ReportConversationScreen.test.tsx` domain behavior tests；current-run Chrome 仅作 UI 证据 |
-| `BDD.REPORT.GENERATING.VISUAL.003` | reportId 合法且状态为 queued/generating、可恢复读取失败或 terminal | 用户打开 Generating、等待轮询或返回父页 | 全局 TopBar/面试高亮保留；共享 report transition 的插画、状态、标题、说明、indeterminate rule 与统一返回控件直接位于氛围画布上，无白卡/边框/阴影/局部毛玻璃；ready handoff/typed failure/trusted Back 不变，desktop/mobile 无横向溢出 | `GeneratingScreen.test.tsx` + shared route/responsive tests + current-run Chrome manual acceptance；根 `make test` 承接代码层回归 |
+| `BDD.REPORT.GENERATING.VISUAL.003` | reportId 合法且状态为 queued/generating、可恢复读取失败或 terminal | 用户打开 Generating、等待轮询或返回父页 | 全局 TopBar/面试高亮保留；共享 report transition 的插画、状态、标题、说明、indeterminate rule 与返回控件直接位于氛围画布上，无白卡/边框/阴影/局部毛玻璃；trusted Reports 目标显示“返回面试报告 / Back to interview reports”，Workspace fallback 显示共享“返回 / Back”；ready handoff/typed failure/导航矩阵不变，desktop/mobile 无横向溢出 | `GeneratingScreen.test.tsx` + `GeneratingBackNavigation.test.tsx` + i18n/source tests + current-run Chrome manual acceptance；根 `make test` 承接代码层回归 |
 
 ## Real E2E handoff
 

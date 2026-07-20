@@ -84,6 +84,7 @@ describe("Generating Back destination", () => {
   ] as const)("uses the trusted target after %s", (_label, state, report) => {
     const navigate = renderBack(state, report);
 
+    expect(screen.getByTestId("generating-error-back-to-workspace")).toHaveTextContent("Back to interview reports");
     expect(navigate).toHaveBeenCalledWith({
       name: "reports",
       params: { targetJobId: TARGET_JOB_ID },
@@ -110,6 +111,9 @@ describe("Generating Back destination", () => {
     fireEvent.click(
       within(screen.getByTestId("generating-back-button")).getByRole("button"),
     );
+    expect(
+      within(screen.getByTestId("generating-back-button")).getByRole("button"),
+    ).toHaveTextContent("Back to interview reports");
     expect(navigate).toHaveBeenCalledWith({
       name: "reports",
       params: { targetJobId: TARGET_JOB_ID },
@@ -127,6 +131,8 @@ describe("Generating Back destination", () => {
   ] as const)("falls back to workspace after %s", (_label, state, report) => {
     const navigate = renderBack(state, report as FeedbackReport | null);
 
+    expect(screen.getByTestId("generating-error-back-to-workspace")).toHaveTextContent("Back");
+    expect(screen.getByTestId("generating-error-back-to-workspace")).not.toHaveTextContent("Back to interview reports");
     expect(navigate).toHaveBeenCalledWith({ name: "workspace", params: {} });
   });
 

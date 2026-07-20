@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.41
+> **版本**: 1.42
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -200,10 +200,15 @@ GREEN 只在 `SettingsScreen` 增加明确的 theme editor 分组，并调整 `s
 
 先以 locale/source/component RED 枚举正式二三级页面返回控件，要求所有控件只消费共享 `common.back`，中文为“返回”、英文为“Back”；旧“返回首页/简历工坊/报告/面试规划/面试”等目标特定 action key 必须失败。GREEN 只统一可见标签并删除无消费者 action key，保留每个页面的 route target、replace/push、trusted context、fail-closed、请求时序与业务状态机。`BDD.SHELL.BACK.COPY.006` 由 locale/source/component navigation tests 与 current-run Chrome 抽样验收承接；纯前端显示合同，Operation Matrix/API/fixture/backend/persistence 均 `N/A`。Phase 15.3 仍独立未完成，主 plan 保持 `active`。
 
+### Phase 25: Owner-specific Back copy exception
+
+根据用户验收反馈收窄 Phase 24：`common.back` 继续是二三级页面默认标签，但当业务 owner 已解析明确父级且短标签会失去必要目标语义时，允许 owner 专用 copy。当前唯一新增例外为 Generating trusted Reports 目标“返回面试报告 / Back to interview reports”；无可信 identity 的 Workspace fallback 与其它正式页面继续使用 `common.back`。TDD 更新 shared source/catalog contract，要求例外显式登记、专用 key 仅在 Generating owner 消费且 route matrix 不变；`BDD.SHELL.BACK.COPY.006` 由 shared i18n/source tests 与 Report owner behavior/Chrome gate 承接。纯前端显示合同，Operation Matrix/API/fixture/backend/persistence 均 `N/A`；Phase 15.3 仍独立未完成，主 plan 保持 `active`。
+
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.42 | Revise Phase 24 through Phase 25 so shared Back remains the default while Generating may label its resolved Reports destination explicitly. |
 | 2026-07-20 | 1.41 | Reopen Phase 24 to standardize secondary-page Back copy without changing route ownership or recovery behavior. |
 | 2026-07-20 | 1.40 | Reopen Phase 23 to anchor Save beside the first-level theme choices while the conditional custom editor expands only beneath that stable primary row. |
 | 2026-07-20 | 1.39 | Reopen Phase 22 to strengthen the language-menu chevron and derive the Settings entry mark from the authenticated display name without changing navigation or request budgets. |

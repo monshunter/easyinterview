@@ -19,7 +19,7 @@
 
 - 本次交付按三张参考图重构上传简历、面试进行和面试报告三页的导航下方起点、desktop 内容面、响应式网格、卡片层级、按钮、SVG icon、字体与间距，同时保持既有 API、路由、消息、简历注册和报告事实语义。
 - 用户追加要求已闭环：AI/用户角色改为方形标识；说明胶囊带 sparkle icon；Transcript 成为唯一滚动区；Composer 整体固定在会话卡底部；说明胶囊固定贴在输入框上方 8px。
-- 三张追加参考图也已闭环：简历预览采用 `1512/1310/1150px` Header/背景板/纸张构图；报告列表采用 `1372px` 插画 Header、事实摘要卡和编号时间线；面试记录采用同宽三列 Context Strip，并让 AI/“我”共用消息卡片与头像轮廓。
+- 三张追加参考图也已闭环并按后续反馈收敛：简历预览采用约 `1512px` 内容面，删除 `1310px` 共享背景板，让 PDF 页面栈/约 `1150px` Markdown 纸张直接落在画布；报告列表采用 `1372px` 插画 Header、事实摘要卡和编号时间线；面试记录采用同宽三列 Context Strip，并让 AI/“我”共用消息卡片与头像轮廓。
 - 最后五张参考图也已闭环：面试规划详情采用 `1250px` Header 右侧动作与四层卡面；Settings 采用 `1372px` 插画 Header 和三张横向功能卡；登录、验证码、退出共享 `1450px` 双栏 Auth Shell、原则卡和主操作卡，验证码页不伪造倒计时或成功状态。
 - 四张异步等待态参考图也已闭环：Practice、Resume、Report Generating、JD Parse 复用同一 shell-owned transition canvas 和四种语义 SVG；共享 TopBar 始终可见，Resume 全宽、Report 白卡为 1090px、JD 使用 1–4 编号步骤轴，所有 percent/内部 provider/伪阶段均被拒绝。
 - TDD 证据：Resume create 4 files / 21 tests；Practice 最终 4 files / 56 tests；报告页追加 2 files / 23 tests 的目标构图 RED/GREEN，并由根级 frontend 131 files / 1055 tests 完整覆盖。报告页 RED 明确拒绝缺失 Detail icon 与 1432px 目标构图，随后转 GREEN。
@@ -31,6 +31,8 @@
 - 2026-07-20 TopBar 补充闭环：语言入口改为带可见底板和展开旋转的 code-native SVG chevron；设置入口从 authenticated runtime `displayName` 派生首个 Unicode 字符，拉丁字母大写、空名称显示 `?`。Focused 43/43、typecheck/build、frontend redeploy、环境 4/4 与根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 134 files / 1087 tests）通过；真实 Chrome 验证 `星期无 → 星`、设置直达、无横向溢出及 0 warning/error。
 - 2026-07-20 Home JD textarea 补充闭环：保留 `width: 100%`，默认 `min-height` 从 `106px` 增至 `212px`，长内容随最新 `scrollHeight` 自动增高并在删减后回缩。RED 先暴露静态尺寸与缺少重算，GREEN 后 Home 9 files / 67 tests、typecheck/build、frontend redeploy、环境 4/4 和根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 134 files / 1088 tests）通过；真实 Chrome 验证空/短内容 `212px`、36 行 JD `993px` 且 `clientHeight=scrollHeight`、无横向溢出及 0 warning/error。
 - 2026-07-20 操作按钮圆角补充闭环：建立 `--ei-radius-control: 8px`，以 28 个 CSS selector + 10 个内联恢复 action 的显式 inventory 统一 TopBar/Auth/Home/Workspace/Parse/Practice/Reports/Report/Generating/Resume/Settings 有框操作，同时保留 circular/pill、无边框 link/back 与非按钮 surface。Focused 6 files / 62 tests、根 `make test`（Python 615 / 4615 subtests、Go 全包、frontend 全量）、typecheck/build、frontend redeploy、环境 4/4 通过；真实 Chrome 验证 Settings desktop/mobile、弹窗与跨页样本 computed `8px`、无横向溢出和 0 warning/error，证据不声明 E2E。
+- 2026-07-20 报告返回文案补充闭环：为 trusted Reports destination 恢复“返回面试报告 / Back to interview reports”，Workspace fallback 与其它页面继续使用 shared Back；normal/error component、locale/source 和导航矩阵回归均通过。真实 Chrome 捕获短暂 Generating 文案，但页面约三秒后自动 handoff，未把未可靠执行的 live click 冒充 PASS。
+- 2026-07-20 简历背景板补充闭环：删除空 `className` 与 `ei-resume-detail-preview-card` desktop/mobile/后代 CSS，把正向旧样式测试改为 selector 缺席 gate；Chrome 首轮发现透明 `article` 因失去宽度 owner 把短内容纸张缩到约 497px，follow-up RED/GREEN 以 `width: 100%` 恢复内部纸张 1150px，同时保持透明、无边框/圆角/阴影/padding。最终 focused 14/14、Resume owner 118/118、typecheck/build、根 `make test` 615 / 4615、redeploy 与 browser warning/error=0 通过。
 - 文档证据：Home/Parse owner 恢复 `completed`；Shell 视觉 Phase 完成但因独立 Phase 15.3 继续保持 `active`；两个 context、Header/INDEX、docs links 与 `git diff --check` 通过。
 
 ## 2 会话中的主要阻点/痛点
@@ -110,6 +112,16 @@
 - **证据**：首轮修订把 send 绝对定位到新 input surface 右下角，并用 `126px` 右内边距避免文本覆盖；desktop Chrome containment 通过，但 `390×844` 截图显示正文被压成窄列，同时 textarea 全局 focus ring 与 surface `:focus-within` 形成双框。
 - **影响**：如果只在实现后做单一 desktop 截图，视觉归属修复会制造新的 mobile 可读性问题。本轮依据同一 Chrome 反馈重开 GREEN，把 action 改为 surface 内非叠加底部区域，并补单一 focus owner gate。
 
+### 2.16 文案一致性被误解为“任何页面都不得有例外”
+
+- **证据**：二三级页面统一为 shared Back 后，Generating 的 trusted Reports destination 仍安全正确，但用户明确指出该页需要“返回面试报告”而不是过度抽象的“返回”；Workspace fallback 又不能跟随变成长文案。
+- **影响**：如果把统一性实现成无条件单 key，会在 route 行为测试全绿时损失用户依赖的关键去向语义；修复必须把例外绑定 owner 已有的可信 destination，而不能恢复跨页面文案分叉。
+
+### 2.17 删除视觉 wrapper 可能同时删除布局 owner
+
+- **证据**：移除 `ei-resume-detail-preview-card` 后，第一轮 focused 测试只证明旧 CSS 缺席、透明外层成立；真实 Chrome 发现直接 flex child 按短内容 shrink-to-fit，`article` 与 Markdown 页都约 497px，未达到仍有效的 1150px 纸张合同。补透明 `width: 100%` 后，外层/纸张恢复为 1443/1150px。
+- **影响**：只做 class/CSS 清理会在消除突兀背景的同时制造新的内容缩窄；必须把 presentation surface 和 structural sizing 分成两条可执行合同，并以短内容样本验收。
+
 ## 3 根因归类
 
 - 固定 Composer / 滚动 Transcript 最初没有成为可执行 DOM/CSS/BBox 不变量，只描述了视觉形态。
@@ -143,6 +155,10 @@
 - 返回动作标签由各页面 locale key 重复持有，缺少 Shell 统一文案与业务 target 分离的 ownership 合同。
   - **类别**：spec/plan
 - Composer 合同只规定“右下角”，没有定义 input surface ownership、overlay/flow、窄屏文本宽度和 focus ring owner。
+  - **类别**：spec/plan
+- 返回文案治理把 shared default 错当成绝对无例外，没有规定例外必须绑定既有 trusted destination、同时覆盖 normal/error/fallback。
+  - **类别**：spec/plan
+- 简历背景板同时承担 presentation 与 flex sizing；旧测试只锁定 class 样式或 selector 缺席，没有在短内容下断言直接子项和 renderer page 的实际宽度。
   - **类别**：spec/plan
 
 ## 4 对流程资产的改进建议
@@ -186,11 +202,14 @@
 - 共享异步场景的视觉 variant 必须维护 caller inventory；修订稿删除某一构图时，source test 同时拒绝旧 prop/class/testid 和 desktop/mobile CSS，真实 Chrome 在 pending 窗口补 computed-style 证据。本轮已在 Report Phase 20 原地固化。
   - **落点**：Report/Shell transition spec / plan / source contract / Chrome gate
   - **优先级**：high
-- 返回动作应采用“Shell-owned label + page-owned target”合同：共享 locale key 只定义“返回 / Back”，每个页面的 route、history 和 trusted/fail-closed 语义由原 owner 测试继续证明。本轮已在 Shell Phase 24 原地固化。
+- 返回动作应采用“shared default + owner-scoped trusted exception + page-owned target”合同：默认 locale key 定义“返回 / Back”，确需更具体文案时只能绑定 owner 已有的可信 destination，同时覆盖 normal/error/fallback 并保留 route、history 与 fail-closed tests。本轮已在 Shell Phase 25 与 Report Phase 21 原地固化唯一例外。
   - **落点**：Shell UI architecture / spec / plan / locale source contract
   - **优先级**：high
 - Composer/editor 的附属 CTA 必须同时定义“所属边界 + 是否与内容叠加 + exact mobile 内容宽度 + focus owner”；第一轮真实 Chrome 若暴露新几何退化，应回写同一 phase 后再收口。本轮已在 Practice Phase 15 原地固化非叠加 action area。
   - **落点**：Practice UI design / spec / plan / visual tests / Chrome bbox gate
+  - **优先级**：high
+- 删除 visual wrapper/class 时，owner gate 必须同时覆盖旧 selector 零残留、renderer 正向存在、透明外层和短内容 geometry；如果 wrapper 曾承担尺寸，应用无 presentation 的结构规则接管，不得以恢复背景板修复 shrink-to-fit。
+  - **落点**：对应 UI design / spec / plan / source parity / Chrome bbox gate
   - **优先级**：high
 
 ## 5 建议优先级与后续动作
@@ -205,6 +224,7 @@
 - 后续涉及 textarea、Markdown editor 或会话输入区尺寸调整时，先复用本轮的六项尺寸合同，不再只断言单个 `min-height`；Chrome 必须同时记录 `clientHeight/scrollHeight` 和 `documentWidth/viewportWidth`。
 - 后续新增有框 action 时，优先消费 `--ei-radius-control` 并更新 inventory test；只有 circular、pill 或明确无边框 action 才能进入例外清单，避免页面私有 `border-radius` 再次回流。
 - 后续修改共享 transition variant 时，先更新 caller inventory；没有剩余消费者的 prop/class/CSS 必须同步删除，并在真实 pending 窗口保存 desktop/mobile computed-style 与截图证据。
-- 后续新增二级/三级页面时，返回控件直接消费 `common.back`；页面只新增目标和安全语义测试，不再新增目标特定返回 locale key。
+- 后续新增二级/三级页面时，返回控件默认消费 `common.back`；只有用户确认的关键去向才允许 owner-scoped key，并必须由 trusted destination 分支、normal/error/fallback tests 与 source inventory 共同约束。
 - 后续修改 Composer/editor 内的发送、保存或格式化动作时，优先使用同一 surface 内的非叠加 action area；必须同时跑 normal desktop 与 exact `390×844`，测量 action containment、内容宽度、overlap 和单一 focus ring。
+- 后续删除卡片、背景或 wrapper class 时，先列出它当前承担的 presentation 与 geometry 职责；Chrome 必须使用短内容样本同时测量透明外层和内部页面宽度，避免“旧 selector 已清零”掩盖 shrink-to-fit。
 - 可延后：为 fixture visual acceptance 增加更多长内容 fixture；当前通过压缩 desktop/mobile viewport 已真实产生 Transcript overflow 并验证了固定 Composer，不构成本次交付 blocker。

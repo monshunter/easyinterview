@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 4.7
+> **版本**: 4.8
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -133,3 +133,10 @@
 - [x] 20.2 GREEN: 删除 Generating 的卡片消费及无消费者 shared card 分支；保持真实状态、polling、TopBar、trusted Back、typed error、responsive 与 reduced-motion 不变。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="AsyncTransitionScene and GeneratingScreen focused suites pass 12/12 after removing the sole card consumer, shared prop/class, desktop surface CSS and mobile override." -->
 - [x] 20.3 BDD-Gate: `BDD.REPORT.GENERATING.VISUAL.003` 通过 domain behavior tests 与 current-run Chrome desktop/mobile 验证无卡片构图、统一返回文案和零横向溢出；不声明完整 `E2E.P0.099`。<!-- verified: 2026-07-20 method=chrome-extension-automation evidence="A real completed interview entered Generating at 1512x777 and exact 390x844. The content layer was transparent with zero border/radius/shadow/backdrop-filter, no legacy card class/testid, Back read 返回, overflowX=0, and browser warning/error logs were empty. Screenshots: .test-output/ui-alignment/report-generating-cardless/." -->
 - [x] 20.4 REGRESSION: focused、typecheck/build、根 `make test`、frontend redeploy、环境 readiness、owner context、docs/index/diff 与 Chrome gates 通过后恢复 completed。<!-- verified: 2026-07-20 method=full-regression-and-document-gates evidence="Affected owner regression 65 files/495 tests, typecheck and production build pass; root make test passes Python 615/4615 subtests, all Go packages and frontend 136 files/1107 tests. Frontend redeploy, dependency readiness 4/4, both owner contexts, docs links, Header/INDEX sync and diff checks pass; Chrome desktop/mobile is clean." -->
+
+## Phase 21: Target-aware Generating Back copy
+
+- [x] 21.1 RED: locale/source/component tests 要求 trusted Reports 目标使用“返回面试报告 / Back to interview reports”，Workspace fallback 继续使用“返回 / Back”；当前统一 `common.back` 实现必须先失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="Four focused files ran 43 tests: 10 failed only because the owner locale key and target-aware normal/error labels were absent; all Workspace fallback Back assertions passed." -->
+- [x] 21.2 GREEN: 增加 Generating owner 专用 locale key，并由正常等待态与 typed error state 按既有 `backDestination` 选择标签；保留所有导航、polling、retry、ready handoff 和错误恢复语义。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="The four focused suites pass 43/43: zh/en locale parity, the two approved consumers, trusted waiting/error labels and the unchanged reports/workspace navigation matrix are green." -->
+- [x] 21.3 BDD-Gate: `BDD.REPORT.GENERATING.VISUAL.003` 由 Generating i18n/navigation tests 与 current-run real Chrome 验证 trusted label/target；不新增 E2E ID，不声明完整 `E2E.P0.099`。<!-- verified: 2026-07-20 method=component-and-chrome evidence="Locale/source and Generating waiting/error suites prove the trusted Reports label plus unchanged target-scoped route matrix; a transient real Generating page visibly rendered 返回面试报告 before ready handoff." -->
+- [x] 21.4 REGRESSION: focused、typecheck/build、根 `make test`、frontend redeploy、环境 readiness、owner context、docs/index/diff 与 Chrome gates 通过后恢复 completed。<!-- verified: 2026-07-20 method=full-regression-and-document-gates evidence="Generating/i18n 6 files / 72 tests, typecheck, production build and root make test 615 / 4615 pass; frontend redeploy, readiness 4/4, report/shell/resume context validation, docs links, Header/INDEX and diff gates pass; trusted Chrome label evidence is current." -->

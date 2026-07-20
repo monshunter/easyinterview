@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.17
+> **版本**: 3.18
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -102,3 +102,9 @@
 - [x] RED/GREEN tests 覆盖 `card` surface 删除和共享画布直出，并证明报告真实状态与恢复行为未回归。<!-- verified: 2026-07-20 evidence="Expected two-test RED followed by AsyncTransitionScene/GeneratingScreen 12/12 GREEN; affected owner regression included in 65 files/495 tests PASS." -->
 - [x] Desktop/mobile Chrome 记录中心内容透明背景、零边框/阴影、统一返回控件、无横向溢出和零 browser warning/error。<!-- verified: 2026-07-20 evidence="Real Generating at 1512x777 and 390x844: rgba(0,0,0,0), border 0, shadow none, backdrop-filter none, Back=返回, overflowX=0, console clean." -->
 - [x] Focused、typecheck/build 与根 `make test` 通过。<!-- verified: 2026-07-20 evidence="Affected owner regression 65 files/495 tests; typecheck and production build PASS; root make test PASS with Python 615/4615 subtests, all Go packages, and frontend 136 files/1107 tests." -->
+
+## Phase 21 target-aware Generating Back copy
+
+- [x] Locale/source tests 区分 Generating trusted Reports 专用文案与其它页面/Workspace fallback 的 shared Back。<!-- verified: 2026-07-20 method=focused-vitest evidence="reportDashboardI18nCoverage and backNavigationCopy pass 28/28, including exact zh/en values, the two approved owner sources, common.back retention and retired-key negatives." -->
+- [x] Generating waiting/error component tests 同时证明 exact zh/en label 与原导航矩阵不变。<!-- verified: 2026-07-20 method=focused-vitest evidence="GeneratingScreen and GeneratingBackNavigation pass 15/15 for trusted reports copy in waiting/error states, Workspace fallback copy and the existing route matrix." -->
+- [x] Focused、typecheck/build、根 `make test` 与 real Chrome trusted Back 验收通过。<!-- verified: 2026-07-20 evidence="Generating/i18n focused 6 files / 72 tests PASS; typecheck and production build PASS; final root make test PASS with 615 tests / 4615 subtests; real Chrome captured the exact trusted label on the transient Generating state." -->

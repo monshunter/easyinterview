@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Plan
 
-> **版本**: 1.30
+> **版本**: 1.31
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -26,7 +26,7 @@
 | `BDD.SHELL.TRANSITION.VISUAL.003` | authenticated 用户进入 Practice、Parse、Reports、Generating 或报告上下文 route，业务请求仍 pending | 查看等待反馈、切换显示偏好或使用返回动作 | 共享 TopBar 始终可见且“面试”高亮；等待态复用蓝白画布和对应 SVG variant，只有真实文案/步骤/indeterminate 语义，reduced-motion 与 mobile containment 有效 | Shared transition/TopBar/route component tests + current-run Chrome desktop/mobile manual acceptance；根 `make test` 承接代码层回归 |
 | `BDD.SHELL.SETTINGS.ART.004` | authenticated 用户打开 Settings，当前主题可能是 Ocean、Plum 或 Custom | 查看 desktop Header，并在窄屏继续浏览设置卡片 | Header 右侧以当前主题色渲染半透明资料窗口、头像资料行、柱状图、前景锁、盾牌对勾与星芒；装饰不进入阅读顺序，窄屏隐藏且页面不横溢，账号交互和请求预算不变 | Settings visual/component/responsive tests + current-run Chrome desktop manual acceptance；根 `make test` 承接代码层回归 |
 | `BDD.SHELL.TOPBAR.IDENTITY.005` | authenticated runtime 已有中文或拉丁 `displayName`，语言菜单关闭 | 用户查看或展开语言按钮，并点击圆形设置入口 | 语言按钮以清晰 SVG chevron 表达开合；设置入口显示 trim 后用户名首个 Unicode 字符，拉丁字母大写、空名称显示 `?`；直达 Settings 且不新增 `/me`、账号菜单或完整姓名暴露 | TopBar/App component + visual/responsive/a11y tests + current-run Chrome desktop manual acceptance；根 `make test` 承接代码层回归 |
-| `BDD.SHELL.BACK.COPY.006` | 用户位于含返回控件的二级/三级页面，locale 为中文或英文 | 用户查看或点击返回控件 | 控件统一显示“返回 / Back”；每个页面仍导航到原 owner 定义的目标并保留 replace/push、trusted-context 与 fail-closed 行为；正文目标说明不受限制 | locale/source contract + Auth/Parse/Resume/Practice/Reports/Generating/Report/Conversation component navigation tests + current-run Chrome sample；根 `make test` 承接代码层回归 |
+| `BDD.SHELL.BACK.COPY.006` | 用户位于含返回控件的二级/三级页面，locale 为中文或英文 | 用户查看或点击返回控件 | 默认控件显示“返回 / Back”；若 owner 已解析明确父级且需要目标消歧，可使用显式登记的 owner 文案，当前 Generating trusted Reports 显示“返回面试报告 / Back to interview reports”，Workspace fallback 仍用默认标签；每个页面继续导航到原 owner 目标并保留 replace/push、trusted-context 与 fail-closed 行为 | locale/source contract + Auth/Parse/Resume/Practice/Reports/Generating/Report/Conversation component navigation tests + current-run Chrome sample；根 `make test` 承接代码层回归 |
 
 `E2E.P0.101` 只原地增加真实设置齿轮、账号字段、主题保存与 logout/relogin 恢复主路径；请求次数、失败/离开恢复、pendingAction、导出 501 和账号删除仍由 domain/contract tests 承接，不另建并行场景。
 

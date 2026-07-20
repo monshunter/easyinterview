@@ -309,6 +309,7 @@ export const en: LocaleMessages = {
   "generating.header.title": "Creating your interview report",
   "generating.header.subtitle":
     "We're reviewing your answers and preparing practical suggestions. Stay on this page to see the progress.",
+  "generating.backToReports": "Back to interview reports",
   "generating.errors.eyebrow": "Report unavailable",
   "generating.errors.checkPaused": "Progress updates paused",
   "generating.errors.missingReportId.title": "Incomplete report link",

@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.41
+> **版本**: 1.42
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -179,3 +179,10 @@
 - [x] 24.2 GREEN: 新增中英文共享返回文案、迁移正式消费者并删除无消费者旧 key；保留每个页面的 route target、replace/push、trusted-context、fail-closed 与请求行为。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="Shared contract passes 16/16; affected Auth/Parse/Resume/Practice/Reports/Generating/Report/Conversation scope passes 65 files and 495 tests, including existing navigation matrices." -->
 - [x] 24.3 BDD-Gate: `BDD.SHELL.BACK.COPY.006` 通过 locale/source/component navigation tests 与 current-run Chrome 抽样验证“返回 / Back”、点击目标和无横向溢出。<!-- verified: 2026-07-20 method=chrome-extension-automation evidence="Real Generating displayed 返回 at 1512x777 and 390x844 with overflowX=0; real Report and Reports pages switched to English and displayed Back, Report Back navigated to its target-scoped Reports route, then Chinese was restored; browser warning/error logs were empty." -->
 - [x] 24.4 REGRESSION: focused、typecheck/build、根 `make test`、frontend redeploy、环境 readiness、owner context、docs/index/diff gate 通过；Phase 15.3 仍保持独立未完成。<!-- verified: 2026-07-20 method=full-regression-and-document-gates evidence="Shared Back contract 16/16 and affected scope 65 files/495 tests pass; typecheck/build and root make test pass with Python 615/4615, all Go packages and frontend 136 files/1107 tests. Frontend redeploy, readiness 4/4, both owner contexts, docs/index/diff and Chrome gates pass; Shell remains active solely because Phase 15.3 is still open." -->
+
+## Phase 25: Owner-specific Back copy exception
+
+- [x] 25.1 RED: shared locale/source contract 要求 `common.back` 仍为默认，同时显式登记 Generating trusted Reports 专用文案；当前“所有消费者只能使用 common.back”断言必须先失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="The shared Back-copy suite failed only for the missing generating.backToReports locale pair and its two approved Generating consumers; common.back remained present and all retired-key checks passed." -->
+- [x] 25.2 GREEN: shared test 只允许 Generating owner 消费专用 key；Workspace fallback 与其它二三级页面继续使用 `common.back`，旧目标特定 keys 不得回流。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="The shared Back-copy suite passes 19/19: only GeneratingScreen and GeneratingErrorState consume generating.backToReports, every return control still retains common.back for the default path, and retired keys stay absent." -->
+- [x] 25.3 BDD-Gate: `BDD.SHELL.BACK.COPY.006` 与 `BDD.REPORT.GENERATING.VISUAL.003` 共同证明标签/目标一致、导航矩阵不变并通过 real Chrome 抽样。<!-- verified: 2026-07-20 method=component-and-chrome evidence="Shared source contract preserves common.back and admits only the Generating exception; component tests prove the reports/workspace destination matrix, and real Chrome captured 返回面试报告 on trusted Generating." -->
+- [x] 25.4 REGRESSION: focused、typecheck/build、根 `make test`、owner context、docs/index/diff gate 通过；Phase 15.3 仍保持独立未完成。<!-- verified: 2026-07-20 method=full-regression-and-document-gates evidence="Shared and Generating copy gates, typecheck, production build and root make test 615 / 4615 pass; report/shell/resume contexts, docs links, Header/INDEX and diff gates pass. Shell remains active solely because Phase 15.3 is independently open." -->
