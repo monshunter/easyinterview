@@ -1,6 +1,6 @@
 # Resume Listing and Readonly Detail BDD Checklist
 
-> **版本**: 2.15
+> **版本**: 2.16
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -54,3 +54,10 @@
 - [x] 执行 owner tests，验证 PDF/Markdown desktop 共用 `794px` A4 纸宽、PDF 每页 `210:297`、Markdown 连续内容高度且无 A4 高度约束、mobile responsive containment，并拒绝旧 `1150px` 纸宽。<!-- verified: 2026-07-20 evidence="Resume owner 20 files/118 tests, typecheck, build, and root make test PASS." -->
 - [x] 执行 PDF.js source/credential/page order/canvas 与 Markdown DOM/只读边界回归，确认数据与 renderer 行为不变。<!-- verified: 2026-07-20 evidence="Focused CSS/PDF renderer tests 10/10 PASS; canvas has intrinsic bitmap dimensions only and Markdown remains one semantic article." -->
 - [x] 使用 Chrome skill 在真实 frontend/backend 记录 PDF desktop A4 bbox、Markdown desktop A4-width continuous height、mobile no-overflow、截图与 console；该 scoped UI evidence 不声明 E2E PASS。<!-- verified: 2026-07-20 method=chrome-extension-manual evidence="Markdown desktop 794x2003 and mobile 358x3429, count=1, aspect-ratio=auto, min-height=0, overflowX=false; PDF desktop 794x1123 and mobile 358x506 at 210:297 with canvas widths 792/356; no warning/error; screenshots=.test-output/resume-a4-preview/markdown-desktop.jpg,.test-output/resume-a4-preview/markdown-mobile.jpg" -->
+
+## `BDD.RESUME.DETAIL.DARK.008` Markdown 夜间纸张可读性
+
+- [x] 确认验证入口为 Resume detail CSS/renderer domain behavior tests 与 current-run Chrome UI acceptance，不创建 E2E wrapper。
+- [x] 执行 owner tests，验证白色 Markdown page 声明深色正文墨水且不引用应用主题 foreground；正文、列表、强调和代码继承纸张色。<!-- verified: 2026-07-20 evidence="CSS RED 1/9 then GREEN 9/9; #222222 on #ffffff passes the AA contrast gate and the page rule contains no --ei-color-fg token." -->
+- [x] 执行 Markdown DOM、A4 连续页面、PDF page stack、只读边界与 responsive regression，确认 renderer/data contract 不变。<!-- verified: 2026-07-20 evidence="Resume Workshop 20 files/125 tests, typecheck/build, and root make test 621/4628 PASS." -->
+- [x] 使用 Chrome skill 在真实 frontend/backend 记录 dark/light 的 page/body/list/strong 计算色、截图、console 与 no-overflow；该 scoped UI evidence 不声明 E2E PASS。<!-- verified: 2026-07-20 method=chrome-extension-manual evidence="Light and dark both compute page/body/ul/li/strong/code color rgb(34,34,34) on rgb(255,255,255); dark shell root foreground remains #e8edf6; page=794x2003, count=1, overflowX=false, warning/error logs empty; stable screenshots visually readable." -->

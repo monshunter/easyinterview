@@ -2555,6 +2555,7 @@
   width: min(100%, 794px);
   margin: 0 auto;
   padding: 52px 68px;
+  color: #222222;
   background: #ffffff;
   border: 1px solid var(--ei-color-rule-strong);
   box-shadow: 0 10px 30px rgba(30, 22, 15, 0.08);

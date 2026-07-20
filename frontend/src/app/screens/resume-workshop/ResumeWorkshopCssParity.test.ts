@@ -9,6 +9,33 @@ function css(): string {
   return readFileSync(CSS_PATH, "utf8");
 }
 
+function relativeLuminance(hex: string): number {
+  const channels = hex
+    .slice(1)
+    .match(/.{2}/g)
+    ?.map((channel) => Number.parseInt(channel, 16) / 255);
+  if (!channels || channels.length !== 3) {
+    throw new Error(`invalid six-digit hex color: ${hex}`);
+  }
+  const linear = channels.map((channel) =>
+    channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4,
+  );
+  return (
+    0.2126 * (linear[0] ?? 0) +
+    0.7152 * (linear[1] ?? 0) +
+    0.0722 * (linear[2] ?? 0)
+  );
+}
+
+function contrastRatio(left: string, right: string): number {
+  const [lighter, darker] = [relativeLuminance(left), relativeLuminance(right)].sort(
+    (a, b) => b - a,
+  );
+  return ((lighter ?? 0) + 0.05) / ((darker ?? 0) + 0.05);
+}
+
 describe("Resume Workshop source-level CSS parity", () => {
   it("defines the list/detail layout selectors used by the implemented DOM", () => {
     const source = css();
@@ -73,6 +100,18 @@ describe("Resume Workshop source-level CSS parity", () => {
     );
     expect(source).not.toContain("width: min(100%, 860px)");
     expect(source).not.toContain(".ei-resume-detail-preview-card");
+  });
+
+  it("keeps the white Markdown paper ink readable in light and dark app modes", () => {
+    const source = css();
+    const markdownPageRule = source.match(
+      /\.ei-resume-detail-markdown-page\s*\{[^}]*\}/s,
+    )?.[0];
+
+    expect(markdownPageRule).toMatch(/background:\s*#ffffff/);
+    expect(markdownPageRule).toMatch(/color:\s*#222222/);
+    expect(markdownPageRule).not.toMatch(/--ei-color-fg-/);
+    expect(contrastRatio("#222222", "#ffffff")).toBeGreaterThanOrEqual(4.5);
   });
 
   it("uses two equal desktop card columns, a full-width mobile column and no table selectors", () => {

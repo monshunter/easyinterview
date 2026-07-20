@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 4.6
+> **版本**: 4.7
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -161,3 +161,9 @@
 - [x] 27.2 保持 PDF.js source/credential/page order、Markdown DOM/正文事实、只读 action negatives 与无共享背景板合同；PDF canvas 只保留 intrinsic bitmap 尺寸，由 `width: 100%; height: auto` 等比填满 A4 page content width，不得用 inline presentation width/height 留出额外空白；验证: `PdfPageStackPreview.test.tsx`、`ResumePreviewTab.test.tsx`、Resume owner regression、typecheck/build 与根 `make test`。<!-- verified: 2026-07-20 evidence="Resume owner 20 files/118 tests PASS; typecheck and production build PASS; root make test PASS with 621 tests and 4628 subtests; PDF intrinsic bitmap and presentation-size regression remains GREEN." -->
 - [x] 27.3 BDD-Gate: `BDD.RESUME.DETAIL.A4.007` 由 [BDD checklist](./bdd-checklist.md) 关联 domain behavior tests；Chrome skill 在真实 frontend/backend 上验收 PDF desktop A4 bbox、Markdown desktop A4-width continuous height、mobile no-overflow 与 console，不声明 E2E PASS。<!-- verified: 2026-07-20 evidence="BDD.RESUME.DETAIL.A4.007 complete with domain tests plus current-run scoped Chrome UI evidence; no E2E PASS claimed." -->
 - [x] 26.4 REGRESSION/CHROME: Resume owner focused tests、frontend build、根 `make test`、owner context、docs/index/diff gates 通过；真实 frontend/backend 的简历确认框 desktop 截图、keyboard/focus、console/no-overflow 验收完成后恢复 completed。<!-- verified: 2026-07-20 evidence="Typecheck/build and root make test PASS; context/docs/index/diff gates PASS; frontend redeploy and dependencies 4/4 OK; Chrome 1212x912 screenshot, initial cancel focus, trigger focus restore, card retained and overflowX=false." -->
+
+## Phase 28: Markdown dark-mode paper ink
+
+- [x] 28.1 RED/GREEN: `ResumeWorkshopCssParity.test.ts` 先因 Markdown 白色纸张缺少局部深色 `color` 而失败，再以最小 CSS 修复确保正文、列表、强调和代码不继承夜间壳层 foreground；验证 focused CSS parity test。<!-- verified: 2026-07-20 method=focused-vitest-red-green evidence="RED 1/9 failed only on missing page-local #222222 color; GREEN 9/9 PASS after adding the fixed paper ink with AA contrast against #ffffff." -->
+- [x] 28.2 REGRESSION: `ResumePreviewTab` Markdown DOM、A4 连续页面、PDF page stack、只读边界与 responsive containment 保持通过；执行 Resume owner tests、frontend typecheck/build 与根 `make test`。<!-- verified: 2026-07-20 evidence="Resume Workshop 20 files/125 tests PASS; frontend typecheck and production build PASS; root make test PASS with 621 tests and 4628 subtests plus all Go packages." -->
+- [x] 28.3 BDD-Gate: `BDD.RESUME.DETAIL.DARK.008` 由 [BDD checklist](./bdd-checklist.md) 关联 domain behavior tests；Chrome skill 在真实 frontend/backend 上验收 dark/light 的 page/body/list/strong 计算色、可读截图、console 与 no-overflow，不声明 E2E PASS。<!-- verified: 2026-07-20 method=domain-behavior+chrome-ui evidence="BDD checklist complete; real Chrome light/dark page/body/list/strong/code all use rgb(34,34,34) on white while dark shell remains #e8edf6; 794px single continuous page, no overflow or console warning/error." -->
