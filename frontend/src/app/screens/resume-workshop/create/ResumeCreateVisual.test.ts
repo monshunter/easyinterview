@@ -24,4 +24,13 @@ describe("Resume create reference visual contract", () => {
     expect(upload).toContain("resume-create-upload-capabilities");
     expect(upload.match(/className="ei-resume-create-upload-capability"/g)).toHaveLength(3);
   });
+
+  it("removes the retired central upload icon and styles the drag-active state", () => {
+    const css = readFileSync(CSS_PATH, "utf8");
+    const upload = readFileSync(UPLOAD_PATH, "utf8");
+
+    expect(css).not.toContain(".ei-resume-create-upload-icon");
+    expect(upload).not.toContain("ei-resume-create-upload-icon");
+    expect(css).toMatch(/\.ei-resume-create-upload-dropzone\[data-drag-active="true"\]\s*\{/);
+  });
 });

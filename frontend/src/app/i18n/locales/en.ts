@@ -221,9 +221,10 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.tabs.upload": "Upload",
   "resumeWorkshop.create.tabs.paste": "Paste",
   "resumeWorkshop.create.upload.dropzoneTitle":
-    "Drop a PDF / Markdown resume",
+    "Drop a PDF / Markdown / TXT resume here",
+  "resumeWorkshop.create.upload.dropzoneActiveTitle": "Release to upload",
   "resumeWorkshop.create.upload.dropzoneBody":
-    "Upload a PDF, Markdown, or TXT file up to {maxSize}. PDFs display page by page; Markdown and text are formatted for reading.",
+    "Or choose a file using the button below. Upload a PDF, Markdown, or TXT file up to {maxSize}. PDFs display page by page; Markdown and text are formatted for reading.",
   "resumeWorkshop.create.upload.choose": "Choose file",
   "resumeWorkshop.create.upload.formats": "PDF / Markdown / TXT",
   "resumeWorkshop.create.upload.maxSize": "Up to {maxSize}",
@@ -238,6 +239,8 @@ export const en: LocaleMessages = {
     "Some fields need attention. Check them and try again.",
   "resumeWorkshop.create.errors.extensionInvalid":
     "That file type isn't supported. Upload a .pdf, .md, .markdown, or .txt file.",
+  "resumeWorkshop.create.errors.multipleFiles":
+    "Upload one file at a time, then try again.",
   "resumeWorkshop.create.errors.sizeExceeded":
     "The file must be smaller than {maxSize}. Compress it and try again.",
   "resumeWorkshop.create.errors.pasteSizeExceeded":

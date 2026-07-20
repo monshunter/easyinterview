@@ -213,9 +213,10 @@ export const zh = {
     "保存后会打开简历详情，内容与上传或粘贴的版本一致。",
   "resumeWorkshop.create.tabs.upload": "上传文件",
   "resumeWorkshop.create.tabs.paste": "粘贴内容",
-  "resumeWorkshop.create.upload.dropzoneTitle": "拖入 PDF / Markdown 简历",
+  "resumeWorkshop.create.upload.dropzoneTitle": "拖放 PDF / Markdown / TXT 简历到此处",
+  "resumeWorkshop.create.upload.dropzoneActiveTitle": "松开以上传",
   "resumeWorkshop.create.upload.dropzoneBody":
-    "支持 PDF、Markdown 和 TXT，文件最大 {maxSize}。PDF 会按页显示，Markdown 和纯文本会排版后显示。",
+    "或点击下方按钮选择文件。支持 PDF、Markdown 和 TXT，文件最大 {maxSize}。PDF 会按页显示，Markdown 和纯文本会排版后显示。",
   "resumeWorkshop.create.upload.choose": "选择文件",
   "resumeWorkshop.create.upload.formats": "支持 PDF / Markdown / TXT",
   "resumeWorkshop.create.upload.maxSize": "文件最大 {maxSize}",
@@ -228,6 +229,7 @@ export const zh = {
   "resumeWorkshop.create.errors.validation": "有些内容填写不正确，请检查后再试。",
   "resumeWorkshop.create.errors.extensionInvalid":
     "暂不支持这种文件。请上传 .pdf、.md、.markdown 或 .txt 文件。",
+  "resumeWorkshop.create.errors.multipleFiles": "一次只能上传一个文件，请重新选择。",
   "resumeWorkshop.create.errors.sizeExceeded":
     "文件不能超过 {maxSize}，请压缩后再上传。",
   "resumeWorkshop.create.errors.pasteSizeExceeded":

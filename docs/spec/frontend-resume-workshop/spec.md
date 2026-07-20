@@ -1,7 +1,7 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.26
-> **状态**: completed
+> **版本**: 2.27
+> **状态**: active
 > **更新日期**: 2026-07-20
 
 ## 1 背景与目标
@@ -70,6 +70,7 @@
 | D-17 | Parse waiting state stability | 首次详情请求才显示通用 loading；已有 queued/processing 数据后的后台轮询必须保留当前解析等待 DOM，禁止清空 `data` 或重新进入 loading。等待态的 56px 图标容器、SVG 与文案几何位置在动画周期内保持固定；禁止循环 `scale` / `translate`，只允许透明度或不参与布局的柔和光晕变化，并保留 reduced-motion 兼容 | 消除轮询期间“正在加载简历…”与“正在解析简历”整页交替闪现，以及边框/SVG 亚像素抖动，同时保留明确的首次加载和后台进行中反馈 |
 | D-19 | Detail preview surface | `ResumePreviewTab` 的外层 `article` 只承担语义分组，不设置 class、背景、边框、圆角、阴影、固定高度或额外 padding；PDF 页面栈和 Markdown page surface 自己承接可读页面几何 | 删除突兀且无 DOM consumer 的共享背景板，避免通过遗留 CSS 恢复平行 surface |
 | D-20 | A4 preview geometry | PDF 页面与 Markdown page surface 在 desktop 共用 `794px` A4 纸宽；PDF 每页保持 `210:297`，Markdown 整体是一张高度由正文自然撑开的连续长页面，不分页、不设置 A4 比例或固定/最小纸高；窄屏用 `min(100%, 794px)` 收敛 | 减少超宽纸面造成的无效空白，同时保留 PDF 纸张分页与 Markdown 连续文档的格式差异 |
+| D-21 | Create upload drag/drop | Upload 主体不显示中央 72px 圆形上传 icon；desktop 虚线上传区真实支持拖放一个 PDF / Markdown / TXT，drag-active 状态明确提示“松开以上传”；“选择文件”按钮继续承接键盘、触屏和无拖放环境。拖放与 file input 复用同一格式/大小/runtime/submitting guard、presign、browser PUT、register 和 direct-detail handoff；多文件或非法文件失败时为零 presign/register | 让视觉、文案与实际能力一致，同时不新增 API、backend 或平行上传流程 |
 
 ## 4 设计约束
 
@@ -121,7 +122,7 @@
 | C-1 | Route shell | Authenticated user opens `resume_versions` | Route renders | Resume Workshop shell appears and TopBar highlights resume nav | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-2 | List view | `listResumes` returns `ResumeSummary[]` | List loads | Header 唯一创建入口、每卡打开与右上角删除动作呈现；desktop 每行两张等宽卡，mobile 单列占满可用宽度，table/header/row 语义缺席；卡片只暴露锁定 summary 字段，不读取详情字段，不出现重复创建 CTA | [001 Phase 22](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-3 | Detail read-only | User opens a resume | Detail renders | Full `Resume` is fetched only through `getResume`; pending parse with no readable body shows a waiting state and polls sequentially without clearing prior data or flashing the generic loading state between requests; ready desktop uses the reference Header plus approximately `1512px` content and direct `794px` A4-width PDF/Markdown page surfaces without a shared backdrop; PDF pages keep `210:297`, Markdown renders the complete body as one continuous content-height page without A4 height/pagination, and mobile shrinks within the available width without horizontal overflow; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; failed with no readable body shows a failure state; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001 Phase 27](./plans/001-listing-routing-and-detail-readonly/plan.md) |
-| C-4 | Create upload/paste | User selects valid file or enters text；owner config provides byte limits | Submit | 注入小型 boundary 验证 overflow inline rejection with zero presign/register；valid input navigates to waiting/detail；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文件或配置 E2E | [002 Phase 13](./plans/002-create-flow/plan.md) |
+| C-4 | Create upload/paste | User drags or selects one valid file, or enters text；owner config provides byte limits | Submit | Upload 不显示中央大图标；drag-active 有明确视觉/文案反馈；拖放和选择文件复用同一 validation/upload/register/handoff；多文件、非法格式和 overflow inline rejection produce zero presign/register；valid input navigates to waiting/detail；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文件或配置 E2E | [002 Phase 15](./plans/002-create-flow/plan.md) |
 | C-5 | Create paste | User enters text | Submit | Register completes and app navigates to the waiting/detail route; request title remains a neutral source title, and visible list/detail name comes from backend generated `displayName` after parse or extracted-text fallback, never from the raw first line or source filename/title fallback | [002](./plans/002-create-flow/plan.md) |
 | C-6 | Create recovery | Register or upload fails | User retries from input | Input is preserved locally and no raw content leaks | [002](./plans/002-create-flow/plan.md) |
 | C-7 | Home handoff | Home create CTA or Home existing-resume selector | Click / select | Create CTA lands on CreateFlow and auth pending action is safe; Home existing-resume selector shows non-archived readable `listResumes` records and carries the selected `resumeId` into JD import / parse handoff | [002](./plans/002-create-flow/plan.md) |
@@ -144,6 +145,7 @@ queued/processing 且尚无可读正文时，详情 route 使用共享 `AsyncTra
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 2.27 | 2026-07-20 | Integrate the A4 readonly-preview contract with create-flow drag/drop so one delivery branch preserves both user-visible changes. |
 | 2.26 | 2026-07-20 | Reopen the readonly-detail owner so PDF and Markdown share a desktop `794px` A4 paper width; PDF keeps `210:297`, Markdown remains one continuous content-height page, and narrow viewports shrink without overflow. |
 | 2.25 | 2026-07-20 | Reopen the list owner so resume deletion requires accessible secondary confirmation before `archiveResume`, with safe cancel/focus, pending single-flight and recoverable same-key retry. |
 | 2.24 | 2026-07-20 | Reopen the readonly-detail owner to remove the zero-consumer shared preview backdrop and let PDF/Markdown page surfaces render directly on the detail canvas. |

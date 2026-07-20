@@ -100,6 +100,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0194](./BUG-0194.md) | frontend redeploy omitted an unmerged resume preview fix | medium | resolved | 2026-07-20 | `feat(resume): add drag and drop uploads (BUG-0194)` |
 | [BUG-0193](./BUG-0193.md) | custom theme controls overlaid the preset selector | medium | resolved | 2026-07-19 | `fix(settings): anchor theme save action (BUG-0193)` |
 | [BUG-0192](./BUG-0192.md) | core workflow pages drifted from the approved UI references | low | resolved | 2026-07-19 | `fix(practice): align send action surface (BUG-0192)` |
 | [BUG-0191](./BUG-0191.md) | account theme review exposed stale auth response and projection parity gaps | high | resolved | 2026-07-19 | `fix(settings): harden account theme review regressions (BUG-0191)` |

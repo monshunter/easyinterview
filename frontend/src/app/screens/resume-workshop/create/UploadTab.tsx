@@ -1,4 +1,10 @@
-import { useCallback, useRef, useState, type FC } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type DragEvent,
+  type FC,
+} from "react";
 
 import { useI18n } from "../../../i18n/messages";
 import { ResumeWorkshopIcon } from "../components/ResumeWorkshopIcon";
@@ -12,6 +18,9 @@ import {
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".md", ".markdown", ".txt"];
+
+const carriesFiles = (event: DragEvent<HTMLElement>): boolean =>
+  Array.from(event.dataTransfer.types).includes("Files");
 
 const hasAllowedExtension = (name: string): boolean => {
   const lower = name.toLowerCase();
@@ -49,6 +58,7 @@ export const UploadTab: FC<UploadTabProps> = ({
 }) => {
   const { t, lang } = useI18n();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [dragActive, setDragActive] = useState(false);
   const [uploadingMessage, setUploadingMessage] = useState<string | null>(null);
   const upload = useResumePresignUpload();
   const register = useResumeRegistration();
@@ -104,7 +114,7 @@ export const UploadTab: FC<UploadTabProps> = ({
       onPickFile(null);
       return;
     }
-    if (maxResumeUploadBytes === undefined) return;
+    if (maxResumeUploadBytes === undefined || submitting) return;
     if (!hasAllowedExtension(file.name)) {
       onPickFile(null);
       onValidationError(t("resumeWorkshop.create.errors.extensionInvalid"));
@@ -132,12 +142,41 @@ export const UploadTab: FC<UploadTabProps> = ({
       <div
         className="ei-resume-create-upload-dropzone"
         data-testid="resume-create-upload-dropzone"
+        data-drag-active={dragActive}
+        onDragEnter={(event) => {
+          if (!carriesFiles(event) || maxResumeUploadBytes === undefined || submitting) return;
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDragOver={(event) => {
+          if (!carriesFiles(event) || maxResumeUploadBytes === undefined || submitting) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+          setDragActive(true);
+        }}
+        onDragLeave={(event) => {
+          const nextTarget = event.relatedTarget;
+          if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) return;
+          setDragActive(false);
+        }}
+        onDrop={(event) => {
+          if (!carriesFiles(event)) return;
+          event.preventDefault();
+          setDragActive(false);
+          if (maxResumeUploadBytes === undefined || submitting) return;
+          const files = Array.from(event.dataTransfer.files);
+          if (files.length !== 1) {
+            onPickFile(null);
+            onValidationError(t("resumeWorkshop.create.errors.multipleFiles"));
+            return;
+          }
+          onFileChange(files[0] ?? null);
+        }}
       >
-        <div className="ei-resume-create-upload-icon" aria-hidden="true">
-          <ResumeWorkshopIcon name="upload" size={24} />
-        </div>
         <div className="ei-text-title ei-resume-create-upload-title">
-          {t("resumeWorkshop.create.upload.dropzoneTitle")}
+          {t(dragActive
+            ? "resumeWorkshop.create.upload.dropzoneActiveTitle"
+            : "resumeWorkshop.create.upload.dropzoneTitle")}
         </div>
         <p className="ei-resume-create-upload-body">
           {t("resumeWorkshop.create.upload.dropzoneBody").replace(

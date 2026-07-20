@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow
 
-> **版本**: 1.20
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.21
+> **状态**: active
+> **更新日期**: 2026-07-20
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -34,8 +34,9 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `frontend` + `contract`
-- **TDD 策略**: 当前实现已完成。修改 create-flow 或 Home 入口简历选择逻辑时，先更新 Vitest component / hook / adapter tests，再改组件或 generated-client adapter。
-- **替代验证 gate**:
+- **TDD 策略**: Phase 15 先在 `UploadTab.test.tsx` / `ResumeCreateVisual.test.ts` 以 RED 锁定中央 icon 零残留、drag-active 状态、有效单文件 drop 与多文件/非法文件零请求，再最小修改 `UploadTab.tsx`、i18n 与 owner CSS；拖放和 input change 必须收敛到同一 `onFileChange`/upload path。
+- **BDD 策略**: `BDD.RESUME.CREATE.DROP.002` 使用 `UploadTab.test.tsx` domain behavior tests 验证用户可观察的拖入反馈、成功 handoff 与失败恢复；current-run Chrome 只作真实 frontend/backend UI 证据，不创建或声明 E2E ID。
+- **回归 gate**:
   - `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/create`
   - `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/ResumeWorkshopScreen.test.tsx src/app/screens/resume-workshop/fixture-parity.test.ts`
   - `corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeResumeSelection.test.tsx src/app/screens/parse/ParseResumeBinding.test.tsx`
@@ -44,6 +45,13 @@
   - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`
   - `make docs-check`
   - `git diff --check`
+
+### 3.1 Frontend / Backend Operation Matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` | `UploadTab` → `useResumePresignUpload` → generated client | `backend/internal/upload/handler/presign.go`；`backend/cmd/api/main.go` real route | `file_objects` metadata + object-storage presigned PUT | none | `UploadTab.test.tsx` domain behavior；current-run Chrome scoped UI evidence，no E2E PASS |
+| `registerResume` | `openapi/fixtures/Resumes/registerResume.json` | `UploadTab` → `useResumeRegistration` → generated client | `backend/internal/resume/handler/register.go`；`backend/cmd/api/main.go` real route | `resumes` + `async_jobs`/outbox，关联 uploaded `file_objects` | downstream `resume_parse`；本次不改变 profile/payload | `UploadTab.test.tsx` / `CreateFlowIntegration.test.tsx` domain behavior；current-run Chrome scoped UI evidence，no E2E PASS |
 
 ## 4 当前交付内容
 
@@ -100,6 +108,12 @@ ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基
 
 以提供的 `1916×821` 上传简历参考图为 desktop 视觉合同，在不改变 upload/paste 注册、runtime limit、隐私和 direct-detail handoff 的前提下，重构 CreateFlow 的全视口背景、1470px 内容面、Header、tab rail、大型 dropzone、主按钮与格式/大小/隐私标签。先由 `ResumeCreateFlow.test.tsx` / `UploadTab.test.tsx` / 新增 responsive source gate 固化 DOM、class、键盘、1916 与 390 containment，再实施正式组件/CSS；Chrome 仅作为真实视图验收，不把截图包装成 E2E。
 
+### Phase 15: True drag-and-drop upload
+
+删除 Upload 主体中央的 72px 圆形上传 icon 与零 consumer CSS，让标题、说明、主按钮和 capability chips 成为上传区唯一层级。默认标题使用准确的“拖放 PDF / Markdown / TXT 简历到此处”，说明明确“或点击下方按钮选择文件”；携带文件的 dragenter/dragover 设置 `data-drag-active=true` 并显示“松开以上传”，dragleave/drop 后复位。
+
+Drop 仅接受一个文件，并与隐藏 file input 的 `change` 事件复用同一 `onFileChange`、extension/byte/runtime/submitting guard、presign、browser PUT、register 和 direct-detail handoff。多文件显示通用且不泄露文件内容的 inline error；非法格式和超限继续复用既有错误，所有失败路径保持零 presign/register。拖放不取代按钮的 keyboard/touch 等价入口，不把非 button 的 dropzone 伪装成键盘控件，不新增 API、fixture、backend、persistence 或 E2E 资产。
+
 
 
 ## 5 验收标准
@@ -107,7 +121,7 @@ ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基
 | ID | 场景 | Given | When | Then | 证据 |
 |----|------|-------|------|------|------|
 | C-1 | Create route | Authenticated user opens `resume_versions?flow=create` | App renders route | `ResumeCreateFlow` appears with upload tab active by default | focused Vitest |
-| C-2 | Upload/paste path | Valid small PDF / Markdown / TXT or pasted text | Submit | DOCX rejected；required runtime guards run before request；focused small-limit overflow makes zero presign/register；valid input completes | hook/component |
+| C-2 | Upload/paste path | User drops or selects one valid small PDF / Markdown / TXT, or pastes text | Submit | Central upload icon is absent；drag-active feedback is visible；drop/input share the same upload path；multi-file, DOCX and focused small-limit overflow make zero presign/register；valid input completes | hook/component + Chrome scoped UI evidence |
 | C-3 | Paste path | Non-empty text | Submit | `registerResume` receives paste payload with a neutral source title, raw text is not used as a visible name, and direct detail navigation follows | hook / component tests |
 | C-4 | Register recovery | Upload/register fails | User retries or returns | Input stays local and content does not leak | upload/paste tests |
 | C-5 | Out-of-scope surfaces absent | Register succeeds | Route updates | Sidebar, preview confirm and create-flow `updateResume` save path do not render or run; waiting state and source-format renderer belong to detail route | negative tests |
@@ -128,6 +142,7 @@ ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.21 | Reopen Phase 15 to remove the central upload icon and implement truthful one-file drag/drop with shared guards, domain behavior tests and scoped Chrome evidence. |
 | 2026-07-14 | 1.18 | Mark the old full-Resume Home selection inference as historical; current selection consumes ResumeSummary parseStatus/hasReadableContent under active plan 001 Phase 19. |
 | 2026-07-19 | 1.20 | Reopen Phase 14 for the supplied upload-resume reference: full viewport canvas, wide content grid, large input card, capability chips and responsive Chrome acceptance. |
 | 2026-07-10 | 1.17 | Consolidate the accent CTA declarations into one equivalent rule. |

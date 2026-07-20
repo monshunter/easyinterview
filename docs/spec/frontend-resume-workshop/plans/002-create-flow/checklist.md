@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow Checklist
 
-> **版本**: 1.21
-> **状态**: completed
-> **更新日期**: 2026-07-14
+> **版本**: 1.22
+> **状态**: active
+> **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
@@ -89,6 +89,13 @@ The checked assertions below record the 2026-07-08 full-Resume list contract. Ac
 - [x] 14.2 GREEN: 重构 CreateFlow / UploadTab / PasteTab 与 owner CSS，保留 upload/paste 注册、runtime limit、错误恢复、隐私和 direct-detail 行为。<!-- verified: 2026-07-19 method=focused-vitest evidence="4 files / 21 tests PASS" -->
 - [x] 14.3 BDD-Gate: `BDD.RESUME.CREATE.001` 在新视觉层级下继续覆盖 upload/paste、错误恢复与隐私；Chrome 1916×821 / 390×844 视图验收无横向溢出。<!-- verified: 2026-07-19 method=chrome-formal-local evidence="10900 real-mode frontend create flow: desktop shell/card width 1470px; mobile x=16 width=358px; header art hides at mobile; both viewports documentOverflow=0" -->
 - [x] 14.4 REGRESSION-GATE: focused frontend、根 `make test`、typecheck/build、context/docs/index/diff 通过后恢复 completed。<!-- verified: 2026-07-19 method=focused+root-regression evidence="create focused 4 files/21 tests PASS; root Python 615/4615 subtests, Go all packages, frontend 131 files/1054 tests PASS; typecheck/build PASS" -->
+
+## Phase 15: True drag-and-drop upload
+
+- [x] 15.1 RED/GREEN: `UploadTab.test.tsx` 与 `ResumeCreateVisual.test.ts` 先证明当前 dropzone 不响应 drag/drop 且中央 72px icon 仍存在，再锁定 icon/selector 零残留、准确中英文文案、drag-active 进入/离开/复位和“松开以上传”反馈。<!-- verified: 2026-07-20 method=red-green-vitest evidence="RED 2 expected failures; GREEN 2 files / 9 tests PASS" -->
+- [x] 15.2 RED/GREEN: 有效单文件 drop 复用 input change 的 validation → presign → browser PUT → register → direct-detail path；多文件、非法格式、超限、runtime 未就绪或 submitting drop 为零 presign/register，按钮 keyboard/touch 等价入口与隐私边界不变。<!-- verified: 2026-07-20 method=red-green-vitest evidence="RED 2 expected failures; GREEN 2 files / 13 tests PASS" -->
+- [ ] 15.3 BDD-Gate: `BDD.RESUME.CREATE.DROP.002` 由 [BDD checklist](./bdd-checklist.md) 关联 `UploadTab.test.tsx` domain behavior tests；Chrome skill 在真实 frontend/backend 上验收 desktop drag-active/default、有效 drop handoff、mobile containment 与 console，不声明 E2E PASS。<!-- partial: 2026-07-20 method=chrome-extension evidence="Current combined branch: desktop default dropzone has zero legacy icon and overflow; 390x844 dropzone is 328px wide with overflowX=0; console warning/error count is zero. Chrome file chooser setFiles is blocked by extension local-file permission, so valid live file handoff remains unchecked and is not reported as PASS." -->
+- [ ] 15.4 REGRESSION-GATE: create-flow focused、Resume owner regression、typecheck/build、根 `make test`、context/docs/index/diff gates 通过后恢复 completed。<!-- partial: 2026-07-20 evidence="Combined owner 20 files/124 tests, typecheck/build, root make test (Python 621/4628 subtests, Go all packages, frontend 137 files/1125 tests), both contexts and docs/index/diff gates PASS; lifecycle remains active until 15.3 is complete." -->
 
 ## BDD Gate
 
