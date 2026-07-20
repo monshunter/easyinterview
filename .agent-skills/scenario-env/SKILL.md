@@ -114,12 +114,15 @@ otherwise.
    - `test/scenarios/env-cleanup.sh`
    - `make scenario-env-cleanup` when the user explicitly wants the Makefile entrypoint
    - the exact cleanup sequence from the README
-3. Use `--with-volumes` only when the user explicitly asks to reset/delete
+3. Treat the cleanup entrypoint as owning both repo-managed host-run backend/frontend
+   and Compose dependencies. It may stop only processes whose PID, command, and repo
+   working directory prove ownership; preserve manual or unrelated processes.
+4. Use `--with-volumes` only when the user explicitly asks to reset/delete
    shared volumes or the README says a full reset is required. Default cleanup
    preserves named volumes.
-4. If the README documents helper services outside the default env scripts,
+5. If the README documents helper services outside the default env scripts,
    follow that helper cleanup flow when requested. Otherwise skip silently.
-5. Verify that the environment returned to the documented clean state and that
+6. Verify that the environment returned to the documented clean state and that
    no obvious shared-resource contamination remains.
 
 ## Workflow: status

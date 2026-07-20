@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.26
+> **版本**: 1.27
 > **状态**: completed
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
@@ -163,3 +163,10 @@
 - [x] 17.2 GREEN-RUNTIME: `local-dev-runtime.sh` 的 `assert_host_mailpit_smtp_route` 校验动态有效 host mapping；只报告字段名/端口，不输出 secret；full-container internal Mailpit 与 external SMTP 不受影响。<!-- verified: 2026-07-16 method=focused-green evidence="25 scenario_env_contract pytest cases passed; guard is called after env load and before host backend start; no port or email business configuration was added to Skills" -->
 - [x] 17.3 LIVE-MAILPIT: 同步 host-run endpoint 后 redeploy backend，发起 fresh email-code challenge，Mailpit 收到一封新邮件；证据不记录完整邮箱或验证码。<!-- verified: 2026-07-16 method=chrome-live evidence="Mailpit mailbox changed from empty to one fresh code-only message and the matching browser login completed against the real backend" -->
 - [x] 17.4 REGRESSION/DOCS: focused pytest、shell syntax、root gates、docs/context/INDEX/diff 全绿；BDD 不适用。<!-- verified: 2026-07-16 method=full-regression evidence="25 scenario environment contract tests and shell syntax PASS; live Mailpit delivery + Chrome login PASS; make test/build, context/docs/index and diff gates PASS" -->
+
+## Phase 18: scenario cleanup host runtime remediation
+
+- [x] 18.1 RED-CONTRACT: `scripts/lint/scenario_env_contract_test.py` 复现标准 cleanup 只调用 `make dev-down`、遗漏 repo-managed backend/frontend，并要求默认与 `--with-volumes` 两条路径都先调用共享 host runtime stop helper。<!-- verified: 2026-07-20 method=focused-red command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k scenario_cleanup_stops_repo_owned_host_runtimes_before_dependencies" evidence="1 failed, 25 deselected because env-cleanup.sh did not source the shared runtime helper" -->
+- [x] 18.2 GREEN-RUNTIME: `local-dev-runtime.sh` 暴露组合停止 backend/frontend 的 helper；`env-cleanup.sh` 复用该 helper 后再执行 `make dev-down` 或显式 reset，沿用 PID/命令/repo cwd ownership 检查，不终止手工/无关进程。<!-- verified: 2026-07-20 method=focused-green command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k 'scenario_cleanup_stops_repo_owned_host_runtimes_before_dependencies or stop_host_runtimes'" evidence="3 passed, including cleanup ordering plus owned-process termination and unowned-process preservation" -->
+- [x] 18.3 SAFETY/LIVE: focused contract、shell syntax、dry-run 顺序与隔离进程测试通过；真实标准 cleanup 后 repo-managed backend/frontend、pidfile、Compose 依赖均消失，默认命名卷保留。<!-- verified: 2026-07-20 method=tdd-live commands="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; bash -n test/scenarios/env-cleanup.sh test/scenarios/_shared/scripts/local-dev-runtime.sh; test/scenarios/env-setup.sh; test/scenarios/env-redeploy.sh all; test/scenarios/env-cleanup.sh" evidence="27 contract tests passed; cleanup closed repo-owned 10900/10901 listeners, removed both pidfiles and all easyinterview containers, retained three named volumes; unrelated Ferry kubectl listener on 8025 remained untouched" -->
+- [x] 18.4 DOC/REGRESSION: dev-stack/scenario runbook、Spec/plan/checklist/History 与 Skill cleanup 语义一致；context、Header/INDEX、docs links、根 `make test` 与 `git diff --check` 通过；BDD 不适用。<!-- verified: 2026-07-20 method=full-regression evidence="28 scenario environment contracts, context validator, Header/INDEX, docs links, Spec ID and diff gates passed; root make test rerun passed Python 624 tests/4628 subtests, Go all packages and frontend 137 files/1126 tests after one unrelated HomeRecentMocks timing retry passed focused 14/14" -->

@@ -1,13 +1,14 @@
 # Local Dev Stack History
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-20
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-20 | 1.30 | 补齐 scenario cleanup 的 host-run 生命周期：标准清理与显式 reset 都先安全停止 repo-managed backend/frontend，再处理 Compose 依赖或数据卷；无关进程保持不受影响。 | local-dev-stack/001 Phase 18 |
 | 2026-07-16 | 1.29 | `dev-container-up` 停止 host-run runtime 前校验 PID 对应命令；陈旧或复用 PID 只清理 pidfile，不终止无关进程。 | local-dev-stack/001 Phase 14 remediation |
 | 2026-07-16 | 1.28 | backend-auth 复用现有 `redis-dev` / `REDIS_URL` 共享加密 6 位验证码；本地栈不新增第二个 Redis 服务，正确性不再依赖单 backend 实例。 | backend-auth/001 Phase 12 + local-dev-stack/001 Phase 14 |
 | 2026-07-16 | 1.27 | host-run/full-container 通过同一 env 合同切换 Mailpit 与标准 SMTP；full-container Mailpit 自动解析容器别名、SMTP 保留外部 endpoint，并在拓扑切换时停止仓库管理的 host-run app，避免 runner 竞争。 | backend-auth/001 Phase 11 |

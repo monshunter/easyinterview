@@ -152,6 +152,57 @@ def test_top_level_scenario_environment_entrypoints_remain_independent() -> None
         assert f"{target}:" in makefile
 
 
+def test_scenario_cleanup_stops_repo_owned_host_runtimes_before_dependencies() -> None:
+    cleanup = (SCENARIO_ROOT / "env-cleanup.sh").read_text(encoding="utf-8")
+
+    assert 'LOCAL_DEV_RUNTIME="$SCENARIO_DIR/_shared/scripts/local-dev-runtime.sh"' in cleanup
+    assert '. "$LOCAL_DEV_RUNTIME"' in cleanup
+    assert "stop_host_runtimes" in cleanup
+    assert "stop_host_runtimes()" in (
+        SCENARIO_ROOT / "_shared" / "scripts" / "local-dev-runtime.sh"
+    ).read_text(encoding="utf-8")
+    assert cleanup.index("stop_host_runtimes") < cleanup.index("make dev-down")
+    assert cleanup.index("stop_host_runtimes") < cleanup.index("make dev-reset")
+
+
+def test_scenario_cleanup_dry_run_reports_host_stop_before_dependency_cleanup() -> None:
+    cleanup = SCENARIO_ROOT / "env-cleanup.sh"
+
+    for extra_args, dependency_action in (
+        ([], "dry-run: make dev-down"),
+        (["--with-volumes"], "dry-run: DEV_RESET_FORCE=1 make dev-reset"),
+    ):
+        result = subprocess.run(
+            ["bash", str(cleanup), *extra_args, "--dry-run"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        lines = result.stdout.splitlines()
+        assert lines == [
+            "dry-run: stop repo-managed backend/frontend host-run processes",
+            dependency_action,
+        ]
+
+
+def test_scenario_cleanup_contract_is_documented_by_runbooks_and_skill() -> None:
+    dev_stack_readme = (ROOT / "deploy" / "dev-stack" / "README.md").read_text(
+        encoding="utf-8"
+    )
+    scenario_readme = (SCENARIO_ROOT / "README.md").read_text(encoding="utf-8")
+    skill = (
+        ROOT / ".agent-skills" / "scenario-env" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    for text in (dev_stack_readme, scenario_readme):
+        assert "repo-managed host-run backend/frontend" in text
+        assert "默认保留命名卷" in text
+        assert "手工/无关进程" in text
+    assert "repo-managed host-run backend/frontend" in skill
+    assert "manual or unrelated processes" in skill
+
+
 def test_optional_full_container_runtime_contract() -> None:
     compose_path = ROOT / "deploy" / "dev-stack" / "docker-compose.yaml"
     compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))

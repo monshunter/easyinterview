@@ -211,6 +211,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0196](./BUG-0196.md) | scenario cleanup left repo-managed host runtimes running | medium | resolved | 2026-07-20 | `fix(test): stop host runtimes during cleanup (BUG-0196)` |
 | [BUG-0181](./BUG-0181.md) | Full staticcheck and UI pruning baselines blocked AI transport closeout | medium | resolved | 2026-07-16 | `refactor(ai): adopt openai-go and restore quality gates (BUG-0181)` |
 | [BUG-0179](./BUG-0179.md) | owner checklist compression deleted activation markers and preflight accepted incidental mentions | medium | resolved | 2026-07-16 | `feat(auth): use Redis for email delivery secrets (BUG-0179)` |
 | [BUG-0177](./BUG-0177.md) | OPENAPI-001 refreeze left its root regression test bound to the new baseline | medium | resolved | 2026-07-15 | `feat(report): align context grid and acceptance (BUG-0177)` |

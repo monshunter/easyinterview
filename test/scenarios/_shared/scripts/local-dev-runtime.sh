@@ -318,6 +318,15 @@ stop_pidfile_process_group() {
   rm -f "$pid_file"
 }
 
+stop_host_runtimes() {
+  if [ "${DRY_RUN:-0}" -eq 1 ]; then
+    echo "dry-run: stop repo-managed backend/frontend host-run processes"
+    return 0
+  fi
+  stop_pidfile_process_group "$LOCAL_DEV_OUTPUT_DIR/backend.pid" backend-dev
+  stop_pidfile_process_group "$LOCAL_DEV_OUTPUT_DIR/frontend.pid" frontend-dev
+}
+
 assert_port_available() {
   local port="$1"
   local pids

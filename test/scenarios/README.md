@@ -63,12 +63,14 @@ test/scenarios/
 | `test/scenarios/env-setup.sh` | 启动 dev-stack 外部依赖并可选执行 migrations | `make scenario-env-setup` |
 | `test/scenarios/env-status.sh` | 输出当前 dev-doctor JSON 状态 | `make scenario-env-status` |
 | `test/scenarios/env-verify.sh` | 验证共享环境 readiness | `make scenario-env-verify` |
-| `test/scenarios/env-cleanup.sh` | 清理共享环境，默认保留命名卷 | `make scenario-env-cleanup` |
+| `test/scenarios/env-cleanup.sh` | 停止 repo-managed host-run backend/frontend 和 Compose 依赖，默认保留命名卷 | `make scenario-env-cleanup` |
 | `test/scenarios/env-redeploy.sh` | 按 `deps/backend/frontend/all` 刷新依赖或 build artifacts | `make scenario-env-redeploy TARGET=<target>` |
 | `deploy/dev-stack` 的 `full-container` profile | 停止仓库 PID 文件管理的 host-run app，构建并启动依赖、migration、backend、frontend | `make dev-container-up`；停止用 `make dev-container-down` |
 | `env-cleanup.sh --with-volumes` → `env-setup.sh --with-migrations` → `env-redeploy.sh all` → `env-verify.sh` | 清理数据、重跑迁移、重编译并重启 host-run backend/frontend，再验证 readiness | `make scenario-env-reset-redeploy` |
 
 `env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-redeploy.sh` 必须给出开发者可接管的信息：frontend/backend/Mailpit/MinIO 地址、`.test-output/local-dev/{backend,frontend}.log`、PID 文件以及容器日志命令。当前 host-run 口径下，`env-redeploy.sh backend|frontend|all` 不是只做 build；它必须重新启动对应宿主机前后端进程，保证用户在浏览器里看到的服务已经加载当前代码和 `deploy/dev-stack/.env`。
+
+`env-cleanup.sh` 必须先停止 repo-managed host-run backend/frontend，再停止 Compose 依赖；PID、命令或 repo cwd 无法证明归属时，不得终止手工/无关进程。标准 cleanup 默认保留命名卷，只有显式 `--with-volumes` / `--reset` 才进入数据重置路径。
 
 `make scenario-env-reset-redeploy` 是显式清数据调试入口，会删除本地 named volumes。普通重启或仅重新加载当前代码时使用 `make scenario-env-redeploy TARGET=all`，不得把“重启”默认解释为 reset。
 

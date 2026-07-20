@@ -7,6 +7,10 @@ SCENARIO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCENARIO_DIR/../.." && pwd)"
 DRY_RUN=0
 WITH_VOLUMES=0
+LOCAL_DEV_RUNTIME="$SCENARIO_DIR/_shared/scripts/local-dev-runtime.sh"
+
+# shellcheck disable=SC1090
+. "$LOCAL_DEV_RUNTIME"
 
 usage() {
   cat <<'USAGE'
@@ -37,6 +41,8 @@ while [ "$#" -gt 0 ]; do
   esac
   shift
 done
+
+stop_host_runtimes
 
 if [ "$WITH_VOLUMES" -eq 1 ]; then
   if [ "$DRY_RUN" -eq 1 ]; then

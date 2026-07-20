@@ -1,8 +1,8 @@
 # Local Dev Stack
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-20
 
 本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的外部依赖，backend / frontend 仍由宿主机 dev command 管理；显式 `make dev-container-up` 才启用 `full-container` profile，以容器方式构建并运行当前前后端。**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**；本地邮件通过轻量 Mailpit 依赖承接。
 
@@ -64,11 +64,13 @@ backend 复用唯一的 `redis-dev` 保存共享加密 delivery secret：produce
 | `make scenario-env-setup` | 通过 `test/scenarios/env-setup.sh` 准备共享测试 / 本地联调环境 |
 | `make scenario-env-status` | 通过 `test/scenarios/env-status.sh` 输出共享环境状态 |
 | `make scenario-env-verify` | 通过 `test/scenarios/env-verify.sh` 验证共享环境 readiness |
-| `make scenario-env-cleanup` | 通过 `test/scenarios/env-cleanup.sh` 清理共享环境，默认保留卷 |
+| `make scenario-env-cleanup` | 通过 `test/scenarios/env-cleanup.sh` 先停止 repo-managed host-run backend/frontend，再停止 Compose 依赖，默认保留命名卷 |
 | `make scenario-env-redeploy` | 通过 `test/scenarios/env-redeploy.sh` 按 `TARGET=deps|backend|frontend|all` 刷新依赖或 build artifacts |
 | `make scenario-env-reset-redeploy` | 一键清理共享环境数据卷、重跑 migrations、重编译并重启 host-run backend/frontend、最后 verify；`ARGS=--dry-run` 可预览且不改变环境 |
 
 `dev-up` 启动顺序：先只读检查 Postgres 18 命名卷布局是否命中不兼容 `/var/lib/postgresql/data` 或半初始化状态 → 按 `--wait` 等 4 个依赖 healthy → 启动 `minio-init` 并轮询其退出码 (timeout 60s) → 调用 `dev-doctor.sh` 作为最终 gate；任何阶段失败时 `up` 退出非 0 并把每个 dependency / init 服务最近 50 行 `docker logs` 打到 stderr。
+
+`scenario-env-cleanup` 的环境边界同时包含 repo-managed host-run backend/frontend 与 Compose 依赖。脚本只会停止 PID 文件、当前命令和 repo cwd 均能证明归属的进程；陈旧 pidfile 或手工/无关进程只清理 pidfile，不发送信号。默认保留命名卷，只有显式 `--with-volumes` / `--reset` 才删除本地数据卷。
 
 ## 4 配置
 
