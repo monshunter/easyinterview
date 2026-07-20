@@ -210,6 +210,49 @@ describe("Home resume selection", () => {
     });
   });
 
+  it("shows only the resume name in each selectable option", async () => {
+    const client = createClient("default");
+    vi.mocked(client.listResumes).mockResolvedValue({
+      ...defaultListResumesResponse,
+      items: [
+        {
+          ...defaultListResumesResponse.items[0]!,
+          displayName: "Zhang San - Backend Engineer",
+          title: "backend-resume.pdf",
+          language: "zh-CN",
+          sourceType: "upload",
+          summaryHeadline: "Backend and platform engineering",
+          updatedAt: "2026-07-19T08:00:00Z",
+        },
+        {
+          ...defaultListResumesResponse.items[0]!,
+          id: "01918fa0-0000-7000-8000-000000001104",
+          displayName: "",
+          title: "Frontend Resume",
+          language: "en-US",
+          sourceType: "paste",
+          summaryHeadline: "Frontend architecture",
+          updatedAt: "2026-07-18T08:00:00Z",
+        },
+      ],
+    });
+    renderHome(client);
+
+    const namedOption = await screen.findByTestId(
+      "home-resume-option-01918fa0-0000-7000-8000-000000001000",
+    );
+    const titleFallbackOption = screen.getByTestId(
+      "home-resume-option-01918fa0-0000-7000-8000-000000001104",
+    );
+
+    expect(namedOption.textContent).toBe("Zhang San - Backend Engineer");
+    expect(titleFallbackOption.textContent).toBe("Frontend Resume");
+    expect(namedOption).not.toHaveTextContent(/zh-CN|upload|2026-07-19|Backend and platform/);
+    expect(titleFallbackOption).not.toHaveTextContent(
+      /en-US|paste|2026-07-18|Frontend architecture/,
+    );
+  });
+
   it("keeps readable existing resumes selectable when parseStatus is not ready", async () => {
     const client = createClient("default");
     vi.mocked(client.listResumes).mockResolvedValue(

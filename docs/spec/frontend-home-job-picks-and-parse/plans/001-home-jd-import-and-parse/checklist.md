@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.38
+> **版本**: 2.39
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -197,3 +197,10 @@
 - [x] 29.2 GREEN: `HomeScreen` 仅在 `loading || error || jobs.length > 0` 时渲染 recent section；不修改 `listTargetJobs` 请求、ready/non-blank 过滤、非空 record、route 或 quick-start。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="HomeRecentMocks 14/14 PASS; successful empty removes the section, a deferred request keeps loading feedback visible until resolution, and existing error/non-empty/navigation/quick-start tests remain green." -->
 - [x] 29.3 BDD-Gate: 执行 `BDD.HOME.RECENT.EMPTY.007` owner behavior tests，验证 successful empty 整段隐藏，loading/error 与 1~3 records 行为保持；不新增 E2E ID。<!-- verified: 2026-07-20 method=domain-behavior bddChecklist=complete evidence="Home owner 68/68 and root frontend 1113/1113 PASS; empty/loading/error/non-empty assertions are current-run code behavior evidence, not E2E." -->
 - [x] 29.4 REGRESSION: focused Home、frontend typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 通过后恢复 completed。<!-- verified: 2026-07-20 method=post-pass-gates evidence="Home 68/68, typecheck/build and root make test Python 615/4615, Go all, frontend 136/1113 PASS; context, sync-doc-index, docs links and git diff checks pass." -->
+
+## Phase 30: Simplify Home resume option labels
+
+- [x] 30.1 RED: `HomeResumeSelection.test.tsx` 断言每个业务 option 文本精确等于 `displayName || title`，并拒绝 `language`、`sourceType`、`updatedAt` 与 `summaryHeadline` 拼接；旧 `resumeMeta` 实现先失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="New exact-label assertion failed on 'Zhang San - Backend Engineer · zh-CN · upload · 2026-07-19'; 1113 adjacent tests passed." -->
+- [x] 30.2 GREEN: `HomeScreen` 删除 option 元信息拼接，只渲染简历名称；selectable predicate、更新时间排序、option `value`、选择状态与 import request 不变。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="HomeResumeSelection 7/7 PASS after removing resumeMeta and rendering displayName || title; selection and import assertions remain green." -->
+- [x] 30.3 BDD-Gate: 执行 `BDD.HOME.RESUME.OPTION.008` owner behavior test，证明多份 selectable 简历均只显示名称且仍可正确选择；不新增 E2E ID。<!-- verified: 2026-07-20 method=domain-behavior bddChecklist=complete evidence="Home selection/import behavior 16/16 and root make test PASS; exact labels exclude language, source, date and summary while selection behavior remains green." -->
+- [x] 30.4 REGRESSION: focused Home、frontend typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff 与 scoped source-search gates 通过后恢复 completed。<!-- verified: 2026-07-20 method=post-pass-gates evidence="Focused behavior 16/16, typecheck/build, root make test, context, Header/INDEX, docs links, pruning, diff and Home option metadata negative search PASS." -->

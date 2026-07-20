@@ -1,6 +1,6 @@
 # 多 JD 与多简历目标管理结构
 
-> **版本**: 4.1
+> **版本**: 4.2
 > **状态**: active
 > **更新日期**: 2026-07-19
 
@@ -145,7 +145,7 @@ MockInterviewPlan
 | 用户查看简历资产 | 以 desktop 每行两张等宽卡、mobile 满宽单列的列表查看全部简历；每卡片可打开或删除，详情只阅读原始简历正文 |
 | 用户查看原始简历 | 简历详情正文即原始简历预览；不打开独立原件弹层 |
 | 用户查看或想更换面试绑定简历 | 当前规划详情标题旁“绑定简历”只跳转对应 Resume 详情；若要更换，回到首页用同一 JD 和新的 ready `Resume` 创建新规划，当前详情不做 in-place rebind |
-| 用户在首页新建面试规划 | 在首页唯一 JD 文本框粘贴 JD；通过适度宽度下拉框选择已有 ready `Resume`，创建简历入口在下拉框右侧同排；未选择简历或未提供 JD 前「立即面试」禁用，按钮位于简历选择下方；提交 `{ rawText, targetLanguage, resumeId }` 后，route 只携带 `targetJobId`，真实 `resumeId` 由 TargetJob 后端事实恢复 |
+| 用户在首页新建面试规划 | 在首页唯一 JD 文本框粘贴 JD；通过适度宽度下拉框选择已有 selectable `Resume`，每个选项只显示 `displayName || title`，不拼接语言、来源、更新时间或摘要；创建简历入口在下拉框右侧同排。未选择简历或未提供 JD 前「立即面试」禁用，按钮位于简历选择下方；提交 `{ rawText, targetLanguage, resumeId }` 后，route 只携带 `targetJobId`，真实 `resumeId` 由 TargetJob 后端事实恢复 |
 
 ## 8 不做的事
 
@@ -173,6 +173,7 @@ MockInterviewPlan
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
 | 4.1 | 2026-07-19 | 按解析 JD 参考稿统一蓝白过渡画布、JD 轨道插画和四项进度层级；保留 command-only route、ready replace 与内部元数据负向边界。 |
+| 4.2 | 2026-07-20 | Home 简历下拉选项只显示简历名称，移除语言、来源、更新时间与摘要拼接，不改变 selectable predicate、排序、选择值或 import 合同。 |
 | 4.0 | 2026-07-19 | 简历唯一 Header 创建入口统一使用 Workspace 同款 22px 圆圈加号。 |
 | 3.9 | 2026-07-19 | 按提供的简历列表参考稿锁定 Resume asset list 卡片层级，并根据用户补充将 desktop 明确为每行两张等宽卡、mobile 满宽单列；绑定、删除与只读详情边界不变。 |
 | 3.8 | 2026-07-15 | 将 selectable 简历锁定为模拟面试全链路强制前置；无简历只允许创建简历，历史缺绑规划 fail closed。 |

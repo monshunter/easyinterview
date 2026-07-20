@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-20](./2026-07-20-home-resume-option-labels-assessment.md) | Home 简历选项名称精简交付复盘 | #assessment #ui #home |
 | [2026-07-20](./2026-07-20-home-empty-recent-section-assessment.md) | Home 空规划隐藏最近模拟面试区块交付复盘 | #assessment #ui #home |
 | [2026-07-19](./2026-07-19-settings-custom-theme-hierarchy-assessment.md) | Settings Custom Theme Hierarchy 交付复盘 | #assessment #settings #ui #chrome #BUG-0193 |
 | [2026-07-19](./2026-07-19-core-workflow-reference-ui-alignment-assessment.md) | 核心工作流参考图对齐交付复盘 | #assessment #ui #practice #resume #report #chrome #BUG-0192 |

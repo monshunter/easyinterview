@@ -1,6 +1,6 @@
 # Home JD Import and Parse BDD Checklist
 
-> **版本**: 2.33
+> **版本**: 2.34
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -50,3 +50,10 @@
 - [x] 执行 owner test，证明 authenticated successful empty 时整个 recent section、标题、说明、More 与空卡片均不进入 DOM。<!-- verified: 2026-07-20 method=focused-home-vitest evidence="Home owner suite 9 files / 68 tests PASS; the empty-result case asserts all named DOM surfaces are absent." -->
 - [x] 执行相邻状态回归，证明 loading/error 与 1~3 条 record 仍保留既有用户可见反馈和动作。<!-- verified: 2026-07-20 method=focused-home-vitest evidence="The same 68-test run covers deferred loading-to-empty, safe load error, one/two/three-card variants, More navigation and quick-start." -->
 - [x] 记录 focused 与根 `make test` 证据。<!-- verified: 2026-07-20 method=full-regression evidence="Home owner 9 files / 68 tests PASS; root make test passed Python 615 / 4615 subtests, all Go packages and frontend 136 files / 1113 tests." -->
+
+## `BDD.HOME.RESUME.OPTION.008` 简历选项只显示名称
+
+- [x] 确认验证入口为 `HomeResumeSelection.test.tsx` domain behavior test，不创建或复用真实 E2E ID。<!-- verified: 2026-07-20 method=behavior-source-review evidence="BDD plan resolves BDD.HOME.RESUME.OPTION.008 exclusively to the Home resume selection domain behavior test." -->
+- [x] 执行 owner test，证明 `displayName` 优先、缺失时回退 `title`，且业务 option 不拼接语言、来源、更新时间或摘要。<!-- verified: 2026-07-20 method=focused-home-vitest evidence="HomeResumeSelection 7/7 PASS; exact text assertions cover displayName, title fallback and all four forbidden metadata classes." -->
+- [x] 执行相邻选择/import 回归，证明 option `value`、显式选择、CTA enablement 与 `resumeId` request 保持。<!-- verified: 2026-07-20 method=focused-home-vitest evidence="HomeResumeSelection plus HomeImport 16/16 PASS, including explicit option selection and exact resumeId import request behavior." -->
+- [x] 记录 focused 与根 `make test` 证据。<!-- verified: 2026-07-20 method=full-regression evidence="Focused behavior tests 16/16 PASS; root make test passed Python 615 / 4615 subtests, all Go packages and the frontend suite." -->

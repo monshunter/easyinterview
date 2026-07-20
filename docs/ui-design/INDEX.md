@@ -11,8 +11,8 @@
 | [当前面试规划目标模块](./module-job-workspace.md) | 1.49 | completed | 2026-07-20 | Home 空规划时隐藏整个 recent section；非空记录与 Workspace 共用业务 mapper |
 | [模拟面试与报告目标模块](./module-practice-review.md) | 1.35 | active | 2026-07-19 | Practice 保留 global App TopBar，并在其下使用独立 Session Header 与全宽连续文本聊天 |
 | [报告仪表盘目标结构](./report-dashboard.md) | 1.41 | active | 2026-07-16 | reportId-only frozen detail、任意报告状态保留面试记录、failed recovery、desktop `4/2/2/2/1` 与 mobile 同序单列 |
-| [简历一级模块](./resume-module.md) | 3.8 | active | 2026-07-19 | 参考稿 desktop 单列宽卡/mobile 满宽单列、上传/粘贴创建、closed 摘要与只读详情边界（D-20） |
-| [多 JD 与多简历管理](./jd-resume-management.md) | 3.9 | active | 2026-07-19 | Home 强制绑定 selectable Resume；Resume list 单列宽卡；历史缺绑规划 fail closed |
+| [简历一级模块](./resume-module.md) | 4.4 | active | 2026-07-20 | Home 简历选项仅显示名称；Resume 列表/详情继续承接来源、日期与摘要元信息 |
+| [多 JD 与多简历管理](./jd-resume-management.md) | 4.2 | active | 2026-07-20 | Home 强制绑定 selectable Resume，选项仅显示名称；历史缺绑规划 fail closed |
 | [首次无简历引导](./resume-onboarding.md) | 1.17 | active | 2026-07-15 | 上传/粘贴创建 selectable 简历；形成可读证据后返回 Home 显式选择，禁止跳过进入训练或报告链路 |
 
 ## 2 参考

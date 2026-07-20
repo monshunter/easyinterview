@@ -39,12 +39,6 @@ function sortByMostRecentResume(a: ResumeSummary, b: ResumeSummary): number {
   return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
 }
 
-function resumeMeta(resume: ResumeSummary): string {
-  return [resume.language, resume.sourceType, resume.updatedAt.slice(0, 10)]
-    .filter(Boolean)
-    .join(" · ");
-}
-
 function formatRecentDate(value: string, lang: "zh" | "en"): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value.slice(0, 10);
@@ -355,7 +349,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                           data-testid={`home-resume-option-${resume.id}`}
                           value={resume.id}
                         >
-                          {`${resume.displayName || resume.title} · ${resumeMeta(resume)}`}
+                          {resume.displayName || resume.title}
                         </option>
                       ))}
                     </select>
