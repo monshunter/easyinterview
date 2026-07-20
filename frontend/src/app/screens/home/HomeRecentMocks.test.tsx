@@ -111,6 +111,29 @@ describe("HomeRecentMocks", () => {
     });
   });
 
+  it("keeps the recent loading feedback visible before an empty result hides the section", async () => {
+    const client = createClient();
+    let resolveJobs!: (value: ListTargetJobsResponse) => void;
+    vi.spyOn(client, "listTargetJobs").mockImplementation(
+      () => new Promise<ListTargetJobsResponse>((resolve) => {
+        resolveJobs = resolve;
+      }),
+    );
+
+    renderHome(client);
+
+    expect(await screen.findByTestId("home-recent-mocks")).toBeInTheDocument();
+    expect(screen.getByText("Recent mock interviews...")).toBeInTheDocument();
+
+    await act(async () => {
+      resolveJobs({ ...defaultListTargetJobsResponse, items: [] });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("home-recent-mocks")).not.toBeInTheDocument();
+    });
+  });
+
   it("renders a user-safe recent-plan load failure", async () => {
     const client = createClient();
     vi.spyOn(client, "listTargetJobs").mockRejectedValue(
@@ -181,13 +204,24 @@ describe("HomeRecentMocks", () => {
     );
   });
 
-  it("shows empty state for empty variant", async () => {
+  it("hides the entire recent section for an authenticated successful empty result", async () => {
     const client = createClient("empty");
+    const listSpy = vi.spyOn(client, "listTargetJobs");
     renderHome(client);
 
     await waitFor(() => {
-      expect(screen.queryByTestId(/home-recent-mock-card-/)).not.toBeInTheDocument();
+      expect(listSpy).toHaveBeenCalled();
     });
+
+    expect(screen.queryByTestId("home-recent-mocks")).not.toBeInTheDocument();
+    expect(screen.queryByText("Recent mock interviews")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Sorted by recent activity. Each card represents a target job and interview round.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("home-recent-more")).not.toBeInTheDocument();
+    expect(screen.queryByTestId(/home-recent-mock-card-/)).not.toBeInTheDocument();
   });
 
   it("renders single card for one-job variant", async () => {

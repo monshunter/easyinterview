@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.36
+> **版本**: 2.37
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -403,6 +403,16 @@ Focused tests 覆盖合法/缺绑/无效 progress、2~5 动态轮次、desktop H
 
 `BDD.HOME.JD.TEXTAREA.006` 由 Home layout/component tests 与 current-run Chrome desktop 验收承接：默认高度约 212px，粘贴多行长 JD 后 `clientHeight >= scrollHeight` 且页面无横向溢出；mobile containment 由同一 CSS/component contract 覆盖，不新增 E2E ID。完成 focused、typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 后恢复 owner `completed`。
 
+### Phase 29: Hide empty Home recent section
+
+#### 29.1 TDD and implementation
+
+扩展 `HomeRecentMocks.test.tsx`，让 authenticated + successful empty `listTargetJobs` response 证明 `home-recent-mocks`、标题、说明、More 与空卡片均不进入 DOM。保留 loading 和用户安全的 error feedback；随后只用 `loading || error || jobs.length > 0` 为 `HomeScreen` recent section 加最小渲染 gate，不改变请求、过滤、route、practice handoff 或非空 record presentation。
+
+#### 29.2 Behavior and regression gates
+
+`BDD.HOME.RECENT.EMPTY.007` 由 `HomeRecentMocks.test.tsx` domain behavior test 承接：successful empty 整段隐藏，loading/error 与 1~3 record variants 保持。执行 focused Home、frontend typecheck/build 与根 `make test`；本阶段不新增 API、fixture、persistence、route 或 E2E ID。
+
 ## 6 验收标准
 
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
@@ -424,11 +434,13 @@ Focused tests 覆盖合法/缺绑/无效 progress、2~5 动态轮次、desktop H
 - `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。
 - Reference viewport 与 mobile Chrome 验收通过；Home 的视觉重排没有引入新的 API、fixture、persistence、route 或业务上限。
 - Home JD textarea 默认至少 212px，长内容自动增高并完整可见，删减内容可回缩但不低于默认值；横向仍占满 intake card 且无页面横向溢出。
+- Home recent 在成功空集合时整段隐藏；loading/error 与 1~3 条记录状态继续提供既有反馈和动作。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 2.37 | Reopen Phase 29 to hide the complete Home recent section after a successful empty plan load while preserving loading, error and non-empty behavior. |
 | 2026-07-20 | 2.36 | Reopen Phase 28 to double the Home JD textarea default height and auto-fit pasted content without changing width or business contracts. |
 | 2026-07-19 | 2.35 | Reopen Phase 27 for the screenshot-aligned four-step JD parsing transition without changing import, polling or ready-detail handoff. |
 | 2026-07-19 | 2.34 | Reopen Phase 26 for the screenshot-aligned Workspace plan-detail header and four-layer card composition without changing the operation matrix. |

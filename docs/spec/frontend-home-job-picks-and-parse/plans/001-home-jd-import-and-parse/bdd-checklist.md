@@ -1,6 +1,6 @@
 # Home JD Import and Parse BDD Checklist
 
-> **版本**: 2.32
+> **版本**: 2.33
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -43,3 +43,10 @@
 - [x] Home layout/component tests 证明 212px 默认高度、100% 横向宽度、内部无纵向滚动，以及内容增长/删减时按最新 `scrollHeight` 增高/回缩。<!-- verified: 2026-07-20 method=focused-home-vitest evidence="All 9 Home files and 67 tests pass; HomeLayout directly proves 212px/100%/hidden-overflow plus controlled 420px growth and 224px shrink." -->
 - [x] Chrome 在真实 desktop Home 验证空输入默认高度、粘贴多行长 JD 后完整可见、计数器/Resume/CTA 顺序稳定、`documentWidth=viewportWidth` 且 browser warning/error 为零；不新增 E2E ID。<!-- verified: 2026-07-20 method=chrome-extension-manual evidence="At 1916x821 the empty and shrunk textarea measured 212px; a 36-line JD grew to 993px with clientHeight=scrollHeight, width stayed 1346px inside a 1348px frame, documentWidth=viewportWidth=1916, Resume/CTA stayed ordered and console warnings/errors were zero. Evidence: .test-output/home-jd-textarea-acceptance/." -->
 - [x] 根 `make test`、typecheck/build 与 owner/document gates 通过并记录证据。<!-- verified: 2026-07-20 method=full-regression evidence="Python 615/4615 subtests, Go all packages and frontend 134 files/1088 tests PASS; typecheck/build, redeploy, environment 4/4, owner context and doc/index/diff gates pass." -->
+
+## `BDD.HOME.RECENT.EMPTY.007` 空规划隐藏最近模拟面试区块
+
+- [x] 确认验证入口为 `HomeRecentMocks.test.tsx` domain behavior test，不创建或复用真实 E2E ID。<!-- verified: 2026-07-20 method=behavior-source-review evidence="BDD plan resolves BDD.HOME.RECENT.EMPTY.007 exclusively to the HomeRecentMocks domain behavior test." -->
+- [x] 执行 owner test，证明 authenticated successful empty 时整个 recent section、标题、说明、More 与空卡片均不进入 DOM。<!-- verified: 2026-07-20 method=focused-home-vitest evidence="Home owner suite 9 files / 68 tests PASS; the empty-result case asserts all named DOM surfaces are absent." -->
+- [x] 执行相邻状态回归，证明 loading/error 与 1~3 条 record 仍保留既有用户可见反馈和动作。<!-- verified: 2026-07-20 method=focused-home-vitest evidence="The same 68-test run covers deferred loading-to-empty, safe load error, one/two/three-card variants, More navigation and quick-start." -->
+- [x] 记录 focused 与根 `make test` 证据。<!-- verified: 2026-07-20 method=full-regression evidence="Home owner 9 files / 68 tests PASS; root make test passed Python 615 / 4615 subtests, all Go packages and frontend 136 files / 1113 tests." -->

@@ -1,6 +1,6 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.48
+> **版本**: 1.49
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -94,7 +94,7 @@ Workspace 详情的 desktop 目标构图使用约 `1250px` 居中内容列：Hea
 
 ```text
 入口:
-├─ Home 最近模拟面试记录（最多 3 条）或“查看全部”
+├─ Home 最近模拟面试记录（有记录时最多 3 条并显示“查看全部”；成功空集合时整段隐藏）
 ├─ Home 新建规划快捷入口（粘贴 JD + 选择已有简历 + JD import）
 ├─ 一级导航 面试
 ├─ Report 的复练当前轮
@@ -258,7 +258,7 @@ Resume
 
 1. 顶部导航文案为 `面试`；英文为 `Interview`。
 2. `/workspace` 无 `targetJobId` 时展示 `面试规划列表`；`/workspace?targetJobId=...` 展示该规划只读详情。`planId` / `resumeId` 不是详情 locator，必须清理或忽略；不得再用 `当前岗位` 表示一级模块。
-3. 面试规划列表必须是固定列宽卡片式；Home recent 必须是全宽横向 record。两者共用公司、岗位、动态 mini round rail、progress 与 quick-start mapper，但 Home 增加最近使用时间并不展示删除，Workspace 在卡片底部追加主题 accent `立即面试` 且右上角展示删除。两者都不得展示 TargetJob lifecycle `status`、空地点占位、来源类型、目标语言或 `手动输入` 等低价值元信息；只展示 `analysisStatus=ready` 且标题非空的 TargetJob。
+3. 面试规划列表必须是固定列宽卡片式；Home recent 必须是全宽横向 record。两者共用公司、岗位、动态 mini round rail、progress 与 quick-start mapper，但 Home 增加最近使用时间并不展示删除，Workspace 在卡片底部追加主题 accent `立即面试` 且右上角展示删除。两者都不得展示 TargetJob lifecycle `status`、空地点占位、来源类型、目标语言或 `手动输入` 等低价值元信息；只展示 `analysisStatus=ready` 且标题非空的 TargetJob。Home 成功加载后若该集合为空，recent section 的标题、说明、更多入口和空卡片必须整体隐藏；loading/error 反馈保持可见，不能把未知状态伪装成空集合。
 4. 列表卡片不展示可见的 `进入规划` / `Open plan` 按钮；点击卡片主体进入 `/workspace?targetJobId=...` 详情且不得触发 import/poll/Parse animation，点击 `立即面试` 启动 practice，点击右上角删除图标调用 generated `archiveTargetJob`，成功后隐藏当前卡片且刷新后不回灌。
 5. 真实面试轮次、已绑定简历和启动面试只出现在 Workspace 只读详情或后续 owner；Workspace 详情 round assumptions 与 Home 最近模拟面试卡片的迷你轮次轨道遵循本文档的同一视觉语义，但轮次数量、type/name、duration 和 focus 必须来自同一个 `TargetJob.summary.interviewRounds[]` mapper。该数组由后端 LLM 根据 JD、岗位级别、公司/行业性质、团队/业务上下文和招聘流程线索推断；前端不得用静态 4 轮、静态 HR/技术/经理面或静态分钟数 fallback。Workspace 规划列表保持紧凑卡片，但进入详情的 handoff 不得生成另一套静态 round name。
    当前/已完成状态必须来自 `TargetJob.practiceProgress`：`completedRounds` 画为完成态，`currentRound` 画为当前态，全部完成时所有节点为完成态且 `立即面试` disabled。缺失、跳轮、重复或 pair 不匹配时不高亮/不启动；禁止读取 lifecycle `status`、自由文本 `nextRound`、URL 或浏览器存储做轮次 fallback。mini rail 的 DOM、间距、颜色、节点几何以正式前端当前 token 和 component contract 为准。Workspace 详情的 round assumption 卡同步表达同一事实：done 显示“已进行”并使用 success-soft 背景/成功色边框，current 显示“即将进行”并使用 accent-soft 背景/主题色边框，pending 显示“未进行”并使用 neutral-soft 背景/规则线边框；三态必须有 `data-round-state`，不能只靠颜色传达。
@@ -272,6 +272,7 @@ Resume
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.49 | Home 成功加载且没有可展示面试规划时整体隐藏最近模拟面试区块；loading/error 与非空记录行为保持。 |
 | 2026-07-20 | 1.48 | Home JD textarea 默认可视高度翻倍为 212px，并随输入内容自动增高/回缩以完整显示文本；横向宽度、runtime limit 与业务合同不变。 |
 | 2026-07-19 | 1.47 | 按参考稿锁定 Workspace 详情的 1250px Header 动作区与基本信息、要求、隐性关注点、轮次四层卡面构图；业务 owner 与动态轮次合同不变。 |
 | 2026-07-19 | 1.46 | 明确 Workspace 背景层全视口覆盖、内容层独立限宽，并让 header CTA 与双列卡片网格共享右边界；禁止背景裁剪空白带和按钮右侧错位。 |

@@ -1,6 +1,6 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.32
+> **版本**: 2.33
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -68,7 +68,7 @@ Home 粘贴 JD
 | D-3 | Home 提交流程 | 用户在唯一 textarea 粘贴 JD，并显式选择 selectable 简历后提交 | POST 成功只进入 `/parse?targetJobId=...`；route 不携带 `resumeId` 或原文 |
 | D-4 | Workspace detail handoff | Workspace targetJobId detail 是只读上下文收据；解析成功即已保存规划。标题旁“绑定简历”只查看 saved resume；标题下首行动作行的「立即面试」直接使用已绑定上下文进入 practice handoff，不先 PATCH `updateTargetJob` 或经由 route-side auto start | Practice session 创建使用已保存 TargetJob / Resume / Round 快照；不保留独立 launch/footer 区 |
 | D-5 | Parse 状态机 | `getTargetJob.analysisStatus` 驱动 queued/processing progress 与 failed；ready 必须 replace 到 workspace detail | Parse 是命令进度，不是 ready 详情回访页 |
-| D-6 | Recent mocks | Home 最多展示 3 条最近模拟面试横向记录，有记录时「查看全部」交给 `workspace` | 首页保持新建任务优先 |
+| D-6 | Recent mocks | Home 最多展示 3 条最近模拟面试横向记录，有记录时「查看全部」交给 `workspace`；成功加载后没有可展示规划时整个 recent section 不进入 DOM | 首页保持新建任务优先，不用标题或空卡片重复表达空集合；loading/error 仍提供反馈 |
 | D-7 | i18n | 只维护当前 `home.*` 与 `parse.*` namespace | 与 typed locale helper 一致 |
 | D-8 | Privacy / auth continuation | JD 原文不进入 URL/localStorage/sessionStorage/IndexedDB/console/telemetry；`pendingAction` 的唯一字段是 `opaquePendingImportId` | vault entry 仅在当前进程内保存 `{ rawText, targetLanguage, resumeId, idempotencyKey, expiresAt }` 并原子 consume 一次；refresh / 进程重启、过期或重复 consume 均 fail closed，返回 Home 显示本地化重新粘贴/选择提示，不发起 import，也不尝试从 route 或 storage 恢复原文 |
 | D-9 | 统一详情母版 | 原 `JD 解析结果` 视觉改名为“面试规划详情 / 面试上下文确认”，只在 `/workspace?targetJobId` ready route 渲染；首次导入 ready 后 replace 到此，回访直接进入此页 | 用户只学习一个详情页面；Parse 不再作为 ready 详情入口 |
@@ -96,6 +96,7 @@ Home 粘贴 JD
 - refresh / 进程重启导致 vault 丢失、entry 过期或 ID 已消费时，auth continuation 不调用 `importTargetJob`，清除无效 pending action，返回 Home 并以 zh/en 可访问提示要求用户重新粘贴 JD、选择简历；不得用 `localStorage`、`sessionStorage`、IndexedDB、URL、日志或 telemetry 延长 raw JD 生命周期。
 - `route=parse` 只在 queued/processing 展示 loading。首个 `getTargetJob` 已 ready 或轮询转 ready 时立即 `replaceRoute({ name: "workspace", params: { targetJobId } })`；不得先播放动画或把 Parse 留在 Back history。Workspace detail 直接渲染同一 ready 母版。
 - Home `listResumes` / `listTargetJobs` 与 Parse `getTargetJob` 使用 shell safe-read single-flight + 稳定 loader dependencies；同 key 初载底层 request count 必须为 1，轮询后续请求必须有 scheduler tick 证据。
+- Home recent 只有在 authenticated 且 `loading || error || jobs.length > 0` 时渲染；成功加载且过滤后的 ready/non-blank 集合为空时，`home-recent-mocks`、标题、说明、更多入口和空卡片全部不进入 DOM。不得因此吞掉 loading 或用户安全的加载失败反馈。
 - Parse loading 的 DOM、截图和文案负向 gate 必须拒绝 `model`、`provider`、`rubric`、`prompt@`、版本/hash、`provenance`、`typical` 等内部实现标记；不能以折叠、弱化颜色或移动到底部代替删除。
 - Workspace detail requirements evidence 只读展示 API 返回的 `evidenceLevel`；前端不得在详情页维护临时 hit toggle 或把确认状态写回后端。
 - Workspace detail round assumptions 的卡片布局仍追溯 UI 设计文档，但卡片数量必须来自 2~5 条 `TargetJob.summary.interviewRounds[]`；R 序号、标题、轮次类型、时长和 focus 也必须来自该数组。这些轮次由后端 LLM 根据 JD、行业/公司性质、岗位级别、团队/业务上下文和招聘流程线索推断，前端不得用 locale 或本地常量补齐轮数、HR/技术/经理面类型或分钟数。
@@ -134,11 +135,11 @@ Home 粘贴 JD
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Home 默认渲染 | 用户进入 App | 打开 `home` | screenshot-aligned Hero/subtitle/illustration、单一 intake card、唯一 JD textarea + 真实上限 count、resume select/create CTA、recent records/empty state 正常渲染；旧 source controls / trigger / modal 锚点不存在；TopBar 高亮首页 | 001 |
+| C-1 | Home 默认渲染 | 用户进入 App | 打开 `home` | screenshot-aligned Hero/subtitle/illustration、单一 intake card、唯一 JD textarea + 真实上限 count、resume select/create CTA 正常渲染；recent loading/error 可恢复，成功空集合时整个 recent section 隐藏；旧 source controls / trigger / modal 锚点不存在；TopBar 高亮首页 | 001 |
 | C-2 | Home resume gate | `listResumes` 返回 selectable 简历 | 用户尚未选择简历 | 「立即面试」disabled，不调用 import；选择 selectable 简历后才允许提交 | 001 |
 | C-3 | Paste JD import | 用户选择 selectable 简历并粘贴 JD | 点击「立即面试」 | 调用 `importTargetJob({ rawText, targetLanguage, resumeId })` 并携带 `Idempotency-Key`；POST 成功只进入 `/parse?targetJobId=...` | 001 |
 | C-4 | 非当前 JD intake 零残留 | paste-only 合同已生效 | 扫描 UI 设计文档、formal frontend、OpenAPI/generated、backend、active fixtures/scenarios | 不存在平行 JD intake UI、source discriminator、专属 handler/persistence/job/scenario；Resume 上传路径仍通过原 owner gate | 001 |
-| C-5 | Recent mocks | `listTargetJobs` 返回多条 ready 记录 | Home 加载完成 | Home `listTargetJobs`/`listResumes` 同 key 初载底层请求各 1 次；只展示最近 3 条全宽横向 record；主体直达 `/workspace?targetJobId=...`，不经过 Parse/动画；quick-start 与「查看全部」保持 | 001 |
+| C-5 | Recent mocks | `listTargetJobs` 返回空集合或多条 ready 记录 | Home 加载完成 | Home `listTargetJobs`/`listResumes` 同 key 初载底层请求各 1 次；空集合时整个 recent section 不进入 DOM；非空时只展示最近 3 条全宽横向 record，主体直达 `/workspace?targetJobId=...`，不经过 Parse/动画，quick-start 与「查看全部」保持 | 001 |
 | C-6 | Parse ready replace | `getTargetJob` 首读 ready 或 queued/processing 轮询转 ready | 用户进入 `/parse?targetJobId=...` | 每个分类/调度 tick 同 key底层 GET 恰好 1；ready 立即 replace 到 `/workspace?targetJobId=...`，Back 不返回动画；Parse 不渲染 ready detail | 001 |
 | C-7 | Parse failed flow | `analysisStatus=failed` 或轮询超时 | Parse polling | 渲染失败态、重新解析和返回首页；不伪造 preview 数据 | 001 |
 | C-8 | Readonly plan receipt | Workspace detail 已绑定 selectable 简历，或历史 TargetJob 缺失/无效绑定 | 用户查看详情 | 初载同 key `getTargetJob` 底层 count=1 且不调用 `listResumes/getResume`；合法绑定精确进入对应 Resume 详情；无独立 binding/launch block、字段编辑、picker/rebind 或页尾动作；缺绑显示异常状态，Start、Reports、复练和下一轮全部 fail closed | 001 |

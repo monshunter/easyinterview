@@ -1,6 +1,6 @@
 # Home JD Import and Parse BDD Plan
 
-> **版本**: 2.28
+> **版本**: 2.29
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -16,5 +16,6 @@
 | `BDD.HOME.PLAN.VISUAL.004` | ready Workspace detail 有合法或异常的 Resume/progress 投影，并包含 2~5 个动态轮次 | 用户在 desktop/mobile 查看 Header、信息卡、要求、关注点与轮次并触发既有动作 | 目标构图保持 `1250px` 内容列、Header 右侧动作和四层响应式卡面；异常事实继续 fail closed，所有动态内容来自 TargetJob 且页面无横向溢出 | `ParsePlanVisual.test.ts` + Parse/Workspace detail behavior tests；Chrome `1916x821` / `390x844` manual visual acceptance |
 | `BDD.HOME.JD.PARSE.VISUAL.005` | command-only Parse 对合法 TargetJob 轮询到 queued/processing、ready 或 failed | 用户查看四步等待、返回或等待 ready replace | TopBar/面试高亮保留；共享 job transition 展示四步视觉节奏但不伪装后端 percent/阶段事实；ready replace 到 Workspace detail，失败/返回可恢复，desktop/mobile 无横向溢出 | `ParseScreen.test.tsx` + shared scene/CSS tests + current-run Chrome manual acceptance；根 `make test` 承接代码层回归 |
 | `BDD.HOME.JD.TEXTAREA.006` | 用户在 Home 打开唯一 JD textarea，内容可能为空、较短或为多行长文本 | 输入、粘贴或删除 JD 内容 | 默认可视高度至少 212px；长内容按实际 `scrollHeight` 增高并完整显示，删减后重新测量回缩但不低于默认高度；width 保持 100%，无内部纵向滚动或页面横向溢出，计数/Resume/CTA/request/route 不变 | `HomeLayout.test.tsx` + current-run Chrome desktop manual acceptance；根 `make test` 承接代码层回归 |
+| `BDD.HOME.RECENT.EMPTY.007` | 已认证用户打开 Home，最近规划请求可能 loading、失败、成功为空或成功返回 1~3 条可展示记录 | 等待最近规划加载完成或查看反馈 | 成功空集合时整个 recent section、标题、说明、More 与空卡片均不进入 DOM；loading/error 保留可恢复反馈，非空记录的 presentation、route 与 quick-start 不变 | `frontend/src/app/screens/home/HomeRecentMocks.test.tsx` domain behavior test；根 `make test` 承接代码层回归 |
 
 当前没有覆盖 JD import、parse 或确认 handoff 的真实 API/UI E2E owner；进度刷新场景不承接这些行为。代码层回归统一由根 `make test` 承接，不能作为 E2E 证据。

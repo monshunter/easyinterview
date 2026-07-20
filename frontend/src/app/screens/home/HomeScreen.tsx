@@ -122,6 +122,9 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
       .slice(0, 3),
     [rawJobs],
   );
+  const showRecentSection = isAuthenticated && (
+    loading || error !== null || jobs.length > 0
+  );
 
   useLayoutEffect(() => {
     const textarea = jdTextareaRef.current;
@@ -415,7 +418,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
             ) : null}
           </div>
 
-          {isAuthenticated ? (
+          {showRecentSection ? (
             <section data-testid="home-recent-mocks" className="ei-home-recent">
               <header className="ei-home-recent-header">
                 <div>
@@ -445,8 +448,6 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                 <div className="ei-skeleton-stripe">{t("home.recentSection")}...</div>
               ) : error ? (
                 <div className="ei-home-error">{t("home.errors.recentLoad")}</div>
-              ) : jobs.length === 0 ? (
-                <div className="ei-home-recent-empty">{t("home.recentSection")}</div>
               ) : (
                 <div data-testid="home-recent-mock-grid" className="ei-home-recent-grid">
                   {jobs.map((job) => (

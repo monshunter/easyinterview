@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.37
+> **版本**: 2.38
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -190,3 +190,10 @@
 - [x] 28.2 GREEN: `HomeScreen` 只增加 textarea ref + layout effect，在受控值变化后清除旧 height、读取当前 `scrollHeight` 并写入新高度；不增加 max-height、内部滚动、手动 resize、请求、route、storage 或业务状态。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="HomeLayout 5/5 PASS after adding only the textarea ref/layout effect plus 212px min-height and hidden vertical overflow; controlled 420px growth and 224px shrink both pass." -->
 - [x] 28.3 BDD-Gate: `BDD.HOME.JD.TEXTAREA.006` 由 Home layout/component tests 与 current-run Chrome desktop 验收承接；验证默认约 212px、长 JD `clientHeight >= scrollHeight`、计数器/Resume/CTA 顺序稳定、无横向溢出，不新增 E2E ID。<!-- verified: 2026-07-20 method=focused-vitest-plus-chrome evidence="Home 67/67 and typecheck PASS; Chrome 1916x821 measured 212px default/shrunk and 993px for 36 lines with clientHeight=scrollHeight, no horizontal overflow, stable downstream ordering and zero browser issues." -->
 - [x] 28.4 REGRESSION: focused、typecheck/build、frontend redeploy、环境 4/4、根 `make test`、owner context、Header/INDEX/docs/diff gate 通过并完成 bug/复盘/日志收尾后恢复 completed。<!-- verified: 2026-07-20 method=post-pass-gates evidence="Home 67/67, typecheck/build, frontend redeploy, environment 4/4 and root make test Python 615/4615, Go all, frontend 134/1088 PASS; BUG-0192 and the existing alignment retrospective were updated before lifecycle restoration." -->
+
+## Phase 29: Hide empty Home recent section
+
+- [x] 29.1 RED: `HomeRecentMocks.test.tsx` 对 authenticated + successful empty response 断言整个 `home-recent-mocks`、标题、说明、More 与空卡片均不进入 DOM；旧 empty-state 实现先失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="HomeRecentMocks ran 13 tests with exactly the new successful-empty case failing; the old DOM still contained the section, heading, description and empty card while 12 adjacent tests stayed green." -->
+- [x] 29.2 GREEN: `HomeScreen` 仅在 `loading || error || jobs.length > 0` 时渲染 recent section；不修改 `listTargetJobs` 请求、ready/non-blank 过滤、非空 record、route 或 quick-start。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="HomeRecentMocks 14/14 PASS; successful empty removes the section, a deferred request keeps loading feedback visible until resolution, and existing error/non-empty/navigation/quick-start tests remain green." -->
+- [x] 29.3 BDD-Gate: 执行 `BDD.HOME.RECENT.EMPTY.007` owner behavior tests，验证 successful empty 整段隐藏，loading/error 与 1~3 records 行为保持；不新增 E2E ID。<!-- verified: 2026-07-20 method=domain-behavior bddChecklist=complete evidence="Home owner 68/68 and root frontend 1113/1113 PASS; empty/loading/error/non-empty assertions are current-run code behavior evidence, not E2E." -->
+- [x] 29.4 REGRESSION: focused Home、frontend typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff gate 通过后恢复 completed。<!-- verified: 2026-07-20 method=post-pass-gates evidence="Home 68/68, typecheck/build and root make test Python 615/4615, Go all, frontend 136/1113 PASS; context, sync-doc-index, docs links and git diff checks pass." -->
