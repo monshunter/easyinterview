@@ -4,6 +4,7 @@ export const zh = {
   "nav.resume_versions": "简历",
   "theme.ocean": "深海",
   "theme.plum": "梅子",
+  "theme.forest": "森林",
   "display.language": "语言",
   "user.settings": "设置",
   "user.logout": "退出登录",

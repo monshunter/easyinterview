@@ -71,15 +71,29 @@ func TestIntegrationAccountThemePreferencesUpDownUp(t *testing.T) {
 		}
 	}
 
-	if err := migrator.Steps(-1); err != nil {
-		t.Fatalf("migrate populated database v21 down to v20: %v", err)
+	if err := migrator.Steps(1); err != nil {
+		t.Fatalf("migrate populated database v21 to v22: %v", err)
 	}
-	assertMigrationVersion(t, migrator, 20)
+	assertMigrationVersion(t, migrator, 22)
+	mustExecIntegration(t, ctx, db, `update user_settings set theme='forest',custom_accent_hue=null,custom_accent_chroma=null where user_id=$1`, userID)
+	assertAccountTheme(t, ctx, db, userID, "forest", sql.NullFloat64{}, sql.NullFloat64{})
+	if _, err := db.ExecContext(ctx, `update user_settings set theme='warm' where user_id=$1`, userID); err == nil {
+		t.Fatal("unsupported warm account theme succeeded at v22")
+	}
+
+	if err := migrator.Steps(-1); err != nil {
+		t.Fatalf("migrate populated database v22 down to v21: %v", err)
+	}
+	assertMigrationVersion(t, migrator, 21)
+	assertAccountTheme(t, ctx, db, userID, "ocean", sql.NullFloat64{}, sql.NullFloat64{})
 	assertAnalyticsOptIn(t, ctx, db, userID, false)
 	if err := migrator.Steps(1); err != nil {
-		t.Fatalf("migrate populated database v20 back to v21: %v", err)
+		t.Fatalf("migrate populated database v21 back to v22: %v", err)
 	}
+	assertMigrationVersion(t, migrator, 22)
 	assertAccountTheme(t, ctx, db, userID, "ocean", sql.NullFloat64{}, sql.NullFloat64{})
+	mustExecIntegration(t, ctx, db, `update user_settings set theme='forest' where user_id=$1`, userID)
+	assertAccountTheme(t, ctx, db, userID, "forest", sql.NullFloat64{}, sql.NullFloat64{})
 
 	mustExecIntegration(t, ctx, db, `delete from users where id=$1`, userID)
 	var remaining int
@@ -88,6 +102,7 @@ func TestIntegrationAccountThemePreferencesUpDownUp(t *testing.T) {
 	}
 	t.Log("ACCOUNT_THEME_PREFERENCES_POPULATED_PASS")
 	t.Log("ACCOUNT_THEME_PREFERENCES_CONSTRAINTS_PASS")
+	t.Log("ACCOUNT_THEME_FOREST_UP_DOWN_UP_PASS")
 	t.Log("ACCOUNT_THEME_PREFERENCES_UP_DOWN_UP_PASS")
 }
 

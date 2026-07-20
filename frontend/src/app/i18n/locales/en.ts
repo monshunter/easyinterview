@@ -6,6 +6,7 @@ export const en: LocaleMessages = {
   "nav.resume_versions": "Resume",
   "theme.ocean": "Deep ocean",
   "theme.plum": "Plum",
+  "theme.forest": "Forest",
   "display.language": "Language",
   "user.settings": "Settings",
   "user.logout": "Sign out",

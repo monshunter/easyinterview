@@ -401,6 +401,7 @@ class FixtureContentTest(unittest.TestCase):
             ("getMe", "authenticated", False, "plum"),
             ("getMe", "profileIncomplete", True, "ocean"),
             ("updateMe", "default", False, "ocean"),
+            ("updateMe", "themeForest", False, "forest"),
         )
         for operation_id, scenario_name, completion_required, theme in fixtures:
             with self.subTest(operationId=operation_id, scenario=scenario_name):

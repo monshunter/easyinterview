@@ -352,7 +352,7 @@ func (s *EmailCodeService) UpdateMe(ctx context.Context, userID string, in Updat
 		in.DisplayName = &normalized
 	}
 	if prefs := in.DisplayPreferences; prefs != nil {
-		if prefs.Theme != AccountThemeOcean && prefs.Theme != AccountThemePlum {
+		if prefs.Theme != AccountThemeOcean && prefs.Theme != AccountThemePlum && prefs.Theme != AccountThemeForest {
 			return UserContext{}, fmt.Errorf("unsupported account theme")
 		}
 		if accent := prefs.CustomAccent; accent != nil {

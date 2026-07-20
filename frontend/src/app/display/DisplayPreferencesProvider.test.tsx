@@ -90,10 +90,14 @@ describe("DisplayPreferencesProvider", () => {
       theme: "plum",
       customAccent: { h: 120, c: 0.18 },
     });
+    expect(normalizeAccountDisplayPreferences({ theme: "forest", customAccent: null })).toEqual({
+      theme: "forest",
+      customAccent: null,
+    });
 
     for (const projection of [
       null,
-      { theme: "forest", customAccent: null },
+      { theme: "warm", customAccent: null },
       { theme: "plum", customAccent: { h: -1, c: 0.18 } },
       { theme: "plum", customAccent: { h: 360, c: 0.18 } },
       { theme: "plum", customAccent: { h: 120, c: -0.001 } },

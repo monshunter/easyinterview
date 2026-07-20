@@ -13,7 +13,7 @@ import {
   MODE_KEYS,
   cssVar,
 } from "./tokens";
-import { THEME_PALETTE } from "./themes.data";
+import { THEME_METADATA, THEME_PALETTE } from "./themes.data";
 import { computeCustomAccentOverrides } from "./customAccent";
 
 const HERE = resolve(__dirname);
@@ -84,7 +84,7 @@ describe("design token module (Phase 1.1)", () => {
       mono: "--ei-font-mono",
     });
 
-    expect(THEME_KEYS).toEqual(["ocean", "plum"]);
+    expect(THEME_KEYS).toEqual(["ocean", "plum", "forest"]);
     expect(MODE_KEYS).toEqual(["light", "dark"]);
   });
 
@@ -97,11 +97,13 @@ describe("design token module (Phase 1.1)", () => {
 });
 
 describe("theme palette data (Phase 1.1)", () => {
-  it("defines complete ocean and plum palettes for both display modes", () => {
+  it("defines complete ocean, plum, and forest palettes for both display modes", () => {
     expect(Object.keys(THEME_PALETTE)).toEqual([
       "ocean",
       "plum",
+      "forest",
     ]);
+    expect(THEME_METADATA.map(({ key }) => key)).toEqual(["ocean", "plum", "forest"]);
     for (const theme of THEME_KEYS) {
       for (const mode of MODE_KEYS) {
         const palette = THEME_PALETTE[theme][mode];
@@ -109,12 +111,30 @@ describe("theme palette data (Phase 1.1)", () => {
         expect(palette.ink, `${theme}/${mode} missing ink`).toBeTruthy();
         expect(palette.accent, `${theme}/${mode} missing accent`).toBeTruthy();
         for (const [key, value] of Object.entries(palette)) {
-          expect(value, `${theme}/${mode}.${key} must be a hex color`).toMatch(
-            /^#[0-9a-f]{6}$/i,
-          );
+          const expectedFormat = key === "accent" || key === "accentSoft"
+            ? /^oklch\(\d+% 0\.\d{3} \d+\.\d\)$/
+            : /^#[0-9a-f]{6}$/i;
+          expect(value, `${theme}/${mode}.${key} has an unexpected color format`).toMatch(expectedFormat);
         }
       }
     }
+  });
+
+  it("pins the confirmed light and dark accent matrix", () => {
+    expect(THEME_PALETTE).toMatchObject({
+      ocean: {
+        light: { accent: "oklch(58% 0.225 239.0)", accentSoft: "oklch(92% 0.050 239.0)" },
+        dark: { accent: "oklch(68% 0.225 239.0)", accentSoft: "oklch(28% 0.050 239.0)" },
+      },
+      plum: {
+        light: { accent: "oklch(58% 0.230 0.0)", accentSoft: "oklch(92% 0.050 0.0)" },
+        dark: { accent: "oklch(68% 0.230 0.0)", accentSoft: "oklch(28% 0.050 0.0)" },
+      },
+      forest: {
+        light: { accent: "oklch(58% 0.155 143.0)", accentSoft: "oklch(92% 0.034 143.0)" },
+        dark: { accent: "oklch(68% 0.155 143.0)", accentSoft: "oklch(28% 0.034 143.0)" },
+      },
+    });
   });
 
 });
@@ -145,7 +165,7 @@ describe("themes.css CSS variable wiring (Phase 1.1)", () => {
     "cool-soft",
   ] as const;
 
-  it("defines every base color variable on all 4 theme-mode selectors", () => {
+  it("defines every base color variable on all 6 theme-mode selectors", () => {
     for (const theme of THEME_KEYS) {
       for (const mode of MODE_KEYS) {
         const selector = `:root[data-theme="${theme}"][data-mode="${mode}"]`;

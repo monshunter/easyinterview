@@ -9,6 +9,10 @@
       "request": {"headers": {}, "body": {"displayPreferences": {"theme": "plum", "customAccent": null}}},
       "response": {"status": 200, "headers": {"X-Request-ID": "req_2026-07-19-update-plum"}, "body": {"id": "01918fa0-0000-7000-8000-000000000100", "email": "alice@example.com", "displayName": "Alice Example", "profileCompletionRequired": false, "displayPreferences": {"theme": "plum", "customAccent": null}}}
     },
+    "themeForest": {
+      "request": {"headers": {}, "body": {"displayPreferences": {"theme": "forest", "customAccent": null}}},
+      "response": {"status": 200, "headers": {"X-Request-ID": "req_2026-07-20-update-forest"}, "body": {"id": "01918fa0-0000-7000-8000-000000000100", "email": "alice@example.com", "displayName": "Alice Example", "profileCompletionRequired": false, "displayPreferences": {"theme": "forest", "customAccent": null}}}
+    },
     "customAccent": {
       "request": {"headers": {}, "body": {"displayPreferences": {"theme": "ocean", "customAccent": {"h": 218.5, "c": 0.18}}}},
       "response": {"status": 200, "headers": {"X-Request-ID": "req_2026-07-19-update-custom"}, "body": {"id": "01918fa0-0000-7000-8000-000000000100", "email": "alice@example.com", "displayName": "Alice Example", "profileCompletionRequired": false, "displayPreferences": {"theme": "ocean", "customAccent": {"h": 218.5, "c": 0.18}}}}

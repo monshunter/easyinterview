@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Plan
 
-> **版本**: 1.31
+> **版本**: 1.32
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -10,7 +10,7 @@
 
 | 场景 | Given | When | Then | 真实 E2E |
 |---|---|---|---|---|
-| Email-code、资料补全、主题与设置入口 | real frontend、backend 与 Mailpit 已运行 | 用户登录/补全资料，在设置保存主题，退出并重新登录 | shell 读取真实 session/profile/theme；Settings 显示账号字段，主题跨重登恢复；reporter/证据不保存完整邮箱 | `E2E.P0.101`（原地扩展） |
+| Email-code、资料补全、主题与设置入口 | real frontend、backend 与 Mailpit 已运行 | 用户登录/补全资料，在设置保存 Forest，退出并重新登录 | shell 读取真实 session/profile/theme；Settings 显示账号字段，Forest 跨重登恢复；reporter/证据不保存完整邮箱 | `E2E.P0.101`（原地扩展） |
 
 ## Domain behavior
 
@@ -21,13 +21,14 @@
 | `BDD.SHELL.SETTINGS.002` | 用户未登录并直开 `settings` | route guard 判定 unauthenticated，用户完成登录/资料补全 | Settings 不提前挂载或调用账号 API；登录后通过 safe pendingAction 回到同一路由 | App auth dispatch/pendingAction domain tests，由根 `make test` 承接 |
 | `BDD.SHELL.SETTINGS.DELETE.001` | authenticated 用户以鼠标或键盘在 Settings 打开删除确认 | 取消/Escape、确认、重复点击、请求失败/401 后处理或收到 `202` | dialog focus 正确且取消零副作用；pending 只发一次并不可关闭；recoverable 失败保留 UI/同 key，401 交给 auth probe；成功复用 `refreshAuth()` 重探测 `/me`、提交 unauthenticated 并回 Home；默认 fixture client 复现相同 signed-out transition | Settings component tests + default `createDevMockClient` flow + backend `deleteMe` contract tests，由根 `make test` 承接 |
 | `BDD.SHELL.AUTH.LOCALE.001` | 当前显示偏好为中文或英文，受保护 route 的 auth probe 为 loading/error | App 渲染统一 auth route gate 或用户切换语言 | eyebrow/title/body 全部跟随当前 locale；中文无英文硬编码，且业务 screen/API 仍不提前挂载 | App shell language-switch + AppAuthDispatch focused tests，由根 `make test` 承接 |
-| `BDD.SHELL.SETTINGS.THEME.001` | authenticated runtime 已从首次 `getMe` 取得服务端确认主题 | 用户打开 Settings、切换预定义色或拖动 custom、保存、切换 route、刷新/重登；服务端也可能拒绝保存、返回非法投影或在页面离开后迟到返回 | Ocean / Plum / Custom 一级选择器始终可见，并在 desktop 与 Save 共用固定主操作行；hue/chroma 二级编辑器仅在 Custom 激活时于该行下方展示且不遮挡一级，展开/收起不改变 Save 纵向位置，hue 轨道展示完整光谱，chroma 轨道跟随当前 hue 从低彩到高彩，选择预定义主题后隐藏；页面挂载/route 切换零额外 `getMe`；拖动零请求；Save 恰好一次 `updateMe` 且成功零 follow-up GET并立即同步全局；失败保留草稿并可重试，离开恢复确认值；迟到响应不覆盖新 auth/theme；非法投影 fail closed 为 ocean；刷新/其他平台首次 `getMe` 恢复账号主题 | Settings/DisplayPreferences/AppRuntime request-count/race/visual tests + desktop/mobile Chrome bbox/containment + dev-mock/backend update contract；根 `make test`，真实主路径原地关联 `E2E.P0.101` |
+| `BDD.SHELL.SETTINGS.THEME.001` | authenticated runtime 已从首次 `getMe` 取得服务端确认主题 | 用户打开 Settings、切换预定义色或拖动 custom、保存、切换 route、刷新/重登；服务端也可能拒绝保存、返回非法投影或在页面离开后迟到返回 | Ocean / Plum / Forest / Custom 一级选择器始终可见，并在 desktop 与 Save 共用固定主操作行；hue/chroma 二级编辑器仅在 Custom 激活时于该行下方展示且不遮挡一级，展开/收起不改变 Save 纵向位置，hue 轨道展示完整光谱，chroma 轨道跟随当前 hue 从低彩到高彩，选择预定义主题后隐藏；页面挂载/route 切换零额外 `getMe`；拖动零请求；Save 恰好一次 `updateMe` 且成功零 follow-up GET并立即同步全局；失败保留草稿并可重试，离开恢复确认值；迟到响应不覆盖新 auth/theme；非法投影 fail closed 为 ocean；刷新/其他平台首次 `getMe` 恢复账号主题 | Settings/DisplayPreferences/AppRuntime request-count/race/visual tests + desktop/mobile Chrome bbox/containment + dev-mock/backend update contract；根 `make test`，真实主路径原地关联 `E2E.P0.101` |
 | `BDD.SHELL.PAGES.VISUAL.002` | 用户处于登录、验证码、退出或已登录设置页面 | 在 desktop/mobile 查看、键盘操作或触发既有动作 | Auth 三页共享宽幅双栏和主操作卡，Settings 展示 Header 与三张横向功能卡；页面无横向溢出，装饰不污染语义，业务状态机和请求预算不变且没有伪计时/伪成功 | Auth/Settings component + visual + accessibility tests、Phase 15 locale tests 与 current-run Chrome manual acceptance；根 `make test` 承接代码层回归 |
 | `BDD.SHELL.TRANSITION.VISUAL.003` | authenticated 用户进入 Practice、Parse、Reports、Generating 或报告上下文 route，业务请求仍 pending | 查看等待反馈、切换显示偏好或使用返回动作 | 共享 TopBar 始终可见且“面试”高亮；等待态复用蓝白画布和对应 SVG variant，只有真实文案/步骤/indeterminate 语义，reduced-motion 与 mobile containment 有效 | Shared transition/TopBar/route component tests + current-run Chrome desktop/mobile manual acceptance；根 `make test` 承接代码层回归 |
 | `BDD.SHELL.SETTINGS.ART.004` | authenticated 用户打开 Settings，当前主题可能是 Ocean、Plum 或 Custom | 查看 desktop Header，并在窄屏继续浏览设置卡片 | Header 右侧以当前主题色渲染半透明资料窗口、头像资料行、柱状图、前景锁、盾牌对勾与星芒；装饰不进入阅读顺序，窄屏隐藏且页面不横溢，账号交互和请求预算不变 | Settings visual/component/responsive tests + current-run Chrome desktop manual acceptance；根 `make test` 承接代码层回归 |
 | `BDD.SHELL.TOPBAR.IDENTITY.005` | authenticated runtime 已有中文或拉丁 `displayName`，语言菜单关闭 | 用户查看或展开语言按钮，并点击圆形设置入口 | 语言按钮以清晰 SVG chevron 表达开合；设置入口显示 trim 后用户名首个 Unicode 字符，拉丁字母大写、空名称显示 `?`；直达 Settings 且不新增 `/me`、账号菜单或完整姓名暴露 | TopBar/App component + visual/responsive/a11y tests + current-run Chrome desktop manual acceptance；根 `make test` 承接代码层回归 |
 | `BDD.SHELL.BACK.COPY.006` | 用户位于含返回控件的二级/三级页面，locale 为中文或英文 | 用户查看或点击返回控件 | 默认控件显示“返回 / Back”；若 owner 已解析明确父级且需要目标消歧，可使用显式登记的 owner 文案，当前 Generating trusted Reports 显示“返回面试报告 / Back to interview reports”，Workspace fallback 仍用默认标签；每个页面继续导航到原 owner 目标并保留 replace/push、trusted-context 与 fail-closed 行为 | locale/source contract + Auth/Parse/Resume/Practice/Reports/Generating/Report/Conversation component navigation tests + current-run Chrome sample；根 `make test` 承接代码层回归 |
+| `BDD.SHELL.SETTINGS.PRESET.007` | authenticated runtime 已取得服务端确认主题，Settings Appearance 显示 Ocean / Plum / Forest / Custom | 用户在 light/dark 下切换 Forest、保存，或遇到更新失败后重试，并在 logout/relogin 后重新进入 Settings | 三预设使用确认的 OKLCH accent matrix；Forest 选择退出 Custom 且预览零请求；Save 只发一次 `updateMe`，失败不污染确认值，成功无 follow-up `getMe`；Forest 经 `getMe` 跨重登恢复，未知主题仍 fail closed 为 Ocean | token/Settings/DisplayPreferences/dev-mock/backend/migration domain tests + current-run Chrome；真实主路径原地关联 `E2E.P0.101` |
 
-`E2E.P0.101` 只原地增加真实设置齿轮、账号字段、主题保存与 logout/relogin 恢复主路径；请求次数、失败/离开恢复、pendingAction、导出 501 和账号删除仍由 domain/contract tests 承接，不另建并行场景。
+`E2E.P0.101` 只原地增加真实设置入口、账号字段、Forest 保存与 logout/relogin 恢复主路径；请求次数、失败/离开恢复、pendingAction、导出 501 和账号删除仍由 domain/contract tests 承接，不另建并行场景。
 
 Phase 15 current-run 另以 Chrome extension automation skill 在真实本地前后端页面验证中文 auth gate 与英文切换；该手工 Chrome 证据是本次交付门禁，但不新增或标记 E2E ID。

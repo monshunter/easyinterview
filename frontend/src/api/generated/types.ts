@@ -97,9 +97,9 @@ export interface AuthEmailStartRequest {
 	returnTo?: string;
 }
 
-export type AccountTheme = "ocean" | "plum";
+export type AccountTheme = "ocean" | "plum" | "forest";
 
-export const AllAccountThemes = ["ocean", "plum"] as const;
+export const AllAccountThemes = ["ocean", "plum", "forest"] as const;
 
 export interface CustomAccent {
 	c: number;

@@ -47,3 +47,24 @@
 - 下一步最高优先级是继续 `/implement` frontend-shell/001 Phase 15.3，补齐 auth loading/error locale 的真实 Chrome 验收；这是该 owner 当前唯一明确未完成的主题，不应被本轮 account-theme PASS 掩盖。
 - 若用户确认沉淀通用模式，再单独更新 `docs/bugs/PATTERNS.md`；本轮不擅自写入可复用治理规则。
 - 账号主题修复本身没有遗留实现或验收缺口；后续提交时可使用 `fix(settings): harden account theme review regressions (BUG-0191)`，并在 work journal 关联 BUG-0191。
+
+## 6 2026-07-20 Forest 预设扩展补充复盘
+
+### 6.1 交付与成功证据
+
+- 账号级预设原地扩展为 Ocean / Plum / Forest，并保留 Custom；浅色 accent/accent-soft 使用用户确认的 `58%/92%` OKLCH，暗色采用同 hue/chroma 的 `68%/28%`。Forest 其它语义色复用 Ocean 中性与状态基线，没有引入未确认色号。
+- OpenAPI `AccountTheme`、generated Go/TS、fixture、backend validation、`user_settings.theme`、frontend runtime/dev mock/Settings/i18n 与 `E2E.P0.101` 同步扩展；`000022_add_forest_account_theme` 的 down 路径先把 Forest 收敛为 Ocean，再恢复两值约束。
+- RED 分别命中旧 OpenAPI 两值枚举、缺失 fixture、backend Forest 400、缺失迁移和前端 7 个目标失败；GREEN focused frontend 57/57、OpenAPI/fixture/auth/migration contracts 和 disposable PostgreSQL up/down/up 均 PASS。
+- 根 `make test` 通过：Python 621 tests / 4628 subtests、Go 全包、frontend 137 files / 1119 tests；`make codegen-check`、frontend build、docs/context/index/diff、fixture、migration 与 active-surface residual gates 通过。
+- 真实 `E2E.P0.101` 在当前 frontend/backend/Mailpit 上 PASS：1440 与 390 viewport、Forest light/dark computed variables、四个一级选项、Custom 展开时 Save y 差不超过 1px、零横向溢出、一次 PATCH、零 follow-up/route-switch GET、重登恢复 Forest；console/page/非预期 HTTP failures 为 0，verify/cleanup PASS。
+
+### 6.2 本轮暴露的问题与处理
+
+- 初次 disposable PostgreSQL 命令在 `cd backend` 后执行相对路径 cleanup trap，迁移测试虽 PASS，但临时库未自动删除；本轮立即按两个精确库名清理并查询确认残留为 0。后续一次性数据库 gate 应使用绝对 repo 路径，或把测试放在不改变 cwd 的 subshell 中，确保 EXIT cleanup 不依赖当前目录。
+- 全量回归发现 `core_loop_pruning_surface_test.py` 仍强制旧“设置齿轮”文本，而当前 UI owner 已使用用户名首字符 initial-mark 设置入口；本轮更新 executable contract 为“设置入口”，没有把旧齿轮视觉重新带回 active spec。
+- `frontend-shell/002` 的 Phase 24 已完成并恢复 `completed`；`frontend-shell/001` 仍只因既有独立 Phase 15.3 保持 `active`，Forest 交付没有掩盖该缺口。
+
+### 6.3 后续动作
+
+- 最高优先级仍是 `/implement` frontend-shell/001 Phase 15.3，完成 auth loading/error locale 的中文、英文切换与 current-run Chrome 证据。
+- 后续增加账号主题时继续复用：OpenAPI enum → generated artifacts → migration constraint/manifest → backend validation → closed frontend normalizer → Settings/E2E 的单一 contract-first 路径，避免再次出现两值 guard 残留。

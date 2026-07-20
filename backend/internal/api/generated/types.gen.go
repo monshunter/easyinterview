@@ -209,14 +209,16 @@ type AuthEmailStartRequest struct {
 type AccountTheme string
 
 const (
-	AccountThemeOcean AccountTheme = "ocean"
-	AccountThemePlum  AccountTheme = "plum"
+	AccountThemeOcean  AccountTheme = "ocean"
+	AccountThemePlum   AccountTheme = "plum"
+	AccountThemeForest AccountTheme = "forest"
 )
 
 // AllAccountThemes lists every defined value in declaration order.
 var AllAccountThemes = []AccountTheme{
 	AccountThemeOcean,
 	AccountThemePlum,
+	AccountThemeForest,
 }
 
 type CustomAccent struct {

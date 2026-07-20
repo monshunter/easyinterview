@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.42
+> **版本**: 1.43
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -13,7 +13,7 @@
 
 本计划交付当前正式前端 App shell：默认 Home、三入口 TopBar、email-code 认证页、资料补全 gate、`requestAuth(pendingAction)` 恢复、明确齿轮设置入口、含账号级 Appearance 的无 tab 设置页、runtime/generated client bootstrap，以及面试业务 route 的登录前置保护。
 
-当前 Phase 16 原地承接设置/主题/Practice chrome 修订：现有 `PATCH /me` 按用户确认的方案 B 泛化为 `updateMe`，主题写入账号设置，并锁定 route 切换零重复 `/me`。Phase 1-15 的既有状态仅为历史证据。
+当前 Phase 26 原地承接账号主题预设扩展：`ocean` / `plum` 调整为用户确认的 OKLCH 强调色，新增 `forest` 预设并贯通 `updateMe`、`user_settings`、Settings 与跨重登恢复。Phase 1-25 的既有状态仅为历史证据。
 
 Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设置合同 owner，并取代其中关于账号 chip/dropdown、Settings tab 与 font preset 的旧正向描述。实施与验收不得把历史文字当作现行 UI 要求。
 
@@ -33,7 +33,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 - Auth UI 只通过 email-code flow 触发 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`updateMe`、`logout` 和 first-party session cookie；`updateMe` 同时承接首次资料补全和 authenticated 主题更新。
 - `profileCompletionRequired=true` 时，登录后必须先进入 `auth_profile_setup`；资料补全成功并刷新 `/me` 后，才恢复 pendingAction 或回 Home。
 - `pendingAction` 只保存 route name、canonical URL 和 safe params，不保存 JD 原文、简历原文、验证码、AI prompt/response 或解析正文。
-- Settings 统一命名为“设置 / Settings”且无 tab：Appearance 本地预览并保存账号级主题；Account 复用 runtime user 展示只读 `displayName/email`；Privacy 保留退出、导出不可用和账号删除。
+- Settings 统一命名为“设置 / Settings”且无 tab：Appearance 以 Ocean / Plum / Forest / Custom 本地预览并保存账号级主题；Account 复用 runtime user 展示只读 `displayName/email`；Privacy 保留退出、导出不可用和账号删除。
 - `getMe` 只在应用 bootstrap/auth recovery 读取完整 `UserContext`；Settings 挂载、普通 route 切换和 Practice 进入/离开均不得再次读取。主题保存只发送一次 `updateMe`，成功响应直接更新 runtime/display context，不追加 GET。
 - 统一 auth route gate 的 loading/error eyebrow、title、body 必须消费 typed locale keys；中文模式不得回退或混入英文硬编码。
 - TopBar 语言下拉使用清晰 SVG chevron 表达开合状态；设置入口字符从现有 authenticated runtime `displayName` 派生，名称为空显示 `?`，不新增 `getMe` 或账号菜单。
@@ -49,7 +49,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 
 - **Plan 类型**: `feature-behavior` + `frontend` + `contract`。
 - **TDD 策略**: 本计划按 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 完成。focused Vitest / component / route-state test 只用于开发反馈；阶段完成由仓库根 `make test` 承接前后端全量单测。
-- **BDD 策略**: 既有 auth/settings behaviors 保持；`BDD.SHELL.SETTINGS.THEME.001` 覆盖主题预览、一级选项与 Save 固定主行、自定义二级展开和请求预算；`BDD.SHELL.TOPBAR.IDENTITY.005` 覆盖语言 chevron 与用户名首字符设置入口。`E2E.P0.101` 保持真实主题保存、logout/relogin 恢复；账号删除与本次纯 shell 显示修订不新增 E2E。
+- **BDD 策略**: 既有 auth/settings behaviors 保持；`BDD.SHELL.SETTINGS.PRESET.007` 覆盖 Ocean / Plum / Forest / Custom 预览、Forest 保存、失败恢复和跨重登恢复；`BDD.SHELL.SETTINGS.THEME.001` 继续覆盖一级选项与 Save 固定主行、自定义二级展开和请求预算。`E2E.P0.101` 原地把真实保存/重登样本从 Plum 更新为 Forest，不新建并行 E2E。
 
 ## 4 Operation Matrix
 
@@ -59,7 +59,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 | `getMe` | `openapi/fixtures/Auth/getMe.json#authenticated\|unauthenticated\|profileIncomplete` | `AppRuntimeProvider` bootstrap/auth recovery；Settings/route 仅消费内存 context | backend-auth current-user handler | `users` + `user_settings` account theme + session lookup | 无 | `E2E.P0.101` session/profile/theme restore；component request-count gate |
 | `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json#default` | `AuthLoginScreen` | backend-auth challenge handler | auth challenge storage | 无 | `E2E.P0.101` |
 | `verifyAuthEmailChallenge` | `openapi/fixtures/Auth/verifyAuthEmailChallenge.json#default` | `AuthVerifyScreen` | backend-auth verify handler | challenge consumption + session | 无 | `E2E.P0.101` |
-| `updateMe` | `openapi/fixtures/Auth/updateMe.json#profileCompletion\|themeOcean\|themePlum\|customAccent` | `AuthProfileSetupScreen` + `SettingsScreen` | backend-auth generic `PATCH /me` handler | one transaction over user profile/terms + `user_settings` theme/custom accent | 无 | root `make test`；`E2E.P0.101` profile completion + theme save/relogin |
+| `updateMe` | `openapi/fixtures/Auth/updateMe.json#default\|themePlum\|themeForest\|customAccent` | `AuthProfileSetupScreen` + `SettingsScreen` | backend-auth generic `PATCH /me` handler | one transaction over user profile/terms + `user_settings` theme/custom accent；theme enum=`ocean\|plum\|forest` | 无 | root `make test`；`E2E.P0.101` profile completion + Forest save/relogin |
 | `logout` | `openapi/fixtures/Auth/logout.json#default` | `AuthLogoutScreen`，由 Settings 进入 | backend-auth logout handler | session revocation | 无 | `E2E.P0.101` logout/relogin |
 | `deleteMe` | `openapi/fixtures/Auth/deleteMe.json#default` | `SettingsScreen` destructive confirmation | backend-auth delete handoff | users soft delete + all-session revoke + privacy delete job | 无 | `BDD.SHELL.SETTINGS.DELETE.001` + backend contract；不加入共享 E2E |
 | `requestPrivacyExport` | `openapi/fixtures/Privacy/requestPrivacyExport.json#default` | Settings disabled/unavailable presentation；P0 不发伪请求 | Privacy P0 typed 501 handler | 无 | 无 | contract/component gate；不新增 E2E |
@@ -72,7 +72,7 @@ Phase 1-13 的已勾选内容只保留历史交付证据；Phase 14 是当前设
 - 默认打开 App 渲染 Home、三入口 TopBar、单一登录入口和显示控制；语言菜单有清晰开合 chevron；已登录时登录入口替换为从 runtime 用户名派生首字符的单一设置按钮。
 - Browser History URL、hash adapter 输入和 in-memory route 均进入同一 normalization / route store 合同。
 - 语言与暗色保持现有客户端显示合同；authenticated 主题由 bootstrap/auth recovery 的 `getMe` 恢复。普通 route 切换不得触发 `/me`；主题 slider 零请求，保存一次 `updateMe`，成功无 follow-up GET。
-- Settings Appearance 的 desktop 主操作行必须同时持有 Ocean / Plum / Custom 一级选项与 Save，选项靠左、Save 靠右；Custom hue/chroma 只在该行下方展开，切换前后 Save 的纵向位置不变。窄屏按同一 DOM 顺序安全换行且不得横向溢出。
+- Settings Appearance 的 desktop 主操作行必须同时持有 Ocean / Plum / Forest / Custom 一级选项与 Save，选项靠左、Save 靠右；三套预设按确认的 light `58%/92%`、dark `68%/28%` OKLCH matrix 即时预览；Custom hue/chroma 只在该行下方展开，切换前后 Save 的纵向位置不变。窄屏按同一 DOM 顺序安全换行且不得横向溢出。
 - 未登录用户触发受保护动作时进入 `auth_login(pendingAction)`；email-code 验证成功后先执行资料补全 gate，再恢复 safe route params。
 - Settings 无 tab，复用 runtime user 展示真实姓名/完整邮箱，不重复调用 `getMe`；完整邮箱不写入日志/场景证据；退出进入既有确认页，导出诚实显示暂不可用，删除账号覆盖确认、pending、失败重试，以及 `202` 后复用 `refreshAuth()` 重探测 `/me` 并回到 Home。
 - 面试业务 route 在 runtime auth loading / unauthenticated 状态下不挂载业务 screen，不调用受保护 API；Home 未登录态不请求账号记录。
@@ -204,10 +204,17 @@ GREEN 只在 `SettingsScreen` 增加明确的 theme editor 分组，并调整 `s
 
 根据用户验收反馈收窄 Phase 24：`common.back` 继续是二三级页面默认标签，但当业务 owner 已解析明确父级且短标签会失去必要目标语义时，允许 owner 专用 copy。当前唯一新增例外为 Generating trusted Reports 目标“返回面试报告 / Back to interview reports”；无可信 identity 的 Workspace fallback 与其它正式页面继续使用 `common.back`。TDD 更新 shared source/catalog contract，要求例外显式登记、专用 key 仅在 Generating owner 消费且 route matrix 不变；`BDD.SHELL.BACK.COPY.006` 由 shared i18n/source tests 与 Report owner behavior/Chrome gate 承接。纯前端显示合同，Operation Matrix/API/fixture/backend/persistence 均 `N/A`；Phase 15.3 仍独立未完成，主 plan 保持 `active`。
 
+### Phase 26: Ocean, Plum, and Forest account presets
+
+先以 OpenAPI、migration、backend 与 frontend focused RED 锁定完整三预设合同：`AccountTheme`、`user_settings.theme`、generated artifacts、fixtures、service validation、runtime normalization、dev mock、Settings metadata/i18n 和 light/dark palette 都必须接受 `forest`，并继续拒绝 `warm` 与未知值。Ocean、Plum、Forest 的浅色 accent/accent-soft 分别固定为用户给定的 `oklch(58% ...)` / `oklch(92% ...)`，暗色按确认方案沿同 hue/chroma 使用 `68%` / `28%`；Forest 其余语义色复用 Ocean 中性与状态基线，不发明额外未确认色号。
+
+GREEN 按 contract-first 顺序修改 OpenAPI 与 fixture，生成 Go/TS artifacts，再扩展 migration/enum manifest、backend store/service/handler、frontend theme matrix/normalizer/dev mock/locale/Settings。选择 Forest 立即退出 Custom 且零请求；Save 恰好一次 `updateMe`，失败仍保留可重试草稿，成功无 follow-up `getMe` 并由后续 bootstrap/relogin 恢复 Forest。`BDD.SHELL.SETTINGS.PRESET.007` 由 owner domain tests、真实 Settings desktop/mobile Chrome 与原地更新的 `E2E.P0.101` 承接；代码 gate、migration/codegen 和 E2E 分层报告，不新增场景 ID。Phase 15.3 仍是独立既有缺口，不能因本 Phase 完成而把主 plan 改为 `completed`。
+
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.43 | Reopen Phase 26 to add the Forest account preset and replace Ocean/Plum accents with the confirmed light/dark OKLCH matrix across contract, persistence and Settings. |
 | 2026-07-20 | 1.42 | Revise Phase 24 through Phase 25 so shared Back remains the default while Generating may label its resolved Reports destination explicitly. |
 | 2026-07-20 | 1.41 | Reopen Phase 24 to standardize secondary-page Back copy without changing route ownership or recovery behavior. |
 | 2026-07-20 | 1.40 | Reopen Phase 23 to anchor Save beside the first-level theme choices while the conditional custom editor expands only beneath that stable primary row. |

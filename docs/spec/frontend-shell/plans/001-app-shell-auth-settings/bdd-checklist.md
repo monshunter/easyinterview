@@ -1,6 +1,6 @@
 # Frontend Shell Auth and Settings BDD Checklist
 
-> **版本**: 1.31
+> **版本**: 1.32
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -89,3 +89,9 @@
 - [x] Locale/source contract 证明 shared Back 是默认值，Generating trusted Reports 专用 key 是唯一显式 owner 例外，Workspace fallback 与其它页面不恢复旧长文案。<!-- verified: 2026-07-20 evidence="Shared Back-copy suite passes 19/19 and both locale coverage suites pass 28/28." -->
 - [x] Component navigation tests 证明专用标签只随既有 trusted destination 出现，route/target、replace/push 与 fail-closed 行为不变。<!-- verified: 2026-07-20 evidence="Generating waiting/error navigation suites retain the complete reports/workspace destination matrix while selecting copy from the same backDestination owner." -->
 - [x] Current-run Chrome 验证 Generating 显示“返回面试报告”；当前 target-scoped ReportsScreen destination 由 component tests 承接，且无横向溢出或 browser error/warning。<!-- verified: 2026-07-20 evidence="Real authenticated Generating visibly rendered 返回面试报告 before automatic ready handoff; the transient state expired before a reliable live click, so the route claim is intentionally limited to code-level navigation evidence." -->
+
+## `BDD.SHELL.SETTINGS.PRESET.007` 三预设主题与账号恢复
+
+- [x] Domain tests 证明 Ocean / Plum / Forest light/dark OKLCH matrix、Forest 选择退出 Custom、预览零请求、单次 `updateMe`、失败重试、离开恢复、invalid fail-closed 与 dev-mock/backend/migration round-trip。（2026-07-20 frontend focused 57/57、auth/fixture/OpenAPI/migration focused PASS。）
+- [x] Current-run Chrome 在 desktop/mobile 验证 Ocean / Plum / Forest / Custom 一级选项始终可见，Forest light/dark computed accent/soft 值正确，Save 位置稳定、页面无横向溢出且 browser warning/error 为零。（2026-07-20 E2E.P0.101 1440/390 PASS，console/page/http failures 0。）
+- [x] `E2E.P0.101` 原地使用真实 frontend/backend 保存 Forest，logout/relogin 后由首个 `getMe` 恢复 Forest；记录一次 PATCH、零 Settings follow-up GET 与 cleanup PASS，不新增场景 ID。（2026-07-20 trigger/verify/cleanup PASS。）

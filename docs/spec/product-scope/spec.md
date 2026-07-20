@@ -1,8 +1,8 @@
 # Product Scope Spec
 
-> **版本**: 2.28
+> **版本**: 2.29
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 ## 1 背景与目标
 
@@ -123,7 +123,7 @@ EasyInterview 当前产品形态由 `docs/spec/product-scope/spec.md`、`docs/ui
 | D-18 | 公司情报仅保留轻量嵌入卡片 | `company_intel` 独立详情页与 route 不属于当前范围；模拟面试规划页内嵌轻量卡片是公司情报唯一呈现 | 轻量卡片仍展示一句话画像、近期公开信号、反问建议与合规来源说明；P2 生产化仍以嵌入卡片为呈现边界 |
 | D-19 | 报告 CTA 单点收敛 | 报告页只保留 Header 一对 CTA：`复练当前轮` 与 `进入下一轮`；Next 详情只承载路径说明与能力重点 | 报告任何二级详情不得再出现重复开练按钮或 per-question replay toggle |
 | D-20 | 简历资产扁平化与详情只读 | 简历是平铺列表中的独立资产，不区分原始简历 / 结构化主版本 / 岗位定制版本，不做版本树、分叉、继承或版本管理；创建仅上传 / 粘贴；LLM 解析结果必须产出有意义的 `displayName`，不得长期停留在“上传的简历 / 粘贴的简历”等通用标题；详情页只读展示简历内容本身，不提供导出 PDF、复制、编辑、预览 tab、改写建议或查看原始简历预览 | 每份简历仍保留原始来源与解析文本快照作为后台证据；面试绑定对象为简历（`resumeId`）；原始简历预览就是详情中的简历正文 |
-| D-21 | 全局呈现与账号设置收敛（方案 B） | 已登录 TopBar 账号区只保留一个可访问的设置齿轮并直接进入无 tab 的 `设置` 页面；TopBar 只保留暗色模式、语言下拉和设置齿轮。设置页 Appearance 提供 `深海（Ocean）` / `梅紫（Plum）` 与 `自定义 accent` 色相/饱和度，选择或拖动只作本地预览，保存后作为账号级偏好持久化；账号区展示 `/me.displayName` 与完整 `/me.email` 并提供退出登录；隐私区只保留数据导出暂不可用与账号删除二次确认。字体固定为产品默认排版，不作为用户预设 | 删除头像/姓名 chip、用户下拉、设置双 tab、登录与安全、字体预设、产品信息、手机号、界面语言行、时区及伪静态隐私项；退出登录位于设置页。完整 email 只在 authenticated current-user contract/Settings 中展示，不进入日志或公开接口；不保留 `emailMasked` alias。自定义 accent 不展示 preview/value/reset，选择 Ocean / Plum 即退出 custom；通知、订阅等范围外能力不以空入口预留 |
+| D-21 | 全局呈现与账号设置收敛（方案 B） | 已登录 TopBar 账号区只保留一个可访问的设置齿轮并直接进入无 tab 的 `设置` 页面；TopBar 只保留暗色模式、语言下拉和设置齿轮。设置页 Appearance 提供 `深海（Ocean）` / `梅子（Plum）` / `森林（Forest）` 三个预设与 `自定义 accent` 色相/饱和度，选择或拖动只作本地预览，保存后作为账号级偏好持久化；账号区展示 `/me.displayName` 与完整 `/me.email` 并提供退出登录；隐私区只保留数据导出暂不可用与账号删除二次确认。字体固定为产品默认排版，不作为用户预设 | 删除头像/姓名 chip、用户下拉、设置双 tab、登录与安全、字体预设、产品信息、手机号、界面语言行、时区及伪静态隐私项；退出登录位于设置页。完整 email 只在 authenticated current-user contract/Settings 中展示，不进入日志或公开接口；不保留 `emailMasked` alias。自定义 accent 不展示 preview/value/reset，选择任一预设即退出 custom；通知、订阅等范围外能力不以空入口预留 |
 | D-22 | 核心闭环方案 B | 真实面试复盘和用户画像不属于当前功能范围：`debrief` / `profile` 不再是目标 route，`Debriefs` / `Profile` OpenAPI tags、`debriefs` / `candidate_profiles` / `experience_cards` DB 表、debrief/profile AI feature key、shared event/job 和正向场景不保留 | P0 只保留 JD / 简历 -> 模拟面试 -> 报告 -> 复练当前轮 / 进入下一轮；账号资料补全和设置隐私保留，但不承担候选人画像语义 |
 | D-23 | 面试入口 landing | `/workspace` 是面试规划列表；`/workspace?targetJobId=...` 是当前面试规划只读详情，Workspace query 只允许 `targetJobId`，丢弃 `planId` / `resumeId` 等冗余身份 | ready 规划卡片直接进入 Workspace 详情；列表使用当前 `listTargetJobs` 规划候选，不新增独立多轮计划或泛岗位资产中心 |
 | D-24 | Practice conversation 简化 | 删除前后端全部题目/turn 结构、专用 hint/mode 和逐题报告；Practice 只保留 ordered user/assistant messages | `questionBudget`、`PracticeTurn`、QuestionCard/SessionMap、question assessments、hint event/count 均不属于当前范围 |
@@ -602,7 +602,7 @@ P3 仍然不做：
 | C-22 | Practice 发送与刷新恢复 | D-26 已生效，AI 首次成功、可重试失败或终态失败 | 提交、等待、失败、刷新并按需重试 | user row 立即出现；pending 锁输入并显示 thinking；retry 只在可重试失败 row 下；刷新恢复原 `clientMessageId/replyStatus`；同 ID 成功后 user/reply 各唯一一条 | backend-practice/002 + frontend-workspace-and-practice/002 + openapi-v1-contract/001 |
 | C-23 | 当前规划报告隔离 | D-27 已生效，用户从 Workspace 详情进入报告列表或从 Report/Generating 返回 | 打开 `/reports?targetJobId=...` | 只显示当前规划 current/latest；Reports Back 返回同一 Workspace 详情；TopBar 与 Parse 无报告入口/嵌入列表；跨 target/mismatch/stale fail closed，无完整历史 | frontend-workspace 001 + frontend-report 001 + frontend-shell 004 |
 | C-24 | JD 命令与只读详情分路 | 用户刚完成 import，或点击既有 ready 规划卡片 | 进入相应 route | 仅刚 import 的 queued/processing 工作进入 `/parse?targetJobId=...`；ready 初读/轮询用 replace 进入 `/workspace?targetJobId=...`；ready 卡片、Reports Back、Practice terminal recovery 直达 Workspace，且 Workspace query 只有 `targetJobId` | frontend-home 001 + frontend-workspace 001/002 + frontend-report 001 + frontend-shell 004 |
-| C-25 | Custom Accent 最小控制 | 用户打开主题菜单 | 选择自定义 accent 或 Ocean/Plum | custom 只显示色相/饱和度滑杆，无 preview/value/reset；选择 Ocean/Plum 退出 custom，主题仍可正常切换 | frontend-shell/002 component/parity gates + root `make test` |
+| C-25 | 预设主题与 Custom Accent 最小控制 | 用户打开 Settings Appearance | 选择 Ocean/Plum/Forest 或自定义 accent | 三个预设均可本地预览并保存为账号偏好；custom 只显示色相/饱和度滑杆，无 preview/value/reset；选择任一预设退出 custom，主题仍可正常切换并在重登后恢复 | frontend-shell/001 + frontend-shell/002 component/contract gates + `E2E.P0.101` |
 | C-26 | 报告附属会话记录 | owned report 已创建，状态可能为 queued / generating / ready / failed | 用户从报告详情或 ReportsScreen 当轮 current report 快捷入口打开记录 | 以 `reportId` 返回该报告唯一的 ordered user/assistant Markdown transcript；页面只读并返回同一报告，不暴露 `sessionId`，不存在会话列表或额外关系表 | frontend-report 001 + backend-review 001 + openapi-v1-contract 001/002/003 + E2E.P0.099 |
 | C-27 | 设置入口与账号数据最小闭环 | 用户已登录，runtime 已取得 `/me` | 点击 TopBar 设置齿轮，查看账号信息、退出或发起账号删除 | 不出现账号 chip/下拉或设置 tab；页面复用 runtime 用户展示真实 `displayName/email`，不重复请求 `/me`；完整 email 不写入日志/证据；退出沿用 `auth_logout`，导出诚实显示暂不可用；删除账号具备确认、pending、失败恢复，`202` 后复用 `refreshAuth()` 重探测 `/me` 并回 Home | frontend-shell/001、frontend-shell/002、backend-auth/001、openapi-v1-contract/001-003、db-migrations-baseline/001 |
 | C-28 | 强制简历前置零漂移 | 用户没有 selectable 简历、未显式选择简历，或历史 TargetJob 缺失/无效 `resumeId` | 尝试提交 JD、开始/复练/进入下一轮或查看由该异常规划派生的报告链路 | Home CTA 禁用且不调用 import；用户只能先创建简历、形成可读证据并返回 Home 显式选择；异常历史规划 fail closed，不从最近简历、route 或浏览器存储补齐；active 产品/UI/owner 文档不存在无简历或 JD-only 训练与报告降级承诺 | frontend-home-job-picks-and-parse/001 + docs-only |
@@ -676,6 +676,7 @@ P0 质量评估必须覆盖三类指标：
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 2.29 | 2026-07-20 | D-21/C-25 将账号级预设主题扩展为 Ocean / Plum / Forest，并锁定三预设与 Custom 的保存、退出和跨重登恢复合同。 |
 | 2.28 | 2026-07-19 | D-21 采用账号主题方案 B：TopBar 只保留暗色模式、语言下拉与设置齿轮，Ocean / Plum / custom accent 移入设置页 Appearance 并经 `updateMe` 持久化。 |
 | 2.27 | 2026-07-15 | 新增 D-30/C-28：模拟面试永久强制 selectable 简历前置，删除无简历或 JD-only 导入、训练和报告降级承诺；历史缺绑数据统一 fail closed。 |
 | 2.25 | 2026-07-15 | D-21 采用设置简化方案 A：已登录 TopBar 仅保留设置齿轮；设置页改为无 tab 的真实账号/隐私单页，删除登录安全、字体预设、产品信息与无数据来源字段，并明确退出、导出不可用和账号删除路径。 |

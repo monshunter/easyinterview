@@ -68,7 +68,7 @@ export function normalizeAccountDisplayPreferences(
   if (!hasExactKeys(value, ["theme", "customAccent"])) {
     return DEFAULT_ACCOUNT_DISPLAY_PREFERENCES;
   }
-  if (value.theme !== "ocean" && value.theme !== "plum") {
+  if (value.theme !== "ocean" && value.theme !== "plum" && value.theme !== "forest") {
     return DEFAULT_ACCOUNT_DISPLAY_PREFERENCES;
   }
   if (value.customAccent === null) {

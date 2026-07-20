@@ -1,12 +1,12 @@
 # App Shell Visual System Checklist
 
-> **版本**: 3.6
+> **版本**: 3.8
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
-> Phase 1-22 的勾选项是历史证据；Phase 23 取代历史固定 `E` initial 与页面私有尖角 action 的旧正向口径。
+> Phase 1-23 的勾选项是历史证据；Phase 24 取代历史“只含 Ocean / Plum、Forest 为范围外”的旧正向口径。
 
 ## Phase 1: Token / theme
 
@@ -137,3 +137,10 @@
 - [x] 23.2 GREEN: 最小增加并导出 `--ei-radius-control`，把 inventory 中的有框矩形/方形 action 显式迁移到该 token；Settings 保存/退出/注销/dialog action 同圆角，且不新增全局 `button` selector、不改 circular/pill、borderless link/back、card/input/status surface。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="tokens/framed-action/TopBar/Settings/Screens/Practice 6 files, 62 tests PASS; 28 CSS selectors plus 10 inline recovery actions consume the control token" -->
 - [x] 23.3 REGRESSION-GATE: focused token/source/affected component tests、根 `make test`、frontend typecheck/build、owner context、docs/index/diff 与旧尖角 action negative search 全部通过。<!-- verified: 2026-07-20 method=regression evidence="focused 62/62; root make test 615 passed/4615 subtests; typecheck/build/context/sync-doc-index/diff PASS; remaining small-radius matches classified as non-action exceptions" -->
 - [x] 23.4 BDD-Gate: 执行 `BDD.SHELL.VISUAL.002` owner behavior test，并在 Chrome desktop/mobile 验收 Settings 及跨页面样本的 computed `border-radius: 8px`、状态语义与 viewport containment；browser 证据不声明 E2E。<!-- verified: 2026-07-20 method=chrome-manual evidence="real host frontend; Settings desktop 1264x964 and mobile 390x844 save/sign-out/delete/dialog actions computed 8px; TopBar/Home/Workspace/Parse/Practice/Report/Resume samples PASS; mobile overflow=false; console warnings/errors=0; screenshots and metrics under .test-output/ui-alignment/button-radius; not E2E" -->
+
+## Phase 24: Ocean, Plum, and Forest preset palette
+
+- [x] 24.1 RED: `tokens.test.ts`、DisplayPreferences/Settings/dev-mock tests 锁定 `ocean|plum|forest`、六组 selector、三条 metadata/locale、确认的 light/dark OKLCH accent matrix、Forest 退出 Custom 与 `warm`/unknown fail-closed；旧实现产生目标失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="43 focused tests produced 7 intended failures across theme keys, metadata, palette, Settings, runtime and dev mock while 36 prior assertions remained green." -->
+- [x] 24.2 GREEN: 最小扩展 Theme union、palette data/CSS、root normalizer、Settings metadata/i18n 与 dev mock；Forest 在 primary row 即时预览，Custom/Save/fallback/layout 合同不变。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="tokens/Settings/DisplayPreferences/dev-mock pass 43/43 with exact Ocean/Plum/Forest light/dark accent matrix and preserved Custom/Save/fallback behavior." -->
+- [x] 24.3 BDD-Gate: 执行 `BDD.SHELL.PRESET.003` owner tests，并在 current-run Chrome desktop/mobile 的 light/dark 下验证四个一级选项、Forest/Ocean/Plum computed accent/soft 与无横向溢出；不声明新 E2E。<!-- verified: 2026-07-20 method=owner-tests-and-current-run-chromium evidence="Theme/Settings/visual owner tests pass 57/57; E2E.P0.101 real Chromium covers 1440/390 Forest light/dark variables, four visible options, stable Save and zero overflow/errors without creating a new scenario ID." -->
+- [x] 24.4 REGRESSION-GATE: focused token/display/Settings/dev-mock、frontend typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff 与 `warm` active-surface negative gate 通过；账号持久化证据由 001 Phase 26 承接。<!-- verified: 2026-07-20 method=full-regression-and-owner-gates evidence="Focused owner 57/57, typecheck/build, root make test, context/docs/index/diff and zero warm/two-theme active runtime references PASS; 001 Phase 26 owns the real persistence evidence." -->

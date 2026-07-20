@@ -1,6 +1,6 @@
 # 认证与默认入口
 
-> **版本**: 1.33
+> **版本**: 1.34
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -110,7 +110,7 @@ auth_logout
 ```text
 Settings
 ├─ Appearance
-│  ├─ 一级 Theme: Ocean / Plum / Custom accent（始终可见）
+│  ├─ 一级 Theme: Ocean / Plum / Forest / Custom accent（始终可见）
 │  ├─ 二级 Custom accent: hue + saturation（仅选择 Custom 后在一级下方展示）
 │  └─ Save: 单次 updateMe，成功响应直接刷新 runtime
 ├─ Account
@@ -123,7 +123,7 @@ Settings
 ```
 
 - `SettingsScreen` 复用应用启动或认证恢复时已取得的 authenticated user，不为页面挂载或 route 切换重复调用 `getMe`；loading/error/unauthenticated 仍由统一 route guard 处理。
-- Appearance 的 Ocean / Plum / Custom accent 是始终可见的一级主题选择器。desktop 下一级选择器与“保存主题”共享固定主操作行，选项在左、保存动作在右；只有选择 Custom accent 时才在该行下方挂载色相与饱和度二级编辑器，展开或收起不得让保存动作上下跳动。二级编辑器必须进入正常文档流，不得覆盖、替换或遮挡主操作行。色相轨道使用完整光谱渐变，彩度轨道从当前色相的低彩中性色渐变到高彩色，使调节方向无需数值也可理解；thumb、键盘和 focus 仍沿用可访问 range 语义。选择 Ocean 或 Plum 后立即隐藏二级编辑器并退出自定义色，用户在任何状态下都能回退到预定义主题。
+- Appearance 的 Ocean / Plum / Forest / Custom accent 是始终可见的一级主题选择器。desktop 下一级选择器与“保存主题”共享固定主操作行，选项在左、保存动作在右；只有选择 Custom accent 时才在该行下方挂载色相与饱和度二级编辑器，展开或收起不得让保存动作上下跳动。二级编辑器必须进入正常文档流，不得覆盖、替换或遮挡主操作行。色相轨道使用完整光谱渐变，彩度轨道从当前色相的低彩中性色渐变到高彩色；thumb、键盘和 focus 仍沿用可访问 range 语义。选择任一预设后立即隐藏二级编辑器并退出自定义色，用户在任何状态下都能回退到账号级预设主题。
 - 主题草稿在设置页本地预览；拖动 hue/chroma 不发网络请求。点击保存只发一次 `updateMe`，成功响应返回完整用户上下文并直接更新 runtime/display context，不追加 `getMe`。失败保留草稿和错误供重试，不覆盖最近一次服务端确认值；离开未保存页面恢复确认值。重新登录或其他平台启动后由首个 `getMe` 恢复同一账号主题。
 - 不渲染 tab rail、手机号、界面语言行、时区、登录与安全、字体预设、产品信息、数据留存开关、数据概览、删除单次会话或删除所有练习数据等没有当前数据源/operation 的静态条目。
 - 数据导出沿用 P0 `501 PRIVACY_EXPORT_NOT_AVAILABLE` 契约，默认显示禁用态和可读的“暂不可用”原因；不得展示为可触发按钮，也不得把静态文案或未发请求状态显示成已受理。
@@ -137,6 +137,7 @@ Settings
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.34 | 将账号级预设主题扩展为 Ocean / Plum / Forest；三预设与 Custom 共用现有草稿、单次保存、失败恢复和跨设备恢复合同。 |
 | 2026-07-20 | 1.33 | 固定 Settings 主题一级选项与保存动作的同一主行归属，自定义编辑器只在下方展开，避免切换 Custom 时保存按钮跳动。 |
 | 2026-07-20 | 1.32 | 将 TopBar 设置入口从固定 `E` 改为 authenticated runtime 用户名首字符，并把语言菜单的弱文本箭头改为带状态反馈的清晰 SVG chevron；不新增账号请求。 |
 | 2026-07-20 | 1.31 | 收紧 Settings Header 安全插画结构：以半透明资料窗口、头像信息、柱状图、前景锁、盾牌对勾和星芒取代稀疏人物线稿，并保持主题色与装饰语义。 |

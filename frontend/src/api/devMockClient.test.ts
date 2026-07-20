@@ -171,13 +171,29 @@ describe("frontend dev fixture-backed mock client", () => {
 		await expect(client.updateMe({
 			displayName: "Alice Example",
 			acceptedTerms: true,
-			displayPreferences: { theme: "forest", customAccent: null },
+			displayPreferences: { theme: "warm", customAccent: null },
 		} as never)).rejects.toThrow(/HTTP 400/);
 
 		await expect(client.getMe()).resolves.toMatchObject({
 			displayName: "",
 			profileCompletionRequired: true,
 			displayPreferences: { theme: "ocean", customAccent: null },
+		});
+	});
+
+	it("accepts and restores the Forest account theme", async () => {
+		const client = createDevMockClient();
+
+		await client.verifyAuthEmailChallenge({ query: { token: "654321" } });
+		await expect(client.updateMe({
+			displayName: "Alice Example",
+			acceptedTerms: true,
+			displayPreferences: { theme: "forest", customAccent: null },
+		})).resolves.toMatchObject({
+			displayPreferences: { theme: "forest", customAccent: null },
+		});
+		await expect(client.getMe()).resolves.toMatchObject({
+			displayPreferences: { theme: "forest", customAccent: null },
 		});
 	});
 

@@ -22,6 +22,20 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertNotIn(("patch", "/me"), inventory.IK_REQUIRED)
         self.assertNotIn(("patch", "/me"), inventory.IK_FORBIDDEN)
 
+    def test_account_theme_enum_includes_forest_in_source_and_generated_artifacts(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        embedded = yaml.safe_load(
+            Path("backend/internal/api/generated/openapi.yaml").read_text(encoding="utf-8")
+        )
+        expected = ["ocean", "plum", "forest"]
+        self.assertEqual(expected, data["components"]["schemas"]["AccountTheme"]["enum"])
+        self.assertEqual(expected, embedded["components"]["schemas"]["AccountTheme"]["enum"])
+
+        ts_types = Path("frontend/src/api/generated/types.ts").read_text(encoding="utf-8")
+        go_types = Path("backend/internal/api/generated/types.gen.go").read_text(encoding="utf-8")
+        self.assertIn('export type AccountTheme = "ocean" | "plum" | "forest";', ts_types)
+        self.assertIn('AccountThemeForest AccountTheme = "forest"', go_types)
+
     def test_settings_user_context_is_exact_five_field_closed_contract(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         expected_fields = [

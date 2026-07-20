@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.41
+> **版本**: 2.42
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -23,7 +23,7 @@
 9. 当前只开放连续文本面试；电话入口置灰，不产生 `phone` / `voice` route state，通用 speech 基础设施留待后续重新评审。
 10. TopBar 只保留暗色模式、语言下拉和设置入口；主题色移入“设置”页的“外观”区并保存为账号级偏好。产品字体采用固定默认栈，不提供字体预设。
 11. Desktop TopBar 使用与 Home 参考图一致的 76px 单行节奏；`<=720px` 使用内容驱动的响应式换行，primary nav 独占下一行，`<=460px` 收起品牌文字并限制语言标签宽度。移动端页面内容必须从 TopBar 实际底部开始，所有控件与导航都留在 viewport 内，不允许用固定 desktop 高度或横向页面溢出来伪造对齐。
-12. “设置 > 外观”的 Ocean / Plum / Custom 是始终可见的一级主题选择器；desktop 下一级选择器与 Save 必须组成固定主操作行，选项靠左、Save 靠右，Custom 展开/收起不得改变 Save 的纵向位置。custom accent picker 是仅在选择 Custom 后于该主操作行下方展开的二级编辑器，只保留色相与饱和度两个调整维度。二级编辑器不得覆盖或替换主操作行；色相轨道必须展示完整光谱，彩度轨道必须以当前色相从低彩到高彩渐变，不增加 preview/value 区或“恢复主题默认色 / Reset to theme accent”按钮。选择 Ocean 或 Plum 是退出自定义色的唯一清晰路径。调整只做本地预览，点击保存才发送一次账号更新请求。
+12. “设置 > 外观”的 Ocean / Plum / Forest / Custom 是始终可见的一级主题选择器；desktop 下一级选择器与 Save 必须组成固定主操作行，选项靠左、Save 靠右，Custom 展开/收起不得改变 Save 的纵向位置。Ocean、Plum、Forest 的浅色主色/柔和色分别使用 `oklch(58% 0.225 239.0)` / `oklch(92% 0.050 239.0)`、`oklch(58% 0.230 0.0)` / `oklch(92% 0.050 0.0)`、`oklch(58% 0.155 143.0)` / `oklch(92% 0.034 143.0)`；暗色沿同 hue/chroma 使用 `68%` 主色与 `28%` 柔和色。custom accent picker 仅在选择 Custom 后于该主操作行下方展开，只保留色相与饱和度。二级编辑器不得覆盖或替换主操作行；选择任一预设是退出自定义色的清晰路径。调整只做本地预览，点击保存才发送一次账号更新请求。
 13. `/workspace` 是无参规划列表，`/workspace?targetJobId=...` 是统一只读规划详情；ready 卡片直接进入详情。`/parse?targetJobId=...` 只承接新导入 queued/processing 命令进度，ready 后 replace 到 Workspace 详情。
 14. Practice 的 persisted user/assistant text 通过 `react-markdown + remark-gfm` 安全投影；`skipHtml`、no `rehypeRaw`、no remote image、safe link，send/retry 仍使用原始 text/clientMessageId。
 15. 正式前端中具有明确背景或边框的矩形、方形文字/图标操作按钮统一使用 `8px` 语义控件圆角；主次、危险、失败恢复与禁用状态只改变颜色和交互反馈，不得回退为 `2px` 尖角。圆形 initial、pill toggle、无边框文字链接、卡片、输入框、状态标签和纯装饰图形不属于该控件圆角合同，仍由各自语义 token 或页面布局承接。
@@ -217,8 +217,8 @@ ROUTE_ALIASES
 6. Home 必须只保留 JD textarea、ready Resume 下拉框和主 CTA；正式前端不得保留其他 JD intake 控件或弹窗，desktop 1440px 与 mobile 390px responsive/browser smoke 必须证明该单一路径。
 7. Practice transient optimistic row 不得成为跨刷新事实源；`getPracticeSession` 必须恢复 user `clientMessageId/replyStatus`，pending/retryable/terminal/complete UI 由该服务端投影收敛。
 8. `ReportsScreen(targetJobId)` 是受保护、chrome-visible 的上下文页面，入口仅在 Workspace 规划详情内容区右上角；TopBar 仍严格为三入口。Parse 不渲染 ready 详情、不嵌入列表或保留 `section=reports`，Reports Back 返回 Workspace detail，Report/Generating trusted Back 返回 ReportsScreen。
-9. `CustomAccentPicker` 只允许 hue/saturation DOM 与更新回调。Ocean / Plum / Custom 一级选择器始终可见；一级选择器与 Save 由同一 primary row 持有，custom editor 只在 Custom 激活时挂载于该行下方，且不得与一级选择器或 Save 共享覆盖式 grid area。component/source negative gate 必须证明 preview/value/reset 区、“恢复主题默认色 / Reset to theme accent”双语文案及仅为旧 UI 服务的 `onClear` / `active` props 零引用；选择 Ocean / Plum 恢复预定义主题并隐藏二级编辑器。
-10. Settings Appearance 的 1440 desktop 与 390 mobile tests 必须覆盖 Ocean / Plum / custom accent 草稿预览、一级常驻/二级按需展开、保存、DOM、computed style、viewport containment 与必要 screenshot smoke；desktop 还必须量测预设态与 Custom 展开态的 Save `top`/`bottom` 保持稳定并与一级选项同一行。TopBar 删除旧主题区域后不得留下空白占位或横向溢出。
+9. `CustomAccentPicker` 只允许 hue/saturation DOM 与更新回调。Ocean / Plum / Forest / Custom 一级选择器始终可见；一级选择器与 Save 由同一 primary row 持有，custom editor 只在 Custom 激活时挂载于该行下方，且不得与一级选择器或 Save 共享覆盖式 grid area。component/source gate 必须证明三预设 light/dark OKLCH matrix、preview/value/reset 区零引用及 `warm` 零 active surface；选择任一预设恢复预定义主题并隐藏二级编辑器。
+10. Settings Appearance 的 1440 desktop 与 390 mobile tests 必须覆盖 Ocean / Plum / Forest / custom accent 草稿预览、一级常驻/二级按需展开、保存、DOM、computed style、viewport containment 与必要 screenshot smoke；desktop 还必须量测预设态与 Custom 展开态的 Save `top`/`bottom` 保持稳定并与一级选项同一行。TopBar 删除旧主题区域后不得留下空白占位或横向溢出。
 11. Route/component gate 必须证明 query-free Workspace 列表、targetJobId Workspace 详情和 Parse command-progress 三态互斥；ready 卡片详情执行一次同 key `getTargetJob`，不得 import、poll、播放 Parse animation 或在 route side 启动 session。
 12. Practice message renderer 必须同时覆盖 user/assistant GFM、raw HTML/remote image/unsafe URI 负向、安全 link、exact raw same-ID retry，以及 390px pre/code/table 局部滚动且 document 无横向溢出。
 13. TopBar 已登录态只渲染从 authenticated runtime `displayName` 派生首字符的圆形 initial-mark 设置按钮；名称为空显示 `?`，它不得读取或暗示用户头像数据。component/responsive/a11y gate 必须证明姓名、caret、backdrop、dropdown 与 TopBar logout 零引用，且 desktop/mobile 点击区域和 focus ring 可用。
@@ -233,6 +233,7 @@ ROUTE_ALIASES
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 2.42 | 将 Settings 预设扩展为 Ocean / Plum / Forest，锁定三套浅色 `58%/92%` 与暗色 `68%/28%` OKLCH accent matrix，并保持账号保存和 Custom 两层结构。 |
 | 2026-07-20 | 2.41 | 统一二三级页面返回控件为“返回 / Back”，保留各 owner 的目标路由和可信上下文恢复逻辑。 |
 | 2026-07-20 | 2.40 | 将 Settings 主题一级选项与保存按钮固定在同一主操作行，自定义色条仅在下方第二行展开，并要求 Chrome 量测切换前后保存按钮纵向位置不变。 |
 | 2026-07-20 | 2.39 | 统一正式前端有框操作按钮为 8px 语义控件圆角，明确 circular/pill、无边框链接与非按钮 surface 的例外；同时把设置入口旧固定 E 口径对齐为 runtime 用户名首字符。 |

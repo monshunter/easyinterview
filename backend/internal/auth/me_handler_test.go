@@ -121,7 +121,7 @@ func TestUpdateMeAcceptsThemeOnlyAndReturnsFullContext(t *testing.T) {
 	store := &meStore{user: auth.UserContext{ID: "user-1", Email: "candidate@example.com", DisplayName: "Candidate"}}
 	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{Store: store})
 	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
-	req := httptest.NewRequest(http.MethodPatch, "/api/v1/me", strings.NewReader(`{"displayPreferences":{"theme":"plum","customAccent":null}}`))
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/me", strings.NewReader(`{"displayPreferences":{"theme":"forest","customAccent":null}}`))
 	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{SessionID: "session-1", UserID: "user-1"}))
 	rec := httptest.NewRecorder()
 
@@ -135,8 +135,23 @@ func TestUpdateMeAcceptsThemeOnlyAndReturnsFullContext(t *testing.T) {
 		t.Fatalf("decode: %v", err)
 	}
 	preferences, ok := body["displayPreferences"].(map[string]any)
-	if !ok || preferences["theme"] != "plum" {
-		t.Fatalf("displayPreferences = %#v, want persisted plum", body["displayPreferences"])
+	if !ok || preferences["theme"] != "forest" {
+		t.Fatalf("displayPreferences = %#v, want persisted forest", body["displayPreferences"])
+	}
+}
+
+func TestUpdateMeRejectsUnsupportedAccountTheme(t *testing.T) {
+	store := &meStore{user: auth.UserContext{ID: "user-1", Email: "candidate@example.com", DisplayName: "Candidate"}}
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{Store: store})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
+	req := httptest.NewRequest(http.MethodPatch, "/api/v1/me", strings.NewReader(`{"displayPreferences":{"theme":"warm","customAccent":null}}`))
+	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{SessionID: "session-1", UserID: "user-1"}))
+	rec := httptest.NewRecorder()
+
+	handler.UpdateMe(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d body=%s, want unsupported warm rejected", rec.Code, rec.Body.String())
 	}
 }
 

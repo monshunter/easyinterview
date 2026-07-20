@@ -1,9 +1,9 @@
 /*
- * D2 theme CSS variables. Derived from formal frontend implementation
- * (EI_THEMES) and formal frontend implementation Every hex value is transcribed
- * verbatim; the matching focused tests in `tokens.test.ts` assert traceability.
+ * Theme CSS variables owned by the formal frontend implementation. The
+ * matching focused tests in `tokens.test.ts` enforce palette-data parity and
+ * the current UI architecture accent matrix.
  *
- * Selector contract: `[data-theme=<ocean|plum>]` × `[data-mode=
+ * Selector contract: `[data-theme=<ocean|plum|forest>]` × `[data-mode=
  * <light|dark>]` is set on `:root` by `DisplayPreferencesProvider`. Custom
  * accent is an overlay applied via inline style on `:root` and only overrides
  * `--ei-color-accent` / `--ei-color-accent-soft`.
@@ -58,8 +58,8 @@
   --ei-color-fg-muted: #a0a8b3;
   --ei-color-rule-strong: #dde2ec;
   --ei-color-rule-soft: #e7ebf2;
-  --ei-color-accent: #3a5fc4;
-  --ei-color-accent-soft: #dde6f7;
+  --ei-color-accent: oklch(58% 0.225 239.0);
+  --ei-color-accent-soft: oklch(92% 0.050 239.0);
   --ei-color-amber: #c98730;
   --ei-color-amber-soft: #f3e1c0;
   --ei-color-ok: #3f8367;
@@ -82,8 +82,8 @@
   --ei-color-fg-muted: #5d627a;
   --ei-color-rule-strong: #212740;
   --ei-color-rule-soft: #181d2e;
-  --ei-color-accent: #7493d4;
-  --ei-color-accent-soft: #1c2540;
+  --ei-color-accent: oklch(68% 0.225 239.0);
+  --ei-color-accent-soft: oklch(28% 0.050 239.0);
   --ei-color-amber: #e6a25a;
   --ei-color-amber-soft: #322411;
   --ei-color-ok: #74b08c;
@@ -106,8 +106,8 @@
   --ei-color-fg-muted: #a8a0a4;
   --ei-color-rule-strong: #e9dde2;
   --ei-color-rule-soft: #f0e6ea;
-  --ei-color-accent: #9c3a5c;
-  --ei-color-accent-soft: #f4dde6;
+  --ei-color-accent: oklch(58% 0.230 0.0);
+  --ei-color-accent-soft: oklch(92% 0.050 0.0);
   --ei-color-amber: #c98730;
   --ei-color-amber-soft: #f3e1c0;
   --ei-color-ok: #5a7a4a;
@@ -130,8 +130,8 @@
   --ei-color-fg-muted: #6a5e66;
   --ei-color-rule-strong: #2c2230;
   --ei-color-rule-soft: #211826;
-  --ei-color-accent: #c4709a;
-  --ei-color-accent-soft: #3a1f30;
+  --ei-color-accent: oklch(68% 0.230 0.0);
+  --ei-color-accent-soft: oklch(28% 0.050 0.0);
   --ei-color-amber: #e6a25a;
   --ei-color-amber-soft: #3b2a16;
   --ei-color-ok: #8fae7c;
@@ -142,4 +142,52 @@
   --ei-color-danger-soft: #3a1e14;
   --ei-color-cool: #9da4c0;
   --ei-color-cool-soft: #1f2240;
+}
+
+:root[data-theme="forest"][data-mode="light"] {
+  --ei-color-bg-canvas: #f8fafd;
+  --ei-color-bg-soft: #eef2f7;
+  --ei-color-bg-card: #ffffff;
+  --ei-color-fg-primary: #141821;
+  --ei-color-fg-secondary: #363c4a;
+  --ei-color-fg-tertiary: #6b7280;
+  --ei-color-fg-muted: #a0a8b3;
+  --ei-color-rule-strong: #dde2ec;
+  --ei-color-rule-soft: #e7ebf2;
+  --ei-color-accent: oklch(58% 0.155 143.0);
+  --ei-color-accent-soft: oklch(92% 0.034 143.0);
+  --ei-color-amber: #c98730;
+  --ei-color-amber-soft: #f3e1c0;
+  --ei-color-ok: #3f8367;
+  --ei-color-ok-soft: #d4ebde;
+  --ei-color-warn: #a87832;
+  --ei-color-warn-soft: #f0e0bf;
+  --ei-color-danger: #b3402b;
+  --ei-color-danger-soft: #f4d6cc;
+  --ei-color-cool: #4a6670;
+  --ei-color-cool-soft: #d6e1e5;
+}
+
+:root[data-theme="forest"][data-mode="dark"] {
+  --ei-color-bg-canvas: #0c0f17;
+  --ei-color-bg-soft: #13182a;
+  --ei-color-bg-card: #0f1320;
+  --ei-color-fg-primary: #e8edf6;
+  --ei-color-fg-secondary: #c4cad8;
+  --ei-color-fg-tertiary: #8389a0;
+  --ei-color-fg-muted: #5d627a;
+  --ei-color-rule-strong: #212740;
+  --ei-color-rule-soft: #181d2e;
+  --ei-color-accent: oklch(68% 0.155 143.0);
+  --ei-color-accent-soft: oklch(28% 0.034 143.0);
+  --ei-color-amber: #e6a25a;
+  --ei-color-amber-soft: #322411;
+  --ei-color-ok: #74b08c;
+  --ei-color-ok-soft: #1a2c20;
+  --ei-color-warn: #d9a868;
+  --ei-color-warn-soft: #332512;
+  --ei-color-danger: #d4694a;
+  --ei-color-danger-soft: #361d12;
+  --ei-color-cool: #89a4ae;
+  --ei-color-cool-soft: #1a242a;
 }

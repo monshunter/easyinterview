@@ -10,7 +10,7 @@ import {
 
 import { ApiClientError } from "../../api/generated/client";
 import { generateIdempotencyKey } from "../../lib/conventions/idempotency";
-import { useI18n } from "../i18n/messages";
+import { useI18n, type MessageKey } from "../i18n/messages";
 import {
   normalizeAccountDisplayPreferences,
   useDisplayPreferences,
@@ -22,10 +22,16 @@ import { useAppRuntimeOptional } from "../runtime/AppRuntimeProvider";
 import type { Route } from "../routes";
 import { THEME_METADATA } from "../theme/themes.data";
 
-const THEME_OPTIONS = ["ocean", "plum"] as const satisfies readonly Theme[];
+const THEME_OPTIONS = ["ocean", "plum", "forest"] as const satisfies readonly Theme[];
 const CUSTOM_ACCENT_SEEDS: Record<Theme, CustomAccent> = {
   ocean: { h: 255, c: 0.16 },
   plum: { h: 340, c: 0.15 },
+  forest: { h: 143, c: 0.155 },
+};
+const THEME_LABEL_KEYS: Record<Theme, MessageKey> = {
+  ocean: "theme.ocean",
+  plum: "theme.plum",
+  forest: "theme.forest",
 };
 
 const SettingsSectionIcon: FC<{ variant: "appearance" | "account" | "privacy" }> = ({
@@ -302,7 +308,7 @@ export const SettingsScreen: FC<{ route: Route }> = ({ route }) => {
                     }}
                   >
                     <span className="ei-settings-theme-swatch" style={{ background: metadata?.swatch }} aria-hidden="true" />
-                    {t(theme === "ocean" ? "theme.ocean" : "theme.plum")}
+                    {t(THEME_LABEL_KEYS[theme])}
                   </button>
                 );
               })}

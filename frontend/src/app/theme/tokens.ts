@@ -5,18 +5,18 @@
  * `:root[data-theme][data-mode]` selectors in `themes.css`.
  *
  * Sources of truth:
- *   - formal frontend implementation (EI_THEMES and ei-global vars)
- *   - formal frontend implementation (customAccent oklch formula)
+ *   - docs/ui-design/ui-architecture.md
+ *   - formal frontend palette and customAccent runtime
  *
  * Adding a new token requires updating: this registry, themes.data.ts (when
  * it is a per-theme color), themes.css (variable declaration on every base
  * combination), and the matching focused tests in `tokens.test.ts`.
  */
 
-export type Theme = "ocean" | "plum";
+export type Theme = "ocean" | "plum" | "forest";
 export type Mode = "light" | "dark";
 
-export const THEME_KEYS: readonly Theme[] = ["ocean", "plum"];
+export const THEME_KEYS: readonly Theme[] = ["ocean", "plum", "forest"];
 export const MODE_KEYS: readonly Mode[] = ["light", "dark"];
 
 export const COLOR_TOKENS = {

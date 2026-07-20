@@ -250,7 +250,7 @@ function buildMockUserContext(state: {
 }
 
 function isAccountDisplayPreferences(value: unknown): value is UserContext["displayPreferences"] {
-	if (!hasExactKeys(value, ["theme", "customAccent"]) || (value.theme !== "ocean" && value.theme !== "plum")) return false;
+	if (!hasExactKeys(value, ["theme", "customAccent"]) || (value.theme !== "ocean" && value.theme !== "plum" && value.theme !== "forest")) return false;
 	if (value.customAccent === null) return true;
 	return hasExactKeys(value.customAccent, ["h", "c"]) &&
 		typeof value.customAccent.h === "number" && Number.isFinite(value.customAccent.h) && value.customAccent.h >= 0 && value.customAccent.h < 360 &&

@@ -66,7 +66,9 @@ test("E2E.P0.101 auth email-code same-email login/profile lifecycle", async ({
       "settingsMountedGetMe=0",
       "settingsRouteSwitchGetMe=0",
       "themeSavePatch=1",
-      "themeRelogin=plum",
+      "themeRelogin=forest",
+      "themeForestMatrix=light-dark",
+      "themeResponsive=desktop-mobile",
       "deleteMeRequests=0",
     ].join(" "),
   );
@@ -218,7 +220,7 @@ async function runLifecycle(browser: Browser): Promise<{
     const completedLoginMail = await pollMailCode(AUTH_EMAIL, seenMessageIds);
     await submitCode(secondPage, completedLoginMail.code);
     const completedLoginUser = await assertSignedIn(secondPage, DISPLAY_NAME);
-    await expect(secondPage.locator("html")).toHaveAttribute("data-theme", "plum");
+    await expect(secondPage.locator("html")).toHaveAttribute("data-theme", "forest");
     await expect(secondPage.getByTestId("route-auth_profile_setup")).toHaveCount(0);
 
     results.push({
@@ -417,13 +419,56 @@ async function assertSettingsAndLogout(
   expect(meGetRequests).toHaveLength(meCountBeforeSettings);
 
   const updateCountBeforeThemeSave = updateMeRequests.length;
-  await page.getByTestId("settings-theme-plum").click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "plum");
+  for (const theme of ["ocean", "plum", "forest", "custom"]) {
+    await expect(page.getByTestId(`settings-theme-${theme}`)).toBeVisible();
+  }
+  await page.getByTestId("settings-theme-forest").click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "forest");
+  await expect.poll(() => readAccentVariables(page)).toEqual([
+    "oklch(58% 0.155 143.0)",
+    "oklch(92% 0.034 143.0)",
+  ]);
+  const presetSaveBox = await page.getByTestId("settings-theme-save").boundingBox();
+  await page.getByTestId("settings-theme-custom").click();
+  await expect(page.getByTestId("settings-custom-accent")).toBeVisible();
+  const customSaveBox = await page.getByTestId("settings-theme-save").boundingBox();
+  expect(presetSaveBox).not.toBeNull();
+  expect(customSaveBox).not.toBeNull();
+  expect(Math.abs((presetSaveBox?.y ?? 0) - (customSaveBox?.y ?? 0))).toBeLessThanOrEqual(1);
+  await page.getByTestId("settings-theme-forest").click();
+  await expect(page.getByTestId("settings-custom-accent")).toHaveCount(0);
+  await assertNoHorizontalOverflow(page);
+  await page.getByTestId("topbar-dark-toggle").click();
+  await expect(page.locator("html")).toHaveAttribute("data-mode", "dark");
+  await expect.poll(() => readAccentVariables(page)).toEqual([
+    "oklch(68% 0.155 143.0)",
+    "oklch(28% 0.034 143.0)",
+  ]);
+  await page.getByTestId("topbar-dark-toggle").click();
+  await expect(page.locator("html")).toHaveAttribute("data-mode", "light");
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const theme of ["ocean", "plum", "forest", "custom"]) {
+    await expect(page.getByTestId(`settings-theme-${theme}`)).toBeVisible();
+  }
+  await expect.poll(() => readAccentVariables(page)).toEqual([
+    "oklch(58% 0.155 143.0)",
+    "oklch(92% 0.034 143.0)",
+  ]);
+  await assertNoHorizontalOverflow(page);
+  await page.getByTestId("topbar-dark-toggle").click();
+  await expect(page.locator("html")).toHaveAttribute("data-mode", "dark");
+  await expect.poll(() => readAccentVariables(page)).toEqual([
+    "oklch(68% 0.155 143.0)",
+    "oklch(28% 0.034 143.0)",
+  ]);
+  await assertNoHorizontalOverflow(page);
+  await page.getByTestId("topbar-dark-toggle").click();
+  await expect(page.locator("html")).toHaveAttribute("data-mode", "light");
   expect(updateMeRequests).toHaveLength(updateCountBeforeThemeSave);
   await page.getByTestId("settings-theme-save").click();
   await expect.poll(() => updateMeRequests.length).toBe(updateCountBeforeThemeSave + 1);
   expect(updateMeRequests.at(-1)).toEqual({
-    displayPreferences: { theme: "plum", customAccent: null },
+    displayPreferences: { theme: "forest", customAccent: null },
   });
   expect(meGetRequests).toHaveLength(meCountBeforeSettings);
 
@@ -438,6 +483,26 @@ async function assertSettingsAndLogout(
     "data-signed-in",
     "false",
   );
+}
+
+async function readAccentVariables(page: Page): Promise<[string, string]> {
+  return page.locator("html").evaluate((root) => {
+    const style = getComputedStyle(root);
+    return [
+      style.getPropertyValue("--ei-color-accent").trim(),
+      style.getPropertyValue("--ei-color-accent-soft").trim(),
+    ];
+  });
+}
+
+async function assertNoHorizontalOverflow(page: Page): Promise<void> {
+  const dimensions = await page.evaluate(() => ({
+    body: document.body.scrollWidth,
+    document: document.documentElement.scrollWidth,
+    viewport: window.innerWidth,
+  }));
+  expect(dimensions.body).toBeLessThanOrEqual(dimensions.viewport);
+  expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport);
 }
 
 async function listMessageIdsForEmail(email: string): Promise<string[]> {

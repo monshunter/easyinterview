@@ -4,10 +4,10 @@
 
 | 文档 | 版本 | 状态 | 更新日期 | 说明 |
 |------|------|------|----------|------|
-| [目标总体架构](./ui-architecture.md) | 2.39 | active | 2026-07-20 | 统一有框操作按钮 8px 语义圆角、用户名首字符设置入口、76px desktop TopBar 与 Practice 双层 header |
+| [目标总体架构](./ui-architecture.md) | 2.42 | active | 2026-07-20 | Ocean / Plum / Forest 三预设 OKLCH matrix、账号级保存、Custom 两层结构与共享 App shell |
 | [目标用户流程](./user-flow.md) | 2.32 | active | 2026-07-19 | 设置主题本地预览/单次保存/重登恢复；页面切换零重复 `/me`；其余核心流程保持 |
-| [目标模块地图](./module-map.md) | 2.22 | active | 2026-07-19 | 账号级 Appearance、圆形 E 设置入口、Practice 双层 header 与 Workspace/Reports 边界 |
-| [认证与默认入口](./auth-and-entry.md) | 1.28 | active | 2026-07-19 | 单一圆形 E 设置入口、账号主题、bootstrap 单次读取、设置页和 pendingAction 边界 |
+| [目标模块地图](./module-map.md) | 2.24 | active | 2026-07-20 | 账号级 Ocean / Plum / Forest Appearance、圆形 E 设置入口、Practice 双层 header 与 Workspace/Reports 边界 |
+| [认证与默认入口](./auth-and-entry.md) | 1.34 | completed | 2026-07-20 | 单一设置入口、Ocean / Plum / Forest 账号主题、bootstrap 单次读取、设置页和 pendingAction 边界 |
 | [当前面试规划目标模块](./module-job-workspace.md) | 1.49 | completed | 2026-07-20 | Home 空规划时隐藏整个 recent section；非空记录与 Workspace 共用业务 mapper |
 | [模拟面试与报告目标模块](./module-practice-review.md) | 1.35 | active | 2026-07-19 | Practice 保留 global App TopBar，并在其下使用独立 Session Header 与全宽连续文本聊天 |
 | [报告仪表盘目标结构](./report-dashboard.md) | 1.41 | active | 2026-07-16 | reportId-only frozen detail、任意报告状态保留面试记录、failed recovery、desktop `4/2/2/2/1` 与 mobile 同序单列 |

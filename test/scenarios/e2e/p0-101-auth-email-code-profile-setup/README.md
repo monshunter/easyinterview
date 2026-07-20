@@ -47,7 +47,7 @@ pnpm --filter @easyinterview/frontend exec playwright test \
 - 输入验证码后，frontend 调用 backend `verifyAuthEmailChallenge` 兑换 `ei_session`，`GET /me` 返回 200 且 `profileCompletionRequired=true`，页面进入 `auth_profile_setup`。
 - 资料补全前刷新 `auth_profile_setup`、深链到业务 route、关闭 browser context 后重登同一邮箱、换 browser context 后重登同一邮箱、退出后重登同一邮箱，均继续停在 `auth_profile_setup`，不得接续 pending action。
 - `auth_profile_setup` 提交 trimmed displayName 和 `acceptedTerms=true` 后调用 `PATCH /me updateMe`，响应直接给出 `profileCompletionRequired=false`；已登录 TopBar 只有一个设置齿轮。
-- 点击设置齿轮后，Settings 使用 bootstrap runtime `/me` 的账号与主题，不追加页面级 GET；选择 plum 只本地预览，保存只发一次 PATCH 且不追加 GET；Settings→Home→Settings 仍不重新 GET，退出重登恢复 plum。
+- 点击设置齿轮后，Settings 使用 bootstrap runtime `/me` 的账号与主题，不追加页面级 GET；Ocean / Plum / Forest / Custom 四个一级选项可见，选择 Forest 只本地预览且 light/dark computed accent matrix 符合合同；保存只发一次 PATCH 且不追加 GET；Settings→Home→Settings 仍不重新 GET，退出重登恢复 Forest。
 - 从 Settings 进入既有退出确认；退出后使用同一邮箱再次登录时不再进入 `auth_profile_setup`，直接进入正常账号。
 - 场景不触发 `DELETE /me`；破坏性账号删除只由 frontend/backend contract tests 承接。
 - 所有 `POST /auth/email/start` request body 只包含 email，不包含 `purpose`、`displayName`、password 或 OAuth 字段。

@@ -39,7 +39,7 @@ function deferred<T>() {
   return { promise, reject, resolve };
 }
 
-function themedUser(theme: "ocean" | "plum" = "plum"): UserContext {
+function themedUser(theme: "ocean" | "plum" | "forest" = "forest"): UserContext {
   return {
     id: "user-1",
     displayName: "Alice Candidate",
@@ -94,19 +94,19 @@ describe("Settings account and privacy contract", () => {
       displayName: "Alice Candidate",
       email: "alice@example.com",
       profileCompletionRequired: false,
-      displayPreferences: { theme: "plum", customAccent: null },
+      displayPreferences: { theme: "forest", customAccent: null },
     });
     const user = userEvent.setup();
 
     expect(screen.getByTestId("settings-appearance")).toBeInTheDocument();
-    await user.click(screen.getByTestId("settings-theme-plum"));
-    expect(document.documentElement).toHaveAttribute("data-theme", "plum");
+    await user.click(screen.getByTestId("settings-theme-forest"));
+    expect(document.documentElement).toHaveAttribute("data-theme", "forest");
     expect(updateMe).not.toHaveBeenCalled();
     expect(getMe).not.toHaveBeenCalled();
 
     await user.click(screen.getByTestId("settings-theme-save"));
     await waitFor(() => expect(updateMe).toHaveBeenCalledTimes(1));
-    expect(updateMe).toHaveBeenCalledWith({ displayPreferences: { theme: "plum", customAccent: null } });
+    expect(updateMe).toHaveBeenCalledWith({ displayPreferences: { theme: "forest", customAccent: null } });
     expect(refreshAuth).toHaveBeenCalledTimes(1);
     expect(getMe).not.toHaveBeenCalled();
   });
@@ -129,9 +129,10 @@ describe("Settings account and privacy contract", () => {
     expect(primaryRow).toContainElement(save);
     expect(primaryRow).not.toContainElement(customPanel);
     expect(primaryRow.compareDocumentPosition(customPanel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    for (const theme of ["ocean", "plum", "custom"]) {
+    for (const theme of ["ocean", "plum", "forest", "custom"]) {
       expect(screen.getByTestId(`settings-theme-${theme}`)).toBeVisible();
     }
+    expect(screen.getByTestId("settings-theme-forest")).toHaveTextContent("Forest");
     expect(screen.getByTestId("settings-custom-accent-hue")).toHaveClass(
       "ei-settings-accent-range--hue",
     );
@@ -142,9 +143,9 @@ describe("Settings account and privacy contract", () => {
     expect(updateMe).not.toHaveBeenCalled();
     expect(getMe).not.toHaveBeenCalled();
 
-    await user.click(screen.getByTestId("settings-theme-plum"));
+    await user.click(screen.getByTestId("settings-theme-forest"));
     expect(screen.queryByTestId("settings-custom-accent")).not.toBeInTheDocument();
-    expect(screen.getByTestId("settings-theme-plum")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("settings-theme-forest")).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId("settings-theme-custom")).toHaveAttribute("aria-pressed", "false");
     expect(updateMe).not.toHaveBeenCalled();
     expect(getMe).not.toHaveBeenCalled();

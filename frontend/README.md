@@ -96,8 +96,8 @@ requestAuth({
 #### Design tokens 入口
 
 - 语义 token：[`src/app/theme/tokens.ts`](./src/app/theme/tokens.ts) — 仅导出 CSS variable 名（`--ei-color-*` / `--ei-radius-*` / `--ei-shadow-*` / `--ei-space-*` / `--ei-text-*` / `--ei-font-*`），不导出 hex 字面量。
-- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（内部）— `ocean` / `plum` 2 主题 × 2 模式 × 21 个颜色角色；`THEME_METADATA` 供 Settings Appearance 使用，custom accent 与 Ocean / Plum 一起作为账号级偏好保存。全站固定使用 Noto Serif SC + Inter，并以 JetBrains Mono 承接标签和代码文本，不提供设置页字体预设。
-- 主题 CSS：[`src/app/theme/themes.css`](./src/app/theme/themes.css) — `:root[data-theme=X][data-mode=Y]` 8 组合声明所有色板。
+- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（内部）— `ocean` / `plum` / `forest` 3 主题 × 2 模式 × 21 个颜色角色；`THEME_METADATA` 供 Settings Appearance 使用，custom accent 与三个预设一起作为账号级偏好保存。全站固定使用 Noto Serif SC + Inter，并以 JetBrains Mono 承接标签和代码文本，不提供设置页字体预设。
+- 主题 CSS：[`src/app/theme/themes.css`](./src/app/theme/themes.css) — `:root[data-theme=X][data-mode=Y]` 6 组合声明所有色板。
 - Custom accent helper：[`src/app/theme/customAccent.ts`](./src/app/theme/customAccent.ts) — 维护 oklch 公式（light=58 / dark=68 / soft 92/28，chroma clamp [0,0.28]，hue normalize [0,360)），仅覆盖 `--ei-color-accent` / `--ei-color-accent-soft`。
 
 新增 token 必须按 `tokens.test.ts` / `themes.css` / `themes.data.ts` 三处同步追加，并在测试中固化正式前端内部契约。
@@ -107,7 +107,7 @@ requestAuth({
 [`src/app/display/DisplayPreferencesProvider.tsx`](./src/app/display/DisplayPreferencesProvider.tsx) 在 `theme` / `dark` / `customAccent` 任一切换时立即把 `<html>` 的 `data-theme` / `data-mode` / `data-custom-accent` 翻转，并把 customAccent overlay 写入根元素 inline style。**所有主题相关样式必须走 `:root[data-theme][data-mode]` selector + var() token，不在组件内 hardcode hex / rgb。**
 
 - TopBar 只承接暗色 toggle、带清晰 SVG chevron 的语言 dropdown 与圆形用户名首字符设置按钮；initial mark 从现有 authenticated runtime `displayName` 派生但不加载用户头像或新增 `/me`，账号主题控件由 [`src/app/screens/SettingsScreen.tsx`](./src/app/screens/SettingsScreen.tsx) 的 Appearance 区承接。
-- 账号主题 testid：`settings-theme-{ocean,plum,custom}` / `settings-custom-accent-{hue,chroma}` / `settings-theme-save`。Custom accent picker 只保留 hue / saturation，不保留 preview / value / reset anchor 或隐藏清除入口。
+- 账号主题 testid：`settings-theme-{ocean,plum,forest,custom}` / `settings-custom-accent-{hue,chroma}` / `settings-theme-save`。Custom accent picker 只保留 hue / saturation，不保留 preview / value / reset anchor 或隐藏清除入口。
 
 #### 字体加载
 

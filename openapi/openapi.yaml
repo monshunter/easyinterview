@@ -1666,7 +1666,7 @@ components:
 
     AccountTheme:
       type: string
-      enum: [ocean, plum]
+      enum: [ocean, plum, forest]
 
     CustomAccent:
       type: object

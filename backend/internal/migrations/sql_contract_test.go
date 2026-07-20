@@ -227,6 +227,39 @@ func TestAccountThemePreferenceMigrationContract(t *testing.T) {
 	}
 }
 
+func TestForestAccountThemeMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000022_add_forest_account_theme.up.sql")))
+	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000022_add_forest_account_theme.down.sql")))
+	enumSources := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "enum-sources.yaml")))
+
+	for _, required := range []string{
+		"drop constraint user_settings_theme_check",
+		"theme in ('ocean', 'plum', 'forest')",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("forest account theme up migration missing %q", required)
+		}
+	}
+	for _, required := range []string{
+		"update user_settings set theme = 'ocean' where theme = 'forest'",
+		"theme in ('ocean', 'plum')",
+	} {
+		if !strings.Contains(down, required) {
+			t.Fatalf("forest account theme down migration missing %q", required)
+		}
+	}
+	for _, required := range []string{
+		"table: user_settings",
+		"column: theme",
+		"values: [ocean, plum, forest]",
+	} {
+		if !strings.Contains(enumSources, required) {
+			t.Fatalf("forest account theme enum source missing %q", required)
+		}
+	}
+}
+
 func TestPracticeIdempotencyMigrationContract(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readAllUpMigrations(t, filepath.Join(root, "migrations")))

@@ -74,8 +74,9 @@ type UserContext struct {
 type AccountTheme string
 
 const (
-	AccountThemeOcean AccountTheme = "ocean"
-	AccountThemePlum  AccountTheme = "plum"
+	AccountThemeOcean  AccountTheme = "ocean"
+	AccountThemePlum   AccountTheme = "plum"
+	AccountThemeForest AccountTheme = "forest"
 )
 
 type CustomAccent struct {
