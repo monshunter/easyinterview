@@ -2481,13 +2481,6 @@
   cursor: not-allowed;
 }
 
-.ei-resume-workshop-delete-error {
-  margin: 14px 0 0;
-  color: var(--ei-color-danger);
-  font-family: var(--ei-font-sans);
-  font-size: 13px;
-}
-
 .ei-resume-detail {
   width: 100%;
 }
@@ -4542,7 +4535,9 @@
 }
 
 .ei-settings-secondary-action,
-.ei-settings-danger-action {
+.ei-settings-danger-action,
+.ei-destructive-dialog-cancel,
+.ei-destructive-dialog-confirm {
   min-height: 40px;
   padding: 8px 14px;
   border-radius: var(--ei-radius-control);
@@ -4552,31 +4547,38 @@
   cursor: pointer;
 }
 
-.ei-settings-secondary-action {
+.ei-settings-secondary-action,
+.ei-destructive-dialog-cancel {
   color: var(--ei-color-fg-secondary);
   background: transparent;
   border: 1px solid var(--ei-color-rule-strong);
 }
 
-.ei-settings-danger-action {
+.ei-settings-danger-action,
+.ei-destructive-dialog-confirm {
   color: var(--ei-color-danger);
   background: var(--ei-color-danger-soft);
   border: 1px solid var(--ei-color-danger);
 }
 
 .ei-settings-secondary-action:focus-visible,
-.ei-settings-danger-action:focus-visible {
+.ei-settings-danger-action:focus-visible,
+.ei-destructive-dialog-cancel:focus-visible,
+.ei-destructive-dialog-confirm:focus-visible {
   outline: 2px solid var(--ei-color-accent);
   outline-offset: 2px;
 }
 
 .ei-settings-secondary-action:disabled,
-.ei-settings-danger-action:disabled {
+.ei-settings-danger-action:disabled,
+.ei-destructive-dialog-cancel:disabled,
+.ei-destructive-dialog-confirm:disabled {
   cursor: wait;
   opacity: 0.56;
 }
 
-.ei-settings-dialog-layer {
+.ei-settings-dialog-layer,
+.ei-destructive-dialog-layer {
   position: fixed;
   inset: 0;
   z-index: 60;
@@ -4586,7 +4588,8 @@
   background: color-mix(in srgb, var(--ei-color-bg-canvas) 74%, transparent);
 }
 
-.ei-settings-dialog {
+.ei-settings-dialog,
+.ei-destructive-dialog {
   width: min(100%, 480px);
   padding: 28px;
   border: 1px solid var(--ei-color-rule-strong);
@@ -4595,22 +4598,26 @@
   box-shadow: var(--ei-shadow-elev2);
 }
 
-.ei-settings-dialog > .ei-text-label {
+.ei-settings-dialog > .ei-text-label,
+.ei-destructive-dialog > .ei-text-label {
   color: var(--ei-color-danger);
   font-family: var(--ei-font-mono);
   letter-spacing: 0.08em;
 }
 
-.ei-settings-dialog h2 {
+.ei-settings-dialog h2,
+.ei-destructive-dialog h2 {
   margin: var(--ei-space-2) 0;
 }
 
-.ei-settings-dialog p {
+.ei-settings-dialog p,
+.ei-destructive-dialog p {
   margin: 0;
   color: var(--ei-color-fg-secondary);
 }
 
-.ei-settings-dialog-error {
+.ei-settings-dialog-error,
+.ei-destructive-dialog-error {
   margin-top: var(--ei-space-4) !important;
   padding: 10px 12px;
   color: var(--ei-color-danger) !important;
@@ -4618,7 +4625,8 @@
   border-radius: var(--ei-radius-sm);
 }
 
-.ei-settings-dialog-actions {
+.ei-settings-dialog-actions,
+.ei-destructive-dialog-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--ei-space-2);

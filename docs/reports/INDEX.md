@@ -8,6 +8,8 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-20](./2026-07-20-destructive-delete-confirmation-ui-assessment.md) | Resume 与 Workspace 删除二次确认交付复盘 | #assessment #ui #workspace #resume #chrome |
+| [2026-07-20](./2026-07-20-frontend-list-pages-review-remediation-assessment.md) | Frontend List Pages Review Remediation 交付复盘 | #assessment #ui #review-remediation #BUG-0192 |
 | [2026-07-20](./2026-07-20-home-resume-option-labels-assessment.md) | Home 简历选项名称精简交付复盘 | #assessment #ui #home |
 | [2026-07-20](./2026-07-20-home-empty-recent-section-assessment.md) | Home 空规划隐藏最近模拟面试区块交付复盘 | #assessment #ui #home |
 | [2026-07-19](./2026-07-19-settings-custom-theme-hierarchy-assessment.md) | Settings Custom Theme Hierarchy 交付复盘 | #assessment #settings #ui #chrome #BUG-0193 |

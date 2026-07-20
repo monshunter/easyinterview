@@ -1,8 +1,8 @@
 # Local Quality Gates Bootstrap
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-20
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -252,9 +252,23 @@ F1 metrics / log lint helper 当前未暴露本地命令，因此不进入根 `M
 
 执行 focused Makefile contract、UI contract 45 tests、完整 `make test`、A5/product contexts、README/development 与 docs/index/diff/pruning gates；确认场景专用 Python contract 不被扩大到根单元测试聚合。
 
+### Phase 11: Subject spec contract-ID uniqueness gate
+
+#### 11.1 RED：锁定重复 ID 失败合同
+
+新增 focused Python contract，以临时 `docs/spec/<subject>/spec.md` fixture 证明同一文件重复 `D-*` 或 `C-*` 必须失败并报告两处行号，同时证明不同 subject 可合法复用相同编号、非 subject `spec.md` 与 fenced example 不进入扫描。扫描暴露的三组范围外既有重复使用脚本内显式 legacy baseline 维持 ratchet；同编号出现在任何新 subject 仍必须失败。
+
+#### 11.2 GREEN：实现并接入 docs-check
+
+新增单一 `scripts/lint/check_spec_contract_ids.py`，只扫描 `docs/spec/*/spec.md` Markdown 表格行；把命令接入现有 `make docs-check`，失败必须阻止后续成功。同步 `docs/development.md`、spec 文档规则与 A5 owner，不创建平行 target 或 BDD/E2E。
+
+#### 11.3 Verification and docs sync
+
+执行 focused script tests、当前 `docs/spec` 扫描、`make docs-check`、完整 `make test`、A5/workspace/report contexts、index 与 diff gates；完成后恢复本 plan completed。
+
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 至 C-7 全部成立；drift / 失败 / 守门边界由 Phase 4 命令日志佐证；docs/spec fragment anchor drift 由 Phase 5 命令日志佐证；exit-zero future-owner target 清零由 Phase 7 命令日志佐证；真实 build gate 由 Phase 8 命令日志佐证；Python contracts 与依赖声明由 Phase 9 佐证；UI prototype contract 聚合由 Phase 10 佐证。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 至 C-8 全部成立；drift / 失败 / 守门边界由 Phase 4 命令日志佐证；docs/spec fragment anchor drift 由 Phase 5 命令日志佐证；exit-zero future-owner target 清零由 Phase 7 命令日志佐证；真实 build gate 由 Phase 8 命令日志佐证；Python contracts 与依赖声明由 Phase 9 佐证；UI prototype contract 聚合由 Phase 10 佐证；subject spec 合同 ID 唯一性由 Phase 11 佐证。
 - 本 plan checklist 全部勾选；Phase 4.1 与 Phase 4.3 关键命令日志贴入工作日志。
 - 不出现 `.github/workflows/*.yml` 由本 plan 创建；文档不声称项目已有远端 CI。
 
@@ -273,6 +287,7 @@ F1 metrics / log lint helper 当前未暴露本地命令，因此不进入根 `M
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-20 | 1.12 | Add a focused subject-spec D/C contract-ID uniqueness gate to `make docs-check`. | plan-code-review remediation |
 | 2026-07-10 | 1.11 | Add the repository's only root Node test, the UI prototype contract, to the existing test aggregator. | tech-debt pruning |
 | 2026-07-10 | 1.10 | Add Python tooling/skill contracts and explicit dev dependencies to the root test gate; repair one stale work-journal assertion. | tech-debt pruning |
 | 2026-07-10 | 1.9 | 将 A5 001 当前 plan / checklist 中的旧 scaffold wording 收敛为 exit-zero 假 target / 真实 gate 术语。 | tech-debt pruning |

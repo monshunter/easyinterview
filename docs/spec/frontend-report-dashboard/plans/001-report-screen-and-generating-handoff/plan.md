@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 4.9
+> **版本**: 4.10
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -231,6 +231,10 @@ ReportsScreen 使用约 `1372px` 内容面、共享 Header illustration、仅由
 
 以 locale/source/component RED 锁定 Generating 的受控例外：当 `resolveReportBackRoute` 已根据可信 report context 解析到 ReportsScreen，正常等待态及 typed error state 都显示“返回面试报告 / Back to interview reports”；尚无可信 TargetJob identity、只能回 Workspace 时继续显示共享“返回 / Back”。GREEN 只增加 Generating owner 的专用 locale key 并按既有 `backDestination` 选择标签；不恢复其它页面的旧目标特定文案，不改变 route、trusted-context、polling、retry、ready handoff 或 error state。`BDD.REPORT.GENERATING.VISUAL.003` 由 Generating navigation/i18n tests 与 current-run Chrome 验收承接；Operation Matrix/API/fixture/backend/persistence 均 `N/A`。
 
+### Phase 22: Truthful target-summary date label
+
+以 `ReportsScreen.test.tsx` RED 锁定 TargetJob `createdAt` 必须显示为“规划创建日期 / Plan created”且不出现“面试日期 / Interview date”。GREEN 增加 zh/en locale key 并替换硬编码标签；保留日期格式、TargetJob/report 请求、轮次 timeline、locator 与 responsive 构图不变。`BDD.REPORT.RECORDS.VISUAL.002` 承接可见事实语义，不新增 E2E ID；Operation Matrix/API/fixture/backend/persistence 均 `N/A`。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -268,6 +272,7 @@ ReportsScreen 使用约 `1372px` 内容面、共享 Header illustration、仅由
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 4.10 | Reopen Phase 22 to label TargetJob createdAt as plan creation instead of fabricating an interview date. |
 | 2026-07-20 | 4.9 | Reopen Phase 21 to restore target-aware Generating Back copy without changing the trusted reports/workspace navigation matrix. |
 | 2026-07-20 | 4.8 | Reopen Phase 20 to remove the report transition white card and render the honest generating composition directly on the shared atmospheric canvas. |
 | 2026-07-19 | 4.7 | Reopen Phase 19 for the screenshot-aligned honest Generating transition and shared TopBar chrome. |

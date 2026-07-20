@@ -11,13 +11,23 @@ import { PracticeLaunchTransition } from "./PracticeLaunchTransition";
 
 describe("PracticeLaunchTransition", () => {
   it("announces an honest busy state, blocks the background, and restores it on unmount", () => {
-    const { container, unmount } = render(
+    const { unmount } = render(
       <DisplayPreferencesProvider>
-        <PracticeLaunchTransition />
+        <div data-testid="app-root">
+          <header>
+            <button type="button" data-testid="topbar-control">
+              Settings
+            </button>
+          </header>
+          <main data-testid="app-main">
+            <PracticeLaunchTransition />
+          </main>
+        </div>
       </DisplayPreferencesProvider>,
     );
 
     const transition = screen.getByTestId("practice-launch-transition");
+    const appRoot = screen.getByTestId("app-root");
     expect(transition).toHaveAttribute("role", "status");
     expect(transition).toHaveAttribute("aria-live", "polite");
     expect(transition).toHaveAttribute("aria-busy", "true");
@@ -25,15 +35,17 @@ describe("PracticeLaunchTransition", () => {
     expect(transition).toHaveAttribute("data-transition-variant", "brand");
     expect(screen.getByTestId("transition-illustration-brand")).toBeInTheDocument();
     expect(transition).toHaveFocus();
-    expect(container).toHaveAttribute("inert");
-    expect(container).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("topbar-control")).toBeInTheDocument();
+    expect(appRoot).toHaveAttribute("inert");
+    expect(appRoot).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("app-main")).not.toHaveAttribute("inert");
     expect(document.body.style.overflow).toBe("hidden");
     expect(transition).not.toHaveTextContent(/\d+%|opening message/i);
 
     unmount();
 
-    expect(container).not.toHaveAttribute("inert");
-    expect(container).not.toHaveAttribute("aria-hidden");
+    expect(appRoot).not.toHaveAttribute("inert");
+    expect(appRoot).not.toHaveAttribute("aria-hidden");
     expect(document.body.style.overflow).toBe("");
   });
 

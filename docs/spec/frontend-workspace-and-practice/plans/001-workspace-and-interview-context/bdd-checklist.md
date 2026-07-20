@@ -1,8 +1,8 @@
 # Workspace and Interview Context BDD Checklist
 
-> **版本**: 1.34
+> **版本**: 1.36
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -59,3 +59,11 @@
 
 - [x] Shared/caller tests 覆盖 brand variant、portal blocking、focus/scroll lock、single-flight、成功与失败恢复、无伪百分比。
 - [x] Current-run desktop Chrome 对照参考稿验证 TopBar、同心轨道、E 标识、标题/说明/indeterminate 线和无横向溢出；mobile 由共享 responsive contract 覆盖，不新增 E2E ID。（Workspace 与 Report caller 均完成真实启动并成功进入 Practice。）
+- [x] Phase 34 remediation：真实 App root 层级下锁定完整背景 inert，证明可见 TopBar 的导航/设置/显示控制不能穿透 pending transition，卸载后属性恢复。<!-- verified: 2026-07-20 evidence="PracticeLaunchTransition 2/2 and root frontend 1115/1115 PASS." -->
+
+## `BDD.WORKSPACE.DELETE.CONFIRM.008` 面试规划删除二次确认
+
+- [x] 确认验证入口为 Workspace owner tests 与 shared destructive-dialog domain behavior tests，不创建 E2E wrapper。
+- [x] 执行首次点击零 `archiveTargetJob`、卡片零导航、取消/Escape/遮罩零副作用、初始焦点/focus trap/trigger focus restore 行为断言。
+- [x] 执行确认单次提交、pending 关闭/重复提交锁定、失败保留卡片/弹窗与同 key retry、成功隐藏卡片行为断言。
+- [x] 使用 Chrome skill 在真实 frontend/backend 截取面试规划删除确认框并记录 keyboard、console 与 no-overflow；该截图证据不声明 E2E PASS。<!-- verified: 2026-07-20 method=chrome-extension-manual evidence="1212x912 real frontend/backend screenshot; cancel initially focused; cancel closed dialog, preserved interview-plan card and restored delete-trigger focus; console errors 0; horizontal overflow false; screenshot=.test-output/delete-confirmation-ui/workspace-delete-confirmation.png" -->

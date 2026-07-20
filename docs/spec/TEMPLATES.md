@@ -73,7 +73,7 @@ docs/spec/${subspec}/
 模板说明：
 
 - `用户决策 / 待确认事项` 无待确认事项时可省略。
-- 验收标准中的 `ID` 列是文档内的说明性编号；它不是 BDD 场景编号。
+- 验收标准中的 `ID` 列是文档内的说明性编号；它不是 BDD 场景编号。同一 `spec.md` 内的完整 `D-*` / `C-*` ID 必须唯一，不同 subject 可独立复用编号；`make docs-check` 自动拒绝新增重复，禁止扩大 legacy baseline。
 
 ## 3 `history.md` 模板
 

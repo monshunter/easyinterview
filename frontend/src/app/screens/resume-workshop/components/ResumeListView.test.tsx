@@ -159,13 +159,26 @@ describe("ResumeListView default fixture rendering", () => {
   it("archives a resume from the row delete action and hides it from the list", async () => {
     const client = buildClient("default");
     const archiveSpy = vi.spyOn(client, "archiveResume");
+    const user = userEvent.setup();
 
     renderListView(LIST_ROUTE, "default", client);
     await waitFor(() => {
       expect(screen.getByTestId(`resume-list-card-${FIRST_ID}`)).toBeInTheDocument();
     });
 
-    await userEvent.setup().click(screen.getByTestId(`resume-list-delete-${FIRST_ID}`));
+    await user.click(screen.getByTestId(`resume-list-delete-${FIRST_ID}`));
+
+    expect(archiveSpy).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("dialog", { name: "确认删除这份简历？" }),
+    ).toHaveTextContent("删除后，这份简历会从简历列表中移除。此操作当前无法撤销。");
+    await user.click(screen.getByRole("button", { name: "取消" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(archiveSpy).not.toHaveBeenCalled();
+    expect(screen.getByTestId(`resume-list-delete-${FIRST_ID}`)).toHaveFocus();
+
+    await user.click(screen.getByTestId(`resume-list-delete-${FIRST_ID}`));
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
 
     await waitFor(() => {
       expect(screen.queryByTestId(`resume-list-card-${FIRST_ID}`)).not.toBeInTheDocument();
@@ -180,21 +193,36 @@ describe("ResumeListView default fixture rendering", () => {
 
   it("keeps the row visible and shows an error when archiveResume fails", async () => {
     const client = buildClient("default");
-    vi.spyOn(client, "archiveResume").mockRejectedValueOnce(
-      new Error("HTTP 500 archive failed"),
-    );
+    const archiveSpy = vi
+      .spyOn(client, "archiveResume")
+      .mockRejectedValueOnce(new Error("HTTP 500 archive failed"))
+      .mockResolvedValueOnce(
+        archiveResumeFixture.scenarios.default.response.body as Awaited<
+          ReturnType<EasyInterviewClient["archiveResume"]>
+        >,
+      );
+    const user = userEvent.setup();
 
     renderListView(LIST_ROUTE, "default", client);
     await waitFor(() => {
       expect(screen.getByTestId(`resume-list-card-${FIRST_ID}`)).toBeInTheDocument();
     });
 
-    await userEvent.setup().click(screen.getByTestId(`resume-list-delete-${FIRST_ID}`));
+    await user.click(screen.getByTestId(`resume-list-delete-${FIRST_ID}`));
+    expect(archiveSpy).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("resume-workshop-delete-error")).toBeInTheDocument();
     });
     expect(screen.getByTestId(`resume-list-card-${FIRST_ID}`)).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "确认删除这份简历？" })).toBeInTheDocument();
+    const firstKey = archiveSpy.mock.calls[0]?.[1]?.idempotencyKey;
+    await user.click(screen.getByRole("button", { name: "重试" }));
+    expect(archiveSpy.mock.calls[1]?.[1]?.idempotencyKey).toBe(firstKey);
+    await waitFor(() => {
+      expect(screen.queryByTestId(`resume-list-card-${FIRST_ID}`)).not.toBeInTheDocument();
+    });
   });
 
   it("shows the empty state when listResumes returns no items", async () => {

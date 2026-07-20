@@ -1,4 +1,4 @@
-import { useState, type FC } from "react";
+import { useRef, useState, type FC } from "react";
 
 import type { TargetJob } from "../../../api/generated/types";
 import { generateIdempotencyKey } from "../../../lib/conventions/idempotency";
@@ -14,6 +14,7 @@ import { useNavigation } from "../../navigation/NavigationProvider";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
 import { MockInterviewCard } from "../home/MockInterviewCard";
+import { DestructiveActionDialog } from "../DestructiveActionDialog";
 import { useWorkspaceTargetJobs } from "./hooks/useWorkspaceTargetJobs";
 
 interface WorkspaceScreenProps {
@@ -43,6 +44,10 @@ const WorkspacePlanList: FC = () => {
   const [startError, setStartError] = useState<MessageKey | null>(null);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<MessageKey | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TargetJob | null>(null);
+  const deleteKeyRef = useRef<string | null>(null);
+  const deletePendingRef = useRef(false);
+  const deleteTriggerRef = useRef<HTMLElement | null>(null);
 
   const visibleJobs = jobs.filter((job) => !archivedJobIds.has(job.id));
 
@@ -77,26 +82,47 @@ const WorkspacePlanList: FC = () => {
     }
   };
 
-  const deletePlan = async (job: TargetJob) => {
+  const openDelete = (job: TargetJob) => {
+    deleteTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    deleteKeyRef.current = generateIdempotencyKey();
+    setDeleteError(null);
+    setDeleteTarget(job);
+  };
+
+  const closeDelete = () => {
+    if (deletePendingRef.current) return;
+    setDeleteTarget(null);
+    setDeleteError(null);
+    deleteKeyRef.current = null;
+  };
+
+  const deletePlan = async () => {
+    if (!deleteTarget || !deleteKeyRef.current || deletePendingRef.current) return;
     if (!runtime || runtime.auth.status !== "authenticated") {
       setDeleteError("workspace.planList.deleteAuthError");
       return;
     }
 
+    const job = deleteTarget;
+    deletePendingRef.current = true;
     setDeleteError(null);
     setDeletingJobId(job.id);
     try {
       await runtime.client.archiveTargetJob(job.id, {
-        idempotencyKey: generateIdempotencyKey(),
+        idempotencyKey: deleteKeyRef.current,
       });
       setArchivedJobIds((current) => {
         const next = new Set(current);
         next.add(job.id);
         return next;
       });
+      setDeleteTarget(null);
+      deleteKeyRef.current = null;
     } catch {
       setDeleteError("workspace.errors.delete");
     } finally {
+      deletePendingRef.current = false;
       setDeletingJobId(null);
     }
   };
@@ -207,21 +233,13 @@ const WorkspacePlanList: FC = () => {
                   deleteAction={{
                     label: t("workspace.planList.delete"),
                     testId: `workspace-plan-list-delete-${job.id}`,
-                    onClick: () => deletePlan(job),
+                    onClick: () => openDelete(job),
                     disabled: deletingJobId === job.id,
                   }}
                 />
               ))}
             </div>
           )}
-          {deleteError ? (
-            <div
-              data-testid="workspace-plan-list-delete-error"
-              className="ei-workspace-plan-error"
-            >
-              {t(deleteError)}
-            </div>
-          ) : null}
           {startError ? (
             <div
               data-testid="workspace-plan-list-start-error"
@@ -232,6 +250,23 @@ const WorkspacePlanList: FC = () => {
           ) : null}
         </div>
       </main>
+      {deleteTarget ? (
+        <DestructiveActionDialog
+          eyebrow={t("destructiveDialog.eyebrow")}
+          title={t("workspace.planList.deleteQuestion")}
+          description={t("workspace.planList.deleteDescription")}
+          cancelLabel={t("destructiveDialog.cancel")}
+          confirmLabel={t("destructiveDialog.confirm")}
+          pendingLabel={t("destructiveDialog.pending")}
+          retryLabel={t("destructiveDialog.retry")}
+          errorMessage={deleteError ? t(deleteError) : null}
+          errorTestId="workspace-plan-list-delete-error"
+          pending={deletingJobId === deleteTarget.id}
+          restoreFocusRef={deleteTriggerRef}
+          onCancel={closeDelete}
+          onConfirm={() => void deletePlan()}
+        />
+      ) : null}
     </>
   );
 };

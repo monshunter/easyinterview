@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 3.19
+> **版本**: 3.20
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -101,3 +101,7 @@
 
 - [x] Domain behavior tests 证明 trusted Reports 与 Workspace fallback 使用各自准确的 zh/en 返回标签，同时导航目标与失败恢复不变。<!-- verified: 2026-07-20 evidence="Locale/source and Generating normal/error suites pass 43/43; expanded Generating/i18n scope passes 72/72." -->
 - [x] Chrome 在真实 Generating 页面验证“返回面试报告”可见；进入当前 target-scoped ReportsScreen 的既有 destination 由 component navigation tests 验证，该 scoped UI evidence 不声明完整 `E2E.P0.099`。<!-- verified: 2026-07-20 evidence="Real authenticated Generating at reportId 019f7cbe-c57f-72f1-8c10-74b9dca9676f visibly rendered 返回面试报告 before the approximately three-second ready handoff; no interception or mock was used. The live state expired before a reliable click, so route destination evidence remains code-level." -->
+
+## Phase 22 `BDD.REPORT.RECORDS.VISUAL.002` truthful date label
+
+- [x] Domain behavior tests 证明 TargetJob `createdAt` 只显示为规划创建日期，旧面试日期标签在 zh/en 均为零；不新增 E2E。<!-- verified: 2026-07-20 evidence="ReportsScreen 32/32 and locale parity 6/6 PASS." -->

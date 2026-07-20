@@ -1,6 +1,6 @@
 # 002 — Practice Continuous Text Conversation Checklist
 
-> **版本**: 3.2
+> **版本**: 3.3
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -109,3 +109,8 @@
 - [x] 15.2 GREEN: 新增内层 input surface，把 send 放入不覆盖 textarea 的底部 action area 并右对齐；保持完整文本宽度、click、Ctrl/Meta+Enter、disabled、pending/retry、helper 与固定 Composer 行为不变。<!-- verified: 2026-07-20 method=focused-vitest evidence="InputBar, PracticeVisual and PracticeScreen: 3 files / 55 tests PASS; focus-ring refinement preserved the same result" -->
 - [x] 15.3 BDD-Gate: `BDD.PRACTICE.TEXT.001` 覆盖 desktop/mobile 的按钮 containment、文本完整宽度、Composer 坐标稳定与零横向溢出；Chrome 视图证据不冒充未运行的真实业务动作 E2E。<!-- verified: 2026-07-20 method=chrome-real-session evidence="1512x829 and 390x844: surface owns textarea/send, send contained, textarea/action no overlap, full content width, helper gap=8, documentOverflow=0, one surface focus ring, no console errors" -->
 - [x] 15.4 REGRESSION-GATE: focused Practice、typecheck/build、根 `make test`、正式 frontend redeploy/readiness、context/docs/index/diff 全部通过后恢复 completed。<!-- verified: 2026-07-20 method=focused+root+chrome+docs evidence="focused 3 files/55 tests; root Python 615/4615 subtests, Go all packages, frontend 136 files/1109 tests; build/redeploy/readiness 4/4; context/docs/index/diff PASS" -->
+
+## Phase 16: Spec contract ID uniqueness remediation
+
+- [x] 16.1 将 Composer helper 验收合同从重复的 `C-17` 迁移到唯一 `C-23`，保持正文和 owner 引用不变。<!-- verified: 2026-07-20 evidence="Workspace spec now keeps Workspace detail at C-17 and assigns Composer helper C-23." -->
+- [x] 16.2 由 A5 Phase 11 的 `make docs-check` gate 证明同一 `spec.md` 内重复 `D-*` / `C-*` 会失败；验证 owner context、docs/index 与 diff gates。<!-- verified: 2026-07-20 evidence="Focused duplicate-ID contracts 5/5, current scan, make docs-check and frontend target context PASS." -->

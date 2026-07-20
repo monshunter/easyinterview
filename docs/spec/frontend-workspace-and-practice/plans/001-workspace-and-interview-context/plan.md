@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.50
+> **版本**: 1.52
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -37,7 +37,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 - 卡片详情 route 只携带 `targetJobId`；绑定 resume/plan/round 事实由 detail `getTargetJob` response 恢复，不从 list item/query 复制。
 - Workspace detail 复用统一只读母版，不拥有 `autoStartPractice` route side effect；列表 quick-start 仍使用 shared generated practice handoff。
 - Workspace detail 删除独立 Interview Launch/绑定简历大卡片：标题旁的“绑定简历”只使用 `getTargetJob` 保存的 `resumeId` 进入 `resume_versions` 详情；标题下首行动作行从左依次展示“立即面试”和“面试报告”，desktop 同排、mobile 同序换行；不得新增 `getResume` 预读、route resume authority 或 in-place rebind。
-- 列表页删除图标使用 generated `archiveTargetJob` 和 `Idempotency-Key` 持久软归档 TargetJob；成功后从当前列表移除，失败时不导航、不隐藏卡片，并展示错误；不得继续使用本地-only hidden set 作为删除合同。
+- 列表页删除图标首次点击只打开二次确认；确认前零请求，确认后使用 generated `archiveTargetJob` 和 dialog lifecycle 内稳定的 `Idempotency-Key` 持久软归档 TargetJob。成功后从当前列表移除，失败时不导航、不隐藏卡片并在对话框内展示可重试错误；不得继续使用本地-only hidden set 作为删除合同。
 - `InterviewContext` 不在 `workspace` route carry；`practice / generating / report` owner route 按各自最小上下文携带稳定 ID 与 `practiceGoal`，不携带 mode/modality/hint 状态。
 - Workspace runtime 保留 list + read-only detail 两态；不包含 Plan Switcher、Resume Picker 或 route-side 启动副作用。
 - 当前规划记录区只展示 typed records static affordance，不从 `TargetJob` fixture extension、`any` 或 report API 拼接记录行。
@@ -51,6 +51,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 |-------------|---------|-------------------|-----------------|-------------|---------------|----------|
 | `listTargetJobs` | current list/progress fixtures | Workspace list rail | backend-targetjob list owner | TargetJob + completion projection | none | `E2E.P0.098` 仅 progress refresh |
 | `getTargetJob` | current detail/progress fixtures | Workspace detail | backend-targetjob detail owner | TargetJob requirements/progress | none | `E2E.P0.098` 仅 progress/detail read |
+| `archiveTargetJob` | `openapi/fixtures/TargetJobs/archiveTargetJob.json` | Workspace list delete confirmation | backend-targetjob archive owner | `target_jobs.status/deleted_at` | none | 当前无真实 E2E owner；domain behavior + root `make test` |
 | `createPracticePlan` / `getPracticePlan` | current plan fixtures | quick-start/start helpers | backend-practice plan owner | practice plans | none | 当前无真实 E2E owner；root `make test` |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` | Resume detail owner only；Workspace detail 不消费 | `backend-resume/001` | `resumes` | none | external owner gates |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home selector + Resume Workshop；Workspace/Parse detail 不消费 | `backend-resume/001` | `resumes` summary projection | none | Home/Resume owner gates |
@@ -68,8 +69,8 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior + contract + frontend-ui + BDD`。
-- **TDD 策略**: 适用。Vitest 覆盖 route hydration、InterviewContext reducer、ordered round resolver、plan time-budget create/reuse、Practice plan budget display、report next-round/last-round/unknown-round/double-click handoff、四类启动入口的 pending/success/failure transition、generated client body/header、auth pendingAction、privacy and out-of-scope negative gates。
-- **BDD 策略**: `BDD.WORKSPACE.CONTEXT.001` 由代码层 owner tests 验证 list/detail、后端 progress 投影、exact-plan reuse 与 fail-closed 行为；`BDD.WORKSPACE.CARD.003` 验证卡片元信息；`BDD.PRACTICE.LAUNCH.004` 由四类 caller domain behavior tests 验证启动等待反馈。三者由仓库根 `make test` 统一回归；`E2E.P0.098` 仅作为 completion/progress refresh 的独立真实环境 handoff，只有显式运行后才产生 PASS，且不承接 quick-start/session start/next-round。
+- **TDD 策略**: 适用。Vitest 覆盖 route hydration、InterviewContext reducer、ordered round resolver、plan time-budget create/reuse、Practice plan budget display、report next-round/last-round/unknown-round/double-click handoff、四类启动入口的 pending/success/failure transition、generated client body/header、auth pendingAction、privacy and out-of-scope negative gates。Phase 35 先扩展 `WorkspaceEmptyState.test.tsx` / `WorkspaceScreen.test.tsx` 与 shared dialog tests，证明旧实现首次点击立即归档，再验证确认前零请求、cancel/focus、pending single-flight、same-key retry 与成功/失败卡片状态。
+- **BDD 策略**: `BDD.WORKSPACE.CONTEXT.001` 由代码层 owner tests 验证 list/detail、后端 progress 投影、exact-plan reuse 与 fail-closed 行为；`BDD.WORKSPACE.CARD.003` 验证卡片元信息；`BDD.PRACTICE.LAUNCH.004` 由四类 caller domain behavior tests 验证启动等待反馈；`BDD.WORKSPACE.DELETE.CONFIRM.008` 验证面试规划删除二次确认。以上由仓库根 `make test` 统一回归；`E2E.P0.098` 仅作为 completion/progress refresh 的独立真实环境 handoff，只有显式运行后才产生 PASS，且不承接 delete/quick-start/session start/next-round。
 - **替代验证 gate**:
   - `pnpm --filter @easyinterview/frontend test src/app/screens/workspace src/app/screens/parse/ParseResumeBinding.test.tsx src/app/screens/report/__tests__/ReplayCta.test.tsx src/app/App.test.tsx`
   - `pnpm --filter @easyinterview/frontend test`
@@ -281,6 +282,14 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 先以 `PracticeLaunchTransition`/caller/shared-scene tests 固化 reference geometry、TopBar 可见、背景阻断、single-flight、失败恢复、reduced-motion 与 mobile containment；随后将现有 transition DOM 改为复用 shell-owned `brand` variant，同时保留 portal、focus、inert、scroll lock、route 与 opening request 语义。`BDD.PRACTICE.LAUNCH.VISUAL.007` 由 domain behavior tests 与 current-run Chrome desktop/mobile 承接，不新增 E2E ID。
 
+### Phase 34: Practice launch full-shell blocking remediation
+
+先用真实 `data-testid="app-root"` + TopBar + main DOM 结构扩展 `PracticeLaunchTransition` 测试，证明当前实现只 inert `<main>`、仍允许 TopBar 控制穿透。随后把 inert/`aria-hidden` owner 上移到完整 App root，同时保持 portal 在 root 之外、TopBar 视觉可见、focus/scroll lock/single-flight/失败恢复不变。`BDD.PRACTICE.LAUNCH.VISUAL.007` 继续承接该用户行为，不新增 E2E ID。
+
+### Phase 35: Interview-plan delete secondary confirmation
+
+先扩展 Workspace owner tests，锁定卡片删除首次点击只打开 `role=dialog`、取消初始焦点、focus trap、Escape/遮罩关闭与 trigger focus restore，并证明确认前 `archiveTargetJob` 调用数为 0、卡片 click route 不触发。随后复用共享危险操作对话框：dialog lifecycle 生成并保存 idempotency key，确认后单次软归档；pending 禁止关闭/重复提交，失败保留卡片/弹窗并允许同 key 重试，成功关闭并隐藏卡片。中文/英文 copy 只说明从列表移除且当前无法撤销，不声称物理删除；Home recent 继续不展示删除入口，OpenAPI/fixture/backend/route/progress/start 均不改变。
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -299,6 +308,7 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 | A-21 | Workspace detail starts with title-adjacent bound-resume link and a left-aligned Start/Reports action row; no standalone binding/launch block or footer Start remains | `ParseScreen.test.tsx`, `ParseResumeBinding.test.tsx`, `App.test.tsx`, responsive/a11y owner gates; root `make test` |
 | A-22 | Shared Home/Workspace interview-plan cards omit TargetJob lifecycle status and empty-location placeholders while preserving real locations and the persisted-progress rail | `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`; root `make test` |
 | A-23 | Home recent、Workspace list/detail 与 Report replay/next-round 在 session opening LLM 等待期间共享诚实、可访问、阻断交互且 reduced-motion 兼容的全屏 transition；失败回到原入口错误 | shared transition contract + `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`, `ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx`; root `make test` |
+| A-24 | Workspace 卡片删除首次点击只打开确认框；cancel/Escape/遮罩零 archive 且恢复焦点；确认单次归档，pending 无重复，失败同 key retry，成功移除卡片 | `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, shared dialog tests, browser screenshot |
 
 ### Phase 30: Shared practice-launch transition
 
@@ -340,6 +350,8 @@ Phase 26 显式 supersede v1.19 / Phase 14 的 pure-list/card-to-Parse 结论：
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.52 | Reopen Phase 35 to require accessible secondary confirmation before TargetJob archive while preserving existing soft-delete, route, progress and start behavior. |
+| 2026-07-20 | 1.51 | Reopen Phase 34 so the visible TopBar is included in the inert App background while a practice launch is pending. |
 | 2026-07-19 | 1.50 | Reopen Phase 33 for the supplied Practice-launch transition composition without changing session-start ownership or failure recovery. |
 | 2026-07-19 | 1.49 | Keep the Workspace canvas full-viewport and align the header CTA with the card-grid right edge. |
 | 2026-07-19 | 1.48 | Reopen Phase 32 to align the Workspace plan-list body and wide-card geometry with the supplied desktop reference while preserving all runtime contracts. |

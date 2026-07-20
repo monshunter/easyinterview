@@ -1,6 +1,6 @@
 # 002 Practice Continuous Conversation Test Plan
 
-> **版本**: 3.1
+> **版本**: 3.2
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -73,3 +73,8 @@
 - `InputBar.test.tsx` first fails unless one `practice-input-surface` contains both textarea and send, with the textarea preceding the action in DOM order.
 - `PracticeVisual.test.ts` first fails unless the surface is a bounded column, textarea occupies the full available width, and a non-overlapping bottom action area right-aligns send; it rejects both the old outside-surface row and overlay/large-right-padding variants.
 - Focused behavior tests retain click, Ctrl/Meta+Enter and disabled semantics. Chrome desktop/mobile checks computed containment, full-width text/button non-overlap, Composer/helper coordinate stability and zero document overflow.
+
+## Phase 16: Spec contract ID uniqueness remediation
+
+- A5 的 focused Python contract 以临时 `docs/spec/<subject>/spec.md` fixture 证明重复 `D-*` / `C-*` 被拒绝、不同 spec 文件可复用同一编号。
+- 本 owner 运行 source search，确认 Composer helper 只以 `C-23` 出现，Workspace detail 继续独占 `C-17`；不新增 BDD/E2E。

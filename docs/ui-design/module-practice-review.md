@@ -1,6 +1,6 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.39
+> **版本**: 1.40
 > **状态**: active
 > **更新日期**: 2026-07-20
 
@@ -10,7 +10,7 @@
 
 ## 2 Practice 页面结构
 
-进入 `PracticeScreen` 前，Home 最近面试、Workspace 列表、Workspace 详情、Report 复练与下一轮入口统一展示全屏面试准备过渡态。该状态只表达 `createPracticePlan/getPracticePlan/startPracticeSession` 尚未完成，不展示虚假 opening message、百分比或可验证不了的阶段进度；成功后由服务端 session/opening message 进入正式会话，失败时关闭过渡态并回到原入口错误。过渡态必须阻断背景交互、提供 `role=status` / `aria-live=polite` / `aria-busy=true`，并在 `prefers-reduced-motion` 下停用非必要循环动画。
+进入 `PracticeScreen` 前，Home 最近面试、Workspace 列表、Workspace 详情、Report 复练与下一轮入口统一展示全屏面试准备过渡态。该状态只表达 `createPracticePlan/getPracticePlan/startPracticeSession` 尚未完成，不展示虚假 opening message、百分比或可验证不了的阶段进度；成功后由服务端 session/opening message 进入正式会话，失败时关闭过渡态并回到原入口错误。过渡态必须阻断背景交互、提供 `role=status` / `aria-live=polite` / `aria-busy=true`，并在 `prefers-reduced-motion` 下停用非必要循环动画。全局 TopBar 在过渡态中保持视觉可见，但必须与其余 App root 一起进入 inert 状态；导航、设置、主题和语言控制在 pending 结束前均不可操作。
 
 ```text
 PracticeScreen(sessionId)

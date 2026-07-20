@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 3.17
+> **版本**: 3.18
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -97,3 +97,8 @@
 - `reportDashboardI18nCoverage.test.ts` 与 `backNavigationCopy.test.ts` 先要求新增 `generating.backToReports` 的 zh/en exact copy，并把 Generating 明确登记为 shared `common.back` 的唯一受控 owner 例外。
 - `GeneratingScreen.test.tsx` / `GeneratingBackNavigation.test.tsx` 覆盖 polling 与 typed error 两类 trusted Reports 目标显示专用文案并保持原 route；无可信 identity 的 Workspace fallback 继续显示通用文案。
 - Chrome 在真实 queued/generating 页面验证“返回面试报告”及其 target-scoped Reports destination；code-level tests 与真实浏览器证据分层记录。
+
+## 16 Truthful target-summary date label
+
+- `ReportsScreen.test.tsx` 使用已有 TargetJob `createdAt` fixture，分别锁定英文“Plan created”和中文“规划创建日期”，并负向拒绝“Interview date / 面试日期”。
+- i18n parity/source tests 确认 locale key 在 zh/en 同步；无需 API、fixture、backend、browser 或 E2E 扩展。

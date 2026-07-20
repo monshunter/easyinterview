@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type FC } from "react";
+import { useCallback, useMemo, useRef, useState, type FC } from "react";
 
 import { generateIdempotencyKey } from "../../../../lib/conventions/idempotency";
 import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
@@ -11,6 +11,7 @@ import {
 } from "../adapters/resume";
 import { useResumes } from "../hooks/useResumes";
 import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
+import { DestructiveActionDialog } from "../../DestructiveActionDialog";
 
 /** D-20 flat resume cards sorted by last edit. */
 export const ResumeListView: FC = () => {
@@ -22,6 +23,10 @@ export const ResumeListView: FC = () => {
   const [archivedIds, setArchivedIds] = useState<Set<string>>(() => new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UiResumeListItem | null>(null);
+  const deleteKeyRef = useRef<string | null>(null);
+  const deletePendingRef = useRef(false);
+  const deleteTriggerRef = useRef<HTMLElement | null>(null);
 
   const resumes = useMemo<UiResumeListItem[]>(
     () =>
@@ -51,28 +56,50 @@ export const ResumeListView: FC = () => {
       params: { flow: "create" },
     });
   }, [navigate]);
+  const openDelete = useCallback((resume: UiResumeListItem) => {
+    deleteTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    deleteKeyRef.current = generateIdempotencyKey();
+    setDeleteError(null);
+    setDeleteTarget(resume);
+  }, []);
+  const closeDelete = useCallback(() => {
+    if (deletePendingRef.current) return;
+    setDeleteTarget(null);
+    setDeleteError(null);
+    deleteKeyRef.current = null;
+  }, []);
   const onDelete = useCallback(
-    async (resumeId: string) => {
-      if (!runtime?.client || runtime.auth.status !== "authenticated") return;
+    async () => {
+      if (!deleteTarget || !deleteKeyRef.current || deletePendingRef.current) return;
+      if (!runtime?.client || runtime.auth.status !== "authenticated") {
+        setDeleteError(t("resumeWorkshop.list.deleteError"));
+        return;
+      }
+      const resumeId = deleteTarget.id;
+      deletePendingRef.current = true;
       setDeletingId(resumeId);
       setDeleteError(null);
       try {
         await runtime.client.archiveResume(resumeId, {
           headers: { "Accept-Language": lang },
-          idempotencyKey: generateIdempotencyKey(),
+          idempotencyKey: deleteKeyRef.current,
         });
         setArchivedIds((current) => {
           const next = new Set(current);
           next.add(resumeId);
           return next;
         });
+        setDeleteTarget(null);
+        deleteKeyRef.current = null;
       } catch {
         setDeleteError(t("resumeWorkshop.list.deleteError"));
       } finally {
+        deletePendingRef.current = false;
         setDeletingId((current) => (current === resumeId ? null : current));
       }
     },
-    [lang, runtime, t],
+    [deleteTarget, lang, runtime, t],
   );
 
   if (resumesQuery.loading) {
@@ -145,7 +172,7 @@ export const ResumeListView: FC = () => {
                 data-testid={`resume-list-delete-${resume.id}`}
                 className="ei-resume-workshop-card-delete"
                 disabled={deletingId === resume.id}
-                onClick={() => void onDelete(resume.id)}
+                onClick={() => openDelete(resume)}
               >
                 <ResumeWorkshopIcon name="trash" size={14} />
               </button>
@@ -189,14 +216,22 @@ export const ResumeListView: FC = () => {
         </ul>
       )}
 
-      {deleteError ? (
-        <p
-          className="ei-resume-workshop-delete-error"
-          data-testid="resume-workshop-delete-error"
-          role="alert"
-        >
-          {deleteError}
-        </p>
+      {deleteTarget ? (
+        <DestructiveActionDialog
+          eyebrow={t("destructiveDialog.eyebrow")}
+          title={t("resumeWorkshop.list.deleteQuestion")}
+          description={t("resumeWorkshop.list.deleteDescription")}
+          cancelLabel={t("destructiveDialog.cancel")}
+          confirmLabel={t("destructiveDialog.confirm")}
+          pendingLabel={t("destructiveDialog.pending")}
+          retryLabel={t("destructiveDialog.retry")}
+          errorMessage={deleteError}
+          errorTestId="resume-workshop-delete-error"
+          pending={deletingId === deleteTarget.id}
+          restoreFocusRef={deleteTriggerRef}
+          onCancel={closeDelete}
+          onConfirm={() => void onDelete()}
+        />
       ) : null}
 
       {resumesQuery.data?.pageInfo.hasMore ? (

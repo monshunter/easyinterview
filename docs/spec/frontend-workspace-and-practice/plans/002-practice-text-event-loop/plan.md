@@ -1,6 +1,6 @@
 # 002 — Practice Continuous Text Conversation
 
-> **版本**: 3.1
+> **版本**: 3.2
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -122,6 +122,10 @@
 
 把 `InputBar` 中的 textarea 与 send 收进同一个内层 input surface，send 位于该表面内部的底部 action area 并右对齐；action area 不与 textarea 叠加，避免长文本、placeholder 或光标被覆盖，也不以大块右内边距压缩窄屏正文。RED source/component/CSS gate 先拒绝当前悬浮在内外边框之间的 actions row，并拒绝 overlay + 固定右内边距方案；GREEN 只调整 DOM 与 CSS，不改变发送点击、Ctrl/Meta+Enter、disabled、pending/retry、helper、Composer 固定位置或 API 合同。该阶段是纯 frontend 视觉结构修订，Operation Matrix 全部 `operationId`、fixture、handler、persistence 与 AI 状态保持不变；Chrome 在 desktop/mobile 验证内层边界、按钮 containment、文本完整宽度、固定 Composer 与零横向溢出。
 
+### Phase 16: Spec contract ID uniqueness remediation
+
+修复本 owner 的 Composer helper 验收 ID 与 Workspace detail 验收 ID 冲突：保留既有 Workspace `C-17`，将 Composer helper 合同迁移到唯一的 `C-23`。本阶段不改 Practice runtime 或用户行为；重复 ID 的自动化拒绝由 `ci-pipeline-baseline/001` Phase 11 在 `make docs-check` 中统一承接。
+
 ## 6 验收标准
 
 - No left rail, question count or QuestionCard at any viewport.
@@ -141,6 +145,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 3.2 | Repair the duplicated Composer contract identifier and hand spec-ID uniqueness enforcement to A5 Phase 11. |
 | 2026-07-20 | 3.1 | Add Phase 15 so textarea and send share one input surface with a non-overlapping bottom action area and full-width narrow-screen text. |
 | 2026-07-19 | 3.0 | Add Phase 14 so the helper capsule belongs to the fixed Composer instead of the scrolling Transcript. |
 | 2026-07-14 | 2.7 | Add Phase 11 safe react-markdown/remark-gfm projection, security negatives, exact raw retry, mobile code-overflow gates, and supersede terminal recovery to Workspace detail. |

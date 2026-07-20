@@ -223,10 +223,11 @@ validate-fixtures: ## Validate openapi/fixtures/*.json against openapi.yaml (B2 
 render-openapi-fixture-examples: ## Project openapi/fixtures/<tag>/<operationId>.json default scenario into openapi/.generated/openapi-with-fixtures.yaml (B2 002 — Prism / docs-site source; idempotent)
 	@python3 "$(ROOT_DIR)/scripts/codegen/render_openapi_fixture_examples.py" --repo-root "$(ROOT_DIR)"
 
-docs-check: ## A5 docs gate aggregator: Header/INDEX drift + docs relative links + docs/spec heading fragments
+docs-check: ## A5 docs gate aggregator: Header/INDEX drift + links/fragments + spec contract IDs
 	@python3 "$(ROOT_DIR)/.agent-skills/sync-doc-index/scripts/sync-doc-index.py" --check
 	@python3 "$(ROOT_DIR)/scripts/lint/check_md_links.py" "$(ROOT_DIR)/docs" --ignore '**/TEMPLATES.md'
 	@python3 "$(ROOT_DIR)/scripts/lint/check_md_links.py" "$(ROOT_DIR)/docs/spec" --ignore '**/TEMPLATES.md' --check-fragments
+	@python3 "$(ROOT_DIR)/scripts/lint/check_spec_contract_ids.py" "$(ROOT_DIR)/docs/spec"
 
 codegen-check: ## A5 codegen drift gate aggregator: B1 conventions + B3 events/jobs + B2 OpenAPI generators, re-run lint + drift checks. Remote CI required-check deferred until A5 D-5 trigger (spec §4.5 / §5).
 	@python3 "$(ROOT_DIR)/scripts/lint/conventions_yaml.py" "$(ROOT_DIR)/shared/conventions.yaml"

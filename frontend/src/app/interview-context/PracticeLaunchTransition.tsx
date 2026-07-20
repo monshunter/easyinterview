@@ -18,11 +18,11 @@ export const PracticeLaunchTransition: FC = () => {
     const transition = transitionRef.current;
     if (!transition) return;
 
-    const appMain = document.querySelector<HTMLElement>(
-      '[data-testid="app-root"] > main',
+    const appRoot = document.querySelector<HTMLElement>(
+      '[data-testid="app-root"]',
     );
-    const backgroundCandidates = appMain
-      ? [appMain]
+    const backgroundCandidates = appRoot
+      ? [appRoot]
       : Array.from(document.body.children).filter(
           (element): element is HTMLElement => (
             element instanceof HTMLElement && !element.contains(transition)
@@ -39,12 +39,12 @@ export const PracticeLaunchTransition: FC = () => {
       ? document.activeElement
       : null;
 
+    transition.focus();
     for (const state of background) {
       state.element.setAttribute("inert", "");
       state.element.setAttribute("aria-hidden", "true");
     }
     document.body.style.overflow = "hidden";
-    transition.focus();
 
     return () => {
       for (const state of background) {

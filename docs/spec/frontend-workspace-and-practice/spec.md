@@ -1,6 +1,6 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.55
+> **版本**: 1.57
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -82,7 +82,7 @@
 | D-5 | 报告 handoff | 只传稳定 IDs；不传 modality/practiceMode/hint fields |
 | D-6 | 轮次目录与预算来源 | `TargetJob.summary.interviewRounds[]` 定义 canonical 轮次目录、顺序与时长；sequence 必须正 int32、唯一、严格递增但允许 `1,2,4`，下一轮是数组中下一条已存在 canonical round，不是 `current.sequence + 1`。`TargetJob.practiceProgress` 决定当前/已完成轮次；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照；重复派生 ID、未知轮次、空轮次和末轮不得回退到第一轮或固定默认轮次 |
 | D-7 | 业务状态后端持久化 | 主题/外观偏好由 frontend-shell 账号设置 owner 持久化；本 owner 的轮次进度、当前轮、plan/session/report 和完成事实只来自 backend API。`TargetJob.practiceProgress` 是卡片/详情/quick-start 的 read model；缺失或不一致时 fail closed。 |
-| D-16 | Practice 全局 chrome | `practice` 保留全局 App TopBar，并在其下渲染独立 Practice Session Header | 会话页与其他页面拥有一致导航/显示入口；route 切换不得触发 `/me`，会话控制栏不冒充 App chrome |
+| D-18 | Practice 全局 chrome | `practice` 保留全局 App TopBar，并在其下渲染独立 Practice Session Header；启动过渡期间 TopBar 保持可见，但必须与其余 App background 一起进入 inert/不可交互状态 | 会话页与其他页面拥有一致导航/显示入口；route 切换不得触发 `/me`，会话控制栏不冒充 App chrome，pending transition 不允许导航、设置或显示控制穿透 |
 | D-8 | Finish 最低回答门槛 | 前端只从 server-loaded messages 计算至少一条 committed candidate `user` message；零回答原生 disabled 并显示本地化可访问原因。Backend `completePracticeSession` 独立执行同一事实校验并保持最终权威。 |
 | D-9 | 即时消息与失败恢复（方案 A） | user submit 后立即显示瞬时 optimistic row；服务端 `PracticeMessage` 为 user message 投影 `clientMessageId + replyStatus(pending|retryable_failed|terminal_failed|complete)`，`getPracticeSession` 在刷新后恢复 thinking/retry/terminal/complete；OpenAPI owner 生成 typed `ApiClientError.apiError`；retry 复用服务端原文与同 ID。该方案兼顾即时反馈、跨刷新幂等恢复与后端事实源；前端不持久化 retry identity、不解析 error string、不引入第二套消息事实或无限重试。 |
 | D-10 | Pending 超时与对账（T-B） | backend lease 为 90 秒；frontend POST timeout 为 95 秒并 abort；随后只用同一 ID `getPracticeSession` 对账；GET/同 ID reserve 负责服务端惰性收敛。这样既覆盖服务端 lease 又不无限挂起；超时不是失败事实，新 ID 与盲目自动重发均禁止。 |
@@ -93,6 +93,7 @@
 | D-15 | Practice text limits | `AppRuntimeProvider.contentLimits.practiceMessageBytes/practiceSessionTextBytes` 是唯一前端数据源，缺字段用 A4 同值 code default 32768/262144；`TextEncoder` 计算 bytes；backend error 可覆盖前端估算 | 删除 8,000-rune 本地真理源，保持 composer DOM/视觉不变并防止正常长回答误拒 |
 | D-16 | Workspace detail leading controls | 删除独立 Interview Launch/绑定简历 block；标题旁的“绑定简历”只按 `TargetJob.resumeId` 打开对应简历详情，标题下首行动作行左对齐“立即面试 + 面试报告”。缺绑定时 link 不可用且 Start fail closed，Report 仍按可信 target 可用 | 减少重复上下文块，把查看绑定、开始面试和查看报告前置到详情开头，同时保持 backend 事实源与 route 最小化 |
 | D-17 | Workspace list reference geometry | desktop 使用两列宽卡、宽松页面标题区和 52px 级删除触控区；卡片 footer 左侧显示 API `updatedAt` 派生的本地化“上次保存”，右侧保留唯一开始 CTA；mobile 单列 | 只改变正式前端信息层级和几何，不修改 route、API、归档、轮次或启动事实源 |
+| D-19 | Workspace delete confirmation | 卡片右上角删除首次点击只打开实体级危险操作确认框，确认前 `archiveTargetJob` 零调用；取消、遮罩和 Escape 零副作用并归还焦点。确认后才软归档，pending 禁止关闭/重复提交，失败保留卡片与弹窗并复用同一 idempotency key 重试 | 防止误触删除，同时保持 TargetJob 软归档、read-side 隐藏、route 与卡片动作边界不变 |
 
 ## 4 UI 设计文档与 parity
 
@@ -169,13 +170,14 @@
 | C-14 | 95 秒 timeout 对账 | POST 在服务端已 reserve 后无响应，或 abort 后旧 response 迟到 | 等待 95 秒并执行同 ID `getPracticeSession` | fetch 被 abort；服务端 pending/failed/complete 被采用；读失败/未找到时原 row 与 ID 保留且新 ID/Finish 仍锁定；迟到旧 response 不覆盖较新事实 | 002 + backend-practice/002 Phase 11 |
 | C-15 | terminal 当前规划恢复 | server row 为 `terminal_failed` 且 session 有 authoritative `targetJobId` | 查看终态并点击恢复 CTA | 无 retry icon；唯一 CTA 精确进入 `/workspace?targetJobId` 当前规划详情 | 002 |
 | C-16 | Safe Markdown/GFM | persisted user/assistant text 含 GFM 与恶意 HTML/image/link/code | 渲染、retry、mobile 查看 | 两类角色都渲染 GFM；HTML/remote image/unsafe URI 不执行；safe link hardened；retry exact raw text/ID；code 不撑破 viewport | 002 |
-| C-17 | Composer 说明定位 | session 中存在短或长聊天记录 | 聊天增长并滚动 Transcript | 说明胶囊始终作为 Composer 子元素贴在输入框上方；不随 Transcript 内容移动，二者间距在 desktop/mobile 保持稳定 | 002 |
+| C-23 | Composer 说明定位 | session 中存在短或长聊天记录 | 聊天增长并滚动 Transcript | 说明胶囊始终作为 Composer 子元素贴在输入框上方；不随 Transcript 内容移动，二者间距在 desktop/mobile 保持稳定 | 002 |
 | C-17 | Workspace 详情轮次三态 | ready TargetJob 有 2~5 条 canonical rounds 与合法/完成/无效 `practiceProgress` | 打开或刷新 `/workspace?targetJobId` | 合法进行中显示完成前缀 `done/已进行`、唯一 `current/即将进行`、其余 `pending/未进行`，三态背景/边框不同且与列表 rail 一致；全完成全部 done；无效投影中性且启动 disabled | 001 |
 | C-18 | Practice byte boundaries | owner config provides message/session UTF-8 limits | submit / reload | 注入小型 boundary 验证 overflow zero send and draft recovery；backend remains authoritative；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文本或配置 E2E | 002 Phase 12 |
 | C-19 | 面试规划卡片元信息 | ready TargetJob 的 lifecycle status 为任意值，地点可能有值或缺失 | 查看 Home 最近面试或 Workspace 规划卡片 | 卡片不展示 lifecycle status 文案/徽标；有地点时展示真实值，缺失或空白时不渲染地点占位行；轮次 rail 仍表达真实训练进度 | 001 |
-| C-20 | 会话启动等待反馈 | 用户从 Home、Workspace 列表/详情或 Report 复练/下一轮发起有效面试，session opening LLM 请求持续未返回或失败 | 点击启动并等待 | 立即展示统一全屏、可访问、阻断交互且 reduced-motion 兼容的诚实过渡态；不伪造进度/opening；成功进入 `practice`，失败关闭过渡态并在原入口显示错误；API、route、idempotency 与持久化合同不变 | 001 |
+| C-20 | 会话启动等待反馈 | 用户从 Home、Workspace 列表/详情或 Report 复练/下一轮发起有效面试，session opening LLM 请求持续未返回或失败 | 点击启动并等待 | 立即展示统一全屏、可访问、阻断交互且 reduced-motion 兼容的诚实过渡态；TopBar 可见但与完整 App root 一起 inert，不允许导航/设置/显示控制穿透；不伪造进度/opening；成功进入 `practice`，失败关闭过渡态并在原入口显示错误；API、route、idempotency 与持久化合同不变 | 001 |
 | C-21 | 面试列表参考稿还原 | desktop/mobile 打开 query-free Workspace，存在 1~N 个 ready TargetJob | 查看标题区、规划卡、轮次 rail 与 footer actions | 背景层覆盖 TopBar 下方完整 viewport，不在内容区右侧形成空白带；desktop 以参考稿的 1508px 内容区和双列宽卡呈现；mobile 单列；公司/岗位/进度/上次保存/删除/启动层级一致，卡片打开、归档和启动行为不回退，控制台无错误且无横向溢出 | 001 Phase 32 |
 | C-22 | Composer 发送动作归属 | desktop/mobile 的 Practice Composer 可输入短文本或长文本 | 聚焦 textarea、输入并查看/触发发送按钮 | textarea 与 send 同属一个内层 input surface；send 在表面内部的底部 action area 右对齐，不位于内外边框之间且不覆盖 textarea；文本保持完整可用宽度，发送、快捷键、disabled 语义不变 | 002 Phase 15 |
+| C-24 | 面试规划删除二次确认 | 用户点击 Workspace 卡片右上角删除图标 | 取消/Escape/遮罩、确认、pending、成功或失败 | 首次点击只打开可访问对话框且“取消”获得焦点，`archiveTargetJob` 为 0；取消路径关闭并恢复原按钮焦点；确认只发一个请求，pending 禁止关闭/重复提交，成功移除卡片，失败保留卡片与弹窗并允许同 key 重试 | 001 Phase 35 |
 
 ### 8.1 Practice 启动过渡构图
 
@@ -200,6 +202,8 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.57 | 2026-07-20 | Reopen the Workspace list owner so plan deletion requires accessible secondary confirmation before `archiveTargetJob`, with safe cancel/focus, pending single-flight and recoverable same-key retry. |
+| 1.56 | 2026-07-20 | 修复合同 ID 重复，并明确 Practice 启动过渡保留可见 TopBar 时仍必须阻断完整 App root 的交互。 |
 | 1.55 | 2026-07-20 | Reopen the Practice owner so send belongs to a non-overlapping bottom action area inside the input surface, preserving full-width text on narrow screens. |
 | 1.54 | 2026-07-19 | Reopen the Practice owner for the screenshot-aligned brand transition while preserving blocking, focus and honest opening-request semantics. |
 | 1.51 | 2026-07-19 | Require a full-viewport Workspace canvas and align the header CTA right edge with the two-column card grid. |

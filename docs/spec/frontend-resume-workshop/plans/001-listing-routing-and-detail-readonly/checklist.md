@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 4.4
+> **版本**: 4.5
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -148,3 +148,10 @@
 ### Chrome follow-up: preserve the direct page width
 
 - [x] 25.5 RED/GREEN: source parity 先拒绝无宽度 owner 导致的短内容 shrink-to-fit，再为透明的直接 `article` 增加 `width: 100%`；不得恢复旧 class、背景、边框、圆角、阴影或 padding。<!-- verified: 2026-07-20 method=red-green-and-chrome evidence="Source parity first failed 1/8 only for the missing direct-article width owner; GREEN 14/14. Chrome changed the short-content article/page widths from 497/497 to 1443/1150 while keeping transparent/none/0 visual properties and legacy selector count 0." -->
+
+## Phase 26: Resume delete secondary confirmation
+
+- [x] 26.1 RED: `ResumeListView.test.tsx` 与 shared dialog tests 锁定首次点击弹窗/零 archive、取消初始焦点、focus trap、Escape/遮罩关闭、focus restore、确认单次提交、pending 锁定、失败 same-key retry 与成功隐藏；验证: focused Vitest 在旧实现上按目标失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="Resume first-click zero-archive assertions failed twice because the old handler called archiveResume immediately; shared dialog suite failed on the intentionally missing component while 17 adjacent tests passed." -->
+- [x] 26.2 GREEN: 实现共享危险操作确认框并接入 Resume 删除；确认前零副作用，确认后调用 generated `archiveResume`，pending/失败/成功与 idempotency 语义符合 spec；验证: focused Vitest + typecheck PASS。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="Destructive dialog + Resume + Workspace focused suites 3 files / 23 tests PASS; TypeScript noEmit PASS. Resume cancel restores the trigger, confirm calls archive once, failure retains the card/dialog and retry reuses the first key." -->
+- [x] 26.3 BDD-Gate: `BDD.RESUME.DELETE.CONFIRM.006` 由 [BDD checklist](./bdd-checklist.md) 关联 domain behavior tests；真实 Chrome 只记录正式 UI 截图，不声明 E2E PASS。<!-- verified: 2026-07-20 evidence="3 focused files / 23 tests PASS; shared dialog covers focus trap, Escape/backdrop, pending lock and focus restore; Resume covers zero-call first click, one-call confirm and same-key retry." -->
+- [x] 26.4 REGRESSION/CHROME: Resume owner focused tests、frontend build、根 `make test`、owner context、docs/index/diff gates 通过；真实 frontend/backend 的简历确认框 desktop 截图、keyboard/focus、console/no-overflow 验收完成后恢复 completed。<!-- verified: 2026-07-20 evidence="Typecheck/build and root make test PASS; context/docs/index/diff gates PASS; frontend redeploy and dependencies 4/4 OK; Chrome 1212x912 screenshot, initial cancel focus, trigger focus restore, card retained and overflowX=false." -->

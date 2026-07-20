@@ -368,7 +368,7 @@ export const ReportsScreen: FC<ReportsScreenProps> = ({ route }) => {
                   <span>{lang === "zh" ? "地点" : "Location"}：{targetJob!.locationText}</span>
                 ) : null}
                 <span>{lang === "zh" ? "轮次" : "Rounds"}：{renderedState.overview.rounds.length}</span>
-                <span>{lang === "zh" ? "面试日期" : "Interview date"}：{reportDate(targetJob!.createdAt, lang)}</span>
+                <span>{t("reports.targetCreatedAt")}：{reportDate(targetJob!.createdAt, lang)}</span>
               </div>
             </div>
           </section>

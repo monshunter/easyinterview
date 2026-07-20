@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.50
+> **版本**: 1.52
 > **状态**: completed
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
@@ -242,3 +242,17 @@
 - [x] 33.2 GREEN: `PracticeLaunchTransition` 复用 shared `brand` variant；保留 portal、single-flight、opening pending、成功 route 与失败恢复合同。<!-- verified: 2026-07-19 method=focused-vitest-green evidence="shared and Practice component tests PASS within 124-test owner run; topbar remains above z-index 20 overlay" -->
 - [x] 33.3 BDD-Gate: `BDD.PRACTICE.LAUNCH.VISUAL.007` 覆盖 Home/Workspace/Report caller、desktop Chrome 与 mobile responsive contract，不新增 E2E ID。<!-- verified: 2026-07-19 method=chrome-extension-manual evidence="Workspace and Report repeat callers both exposed the same brand transition with TopBar visible; 1920px screenshot shows centered orbit/E/title/body/indeterminate rule. Shared 720px CSS/component contract covers mobile containment." -->
 - [x] 33.4 REGRESSION: focused、typecheck/build、根 `make test`、contexts/docs/diff 与 Chrome gates 通过后恢复 completed。<!-- verified: 2026-07-19 evidence="Final focused 89 PASS; production build/redeploy PASS; root make test 615 / 4615 PASS; browser console clean." -->
+
+## Phase 34: Practice launch full-shell blocking remediation
+
+- [x] 34.1 RED: 在 App root + TopBar + main 真实层级下证明 transition pending 时完整 App root 尚未 inert。<!-- red: 2026-07-20 evidence="PracticeLaunchTransition focused test failed only because app-root lacked inert while main was still the old target." -->
+- [x] 34.2 GREEN: inert/`aria-hidden` 完整 App root，保留 body portal、TopBar 可见、focus/scroll lock 与卸载恢复合同。<!-- verified: 2026-07-20 evidence="PracticeLaunchTransition 2/2 PASS; the App root owns inert/aria-hidden and restores both on unmount." -->
+- [x] 34.3 BDD-Gate: `BDD.PRACTICE.LAUNCH.VISUAL.007` 明确 TopBar 可见但不可交互，caller 行为与失败恢复不变。<!-- verified: 2026-07-20 evidence="The real App-root DOM contract includes a visible TopBar control inside the inert background; existing caller suites pass in root regression." -->
+- [x] 34.4 REGRESSION: focused、frontend typecheck/build、根 `make test`、context/docs/index/diff gates 通过后恢复 completed。<!-- verified: 2026-07-20 evidence="Focused 40 tests, typecheck, production build, root Python 620/4615 subtests, all Go packages, frontend 136 files/1115 tests, owner contexts and docs gate PASS." -->
+
+## Phase 35: Interview-plan delete secondary confirmation
+
+- [x] 35.1 RED: Workspace/shared dialog tests 锁定首次点击弹窗/零 archive、卡片导航零触发、取消初始焦点、focus trap、Escape/遮罩关闭、focus restore、确认单次提交、pending 锁定、失败 same-key retry 与成功隐藏；验证: focused Vitest 在旧实现上按目标失败。<!-- verified: 2026-07-20 method=focused-vitest-red evidence="Workspace first-click zero-archive assertions failed twice because the old handler called archiveTargetJob immediately; shared dialog suite failed on the intentionally missing component while 17 adjacent tests passed." -->
+- [x] 35.2 GREEN: 复用共享危险操作确认框接入 Workspace 删除；确认前零副作用，确认后调用 generated `archiveTargetJob`，pending/失败/成功与 idempotency 语义符合 spec，Home recent 继续没有删除入口；验证: focused Vitest + typecheck PASS。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="Destructive dialog + Resume + Workspace focused suites 3 files / 23 tests PASS; TypeScript noEmit PASS. Workspace Escape restores the trigger without navigation/archive, confirm calls archive once, failure retains the card/dialog and retry reuses the first key." -->
+- [x] 35.3 BDD-Gate: `BDD.WORKSPACE.DELETE.CONFIRM.008` 由 [BDD checklist](./bdd-checklist.md) 关联 domain behavior tests；真实 Chrome 只记录正式 UI 截图，不声明 E2E PASS。<!-- verified: 2026-07-20 evidence="3 focused files / 23 tests PASS; shared dialog covers focus trap, Escape/backdrop, pending lock and focus restore; Workspace covers zero archive/navigation first click, one-call confirm and same-key retry." -->
+- [x] 35.4 REGRESSION/CHROME: Workspace owner focused tests、frontend build、根 `make test`、owner context、docs/index/diff gates 通过；真实 frontend/backend 的面试规划确认框 desktop 截图、keyboard/focus、console/no-overflow 验收完成后恢复 completed。<!-- verified: 2026-07-20 evidence="Typecheck/build and root make test PASS; context/docs/index/diff gates PASS; frontend redeploy and dependencies 4/4 OK; Chrome 1212x912 screenshot, initial cancel focus, trigger focus restore, card retained, console errors 0 and overflowX=false." -->

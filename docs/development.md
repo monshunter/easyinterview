@@ -16,7 +16,7 @@ Install Python gate dependencies once in an isolated environment with `python3 -
 | `make lint` | B1 conventions + A4 config + A3/F3/E1/runtime-topology local gates + Go lint + frontend typecheck-backed lint | A5 aggregator → B1 / A4 / A3 / F3 / E1 / backend / frontend |
 | `make test` | Canonical full regression: Python tooling/skill contracts + all backend Go unit tests + all frontend TypeScript unit tests; AI tests via stub/fixture only | A5 aggregator → scripts / skills / backend / frontend owners |
 | `make build` | Backend `go build ./cmd/...` + frontend bundle | A5 aggregator → backend / frontend owners |
-| `make docs-check` | `sync-doc-index --check` (Header / INDEX drift) + relative-link sanity for `docs/` | A5 aggregator → `/sync-doc-index` skill + A5 `scripts/lint/check_md_links.py` |
+| `make docs-check` | `sync-doc-index --check` (Header / INDEX drift) + relative-link/fragment sanity + subject `spec.md` `D-*` / `C-*` ID uniqueness | A5 aggregator → `/sync-doc-index` skill + A5 `scripts/lint/check_md_links.py` / `check_spec_contract_ids.py` |
 | `make codegen-check` | B1 conventions generator + B2 OpenAPI generator + `git diff --exit-code` on generated outputs | A5 aggregator → B1 + B2 |
 
 Each gate exits non-zero on failure. A5 only calls landed local sub-targets; future owner gates are added when the owning implementation exposes a real command, and called sub-target failures are not swallowed.

@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.24
+> **版本**: 2.25
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -59,7 +59,7 @@
 | D-7 | Negative gate | product-scope pruning gate owns out-of-scope route/module/input regression scan | 防止范围外入口回流 |
 | D-8 | Create wait handoff | CreateFlow 只提供 upload / paste；`registerResume` 成功后跳转到详情 route 的解析等待态，等待页轮询到 `ready` 后展示 Markdown 详情，`failed` 后展示失败态；preview confirm 不属于当前流程 | 避免用户在解析过程中长期看到“名称生成中”或空正文，提高提交后的可理解性 |
 | D-9 | Display name robustness | 创建后完成态 `displayName` 优先由 backend parse 从 LLM 结构化结果中派生；若 LLM 输出失败但 backend 已抽取出可读正文，backend 必须写入非通用、非文件名、非 raw 第一行直出的可读 fallback 名称。frontend 不展示通用“上传/粘贴的简历”，也不得把 raw resume 第一行、上传文件名或与来源 `title` 相同的文件名 `displayName` 当作列表或详情名称；仅在解析尚未产生名称和正文前显示中性“名称生成中”pending label 或来源信息 | 列表和详情使用可识别名称，避免失败态长期停留在“名称生成中”或误用 Markdown 标题、正文首行、PDF 文件名 |
-| D-10 | List actions | 列表只有 Header “新建简历”作为创建入口；每张卡片底部提供“打开”，右上角提供删除（调用 `archiveResume` 软删除并从列表隐藏），删除失败给出可恢复错误；数量上限由 backend `resume.maxActive` 强制，前端只展示服务端错误提示 | 避免重复 CTA，保留清晰的查看、清理资产和解除数量上限路径 |
+| D-10 | List actions | 列表只有 Header “新建简历”作为创建入口；每张卡片底部提供“打开”，右上角提供删除。首次点击删除只打开实体级危险操作确认框，确认前 `archiveResume` 零调用；取消、遮罩和 Escape 零副作用并归还焦点，确认后才软归档。pending 禁止关闭和重复提交；失败保留卡片与弹窗并允许复用同一 idempotency key 重试；数量上限由 backend `resume.maxActive` 强制 | 避免误触删除和重复 CTA，同时保留清晰的查看、清理资产和解除数量上限路径 |
 | D-11 | Markdown body | `parsedTextSnapshot` 成功态是 backend LLM 生成的 Markdown 快照，详情页必须按 Markdown 结构渲染标题、段落和列表；body card 不得额外注入 `displayName`、header 名称、summary 或来源元数据；不得把 Markdown 当普通 txt 段落显示 | 统一后续 UI 渲染输入，同时保留简历行文结构，避免详情 header 信息污染简历正文 |
 | D-12 | Source-format renderer | 详情正文区域根据来源格式自动选择 renderer：upload PDF 使用 `/api/v1/resumes/{resumeId}/source` 通过 PDF 页面栈从上到下平铺所有页面；paste、Markdown 文件和 TXT 文件使用 Markdown engine；PDF 与 Markdown 使用统一阅读背景板和 page surface；DOCX 不属于当前 Resume 上传支持范围 | 兼顾用户查看原始 PDF 版式与 LLM 后续交互所需的可读文本，不增加新按钮、二级入口或浏览器 PDF viewer 工具栏 |
 | D-13 | List/detail responsibility | `ResumeSummary` 字段集固定为 `id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt`；`originalText`、`parsedTextSnapshot`、`structuredProfile`、`fileObjectId`、`parsedSummary` object、`createdAt`、`deletedAt` 只属于详情或服务端内部，不得进入列表 item | 缩小列表 payload 与隐私面，避免一次列表读取传输所有简历正文和结构化详情 |
@@ -124,7 +124,7 @@
 | C-5 | Create paste | User enters text | Submit | Register completes and app navigates to the waiting/detail route; request title remains a neutral source title, and visible list/detail name comes from backend generated `displayName` after parse or extracted-text fallback, never from the raw first line or source filename/title fallback | [002](./plans/002-create-flow/plan.md) |
 | C-6 | Create recovery | Register or upload fails | User retries from input | Input is preserved locally and no raw content leaks | [002](./plans/002-create-flow/plan.md) |
 | C-7 | Home handoff | Home create CTA or Home existing-resume selector | Click / select | Create CTA lands on CreateFlow and auth pending action is safe; Home existing-resume selector shows non-archived readable `listResumes` records and carries the selected `resumeId` into JD import / parse handoff | [002](./plans/002-create-flow/plan.md) |
-| C-8 | Delete resume | User deletes a row from Resume list | Archive succeeds or fails | Success hides the row and can free backend count limit; failure shows retryable feedback without removing data | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
+| C-8 | Delete resume | User clicks a Resume card delete action | Cancel/Escape/backdrop, confirm, pending, success or failure | First click opens an accessible dialog with Cancel focused and zero `archiveResume` calls; cancel paths close and restore trigger focus; confirm sends exactly one request, pending blocks close/duplicates, success hides the row and can free backend count limit, and failure retains the row/dialog with same-key retry | [001 Phase 26](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-10 | Privacy | User browses or creates resumes | App logs/routes/stores update | Raw resume content stays out of passive channels | 001 / 002 |
 | C-11 | UI parity | Desktop and mobile viewports | Run owner gates | DOM/style/layout/screenshot smoke remain aligned with UI design document | 001 / 002 |
 | C-12 | StrictMode list read | Authenticated list mounts under React StrictMode | `listResumes` effects overlap | Identical concurrent reads produce exactly one underlying transport; a rejected read is evicted, and retry produces a new transport and can succeed | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
@@ -143,6 +143,7 @@ queued/processing 且尚无可读正文时，详情 route 使用共享 `AsyncTra
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 2.25 | 2026-07-20 | Reopen the list owner so resume deletion requires accessible secondary confirmation before `archiveResume`, with safe cancel/focus, pending single-flight and recoverable same-key retry. |
 | 2.24 | 2026-07-20 | Reopen the readonly-detail owner to remove the zero-consumer shared preview backdrop and let PDF/Markdown page surfaces render directly on the detail canvas. |
 | 2.23 | 2026-07-19 | Reopen the readonly-detail owner for the screenshot-aligned resume parsing transition while preserving stable sequential polling and readable-evidence replacement. |
 | 2.22 | 2026-07-19 | Reopen the read-only detail for the supplied preview composition: aligned Header hierarchy plus 1512/1310/1150px desktop content, backdrop and paper surfaces without changing renderer or API truth. |

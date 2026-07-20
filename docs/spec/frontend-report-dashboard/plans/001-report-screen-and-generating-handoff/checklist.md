@@ -1,6 +1,6 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 4.8
+> **版本**: 4.9
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -140,3 +140,10 @@
 - [x] 21.2 GREEN: 增加 Generating owner 专用 locale key，并由正常等待态与 typed error state 按既有 `backDestination` 选择标签；保留所有导航、polling、retry、ready handoff 和错误恢复语义。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="The four focused suites pass 43/43: zh/en locale parity, the two approved consumers, trusted waiting/error labels and the unchanged reports/workspace navigation matrix are green." -->
 - [x] 21.3 BDD-Gate: `BDD.REPORT.GENERATING.VISUAL.003` 由 Generating i18n/navigation tests 与 current-run real Chrome 验证 trusted label/target；不新增 E2E ID，不声明完整 `E2E.P0.099`。<!-- verified: 2026-07-20 method=component-and-chrome evidence="Locale/source and Generating waiting/error suites prove the trusted Reports label plus unchanged target-scoped route matrix; a transient real Generating page visibly rendered 返回面试报告 before ready handoff." -->
 - [x] 21.4 REGRESSION: focused、typecheck/build、根 `make test`、frontend redeploy、环境 readiness、owner context、docs/index/diff 与 Chrome gates 通过后恢复 completed。<!-- verified: 2026-07-20 method=full-regression-and-document-gates evidence="Generating/i18n 6 files / 72 tests, typecheck, production build and root make test 615 / 4615 pass; frontend redeploy, readiness 4/4, report/shell/resume context validation, docs links, Header/INDEX and diff gates pass; trusted Chrome label evidence is current." -->
+
+## Phase 22: Truthful target-summary date label
+
+- [x] 22.1 RED: ReportsScreen owner test 要求 `createdAt` 显示“规划创建日期 / Plan created”，并拒绝“面试日期 / Interview date”。<!-- red: 2026-07-20 evidence="ReportsScreen owner suite failed only on the old Interview date label." -->
+- [x] 22.2 GREEN: 增加 zh/en locale key 并替换硬编码标签；日期格式、请求、timeline 与 actions 不变。<!-- verified: 2026-07-20 evidence="ReportsScreen 32/32 plus locale file 6/6 PASS with exact English and Chinese labels." -->
+- [x] 22.3 BDD-Gate: `BDD.REPORT.RECORDS.VISUAL.002` 覆盖目标摘要日期事实，不新增 E2E ID。<!-- verified: 2026-07-20 evidence="English and Chinese domain tests reject the fabricated interview-date label; no E2E asset added." -->
+- [x] 22.4 REGRESSION: focused、typecheck/build、根 `make test`、owner context/docs/index/diff gates 通过后恢复 completed。<!-- verified: 2026-07-20 evidence="Focused 40 tests, typecheck, production build, root Python 620/4615 subtests, all Go packages, frontend 136 files/1115 tests, report context and docs gate PASS." -->

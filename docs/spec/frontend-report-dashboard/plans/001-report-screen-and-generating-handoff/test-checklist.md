@@ -1,6 +1,6 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 3.18
+> **版本**: 3.19
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -108,3 +108,7 @@
 - [x] Locale/source tests 区分 Generating trusted Reports 专用文案与其它页面/Workspace fallback 的 shared Back。<!-- verified: 2026-07-20 method=focused-vitest evidence="reportDashboardI18nCoverage and backNavigationCopy pass 28/28, including exact zh/en values, the two approved owner sources, common.back retention and retired-key negatives." -->
 - [x] Generating waiting/error component tests 同时证明 exact zh/en label 与原导航矩阵不变。<!-- verified: 2026-07-20 method=focused-vitest evidence="GeneratingScreen and GeneratingBackNavigation pass 15/15 for trusted reports copy in waiting/error states, Workspace fallback copy and the existing route matrix." -->
 - [x] Focused、typecheck/build、根 `make test` 与 real Chrome trusted Back 验收通过。<!-- verified: 2026-07-20 evidence="Generating/i18n focused 6 files / 72 tests PASS; typecheck and production build PASS; final root make test PASS with 615 tests / 4615 subtests; real Chrome captured the exact trusted label on the transient Generating state." -->
+
+## Phase 22 truthful target-summary date label
+
+- [x] ReportsScreen zh/en 正向标签与旧“面试日期 / Interview date”负向断言通过；i18n parity、focused 与根回归通过。<!-- verified: 2026-07-20 evidence="Focused ReportsScreen/locale 38 tests and root frontend 1115 tests PASS." -->

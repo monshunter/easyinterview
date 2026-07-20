@@ -366,6 +366,12 @@ describe("ReportsScreen", () => {
     expect(screen.getByTestId("reports-target-summary")).toHaveTextContent(
       "Frontend Engineer A",
     );
+    expect(screen.getByTestId("reports-target-summary")).toHaveTextContent(
+      "Plan created",
+    );
+    expect(screen.getByTestId("reports-target-summary")).not.toHaveTextContent(
+      "Interview date",
+    );
     expect(screen.getByTestId("reports-timeline")).toContainElement(
       screen.getByTestId("reports-round-index-1"),
     );
@@ -469,6 +475,15 @@ describe("ReportsScreen", () => {
       name: "workspace",
       params: { targetJobId: TARGET_A_ID },
     });
+  });
+
+  it("labels target creation truthfully in Chinese without inventing an interview date", async () => {
+    localStorage.setItem("ei-lang", "zh");
+    render(view(clientWith(), TARGET_A_ID));
+
+    const summary = await screen.findByTestId("reports-target-summary");
+    expect(summary).toHaveTextContent("规划创建日期");
+    expect(summary).not.toHaveTextContent("面试日期");
   });
 
   it("renders an explicit empty state without inventing report history", async () => {

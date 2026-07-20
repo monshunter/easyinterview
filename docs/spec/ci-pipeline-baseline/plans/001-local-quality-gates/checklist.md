@@ -1,8 +1,8 @@
 # Local Quality Gates Bootstrap Checklist
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-20
 
 **关联计划**: [plan](./plan.md)
 
@@ -71,3 +71,9 @@
 - [x] 10.2 完整收口；验证: `make test` 保留 Python/backend/frontend 全量 gate，A5/product contexts、README/development、docs/index/diff/pruning gates
   <!-- red: 2026-07-10 method=root-node-test-aggregation-contract evidence="The extended Makefile contract failed only because the repository's sole root Node test was absent from the test recipe; the UI contract itself already passed 45/45." -->
   <!-- verified: 2026-07-10 method=ui-prototype-node-contract-aggregation evidence="Focused Makefile contract passes 1/1 and UI contract passes 45/45. Root make test then runs UI, Python 464 tests plus 4269 subtests, all backend packages and frontend 136 files/836 tests. A5/product contexts, onboarding docs, docs/index/diff/pruning gates pass. Scenario-only contracts remain outside the unit aggregator. No new Bug or retrospective report was needed." -->
+
+## Phase 11: Subject spec contract-ID uniqueness gate
+
+- [x] 11.1 RED: focused fixtures 证明同一 subject `spec.md` 的重复 `D-*` / `C-*` 失败并报告首次/重复行；不同 subject 复用、fenced example 与非 subject 文档不误报；三组范围外 legacy baseline 不掩盖新 subject 重复。<!-- red: 2026-07-20 evidence="Four tests failed before the script/Makefile wiring existed; the completed suite covers five contracts." -->
+- [x] 11.2 GREEN: 实现 `scripts/lint/check_spec_contract_ids.py` 并接入现有 `make docs-check`；同步 development/spec 文档合同，不新增平行 target。<!-- verified: 2026-07-20 evidence="Focused Python contracts 5/5 and current docs/spec scan PASS; make docs-check executes the new gate." -->
+- [x] 11.3 REGRESSION: focused tests、当前 spec 扫描、`make docs-check`、根 `make test`、owner contexts、index/diff gates 通过后恢复 completed。<!-- verified: 2026-07-20 evidence="Root Python 620/4615 subtests, all Go packages, frontend 136 files/1115 tests, repo target context and docs gate PASS." -->

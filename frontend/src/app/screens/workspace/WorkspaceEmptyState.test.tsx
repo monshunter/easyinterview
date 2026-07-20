@@ -483,9 +483,24 @@ describe("WorkspaceEmptyState", () => {
 
     await user.click(screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000"));
 
-    await waitFor(() => {
-      expect(archiveSpy).toHaveBeenCalled();
-    });
+    expect(archiveSpy).not.toHaveBeenCalled();
+    expect(nav).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("dialog", { name: "Delete this interview plan?" }),
+    ).toHaveTextContent(
+      "After deletion, this interview plan will be removed from the list. This action can't currently be undone.",
+    );
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(archiveSpy).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000"),
+    ).toHaveFocus();
+
+    await user.click(screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000"));
+    await user.click(screen.getByRole("button", { name: "Confirm deletion" }));
+
+    await waitFor(() => expect(archiveSpy).toHaveBeenCalledTimes(1));
     expect(archiveSpy).toHaveBeenCalledWith(
       "01918fa0-0000-7000-8000-000000002000",
       expect.objectContaining({
@@ -501,7 +516,14 @@ describe("WorkspaceEmptyState", () => {
   it("keeps the card visible and hides backend details when archiveTargetJob fails", async () => {
     const user = userEvent.setup();
     const client = clientWithScenarios();
-    vi.spyOn(client, "archiveTargetJob").mockRejectedValue(new Error("archive failed"));
+    const archiveSpy = vi
+      .spyOn(client, "archiveTargetJob")
+      .mockRejectedValueOnce(new Error("archive failed"))
+      .mockResolvedValueOnce(
+        archiveTargetJobFixture.scenarios.default.response.body as Awaited<
+          ReturnType<EasyInterviewClient["archiveTargetJob"]>
+        >,
+      );
     const { nav } = renderScreen({ name: "workspace", params: {} }, client);
 
     await waitFor(() => {
@@ -509,6 +531,8 @@ describe("WorkspaceEmptyState", () => {
     });
 
     await user.click(screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000"));
+    expect(archiveSpy).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Confirm deletion" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("workspace-plan-list-delete-error")).toHaveTextContent(
@@ -516,10 +540,18 @@ describe("WorkspaceEmptyState", () => {
       );
     });
     expect(screen.queryByText("archive failed")).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000"),
-    ).toBeEnabled();
     expect(screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
+    expect(
+      screen.getByRole("dialog", { name: "Delete this interview plan?" }),
+    ).toBeInTheDocument();
+    const firstKey = archiveSpy.mock.calls[0]?.[1]?.idempotencyKey;
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(archiveSpy.mock.calls[1]?.[1]?.idempotencyKey).toBe(firstKey);
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000"),
+      ).not.toBeInTheDocument();
+    });
     expect(nav).not.toHaveBeenCalled();
   });
 

@@ -1,6 +1,6 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.38
+> **版本**: 1.39
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -234,6 +234,7 @@ ReportConversation(reportId)
 | C-20 | 面试记录目标构图 | report-owned transcript 含合法 assistant/user 消息 | 打开 report-conversation | desktop 约 1372px，Header、三列 Context Strip 和消息列共享边界；assistant/user 共享浅色整行卡片、描边、圆角、内边距和同宽方形头像轮廓，只以蓝色 AI / 灰色“我”区分身份；Markdown、安全边界、Back 与无 composer/internal IDs 合同不变，mobile 同序无横溢 | [001 Phase 18](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | C-21 | 报告生成等待态目标构图 | report 仍为 queued/generating，或轮询可恢复失败 | 打开 Generating | 全局 TopBar 保留并高亮“面试”；共享 report transition 的报告插画、真实状态说明、indeterminate 线和统一返回动作直接位于氛围画布上，无白卡/边框/阴影/局部毛玻璃；无假百分比/通知/阶段，失败恢复与 polling 合同不变 | [001 Phase 20](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | C-22 | Generating 返回目标消歧 | poll/terminal state 已有可信 targetJobId，或尚无可信 identity | 查看或点击返回动作 | trusted reports 目标显示“返回面试报告 / Back to interview reports”并进入 target-scoped ReportsScreen；Workspace fallback 继续显示“返回 / Back”；标签、导航目标、a11y 与 zh/en 同步 | [001 Phase 21](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| C-23 | 报告列表日期事实 | TargetJob `createdAt` 与 report timestamps 同时存在 | 查看 ReportsScreen 目标摘要与轮次时间线 | 目标摘要把 `createdAt` 标注为“规划创建日期 / Plan created”；仅 report `generatedAt` / latest attempt 时间可作为报告日期，不把规划创建时间伪装为面试日期 | [001 Phase 22](./plans/001-report-screen-and-generating-handoff/plan.md) |
 
 ## 9 关联计划
 
@@ -243,6 +244,7 @@ ReportConversation(reportId)
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-20 | 1.39 | Require truthful ReportsScreen date labels: TargetJob createdAt is plan creation, never an interview date. |
 | 2026-07-20 | 1.38 | Restore target-aware Generating Back copy: trusted reports navigation uses “返回面试报告 / Back to interview reports”, while untrusted Workspace fallback keeps the shared Back label. |
 | 2026-07-20 | 1.37 | Reopen the existing Generating owner to remove the obsolete white-card surface and align the report transition with the shared atmospheric canvas. |
 | 2026-07-19 | 1.36 | Reopen the Generating owner for the supplied report-transition card while preserving truthful polling, terminal errors and reportId-only routing. |

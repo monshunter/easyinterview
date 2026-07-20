@@ -38,6 +38,7 @@ docs/spec/
 9. **Feature plan requires BDD**：引入用户可感知 UI、API 行为或业务流程的 plan，必须包含 `bdd-plan.md`、`bdd-checklist.md` 与主 `checklist.md` 中的 `BDD-Gate:` 项；Behavior ID 可以由 code-level domain behavior test 验证，不要求一一创建 E2E。
 10. **真实 E2E 单独判定**：只有通过真实 HTTP API 或浏览器访问已运行 frontend，且业务请求落到真实 backend 的流程，才能分配 `E2E.*` ID 和创建 `test/scenarios/e2e/` 资产；Go/Vitest/pytest/lint/build wrapper 不是 E2E。
 11. **BDD 不适用需说明**：纯配置、内部契约、工具、迁移、codegen、lint、fixture 或 build 若不产生用户行为流，必须写明 `BDD-N/A + 替代验证 gate`，不得创建 BDD 文件或在 `context.yaml` 保留 `bddPlan` / `bddChecklist`。
+12. **Spec 合同 ID 文件内唯一**：每个 subject 的 `spec.md` 中，决策表 `D-*` 与验收表 `C-*` 的完整 ID 必须在该文件内唯一；不同 subject 可独立复用编号。`make docs-check` 自动拒绝新增重复 ID；脚本内显式 legacy baseline 只承接当前范围外既有债务，不得扩展或掩盖新 subject。
 
 ## 3 文档元信息
 
@@ -101,6 +102,7 @@ docs/spec/
 - [ ] 代码逻辑计划已写明 TDD 策略；用户行为功能计划已具备 BDD 文件、Behavior ID / 真实 E2E ID 与 `BDD-Gate:`
 - [ ] Behavior ID 已选择 domain behavior test 或真实 API/UI E2E，且只有后者创建 E2E 资产
 - [ ] BDD 不适用的内部/配置/tooling 计划已写明 `BDD-N/A` 和替代验证 gate，且没有 BDD 文件/context 字段
+- [ ] 当前 subject `spec.md` 内不存在新增重复 `D-*` / `C-*` 合同 ID，`make docs-check` 通过；不新增 legacy baseline 例外
 - [ ] `docs/spec/INDEX.md` 已同步
 
 ## 8 协作约定

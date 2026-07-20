@@ -1,8 +1,8 @@
 # Local Quality Gate and Deferred CI Spec
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-20
 
 ## 1 背景与目标
 
@@ -32,7 +32,7 @@
   - `make lint`：聚合 Go / TS / error-code / config / 当前已落地的本地 lint / contract gates；F1 metrics / log helper 由 F1 暴露真实命令后再接入，不保留 exit-zero 假 target。
   - `make test`：聚合 UI prototype Node contracts、Python tooling/skill contracts、Go 与 TS 单元测试；Python 外部依赖由根 `requirements-dev.txt` 声明，AI 单元测试默认走 stub / fixtures，不需要真实 AI provider secret。
   - `make build`：聚合 backend / frontend 构建；当前执行真实 backend cmd build 与 frontend Vite build。
-  - `make docs-check`：执行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 与轻量链接检查（如 `python3 scripts/lint/check_md_links.py docs`）。
+  - `make docs-check`：执行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`、轻量链接检查（如 `python3 scripts/lint/check_md_links.py docs`）与 subject `spec.md` 合同 ID 唯一性检查。
   - `make codegen-check`：执行已落地 generator 的 idempotency / drift check（B1、B2 按各自 plan 接入）。
 - **本地输出契约**：每个 target 失败时必须输出 5 行内的人类可读摘要，并保留原始命令日志；不要求生成 HTML artifact。
 - **secret 红线**：本地质量门禁不读取 `.env` 中的生产 secret；任何需要真实 provider 的本地部署验证归 A2/A3/A4，不归本地单测 gate。
@@ -74,7 +74,7 @@
 - 所有本地 gate 必须可在仓库根执行，不要求开发者手动 `cd backend` / `cd frontend`。
 - 任一 target 失败时必须返回非 0；A5 只调用已落地的本地 sub-target，不为尚未落地的 future owner 创建 exit-zero 假 target。
 - `make test` 必须先执行 `scripts/lint/ui_demo_pruning.py`，再覆盖 `scripts/` 与 `.agent-skills/` 的全部 pytest contracts，最后执行 backend Go 与 frontend TypeScript tests；Python 外部依赖必须在根 `requirements-dev.txt` 中显式声明。
-- `make docs-check` 必须至少包含可执行的 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`；Header / INDEX drift 不能靠人工记忆或只写 slash skill 文本。
+- `make docs-check` 必须至少包含可执行的 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`、相对链接/fragment 检查与 subject `spec.md` 内 `D-*` / `C-*` 合同 ID 唯一性检查；Header / INDEX drift 或新增重复合同 ID 不能靠人工记忆。当前范围外的三组既有重复只允许作为脚本内显式 legacy baseline 存在，不得掩盖其它 subject 或新增编号。
 - `make codegen-check` 只能检查已经存在的 generator；B2 OpenAPI generator 未落地前不得制造失败 gate。
 
 ### 4.2 安全与权限约束
@@ -115,6 +115,13 @@
 | C-5 | docs gate | 任意 spec Header 与 INDEX 人为制造 drift | `make docs-check` 或直接执行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` | drift 被报告并返回非 0 | A5 后续 001（如需要） |
 | C-6 | codegen drift gate | B1/B2 generator 已落地 | `make codegen-check` | 已接入 generator 重跑后无 diff；未落地 generator 不制造失败 | A5 后续 001（如需要） + B1/B2 |
 | C-7 | CI deferred guard | 搜索仓库文档 | grep `ci.yml` / `branch protection` / `required check` | 当前文档把这些能力标记为 future / out of scope，不作为 P0 必需项 | 本次 spec 修订 |
+| C-8 | spec contract ID uniqueness | 同一 subject `spec.md` 新增重复 `D-*` 或 `C-*` 表格 ID，或不同 subject 合法复用相同编号 | `make docs-check` | 除脚本内显式登记的三组 legacy baseline 外，同文件重复 ID 报告当前行与首次出现行并返回非 0；不同 subject 互不冲突，baseline 不掩盖新 subject 的相同编号 | A5 001 Phase 11 |
+
+## 8 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-20 | 1.11 | Add subject-local D/C contract-ID uniqueness enforcement to the docs gate. |
 
 ## 7 关联计划
 

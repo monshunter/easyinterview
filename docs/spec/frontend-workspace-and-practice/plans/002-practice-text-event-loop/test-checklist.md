@@ -1,6 +1,6 @@
 # 002 Practice Continuous Conversation Test Checklist
 
-> **版本**: 3.1
+> **版本**: 3.2
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -60,3 +60,7 @@
 - [x] Inner input-surface DOM/CSS RED-GREEN tests pass and reject the old outside-surface row plus overlay/large-right-padding variants.<!-- verified: 2026-07-20 evidence="PracticeVisual and InputBar owner tests PASS after expected RED failures" -->
 - [x] Click, Ctrl/Meta+Enter and disabled owner behavior tests remain green.<!-- verified: 2026-07-20 evidence="PracticeScreen focused suite included 49 behavior tests; focused aggregate 55 PASS" -->
 - [x] Chrome desktop/mobile containment, full-width content, fixed Composer and zero-overflow checks pass.<!-- verified: 2026-07-20 evidence="real session 1512x829 and 390x844; contained action, no overlap, width invariant, gap=8, overflow=0, no console errors" -->
+
+## Phase 16
+
+- [x] A5 duplicate-ID fixture tests、当前 workspace spec 唯一性扫描与 owner context/docs gates 通过；不新增 runtime test 或 E2E。<!-- verified: 2026-07-20 evidence="5 focused Python contracts, current docs/spec scan, make docs-check and 002 context PASS." -->

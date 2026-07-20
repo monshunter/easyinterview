@@ -1,6 +1,6 @@
 # Resume Listing and Readonly Detail BDD Checklist
 
-> **版本**: 2.13
+> **版本**: 2.14
 > **状态**: completed
 > **更新日期**: 2026-07-20
 
@@ -40,3 +40,10 @@
 
 - [x] Component/polling tests 覆盖 resume variant、连续 pending 请求间 DOM 稳定、ready/failed 原子替换、返回动作和无伪进度。
 - [x] Current-run desktop Chrome 连续采样证明等待构图不闪烁、不缩放、TopBar/返回可用且全宽无横向溢出；mobile 由共享 responsive contract 覆盖，不新增 E2E ID。（scene x=0、width=viewport=1920。）
+
+## `BDD.RESUME.DELETE.CONFIRM.006` 简历删除二次确认
+
+- [x] 确认验证入口为 `ResumeListView.test.tsx` 与 shared destructive-dialog domain behavior tests，不创建 E2E wrapper。
+- [x] 执行首次点击零 `archiveResume`、取消/Escape/遮罩零副作用、初始焦点/focus trap/trigger focus restore 行为断言。
+- [x] 执行确认单次提交、pending 关闭/重复提交锁定、失败保留卡片/弹窗与同 key retry、成功隐藏卡片行为断言。
+- [x] 使用 Chrome skill 在真实 frontend/backend 截取简历删除确认框并记录 keyboard、console 与 no-overflow；该截图证据不声明 E2E PASS。<!-- verified: 2026-07-20 method=chrome-extension-manual evidence="1212x912 real frontend/backend screenshot; cancel initially focused; cancel closed dialog, preserved 李四 card and restored delete-trigger focus; horizontal overflow false; screenshot=.test-output/delete-confirmation-ui/resume-delete-confirmation.png" -->

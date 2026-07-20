@@ -23,7 +23,7 @@
 | [backend-async-runner](./backend-async-runner/spec.md) | 1.16 | active | 2026-07-13 | [plans](./backend-async-runner/plans/) |
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.33 | active | 2026-07-17 | [plans](./ai-provider-and-model-routing/plans/) |
 | [secrets-and-config](./secrets-and-config/spec.md) | 2.21 | active | 2026-07-16 | [plans](./secrets-and-config/plans/) |
-| [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.10 | active | 2026-07-10 | [plans](./ci-pipeline-baseline/plans/) |
+| [ci-pipeline-baseline](./ci-pipeline-baseline/spec.md) | 1.11 | active | 2026-07-20 | [plans](./ci-pipeline-baseline/plans/) |
 | [harness-simplification](./harness-simplification/spec.md) | 2.4 | active | 2026-07-19 | [plans](./harness-simplification/plans/) |
 
 ## 3 Contract
@@ -49,7 +49,7 @@
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.21 | active | 2026-07-15 | [plans](./mock-contract-suite/plans/) |
 | [frontend-shell](./frontend-shell/spec.md) | 1.46 | active | 2026-07-20 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.34 | completed | 2026-07-20 | [plans](./frontend-home-job-picks-and-parse/plans/) |
-| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.55 | completed | 2026-07-20 | [plans](./frontend-workspace-and-practice/plans/) |
+| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.57 | completed | 2026-07-20 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 2.8 | active | 2026-07-19 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 2.13 | active | 2026-07-14 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.37 | active | 2026-07-19 | [plans](./backend-practice/plans/) |
@@ -57,6 +57,6 @@
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.15 | completed | 2026-07-12 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.7 | active | 2026-07-14 | [plans](./backend-upload/plans/) |
 | [backend-resume](./backend-resume/spec.md) | 2.9 | active | 2026-07-14 | [plans](./backend-resume/plans/) |
-| [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.24 | completed | 2026-07-20 | [plans](./frontend-resume-workshop/plans/) |
-| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.38 | completed | 2026-07-20 | [plans](./frontend-report-dashboard/plans/) |
+| [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.25 | completed | 2026-07-20 | [plans](./frontend-resume-workshop/plans/) |
+| [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.39 | completed | 2026-07-20 | [plans](./frontend-report-dashboard/plans/) |
 | [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 2.18 | active | 2026-07-16 | [plans](./e2e-scenarios-p0/plans/) |
