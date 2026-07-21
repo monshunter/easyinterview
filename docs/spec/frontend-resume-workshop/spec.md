@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.28
+> **版本**: 2.29
 > **状态**: active
-> **更新日期**: 2026-07-20
+> **更新日期**: 2026-07-21
 
 ## 1 背景与目标
 
@@ -72,6 +72,7 @@
 | D-20 | A4 preview geometry | PDF 页面与 Markdown page surface 在 desktop 共用 `794px` A4 纸宽；PDF 每页保持 `210:297`，Markdown 整体是一张高度由正文自然撑开的连续长页面，不分页、不设置 A4 比例或固定/最小纸高；窄屏用 `min(100%, 794px)` 收敛 | 减少超宽纸面造成的无效空白，同时保留 PDF 纸张分页与 Markdown 连续文档的格式差异 |
 | D-21 | Create upload drag/drop | Upload 主体不显示中央 72px 圆形上传 icon；desktop 虚线上传区真实支持拖放一个 PDF / Markdown / TXT，drag-active 状态明确提示“松开以上传”；“选择文件”按钮继续承接键盘、触屏和无拖放环境。拖放与 file input 复用同一格式/大小/runtime/submitting guard、presign、browser PUT、register 和 direct-detail handoff；多文件或非法文件失败时为零 presign/register | 让视觉、文案与实际能力一致，同时不新增 API、backend 或平行上传流程 |
 | D-22 | Markdown paper ink | Markdown 详情继续使用不随应用主题切换的白色纸张；纸张正文、列表、强调文本与代码必须由纸张自身提供深色墨水基色，不得继承夜间应用壳的浅色 foreground。标题、链接和分隔线继续使用纸张内可读颜色；PDF renderer 与应用壳主题保持不变 | 白色文档面在 light/dark 两种应用模式下都保持稳定对比度，避免正文看似透明或消失 |
+| D-23 | Parse waiting inline action | queued/processing 且无可读正文的 shared `resume` transition 不传入 action，不渲染 `resume-detail-parse-back` 或其他内联“返回 / Back”按钮 | 顺序轮询、pending data、ready/failed 原子替换不变；failed 且无正文的失败态和普通详情页仍保留返回 Workshop 控件 |
 
 ## 4 设计约束
 
@@ -122,7 +123,7 @@
 |----|------|-------|------|------|-----------|
 | C-1 | Route shell | Authenticated user opens `resume_versions` | Route renders | Resume Workshop shell appears and TopBar highlights resume nav | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-2 | List view | `listResumes` returns `ResumeSummary[]` | List loads | Header 唯一创建入口、每卡打开与右上角删除动作呈现；desktop 每行两张等宽卡，mobile 单列占满可用宽度，table/header/row 语义缺席；卡片只暴露锁定 summary 字段，不读取详情字段，不出现重复创建 CTA | [001 Phase 22](./plans/001-listing-routing-and-detail-readonly/plan.md) |
-| C-3 | Detail read-only | User opens a resume | Detail renders | Full `Resume` is fetched only through `getResume`; pending parse with no readable body shows a waiting state and polls sequentially without clearing prior data or flashing the generic loading state between requests; ready desktop uses the reference Header plus approximately `1512px` content and direct `794px` A4-width PDF/Markdown page surfaces without a shared backdrop; PDF pages keep `210:297`, Markdown renders the complete body as one continuous content-height page without A4 height/pagination, and mobile shrinks within the available width without horizontal overflow; the white Markdown paper owns a dark readable ink color in both light and dark application modes instead of inheriting the dark-shell foreground; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; failed with no readable body shows a failure state; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001 Phase 28](./plans/001-listing-routing-and-detail-readonly/plan.md) |
+| C-3 | Detail read-only | User opens a resume | Detail renders | Full `Resume` is fetched only through `getResume`; pending parse with no readable body shows a waiting state without an inline Back action and polls sequentially without clearing prior data or flashing the generic loading state between requests; failed with no readable body retains its Back recovery. Ready desktop uses the reference Header plus approximately `1512px` content and direct `794px` A4-width PDF/Markdown page surfaces without a shared backdrop; PDF pages keep `210:297`, Markdown renders the complete body as one continuous content-height page without A4 height/pagination, and mobile shrinks within the available width without horizontal overflow; the white Markdown paper owns a dark readable ink color in both light and dark application modes instead of inheriting the dark-shell foreground; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001 Phase 29](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-4 | Create upload/paste | User drags or selects one valid file, or enters text；owner config provides byte limits | Submit | Upload 不显示中央大图标；drag-active 有明确视觉/文案反馈；拖放和选择文件复用同一 validation/upload/register/handoff；多文件、非法格式和 overflow inline rejection produce zero presign/register；valid input navigates to waiting/detail；默认/override/invalid 由 typed config owner 覆盖，不构造默认大小文件或配置 E2E | [002 Phase 15](./plans/002-create-flow/plan.md) |
 | C-5 | Create paste | User enters text | Submit | Register completes and app navigates to the waiting/detail route; request title remains a neutral source title, and visible list/detail name comes from backend generated `displayName` after parse or extracted-text fallback, never from the raw first line or source filename/title fallback | [002](./plans/002-create-flow/plan.md) |
 | C-6 | Create recovery | Register or upload fails | User retries from input | Input is preserved locally and no raw content leaks | [002](./plans/002-create-flow/plan.md) |
@@ -135,7 +136,7 @@
 
 ### 6.1 解析等待态目标构图
 
-queued/processing 且尚无可读正文时，详情 route 使用共享 `AsyncTransitionScene` 的 `resume` variant：保留全局 TopBar 与“简历”高亮，显示文档/轨道插画、真实等待标题/说明和返回 Workshop 动作。顺序轮询必须保留同一 DOM，不回退通用 loading、不缩放关键几何；reduced-motion 下停止非必要动画。
+queued/processing 且尚无可读正文时，详情 route 使用共享 `AsyncTransitionScene` 的 `resume` variant：保留全局 TopBar 与“简历”高亮，显示文档/轨道插画和真实等待标题/说明，但不渲染内联“返回 / Back”按钮或 action wrapper。顺序轮询必须保留同一 DOM，不回退通用 loading、不缩放关键几何；reduced-motion 下停止非必要动画。failed 且无正文的失败态与普通详情页仍保留返回 Workshop 控件。
 
 ## 7 关联计划
 
@@ -146,6 +147,7 @@ queued/processing 且尚无可读正文时，详情 route 使用共享 `AsyncTra
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 2.29 | 2026-07-21 | Reopen readonly detail Phase 29 to remove the inline Back action from queued/processing resume parsing while preserving failed/detail recovery and polling semantics. |
 | 2.28 | 2026-07-20 | Reopen the readonly-detail owner so the white Markdown paper owns dark readable ink in both application modes instead of inheriting the dark-shell foreground. |
 | 2.27 | 2026-07-20 | Integrate the A4 readonly-preview contract with create-flow drag/drop so one delivery branch preserves both user-visible changes. |
 | 2.26 | 2026-07-20 | Reopen the readonly-detail owner so PDF and Markdown share a desktop `794px` A4 paper width; PDF keeps `210:297`, Markdown remains one continuous content-height page, and narrow viewports shrink without overflow. |

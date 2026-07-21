@@ -604,11 +604,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               : undefined,
           testId: `parse-loading-step-${index}`,
         }))}
-        action={{
-          label: t("common.back"),
-          onClick: handleCancel,
-          testId: "parse-loading-back",
-        }}
       />
     );
   }

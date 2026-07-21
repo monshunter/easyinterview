@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.39
-> **状态**: completed
-> **更新日期**: 2026-07-20
+> **版本**: 2.40
+> **状态**: active
+> **更新日期**: 2026-07-21
 
 **关联计划**: [plan](./plan.md)
 
@@ -204,3 +204,10 @@
 - [x] 30.2 GREEN: `HomeScreen` 删除 option 元信息拼接，只渲染简历名称；selectable predicate、更新时间排序、option `value`、选择状态与 import request 不变。<!-- verified: 2026-07-20 method=focused-vitest-green evidence="HomeResumeSelection 7/7 PASS after removing resumeMeta and rendering displayName || title; selection and import assertions remain green." -->
 - [x] 30.3 BDD-Gate: 执行 `BDD.HOME.RESUME.OPTION.008` owner behavior test，证明多份 selectable 简历均只显示名称且仍可正确选择；不新增 E2E ID。<!-- verified: 2026-07-20 method=domain-behavior bddChecklist=complete evidence="Home selection/import behavior 16/16 and root make test PASS; exact labels exclude language, source, date and summary while selection behavior remains green." -->
 - [x] 30.4 REGRESSION: focused Home、frontend typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff 与 scoped source-search gates 通过后恢复 completed。<!-- verified: 2026-07-20 method=post-pass-gates evidence="Focused behavior 16/16, typecheck/build, root make test, context, Header/INDEX, docs links, pruning, diff and Home option metadata negative search PASS." -->
+
+## Phase 31: Remove the JD parsing waiting Back action
+
+- [x] 31.1 RED: `ParseScreen.test.tsx` 锁定 queued/processing shared job scene 保留插画、四步状态和 busy semantics，但 `parse-loading-back`、action wrapper 与内联“返回 / Back”缺席；旧实现只在该新断言上失败。<!-- verified: 2026-07-21 method=focused-vitest-red evidence="ParseScreen and ResumeDetailView ran 15 tests with exactly the two new waiting-action negatives failing; 13 adjacent tests, including resume failed-state Back recovery, stayed green." -->
+- [x] 31.2 GREEN: `ParseScreen` 仅删除 queued/processing `AsyncTransitionScene` 的 `action` prop；shared component、其他 transition owner、failed/error actions、polling、ready replace、request count、route 与 locale 保持。<!-- verified: 2026-07-21 method=focused-vitest-green evidence="Six focused files and 49 tests pass, including Parse waiting/failed/polling, Resume waiting/failed, shared optional action and common Back copy." -->
+- [x] 31.3 BDD-Gate: `BDD.HOME.JD.PARSE.VISUAL.005` 由 owner behavior tests 与 current-run Chrome desktop/mobile UI acceptance 证明等待态无内联 action/空白、失败恢复保留且无横向溢出；不新增 E2E ID。<!-- verified: 2026-07-21 method=full-container-chrome evidence="make dev-container-up rebuilt real frontend/backend; JD processing at 1916x821 and 390x844 had mainButtons=0, actionWraps=0, mobile scrollWidth=390 and consoleIssueCount=0; failed/error actions remain covered by focused tests." -->
+- [x] 31.4 REGRESSION: focused Parse、frontend typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff/pruning gates 通过；完成 Bug/复盘/日志评估后请求恢复 completed lifecycle。<!-- verified: 2026-07-21 method=full-regression evidence="Root make test passed backend 626 tests/4628 subtests and frontend 137 files/1126 tests; typecheck/build, both context validators, docs/index/link/contract/diff/pruning gates and 6/6 full-container doctor passed. No new Bug record was needed; retrospective recorded in 2026-07-21-parse-waiting-back-action-removal-assessment.md. Lifecycle remains active pending user approval." -->

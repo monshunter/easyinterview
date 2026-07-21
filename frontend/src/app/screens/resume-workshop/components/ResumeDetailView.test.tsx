@@ -186,7 +186,12 @@ describe("ResumeDetailView read-only contract", () => {
       "resume",
     );
     expect(screen.getByTestId("transition-illustration-resume")).toBeInTheDocument();
-    expect(screen.getByTestId("resume-detail-parse-back")).toBeInTheDocument();
+    expect(screen.queryByTestId("resume-detail-parse-back")).not.toBeInTheDocument();
+    expect(
+      screen
+        .getByTestId("resume-detail-parse-waiting")
+        .querySelector(".ei-transition-scene__action-wrap"),
+    ).toBeNull();
 
     await waitFor(
       () => {
@@ -282,6 +287,7 @@ describe("ResumeDetailView read-only contract", () => {
     await waitFor(() => {
       expect(screen.getByTestId("resume-detail-parse-failed")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("resume-detail-parse-back")).toBeInTheDocument();
     expect(screen.queryByTestId("resume-detail-preview-content")).not.toBeInTheDocument();
   });
 

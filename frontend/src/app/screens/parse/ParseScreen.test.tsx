@@ -37,7 +37,10 @@ describe("ParseScreen", () => {
       "aria-current",
       "step",
     );
-    expect(screen.getByTestId("parse-loading-back")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-loading-back")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("route-parse").querySelector(".ei-transition-scene__action-wrap"),
+    ).toBeNull();
     expect(screen.queryByTestId("parse-loading-footer")).not.toBeInTheDocument();
   });
 

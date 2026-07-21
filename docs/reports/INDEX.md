@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-21](./2026-07-21-parse-waiting-back-action-removal-assessment.md) | Parse Waiting Back Action Removal 交付复盘 | #assessment #ui #home #resume #chrome #full-container |
 | [2026-07-21](./2026-07-21-practice-interviewer-employer-identity-assessment.md) | Practice Interviewer Employer Identity 交付复盘 | #assessment #practice #prompt #eval #BUG-0197 |
 | [2026-07-20](./2026-07-20-local-dev-cleanup-host-runtime-assessment.md) | Local Dev Cleanup Host Runtime 交付复盘 | #assessment #local-dev #test #BUG-0196 |
 | [2026-07-20](./2026-07-20-resume-markdown-dark-mode-assessment.md) | Resume Markdown Dark Mode 交付复盘 | #assessment #ui #resume #markdown #dark-mode #BUG-0195 |

@@ -1,8 +1,8 @@
 # Resume Listing and Readonly Detail BDD Checklist
 
-> **版本**: 2.16
-> **状态**: completed
-> **更新日期**: 2026-07-20
+> **版本**: 2.17
+> **状态**: active
+> **更新日期**: 2026-07-21
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -38,8 +38,9 @@
 
 ## `BDD.RESUME.PARSE.VISUAL.005` 简历解析等待态
 
-- [x] Component/polling tests 覆盖 resume variant、连续 pending 请求间 DOM 稳定、ready/failed 原子替换、返回动作和无伪进度。
-- [x] Current-run desktop Chrome 连续采样证明等待构图不闪烁、不缩放、TopBar/返回可用且全宽无横向溢出；mobile 由共享 responsive contract 覆盖，不新增 E2E ID。（scene x=0、width=viewport=1920。）
+- [x] 历史 Phase 24 已覆盖 resume variant、连续 pending 请求间 DOM 稳定、ready/failed 原子替换、返回动作和无伪进度；Phase 29 只修订运行中 action 语义。
+- [x] Phase 29 component/polling tests 证明 queued/processing 不渲染 `resume-detail-parse-back`、action wrapper 或内联“返回 / Back”，同时 failed-without-body 的返回 Workshop 控件保持。<!-- verified: 2026-07-21 method=vitest-and-full-container-chrome evidence="49 focused tests passed; real containerized frontend/backend at 1916x821 and 390x844 rendered resume processing with mainButtons=0, actionWraps=0, mobile scrollWidth=390 and consoleIssueCount=0." -->
+- [ ] Current-run Chrome desktop/mobile 验证等待构图移除 action 后无遗留空白、不闪烁、不缩放且无横向溢出；不新增 E2E ID。
 
 ## `BDD.RESUME.DELETE.CONFIRM.006` 简历删除二次确认
 

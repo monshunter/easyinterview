@@ -70,11 +70,6 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({ resumeId }) => {
         eyebrow={t("resumeWorkshop.eyebrow")}
         title={t("resumeWorkshop.detail.waitingTitle")}
         body={t("resumeWorkshop.detail.waitingBody")}
-        action={{
-          label: t("common.back"),
-          onClick: onBack,
-          testId: "resume-detail-parse-back",
-        }}
       />
     );
   }

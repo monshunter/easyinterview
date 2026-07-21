@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.42
+> **版本**: 2.43
 > **状态**: active
-> **更新日期**: 2026-07-20
+> **更新日期**: 2026-07-21
 
 ## 1 文档目的
 
@@ -224,15 +224,16 @@ ROUTE_ALIASES
 13. TopBar 已登录态只渲染从 authenticated runtime `displayName` 派生首字符的圆形 initial-mark 设置按钮；名称为空显示 `?`，它不得读取或暗示用户头像数据。component/responsive/a11y gate 必须证明姓名、caret、backdrop、dropdown 与 TopBar logout 零引用，且 desktop/mobile 点击区域和 focus ring 可用。
 14. Settings 为无 tab 单页：Account 只读展示 runtime `/me.displayName` / 完整 `email` 并进入既有 logout 确认；Privacy 只展示导出暂不可用与账号删除。完整 email 只用于 authenticated 页面显示，不写入日志/场景证据。删除流程覆盖确认、pending、失败重试；`202` 后调用现有 `refreshAuth()` 重探测 `/me`（预期 401），提交 unauthenticated 状态并 replace Home；不得重复实现清 session 方法、挂载时重复调用 `/me`、保留 `emailMasked` alias 或伪静态字段。
 15. 字体固定为 Noto Serif SC（标题）、Inter（正文）与 JetBrains Mono（标签/代码）；删除其它 font preset 数据、包、CSS imports、locale 文案和兼容状态。
-16. 进入面试、解析简历、生成报告与解析 JD 共用一套 `AsyncTransitionScene` 视觉骨架：保留共享 TopBar，在柔和蓝白画布上使用中心轨道插画、状态标签、衬线标题、说明和明确的恢复动作；四个业务 owner 只提供真实状态、文案、进度表达和返回路径，不复制 TopBar、背景或动效实现。
+16. 进入面试、解析简历、生成报告与解析 JD 共用一套 `AsyncTransitionScene` 视觉骨架：保留共享 TopBar，在柔和蓝白画布上使用中心轨道插画、状态标签、衬线标题和说明；action 是由业务 owner 按状态选择的可选区域。JD 与简历的 queued/processing 等待态不渲染内联返回按钮，避免在后台任务仍进行时提供误导性的中断感；失败或错误终态继续由各 owner 提供可恢复动作。四个业务 owner 不复制 TopBar、背景或动效实现。
 17. `parse`、`practice`、`reports`、`generating`、`report`、`report_conversation` 在 TopBar 中统一高亮“面试”；`resume_versions` 高亮“简历”。当前正式 route 不再隐藏 TopBar。循环轨道、漂浮与 indeterminate rule 在 `prefers-reduced-motion: reduce` 下停用，进度不得伪造百分比、服务端阶段或完成时间。
 18. 视觉系统必须提供单一 `--ei-radius-control: 8px` 语义 token，并由 TopBar 登录/语言选项、Auth 主按钮、Home、Workspace、Parse、Practice、Reports/Report、Generating、Resume 与 Settings 的有框操作按钮显式消费。不得使用全局 `button` selector 批量覆盖；source gate 必须枚举正式 action consumer，并允许 circular/pill、borderless link/back、card/input/status 等非目标 surface 保持各自圆角。
-19. 二级和三级页面的返回控件统一使用共享文案：中文显示“返回”，英文显示“Back”。返回目标、history replace/push 语义和可信上下文判断继续由页面 owner 持有；正文说明可以描述具体目标，但不得把“返回首页 / 返回简历工坊 / 返回报告 / 返回面试”等目标名称重新写进返回控件标签。
+19. 二级和三级页面在确实渲染返回控件时统一使用共享文案：中文显示“返回”，英文显示“Back”。JD 与简历 queued/processing 等待态是明确例外，不渲染内联返回控件；失败/错误态与普通详情页仍由页面 owner 持有返回目标、history replace/push 语义和可信上下文判断。正文说明可以描述具体目标，但不得把“返回首页 / 返回简历工坊 / 返回报告 / 返回面试”等目标名称重新写进返回控件标签。
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-21 | 2.43 | 移除 JD 与简历 queued/processing 等待态的内联返回按钮；共享异步场景 action 保持可选，失败/错误态恢复动作不变。 |
 | 2026-07-20 | 2.42 | 将 Settings 预设扩展为 Ocean / Plum / Forest，锁定三套浅色 `58%/92%` 与暗色 `68%/28%` OKLCH accent matrix，并保持账号保存和 Custom 两层结构。 |
 | 2026-07-20 | 2.41 | 统一二三级页面返回控件为“返回 / Back”，保留各 owner 的目标路由和可信上下文恢复逻辑。 |
 | 2026-07-20 | 2.40 | 将 Settings 主题一级选项与保存按钮固定在同一主操作行，自定义色条仅在下方第二行展开，并要求 Chrome 量测切换前后保存按钮纵向位置不变。 |

@@ -1,8 +1,8 @@
 # Home JD Import and Parse BDD Checklist
 
-> **版本**: 2.34
-> **状态**: completed
-> **更新日期**: 2026-07-20
+> **版本**: 2.35
+> **状态**: active
+> **更新日期**: 2026-07-21
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -35,8 +35,9 @@
 
 ## `BDD.HOME.JD.PARSE.VISUAL.005` JD 解析等待态
 
-- [x] Owner tests 覆盖 shared job variant、四步 done/current/pending、真实 step label、ready replace、error/Back 和 internal-metadata negative。
-- [x] Current-run desktop Chrome 对照参考稿验证 TopBar、JD/搜索插画、编号步骤轴和无横向溢出；mobile/reduced-motion 由 shared component contract 覆盖，不新增 E2E ID。（真实 step 1 与 step 4 均已捕获，最终到达 Workspace。）
+- [x] 历史 Phase 27 已覆盖 shared job variant、四步 done/current/pending、真实 step label、ready replace、error/Back 和 internal-metadata negative；Phase 31 只修订运行中 action 语义。
+- [x] Phase 31 owner tests 证明 queued/processing 不渲染 `parse-loading-back`、action wrapper 或内联“返回 / Back”，同时 failed/error 的重新解析与返回动作保持。<!-- verified: 2026-07-21 method=vitest-and-full-container-chrome evidence="49 focused tests passed; real containerized frontend/backend at 1916x821 and 390x844 rendered JD processing with mainButtons=0, actionWraps=0, mobile scrollWidth=390 and consoleIssueCount=0." -->
+- [ ] Current-run Chrome desktop/mobile 验证等待画布移除 action 后无遗留空白、TopBar/步骤轴稳定、document 无横向溢出；不新增 E2E ID。
 
 ## `BDD.HOME.JD.TEXTAREA.006` JD 输入区自动适配
 

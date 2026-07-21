@@ -1,8 +1,8 @@
 # 多 JD 与多简历目标管理结构
 
-> **版本**: 4.2
+> **版本**: 4.3
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-21
 
 ## 1 文档目的
 
@@ -130,13 +130,13 @@ MockInterviewPlan
 
 ## 7 UI 行为
 
-- 新导入 JD 的 `queued/processing` Parse 使用共享蓝白过渡画布与 JD 文档/放大镜轨道插画。状态标签显示当前四项等待节奏，标题与步骤列表共用中心内容列；已完成、当前、待处理三态分别使用 success/accent/neutral 语义，当前项可显示“处理中”。
+- 新导入 JD 的 `queued/processing` Parse 使用共享蓝白过渡画布与 JD 文档/放大镜轨道插画。状态标签显示当前四项等待节奏，标题与步骤列表共用中心内容列；已完成、当前、待处理三态分别使用 success/accent/neutral 语义，当前项可显示“处理中”。等待画布不渲染内联“返回 / Back”按钮；失败/错误态仍保留原有恢复与返回动作。
 - 四项进度只是现有 Parse 客户端等待表达，不展示百分比、provider、model、prompt/rubric、hash、典型耗时或完成承诺。ready 仍 replace 到 Workspace 详情，failed/error 保留原恢复页；TopBar 保持可见并高亮“面试”。
 
 | 场景 | 目标行为 |
 |------|----------|
 | 用户新增 JD | 首页先选择已有 selectable 简历，再点击「立即面试」POST import；只进入 `/parse?targetJobId` queued/processing 进度，ready 后 replace 到 `/workspace?targetJobId` 只读 JD / 简历 / 轮次详情，唯一成功 CTA 是立即面试 |
-| JD 正在解析 | `parse` 只展示四步进度与等待说明；不得向用户展示 model/provider、rubric/prompt/version/hash、provenance 或典型耗时等内部实现元数据 |
+| JD 正在解析 | `parse` 只展示四步进度与等待说明，不渲染内联“返回 / Back”按钮；不得向用户展示 model/provider、rubric/prompt/version/hash、provenance 或典型耗时等内部实现元数据。失败/错误态仍提供既有恢复与返回动作 |
 | 用户有多份 JD | 首页最多显示最近 3 条模拟面试；卡片主体点击进入规划详情，`立即面试` 主按钮直接启动 practice，不展示删除按钮；更多内容通过“更多”进入一级 `面试` 列表页 |
 | 用户不想继续当前规划 | 在面试页点击切换规划或新建规划 |
 | 用户首次无简历 | 首页提示创建简历；首页不提供上传简历入口，只跳转到 `resume_versions(flow=create)`；未创建、形成可读证据并显式选择 selectable 简历前不调用 import，也不进入训练、复练、下一轮或报告链路 |
@@ -172,6 +172,7 @@ MockInterviewPlan
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 4.3 | 2026-07-21 | 移除 JD queued/processing 等待画布的内联返回按钮；失败/错误态恢复动作、轮询和 ready replace 合同不变。 |
 | 4.1 | 2026-07-19 | 按解析 JD 参考稿统一蓝白过渡画布、JD 轨道插画和四项进度层级；保留 command-only route、ready replace 与内部元数据负向边界。 |
 | 4.2 | 2026-07-20 | Home 简历下拉选项只显示简历名称，移除语言、来源、更新时间与摘要拼接，不改变 selectable predicate、排序、选择值或 import 合同。 |
 | 4.0 | 2026-07-19 | 简历唯一 Header 创建入口统一使用 Workspace 同款 22px 圆圈加号。 |

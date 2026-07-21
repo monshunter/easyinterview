@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 4.7
-> **状态**: completed
-> **更新日期**: 2026-07-20
+> **版本**: 4.8
+> **状态**: active
+> **更新日期**: 2026-07-21
 
 **关联计划**: [plan](./plan.md)
 
@@ -167,3 +167,10 @@
 - [x] 28.1 RED/GREEN: `ResumeWorkshopCssParity.test.ts` 先因 Markdown 白色纸张缺少局部深色 `color` 而失败，再以最小 CSS 修复确保正文、列表、强调和代码不继承夜间壳层 foreground；验证 focused CSS parity test。<!-- verified: 2026-07-20 method=focused-vitest-red-green evidence="RED 1/9 failed only on missing page-local #222222 color; GREEN 9/9 PASS after adding the fixed paper ink with AA contrast against #ffffff." -->
 - [x] 28.2 REGRESSION: `ResumePreviewTab` Markdown DOM、A4 连续页面、PDF page stack、只读边界与 responsive containment 保持通过；执行 Resume owner tests、frontend typecheck/build 与根 `make test`。<!-- verified: 2026-07-20 evidence="Resume Workshop 20 files/125 tests PASS; frontend typecheck and production build PASS; root make test PASS with 621 tests and 4628 subtests plus all Go packages." -->
 - [x] 28.3 BDD-Gate: `BDD.RESUME.DETAIL.DARK.008` 由 [BDD checklist](./bdd-checklist.md) 关联 domain behavior tests；Chrome skill 在真实 frontend/backend 上验收 dark/light 的 page/body/list/strong 计算色、可读截图、console 与 no-overflow，不声明 E2E PASS。<!-- verified: 2026-07-20 method=domain-behavior+chrome-ui evidence="BDD checklist complete; real Chrome light/dark page/body/list/strong/code all use rgb(34,34,34) on white while dark shell remains #e8edf6; 794px single continuous page, no overflow or console warning/error." -->
+
+## Phase 29: Remove the resume parsing waiting Back action
+
+- [x] 29.1 RED: `ResumeDetailView.test.tsx` 锁定 queued/processing shared resume scene 保留插画、busy semantics、稳定 DOM 与 polling，但 `resume-detail-parse-back`、action wrapper 和内联“返回 / Back”缺席；failed-without-body 仍存在返回控件。<!-- verified: 2026-07-21 method=focused-vitest-red evidence="ParseScreen and ResumeDetailView ran 15 tests with exactly the two new waiting-action negatives failing; 13 adjacent tests, including resume failed-state Back recovery, stayed green." -->
+- [x] 29.2 GREEN: `ResumeDetailView` 仅删除 `isParsing` 分支的 `AsyncTransitionScene.action`；shared component、failed/detail `onBack`、sequential polling、pending data、ready/failed 替换、route 与 locale 保持。<!-- verified: 2026-07-21 method=focused-vitest-green evidence="Six focused files and 49 tests pass, including Parse waiting/failed/polling, Resume waiting/failed, shared optional action and common Back copy." -->
+- [x] 29.3 BDD-Gate: `BDD.RESUME.PARSE.VISUAL.005` 由 owner behavior tests 与 current-run Chrome desktop/mobile UI acceptance 证明等待态无内联 action/空白、失败返回保持且无横向溢出；不新增 E2E ID。<!-- verified: 2026-07-21 method=full-container-chrome evidence="make dev-container-up rebuilt real frontend/backend; resume processing at 1916x821 and 390x844 had mainButtons=0, actionWraps=0, mobile scrollWidth=390 and consoleIssueCount=0; failed-without-body Back remains covered by focused tests." -->
+- [x] 29.4 REGRESSION: focused Resume、frontend typecheck/build、根 `make test`、owner context、Header/INDEX/docs/diff/pruning gates 通过；完成 Bug/复盘/日志评估后请求恢复 completed lifecycle。<!-- verified: 2026-07-21 method=full-regression evidence="Root make test passed backend 626 tests/4628 subtests and frontend 137 files/1126 tests; typecheck/build, both context validators, docs/index/link/contract/diff/pruning gates and 6/6 full-container doctor passed. No new Bug record was needed; retrospective recorded in 2026-07-21-parse-waiting-back-action-removal-assessment.md. Lifecycle remains active pending user approval." -->

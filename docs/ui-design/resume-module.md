@@ -1,8 +1,8 @@
 # Resume 一级模块目标结构
 
-> **版本**: 4.7
+> **版本**: 4.8
 > **状态**: active
-> **更新日期**: 2026-07-20
+> **更新日期**: 2026-07-21
 
 ## 1 文档目的
 
@@ -43,7 +43,7 @@ Resume / resume_versions
 │  ├─ 粘贴内容
 │  └─ 注册成功后进入解析等待
 ├─ Resume Parse Waiting(resumeId)
-│  ├─ 解析中动画
+│  ├─ 解析中动画（无内联返回按钮）
 │  └─ 成功后进入 Markdown 详情 / 失败后进入失败态
 └─ Resume Detail(resumeId)
    └─ 只读简历正文（PDF 页面栈 / Markdown 页面直接位于页面画布）
@@ -125,7 +125,7 @@ No Resume
 
 ## 8 后续实现输入
 
-- `queued/processing` 详情使用共享 `AsyncTransitionScene` 的 resume variant：TopBar 保持“简历”高亮，中心文件插画由多层轨道和单一运动点围绕，标题/说明位于同一轴线；返回控件统一显示“返回 / Back”，目标仍为简历工坊。
+- `queued/processing` 详情使用共享 `AsyncTransitionScene` 的 resume variant：TopBar 保持“简历”高亮，中心文件插画由多层轨道和单一运动点围绕，标题/说明位于同一轴线；解析等待期间不渲染内联“返回 / Back”按钮。解析失败态和普通详情页继续保留各自的返回控件与简历工坊目标。
 - 后台 poll 必须持续保留这一 DOM；首次尚无 Resume 数据的通用 loading 与解析等待态分离。循环轨道只改变不参与布局的 opacity/transform，并在 reduced-motion 下停用；desktop/mobile 均不得因动画造成 geometry 抖动或 document 横向溢出。
 
 1. 简历卡片列表必须展示简历名称、来源和最近编辑时间，并可展示 closed `ResumeSummary.summaryHeadline`，但参考稿列表不重复展示语言 tag，且不得读取详情正文。Home 的原生简历下拉选项只显示 `displayName || title`，不得拼接语言、来源、更新时间或摘要；这些元信息仍只属于简历资产列表与详情。
@@ -140,6 +140,7 @@ No Resume
 
 | 版本 | 日期 | 修订内容 |
 |------|------|----------|
+| 4.8 | 2026-07-21 | 移除 queued/processing 简历解析等待画布的内联返回按钮；失败态和普通详情页返回、轮询与终态替换保持不变。 |
 | 4.7 | 2026-07-20 | Markdown 白色纸张增加独立深色墨水合同，确保正文、列表、强调与代码在应用 light/dark 模式下都保持可读。 |
 | 4.6 | 2026-07-20 | PDF 页面与 Markdown page surface 统一为 `794px` A4 纸宽；PDF 每页保持 `210:297`，Markdown 则作为高度由正文自然撑开的连续长页面；窄屏按可用宽度收敛。 |
 | 4.5 | 2026-07-20 | 简历卡片删除增加可访问的二次确认：确认前零请求，取消/遮罩/Escape 零副作用，pending 禁止重复提交，失败在对话框内重试。 |

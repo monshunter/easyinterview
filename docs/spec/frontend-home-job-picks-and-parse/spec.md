@@ -1,8 +1,8 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.34
-> **状态**: completed
-> **更新日期**: 2026-07-20
+> **版本**: 2.35
+> **状态**: active
+> **更新日期**: 2026-07-21
 
 ## 1 背景与目标
 
@@ -86,6 +86,7 @@ Home 粘贴 JD
 | D-19 | Home screenshot-aligned visual hierarchy | Desktop Home 使用 1400px 级居中内容列、浅色渐变/斜切背景、标题强调、单一 intake card 与全宽 recent record；mobile 按 DOM 顺序收敛为单列 | 视觉重排不改变 operation matrix、Resume gate、route、privacy、idempotency 或 TargetJob round mapper；计数器必须显示 runtime owner 的真实上限，不硬编码参考图中的业务值 |
 | D-20 | Home JD textarea 自适应高度 | 横向固定为 intake card 的 `100%`，默认 `min-height=212px`；每次受控值变化后按 `scrollHeight` 自动增高或回缩，不低于默认高度且不显示内部纵向滚动条 | 长 JD 当前内容完整可见，mobile 不横溢；不改变 runtime byte limit、计数、request、route、privacy 或 Resume gate |
 | D-21 | Home 简历选项简洁标签 | `home-resume-select` 的每个业务选项只渲染 `ResumeSummary.displayName || ResumeSummary.title`；不得拼接 `language`、`sourceType`、`updatedAt`、`summaryHeadline` 或其他元信息 | 用户在下拉列表中只按简历名称识别和选择；selectable predicate、最近更新时间排序、`resumeId` value、选择状态与 import request 不变 |
+| D-22 | Parse 等待态内联动作 | command-only Parse 的 queued/processing `AsyncTransitionScene` 不传入 action，不渲染 `parse-loading-back` 或其他内联“返回 / Back”按钮 | 后台解析继续按原 scheduler 轮询；failed/error 仍保留重新解析和返回动作，ready replace、请求次数与 route 合同不变 |
 
 ## 4 设计约束
 
@@ -100,6 +101,7 @@ Home 粘贴 JD
 - Home `listResumes` / `listTargetJobs` 与 Parse `getTargetJob` 使用 shell safe-read single-flight + 稳定 loader dependencies；同 key 初载底层 request count 必须为 1，轮询后续请求必须有 scheduler tick 证据。
 - Home recent 只有在 authenticated 且 `loading || error || jobs.length > 0` 时渲染；成功加载且过滤后的 ready/non-blank 集合为空时，`home-recent-mocks`、标题、说明、更多入口和空卡片全部不进入 DOM。不得因此吞掉 loading 或用户安全的加载失败反馈。
 - Parse loading 的 DOM、截图和文案负向 gate 必须拒绝 `model`、`provider`、`rubric`、`prompt@`、版本/hash、`provenance`、`typical` 等内部实现标记；不能以折叠、弱化颜色或移动到底部代替删除。
+- Parse queued/processing 等待 DOM 不得渲染 `parse-loading-back`、共享 transition action wrapper 或任何内联“返回 / Back”按钮；该负向约束只作用于运行中的等待态，failed/error 的恢复与返回控件必须继续可用。
 - Workspace detail requirements evidence 只读展示 API 返回的 `evidenceLevel`；前端不得在详情页维护临时 hit toggle 或把确认状态写回后端。
 - Workspace detail round assumptions 的卡片布局仍追溯 UI 设计文档，但卡片数量必须来自 2~5 条 `TargetJob.summary.interviewRounds[]`；R 序号、标题、轮次类型、时长和 focus 也必须来自该数组。这些轮次由后端 LLM 根据 JD、行业/公司性质、岗位级别、团队/业务上下文和招聘流程线索推断，前端不得用 locale 或本地常量补齐轮数、HR/技术/经理面类型或分钟数。
 - Workspace detail round assumptions 必须复用 `resolveTargetJobPracticeProgress` 的 completed-prefix/current-first-incomplete 事实，不另建状态机：`done` 使用成功色 soft 背景与边框，`current` 使用主题 accent soft 背景与边框，`pending` 使用中性 soft 背景与规则线；每张卡同时暴露 `data-round-state` 和本地化的“已进行 / 即将进行 / 未进行”文本。全完成时全部为 done；无效投影不得制造 current/done。
@@ -154,10 +156,11 @@ Home 粘贴 JD
 | C-15 | 强制简历前置零残留 | 用户没有 selectable 简历或尚未显式选择 | 输入合法 JD 并尝试提交，随后扫描 active 产品/UI/owner 文档 | CTA disabled 且 `importTargetJob` 调用为零；创建并形成可读证据后仍须回 Home 显式选择；不存在无简历/JD-only 导入、训练、报告降级或历史缺绑 fallback 承诺 | 001 Phase 24 |
 | C-16 | 规划详情参考构图 | ready Workspace detail 有真实 TargetJob、简历和动态轮次 | 在 desktop/mobile 查看并操作 Header 与四层信息卡 | 约 1250px 内容列中 Header 左侧为步骤/标题/简历/说明，右侧为 Start/Reports；基本信息、要求、隐性关注点与动态轮次形成四层响应式卡面，无横向溢出且不改变请求、route、progress 或 fail-closed 行为 | 001 Phase 26 |
 | C-17 | JD textarea 自适应高度 | 用户进入 Home，JD 可能为空、短于默认高度或包含多行长文本 | 输入、粘贴或删除 JD 内容 | textarea 默认至少 212px；长内容按 `scrollHeight` 增高并完整显示，删减后回缩但不低于 212px；desktop/mobile 均保持 100% 横向宽度、无内部纵向滚动和无页面横向溢出 | 001 Phase 28 |
+| C-18 | Parse 等待态无返回按钮 | `getTargetJob` 为 queued/processing，或随后进入 failed/error | 用户查看运行中的等待画布或恢复终态 | queued/processing 只显示插画、状态、标题与四步进度，不渲染内联返回按钮或 action wrapper；failed/error 仍保留既有重新解析/返回动作；polling、ready replace、请求次数和 route 不变 | 001 Phase 31 |
 
 ### 7.1 JD 解析等待态目标构图
 
-command-only Parse 在 queued/processing 期间使用共享 `AsyncTransitionScene` 的 `job` variant：保留全局 TopBar 与“面试”高亮，显示 JD/搜索插画、真实“第 N/4 步”与四步列表；步骤可由前端既有等待 timer 提供视觉节奏，但不得声称后端阶段完成、百分比或内部模型/提示词事实。ready 仍 replace 到 Workspace detail，失败与返回动作仍由 Parse owner 处理。
+command-only Parse 在 queued/processing 期间使用共享 `AsyncTransitionScene` 的 `job` variant：保留全局 TopBar 与“面试”高亮，显示 JD/搜索插画、真实“第 N/4 步”与四步列表；步骤可由前端既有等待 timer 提供视觉节奏，但不得声称后端阶段完成、百分比或内部模型/提示词事实。等待态不渲染内联返回按钮；ready 仍 replace 到 Workspace detail，失败/错误态的重新解析与返回动作仍由 Parse owner 处理。
 
 ## 8 关联计划
 
@@ -175,6 +178,7 @@ command-only Parse 在 queued/processing 期间使用共享 `AsyncTransitionScen
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 2.35 | 2026-07-21 | Reopen Phase 31 to remove the inline Back action from queued/processing JD parsing while preserving failed/error recovery, polling and ready replacement. |
 | 2.34 | 2026-07-20 | Reopen Phase 30 so Home resume options display only the resume name without changing selection, sorting or import behavior. |
 | 2.32 | 2026-07-20 | Reopen Phase 28 to double the Home JD textarea default height and auto-fit pasted content without changing width, limits, requests or routes. |
 | 2.31 | 2026-07-19 | Reopen the command-only Parse owner for the supplied four-step JD transition while preserving ready replacement, polling and internal-metadata boundaries. |
