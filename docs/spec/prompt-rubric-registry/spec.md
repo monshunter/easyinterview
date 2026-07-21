@@ -1,8 +1,8 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 2.43
+> **版本**: 2.44
 > **状态**: active
-> **更新日期**: 2026-07-16
+> **更新日期**: 2026-07-21
 
 ## 1 背景与目标
 
@@ -80,6 +80,7 @@
 | D-20 | Resolve provenance coordinate | `ResolveActive(report.generate)` 在 active pair 为 v0.2.0 时必须返回 `DataSourceVersion=report-context.v1`，使 backend-review generation `CallMetadata` / `AICallMeta` 与冻结输入坐标一致；不得沿用通用 registry coordinate。`practice.session.chat/v0.2.0` 仍返回现有 `registry.v1`。 | focused resolver test 同时断言 report/practice，防止条件扩散到其他 feature key |
 | D-21 | Independent recorded report review | recorded eval 中 generation/judge 同模型，judge 不能单独自证。每个 case 先在 generation max4 内完整 validate/repair，再在独立 judge max4 内按 typed retry policy 执行；valid negative 立即 FAIL。最终 representative packet 再交 blind Agent reviewer。 | manifest分别保留generation/judge attempt_count/retry_count/reason/scope、aggregate usage/latency与item/causal digest；valid negative retry、attempt5、protocol/content混淆或任何unsupported都失败；真实 provider smoke 不作为完成 gate；marker evidence 必须绑定本次命令、case 数与结果，不得只恢复历史字符串 |
 | D-22 | TargetJob raw-text-only prompt | `target.import.parse` 的唯一 JD 内容输入是 raw JD text（`{{jd_text}}`）；沿用当前 renderer/lint 合同的 `{{language}}` 指定输出语言。current prompt 不接收 URL、page heading、file 或 source metadata。 | prompt body/meta hash、baseline seed、registry resolved snapshot 与 TargetJob render tests 同步；旧 source token/wording 只允许出现在显式负测或合法历史证据中，不引入 `target_language` alias |
+| D-23 | Practice interviewer employer identity | `practice.session.chat/v0.3.0` 必须把 persisted TargetJob/round 设为面试官招聘方身份的唯一来源；Resume 中所有公司只属于候选人履历，conversation 中 assistant 自己的身份说法不构成来源。目标公司名称未明确、仅为匿名描述或无法可靠判断时，回复省略公司名，不猜测、不把 Resume 公司补成招聘方。 | F3 `002` 拥有 v0.3 prompt/schema/hash/激活与 rollback；F3 `004` 拥有含独立 `role_identity` dimension 的 v0.3 rubric 与 named-target/anonymous-target/weak-impersonation/history-correction eval，并仅在当前 gate 通过后写入 verified `PRACTICE_INTERVIEWER_IDENTITY_V030_PASS`；v0.2 pair 发布后保持 immutable rollback coordinate |
 
 #### 3.1.1 6 个当前 baseline feature_key 字典
 
@@ -178,15 +179,16 @@
 | C-20 | report v0.2 frozen provenance | report/practice v0.2 pairs active | exact ResolveActive test | report returns `report-context.v1`; practice remains `registry.v1`; prompt/rubric versions are v0.2 on both | F3 002 + backend-review 001 |
 | C-21 | independent recorded report audit | fixed representative matrix，generation/judge 当前同 provider/model | independent max4 generation/judge state machines → full validation / typed judge outcome → blind review | generation动态scope；judge invalid可重试、valid negative不重试；attempt/retry/reason/scope+usage/latency manifest与代表 case evidence一致；不要求真实 provider smoke | F3 004 |
 | C-22 | TargetJob raw-text-only prompt | current prompt、seed 与 registry snapshot 已加载 | lint/hash/seed drift + TargetJob resolved-render tests | resolved prompt 只包含 raw JD text 与目标语言指令；无 URL/source metadata token 或说明；hash、seed 与 snapshot byte-semantic 一致 | F3 001 + backend-targetjob 001 |
+| C-23 | practice 面试官身份隔离 | TargetJob 招聘方与 Resume 公司不同或 TargetJob 匿名；assistant history 可能已错误自称 Resume 公司 HR | exact v0.3 Resolve、prompt/rubric lint、identity eval 与配置可用时的真实 provider acceptance | 面试官只代表 TargetJob 招聘方；匿名目标不报公司名；Resume 公司与 assistant 错误身份不被代入或延续；v0.2 可精确 rollback | F3 002 + F3 004 + backend-practice 001 |
 
 ## 7 关联计划
 
 F3 当前 active impl plan 由 F3 自身的 plans 承接（[engineering-roadmap §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 保留该 active spec）：
 
 - `001-baseline`：6 个 feature_key 的 baseline truth source + Resolve + lint。
-- `002-output-schema-contract`（active）：6 个语言无关 schema + prompt/example/struct consistency gate；Phase 14 唯一拥有 report v0.2 与 practice semantic-focus v0.2 prompt/schema pair、多版本 registry、000019 与 marker-gated final activation。
+- `002-output-schema-contract`（active）：6 个语言无关 schema + prompt/example/struct consistency gate；Phase 14 拥有 report/practice v0.2 激活基线，Phase 15 拥有 practice interviewer-identity v0.3 prompt/schema/hash、000023 与 rollback activation。
 - `003-language-coordinate-simplification`：删除默认 `en` prompt/rubric 副本，收敛到 canonical `multi` baseline；保留 runtime language fallback 与 output-language target。
-- `004-real-model-profile-and-evals`（completed）：逐维度 judge contract（`Judge` 演进为 `[]Score`，`FailClosedJudge` 保留为安全默认）+ `judge.default` profile coverage；拥有 report v0.2 rubric、context-aware judge、固定 recorded/offline suite 与独立 blind review。
+- `004-real-model-profile-and-evals`（active）：逐维度 judge contract（`Judge` 演进为 `[]Score`，`FailClosedJudge` 保留为安全默认）+ `judge.default` profile coverage；拥有 report v0.2 rubric、固定 recorded/offline suite，以及 practice v0.3 `role_identity` rubric/eval。
 - `005-grayscale-and-quality-feedback`（原 004）：PostHog 灰度分桶 + 报告页质量主观评分回流。
 
 后续如需扩展（多模态 prompt / 函数调用 prompt schema）：递增 spec 版本，原地修订；不创建 sibling spec。

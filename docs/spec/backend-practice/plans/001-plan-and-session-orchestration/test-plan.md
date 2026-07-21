@@ -1,8 +1,8 @@
 # 001 Plan and Session Orchestration Test Plan
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-21
 
 ## Phase 1: Contract tests
 
@@ -59,3 +59,10 @@
 - SQL transaction tests require recovery finalization to lock the session row before selecting messages and require original start/failure updates to affect exactly one queued session; a late start commit must roll back all opening facts after timeout convergence.
 - Negative coverage preserves fingerprint mismatch/pending-key conflict, fresh-start generation, different user/plan isolation and the partial unique index.
 - Runtime acceptance uses an existing affected account/session and records before/after counts for sessions, messages, AI task runs, lifecycle events, outbox and audit facts around one Chrome start action.
+
+## Phase 10: Interviewer identity grounding
+
+- Prompt lint and exact-version registry tests require explicit source precedence: TargetJob/round owns interviewer employer identity; Resume companies are candidate history only.
+- Offline cases cover a named target company different from the Resume employer, an anonymous/generic target company that must not produce a company-name claim, a weak Resume-company HR impersonation, and correction after assistant-authored identity drift.
+- Existing resume/project grounding cases remain unchanged and pass together with the new role-identity rubric dimension.
+- A configured real-provider acceptance runs the screenshot-equivalent context and records only redacted outcome evidence; unavailable provider configuration is reported as unavailable, not PASS.

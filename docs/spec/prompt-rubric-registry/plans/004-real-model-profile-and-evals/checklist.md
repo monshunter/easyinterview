@@ -1,8 +1,8 @@
 # F3 Real Model Profile and Evals Checklist
 
-> **版本**: 1.25
-> **状态**: completed
-> **更新日期**: 2026-07-16
+> **版本**: 1.26
+> **状态**: active
+> **更新日期**: 2026-07-21
 
 **关联计划**: [plan](./plan.md)
 
@@ -49,3 +49,16 @@
   <!-- verified: 2026-07-16 marker=REPORT_CONTEXT_AWARE_EVAL_PASS basis="five grounded report cases, full validator, typed judge retry/content rejection and redacted audit tests pass in the current owner run" -->
 - [x] 6.4 CLOSEOUT: 运行 context/docs/index/diff 与根 `make test`；恢复 plan/checklist `completed` 生命周期并保留 marker。
   <!-- verified: 2026-07-16 evidence="activation preflight and explicit-marker parser PASS; root make test PASS with 564 Python tests, 4481 subtests, all Go packages, and frontend 126 files/1004 tests; build, owner contexts, lint-config, docs/index and git diff checks PASS" -->
+
+## Phase 7: Practice interviewer identity rubric and eval
+
+- [x] 7.1 RED: rubric/eval lint rejects the missing v0.3 `role_identity` dimension and missing TargetJob-versus-Resume identity cases.
+  <!-- verified: 2026-07-21 method=tdd-red evidence="focused evalkit count test expected 32 but implementation required 28; real-suite tests found 28 total, seven unpinned Practice cases, seven missing role_identity scores and all four required identity cases absent" -->
+- [x] 7.2 GREEN: add the immutable practice v0.3 rubric, normalize weights, and update every Practice case with an exact dimension score set.
+  <!-- verified: 2026-07-21 method=tdd-green evidence="practice v0.3 rubric weights sum to 1.0 with role_identity=0.4; all eleven Practice cases pin v0.3 prompt/rubric and contain the exact four-dimension score set; focused evalkit/eval tests and prompt/rubric lint pass" -->
+- [x] 7.3 EVAL-GATE: named target, anonymous target, Resume-company impersonation weak negative and assistant-history correction cases pass the single-source offline suite together with all existing cases.
+  <!-- verified: 2026-07-21 evidence="make eval-offline: single-source drift-check 32 cases/9 resolved prompts; deterministic offline grading 32; Promptfoo 32 passed, 0 failed, 0 errors; existing resume-grounding cases retained" -->
+- [x] 7.4 OWNER-MARKER: only after current rubric/eval/lint gates pass, emit verified `PRACTICE_INTERVIEWER_IDENTITY_V030_PASS`; F3 `002` activation preflight must reject failure prose or ordinary text that merely mentions the marker.
+  <!-- verified: 2026-07-21 marker=PRACTICE_INTERVIEWER_IDENTITY_V030_PASS basis="current prompt/rubric lint, exact four-dimension Practice suite, evalkit registry resolution and 32-case offline/Promptfoo gates pass; explicit-marker preflight first failed while this marker was absent" -->
+- [x] 7.5 CLOSEOUT: focused judge/registry/eval tests, root `make test`, context/docs/index/privacy/diff gates pass before restoring `completed`.
+  <!-- verified: 2026-07-21 method=full-closeout evidence="focused eval/evalkit/registry and privacy/lint gates PASS; make eval-offline drift/offline/Promptfoo 32/32; make test PASS Python 626/4628, Go all, frontend 137/1126; make build/lint/docs-check/context/index/diff PASS; live completion 5/5 and live judge parser limitation recorded separately" -->

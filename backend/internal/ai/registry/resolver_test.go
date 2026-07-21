@@ -129,8 +129,8 @@ func TestResolvePracticeSessionBaselineFeatures(t *testing.T) {
 			if res.FeatureKey != featureKey {
 				t.Errorf("FeatureKey: want %s, got %s", featureKey, res.FeatureKey)
 			}
-			if res.PromptVersion != "v0.2.0" || res.RubricVersion != "v0.2.0" {
-				t.Errorf("versions: want prompt/rubric v0.2.0, got %s/%s", res.PromptVersion, res.RubricVersion)
+			if res.PromptVersion != "v0.3.0" || res.RubricVersion != "v0.3.0" {
+				t.Errorf("versions: want prompt/rubric v0.3.0, got %s/%s", res.PromptVersion, res.RubricVersion)
 			}
 			if res.ModelProfileName != profileName {
 				t.Errorf("ModelProfileName: want %s, got %s", profileName, res.ModelProfileName)
@@ -142,7 +142,7 @@ func TestResolvePracticeSessionBaselineFeatures(t *testing.T) {
 	}
 }
 
-func TestV020ResolveProvenanceCoordinates(t *testing.T) {
+func TestCurrentResolveProvenanceCoordinates(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(t)
 	ctx := context.Background()
@@ -159,7 +159,7 @@ func TestV020ResolveProvenanceCoordinates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveActive practice: %v", err)
 	}
-	if practice.PromptVersion != "v0.2.0" || practice.RubricVersion != "v0.2.0" || practice.DataSourceVersion != "registry.v1" {
+	if practice.PromptVersion != "v0.3.0" || practice.RubricVersion != "v0.3.0" || practice.DataSourceVersion != "registry.v1" {
 		t.Fatalf("practice resolution = %+v", practice)
 	}
 }

@@ -34,6 +34,53 @@ func TestSeedMigrationCoversBaselineFeatureKeys(t *testing.T) {
 	assertSeedRows(t, "rubric_versions", wantRubrics, rows["rubric_versions"])
 }
 
+func TestPracticeV030ActivationMigrationContract(t *testing.T) {
+	t.Parallel()
+	repoRoot := walkUpToRepoRoot(t)
+	upPath := filepath.Join(repoRoot, "migrations", "000023_activate_practice_interviewer_identity_v030.up.sql")
+	downPath := filepath.Join(repoRoot, "migrations", "000023_activate_practice_interviewer_identity_v030.down.sql")
+	up, err := os.ReadFile(upPath)
+	if err != nil {
+		t.Fatalf("read v0.3 activation up migration: %v", err)
+	}
+	down, err := os.ReadFile(downPath)
+	if err != nil {
+		t.Fatalf("read v0.3 activation down migration: %v", err)
+	}
+
+	upSQL := string(up)
+	downSQL := string(down)
+	for _, want := range []string{
+		"BEGIN;",
+		"'practice.session.chat', 'v0.3.0', 'multi'",
+		"9fff2605695aed41c3c81efd3f8d35e15b6ecad851a5b3abd482540e402b496d",
+		"SET is_active = (version = 'v0.3.0')",
+		"COMMIT;",
+	} {
+		if !strings.Contains(upSQL, want) {
+			t.Errorf("up migration missing %q", want)
+		}
+	}
+	if strings.Contains(upSQL, "'report.generate'") {
+		t.Fatal("practice v0.3 activation must not mutate report.generate")
+	}
+	for _, want := range []string{
+		"BEGIN;",
+		"SET is_active = (version = 'v0.2.0')",
+		"DELETE FROM prompt_versions",
+		"DELETE FROM rubric_versions",
+		"version = 'v0.3.0'",
+		"COMMIT;",
+	} {
+		if !strings.Contains(downSQL, want) {
+			t.Errorf("down migration missing %q", want)
+		}
+	}
+	if strings.Contains(downSQL, "'report.generate'") {
+		t.Fatal("practice v0.3 rollback must not mutate report.generate")
+	}
+}
+
 type insertRow struct {
 	featureKey   string
 	version      string
@@ -142,7 +189,7 @@ func addExpectedRow(t *testing.T, rows map[string]insertRow, row insertRow, path
 func extractCurrentMigrationRows(t *testing.T, repoRoot string) map[string][]insertRow {
 	t.Helper()
 
-	paths, err := filepath.Glob(filepath.Join(repoRoot, "migrations", "*prompt_rubric*.up.sql"))
+	paths, err := filepath.Glob(filepath.Join(repoRoot, "migrations", "*.up.sql"))
 	if err != nil {
 		t.Fatalf("glob prompt/rubric migrations: %v", err)
 	}

@@ -1,8 +1,8 @@
 # 001 Plan and Session Orchestration Test Checklist
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-21
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -64,3 +64,16 @@
   <!-- verified: 2026-07-19 method=sqlmock+postgres-transaction result=PASS -->
 - [x] Focused, PostgreSQL integration, root regression and contract/docs/diff gates pass for the remediation.
   <!-- verified: 2026-07-19 method=full-closeout result=PASS evidence="make test 584/4583 + Go all + frontend 127/1035; build/lint/codegen/OpenAPI/fixtures/docs/context/index/diff PASS" -->
+
+## Phase 10: Interviewer identity grounding
+
+- [x] RED prompt/contract evidence reproduces Resume-employer identity substitution.
+  <!-- verified: 2026-07-21 evidence="prompt v0.3 absent, then active resolver/migration tests failed against v0.2 and missing 000023" -->
+- [x] Exact-version prompt/rubric, hash, registry and migration tests pass for the new active coordinate while the prior version remains an exact rollback coordinate.
+  <!-- verified: 2026-07-21 evidence="v0.3 active hash/schema/rubric, v0.2 exact rollback, cache rollback/reactivate, migration lint/check and disposable PostgreSQL 22->23->22->23 PASS" -->
+- [x] Identity-specific offline cases and all existing `practice.session.chat` cases pass.
+  <!-- verified: 2026-07-21 evidence="32-case offline and Promptfoo suite PASS; eleven Practice cases pin v0.3 and retain prior grounding cases" -->
+- [x] Real-provider screenshot-equivalent acceptance is recorded when provider configuration is available; otherwise availability is reported honestly.
+  <!-- verified: 2026-07-21 evidence="DeepSeek v4 flash 5/5 v0.3 completion calls valid with zero Resume-employer identity claims; raw payloads deleted; live judge parse failure reported unavailable rather than PASS" -->
+- [x] Phase 10 focused and root regression gates pass.
+  <!-- verified: 2026-07-21 method=focused+full-regression evidence="prompt/rubric lint, registry/eval/evalkit/Practice/migration focused tests PASS; make eval-offline 32/32; make test PASS Python 626/4628, Go all, frontend 137/1126; make build/lint/docs-check/context/index/diff PASS" -->

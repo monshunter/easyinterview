@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration
 
-> **版本**: 2.8
+> **版本**: 2.9
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-21
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -115,6 +115,13 @@
 - Preserve all negative boundaries: fingerprint mismatch and an already-pending same key still conflict; different user/plan never recover each other; no active session still executes the existing opening LLM path exactly once.
 - Redeploy backend and use the account's existing active sessions as recovery samples. Chrome must enter the original session from a formal start entry while PostgreSQL proves session/message/AI/lifecycle/outbox/audit counts do not increase on recovery.
 
+### Phase 10: Ground interviewer employer identity
+
+- RED prompt/contract assertions reproduce a TargetJob company that differs from the candidate's Resume employer and reject interviewer self-identification as the Resume company HR/recruiter.
+- GREEN activates a new immutable `practice.session.chat` prompt/rubric version: TargetJob/round is the only hiring-side identity source, Resume companies remain candidate-only, and anonymous/ambiguous target employers produce no company-name claim.
+- Add identity-specific offline cases and `BDD.PRACTICE.PLAN.002` for opening, continued conversation, anonymous TargetJob and assistant-history correction without changing the HTTP operation matrix or persistence model.
+- Verify exact registry version/rollback coordinates, migration up/down/up, focused lint/eval/Practice tests, root regression and current real-provider acceptance when the configured provider is available.
+
 ## 6 验收标准
 
 - Contract truth sources contain message/conversation shapes and zero current question/hint/mode shapes.
@@ -128,6 +135,7 @@
 - Start/send fail closed after TargetJob resume rebinding, and repeated `finish_reason=length` output persists no assistant reply.
 - Current product/API surface contains no `listPracticeSessions`; live recovery and report-owned review remain independently reachable through their scoped locators.
 - Re-entering start for a plan with an existing queued/running session returns that same session without a second opening generation or conflict; new keys remain exact and isolated.
+- Opening and reply messages never adopt a Resume employer as the interviewer's company; an unnamed or ambiguous target employer produces a company-neutral interviewer identity.
 
 ## 7 风险与应对
 
@@ -152,11 +160,13 @@
 | a queued recovery stores a stale response or navigates before opening exists | wait at most 35 seconds from persisted session update time; then atomically fail queued session/current key as retryable timeout and fence the original start commit on queued status |
 | completion advances a recovered running session while its new key is finalized | lock the session row before status validation, message snapshot and idempotency response update so recovery and completion have one transaction order |
 | recovery repeats opening side effects | the store returns an explicit recovery reservation; service skips prompt/AI and only finalizes the new idempotency response |
+| model copies the most salient Resume company into interviewer identity | make TargetJob/round the exclusive hiring-side source, mark Resume companies candidate-only, add anonymous-target fallback and identity-specific rubric/eval gates |
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-21 | 2.9 | Reopen Phase 10 to prevent interviewer identity from adopting Resume employers through a new versioned prompt/rubric pair, identity-specific evals and behavior acceptance. |
 | 2026-07-19 | 2.8 | Repair Phase 9 with a session-row lock at recovery finalization, a bounded queued recovery timeout, retryable orphan convergence, and a queued-status fence for late original commits. |
 | 2026-07-18 | 2.7 | Reopen Phase 9 to recover an existing queued/running session for repeated same-user/plan starts, with plan-scoped concurrency, exact new-key finalization, zero repeated opening side effects, and Chrome acceptance on current active sessions. |
 | 2026-07-15 | 2.6 | Reopen Phase 8 to remove listPracticeSessions end to end, preserve start/get live-session operations, and hand completed transcript reads to backend-review getReportConversation without compatibility or migration. |

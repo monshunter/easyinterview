@@ -9,14 +9,14 @@
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
 | [001-baseline](./001-baseline/plan.md) | [plan](./001-baseline/plan.md) / [checklist](./001-baseline/checklist.md) / [context](./001-baseline/context.yaml) | 1.12 | active | 2026-07-13 |
+| [002-output-schema-contract](./002-output-schema-contract/plan.md) | [plan](./002-output-schema-contract/plan.md) / [checklist](./002-output-schema-contract/checklist.md) / [context](./002-output-schema-contract/context.yaml) | 2.16 | active | 2026-07-21 |
+| [004-real-model-profile-and-evals](./004-real-model-profile-and-evals/plan.md) | [plan](./004-real-model-profile-and-evals/plan.md) / [checklist](./004-real-model-profile-and-evals/checklist.md) / [context](./004-real-model-profile-and-evals/context.yaml) | 1.26 | active | 2026-07-21 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
 | [003-language-coordinate-simplification](./003-language-coordinate-simplification/plan.md) | [plan](./003-language-coordinate-simplification/plan.md) / [checklist](./003-language-coordinate-simplification/checklist.md) / [context](./003-language-coordinate-simplification/context.yaml) | 1.1 | completed | 2026-07-07 |
-| [002-output-schema-contract](./002-output-schema-contract/plan.md) | [plan](./002-output-schema-contract/plan.md) / [checklist](./002-output-schema-contract/checklist.md) / [context](./002-output-schema-contract/context.yaml) | 2.15 | completed | 2026-07-13 |
-| [004-real-model-profile-and-evals](./004-real-model-profile-and-evals/plan.md) | [plan](./004-real-model-profile-and-evals/plan.md) / [checklist](./004-real-model-profile-and-evals/checklist.md) / [context](./004-real-model-profile-and-evals/context.yaml) | 1.25 | completed | 2026-07-16 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）
 

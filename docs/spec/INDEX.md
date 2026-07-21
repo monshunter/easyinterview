@@ -40,7 +40,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [observability-stack](./observability-stack/spec.md) | 1.12 | active | 2026-07-13 | [plans](./observability-stack/plans/) |
-| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 2.43 | active | 2026-07-16 | [plans](./prompt-rubric-registry/plans/) |
+| [prompt-rubric-registry](./prompt-rubric-registry/spec.md) | 2.44 | active | 2026-07-21 | [plans](./prompt-rubric-registry/plans/) |
 
 ## 5 P0 Implementation
 
@@ -52,7 +52,7 @@
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.57 | completed | 2026-07-20 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 2.8 | active | 2026-07-19 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 2.13 | active | 2026-07-14 | [plans](./backend-targetjob/plans/) |
-| [backend-practice](./backend-practice/spec.md) | 1.37 | active | 2026-07-19 | [plans](./backend-practice/plans/) |
+| [backend-practice](./backend-practice/spec.md) | 1.38 | active | 2026-07-21 | [plans](./backend-practice/plans/) |
 | [backend-review](./backend-review/spec.md) | 1.34 | active | 2026-07-18 | [plans](./backend-review/plans/) |
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.15 | completed | 2026-07-12 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.7 | active | 2026-07-14 | [plans](./backend-upload/plans/) |

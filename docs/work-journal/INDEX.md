@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-21](2026-07-21.md) | `fix(practice): ground interviewer employer identity (BUG-0197)` | #fix #api #test #docs #bdd #eval |
 | [2026-07-20](2026-07-20.md) | `fix(test): stop host runtimes during cleanup (BUG-0196)` | #fix #test #docs |
 | [2026-07-20](2026-07-20.md) | `fix(resume): keep Markdown paper readable in dark mode (BUG-0195)` | #fix #ui #test #docs #bdd #chrome |
 | [2026-07-20](2026-07-20.md) | `feat(resume): add drag and drop uploads (BUG-0194)` | #feat #fix #ui #i18n #test #docs #bdd #chrome |

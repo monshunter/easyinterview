@@ -60,11 +60,13 @@ cases:
       critical_safety_pass: true
 ```
 
-The committed suite has exactly 28 cases covering the 6 current §3.1.1 chat
+The committed suite has exactly 32 cases covering the 6 current §3.1.1 chat
 `feature_key`s, including at least one `en -> multi` fallback case. The five
 `report.generate` cases are distinct complete/partial/short/pending/injection
 fixtures; all carry synthetic redacted context + transcript, and exactly three
-are critical.
+are critical. The eleven `practice.session.chat` cases pin the candidate
+`v0.3.0` prompt/rubric coordinate and include named-target, anonymous-target,
+resume-employer impersonation, and assistant identity-drift coverage.
 
 ## 3 Runner and gates
 
@@ -72,7 +74,7 @@ The Go `backend/cmd/evalkit` binary owns registry single-source resolution and
 grading via the single `registry.LLMJudge`; Promptfoo is the runner that
 orchestrates and reports.
 
-- `make eval-offline` — single-source drift gate + exact `28` count gate + the
+- `make eval-offline` — single-source drift gate + exact `32` count gate + the
   Promptfoo runner over recorded fixtures. Deterministic, zero-cost, no network.
   **Not** part of `make test`. Runtime artifacts are confined to
   `$(EVAL_OUTPUT_DIR)` (default `.test-output/evals/`).

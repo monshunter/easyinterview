@@ -386,7 +386,7 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
 
     migration_rows: dict[tuple[str, str, str], tuple[pathlib.Path, str]] = {}
     active_versions: dict[tuple[str, str], str] = {}
-    migration_paths = sorted(migrations_root.glob("*prompt_rubric*.up.sql"))
+    migration_paths = sorted(migrations_root.glob("*.up.sql"))
     for sql_path in migration_paths:
         text = sql_path.read_text(encoding="utf-8")
         for m in row_re.finditer(text):

@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 2.9
+> **版本**: 2.10
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-21
 
 **关联计划**: [plan](./plan.md)
 
@@ -89,10 +89,24 @@
 - [x] 9.10 COMPLETION-GATE: focused unit/store tests, PostgreSQL integration, root `make test`, build/OpenAPI/codegen/fixture/docs/context/index/diff gates pass before remediation closeout.
   <!-- verified: 2026-07-19 method=full-closeout evidence="focused + all practice PostgreSQL integration PASS; make test PASS (Python 584/4583, Go all, frontend 127/1035); build/lint/codegen-check/openapi-diff/validate-fixtures/docs-check/context/index/git-diff-check PASS; OpenAPI diff 0/0/0" note="Makefile has no git-diff-check target, so git diff --check ran directly" -->
 
+## Phase 10: Ground interviewer employer identity
+
+- [x] 10.1 RED: prompt/contract tests reproduce TargetJob-versus-Resume company conflict and fail while the policy permits the interviewer to claim the Resume employer.
+  <!-- verified: 2026-07-21 method=pytest-red test=test_practice_chat_v030_locks_interviewer_employer_identity_sources result="FileNotFoundError: v0.3.0.md absent" -->
+- [x] 10.2 GREEN: `practice.session.chat` resolves the new immutable prompt/rubric pair; TargetJob/round is the only hiring-side identity source, Resume companies remain candidate-only, and anonymous targets produce no invented company name.
+  <!-- verified: 2026-07-21 method=pytest+go-test+lint evidence="v0.3 exact prompt/rubric GREEN and active; role_identity weight=0.4; v0.2 remains exact-readable as the inactive rollback coordinate; prompt/rubric lints and registry package pass" -->
+- [x] 10.3 EVAL-GATE: identity-specific strong/weak/assistant-history cases pass prompt/rubric lint and offline eval without weakening existing resume-grounding cases.
+  <!-- verified: 2026-07-21 method=tdd-red-green evidence="RED: exact-32 and practice v0.3 identity-suite tests failed against the 28-case suite with seven unpinned cases, no role_identity scores and four missing identity cases. GREEN: prompt/rubric lint clean; evalkit/registry focused tests pass; make eval-offline reports drift-check 32 cases/9 prompts, offline grading 32 and Promptfoo 32 passed/0 failed/0 errors." -->
+- [x] 10.4 BDD-Gate: `BDD.PRACTICE.PLAN.002` proves opening/reply identity separation through owner behavior tests and current real-provider acceptance when available; no mock-backed browser flow is claimed as E2E.
+  <!-- verified: 2026-07-21 marker=PRACTICE_INTERVIEWER_IDENTITY_BEHAVIOR_PASS method="owner-contract+offline-eval+real-provider" evidence="exact v0.3 prompt/registry identity source tests pass; four identity eval classes pass; DeepSeek v4 flash produced 5/5 valid v0.3 completions across three anonymous-target runs, one named-target run and one assistant-history correction with zero Resume-employer identity claims; raw payloads deleted; live judge JSON parsing failed and is not claimed PASS; no browser/E2E claim" -->
+- [x] 10.5 COMPLETION-GATE: exact registry coordinates, migration up/down/up, focused Practice/F3 gates, root `make test`, docs/context/index/diff and post-pass reconcile pass before closeout.
+  <!-- verified: 2026-07-21 method=full-closeout evidence="exact v0.2/v0.3 registry and practice-only activation tests PASS; disposable PostgreSQL 22->23->22->23 PASS; make eval-offline 32/32; make test PASS Python 626/4628, Go all, frontend 137/1126; make build/lint/docs-check, three context validators, sync-doc-index and git diff --check PASS; BUG-0197 and delivery retrospective recorded" -->
+
 ## 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-21 | 2.10 | 原地追加 Phase 10：锁定 TargetJob 招聘方与 Resume 候选人雇主的身份边界，并增加版本化 prompt、评测与 BDD 验收。 |
 | 2026-07-19 | 2.9 | 原地追加 Phase 9 P1 修复：恢复最终化行锁、queued 有界等待与 retryable orphan 收敛、原启动提交 fencing。 |
 | 2026-07-18 | 2.8 | 新增 Phase 9：同 user/plan 活动会话恢复、plan-scoped 并发、精确新 key 最终化与 Chrome 真实验收。 |
 | 2026-07-15 | 2.7 | 新增 Phase 8：删除 listPracticeSessions 全部正向 surface，保留 start/get live operations，并交接 report-owned conversation read。 |
@@ -106,3 +120,5 @@
 - [x] BDD-Gate: `BDD.PRACTICE.PLAN.001` 由 [BDD checklist](./bdd-checklist.md) 关联现有 plan/session owner behavior tests；不创建或声明真实 E2E PASS。
 - [x] BDD-Gate Phase 8: `listPracticeSessions` 无当前用户行为流，不新增 BDD/E2E；按 [BDD checklist](./bdd-checklist.md) 回归保留的 start/get 行为并执行代码层替代 gate。
   <!-- verified: 2026-07-15 method=owner-behavior+exact-audit+root-contract evidence="retained start/get behavior PASS; no new scenario; 15-finding old-baseline audit, mock parity and root tests PASS; no E2E claimed" -->
+- [x] BDD-Gate Phase 10: `BDD.PRACTICE.PLAN.002` 按 [BDD checklist](./bdd-checklist.md) 验证面试官只代表 TargetJob 招聘方，匿名目标公司不猜名，Resume 公司不被代入面试官身份。
+  <!-- verified: 2026-07-21 method=owner-behavior+offline-eval+real-provider evidence="v0.3 owner contracts and four identity case classes PASS; DeepSeek completion acceptance 5/5 with zero Resume-employer identity claims; root make test and independent F3/Practice gates PASS; live judge parse failure remains explicitly unavailable; no browser/E2E claim" -->

@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.37
+> **版本**: 1.38
 > **状态**: active
-> **更新日期**: 2026-07-19
+> **更新日期**: 2026-07-21
 
 ## 1 背景与目标
 
@@ -81,6 +81,7 @@
 - Prompt 必须把不可被业务数据覆盖的 `system` 策略与不可信业务上下文分层：JD、完整简历、轮次、persona 和历史对话只能作为 JSON 编码后的 user data 传入，任何其中出现的指令式文本都不得进入或改写 system policy。JSON 编码必须覆盖引号、换行、标签和类似 prompt-injection 的内容，避免上下文逃逸。完整历史可用于保持对话连续性，但只有 persisted resume 与 candidate-authored `user` message 能建立候选人事实；`assistant` message 永远不能证明履历事实或把上一轮模型臆造放大为下一轮依据。
 - `round context` 必须由 plan 的 exact `roundId/roundSequence` 回查 TargetJob summary 得到 round name/type/focus；不得把 `interviewerPersona` 当作 interview round，也不得只把 persona/generalist 文案写进 `{{interview_round}}`。start/send 必须使用同一 round 投影；新 session 对 legacy null/mismatch identity fail closed。
 - `interviewerPersona` 只控制语气、视角和追问风格，不能创造候选人事实、替代真实轮次、改变完成台账或决定当前/下一轮。
+- 面试官的雇主归属只能来自 persisted `TargetJob` 与当前 `interviewRound`；`resumeContext` 中的公司均属于候选人履历，不得被代入为面试官所属公司。目标公司名称未明确、仅为匿名描述或无法从 TargetJob 可靠判断时，opening/reply 必须省略公司名称，以“本轮面试官 / 招聘方”身份继续，不得猜测或把简历任职公司补成目标公司。若 assistant history 已发生错误身份代入，后续消息不得沿用该说法，应回到 TargetJob 身份边界。
 - start/send 两条 store reservation 必须使用相同的 resume context 投影，并再次验证 `practice_plans.resume_id = target_jobs.resume_id`；TargetJob 改绑后，旧 plan/session 即使仍属同一用户也必须 fail closed，不能继续使用旧简历。若三种简历内容均为空，必须在 prompt resolve / AI 调用前 fail closed 为 typed `VALIDATION_FAILED`，不得注入 `resume context unavailable` 后继续生成，也不得写 assistant message。
 - 面试官只能把 persisted Resume context 或 candidate-authored `user` message 中明确出现的公司、项目、产品和技术栈当作候选人事实；`assistant` history 只用于连续性，不是事实来源。不得声称简历包含实际不存在的项目，也不得继续追问仅由上一条 assistant 引入的项目。用户只说“几个项目”却未给出名称时，应先请用户命名或描述，不能自行补造项目。
 - 输出保持最小结构化 envelope `{messageText}`，只用于 schema 与语言校验；它不是题目结构。
@@ -187,6 +188,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 | C-15 | pending lease 与 generation fence | G1 worker 在写 reply 前失联或迟到，90 秒 lease 已过期，随后发生 GET 或两个同 ID 并发 retry | 读取会话并 reserve G2，再释放 G1 Commit/Fail | GET 或同 ID reserve 惰性收敛过期 pending；只一个调用取得 G2；G1 Commit/Fail 均 typed conflict 且零写入；G2 最终只写一个 assistant reply | 002 |
 | C-17 | 无会话列表公共入口 | 当前 UI 只需要 live session 恢复与 report-owned 复盘 | 检查 OpenAPI/generated/router/handler/fixture/mock/frontend | `listPracticeSessions` current positive surface 为零；`getPracticeSession` 保留 live recovery，完成记录只由 `getReportConversation(reportId)` 读取；无 compatibility route 或新关系表 | 001 + openapi 001/002/003 + backend-review 001 |
 | C-18 | 重入开始恢复活动会话 | 同一用户同一 plan 已有 `queued/running` session，可能由关闭浏览器前的启动请求留下 | 从任一正式入口再次调用 `startPracticeSession` | running 返回既有 session 且新 key 精确幂等；queued 最多等待 35 秒，超时原子失败并允许后续重试；恢复最终化锁 session row，原启动迟到提交受 queued fence 拒绝；零重复 opening/AI/lifecycle/outbox/audit；不同 user/plan 与 fingerprint mismatch 仍隔离或冲突 | 001 Phase 9 |
+| C-19 | 面试官身份不串用简历公司 | TargetJob 的目标公司与 Resume 当前/历史公司不同，或 TargetJob 只提供匿名公司描述；assistant history 也可能已有错误自称 | 生成 opening 或后续回复 | 面试官只代表 TargetJob 招聘方；不得自称来自 Resume 公司。目标公司名不可靠时不报公司名，既有 assistant 错误身份不被延续 | 001 Phase 10 + F3 002/004 |
 
 ## 5 关联计划
 
@@ -199,6 +201,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-21 | 1.38 | 明确面试官雇主身份只由 TargetJob/round 决定，禁止把 Resume 任职公司代入招聘方；匿名目标公司不猜名，assistant 历史错误不延续。 |
 | 2026-07-19 | 1.37 | 修复 Phase 9 并发缺口：恢复最终化锁定 session row；queued 恢复采用 35 秒边界、retryable timeout 收敛与原启动 queued fencing，防止无限轮询、迟到复活和终态竞态快照。 |
 | 2026-07-18 | 1.36 | 用户批准方案 A：同 user/plan 重入 start 时恢复既有 queued/running session，不取消旧会话、不重复 opening LLM，并以 plan-scoped lock 与新 key 最终快照保持并发和幂等精确。 |
 | 2026-07-15 | 1.35 | 删除无产品入口的 listPracticeSessions 公共列表；保留 getPracticeSession 进行中恢复，并把完成 transcript 读取交给 report-owned getReportConversation，不保留兼容层。 |

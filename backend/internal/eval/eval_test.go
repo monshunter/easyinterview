@@ -71,6 +71,8 @@ cases:
           value: 0.85
         - dimension: language_consistency
           value: 0.95
+        - dimension: role_identity
+          value: 0.95
       reasoning:
         summary: "Targets the verification gap and stays on-language."
         evidence_quotes: []
@@ -87,6 +89,8 @@ cases:
           value: 0.55
         - dimension: language_consistency
           value: 0.7
+        - dimension: role_identity
+          value: 0.9
       reasoning:
         summary: "Reasonable follow-up with moderate depth."
         evidence_quotes: []
@@ -154,7 +158,7 @@ func TestResolveAllSingleSource(t *testing.T) {
 	}
 }
 
-// TestRealSuiteOfflineGreen is the exact-28 + offline-grades-clean gate over
+// TestRealSuiteOfflineGreen is the exact-32 + offline-grades-clean gate over
 // the committed config/evals suite (plan 004 §4.1/§4.5). It runs with no
 // AI_PROVIDER env and must not touch the network.
 func TestRealSuiteOfflineGreen(t *testing.T) {
@@ -163,8 +167,8 @@ func TestRealSuiteOfflineGreen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSuite(real): %v", err)
 	}
-	if suite.Count() != 28 {
-		t.Fatalf("offline eval suite must have exactly 28 cases, got %d", suite.Count())
+	if suite.Count() != 32 {
+		t.Fatalf("offline eval suite must have exactly 32 cases, got %d", suite.Count())
 	}
 	reportCases := 0
 	criticalReportCases := 0
@@ -220,6 +224,51 @@ func TestRealSuiteOfflineGreen(t *testing.T) {
 	}
 	if criticalPasses != 3 {
 		t.Fatalf("critical report gate: want 3/3, got %d/3", criticalPasses)
+	}
+}
+
+func TestPracticeIdentitySuitePinsV030AndRoleDimension(t *testing.T) {
+	root := repoRoot(t)
+	suite, err := eval.LoadSuite(filepath.Join(root, "config", "evals"))
+	if err != nil {
+		t.Fatalf("LoadSuite(real): %v", err)
+	}
+
+	wantIdentityCases := map[string]bool{
+		"practice.session.chat-target-company-not-resume-employer":  false,
+		"practice.session.chat-anonymous-target-omits-company-name": false,
+		"practice.session.chat-resume-employer-impersonation-weak":  false,
+		"practice.session.chat-assistant-identity-drift-correction": false,
+	}
+	practiceCases := 0
+	for _, c := range suite.Cases {
+		if c.FeatureKey != "practice.session.chat" {
+			continue
+		}
+		practiceCases++
+		if c.PromptVersion != "v0.3.0" || c.RubricVersion != "v0.3.0" {
+			t.Errorf("practice case %s versions = %s/%s, want v0.3.0/v0.3.0", c.ID, c.PromptVersion, c.RubricVersion)
+		}
+		dimensions := map[string]bool{}
+		for _, score := range c.Judge.Scores {
+			dimensions[score.Dimension] = true
+		}
+		for _, dimension := range []string{"followup_relevance", "practice_depth", "language_consistency", "role_identity"} {
+			if !dimensions[dimension] {
+				t.Errorf("practice case %s missing %s score", c.ID, dimension)
+			}
+		}
+		if _, ok := wantIdentityCases[c.ID]; ok {
+			wantIdentityCases[c.ID] = true
+		}
+	}
+	if practiceCases != 11 {
+		t.Errorf("practice suite must have exactly 11 cases, got %d", practiceCases)
+	}
+	for id, found := range wantIdentityCases {
+		if !found {
+			t.Errorf("practice identity case %s missing", id)
+		}
 	}
 }
 

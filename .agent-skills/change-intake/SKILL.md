@@ -117,7 +117,7 @@ link, inspect both artifacts before mutation even when confidence is `high`.
 Rules:
 
 - Prefer the `recommended` candidate only for `high`/`medium` confidence and when it does not conflict with stronger owner evidence
-- If confidence is `low`, search current Markdown, code, routes, API identifiers, BUG/scenario Owner links and Git evidence before presenting a choice. Only ask the user after live evidence remains ambiguous
+- If confidence is `low`, search current Markdown, code, routes, operation names, BUG references, scenario Owner links, and Git evidence before presenting a choice. Only ask the user after live evidence remains ambiguous
 - If the matcher finds nothing, search by BUG ID / API / route / command manually
 
 ### Step 3: Decide plan lifecycle handling

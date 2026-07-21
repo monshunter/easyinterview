@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-21](./2026-07-21-practice-interviewer-employer-identity-assessment.md) | Practice Interviewer Employer Identity 交付复盘 | #assessment #practice #prompt #eval #BUG-0197 |
 | [2026-07-20](./2026-07-20-local-dev-cleanup-host-runtime-assessment.md) | Local Dev Cleanup Host Runtime 交付复盘 | #assessment #local-dev #test #BUG-0196 |
 | [2026-07-20](./2026-07-20-resume-markdown-dark-mode-assessment.md) | Resume Markdown Dark Mode 交付复盘 | #assessment #ui #resume #markdown #dark-mode #BUG-0195 |
 | [2026-07-20](./2026-07-20-resume-a4-preview-assessment.md) | Resume A4 Preview 交付复盘 | #assessment #ui #resume #pdf #markdown #chrome |

@@ -225,6 +225,34 @@ def test_practice_chat_v020_uses_structured_semantic_focus_and_canonical_hash():
     assert module.validate_practice_chat_schema(schema_path, schema) == []
     assert module.collect_property_paths(schema) == {"$.messageText"}
     assert module.expected_hash(body.encode("utf-8"), meta) == meta["template_hash"]
+    assert meta["status"] == "draft"
+
+
+def test_practice_chat_v030_locks_interviewer_employer_identity_sources():
+    module = _load_module()
+    feature_dir = REPO_ROOT / "config/prompts/practice.session.chat"
+    body_path = feature_dir / "v0.3.0.md"
+    yaml_path = feature_dir / "v0.3.0.yaml"
+    schema_path = feature_dir / "v0.3.0.schema.json"
+
+    body = body_path.read_text(encoding="utf-8")
+    meta, _ = module._read_yaml_with_order(yaml_path)
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    rollback_schema = json.loads(
+        (feature_dir / "v0.2.0.schema.json").read_text(encoding="utf-8")
+    )
+    normalized_body = " ".join(body.lower().split())
+
+    assert "only source of the interviewer's employer identity" in normalized_body
+    assert "resume companies are the candidate's employment history" in normalized_body
+    assert "never identify yourself as an hr representative, recruiter, or employee of a resume company" in normalized_body
+    assert "omit the company name" in normalized_body
+    assert "assistant-authored identity claims are not evidence" in normalized_body
+    assert module.validate_practice_chat_context(body_path, body) == []
+    assert module.validate_practice_chat_schema(schema_path, schema) == []
+    assert schema == rollback_schema
+    assert module.expected_hash(body.encode("utf-8"), meta) == meta["template_hash"]
+    assert meta["version"] == "v0.3.0"
     assert meta["status"] == "active"
 
 

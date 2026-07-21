@@ -35,57 +35,59 @@ func TestCacheReloadIdempotent(t *testing.T) {
 	}
 }
 
-func TestCoordinatedV020ActivationRollbackReactivate(t *testing.T) {
+func TestPracticeV030ActivationRollbackReactivate(t *testing.T) {
 	prompts, rubrics := tempBaselineCopy(t)
 	client, err := NewRegistryClient(RegistryOptions{PromptsDir: prompts, RubricsDir: rubrics})
 	if err != nil {
 		t.Fatalf("NewRegistryClient: %v", err)
 	}
-	assertCoordinatedActiveVersion(t, client, "v0.2.0")
+	assertFeatureActiveVersion(t, client, "report.generate", "v0.2.0")
+	assertFeatureActiveVersion(t, client, "practice.session.chat", "v0.3.0")
 
-	// A partially edited file set must fail validation without replacing the
-	// already-published all-v0.2 snapshot.
-	rewritePromptStatus(t, filepath.Join(prompts, "report.generate", "v0.2.0.yaml"), "draft")
+	// A partially edited practice pair must fail validation without replacing
+	// the already-published report-v0.2/practice-v0.3 snapshot.
+	rewritePromptStatus(t, filepath.Join(prompts, "practice.session.chat", "v0.3.0.yaml"), "draft")
 	if err := client.Reload(context.Background()); err == nil {
 		t.Fatal("partial activation snapshot must fail")
 	}
-	assertCoordinatedActiveVersion(t, client, "v0.2.0")
-	rewritePromptStatus(t, filepath.Join(prompts, "report.generate", "v0.2.0.yaml"), "active")
+	assertFeatureActiveVersion(t, client, "report.generate", "v0.2.0")
+	assertFeatureActiveVersion(t, client, "practice.session.chat", "v0.3.0")
+	rewritePromptStatus(t, filepath.Join(prompts, "practice.session.chat", "v0.3.0.yaml"), "active")
 
-	rewriteCoordinatedStatuses(t, prompts, rubrics, "v0.1.0")
+	rewritePracticeStatuses(t, prompts, rubrics, "v0.2.0")
 	if err := client.Reload(context.Background()); err != nil {
 		t.Fatalf("rollback reload: %v", err)
 	}
-	assertCoordinatedActiveVersion(t, client, "v0.1.0")
+	assertFeatureActiveVersion(t, client, "report.generate", "v0.2.0")
+	assertFeatureActiveVersion(t, client, "practice.session.chat", "v0.2.0")
 
-	rewriteCoordinatedStatuses(t, prompts, rubrics, "v0.2.0")
+	rewritePracticeStatuses(t, prompts, rubrics, "v0.3.0")
 	if err := client.Reload(context.Background()); err != nil {
 		t.Fatalf("reactivate reload: %v", err)
 	}
-	assertCoordinatedActiveVersion(t, client, "v0.2.0")
-	for _, featureKey := range []string{"report.generate", "practice.session.chat"} {
-		if _, _, err := client.GetPrompt(featureKey, "v0.1.0", "multi"); err != nil {
-			t.Fatalf("GetPrompt rollback %s: %v", featureKey, err)
+	assertFeatureActiveVersion(t, client, "report.generate", "v0.2.0")
+	assertFeatureActiveVersion(t, client, "practice.session.chat", "v0.3.0")
+	for _, version := range []string{"v0.2.0", "v0.3.0"} {
+		if _, _, err := client.GetPrompt("practice.session.chat", version, "multi"); err != nil {
+			t.Fatalf("GetPrompt practice %s: %v", version, err)
 		}
-		if _, err := client.GetRubric(featureKey, "v0.1.0", "multi"); err != nil {
-			t.Fatalf("GetRubric rollback %s: %v", featureKey, err)
+		if _, err := client.GetRubric("practice.session.chat", version, "multi"); err != nil {
+			t.Fatalf("GetRubric practice %s: %v", version, err)
 		}
 	}
 }
 
-func rewriteCoordinatedStatuses(t *testing.T, prompts, rubrics, activeVersion string) {
+func rewritePracticeStatuses(t *testing.T, prompts, rubrics, activeVersion string) {
 	t.Helper()
-	for _, featureKey := range []string{"report.generate", "practice.session.chat"} {
-		for _, version := range []string{"v0.1.0", "v0.2.0"} {
-			promptStatus := "draft"
-			rubricStatus := "inactive"
-			if version == activeVersion {
-				promptStatus = "active"
-				rubricStatus = "active"
-			}
-			rewritePromptStatus(t, filepath.Join(prompts, featureKey, version+".yaml"), promptStatus)
-			rewriteRubricStatus(t, filepath.Join(rubrics, featureKey, version+".yaml"), rubricStatus)
+	for _, version := range []string{"v0.2.0", "v0.3.0"} {
+		promptStatus := "draft"
+		rubricStatus := "inactive"
+		if version == activeVersion {
+			promptStatus = "active"
+			rubricStatus = "active"
 		}
+		rewritePromptStatus(t, filepath.Join(prompts, "practice.session.chat", version+".yaml"), promptStatus)
+		rewriteRubricStatus(t, filepath.Join(rubrics, "practice.session.chat", version+".yaml"), rubricStatus)
 	}
 }
 
@@ -113,16 +115,14 @@ func rewriteRubricStatus(t *testing.T, path, status string) {
 	}
 }
 
-func assertCoordinatedActiveVersion(t *testing.T, client *Client, want string) {
+func assertFeatureActiveVersion(t *testing.T, client *Client, featureKey, want string) {
 	t.Helper()
-	for _, featureKey := range []string{"report.generate", "practice.session.chat"} {
-		resolved, err := client.ResolveActive(context.Background(), featureKey, "multi")
-		if err != nil {
-			t.Fatalf("ResolveActive %s: %v", featureKey, err)
-		}
-		if resolved.PromptVersion != want || resolved.RubricVersion != want {
-			t.Fatalf("%s active pair = %s/%s, want %s", featureKey, resolved.PromptVersion, resolved.RubricVersion, want)
-		}
+	resolved, err := client.ResolveActive(context.Background(), featureKey, "multi")
+	if err != nil {
+		t.Fatalf("ResolveActive %s: %v", featureKey, err)
+	}
+	if resolved.PromptVersion != want || resolved.RubricVersion != want {
+		t.Fatalf("%s active pair = %s/%s, want %s", featureKey, resolved.PromptVersion, resolved.RubricVersion, want)
 	}
 }
 

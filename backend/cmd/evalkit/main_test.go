@@ -83,10 +83,10 @@ func (s auditJudgeStub) CompleteJudge(context.Context, string, aiclient.Complete
 }
 
 func TestValidateCaseCountRequiresExactCurrentSuite(t *testing.T) {
-	if err := validateCaseCount(28); err != nil {
+	if err := validateCaseCount(32); err != nil {
 		t.Fatalf("exact current suite must pass: %v", err)
 	}
-	for _, count := range []int{27, 29} {
+	for _, count := range []int{31, 33} {
 		if err := validateCaseCount(count); err == nil {
 			t.Fatalf("case count %d must fail", count)
 		}

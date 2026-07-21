@@ -82,7 +82,7 @@ business-domain extensions. The lint gate accepts the following names:
 **Business-domain dimensions** (per feature_key family):
 
 - Practice family: `practice_depth`, `practice_dimension_coverage`,
-  `practice_signal_strength`, `practice_clarity`
+  `practice_signal_strength`, `practice_clarity`, `role_identity`
 - Report family: `report_evidence`, `report_action_quality`,
   `report_calibration`
 - Resume family: `resume_match`, `resume_impact`, `resume_clarity`,
@@ -143,6 +143,11 @@ rollback reverses all four rubric statuses together with the paired prompt
 statuses and reloads the whole snapshot. Database activation is a separate
 transactional truth substrate; this file contract makes no cross-media
 atomicity claim.
+
+The practice v0.3 identity release adds `role_identity` while v0.2 remains the
+exact rollback coordinate. Before activation, v0.3 is `inactive`; activation
+and rollback switch only the practice v0.2/v0.3 prompt/rubric status quartet
+after the current identity eval owner gate passes.
 
 ## 9 References
 

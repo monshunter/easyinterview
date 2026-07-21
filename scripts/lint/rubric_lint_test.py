@@ -128,8 +128,41 @@ def test_practice_chat_v020_rubric_is_content_identical_to_v010():
     assert v010.pop("version") == "v0.1.0"
     assert v020.pop("version") == "v0.2.0"
     assert v010.pop("status") == "inactive"
-    assert v020.pop("status") == "active"
+    assert v020.pop("status") == "inactive"
     assert v020 == v010
+
+
+def test_practice_chat_v030_rubric_prioritizes_interviewer_role_identity():
+    import yaml
+
+    path = REPO_ROOT / "config/rubrics/practice.session.chat/v0.3.0.yaml"
+    rubric = yaml.safe_load(path.read_text(encoding="utf-8"))
+    dimensions = {
+        dimension["name"]: dimension for dimension in rubric["dimensions"]
+    }
+
+    assert rubric["version"] == "v0.3.0"
+    assert rubric["status"] == "active"
+    assert {name: dimension["weight"] for name, dimension in dimensions.items()} == {
+        "followup_relevance": 0.25,
+        "practice_depth": 0.2,
+        "language_consistency": 0.15,
+        "role_identity": 0.4,
+    }
+    role_contract = " ".join(
+        [dimensions["role_identity"]["description"]]
+        + [
+            level["description"]
+            for level in dimensions["role_identity"]["score_levels"]
+        ]
+    ).lower()
+    for required in (
+        "targetjob",
+        "resume employer",
+        "anonymous",
+        "assistant-authored",
+    ):
+        assert required in role_contract
 
 
 def test_weight_sum_tolerance(tmp_path):

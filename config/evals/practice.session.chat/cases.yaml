@@ -2,6 +2,8 @@ feature_key: practice.session.chat
 cases:
   - id: practice.session.chat-strong
     language: en
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
     input: Continue from a concrete candidate answer using the strongest unresolved signal.
     output: &chat_output {messageText: "你提到灰度发布降低了风险。当时用什么指标决定扩大流量？"}
     judge:
@@ -9,9 +11,12 @@ cases:
         - {dimension: followup_relevance, value: 0.92}
         - {dimension: practice_depth, value: 0.92}
         - {dimension: language_consistency, value: 0.92}
+        - {dimension: role_identity, value: 0.92}
       reasoning: {summary: "Uses the strongest signal naturally.", evidence_quotes: []}
   - id: practice.session.chat-proficient
     language: multi
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
     input: Continue a normal mock interview conversation.
     output: *chat_output
     judge:
@@ -19,9 +24,12 @@ cases:
         - {dimension: followup_relevance, value: 0.78}
         - {dimension: practice_depth, value: 0.78}
         - {dimension: language_consistency, value: 0.78}
+        - {dimension: role_identity, value: 0.78}
       reasoning: {summary: "Meets the production baseline.", evidence_quotes: []}
   - id: practice.session.chat-developing
     language: multi
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
     input: Continue after a vague answer.
     output: *chat_output
     judge:
@@ -29,9 +37,12 @@ cases:
         - {dimension: followup_relevance, value: 0.5}
         - {dimension: practice_depth, value: 0.5}
         - {dimension: language_consistency, value: 0.5}
+        - {dimension: role_identity, value: 0.5}
       reasoning: {summary: "Partly follows context with visible gaps.", evidence_quotes: []}
   - id: practice.session.chat-weak
     language: multi
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
     input: Continue without using the available context.
     output: *chat_output
     judge:
@@ -39,9 +50,12 @@ cases:
         - {dimension: followup_relevance, value: 0.2}
         - {dimension: practice_depth, value: 0.2}
         - {dimension: language_consistency, value: 0.2}
+        - {dimension: role_identity, value: 0.9}
       reasoning: {summary: "Falls short of the rubric.", evidence_quotes: []}
   - id: practice.session.chat-unnamed-project-clarification
     language: zh-CN
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
     input: 候选人说自己有三个 Agent 项目，但 Resume context 没有对应项目名称，也未在对话中描述项目。
     output: {messageText: "你提到有三个 Agent 项目。请先说一下你想展开的项目名称和它解决的具体问题，我再基于你提供的事实继续追问。"}
     judge:
@@ -49,9 +63,12 @@ cases:
         - {dimension: followup_relevance, value: 0.92}
         - {dimension: practice_depth, value: 0.9}
         - {dimension: language_consistency, value: 0.92}
+        - {dimension: role_identity, value: 0.94}
       reasoning: {summary: "Asks for the missing project identity instead of inventing a resume fact.", evidence_quotes: []}
   - id: practice.session.chat-real-resume-grounding-no-invented-project
     language: zh-CN
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
     input: |-
       面试轮次是技术面。候选人简历明确包含 easyinterview、Ferry、service-registry-operator、korder、ohmykube 和 goat；
       经验主线是 Go、Kubernetes、GitOps、Infra、DevOps 与 AI Workflow Execution Layer。
@@ -62,9 +79,12 @@ cases:
         - {dimension: followup_relevance, value: 0.96}
         - {dimension: practice_depth, value: 0.94}
         - {dimension: language_consistency, value: 0.96}
+        - {dimension: role_identity, value: 0.96}
       reasoning: {summary: "Grounds the question in the real Ferry project and does not invent an absent customer-service project.", evidence_quotes: []}
   - id: practice.session.chat-assistant-hallucination-is-not-candidate-fact
     language: zh-CN
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
     input: |-
       Resume context 明确包含 Ferry / GitOps 项目，不包含智能客服。
       Conversation history 中先前的 assistant 错误地说“请介绍智能客服项目”，candidate-authored user messages 从未确认或提及该项目。
@@ -75,4 +95,68 @@ cases:
         - {dimension: followup_relevance, value: 0.97}
         - {dimension: practice_depth, value: 0.95}
         - {dimension: language_consistency, value: 0.96}
+        - {dimension: role_identity, value: 0.97}
       reasoning: {summary: "Treats assistant-authored hallucination as non-evidence and returns to the persisted resume.", evidence_quotes: []}
+  - id: practice.session.chat-target-company-not-resume-employer
+    language: zh-CN
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
+    input: |-
+      Persisted TargetJob names 星河云计算 as the target employer and the round is a technical interview.
+      Persisted Resume lists 圆币科技 as the candidate's current employer. Start the interview without
+      treating the Resume employer as the hiring company.
+    output: {messageText: "您好，我是星河云计算本轮技术面试官。我们先从你最近主导的一次系统可靠性改进开始，请说明当时最关键的技术取舍。"}
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.96}
+        - {dimension: practice_depth, value: 0.94}
+        - {dimension: language_consistency, value: 0.98}
+        - {dimension: role_identity, value: 0.99}
+      reasoning: {summary: "Uses the named TargetJob employer and keeps the Resume employer candidate-side only.", evidence_quotes: []}
+  - id: practice.session.chat-anonymous-target-omits-company-name
+    language: zh-CN
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
+    input: |-
+      Persisted TargetJob identifies only 杭州某大型互联网电商平台上市公司 and does not name a concrete employer.
+      Persisted Resume lists 圆币科技 as the candidate's current employer. Start the interview without
+      inventing or borrowing any company name.
+    output: {messageText: "您好，我是本轮技术面试官。我们先从你最近负责的一项高并发系统优化说起：当时的瓶颈是什么，你如何确认改动有效？"}
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.96}
+        - {dimension: practice_depth, value: 0.95}
+        - {dimension: language_consistency, value: 0.98}
+        - {dimension: role_identity, value: 0.99}
+      reasoning: {summary: "Keeps an anonymous TargetJob anonymous and does not borrow the Resume employer.", evidence_quotes: []}
+  - id: practice.session.chat-resume-employer-impersonation-weak
+    language: zh-CN
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
+    input: |-
+      Persisted TargetJob is anonymous. Persisted Resume lists 圆币科技 as the candidate's current employer.
+      The interviewer must not claim to represent the Resume employer.
+    output: {messageText: "您好，我是圆币科技的招聘经理，今天由我来负责这轮面试。"}
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.15}
+        - {dimension: practice_depth, value: 0.2}
+        - {dimension: language_consistency, value: 0.95}
+        - {dimension: role_identity, value: 0.0}
+      reasoning: {summary: "Incorrectly impersonates the candidate's Resume employer while the TargetJob is anonymous.", evidence_quotes: []}
+  - id: practice.session.chat-assistant-identity-drift-correction
+    language: zh-CN
+    prompt_version: v0.3.0
+    rubric_version: v0.3.0
+    input: |-
+      Persisted TargetJob is anonymous and persisted Resume lists 圆币科技 as the candidate's current employer.
+      Earlier conversation history contains an assistant-authored error: “我是圆币科技的招聘经理”.
+      Continue without treating that assistant claim as evidence and correct the hiring-side identity naturally.
+    output: {messageText: "更正一下，我是本轮目标岗位的面试官。回到刚才的问题，请具体说明你在高并发场景下如何定位性能瓶颈。"}
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.96}
+        - {dimension: practice_depth, value: 0.94}
+        - {dimension: language_consistency, value: 0.98}
+        - {dimension: role_identity, value: 0.99}
+      reasoning: {summary: "Corrects assistant-authored identity drift without inventing a target company.", evidence_quotes: []}

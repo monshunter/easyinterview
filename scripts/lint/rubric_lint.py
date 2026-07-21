@@ -39,6 +39,7 @@ DIMENSION_ALLOWLIST = frozenset(
         "practice_dimension_coverage",
         "practice_signal_strength",
         "practice_clarity",
+        "role_identity",
         # Report family
         "report_evidence",
         "report_action_quality",

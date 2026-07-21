@@ -1,8 +1,8 @@
 # F3 Output Schema Contract Checklist
 
-> **版本**: 2.15
-> **状态**: completed
-> **更新日期**: 2026-07-13
+> **版本**: 2.16
+> **状态**: active
+> **更新日期**: 2026-07-21
 
 **关联计划**: [plan](./plan.md)
 
@@ -121,6 +121,19 @@
 - [x] 14.8 Verify final `ResolveActive` returns v0.2 prompt/rubric for report and practice, exact getters still retrieve both v0.1 coordinates, report/practice data-source coordinates are exact, latest-migration seed/hash parity remains strict, schema/prompt/example/struct gates pass, and runtime rubric injection is absent；backend semantic grounding still requires its own validator/repair gates。
 - [x] 14.9 MAX4 RED-GREEN: schema200/semantic24-64/targeted18-52 unchanged。Evalkit generation and judge use independent max4 budgets；generation full-validates and dynamically selects action_labels/whole_report per round；judge retries only provider/protocol invalid and terminally rejects valid negative。Schema/example/seed/export/manifest contract records aggregate usage/latency + attempt_count/retry_count/reason/scope；UI UX 由下游 owner 独立验证。
 - [x] 14.10 EXAMPLE-GROUNDING RED-GREEN: retain the complete report JSON example, place a synthetic candidate input immediately before it, make every example fact/action traceable to that input, and require an anti-copy/current-context regeneration instruction. Synchronize template hash, migration body/hash, resolved prompt and active dev DB; do not add an example-omission mode.
+
+## Phase 15: Practice interviewer-identity v0.3 pair
+
+- [x] 15.1 RED: prompt/registry/migration tests require the v0.3 identity-source policy and exact v0.2 rollback while the new coordinate is absent.
+  <!-- verified: 2026-07-21 method=tdd-red evidence="active resolver tests returned v0.2, candidate metadata was draft/inactive, and the exact 000023 activation migration was absent; v0.3 owner-marker preflight also failed before verified markers existed" -->
+- [x] 15.2 GREEN: add v0.3 prompt/schema/hash and consume the F3 `004` v0.3 rubric; named TargetJob, anonymous TargetJob, Resume-company isolation and assistant-history correction policies are explicit.
+  <!-- verified: 2026-07-21 method=prompt-registry-contract evidence="active v0.3 prompt hash=9fff2605..., closed messageText schema and role_identity rubric load as an exact pair; v0.2 remains retrievable as draft/inactive rollback; focused registry/Practice tests and prompt/rubric lint pass" -->
+- [x] 15.3 OWNER-GATE: F3 `004` 的 verified `PRACTICE_INTERVIEWER_IDENTITY_V030_PASS` 与 backend-practice behavior gate 均存在，且失败说明/普通文本提及 marker 不得通过，随后才允许 active status 或 DB mutation。
+  <!-- verified: 2026-07-21 method=explicit-owner-marker-preflight evidence="preflight RED while marker absent, then GREEN only for verified marker attributes; failure/evidence/unchecked mentions remain rejected" -->
+- [x] 15.4 ACTIVATE: flip only practice v0.2/v0.3 prompt/rubric dev statuses with validated snapshot rollback/re-activate; create `000023_activate_practice_interviewer_identity_v030` via `make migrate-create` and pass PostgreSQL up/down/up.
+  <!-- verified: 2026-07-21 method=file-snapshot+postgres evidence="practice-only v0.3 activate/v0.2 rollback/reactivate cache test PASS; migration lint and make migrate-check PASS; disposable PostgreSQL integration 22->23->22->23 PASS with report v0.2 untouched and role_identity weight 0.4; dev DB version=23 dirty=false" -->
+- [x] 15.5 VERIFY: exact getters retain v0.2/v0.3, active Resolve returns practice v0.3 + `registry.v1`, report v0.2 is untouched, strict parity/lint/focused/root/docs/diff gates pass.
+  <!-- verified: 2026-07-21 method=full-closeout evidence="exact getters and active resolver/cache/DB integration PASS with registry.v1 and report v0.2 isolation; all-migration content parity, prompt/rubric lint and focused tests PASS; make test/build/lint/docs-check, three context validators, index and diff gates PASS" -->
 
 ## BDD-Gate
 
